@@ -1,0 +1,1702 @@
+"use client";
+
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { addToast } from "@heroui/toast";
+import { courseService } from "@/services/course.service";
+import { studentService } from "@/services/student.service";
+import type { Course, SectionStudent } from "@/services/course.service";
+import type { Student } from "@/services/student.service";
+import {
+    type PermanentTeam,
+    type WeeklyTeam,
+    type TeamMember,
+    type SectionSubTab,
+    type TeamType,
+    type TeamFormationMethod,
+    DEFAULT_TOTAL_WEEKS,
+    naturalSortTeams,
+    filterStudentsByQuery,
+    calculateTotalStudents,
+} from "./config";
+import { useSocket, type ResourceType, type ActionType } from "@/contexts/SocketContext";
+
+// ============================================
+// Cache Configuration
+// ============================================
+
+const CACHE_DURATION = 60000; // 1 minute
+
+interface CacheEntry<T> {
+    data: T;
+    timestamp: number;
+}
+
+// ============================================
+// Modal State Types
+// ============================================
+
+interface SectionModalState {
+    isOpen: boolean;
+    sectionNo: string;
+    note: string;
+}
+
+interface StudentModalState {
+    isOpen: boolean;
+    sectionId: number | null;
+    studentId: string;
+    searchQuery: string;
+    mode: "single" | "bulk";
+    pasteData: string;
+    parsedStudents: Array<{
+        inputValue: string;
+        matchedStudent: Student | null;
+        status: "matched" | "not_found" | "already_enrolled";
+    }>;
+}
+
+interface TeamModalState {
+    isOpen: boolean;
+    type: TeamType;
+    formationMethod: TeamFormationMethod;
+    name: string;
+    members: number[];
+    size: number;
+    memberMode: "select" | "paste";
+    isParsing: boolean;
+    pasteData: string;
+    parsedMembers: Array<{
+        inputValue: string;
+        matchedStudent: TeamMember | null;
+        status: "matched" | "not_found" | "already_in_team";
+    }>;
+}
+
+interface EditTeamModalState {
+    isOpen: boolean;
+    team: {
+        id: number;
+        name: string;
+        type: TeamType;
+        weekNumber?: number;
+        members: TeamMember[];
+    } | null;
+    name: string;
+    members: number[];
+}
+
+interface DeleteModalTarget {
+    type: "section" | "student" | "team";
+    sectionId?: number;
+    sectionNo?: string;
+    sectionStudentCount?: number;
+    studentId?: number;
+    studentName?: string;
+    studentCode?: string;
+    teamId?: number;
+    teamName?: string;
+    teamType?: TeamType;
+    weekNumber?: number;
+    teamMembers?: TeamMember[];
+}
+
+interface DeleteModalState {
+    isOpen: boolean;
+    target: DeleteModalTarget | null;
+}
+
+// ============================================
+// Hook Return Type
+// ============================================
+
+export interface UseSectionsTabReturn {
+    // Data
+    course: Course | null;
+    isLoading: boolean;
+    isTeamsLoading: boolean;
+    
+    // UI State
+    sectionSubTab: SectionSubTab;
+    sectionSearchQuery: string;
+    selectedWeek: number;
+    totalWeeks: number;
+    expandedSections: number[];
+    
+    // Data Collections
+    permanentTeams: PermanentTeam[];
+    weeklyTeams: Record<number, WeeklyTeam[]>;
+    sectionStudents: Record<number, SectionStudent[]>;
+    studentsList: Student[];
+    
+    // Computed
+    totalStudents: number;
+    
+    // Modal States
+    sectionModal: SectionModalState & {
+        setIsOpen: (open: boolean) => void;
+        setSectionNo: (no: string) => void;
+        setNote: (note: string) => void;
+        reset: () => void;
+    };
+    studentModal: StudentModalState & {
+        setIsOpen: (open: boolean) => void;
+        setSectionId: (id: number | null) => void;
+        setStudentId: (id: string) => void;
+        setSearchQuery: (query: string) => void;
+        setMode: (mode: "single" | "bulk") => void;
+        setPasteData: (data: string) => void;
+        setParsedStudents: (students: StudentModalState["parsedStudents"]) => void;
+        reset: () => void;
+    };
+    teamModal: TeamModalState & {
+        setIsOpen: (open: boolean) => void;
+        setType: (type: TeamType) => void;
+        setFormationMethod: (method: TeamFormationMethod) => void;
+        setName: (name: string) => void;
+        setMembers: (members: number[]) => void;
+        setSize: (size: number) => void;
+        setMemberMode: (mode: "select" | "paste") => void;
+        setIsParsing: (parsing: boolean) => void;
+        setPasteData: (data: string) => void;
+        setParsedMembers: (members: TeamModalState["parsedMembers"]) => void;
+        reset: () => void;
+    };
+    editTeamModal: EditTeamModalState & {
+        open: (team: EditTeamModalState["team"]) => void;
+        setName: (name: string) => void;
+        setMembers: (members: number[]) => void;
+        reset: () => void;
+    };
+    deleteModal: DeleteModalState & {
+        open: (type: DeleteModalTarget["type"], target: Omit<DeleteModalTarget, "type">) => void;
+        reset: () => void;
+        confirmInput: string;
+        setConfirmInput: (value: string) => void;
+    };
+    editSectionModal: {
+        isOpen: boolean;
+        sectionId: number | null;
+        sectionNo: string;
+        note: string;
+        setIsOpen: (open: boolean) => void;
+        setSectionNo: (no: string) => void;
+        setNote: (note: string) => void;
+        reset: () => void;
+    };
+    bulkDeleteModal: {
+        isOpen: boolean;
+        setIsOpen: (open: boolean) => void;
+    };
+    isSubmitting: boolean;
+    
+    // UI Handlers
+    onSubTabChange: (tab: SectionSubTab) => void;
+    onSearchQueryChange: (query: string) => void;
+    onWeekChange: (week: number) => void;
+    onToggleSection: (sectionId: number) => void;
+    
+    // CRUD Handlers
+    handleAddSection: () => Promise<void>;
+    handleRemoveSection: (sectionId: number) => void;
+    confirmRemoveSection: () => Promise<void>;
+    handleEditSection: () => Promise<void>;
+    openEditSectionModal: (sectionId: number) => void;
+    handleAddStudent: () => Promise<void>;
+    handleBulkAddStudents: () => Promise<void>;
+    handleRemoveStudent: () => Promise<void>;
+    handleCreateTeam: () => Promise<void>;
+    handleSaveEditedTeam: () => Promise<void>;
+    handleDeleteTeam: () => Promise<void>;
+    handleBulkDeleteTeams: () => Promise<void>;
+    handleCopyTeamsFromWeek: (sourceWeek: number) => Promise<void>;
+    
+    // Modal Openers
+    openAddStudentModal: (sectionId: number) => void;
+    openDeleteStudentModal: (sectionId: number, student: SectionStudent) => void;
+    openCreateTeamModal: (type: TeamType, method: TeamFormationMethod) => void;
+    openEditTeamModal: (teamId: number, type: TeamType, weekNumber?: number) => void;
+    openDeleteTeamModal: (teamId: number, type: TeamType, weekNumber?: number) => void;
+    openBulkDeleteModal: () => void;
+    
+    // Computed Functions
+    getFilteredSectionStudents: (sectionId: number) => SectionStudent[];
+    findStudentTeam: (studentId: number, type: TeamType, weekNumber?: number) => string | null;
+    getUnassignedStudents: (type: TeamType, weekNumber?: number) => TeamMember[];
+    getAvailableStudentsForEdit: () => TeamMember[];
+    getAllEnrolledStudents: () => TeamMember[];
+    
+    // Utility
+    parseExcelData: (pasteData: string) => void;
+    parseTeamExcelData: (pasteData: string) => Promise<void>;
+}
+
+// ============================================
+// Main Hook
+// ============================================
+
+export function useSectionsTab(courseId: string): UseSectionsTabReturn {
+    // Real-time sync
+    const { emitDataUpdate, isConnected } = useSocket();
+    
+    // Cache
+    const cache = useRef<{
+        course?: CacheEntry<Course>;
+        teams?: CacheEntry<{ permanent: PermanentTeam[]; weekly: Record<number, WeeklyTeam[]> }>;
+    }>({});
+    
+    // ============================================
+    // Core Data States
+    // ============================================
+    
+    const [course, setCourse] = useState<Course | null>(null);
+    const [permanentTeams, setPermanentTeams] = useState<PermanentTeam[]>([]);
+    const [weeklyTeams, setWeeklyTeams] = useState<Record<number, WeeklyTeam[]>>({});
+    const [sectionStudents, setSectionStudents] = useState<Record<number, SectionStudent[]>>({});
+    const [studentsList, setStudentsList] = useState<Student[]>([]);
+    
+    // Loading States
+    const [isLoading, setIsLoading] = useState(true);
+    const [isTeamsLoading, setIsTeamsLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    // ============================================
+    // UI States
+    // ============================================
+    
+    const [sectionSubTab, setSectionSubTab] = useState<SectionSubTab>("students");
+    const [sectionSearchQuery, setSectionSearchQuery] = useState("");
+    const [selectedWeek, setSelectedWeek] = useState(1);
+    const [expandedSections, setExpandedSections] = useState<number[]>([]);
+    const totalWeeks = DEFAULT_TOTAL_WEEKS;
+    
+    // ============================================
+    // Modal States
+    // ============================================
+    
+    const [sectionModalState, setSectionModalState] = useState<SectionModalState>({
+        isOpen: false,
+        sectionNo: "",
+        note: "",
+    });
+    
+    const [studentModalState, setStudentModalState] = useState<StudentModalState>({
+        isOpen: false,
+        sectionId: null,
+        studentId: "",
+        searchQuery: "",
+        mode: "single",
+        pasteData: "",
+        parsedStudents: [],
+    });
+    
+    const [teamModalState, setTeamModalState] = useState<TeamModalState>({
+        isOpen: false,
+        type: "permanent",
+        formationMethod: "manual",
+        name: "",
+        members: [],
+        size: 3,
+        memberMode: "select",
+        isParsing: false,
+        pasteData: "",
+        parsedMembers: [],
+    });
+    
+    const [editTeamModalState, setEditTeamModalState] = useState<EditTeamModalState>({
+        isOpen: false,
+        team: null,
+        name: "",
+        members: [],
+    });
+    
+    const [deleteModalState, setDeleteModalState] = useState<DeleteModalState>({
+        isOpen: false,
+        target: null,
+    });
+    
+    // Delete confirmation input
+    const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
+    
+    // Edit section modal state
+    const [editSectionModalState, setEditSectionModalState] = useState<{
+        isOpen: boolean;
+        sectionId: number | null;
+        sectionNo: string;
+        note: string;
+    }>({
+        isOpen: false,
+        sectionId: null,
+        sectionNo: "",
+        note: "",
+    });
+    
+    const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
+    
+    // ============================================
+    // Cache Helpers
+    // ============================================
+    
+    const isCacheValid = useCallback(<T,>(entry?: CacheEntry<T>): boolean => {
+        if (!entry) return false;
+        return Date.now() - entry.timestamp < CACHE_DURATION;
+    }, []);
+    
+    const emitUpdate = useCallback((resource: ResourceType, action: ActionType, id?: string | number) => {
+        if (isConnected) {
+            emitDataUpdate(resource, action, id);
+        }
+    }, [isConnected, emitDataUpdate]);
+    
+    // ============================================
+    // Data Fetching
+    // ============================================
+    
+    const fetchCourse = useCallback(async (forceRefresh = false) => {
+        if (!forceRefresh && isCacheValid(cache.current.course)) {
+            setCourse(cache.current.course!.data);
+            return;
+        }
+        
+        setIsLoading(true);
+        try {
+            const response = await courseService.getCourseById(courseId);
+            if (response.success && response.data) {
+                cache.current.course = { data: response.data, timestamp: Date.now() };
+                setCourse(response.data);
+            }
+        } catch (error) {
+            console.error("Error fetching course:", error);
+            addToast({
+                title: "เกิดข้อผิดพลาด",
+                description: "ไม่สามารถโหลดข้อมูลรายวิชาได้",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [courseId, isCacheValid]);
+    
+    const fetchTeams = useCallback(async (forceRefresh = false) => {
+        if (!forceRefresh && isCacheValid(cache.current.teams)) {
+            const cachedTeams = cache.current.teams!.data;
+            setPermanentTeams(cachedTeams.permanent);
+            setWeeklyTeams(cachedTeams.weekly);
+            return;
+        }
+        
+        setIsTeamsLoading(true);
+        try {
+            const [permanentResponse, weeklyResponse] = await Promise.all([
+                courseService.getTeams(courseId, 'permanent'),
+                courseService.getTeams(courseId, 'temporary'),
+            ]);
+            
+            let permanent: PermanentTeam[] = [];
+            let weekly: Record<number, WeeklyTeam[]> = {};
+            
+            if (permanentResponse.success && permanentResponse.data) {
+                permanent = permanentResponse.data.map(t => ({
+                    id: t.id,
+                    name: t.name,
+                    members: t.members.map(m => ({
+                        id: m.id,
+                        student_id: m.student_id,
+                        full_name: m.full_name,
+                    })),
+                    createdAt: t.created_at,
+                }));
+                permanent.sort(naturalSortTeams);
+            }
+            
+            if (weeklyResponse.success && weeklyResponse.data) {
+                weeklyResponse.data.forEach(t => {
+                    const weekNum = t.week_number || 1;
+                    if (!weekly[weekNum]) weekly[weekNum] = [];
+                    weekly[weekNum].push({
+                        id: t.id,
+                        name: t.name,
+                        members: t.members.map(m => ({
+                            id: m.id,
+                            student_id: m.student_id,
+                            full_name: m.full_name,
+                        })),
+                        weekNumber: weekNum,
+                    });
+                });
+                Object.keys(weekly).forEach(week => {
+                    weekly[parseInt(week)].sort(naturalSortTeams);
+                });
+            }
+            
+            cache.current.teams = { data: { permanent, weekly }, timestamp: Date.now() };
+            setPermanentTeams(permanent);
+            setWeeklyTeams(weekly);
+        } catch (error) {
+            console.error("Error fetching teams:", error);
+        } finally {
+            setIsTeamsLoading(false);
+        }
+    }, [courseId, isCacheValid]);
+    
+    const fetchSectionStudents = useCallback(async (sectionId: number) => {
+        try {
+            const response = await courseService.getSectionStudents(courseId, sectionId);
+            if (response.success && response.data) {
+                setSectionStudents(prev => ({ ...prev, [sectionId]: response.data! }));
+            }
+        } catch (error) {
+            console.error("Error fetching section students:", error);
+        }
+    }, [courseId]);
+    
+    const fetchAllSectionStudents = useCallback(async () => {
+        if (!course?.sections) return;
+        
+        const results = await Promise.all(
+            course.sections.map(async section => {
+                const response = await courseService.getSectionStudents(courseId, section.id);
+                return { sectionId: section.id, students: response.data || [] };
+            })
+        );
+        
+        const newSectionStudents: Record<number, SectionStudent[]> = {};
+        results.forEach(r => {
+            newSectionStudents[r.sectionId] = r.students;
+        });
+        setSectionStudents(newSectionStudents);
+    }, [course?.sections, courseId]);
+    
+    const fetchStudentsList = useCallback(async () => {
+        try {
+            const response = await studentService.getStudents({ limit: 1000, status: "active" });
+            if (response.success && response.data) {
+                setStudentsList(response.data.students);
+            }
+        } catch (error) {
+            console.error("Error fetching students:", error);
+        }
+    }, []);
+    
+    // ============================================
+    // Initialize Data
+    // ============================================
+    
+    useEffect(() => {
+        const initializeData = async () => {
+            await Promise.all([
+                fetchCourse(),
+                fetchTeams(),
+                fetchStudentsList(),
+            ]);
+        };
+        initializeData();
+    }, [courseId]); // eslint-disable-line react-hooks/exhaustive-deps
+    
+    // Fetch section students when course loads
+    useEffect(() => {
+        if (course?.sections && course.sections.length > 0) {
+            fetchAllSectionStudents();
+        }
+    }, [course?.sections, fetchAllSectionStudents]);
+    
+    // ============================================
+    // Computed Values
+    // ============================================
+    
+    const totalStudents = useMemo(() => calculateTotalStudents(course), [course]);
+    
+    const getAllEnrolledStudents = useCallback((): TeamMember[] => {
+        const students: TeamMember[] = [];
+        Object.values(sectionStudents).forEach(sectionList => {
+            sectionList.forEach(s => {
+                if (!students.some(existing => existing.id === s.id)) {
+                    students.push({
+                        id: s.id,
+                        student_id: s.student_id,
+                        full_name: s.full_name,
+                    });
+                }
+            });
+        });
+        return students;
+    }, [sectionStudents]);
+    
+    const getFilteredSectionStudents = useCallback((sectionId: number) => {
+        const students = sectionStudents[sectionId] || [];
+        return filterStudentsByQuery(students, sectionSearchQuery);
+    }, [sectionStudents, sectionSearchQuery]);
+    
+    const findStudentTeam = useCallback((
+        studentId: number,
+        type: TeamType,
+        weekNumber?: number
+    ): string | null => {
+        if (type === "permanent") {
+            const team = permanentTeams.find(t => t.members.some(m => m.id === studentId));
+            return team?.name || null;
+        } else if (weekNumber !== undefined && weeklyTeams[weekNumber]) {
+            const team = weeklyTeams[weekNumber].find(t => t.members.some(m => m.id === studentId));
+            return team?.name || null;
+        }
+        return null;
+    }, [permanentTeams, weeklyTeams]);
+    
+    const getUnassignedStudents = useCallback((
+        type: TeamType,
+        weekNumber?: number
+    ): TeamMember[] => {
+        const allStudents = getAllEnrolledStudents();
+        const assignedIds = new Set<number>();
+        
+        if (type === "permanent") {
+            permanentTeams.forEach(team => {
+                team.members.forEach(m => assignedIds.add(m.id));
+            });
+        } else if (weekNumber !== undefined && weeklyTeams[weekNumber]) {
+            weeklyTeams[weekNumber].forEach(team => {
+                team.members.forEach(m => assignedIds.add(m.id));
+            });
+        }
+        
+        return allStudents.filter(s => !assignedIds.has(s.id));
+    }, [getAllEnrolledStudents, permanentTeams, weeklyTeams]);
+    
+    const getAvailableStudentsForEdit = useCallback(() => {
+        const editTeam = editTeamModalState.team;
+        if (!editTeam) return [];
+        
+        const allStudents = getAllEnrolledStudents();
+        const currentMemberIds = new Set(editTeamModalState.members);
+        const otherTeamMemberIds = new Set<number>();
+        
+        if (editTeam.type === "permanent") {
+            permanentTeams.forEach(team => {
+                if (team.id !== editTeam.id) {
+                    team.members.forEach(m => otherTeamMemberIds.add(m.id));
+                }
+            });
+        } else if (editTeam.weekNumber !== undefined) {
+            const weekTeams = weeklyTeams[editTeam.weekNumber] || [];
+            weekTeams.forEach(team => {
+                if (team.id !== editTeam.id) {
+                    team.members.forEach(m => otherTeamMemberIds.add(m.id));
+                }
+            });
+        }
+        
+        return allStudents.filter(s => 
+            currentMemberIds.has(s.id) || !otherTeamMemberIds.has(s.id)
+        );
+    }, [editTeamModalState.team, editTeamModalState.members, getAllEnrolledStudents, permanentTeams, weeklyTeams]);
+    
+    // ============================================
+    // UI Handlers
+    // ============================================
+    
+    const onSubTabChange = useCallback((tab: SectionSubTab) => {
+        setSectionSubTab(tab);
+    }, []);
+    
+    const onSearchQueryChange = useCallback((query: string) => {
+        setSectionSearchQuery(query);
+    }, []);
+    
+    const onWeekChange = useCallback((week: number) => {
+        setSelectedWeek(week);
+    }, []);
+    
+    const onToggleSection = useCallback((sectionId: number) => {
+        if (expandedSections.includes(sectionId)) {
+            setExpandedSections(expandedSections.filter(id => id !== sectionId));
+        } else {
+            setExpandedSections([...expandedSections, sectionId]);
+            if (!sectionStudents[sectionId]) {
+                fetchSectionStudents(sectionId);
+            }
+        }
+    }, [expandedSections, sectionStudents, fetchSectionStudents]);
+    
+    // ============================================
+    // Modal Handlers
+    // ============================================
+    
+    const sectionModal = useMemo(() => ({
+        ...sectionModalState,
+        setIsOpen: (open: boolean) => setSectionModalState(prev => ({ ...prev, isOpen: open })),
+        setSectionNo: (no: string) => setSectionModalState(prev => ({ ...prev, sectionNo: no })),
+        setNote: (note: string) => setSectionModalState(prev => ({ ...prev, note })),
+        reset: () => setSectionModalState({ isOpen: false, sectionNo: "", note: "" }),
+    }), [sectionModalState]);
+    
+    const studentModal = useMemo(() => ({
+        ...studentModalState,
+        setIsOpen: (open: boolean) => setStudentModalState(prev => ({ ...prev, isOpen: open })),
+        setSectionId: (id: number | null) => setStudentModalState(prev => ({ ...prev, sectionId: id })),
+        setStudentId: (id: string) => setStudentModalState(prev => ({ ...prev, studentId: id })),
+        setSearchQuery: (query: string) => setStudentModalState(prev => ({ ...prev, searchQuery: query })),
+        setMode: (mode: "single" | "bulk") => setStudentModalState(prev => ({ ...prev, mode })),
+        setPasteData: (data: string) => setStudentModalState(prev => ({ ...prev, pasteData: data })),
+        setParsedStudents: (students: StudentModalState["parsedStudents"]) => 
+            setStudentModalState(prev => ({ ...prev, parsedStudents: students })),
+        reset: () => setStudentModalState({
+            isOpen: false, sectionId: null, studentId: "", searchQuery: "",
+            mode: "single", pasteData: "", parsedStudents: [],
+        }),
+    }), [studentModalState]);
+    
+    const teamModal = useMemo(() => ({
+        ...teamModalState,
+        setIsOpen: (open: boolean) => setTeamModalState(prev => ({ ...prev, isOpen: open })),
+        setType: (type: TeamType) => setTeamModalState(prev => ({ ...prev, type })),
+        setFormationMethod: (method: TeamFormationMethod) => setTeamModalState(prev => ({ ...prev, formationMethod: method })),
+        setName: (name: string) => setTeamModalState(prev => ({ ...prev, name })),
+        setMembers: (members: number[]) => setTeamModalState(prev => ({ ...prev, members })),
+        setSize: (size: number) => setTeamModalState(prev => ({ ...prev, size })),
+        setMemberMode: (mode: "select" | "paste") => setTeamModalState(prev => ({ ...prev, memberMode: mode })),
+        setIsParsing: (parsing: boolean) => setTeamModalState(prev => ({ ...prev, isParsing: parsing })),
+        setPasteData: (data: string) => setTeamModalState(prev => ({ ...prev, pasteData: data })),
+        setParsedMembers: (members: TeamModalState["parsedMembers"]) => 
+            setTeamModalState(prev => ({ ...prev, parsedMembers: members })),
+        reset: () => setTeamModalState({
+            isOpen: false, type: "permanent", formationMethod: "manual",
+            name: "", members: [], size: 3, memberMode: "select", isParsing: false, pasteData: "", parsedMembers: [],
+        }),
+    }), [teamModalState]);
+    
+    const editTeamModal = useMemo(() => ({
+        ...editTeamModalState,
+        open: (team: EditTeamModalState["team"]) => {
+            if (team) {
+                setEditTeamModalState({
+                    isOpen: true,
+                    team,
+                    name: team.name,
+                    members: team.members.map(m => m.id),
+                });
+            }
+        },
+        setName: (name: string) => setEditTeamModalState(prev => ({ ...prev, name })),
+        setMembers: (members: number[]) => setEditTeamModalState(prev => ({ ...prev, members })),
+        reset: () => setEditTeamModalState({ isOpen: false, team: null, name: "", members: [] }),
+    }), [editTeamModalState]);
+    
+    const deleteModal = useMemo(() => ({
+        ...deleteModalState,
+        open: (type: DeleteModalTarget["type"], target: Omit<DeleteModalTarget, "type">) => {
+            setDeleteModalState({ isOpen: true, target: { type, ...target } });
+            setDeleteConfirmInput(""); // Reset confirm input when opening
+        },
+        reset: () => {
+            setDeleteModalState({ isOpen: false, target: null });
+            setDeleteConfirmInput(""); // Reset confirm input when closing
+        },
+        confirmInput: deleteConfirmInput,
+        setConfirmInput: setDeleteConfirmInput,
+    }), [deleteModalState, deleteConfirmInput]);
+    
+    const bulkDeleteModal = useMemo(() => ({
+        isOpen: bulkDeleteModalOpen,
+        setIsOpen: setBulkDeleteModalOpen,
+    }), [bulkDeleteModalOpen]);
+    
+    // ============================================
+    // CRUD Actions
+    // ============================================
+    
+    const handleAddSection = useCallback(async () => {
+        if (!sectionModalState.sectionNo.trim()) {
+            addToast({
+                title: "ข้อมูลไม่ครบ",
+                description: "กรุณากรอกหมายเลขกลุ่มเรียน",
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+        
+        setIsSubmitting(true);
+        try {
+            const response = await courseService.addSection(courseId, {
+                section_no: sectionModalState.sectionNo,
+                note: sectionModalState.note || undefined,
+            });
+            
+            if (response.success && response.data) {
+                const newSection = response.data;
+                setCourse(prev => {
+                    if (!prev) return prev;
+                    return {
+                        ...prev,
+                        sections: [...(prev.sections || []), {
+                            id: newSection.id,
+                            course_id: courseId,
+                            section_no: newSection.section_no,
+                            note: newSection.note,
+                            created_at: newSection.created_at,
+                            studentCount: 0
+                        }]
+                    };
+                });
+                
+                cache.current.course = undefined; // Invalidate cache
+                
+                addToast({
+                    title: "สำเร็จ",
+                    description: "เพิ่มกลุ่มเรียนสำเร็จ",
+                    color: "success",
+                    timeout: 3000,
+                shouldShowTimeoutProgress: true,
+                });
+                
+                emitUpdate("section", "create", newSection.id);
+                sectionModal.reset();
+            }
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            addToast({
+                title: "เกิดข้อผิดพลาด",
+                description: err.message || "ไม่สามารถเพิ่มกลุ่มเรียนได้",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [courseId, sectionModalState.sectionNo, sectionModalState.note, sectionModal, emitUpdate]);
+    
+    const handleRemoveSection = useCallback((sectionId: number) => {
+        const section = course?.sections?.find(s => s.id === sectionId);
+        if (!section) return;
+        
+        deleteModal.open("section", {
+            sectionId,
+            sectionNo: section.section_no,
+            sectionStudentCount: section.studentCount || 0,
+        });
+    }, [course?.sections, deleteModal]);
+    
+    const confirmRemoveSection = useCallback(async () => {
+        const target = deleteModalState.target;
+        if (!target?.sectionId) return;
+        
+        setIsSubmitting(true);
+        try {
+            const response = await courseService.removeSection(courseId, target.sectionId);
+            if (response.success) {
+                setCourse(prev => {
+                    if (!prev) return prev;
+                    return {
+                        ...prev,
+                        sections: prev.sections?.filter(s => s.id !== target.sectionId) || []
+                    };
+                });
+                
+                setSectionStudents(prev => {
+                    const newState = { ...prev };
+                    delete newState[target.sectionId!];
+                    return newState;
+                });
+                
+                cache.current.course = undefined;
+                
+                addToast({
+                    title: "สำเร็จ",
+                    description: "ลบกลุ่มเรียนเรียบร้อย",
+                    color: "success",
+                    timeout: 3000,
+                shouldShowTimeoutProgress: true,
+                });
+                
+                emitUpdate("section", "delete", target.sectionId);
+                deleteModal.reset();
+            }
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            addToast({
+                title: "เกิดข้อผิดพลาด",
+                description: err.message || "ไม่สามารถลบกลุ่มเรียนได้",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [courseId, deleteModalState.target, deleteModal, emitUpdate]);
+    
+    // Open edit section modal
+    const openEditSectionModal = useCallback((sectionId: number) => {
+        const section = course?.sections?.find(s => s.id === sectionId);
+        if (!section) return;
+        
+        setEditSectionModalState({
+            isOpen: true,
+            sectionId,
+            sectionNo: section.section_no,
+            note: section.note || "",
+        });
+    }, [course?.sections]);
+    
+    // Handle edit section
+    const handleEditSection = useCallback(async () => {
+        if (!editSectionModalState.sectionId || !editSectionModalState.sectionNo.trim()) {
+            addToast({
+                title: "ข้อมูลไม่ครบ",
+                description: "กรุณากรอกหมายเลขกลุ่มเรียน",
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+        
+        // Check for duplicate section number
+        const isDuplicate = course?.sections?.some(
+            s => s.id !== editSectionModalState.sectionId && 
+                 s.section_no === editSectionModalState.sectionNo.trim()
+        );
+        
+        if (isDuplicate) {
+            addToast({
+                title: "หมายเลขซ้ำ",
+                description: `หมายเลขกลุ่มเรียน ${editSectionModalState.sectionNo} มีอยู่แล้ว`,
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+        
+        setIsSubmitting(true);
+        try {
+            const response = await courseService.updateSection(
+                courseId, 
+                editSectionModalState.sectionId,
+                {
+                    section_no: editSectionModalState.sectionNo.trim(),
+                    note: editSectionModalState.note || undefined,
+                }
+            );
+            
+            if (response.success) {
+                setCourse(prev => {
+                    if (!prev) return prev;
+                    return {
+                        ...prev,
+                        sections: prev.sections?.map(s => 
+                            s.id === editSectionModalState.sectionId
+                                ? { ...s, section_no: editSectionModalState.sectionNo.trim(), note: editSectionModalState.note || null }
+                                : s
+                        ) || []
+                    };
+                });
+                
+                cache.current.course = undefined;
+                
+                addToast({
+                    title: "สำเร็จ",
+                    description: "แก้ไขกลุ่มเรียนสำเร็จ",
+                    color: "success",
+                    timeout: 3000,
+                shouldShowTimeoutProgress: true,
+                });
+                
+                emitUpdate("section", "update", editSectionModalState.sectionId);
+                editSectionModal.reset();
+            }
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            addToast({
+                title: "เกิดข้อผิดพลาด",
+                description: err.message || "ไม่สามารถแก้ไขกลุ่มเรียนได้",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [courseId, editSectionModalState, course?.sections, emitUpdate]);
+    
+    // Edit section modal helpers
+    const editSectionModal = useMemo(() => ({
+        isOpen: editSectionModalState.isOpen,
+        sectionId: editSectionModalState.sectionId,
+        sectionNo: editSectionModalState.sectionNo,
+        note: editSectionModalState.note,
+        setIsOpen: (open: boolean) => setEditSectionModalState(prev => ({ ...prev, isOpen: open })),
+        setSectionNo: (no: string) => setEditSectionModalState(prev => ({ ...prev, sectionNo: no })),
+        setNote: (note: string) => setEditSectionModalState(prev => ({ ...prev, note })),
+        reset: () => setEditSectionModalState({ isOpen: false, sectionId: null, sectionNo: "", note: "" }),
+    }), [editSectionModalState]);
+
+    const handleAddStudent = useCallback(async () => {
+        if (!studentModalState.sectionId || !studentModalState.studentId) {
+            addToast({
+                title: "ข้อมูลไม่ครบ",
+                description: "กรุณาเลือกนักศึกษา",
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+        
+        setIsSubmitting(true);
+        try {
+            const response = await courseService.addStudentToSection(
+                courseId,
+                studentModalState.sectionId,
+                parseInt(studentModalState.studentId)
+            );
+            
+            if (response.success) {
+                const student = studentsList.find(s => s.id === parseInt(studentModalState.studentId));
+                if (student) {
+                    setSectionStudents(prev => ({
+                        ...prev,
+                        [studentModalState.sectionId!]: [...(prev[studentModalState.sectionId!] || []), {
+                            id: student.id,
+                            student_id: student.student_id,
+                            full_name: student.full_name,
+                            email: student.email || null,
+                            is_active: student.is_active,
+                            enrolled_at: new Date().toISOString(),
+                        }]
+                    }));
+                    
+                    setCourse(prev => {
+                        if (!prev) return prev;
+                        return {
+                            ...prev,
+                            sections: prev.sections?.map(s => 
+                                s.id === studentModalState.sectionId
+                                    ? { ...s, studentCount: (s.studentCount || 0) + 1 }
+                                    : s
+                            ) || []
+                        };
+                    });
+                }
+                
+                addToast({
+                    title: "สำเร็จ",
+                    description: "เพิ่มนักศึกษาเรียบร้อย",
+                    color: "success",
+                    timeout: 3000,
+                shouldShowTimeoutProgress: true,
+                });
+                
+                emitUpdate("student", "create", studentModalState.studentId);
+                studentModal.reset();
+            } else {
+                const errObj = response.error as unknown;
+                const errMsg =
+                    (typeof errObj === "object" && errObj !== null && "message" in errObj
+                        ? (errObj as { message: string }).message
+                        : null) ||
+                    response.message ||
+                    "ไม่สามารถเพิ่มนักศึกษาได้";
+                addToast({
+                    title: "เกิดข้อผิดพลาด",
+                    description: errMsg,
+                    color: "danger",
+                    timeout: 5000,
+                    shouldShowTimeoutProgress: true,
+                });
+            }
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            addToast({
+                title: "เกิดข้อผิดพลาด",
+                description: err.message || "ไม่สามารถเพิ่มนักศึกษาได้",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [courseId, studentModalState.sectionId, studentModalState.studentId, studentsList, studentModal, emitUpdate]);
+    
+    const handleBulkAddStudents = useCallback(async () => {
+        const studentsToAdd = studentModalState.parsedStudents
+            .filter(p => p.status === "matched" && p.matchedStudent)
+            .map(p => p.matchedStudent!.id);
+        
+        if (studentsToAdd.length === 0 || !studentModalState.sectionId) return;
+        
+        setIsSubmitting(true);
+        try {
+            const response = await courseService.bulkAddStudentsToSection(
+                courseId,
+                studentModalState.sectionId,
+                studentsToAdd
+            );
+            
+            if (response.success) {
+                await fetchAllSectionStudents();
+                await fetchCourse(true);
+                
+                addToast({
+                    title: "สำเร็จ",
+                    description: `เพิ่มนักศึกษา ${studentsToAdd.length} คนเรียบร้อย`,
+                    color: "success",
+                    timeout: 3000,
+                shouldShowTimeoutProgress: true,
+                });
+                
+                emitUpdate("student", "bulk");
+                studentModal.reset();
+            } else {
+                const errObj = response.error as unknown;
+                const errMsg =
+                    (typeof errObj === "object" && errObj !== null && "message" in errObj
+                        ? (errObj as { message: string }).message
+                        : null) ||
+                    response.message ||
+                    "ไม่สามารถเพิ่มนักศึกษาได้";
+                addToast({
+                    title: "เกิดข้อผิดพลาด",
+                    description: errMsg,
+                    color: "danger",
+                    timeout: 5000,
+                    shouldShowTimeoutProgress: true,
+                });
+            }
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            addToast({
+                title: "เกิดข้อผิดพลาด",
+                description: err.message || "ไม่สามารถเพิ่มนักศึกษาได้",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+                });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [courseId, studentModalState.sectionId, studentModalState.parsedStudents, fetchAllSectionStudents, fetchCourse, studentModal, emitUpdate]);
+    
+    
+    const handleRemoveStudent = useCallback(async () => {
+        const target = deleteModalState.target;
+        if (!target?.sectionId || !target?.studentId) return;
+        
+        setIsSubmitting(true);
+        try {
+            const response = await courseService.removeStudentFromSection(
+                courseId,
+                target.sectionId,
+                target.studentId
+            );
+            
+            if (response.success) {
+                setSectionStudents(prev => ({
+                    ...prev,
+                    [target.sectionId!]: (prev[target.sectionId!] || []).filter(s => s.id !== target.studentId)
+                }));
+                
+                setCourse(prev => {
+                    if (!prev) return prev;
+                    return {
+                        ...prev,
+                        sections: prev.sections?.map(s => 
+                            s.id === target.sectionId
+                                ? { ...s, studentCount: Math.max(0, (s.studentCount || 0) - 1) }
+                                : s
+                        ) || []
+                    };
+                });
+                
+                // Remove from teams as well
+                setPermanentTeams(prev => prev.map(team => ({
+                    ...team,
+                    members: team.members.filter(m => m.id !== target.studentId)
+                })));
+                
+                setWeeklyTeams(prev => {
+                    const newWeekly = { ...prev };
+                    Object.keys(newWeekly).forEach(week => {
+                        newWeekly[parseInt(week)] = newWeekly[parseInt(week)].map(team => ({
+                            ...team,
+                            members: team.members.filter(m => m.id !== target.studentId)
+                        }));
+                    });
+                    return newWeekly;
+                });
+                
+                addToast({
+                    title: "สำเร็จ",
+                    description: "นำนักศึกษาออกเรียบร้อย",
+                    color: "success",
+                    timeout: 3000,
+                shouldShowTimeoutProgress: true,
+                });
+                
+                emitUpdate("student", "delete", target.studentId);
+                deleteModal.reset();
+            }
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            addToast({
+                title: "เกิดข้อผิดพลาด",
+                description: err.message || "ไม่สามารถนำนักศึกษาออกได้",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [courseId, deleteModalState.target, deleteModal, emitUpdate]);
+    
+    const handleCreateTeam = useCallback(async () => {
+        setIsSubmitting(true);
+        
+        if (teamModalState.formationMethod === "manual") {
+            if (!teamModalState.name.trim()) {
+                addToast({
+                    title: "ข้อมูลไม่ครบ",
+                    description: "กรุณากรอกชื่อกลุ่ม",
+                    color: "warning",
+                    timeout: 3000,
+                shouldShowTimeoutProgress: true,
+                });
+                setIsSubmitting(false);
+                return;
+            }
+            
+            if (teamModalState.members.length === 0) {
+                addToast({
+                    title: "ข้อมูลไม่ครบ",
+                    description: "กรุณาเลือกสมาชิกอย่างน้อย 1 คน",
+                    color: "warning",
+                    timeout: 3000,
+                shouldShowTimeoutProgress: true,
+                });
+                setIsSubmitting(false);
+                return;
+            }
+            
+            try {
+                const response = await courseService.createTeam(courseId, {
+                    name: teamModalState.name,
+                    group_type: teamModalState.type === "permanent" ? "permanent" : "temporary",
+                    member_ids: teamModalState.members,
+                    week_number: teamModalState.type === "weekly" ? selectedWeek : undefined,
+                });
+                
+                if (response.success) {
+                    await fetchTeams(true);
+                    addToast({
+                        title: "สำเร็จ",
+                        description: `สร้างกลุ่ม "${teamModalState.name}" เรียบร้อย`,
+                        color: "success",
+                        timeout: 3000,
+                shouldShowTimeoutProgress: true,
+                    });
+                    emitUpdate("group", "create");
+                    teamModal.reset();
+                }
+            } catch (error: unknown) {
+                const err = error as { message?: string };
+                addToast({
+                    title: "เกิดข้อผิดพลาด",
+                    description: err.message || "ไม่สามารถสร้างกลุ่มได้",
+                    color: "danger",
+                    timeout: 3000,
+                shouldShowTimeoutProgress: true,
+                });
+            }
+        } else {
+            // Random team creation
+            const unassigned = getUnassignedStudents(
+                teamModalState.type,
+                teamModalState.type === "weekly" ? selectedWeek : undefined
+            );
+            
+            const shuffled = [...unassigned].sort(() => Math.random() - 0.5);
+            const teams: TeamMember[][] = [];
+            for (let i = 0; i < shuffled.length; i += teamModalState.size) {
+                teams.push(shuffled.slice(i, i + teamModalState.size));
+            }
+            
+            const baseName = "กลุ่มที่";
+            let successCount = 0;
+            
+            for (let i = 0; i < teams.length; i++) {
+                const teamName = `${baseName} ${i + 1}`;
+                const memberIds = teams[i].map(m => m.id);
+                
+                try {
+                    const response = await courseService.createTeam(courseId, {
+                        name: teamName,
+                        group_type: teamModalState.type === "permanent" ? "permanent" : "temporary",
+                        member_ids: memberIds,
+                        week_number: teamModalState.type === "weekly" ? selectedWeek : undefined,
+                    });
+                    if (response.success) successCount++;
+                } catch (error) {
+                    console.error(`Error creating team ${teamName}:`, error);
+                }
+            }
+            
+            await fetchTeams(true);
+            
+            if (successCount > 0) {
+                addToast({
+                    title: "สำเร็จ",
+                    description: `สร้างกลุ่มแบบสุ่ม ${successCount} กลุ่มเรียบร้อย`,
+                    color: "success",
+                    timeout: 3000,
+                shouldShowTimeoutProgress: true,
+                });
+                emitUpdate("group", "bulk");
+            }
+            
+            teamModal.reset();
+        }
+        
+        setIsSubmitting(false);
+    }, [courseId, teamModalState, selectedWeek, getUnassignedStudents, fetchTeams, teamModal, emitUpdate]);
+    
+    const handleSaveEditedTeam = useCallback(async () => {
+        if (!editTeamModalState.team) return;
+        
+        setIsSubmitting(true);
+        try {
+            const response = await courseService.updateTeam(courseId, editTeamModalState.team.id, {
+                name: editTeamModalState.name,
+                member_ids: editTeamModalState.members,
+            });
+            
+            if (response.success) {
+                await fetchTeams(true);
+                addToast({
+                    title: "สำเร็จ",
+                    description: "แก้ไขกลุ่มเรียบร้อย",
+                    color: "success",
+                    timeout: 3000,
+                shouldShowTimeoutProgress: true,
+                });
+                emitUpdate("group", "update", editTeamModalState.team.id);
+                editTeamModal.reset();
+            }
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            addToast({
+                title: "เกิดข้อผิดพลาด",
+                description: err.message || "ไม่สามารถแก้ไขกลุ่มได้",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [courseId, editTeamModalState.team, editTeamModalState.name, editTeamModalState.members, fetchTeams, editTeamModal, emitUpdate]);
+    
+    const handleDeleteTeam = useCallback(async () => {
+        const target = deleteModalState.target;
+        if (!target?.teamId) return;
+        
+        setIsSubmitting(true);
+        try {
+            const response = await courseService.deleteTeam(courseId, target.teamId);
+            if (response.success) {
+                await fetchTeams(true);
+                addToast({
+                    title: "สำเร็จ",
+                    description: "ลบกลุ่มเรียบร้อย",
+                    color: "success",
+                    timeout: 3000,
+                shouldShowTimeoutProgress: true,
+                });
+                emitUpdate("group", "delete", target.teamId);
+                deleteModal.reset();
+            }
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            addToast({
+                title: "เกิดข้อผิดพลาด",
+                description: err.message || "ไม่สามารถลบกลุ่มได้",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [courseId, deleteModalState.target, fetchTeams, deleteModal, emitUpdate]);
+    
+    const handleBulkDeleteTeams = useCallback(async () => {
+        const teamsToDelete = weeklyTeams[selectedWeek] || [];
+        if (teamsToDelete.length === 0) return;
+        
+        setIsSubmitting(true);
+        let successCount = 0;
+        
+        for (const team of teamsToDelete) {
+            try {
+                const response = await courseService.deleteTeam(courseId, team.id);
+                if (response.success) successCount++;
+            } catch (error) {
+                console.error(`Error deleting team ${team.id}:`, error);
+            }
+        }
+        
+        await fetchTeams(true);
+        
+        if (successCount > 0) {
+            addToast({
+                title: "สำเร็จ",
+                description: `ลบกลุ่ม ${successCount} กลุ่มเรียบร้อย`,
+                color: "success",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            emitUpdate("group", "bulk");
+        }
+        
+        setBulkDeleteModalOpen(false);
+        setIsSubmitting(false);
+    }, [courseId, selectedWeek, weeklyTeams, fetchTeams, emitUpdate]);
+    
+    const handleCopyTeamsFromWeek = useCallback(async (sourceWeek: number) => {
+        const sourceTeams = weeklyTeams[sourceWeek];
+        if (!sourceTeams || sourceTeams.length === 0) {
+            addToast({
+                title: "ไม่พบกลุ่ม",
+                description: `ไม่พบกลุ่มในสัปดาห์ที่ ${sourceWeek}`,
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+        
+        setIsSubmitting(true);
+        let successCount = 0;
+        
+        for (const team of sourceTeams) {
+            try {
+                const response = await courseService.createTeam(courseId, {
+                    name: team.name,
+                    group_type: "temporary",
+                    member_ids: team.members.map(m => m.id),
+                    week_number: selectedWeek,
+                });
+                if (response.success) successCount++;
+            } catch (error) {
+                console.error(`Error copying team ${team.name}:`, error);
+            }
+        }
+        
+        await fetchTeams(true);
+        
+        if (successCount > 0) {
+            addToast({
+                title: "สำเร็จ",
+                description: `คัดลอก ${successCount} กลุ่มเรียบร้อย`,
+                color: "success",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            emitUpdate("group", "bulk");
+        }
+        
+        setIsSubmitting(false);
+    }, [courseId, selectedWeek, weeklyTeams, fetchTeams, emitUpdate]);
+    
+    // ============================================
+    // Modal Openers
+    // ============================================
+    
+    const openAddStudentModal = useCallback((sectionId: number) => {
+        studentModal.setSectionId(sectionId);
+        studentModal.setStudentId("");
+        studentModal.setSearchQuery("");
+        studentModal.setIsOpen(true);
+    }, [studentModal]);
+    
+    const openDeleteStudentModal = useCallback((sectionId: number, student: SectionStudent) => {
+        const section = course?.sections?.find(s => s.id === sectionId);
+        deleteModal.open("student", {
+            studentId: student.id,
+            studentName: student.full_name,
+            studentCode: student.student_id,
+            sectionId,
+            sectionNo: section?.section_no,
+        });
+    }, [course?.sections, deleteModal]);
+    
+    const openCreateTeamModal = useCallback((type: TeamType, method: TeamFormationMethod) => {
+        teamModal.setType(type);
+        teamModal.setFormationMethod(method);
+        teamModal.setIsOpen(true);
+    }, [teamModal]);
+    
+    const openEditTeamModal = useCallback((teamId: number, type: TeamType, weekNumber?: number) => {
+        let team: PermanentTeam | WeeklyTeam | undefined;
+        if (type === "permanent") {
+            team = permanentTeams.find(t => t.id === teamId);
+        } else if (weekNumber !== undefined) {
+            team = weeklyTeams[weekNumber]?.find(t => t.id === teamId);
+        }
+        if (team) {
+            editTeamModal.open({
+                id: team.id,
+                name: team.name,
+                type,
+                weekNumber,
+                members: team.members,
+            });
+        }
+    }, [permanentTeams, weeklyTeams, editTeamModal]);
+    
+    const openDeleteTeamModal = useCallback((teamId: number, type: TeamType, weekNumber?: number) => {
+        let team: PermanentTeam | WeeklyTeam | undefined;
+        if (type === "permanent") {
+            team = permanentTeams.find(t => t.id === teamId);
+        } else if (weekNumber !== undefined) {
+            team = weeklyTeams[weekNumber]?.find(t => t.id === teamId);
+        }
+        if (team) {
+            deleteModal.open("team", {
+                teamId: team.id,
+                teamName: team.name,
+                teamType: type,
+                weekNumber,
+                teamMembers: team.members,
+            });
+        }
+    }, [permanentTeams, weeklyTeams, deleteModal]);
+    
+    const openBulkDeleteModal = useCallback(() => {
+        const teamsToDelete = weeklyTeams[selectedWeek];
+        if (!teamsToDelete || teamsToDelete.length === 0) {
+            addToast({
+                title: "ไม่มีกลุ่มที่จะลบ",
+                description: "ไม่พบกลุ่มในสัปดาห์ที่เลือก",
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+        setBulkDeleteModalOpen(true);
+    }, [selectedWeek, weeklyTeams]);
+    
+    // ============================================
+    // Excel Parsing
+    // ============================================
+    
+    const parseExcelData = useCallback((pasteData: string) => {
+        if (!pasteData.trim() || !studentModalState.sectionId) {
+            studentModal.setParsedStudents([]);
+            return;
+        }
+        
+        const lines = pasteData
+            .split(/[\n\r]+/)
+            .map(line => line.trim())
+            .filter(line => line.length > 0);
+        
+        const enrolledStudentIds = new Set(
+            (sectionStudents[studentModalState.sectionId] || []).map(s => s.student_id)
+        );
+        
+        const results = lines.map(inputValue => {
+            const matchedStudent = studentsList.find(student =>
+                student.student_id.toLowerCase() === inputValue.toLowerCase() ||
+                student.full_name.toLowerCase().includes(inputValue.toLowerCase()) ||
+                inputValue.toLowerCase().includes(student.student_id.toLowerCase())
+            );
+            
+            if (!matchedStudent) {
+                return { inputValue, matchedStudent: null, status: "not_found" as const };
+            }
+            
+            if (enrolledStudentIds.has(matchedStudent.student_id)) {
+                return { inputValue, matchedStudent, status: "already_enrolled" as const };
+            }
+            
+            return { inputValue, matchedStudent, status: "matched" as const };
+        });
+        
+        studentModal.setParsedStudents(results);
+    }, [studentModalState.sectionId, sectionStudents, studentsList, studentModal]);
+    
+    const parseTeamExcelData = useCallback(async (pasteData: string) => {
+        if (!pasteData.trim()) {
+            teamModal.setParsedMembers([]);
+            return;
+        }
+        
+        const lines = pasteData
+            .split(/[\n\r]+/)
+            .map(line => line.trim())
+            .filter(line => line.length > 0);
+        
+        if (lines.length === 0) {
+            teamModal.setParsedMembers([]);
+            return;
+        }
+        
+        teamModal.setIsParsing(true);
+        
+        try {
+            const response = await studentService.searchStudentsByIds(lines, course?.id, "all");
+            
+            if (!response.success || !response.data) {
+                teamModal.setIsParsing(false);
+                return;
+            }
+            
+            const unassignedStudents = getUnassignedStudents(
+                teamModalState.type,
+                teamModalState.type === "weekly" ? selectedWeek : undefined
+            );
+            const unassignedIds = new Set(unassignedStudents.map(s => s.id));
+            
+            const results: TeamModalState["parsedMembers"] = [];
+            
+            response.data.found.forEach((item: any) => {
+                const student = item.student;
+                const teamMember: TeamMember = {
+                    id: student.id,
+                    student_id: student.student_id,
+                    full_name: student.full_name,
+                };
+                
+                if (unassignedIds.has(student.id)) {
+                    results.push({
+                        inputValue: item.query,
+                        matchedStudent: teamMember,
+                        status: "matched",
+                    });
+                } else {
+                    const existingTeam = findStudentTeam(
+                        student.id,
+                        teamModalState.type,
+                        teamModalState.type === "weekly" ? selectedWeek : undefined
+                    );
+                    results.push({
+                        inputValue: item.query,
+                        matchedStudent: teamMember,
+                        status: existingTeam ? "already_in_team" : "matched",
+                    });
+                }
+            });
+            
+            response.data.not_found.forEach((inputValue: string) => {
+                results.push({
+                    inputValue,
+                    matchedStudent: null,
+                    status: "not_found",
+                });
+            });
+            
+            teamModal.setParsedMembers(results);
+            
+            const matchedIds = results
+                .filter(r => r.status === "matched" && r.matchedStudent)
+                .map(r => r.matchedStudent!.id);
+            teamModal.setMembers(matchedIds);
+            
+        } catch (error) {
+            console.error("Error parsing team members:", error);
+            addToast({
+                title: "เกิดข้อผิดพลาด",
+                description: "ไม่สามารถค้นหานักศึกษาได้",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            teamModal.setParsedMembers([]);
+        } finally {
+            teamModal.setIsParsing(false);
+        }
+    }, [course?.id, selectedWeek, teamModalState.type, getUnassignedStudents, findStudentTeam, teamModal]);
+    
+    // ============================================
+    // Return
+    // ============================================
+    
+    return {
+        // Data
+        course,
+        isLoading,
+        isTeamsLoading,
+        
+        // UI State
+        sectionSubTab,
+        sectionSearchQuery,
+        selectedWeek,
+        totalWeeks,
+        expandedSections,
+        
+        // Data Collections
+        permanentTeams,
+        weeklyTeams,
+        sectionStudents,
+        studentsList,
+        
+        // Computed
+        totalStudents,
+        
+        // Modal States
+        sectionModal,
+        studentModal,
+        teamModal,
+        editTeamModal,
+        deleteModal,
+        bulkDeleteModal,
+        editSectionModal,
+        isSubmitting,
+        
+        // UI Handlers
+        onSubTabChange,
+        onSearchQueryChange,
+        onWeekChange,
+        onToggleSection,
+        
+        // CRUD Handlers
+        handleAddSection,
+        handleRemoveSection,
+        confirmRemoveSection,
+        handleEditSection,
+        handleAddStudent,
+        handleBulkAddStudents,
+        handleRemoveStudent,
+        handleCreateTeam,
+        handleSaveEditedTeam,
+        handleDeleteTeam,
+        handleBulkDeleteTeams,
+        handleCopyTeamsFromWeek,
+        
+        // Modal Openers
+        openAddStudentModal,
+        openDeleteStudentModal,
+        openCreateTeamModal,
+        openEditTeamModal,
+        openDeleteTeamModal,
+        openBulkDeleteModal,
+        openEditSectionModal,
+        
+        // Computed Functions
+        getFilteredSectionStudents,
+        findStudentTeam,
+        getUnassignedStudents,
+        getAvailableStudentsForEdit,
+        getAllEnrolledStudents,
+        
+        // Utility
+        parseExcelData,
+        parseTeamExcelData,
+    };
+}

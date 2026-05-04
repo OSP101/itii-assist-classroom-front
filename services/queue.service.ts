@@ -1,0 +1,498 @@
+/**
+ * Queue Service - API calls for queue booking system
+ */
+
+import api from './api.service';
+
+// ============================================
+// Types & Interfaces
+// ============================================
+
+export interface QueueSession {
+    id: number;
+    course_id: string;
+    classroom_id: string;
+    title: string;
+    description?: string;
+    pin_code: string;
+    linked_assignment_id?: number | null;
+    require_attendance: boolean;
+    linked_attendance_session_id?: number | null;
+    status: 'draft' | 'active' | 'paused' | 'closed';
+    start_time?: string;
+    end_time?: string;
+    created_by: number;
+    created_at: string;
+    updated_at: string;
+    // Populated fields
+    classroom?: {
+        id: number;
+        name: string;
+        building: string;
+        floor?: string;
+    };
+    linkedAssignment?: {
+        id: number;
+        name: string;
+        max_score: number;
+        assignment_type?: 'individual' | 'permanent_group' | 'weekly_group';
+        subItems?: {
+            id: number;
+            name: string;
+            max_score: number;
+            order_index?: number;
+        }[];
+    };
+    linkedAttendanceSession?: {
+        id: number;
+        title: string;
+    };
+    creator?: {
+        id: number;
+        full_name: string;
+    };
+    workers?: QueueWorker[];
+    stats?: {
+        total: number;
+        waiting: number;
+        in_progress: number;
+        completed: number;
+    };
+}
+
+export interface QueueWorker {
+    id: number;
+    queue_session_id: number;
+    user_id: number;
+    accept_grading: boolean;
+    accept_help: boolean;
+    status: 'online' | 'busy' | 'offline';
+    current_booking_id?: number | null;
+    total_grading_completed: number;
+    total_help_completed: number;
+    last_active_at: string;
+    user?: {
+        id: number;
+        full_name: string;
+        avatar?: string;
+        role: string;
+    };
+}
+
+export interface QueueBooking {
+    id: number;
+    queue_session_id: number;
+    student_id: number;
+    desk_id: number;
+    desk_number: string;
+    booking_type: 'grading' | 'help';
+    queue_number: number;
+    status: 'waiting' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
+    note?: string;
+    assigned_worker_id?: number | null;
+    assigned_at?: string | null;
+    started_at?: string | null;
+    completed_at?: string | null;
+    score?: number | null;
+    score_comment?: string | null;
+    worker_note?: string | null;
+    position_in_queue?: number;
+    // Populated fields
+    queueSession?: QueueSession;
+    student?: {
+        id: number;
+        student_id: string;
+        full_name: string;
+    };
+    desk?: {
+        id: number;
+        number: string;
+        type: string;
+    };
+    zone?: {
+        id: string;
+        name: string;
+        color?: string;
+    } | null;
+    assignedWorker?: {
+        id: number;
+        full_name: string;
+    };
+}
+
+export interface QueueDeskStatus {
+    id: number;
+    queue_session_id: number;
+    desk_id: number;
+    grading_status: 'not_started' | 'waiting' | 'in_progress' | 'completed';
+    help_status: 'none' | 'waiting' | 'in_progress';
+    grading_booking_id?: number | null;
+    help_booking_id?: number | null;
+    desk?: {
+        id: number;
+        number: string;
+        type: string;
+        label?: string;
+        position_x?: number;
+        position_y?: number;
+    };
+}
+
+export interface DeskWithStatus {
+    id: number;
+    number: string;
+    type: string;
+    label?: string;
+    position_x?: number;
+    position_y?: number;
+    is_enabled: boolean;
+    status: {
+        grading_status: 'not_started' | 'waiting' | 'in_progress' | 'completed';
+        help_status: 'none' | 'waiting' | 'in_progress';
+    };
+}
+
+export interface CreateQueueSessionData {
+    title: string;
+    description?: string;
+    classroom_id: string;
+    linked_assignment_id?: number | null;
+    require_attendance?: boolean;
+    linked_attendance_session_id?: number | null;
+}
+
+export interface UpdateQueueSessionData {
+    title?: string;
+    description?: string;
+    linked_assignment_id?: number | null;
+    require_attendance?: boolean;
+    linked_attendance_session_id?: number | null;
+}
+
+export interface CreateBookingData {
+    pin_code: string;
+    student_id: string;
+    desk_number: string;
+    booking_type: 'grading' | 'help';
+    note?: string;
+}
+
+export interface SubItemScore {
+    sub_item_id: number;
+    score: number;
+}
+
+export interface CompleteBookingData {
+    score?: number;
+    sub_item_scores?: SubItemScore[];
+    score_comment?: string;
+    worker_note?: string;
+}
+
+export interface ProjectorViewData {
+    session: {
+        id: number;
+        title: string;
+        pin_code: string;
+        status: string;
+    };
+    classroom: {
+        id: number;
+        name: string;
+        building: string;
+    };
+    desks: DeskWithStatus[];
+    queueStats: {
+        grading_waiting: number;
+        help_waiting: number;
+    };
+}
+
+export interface VerifyPINResponse {
+    session_id: number;
+    title: string;
+    course: {
+        id: string;
+        code: string;
+        name: string;
+    };
+    classroom: {
+        id: number;
+        name: string;
+        building: string;
+    };
+    require_attendance: boolean;
+}
+
+interface ApiResponse<T> {
+    success: boolean;
+    data?: T;
+    message?: string;
+    error?: {
+        message: string;
+    };
+}
+
+// ============================================
+// Queue Service
+// ============================================
+
+const queueService = {
+    // ============================================
+    // Session Management (Instructor/TA)
+    // ============================================
+
+    /**
+     * Get all queue sessions for a course
+     */
+    async getQueueSessions(courseId: string, status?: string): Promise<QueueSession[]> {
+        const params = status ? `?status=${status}` : '';
+        const response = await api.get<QueueSession[]>(
+            `/courses/${courseId}/queue/sessions${params}`
+        );
+        return response.data || [];
+    },
+
+    /**
+     * Get single queue session details
+     */
+    async getQueueSession(courseId: string, sessionId: string): Promise<QueueSession> {
+        const response = await api.get<QueueSession>(
+            `/courses/${courseId}/queue/sessions/${sessionId}`
+        );
+        if (!response.data) throw new Error('ไม่พบข้อมูล Queue Session');
+        return response.data;
+    },
+
+    /**
+     * Create new queue session
+     */
+    async createQueueSession(courseId: string, data: CreateQueueSessionData): Promise<QueueSession> {
+        const response = await api.post<QueueSession>(
+            `/courses/${courseId}/queue/sessions`,
+            data
+        );
+        if (!response.data) throw new Error('สร้าง Queue Session ไม่สำเร็จ');
+        return response.data;
+    },
+
+    /**
+     * Update queue session
+     */
+    async updateQueueSession(
+        courseId: string,
+        sessionId: number,
+        data: UpdateQueueSessionData
+    ): Promise<QueueSession> {
+        const response = await api.put<QueueSession>(
+            `/courses/${courseId}/queue/sessions/${sessionId}`,
+            data
+        );
+        if (!response.data) throw new Error('อัพเดท Queue Session ไม่สำเร็จ');
+        return response.data;
+    },
+
+    /**
+     * Update queue session status
+     */
+    async updateQueueSessionStatus(
+        courseId: string,
+        sessionId: number,
+        status: 'active' | 'paused' | 'closed'
+    ): Promise<QueueSession> {
+        const response = await api.post<QueueSession>(
+            `/courses/${courseId}/queue/sessions/${sessionId}/status`,
+            { status }
+        );
+        if (!response.data) throw new Error('เปลี่ยนสถานะไม่สำเร็จ');
+        return response.data;
+    },
+
+    /**
+     * Delete queue session (draft only)
+     */
+    async deleteQueueSession(courseId: string, sessionId: number): Promise<void> {
+        await api.delete(`/courses/${courseId}/queue/sessions/${sessionId}`);
+    },
+
+    /**
+     * Regenerate PIN code
+     */
+    async regeneratePIN(courseId: string, sessionId: number): Promise<string> {
+        const response = await api.post<{ pin_code: string }>(
+            `/courses/${courseId}/queue/sessions/${sessionId}/regenerate-pin`
+        );
+        if (!response.data) throw new Error('สร้าง PIN ใหม่ไม่สำเร็จ');
+        return response.data.pin_code;
+    },
+
+    // ============================================
+    // Worker Management
+    // ============================================
+
+    /**
+     * Join as worker
+     */
+    async joinAsWorker(
+        courseId: string,
+        sessionId: string,
+        preferences: { accept_grading?: boolean; accept_help?: boolean }
+    ): Promise<{ worker: QueueWorker; assignedBooking: QueueBooking | null }> {
+        const response = await api.post<QueueWorker & { assignedBooking?: QueueBooking | null }>(
+            `/courses/${courseId}/queue/sessions/${sessionId}/workers/join`,
+            preferences
+        );
+        if (!response.data) throw new Error('เข้าร่วมรับงานไม่สำเร็จ');
+        
+        // Extract assignedBooking from the response (it's at response level, not data level)
+        const fullResponse = response as { data?: QueueWorker; assignedBooking?: QueueBooking | null };
+        
+        return {
+            worker: response.data,
+            assignedBooking: fullResponse.assignedBooking || null,
+        };
+    },
+
+    /**
+     * Leave as worker
+     */
+    async leaveAsWorker(courseId: string, sessionId: string): Promise<void> {
+        await api.post(`/courses/${courseId}/queue/sessions/${sessionId}/workers/leave`);
+    },
+
+    /**
+     * Get all workers for a session
+     */
+    async getWorkers(courseId: string, sessionId: string): Promise<QueueWorker[]> {
+        const response = await api.get<QueueWorker[]>(
+            `/courses/${courseId}/queue/sessions/${sessionId}/workers`
+        );
+        return response.data || [];
+    },
+
+    /**
+     * Get worker's current booking (for reconnection)
+     */
+    async getWorkerCurrentBooking(
+        courseId: string,
+        sessionId: string
+    ): Promise<{ worker: QueueWorker | null; currentBooking: QueueBooking | null }> {
+        const response = await api.get<{ worker: QueueWorker | null; currentBooking: QueueBooking | null }>(
+            `/courses/${courseId}/queue/sessions/${sessionId}/workers/current-booking`
+        );
+        return response.data || { worker: null, currentBooking: null };
+    },
+
+    // ============================================
+    // Booking Management
+    // ============================================
+
+    /**
+     * Create new booking (Student - no auth required)
+     */
+    async createBooking(data: CreateBookingData): Promise<QueueBooking> {
+        const response = await api.post<QueueBooking>(
+            '/queue/bookings',
+            data
+        );
+        if (!response.data) throw new Error('จองคิวไม่สำเร็จ');
+        return response.data;
+    },
+
+    /**
+     * Get booking status (Student - no auth required)
+     */
+    async getBookingStatus(bookingId: number): Promise<QueueBooking> {
+        const response = await api.get<QueueBooking>(
+            `/queue/bookings/${bookingId}/status`
+        );
+        if (!response.data) throw new Error('ไม่พบข้อมูลการจอง');
+        return response.data;
+    },
+
+    /**
+     * Get all bookings for a session (Instructor/TA)
+     */
+    async getSessionBookings(
+        courseId: string,
+        sessionId: string,
+        filters?: { status?: string; booking_type?: string }
+    ): Promise<QueueBooking[]> {
+        let params = '';
+        if (filters) {
+            const queryParams = new URLSearchParams();
+            if (filters.status) queryParams.append('status', filters.status);
+            if (filters.booking_type) queryParams.append('booking_type', filters.booking_type);
+            params = `?${queryParams.toString()}`;
+        }
+        const response = await api.get<QueueBooking[]>(
+            `/courses/${courseId}/queue/sessions/${sessionId}/bookings${params}`
+        );
+        return response.data || [];
+    },
+
+    /**
+     * Complete booking (Worker)
+     */
+    async completeBooking(
+        courseId: string,
+        sessionId: string,
+        bookingId: number,
+        data: CompleteBookingData
+    ): Promise<QueueBooking> {
+        const response = await api.post<QueueBooking>(
+            `/courses/${courseId}/queue/sessions/${sessionId}/bookings/${bookingId}/complete`,
+            data
+        );
+        if (!response.data) throw new Error('บันทึกผลไม่สำเร็จ');
+        return response.data;
+    },
+
+    /**
+     * Skip booking (Worker)
+     */
+    async skipBooking(
+        courseId: string,
+        sessionId: string,
+        bookingId: number,
+        reason?: string
+    ): Promise<void> {
+        await api.post(
+            `/courses/${courseId}/queue/sessions/${sessionId}/bookings/${bookingId}/skip`,
+            { reason }
+        );
+    },
+
+    // ============================================
+    // Projector View
+    // ============================================
+
+    /**
+     * Get desk statuses for projector view
+     */
+    async getDeskStatuses(courseId: string, sessionId: string): Promise<ProjectorViewData> {
+        const response = await api.get<ProjectorViewData>(
+            `/courses/${courseId}/queue/sessions/${sessionId}/desk-statuses`
+        );
+        if (!response.data) throw new Error('ไม่สามารถโหลดข้อมูลผังห้องได้');
+        return response.data;
+    },
+
+    // ============================================
+    // Public APIs (No Auth)
+    // ============================================
+
+    /**
+     * Verify PIN code (Student)
+     */
+    async verifyPIN(pinCode: string): Promise<VerifyPINResponse> {
+        const response = await api.post<VerifyPINResponse>(
+            '/queue/verify-pin',
+            { pin_code: pinCode }
+        );
+        if (!response.data) throw new Error('PIN ไม่ถูกต้อง');
+        return response.data;
+    },
+};
+
+export default queueService;
