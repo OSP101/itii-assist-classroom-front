@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { AppFooter } from "@/components/Footer";
 
 export const metadata = {
   title: "ค้นหาคะแนนรายบุคคล",
@@ -18,5 +19,10 @@ export default function MyscoreViewLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <div className="min-h-screen flex flex-col">
+      <main className="flex-1">{children}</main>
+      <AppFooter />
+    </div>
+  );
 }

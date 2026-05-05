@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { addToast } from "@heroui/toast";
 import { courseService } from "@/services/course.service";
 import { studentService } from "@/services/student.service";
-import type { Course, SectionStudent } from "@/services/course.service";
+import type { Course, SectionStudent, RemovedSectionStudent } from "@/services/course.service";
 import type { Student } from "@/services/student.service";
 import {
     type PermanentTeam,
@@ -16,7 +16,6 @@ import {
     DEFAULT_TOTAL_WEEKS,
     naturalSortTeams,
     filterStudentsByQuery,
-    calculateTotalStudents,
 } from "./config";
 import { useSocket, type ResourceType, type ActionType } from "@/contexts/SocketContext";
 
@@ -126,6 +125,7 @@ export interface UseSectionsTabReturn {
     permanentTeams: PermanentTeam[];
     weeklyTeams: Record<number, WeeklyTeam[]>;
     sectionStudents: Record<number, SectionStudent[]>;
+    removedStudents: RemovedSectionStudent[];
     studentsList: Student[];
     
     // Computed
@@ -187,6 +187,12 @@ export interface UseSectionsTabReturn {
         isOpen: boolean;
         setIsOpen: (open: boolean) => void;
     };
+    restoreModal: {
+        isOpen: boolean;
+        target: RemovedSectionStudent | null;
+        open: (removed: RemovedSectionStudent) => void;
+        reset: () => void;
+    };
     isSubmitting: boolean;
     
     // UI Handlers
@@ -204,6 +210,8 @@ export interface UseSectionsTabReturn {
     handleAddStudent: () => Promise<void>;
     handleBulkAddStudents: () => Promise<void>;
     handleRemoveStudent: () => Promise<void>;
+    handleRestoreStudent: (removed: RemovedSectionStudent) => void;
+    confirmRestoreStudent: () => Promise<void>;
     handleCreateTeam: () => Promise<void>;
     handleSaveEditedTeam: () => Promise<void>;
     handleDeleteTeam: () => Promise<void>;
@@ -252,6 +260,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
     const [permanentTeams, setPermanentTeams] = useState<PermanentTeam[]>([]);
     const [weeklyTeams, setWeeklyTeams] = useState<Record<number, WeeklyTeam[]>>({});
     const [sectionStudents, setSectionStudents] = useState<Record<number, SectionStudent[]>>({});
+    const [removedStudents, setRemovedStudents] = useState<RemovedSectionStudent[]>([]);
     const [studentsList, setStudentsList] = useState<Student[]>([]);
     
     // Loading States
@@ -331,6 +340,12 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
     });
     
     const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
+    
+    // Restore confirm modal state
+    const [restoreModalState, setRestoreModalState] = useState<{
+        isOpen: boolean;
+        target: RemovedSectionStudent | null;
+    }>({ isOpen: false, target: null });
     
     // ============================================
     // Cache Helpers
@@ -478,6 +493,17 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
             console.error("Error fetching students:", error);
         }
     }, []);
+
+    const fetchRemovedStudents = useCallback(async () => {
+        try {
+            const response = await courseService.getRemovedStudents(courseId);
+            if (response.success && response.data) {
+                setRemovedStudents(response.data);
+            }
+        } catch (error) {
+            console.error("Error fetching removed students:", error);
+        }
+    }, [courseId]);
     
     // ============================================
     // Initialize Data
@@ -489,6 +515,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
                 fetchCourse(),
                 fetchTeams(),
                 fetchStudentsList(),
+                fetchRemovedStudents(),
             ]);
         };
         initializeData();
@@ -505,7 +532,10 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
     // Computed Values
     // ============================================
     
-    const totalStudents = useMemo(() => calculateTotalStudents(course), [course]);
+    const totalStudents = useMemo(
+        () => Object.values(sectionStudents).reduce((acc, students) => acc + students.length, 0),
+        [sectionStudents]
+    );
     
     const getAllEnrolledStudents = useCallback((): TeamMember[] => {
         const students: TeamMember[] = [];
@@ -700,6 +730,13 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         isOpen: bulkDeleteModalOpen,
         setIsOpen: setBulkDeleteModalOpen,
     }), [bulkDeleteModalOpen]);
+
+    const restoreModal = useMemo(() => ({
+        isOpen: restoreModalState.isOpen,
+        target: restoreModalState.target,
+        open: (removed: RemovedSectionStudent) => setRestoreModalState({ isOpen: true, target: removed }),
+        reset: () => setRestoreModalState({ isOpen: false, target: null }),
+    }), [restoreModalState]);
     
     // ============================================
     // CRUD Actions
@@ -775,9 +812,9 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         deleteModal.open("section", {
             sectionId,
             sectionNo: section.section_no,
-            sectionStudentCount: section.studentCount || 0,
+            sectionStudentCount: sectionStudents[sectionId]?.length || 0,
         });
-    }, [course?.sections, deleteModal]);
+    }, [course?.sections, deleteModal, sectionStudents]);
     
     const confirmRemoveSection = useCallback(async () => {
         const target = deleteModalState.target;
@@ -1131,7 +1168,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
                 
                 addToast({
                     title: "สำเร็จ",
-                    description: "นำนักศึกษาออกเรียบร้อย",
+                    description: "นำนักศึกษาออกเรียบร้อย (กู้คืนได้ภายใน 10 วัน)",
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1139,6 +1176,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
                 
                 emitUpdate("student", "delete", target.studentId);
                 deleteModal.reset();
+                fetchRemovedStudents();
             }
         } catch (error: unknown) {
             const err = error as { message?: string };
@@ -1152,7 +1190,67 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } finally {
             setIsSubmitting(false);
         }
-    }, [courseId, deleteModalState.target, deleteModal, emitUpdate]);
+    }, [courseId, deleteModalState.target, deleteModal, emitUpdate, fetchRemovedStudents]);
+
+    const handleRestoreStudent = useCallback((removed: RemovedSectionStudent) => {
+        setRestoreModalState({ isOpen: true, target: removed });
+    }, []);
+
+    const confirmRestoreStudent = useCallback(async () => {
+        const removed = restoreModalState.target;
+        if (!removed) return;
+        setIsSubmitting(true);
+        try {
+            const response = await courseService.restoreStudentToSection(
+                courseId,
+                removed.section_id,
+                removed.student_ref_id
+            );
+
+            if (!response.success) {
+                const errObj = response.error as unknown;
+                const errMsg =
+                    (typeof errObj === "object" && errObj !== null && "message" in errObj
+                        ? (errObj as { message: string }).message
+                        : null) ||
+                    response.message ||
+                    "ไม่สามารถกู้คืนนักศึกษาได้";
+
+                addToast({
+                    title: "เกิดข้อผิดพลาด",
+                    description: errMsg,
+                    color: "danger",
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+                });
+                return;
+            }
+
+            setRestoreModalState({ isOpen: false, target: null });
+            await Promise.all([fetchCourse(true), fetchAllSectionStudents(), fetchTeams(true), fetchRemovedStudents()]);
+
+            addToast({
+                title: "สำเร็จ",
+                description: `กู้คืน ${removed.full_name} สำเร็จ`,
+                color: "success",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+
+            emitUpdate("student", "update", removed.student_ref_id);
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            addToast({
+                title: "เกิดข้อผิดพลาด",
+                description: err.message || "ไม่สามารถกู้คืนนักศึกษาได้",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [restoreModalState.target, courseId, fetchAllSectionStudents, fetchCourse, fetchRemovedStudents, fetchTeams, emitUpdate]);
     
     const handleCreateTeam = useCallback(async () => {
         setIsSubmitting(true);
@@ -1644,6 +1742,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         permanentTeams,
         weeklyTeams,
         sectionStudents,
+        removedStudents,
         studentsList,
         
         // Computed
@@ -1657,6 +1756,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         deleteModal,
         bulkDeleteModal,
         editSectionModal,
+        restoreModal,
         isSubmitting,
         
         // UI Handlers
@@ -1673,6 +1773,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         handleAddStudent,
         handleBulkAddStudents,
         handleRemoveStudent,
+        handleRestoreStudent,
+        confirmRestoreStudent,
         handleCreateTeam,
         handleSaveEditedTeam,
         handleDeleteTeam,

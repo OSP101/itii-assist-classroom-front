@@ -6,7 +6,6 @@ import dynamic from "next/dynamic";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 import { Link } from "@heroui/link";
-import { Spinner } from "@heroui/spinner";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { Icon } from "@iconify/react";
 import { IoSchool } from "react-icons/io5";
@@ -361,10 +360,11 @@ export default function LoginPage() {
     if (isCheckingAuth) {
         return (
             <div className="flex min-h-screen flex-col items-center justify-center bg-[#fafafa]">
-                <div className="flex flex-col items-center gap-4">
+                <div className="flex flex-col items-center gap-4" aria-label="กำลังตรวจสอบสถานะการเข้าสู่ระบบ">
                     <AppMark />
-                    <Spinner size="md" color="warning" />
-                    {/* <p className="text-slate-500 text-sm">กำลังตรวจสอบสถานะการเข้าสู่ระบบ...</p> */}
+                    <div className="h-1 w-12 overflow-hidden rounded-full bg-blue-100">
+                        <div className="h-full w-5 animate-pulse rounded-full bg-linear-to-r from-blue-400 to-indigo-500" />
+                    </div>
                 </div>
             </div>
         );

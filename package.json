@@ -52,6 +52,7 @@
     "@heroui/toast": "2.0.18",
     "@heroui/tooltip": "2.2.25",
     "@heroui/user": "2.2.23",
+    "@iconify-json/solar": "^1.2.5",
     "@iconify/react": "^6.0.2",
     "@marsidev/react-turnstile": "^1.4.0",
     "@react-aria/ssr": "3.9.10",
@@ -75,7 +76,6 @@
     "react-leaflet": "^5.0.0",
     "react-qr-code": "^2.0.18",
     "react-turnstile": "^1.1.4",
-    "socket.io-client": "^4.8.3",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

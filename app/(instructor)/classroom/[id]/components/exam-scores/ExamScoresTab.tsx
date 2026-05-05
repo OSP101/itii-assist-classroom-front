@@ -26,6 +26,9 @@ import examScoreService, {
 interface ExamScoresTabProps {
     courseId: string;
     isCourseActive?: boolean;
+    canCreateExamScores?: boolean;
+    canUpdateExamScores?: boolean;
+    canUpdateExamSettings?: boolean;
 }
 
 interface ScoreMap {
@@ -34,7 +37,13 @@ interface ScoreMap {
     };
 }
 
-export default function ExamScoresTab({ courseId, isCourseActive = true }: ExamScoresTabProps) {
+export default function ExamScoresTab({
+    courseId,
+    isCourseActive = true,
+    canCreateExamScores = false,
+    canUpdateExamScores = false,
+    canUpdateExamSettings = false,
+}: ExamScoresTabProps) {
     // State
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -450,7 +459,7 @@ export default function ExamScoresTab({ courseId, isCourseActive = true }: ExamS
                                                 size="sm"
                                                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-md"
                                                 startContent={<Icon icon="solar:document-add-bold" />}
-                                                isDisabled={!isCourseActive}
+                                                isDisabled={!isCourseActive || !canCreateExamScores}
                                                 onPress={() => {
                                                     setBulkSettingId(setting.id);
                                                     setIsBulkModalOpen(true);
@@ -597,7 +606,7 @@ export default function ExamScoresTab({ courseId, isCourseActive = true }: ExamS
                                                                         studentId: student.id,
                                                                         value: scoreValue,
                                                                     })}
-                                                                    disabled={!isCourseActive}
+                                                                    disabled={!isCourseActive || !canUpdateExamScores}
                                                                 >
                                                                     {(() => {
                                                                         const numScore = parseFloat(scoreValue);
@@ -615,7 +624,7 @@ export default function ExamScoresTab({ courseId, isCourseActive = true }: ExamS
                                                                             </span>
                                                                         );
                                                                     })()}
-                                                                    {isCourseActive && (
+                                                                    {isCourseActive && canUpdateExamScores && (
                                                                         <Icon 
                                                                             icon="solar:pen-2-linear" 
                                                                             className="text-slate-400 group-hover:text-blue-500 transition-colors" 
@@ -857,11 +866,11 @@ export default function ExamScoresTab({ courseId, isCourseActive = true }: ExamS
                                                     <Switch
                                                         size="sm"
                                                         isSelected={settingsData[setting.id]?.is_active ?? setting.is_active}
-                                                        onValueChange={(v) => setSettingsData(prev => ({
+                                                        onValueChange={(v) => setSettingsData(prev => ({                                                            
                                                             ...prev,
                                                             [setting.id]: { ...prev[setting.id], is_active: v }
                                                         }))}
-                                                        isDisabled={!isCourseActive}
+                                                        isDisabled={!isCourseActive || !canUpdateExamSettings}
                                                     />
                                                 </div>
                                                 <div className="space-y-3">
@@ -871,20 +880,20 @@ export default function ExamScoresTab({ courseId, isCourseActive = true }: ExamS
                                                         size="sm"
                                                         variant="bordered"
                                                         value={String(settingsData[setting.id]?.max_score ?? setting.max_score)}
-                                                        onValueChange={(v) => setSettingsData(prev => ({
+                                                        onValueChange={(v) => setSettingsData(prev => ({                                                            
                                                             ...prev,
                                                             [setting.id]: { ...prev[setting.id], max_score: parseFloat(v) || 0 }
                                                         }))}
-                                                        isDisabled={!isCourseActive || !settingsData[setting.id]?.is_active}
+                                                        isDisabled={!isCourseActive || !canUpdateExamSettings || !settingsData[setting.id]?.is_active}
                                                     />
                                                     <Checkbox
                                                         size="sm"
                                                         isSelected={settingsData[setting.id]?.is_visible ?? setting.is_visible}
-                                                        onValueChange={(v) => setSettingsData(prev => ({
+                                                        onValueChange={(v) => setSettingsData(prev => ({                                                            
                                                             ...prev,
                                                             [setting.id]: { ...prev[setting.id], is_visible: v }
                                                         }))}
-                                                        isDisabled={!isCourseActive || !settingsData[setting.id]?.is_active}
+                                                        isDisabled={!isCourseActive || !canUpdateExamSettings || !settingsData[setting.id]?.is_active}
                                                     >
                                                         <span className="text-sm">เปิดให้นักศึกษาดูคะแนน</span>
                                                     </Checkbox>
@@ -916,11 +925,11 @@ export default function ExamScoresTab({ courseId, isCourseActive = true }: ExamS
                                                     <Switch
                                                         size="sm"
                                                         isSelected={settingsData[setting.id]?.is_active ?? setting.is_active}
-                                                        onValueChange={(v) => setSettingsData(prev => ({
+                                                        onValueChange={(v) => setSettingsData(prev => ({                                                            
                                                             ...prev,
                                                             [setting.id]: { ...prev[setting.id], is_active: v }
                                                         }))}
-                                                        isDisabled={!isCourseActive}
+                                                        isDisabled={!isCourseActive || !canUpdateExamSettings}
                                                     />
                                                 </div>
                                                 <div className="space-y-3">
@@ -930,20 +939,20 @@ export default function ExamScoresTab({ courseId, isCourseActive = true }: ExamS
                                                         size="sm"
                                                         variant="bordered"
                                                         value={String(settingsData[setting.id]?.max_score ?? setting.max_score)}
-                                                        onValueChange={(v) => setSettingsData(prev => ({
+                                                        onValueChange={(v) => setSettingsData(prev => ({                                                            
                                                             ...prev,
                                                             [setting.id]: { ...prev[setting.id], max_score: parseFloat(v) || 0 }
                                                         }))}
-                                                        isDisabled={!isCourseActive || !settingsData[setting.id]?.is_active}
+                                                        isDisabled={!isCourseActive || !canUpdateExamSettings || !settingsData[setting.id]?.is_active}
                                                     />
                                                     <Checkbox
                                                         size="sm"
                                                         isSelected={settingsData[setting.id]?.is_visible ?? setting.is_visible}
-                                                        onValueChange={(v) => setSettingsData(prev => ({
+                                                        onValueChange={(v) => setSettingsData(prev => ({                                                            
                                                             ...prev,
                                                             [setting.id]: { ...prev[setting.id], is_visible: v }
                                                         }))}
-                                                        isDisabled={!isCourseActive || !settingsData[setting.id]?.is_active}
+                                                        isDisabled={!isCourseActive || !canUpdateExamSettings || !settingsData[setting.id]?.is_active}
                                                     >
                                                         <span className="text-sm">เปิดให้นักศึกษาดูคะแนน</span>
                                                     </Checkbox>
@@ -963,7 +972,7 @@ export default function ExamScoresTab({ courseId, isCourseActive = true }: ExamS
                             color="primary" 
                             onPress={handleSaveSettings}
                             isLoading={isSaving}
-                            isDisabled={!isCourseActive}
+                            isDisabled={!isCourseActive || !canUpdateExamSettings}
                         >
                             บันทึก
                         </Button>

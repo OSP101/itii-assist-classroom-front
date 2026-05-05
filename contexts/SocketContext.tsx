@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from "react";
-import { io, Socket } from "socket.io-client";
+import { io, Socket } from "@/services/realtime-socket";
 
 // Resource types that can be synced
 export type ResourceType = 
@@ -129,11 +129,9 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     // Initialize socket connection
     useEffect(() => {
         const socketUrl = getSocketUrl();
-        console.log("🔌 Connecting to Socket.IO at:", socketUrl);
+        console.log("🔌 Connecting to realtime WebSocket at:", socketUrl);
         
         const socketInstance = io(socketUrl, {
-            path: "/socket.io",
-            transports: ["polling", "websocket"],
             reconnection: true,
             reconnectionAttempts: 10,
             reconnectionDelay: 1000,
@@ -142,7 +140,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         });
 
         socketInstance.on("connect", () => {
-            console.log("✅ Socket connected:", socketInstance.id);
+            console.log("✅ Realtime socket connected:", socketInstance.id);
             setIsConnected(true);
             // Auto-join global updates room
             socketInstance.emit("join-global-updates");

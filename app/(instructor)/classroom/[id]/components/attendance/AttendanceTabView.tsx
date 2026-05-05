@@ -39,6 +39,9 @@ interface AttendanceTabViewProps {
     isLoading: boolean;
     hook: UseAttendanceTabReturn;
     isCourseActive?: boolean;
+    canCreateAttendanceSessions?: boolean;
+    canUpdateAttendanceSessions?: boolean;
+    canDeleteAttendanceSessions?: boolean;
 }
 
 // ============================================================================
@@ -48,24 +51,27 @@ interface AttendanceTabViewProps {
 interface HeaderProps {
     onCreateClick: () => void;
     isCourseActive?: boolean;
+    canCreateAttendanceSessions?: boolean;
 }
 
-const Header = memo(function Header({ onCreateClick, isCourseActive = true }: HeaderProps) {
+const Header = memo(function Header({ onCreateClick, isCourseActive = true, canCreateAttendanceSessions = false }: HeaderProps) {
     return (
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
                 <h2 className="text-lg font-semibold text-slate-800">การเช็คชื่อเข้าเรียน</h2>
                 <p className="text-sm text-slate-500">จัดการรอบการเช็คชื่อและดูสถิติการเข้าเรียน</p>
             </div>
-            <Button
-                color="primary"
-                startContent={<Icon icon="solar:add-circle-bold" />}
-                onPress={onCreateClick}
-                isDisabled={!isCourseActive}
-                className="bg-gradient-to-r from-blue-400 to-indigo-500 "
-            >
-                สร้างรอบเช็คชื่อ
-            </Button>
+            {canCreateAttendanceSessions && (
+                <Button
+                    color="primary"
+                    startContent={<Icon icon="solar:add-circle-bold" />}
+                    onPress={onCreateClick}
+                    isDisabled={!isCourseActive}
+                    className="bg-gradient-to-r from-blue-400 to-indigo-500 "
+                >
+                    สร้างรอบเช็คชื่อ
+                </Button>
+            )}
         </div>
     );
 });
@@ -103,6 +109,9 @@ interface ContentProps {
     onEdit: (session: SessionWithComputedStatus) => void;
     onDelete: (session: SessionWithComputedStatus) => void;
     onClose: (session: SessionWithComputedStatus) => void;
+    canCreateAttendanceSessions?: boolean;
+    canUpdateAttendanceSessions?: boolean;
+    canDeleteAttendanceSessions?: boolean;
 }
 
 const Content = memo(function Content({
@@ -121,6 +130,9 @@ const Content = memo(function Content({
     onEdit,
     onDelete,
     onClose,
+    canCreateAttendanceSessions = false,
+    canUpdateAttendanceSessions = false,
+    canDeleteAttendanceSessions = false,
 }: ContentProps) {
     return (
         <>
@@ -134,7 +146,7 @@ const Content = memo(function Content({
                 onTypeChange={onTypeChange}
             />
             {sessions.length === 0 ? (
-                <EmptyState onCreateClick={onCreateClick} />
+                <EmptyState onCreateClick={onCreateClick} canCreateAttendanceSessions={canCreateAttendanceSessions} />
             ) : (
                 <SessionsTable
                     sessions={filteredSessions}
@@ -144,6 +156,9 @@ const Content = memo(function Content({
                     onEdit={onEdit}
                     onDelete={onDelete}
                     onClose={onClose}
+                    canCreateAttendanceSessions={canCreateAttendanceSessions}
+                    canUpdateAttendanceSessions={canUpdateAttendanceSessions}
+                    canDeleteAttendanceSessions={canDeleteAttendanceSessions}
                 />
             )}
         </>
@@ -154,7 +169,15 @@ const Content = memo(function Content({
 // Main View Component
 // ============================================================================
 
-function AttendanceTabViewComponent({ course, isLoading, hook, isCourseActive = true }: AttendanceTabViewProps) {
+function AttendanceTabViewComponent({
+    course,
+    isLoading,
+    hook,
+    isCourseActive = true,
+    canCreateAttendanceSessions = false,
+    canUpdateAttendanceSessions = false,
+    canDeleteAttendanceSessions = false,
+}: AttendanceTabViewProps) {
     const {
         // Data
         sessions,
@@ -225,7 +248,11 @@ function AttendanceTabViewComponent({ course, isLoading, hook, isCourseActive = 
 
     return (
         <div className="space-y-4">
-            <Header onCreateClick={openCreateModal} isCourseActive={isCourseActive} />
+            <Header
+                onCreateClick={openCreateModal}
+                isCourseActive={isCourseActive}
+                canCreateAttendanceSessions={canCreateAttendanceSessions}
+            />
 
             {showLoading ? (
                 <LoadingState />
@@ -246,6 +273,9 @@ function AttendanceTabViewComponent({ course, isLoading, hook, isCourseActive = 
                     onEdit={openEditModal}
                     onDelete={openDeleteModal}
                     onClose={openCloseSessionModal}
+                    canCreateAttendanceSessions={canCreateAttendanceSessions}
+                    canUpdateAttendanceSessions={canUpdateAttendanceSessions}
+                    canDeleteAttendanceSessions={canDeleteAttendanceSessions}
                 />
             )}
 

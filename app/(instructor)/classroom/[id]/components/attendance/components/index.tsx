@@ -341,9 +341,10 @@ export const FiltersCard = memo(function FiltersCard({
 
 interface EmptyStateProps {
     onCreateClick: () => void;
+    canCreateAttendanceSessions?: boolean;
 }
 
-export const EmptyState = memo(function EmptyState({ onCreateClick }: EmptyStateProps) {
+export const EmptyState = memo(function EmptyState({ onCreateClick, canCreateAttendanceSessions = false }: EmptyStateProps) {
     return (
         <Card className="shadow-sm border border-dashed border-slate-300 bg-slate-50/50">
             <CardBody className="text-center py-16">
@@ -357,14 +358,16 @@ export const EmptyState = memo(function EmptyState({ onCreateClick }: EmptyState
                 <p className="text-slate-500 mb-6 max-w-md mx-auto">
                     สร้างรอบการเช็คชื่อเพื่อให้นักศึกษาสามารถเช็คชื่อเข้าเรียนได้
                 </p>
-                <Button
-                    color="primary"
-                    startContent={<Icon icon="solar:add-circle-bold" />}
-                    onPress={onCreateClick}
-                    className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
-                >
-                    สร้างรอบเช็คชื่อแรก
-                </Button>
+                {canCreateAttendanceSessions && (
+                    <Button
+                        color="primary"
+                        startContent={<Icon icon="solar:add-circle-bold" />}
+                        onPress={onCreateClick}
+                        className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
+                    >
+                        สร้างรอบเช็คชื่อแรก
+                    </Button>
+                )}
             </CardBody>
         </Card>
     );
@@ -538,6 +541,8 @@ interface SessionRowActionsProps {
     onDelete: (session: AttendanceSession) => void;
     onClose: (session: AttendanceSession) => void;
     onShowQR?: (session: SessionWithComputedStatus) => void;
+    canUpdateAttendanceSessions?: boolean;
+    canDeleteAttendanceSessions?: boolean;
 }
 
 const SessionRowActions = memo(function SessionRowActions({
@@ -548,6 +553,8 @@ const SessionRowActions = memo(function SessionRowActions({
     onDelete,
     onClose,
     onShowQR,
+    canUpdateAttendanceSessions = false,
+    canDeleteAttendanceSessions = false,
 }: SessionRowActionsProps) {
     if (session.status === "draft") {
         return (
@@ -563,39 +570,45 @@ const SessionRowActions = memo(function SessionRowActions({
                         <Icon icon="solar:qr-code-bold" className="text-lg" />
                     </Button>
                 </Tooltip>
-                <Tooltip content="เริ่มเปิดเช็คชื่อทันที">
-                    <Button
-                        isIconOnly
-                        size="sm"
-                        variant="light"
-                        color="success"
-                        onPress={() => onActivate(session)}
-                    >
-                        <Icon icon="solar:play-bold" className="text-lg" />
-                    </Button>
-                </Tooltip>
-                <Tooltip content="แก้ไข">
-                    <Button
-                        isIconOnly
-                        size="sm"
-                        variant="light"
-                        color="primary"
-                        onPress={() => onEdit(session)}
-                    >
-                        <Icon icon="solar:pen-bold" className="text-lg" />
-                    </Button>
-                </Tooltip>
-                <Tooltip content="ลบ" color="danger">
-                    <Button
-                        isIconOnly
-                        size="sm"
-                        variant="light"
-                        color="danger"
-                        onPress={() => onDelete(session)}
-                    >
-                        <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
-                    </Button>
-                </Tooltip>
+                {canUpdateAttendanceSessions && (
+                    <Tooltip content="เริ่มเปิดเช็คชื่อทันที">
+                        <Button
+                            isIconOnly
+                            size="sm"
+                            variant="light"
+                            color="success"
+                            onPress={() => onActivate(session)}
+                        >
+                            <Icon icon="solar:play-bold" className="text-lg" />
+                        </Button>
+                    </Tooltip>
+                )}
+                {canUpdateAttendanceSessions && (
+                    <Tooltip content="แก้ไข">
+                        <Button
+                            isIconOnly
+                            size="sm"
+                            variant="light"
+                            color="primary"
+                            onPress={() => onEdit(session)}
+                        >
+                            <Icon icon="solar:pen-bold" className="text-lg" />
+                        </Button>
+                    </Tooltip>
+                )}
+                {canDeleteAttendanceSessions && (
+                    <Tooltip content="ลบ" color="danger">
+                        <Button
+                            isIconOnly
+                            size="sm"
+                            variant="light"
+                            color="danger"
+                            onPress={() => onDelete(session)}
+                        >
+                            <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
+                        </Button>
+                    </Tooltip>
+                )}
             </>
         );
     }
@@ -621,28 +634,32 @@ const SessionRowActions = memo(function SessionRowActions({
                         <Icon icon="solar:chart-bold" className="text-lg" />
                     </Link>
                 </Tooltip>
-                <Tooltip content="แก้ไขเวลา">
-                    <Button
-                        isIconOnly
-                        size="sm"
-                        variant="light"
-                        color="primary"
-                        onPress={() => onEdit(session)}
-                    >
-                        <Icon icon="solar:pen-bold" className="text-lg" />
-                    </Button>
-                </Tooltip>
-                <Tooltip content="ปิดทันที" color="danger">
-                    <Button
-                        isIconOnly
-                        size="sm"
-                        variant="light"
-                        color="danger"
-                        onPress={() => onClose(session)}
-                    >
-                        <Icon icon="solar:stop-bold" className="text-lg" />
-                    </Button>
-                </Tooltip>
+                {canUpdateAttendanceSessions && (
+                    <Tooltip content="แก้ไขเวลา">
+                        <Button
+                            isIconOnly
+                            size="sm"
+                            variant="light"
+                            color="primary"
+                            onPress={() => onEdit(session)}
+                        >
+                            <Icon icon="solar:pen-bold" className="text-lg" />
+                        </Button>
+                    </Tooltip>
+                )}
+                {canUpdateAttendanceSessions && (
+                    <Tooltip content="ปิดทันที" color="danger">
+                        <Button
+                            isIconOnly
+                            size="sm"
+                            variant="light"
+                            color="danger"
+                            onPress={() => onClose(session)}
+                        >
+                            <Icon icon="solar:stop-bold" className="text-lg" />
+                        </Button>
+                    </Tooltip>
+                )}
             </>
         );
     }
@@ -669,17 +686,19 @@ const SessionRowActions = memo(function SessionRowActions({
                 </Link>
             </Tooltip>
 
-            <Tooltip content="ลบ" color="danger">
-                <Button
-                    isIconOnly
-                    size="sm"
-                    variant="light"
-                    color="danger"
-                    onPress={() => onDelete(session)}
-                >
-                    <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
-                </Button>
-            </Tooltip>
+            {canDeleteAttendanceSessions && (
+                <Tooltip content="ลบ" color="danger">
+                    <Button
+                        isIconOnly
+                        size="sm"
+                        variant="light"
+                        color="danger"
+                        onPress={() => onDelete(session)}
+                    >
+                        <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
+                    </Button>
+                </Tooltip>
+            )}
         </>
     );
 });
@@ -696,6 +715,9 @@ interface SessionsTableProps {
     onEdit: (session: AttendanceSession) => void;
     onDelete: (session: AttendanceSession) => void;
     onClose: (session: AttendanceSession) => void;
+    canCreateAttendanceSessions?: boolean;
+    canUpdateAttendanceSessions?: boolean;
+    canDeleteAttendanceSessions?: boolean;
 }
 
 export const SessionsTable = memo(function SessionsTable({
@@ -706,6 +728,9 @@ export const SessionsTable = memo(function SessionsTable({
     onEdit,
     onDelete,
     onClose,
+    canCreateAttendanceSessions = false,
+    canUpdateAttendanceSessions = false,
+    canDeleteAttendanceSessions = false,
 }: SessionsTableProps) {
     // QR Preview Modal State
     const [qrPreviewSession, setQRPreviewSession] = useState<SessionWithComputedStatus | null>(null);
@@ -751,15 +776,17 @@ export const SessionsTable = memo(function SessionsTable({
                                             className="text-5xl text-slate-300 mx-auto mb-3"
                                         />
                                         <p className="text-slate-400">ไม่พบรอบการเช็คชื่อที่ตรงกับเงื่อนไข</p>
-                                        <Button
-                                            color="primary"
-                                            variant="flat"
-                                            size="sm"
-                                            className="mt-3"
-                                            onPress={onCreateClick}
-                                        >
-                                            สร้างรอบเช็คชื่อ
-                                        </Button>
+                                        {canCreateAttendanceSessions && (
+                                            <Button
+                                                color="primary"
+                                                variant="flat"
+                                                size="sm"
+                                                className="mt-3"
+                                                onPress={onCreateClick}
+                                            >
+                                                สร้างรอบเช็คชื่อ
+                                            </Button>
+                                        )}
                                     </div>
                                 }
                             >
@@ -861,6 +888,8 @@ export const SessionsTable = memo(function SessionsTable({
                                                     onDelete={onDelete}
                                                     onClose={onClose}
                                                     onShowQR={setQRPreviewSession}
+                                                    canUpdateAttendanceSessions={canUpdateAttendanceSessions}
+                                                    canDeleteAttendanceSessions={canDeleteAttendanceSessions}
                                                 />
                                             </div>
                                         </TableCell>

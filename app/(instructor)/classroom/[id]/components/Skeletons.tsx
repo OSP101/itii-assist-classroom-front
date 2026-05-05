@@ -1,6 +1,25 @@
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Skeleton } from "@heroui/skeleton";
 
+const MENU_SKELETON_WIDTHS = [112, 144, 128, 96, 120, 80];
+
+export const SidebarMenuSkeleton = () => (
+    <div className="space-y-1 p-3">
+        {/* ภาพรวม is always visible, render it as active */}
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-50">
+            <Skeleton className="w-5 h-5 rounded" />
+            <Skeleton className="h-4 rounded-lg" style={{ width: 64 }} />
+        </div>
+        {/* Placeholder rows for permission-gated items */}
+        {MENU_SKELETON_WIDTHS.map((w, i) => (
+            <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg">
+                <Skeleton className="w-5 h-5 rounded" />
+                <Skeleton className="h-4 rounded-lg" style={{ width: w }} />
+            </div>
+        ))}
+    </div>
+);
+
 export const OverviewSkeleton = () => (
     <div className="space-y-6">
         {/* Course Detail Card Skeleton */}
@@ -183,6 +202,32 @@ export const ScoresSkeleton = () => (
                         ))}
                     </div>
                 </div>
+            </CardBody>
+        </Card>
+    </div>
+);
+
+/** Generic skeleton for tabs that have a toolbar + list layout (Sections, Attendance, Queue, etc.) */
+export const TabListSkeleton = () => (
+    <div className="space-y-4">
+        {/* Toolbar */}
+        <div className="flex items-center justify-between gap-3">
+            <Skeleton className="h-9 rounded-xl flex-1 max-w-xs" />
+            <Skeleton className="h-9 w-28 rounded-xl" />
+        </div>
+        {/* List rows */}
+        <Card className="shadow-sm border border-slate-200">
+            <CardBody className="p-4 space-y-3">
+                {[1, 2, 3, 4, 5].map(i => (
+                    <div key={i} className="flex items-center gap-4 p-3 rounded-xl bg-slate-50">
+                        <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
+                        <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 rounded-lg" style={{ width: `${55 + (i % 3) * 15}%` }} />
+                            <Skeleton className="h-3 rounded-lg" style={{ width: `${35 + (i % 4) * 10}%` }} />
+                        </div>
+                        <Skeleton className="h-7 w-20 rounded-full" />
+                    </div>
+                ))}
             </CardBody>
         </Card>
     </div>

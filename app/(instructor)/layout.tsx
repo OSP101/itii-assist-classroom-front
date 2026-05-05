@@ -2,7 +2,7 @@
 
 import { useEffect, useState, createContext, useContext } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Spinner } from "@heroui/spinner";
+import { Skeleton } from "@heroui/skeleton";
 import { Avatar } from "@heroui/avatar";
 import { Chip } from "@heroui/chip";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, DropdownSection } from "@heroui/dropdown";
@@ -11,7 +11,8 @@ import { authService } from "@/services/auth.service";
 import { courseService, Course } from "@/services/course.service";
 import Link from "next/link";
 import { IoSchool } from "react-icons/io5";
-import { FeedbackButton } from "@/components/feedback";
+import { PageBootSkeleton } from "@/components/loading-skeletons";
+import { AppFooter } from "@/components/Footer";
 
 interface User {
     id: number;
@@ -60,6 +61,8 @@ export default function InstructorLayout({
     const [isLoading, setIsLoading] = useState(true);
     const [courseInfo, setCourseInfo] = useState<CourseInfo | null>(null);
     const [activeCourses, setActiveCourses] = useState<Course[]>([]);
+    const [isCoursesLoading, setIsCoursesLoading] = useState(false);
+    const [isCourseInfoLoading, setIsCourseInfoLoading] = useState(false);
 
     // Extract course ID from pathname
     const courseId = pathname.includes("/classroom/")
@@ -99,6 +102,7 @@ export default function InstructorLayout({
     // Fetch active courses once when user is set
     const fetchActiveCourses = async () => {
         if (!user) return;
+        setIsCoursesLoading(true);
         try {
             if (user.role === "admin") {
                 const response = await courseService.getCourses({ status: "active", limit: 10 });
@@ -113,6 +117,8 @@ export default function InstructorLayout({
             }
         } catch (error) {
             console.error("Failed to fetch active courses:", error);
+        } finally {
+            setIsCoursesLoading(false);
         }
     };
 
@@ -124,6 +130,7 @@ export default function InstructorLayout({
     useEffect(() => {
         const fetchCourseInfo = async () => {
             if (courseId) {
+                setIsCourseInfoLoading(true);
                 // Check if we already have this course in activeCourses
                 const existingCourse = activeCourses.find(c => c.id === courseId);
                 if (existingCourse) {
@@ -150,8 +157,10 @@ export default function InstructorLayout({
                         console.error("Failed to fetch course info:", error);
                     }
                 }
+                setIsCourseInfoLoading(false);
             } else {
                 setCourseInfo(null);
+                setIsCourseInfoLoading(false);
             }
         };
         fetchCourseInfo();
@@ -198,17 +207,8 @@ export default function InstructorLayout({
 
     // Show loading screen while checking auth
     if (isLoading) {
-        return (
-            <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-15 h-15 bg-gradient-to-br from-blue-400 to-indigo-500 rounded flex items-center justify-center text-white text-4xl">
-                        <IoSchool />
-                    </div>
-                    {/* <p className="text-xl text-slate-700">The ITII Assist Classroom is loading.</p> */}
-                    <Spinner size="lg" color="primary" />
-                </div>
-            </div>
-        );
+        const isClassroom = pathname.includes("/classroom/");
+        return <PageBootSkeleton variant={isClassroom ? "classroom" : "home"} />;
     }
 
     // Don't render content if user is not authenticated (will be redirected by useEffect)
@@ -220,7 +220,7 @@ export default function InstructorLayout({
                         <IoSchool />
                     </div>
                     <p className="text-xl text-slate-700">กำลังนำไปยังหน้าเข้าสู่ระบบ...</p>
-                    <Spinner size="lg" color="primary" />
+                        <Skeleton className="h-2 w-40 rounded-full bg-blue-100" />
                 </div>
             </div>
         );
@@ -234,7 +234,7 @@ export default function InstructorLayout({
             setCourseInfo,
             refreshCourses: fetchActiveCourses
         }}>
-            <div className="min-h-screen bg-slate-50">
+            <div className="min-h-screen bg-slate-50 flex flex-col">
                 {/* Top Navigation Bar - Shared Header */}
                 <header className="sticky top-0 z-50 bg-white border-b border-slate-200">
                     <div className="flex items-center justify-between h-12 px-4">
@@ -266,7 +266,19 @@ export default function InstructorLayout({
                                 </DropdownTrigger>
                                 <DropdownMenu aria-label="User actions" className="max-h-80 overflow-y-auto">
                                     <DropdownSection title="รายวิชาที่กำลังสอน" showDivider>
-                                        {activeCourses.length > 0 ? (
+                                        {isCoursesLoading ? (
+                                            [0, 1, 2].map((item) => (
+                                                <DropdownItem key={`course-skeleton-${item}`} isReadOnly textValue="Loading course">
+                                                    <div className="flex items-center gap-3 py-1">
+                                                        <Skeleton className="w-5 h-5 rounded bg-blue-100" />
+                                                        <div className="space-y-1.5 flex-1">
+                                                            <Skeleton className="w-40 h-4 rounded" />
+                                                            <Skeleton className="w-16 h-3 rounded" />
+                                                        </div>
+                                                    </div>
+                                                </DropdownItem>
+                                            ))
+                                        ) : activeCourses.length > 0 ? (
                                             activeCourses.map((course) => (
                                                 <DropdownItem
                                                     key={course.id}
@@ -321,7 +333,15 @@ export default function InstructorLayout({
                                 </div>
                             )}
 
-                            {isClassroomPage && courseInfo && (
+                            {isClassroomPage && (isCourseInfoLoading || !courseInfo) && (
+                                <div className="flex items-center gap-2 px-2 py-1">
+                                    <Skeleton className="w-16 h-5 rounded-lg" />
+                                    <Skeleton className="hidden sm:block w-36 h-5 rounded-lg" />
+                                    <Skeleton className="w-16 h-5 rounded-full bg-blue-50" />
+                                </div>
+                            )}
+
+                            {isClassroomPage && !isCourseInfoLoading && courseInfo && (
                                 <div className="flex items-center gap-1.5 px-2 py-1 text-slate-700">
                                     <span className="font-medium">{courseInfo.code}</span>
                                     <span className="max-w-[200px] truncate">{courseInfo.name}</span>
@@ -380,12 +400,11 @@ export default function InstructorLayout({
                 </header>
 
                 {/* Main Content */}
-                <main className={isHomePage ? "max-w-7xl mx-auto px-4 py-6" : ""}>
+                <main className={`flex-1 ${isHomePage ? "max-w-7xl mx-auto px-4 py-6" : ""}`}>
                     {children}
                 </main>
 
-                {/* Feedback Button */}
-                <FeedbackButton userEmail={user?.email} position="bottom-right" />
+                <AppFooter userEmail={user?.email} />
             </div>
         </InstructorContext.Provider>
     );

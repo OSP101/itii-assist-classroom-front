@@ -4,7 +4,7 @@
  * Contains types, interfaces, and utility functions for the SectionsTab component.
  */
 
-import type { Course, SectionStudent } from "@/services/course.service";
+import type { Course, SectionStudent, RemovedSectionStudent } from "@/services/course.service";
 
 // ============================================
 // Team Types
@@ -59,6 +59,7 @@ export interface SectionsTabViewProps {
     expandedSections: number[];
     isTeamsLoading: boolean;
     sectionStudents: Record<number, SectionStudent[]>;
+    removedStudents: RemovedSectionStudent[];
     
     // Handlers
     onSubTabChange: (tab: SectionSubTab) => void;
@@ -69,6 +70,7 @@ export interface SectionsTabViewProps {
     onOpenAddStudentModal: (sectionId: number) => void;
     onRemoveSection: (sectionId: number) => void;
     onOpenDeleteStudentModal: (sectionId: number, student: SectionStudent) => void;
+    onRestoreRemovedStudent: (removed: RemovedSectionStudent) => void;
     onOpenCreateTeamModal: (type: TeamType, method: TeamFormationMethod) => void;
     onOpenDeleteTeamModal: (teamId: number, type: TeamType, weekNumber?: number) => void;
     onOpenEditTeamModal: (teamId: number, type: TeamType, weekNumber?: number) => void;

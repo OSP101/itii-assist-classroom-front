@@ -19,7 +19,7 @@ import {
 } from "@heroui/modal";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
-import { io, Socket } from "socket.io-client";
+import { io, Socket } from "@/services/realtime-socket";
 import queueService, {
     type QueueSession,
     type QueueWorker,

@@ -30,7 +30,7 @@ import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { IoSchool } from "react-icons/io5";
 import { QRCodeSVG } from "qrcode.react";
-import { io, Socket } from "socket.io-client";
+import { io, Socket } from "@/services/realtime-socket";
 import attendanceService, {
     type AttendanceSession,
     type AttendanceRecord,

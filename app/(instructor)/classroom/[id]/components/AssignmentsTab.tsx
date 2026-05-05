@@ -15,6 +15,11 @@ interface AssignmentsTabProps {
     isCourseActive?: boolean;
     hasPendingUpdate?: boolean;
     onPendingUpdateAck?: () => void;
+    canCreateAssignments?: boolean;
+    canUpdateAssignments?: boolean;
+    canDeleteAssignments?: boolean;
+    canGradeAssignments?: boolean;
+    canEditScores?: boolean;
 }
 
 export default function AssignmentsTab({
@@ -29,6 +34,11 @@ export default function AssignmentsTab({
     isCourseActive = true,
     hasPendingUpdate,
     onPendingUpdateAck,
+    canCreateAssignments = false,
+    canUpdateAssignments = false,
+    canDeleteAssignments = false,
+    canGradeAssignments = false,
+    canEditScores = false,
 }: AssignmentsTabProps) {
     const {
         // State
@@ -102,6 +112,11 @@ export default function AssignmentsTab({
             ungradedSummary={ungradedSummary}
             hasPendingUpdate={hasPendingUpdate}
             onPendingUpdateAck={onPendingUpdateAck}
+            canCreateAssignments={canCreateAssignments}
+            canUpdateAssignments={canUpdateAssignments}
+            canDeleteAssignments={canDeleteAssignments}
+            canGradeAssignments={canGradeAssignments}
+            canEditScores={canEditScores}
         />
     );
 }

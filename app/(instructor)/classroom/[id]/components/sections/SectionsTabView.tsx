@@ -18,7 +18,7 @@ import {
     TableCell,
 } from "@heroui/table";
 import { Icon } from "@iconify/react";
-import type { Course, SectionStudent } from "@/services/course.service";
+import type { Course, SectionStudent, RemovedSectionStudent } from "@/services/course.service";
 import { TeamsGridSkeleton } from "../Skeletons";
 import type {
     PermanentTeam,
@@ -42,6 +42,14 @@ interface SectionsTabViewProps {
     isTeamsLoading: boolean;
     sectionStudents: Record<number, SectionStudent[]>;
     isCourseActive?: boolean;
+    removedStudents: RemovedSectionStudent[];
+    canCreateSections?: boolean;
+    canUpdateSections?: boolean;
+    canDeleteSections?: boolean;
+    canManageSectionStudents?: boolean;
+    canCreateTeams?: boolean;
+    canUpdateTeams?: boolean;
+    canDeleteTeams?: boolean;
 
 
     // Handlers
@@ -53,6 +61,7 @@ interface SectionsTabViewProps {
     onOpenAddStudentModal: (sectionId: number) => void;
     onRemoveSection: (sectionId: number) => void;
     onOpenDeleteStudentModal: (sectionId: number, student: SectionStudent) => void;
+    onRestoreRemovedStudent: (removed: RemovedSectionStudent) => void;
     onOpenCreateTeamModal: (type: TeamType, method: TeamFormationMethod) => void;
     onOpenDeleteTeamModal: (teamId: number, type: TeamType, weekNumber?: number) => void;
     onOpenEditTeamModal: (teamId: number, type: TeamType, weekNumber?: number) => void;
@@ -74,6 +83,9 @@ interface SectionHeaderProps {
     studentCount: number;
     isExpanded: boolean;
     isCourseActive?: boolean;
+    canManageSectionStudents?: boolean;
+    canUpdateSections?: boolean;
+    canDeleteSections?: boolean;
     onToggle: () => void;
     onAddStudent: () => void;
     onEdit: () => void;
@@ -85,6 +97,9 @@ const SectionHeader = React.memo(function SectionHeader({
     studentCount,
     isExpanded,
     isCourseActive = true,
+    canManageSectionStudents = false,
+    canUpdateSections = false,
+    canDeleteSections = false,
     onToggle,
     onAddStudent,
     onEdit,
@@ -115,42 +130,48 @@ const SectionHeader = React.memo(function SectionHeader({
                 </div>
             </div>
             <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                <Tooltip content="เพิ่มนักศึกษา">
-                    <Button
-                        isIconOnly
-                        size="sm"
-                        variant="flat"
-                        isDisabled={!isCourseActive}
-                        className={isExpanded ? "bg-white/20 text-white" : ""}
-                        onPress={onAddStudent}
-                    >
-                        <Icon icon="solar:user-plus-bold" className="text-lg" />
-                    </Button>
-                </Tooltip>
-                <Tooltip content="แก้ไขกลุ่มเรียน">
-                    <Button
-                        isIconOnly
-                        size="sm"
-                        variant="flat"
-                        isDisabled={!isCourseActive}
-                        className={isExpanded ? "bg-white/20 text-white" : "bg-amber-100 text-amber-600"}
-                        onPress={onEdit}
-                    >
-                        <Icon icon="solar:pen-bold" className="text-lg" />
-                    </Button>
-                </Tooltip>
-                <Tooltip content="ลบกลุ่มเรียน" color="danger">
-                    <Button
-                        isIconOnly
-                        size="sm"
-                        variant="flat"
-                        isDisabled={!isCourseActive}
-                        className={isExpanded ? "bg-white/20 text-white hover:bg-red-500" : "bg-red-100 text-red-600"}
-                        onPress={onRemove}
-                    >
-                        <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
-                    </Button>
-                </Tooltip>
+                {canManageSectionStudents && (
+                    <Tooltip content="เพิ่มนักศึกษา">
+                        <Button
+                            isIconOnly
+                            size="sm"
+                            variant="flat"
+                            isDisabled={!isCourseActive}
+                            className={isExpanded ? "bg-white/20 text-white" : ""}
+                            onPress={onAddStudent}
+                        >
+                            <Icon icon="solar:user-plus-bold" className="text-lg" />
+                        </Button>
+                    </Tooltip>
+                )}
+                {canUpdateSections && (
+                    <Tooltip content="แก้ไขกลุ่มเรียน">
+                        <Button
+                            isIconOnly
+                            size="sm"
+                            variant="flat"
+                            isDisabled={!isCourseActive}
+                            className={isExpanded ? "bg-white/20 text-white" : "bg-amber-100 text-amber-600"}
+                            onPress={onEdit}
+                        >
+                            <Icon icon="solar:pen-bold" className="text-lg" />
+                        </Button>
+                    </Tooltip>
+                )}
+                {canDeleteSections && (
+                    <Tooltip content="ลบกลุ่มเรียน" color="danger">
+                        <Button
+                            isIconOnly
+                            size="sm"
+                            variant="flat"
+                            isDisabled={!isCourseActive}
+                            className={isExpanded ? "bg-white/20 text-white hover:bg-red-500" : "bg-red-100 text-red-600"}
+                            onPress={onRemove}
+                        >
+                            <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
+                        </Button>
+                    </Tooltip>
+                )}
                 <div
                     className={`ml-2 p-1 rounded-lg ${isExpanded ? "bg-white/20" : "bg-slate-200"}`}
                     onClick={onToggle}
@@ -172,6 +193,8 @@ interface TeamCardProps {
     weekNumber?: number;
     onEdit: () => void;
     onDelete: () => void;
+    canUpdateTeams?: boolean;
+    canDeleteTeams?: boolean;
 }
 
 const TeamCard = React.memo(function TeamCard({
@@ -180,6 +203,8 @@ const TeamCard = React.memo(function TeamCard({
     type,
     onEdit,
     onDelete,
+    canUpdateTeams = false,
+    canDeleteTeams = false,
 }: TeamCardProps) {
     const isPermanent = type === "permanent";
     const gradientClass = isPermanent
@@ -211,28 +236,32 @@ const TeamCard = React.memo(function TeamCard({
                         </div>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
-                        <Tooltip content="แก้ไขกลุ่ม">
-                            <Button
-                                isIconOnly
-                                size="sm"
-                                variant="flat"
-                                className="bg-white/20 text-white hover:bg-white/40"
-                                onPress={onEdit}
-                            >
-                                <Icon icon="solar:pen-bold" />
-                            </Button>
-                        </Tooltip>
-                        <Tooltip content="ลบกลุ่ม" color="danger">
-                            <Button
-                                isIconOnly
-                                size="sm"
-                                variant="flat"
-                                className="bg-white/20 text-white hover:bg-red-500"
-                                onPress={onDelete}
-                            >
-                                <Icon icon="solar:trash-bin-trash-bold" />
-                            </Button>
-                        </Tooltip>
+                        {canUpdateTeams && (
+                            <Tooltip content="แก้ไขกลุ่ม">
+                                <Button
+                                    isIconOnly
+                                    size="sm"
+                                    variant="flat"
+                                    className="bg-white/20 text-white hover:bg-white/40"
+                                    onPress={onEdit}
+                                >
+                                    <Icon icon="solar:pen-bold" />
+                                </Button>
+                            </Tooltip>
+                        )}
+                        {canDeleteTeams && (
+                            <Tooltip content="ลบกลุ่ม" color="danger">
+                                <Button
+                                    isIconOnly
+                                    size="sm"
+                                    variant="flat"
+                                    className="bg-white/20 text-white hover:bg-red-500"
+                                    onPress={onDelete}
+                                >
+                                    <Icon icon="solar:trash-bin-trash-bold" />
+                                </Button>
+                            </Tooltip>
+                        )}
                     </div>
                 </div>
             </CardHeader>
@@ -275,6 +304,14 @@ function SectionsTabViewComponent({
     isTeamsLoading,
     sectionStudents,
     isCourseActive = true,
+    removedStudents,
+    canCreateSections = false,
+    canUpdateSections = false,
+    canDeleteSections = false,
+    canManageSectionStudents = false,
+    canCreateTeams = false,
+    canUpdateTeams = false,
+    canDeleteTeams = false,
     onSubTabChange,
     onSearchQueryChange,
     onWeekChange,
@@ -283,6 +320,7 @@ function SectionsTabViewComponent({
     onOpenAddStudentModal,
     onRemoveSection,
     onOpenDeleteStudentModal,
+    onRestoreRemovedStudent,
     onOpenCreateTeamModal,
     onOpenDeleteTeamModal,
     onOpenEditTeamModal,
@@ -374,12 +412,18 @@ function SectionsTabViewComponent({
                     expandedSections={expandedSections}
                     sectionStudents={sectionStudents}
                     isCourseActive={isCourseActive}
+                    canCreateSections={canCreateSections}
+                    canUpdateSections={canUpdateSections}
+                    canDeleteSections={canDeleteSections}
+                    canManageSectionStudents={canManageSectionStudents}
                     onSearchQueryChange={onSearchQueryChange}
                     onOpenAddSectionModal={onOpenAddSectionModal}
                     onToggleSection={onToggleSection}
                     onOpenAddStudentModal={onOpenAddStudentModal}
                     onRemoveSection={onRemoveSection}
                     onOpenDeleteStudentModal={onOpenDeleteStudentModal}
+                    removedStudents={removedStudents}
+                    onRestoreRemovedStudent={onRestoreRemovedStudent}
                     onOpenEditSectionModal={onOpenEditSectionModal}
                     getFilteredSectionStudents={getFilteredSectionStudents}
                     findStudentTeam={findStudentTeam}
@@ -392,6 +436,9 @@ function SectionsTabViewComponent({
                     permanentTeams={permanentTeams}
                     isTeamsLoading={isTeamsLoading}
                     isCourseActive={isCourseActive}
+                    canCreateTeams={canCreateTeams}
+                    canUpdateTeams={canUpdateTeams}
+                    canDeleteTeams={canDeleteTeams}
                     onOpenCreateTeamModal={onOpenCreateTeamModal}
                     onOpenEditTeamModal={onOpenEditTeamModal}
                     onOpenDeleteTeamModal={onOpenDeleteTeamModal}
@@ -406,6 +453,9 @@ function SectionsTabViewComponent({
                     totalWeeks={totalWeeks}
                     isTeamsLoading={isTeamsLoading}
                     isCourseActive={isCourseActive}
+                    canCreateTeams={canCreateTeams}
+                    canUpdateTeams={canUpdateTeams}
+                    canDeleteTeams={canDeleteTeams}
                     onWeekChange={onWeekChange}
                     onOpenCreateTeamModal={onOpenCreateTeamModal}
                     onOpenEditTeamModal={onOpenEditTeamModal}
@@ -427,13 +477,19 @@ interface StudentsSubTabProps {
     sectionSearchQuery: string;
     expandedSections: number[];
     sectionStudents: Record<number, SectionStudent[]>;
+    removedStudents: RemovedSectionStudent[];
     isCourseActive?: boolean;
+    canCreateSections?: boolean;
+    canUpdateSections?: boolean;
+    canDeleteSections?: boolean;
+    canManageSectionStudents?: boolean;
     onSearchQueryChange: (query: string) => void;
     onOpenAddSectionModal: () => void;
     onToggleSection: (sectionId: number) => void;
     onOpenAddStudentModal: (sectionId: number) => void;
     onRemoveSection: (sectionId: number) => void;
     onOpenDeleteStudentModal: (sectionId: number, student: SectionStudent) => void;
+    onRestoreRemovedStudent: (removed: RemovedSectionStudent) => void;
     onOpenEditSectionModal: (sectionId: number) => void;
     getFilteredSectionStudents: (sectionId: number) => SectionStudent[];
     findStudentTeam: (studentId: number, type: TeamType, weekNumber?: number) => string | null;
@@ -444,17 +500,35 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
     sectionSearchQuery,
     expandedSections,
     sectionStudents,
+    removedStudents,
     isCourseActive = true,
+    canCreateSections = false,
+    canUpdateSections = false,
+    canDeleteSections = false,
+    canManageSectionStudents = false,
     onSearchQueryChange,
     onOpenAddSectionModal,
     onToggleSection,
     onOpenAddStudentModal,
     onRemoveSection,
     onOpenDeleteStudentModal,
+    onRestoreRemovedStudent,
     onOpenEditSectionModal,
     getFilteredSectionStudents,
     findStudentTeam,
 }: StudentsSubTabProps) {
+    const [showHistory, setShowHistory] = React.useState(false);
+    const [historyFilter, setHistoryFilter] = React.useState<string>("");
+
+    const filteredHistory = React.useMemo(() => {
+        if (!historyFilter) return removedStudents;
+        return removedStudents.filter(r =>
+            r.full_name.toLowerCase().includes(historyFilter.toLowerCase()) ||
+            String(r.student_ref_id).includes(historyFilter) ||
+            r.section_no.includes(historyFilter)
+        );
+    }, [removedStudents, historyFilter]);
+
     return (
         <div className="space-y-4">
             {/* Search & Actions Bar */}
@@ -477,18 +551,150 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                 }}
                             />
                         </div>
-                        <Button
-                            color="primary"
-                            startContent={<Icon icon="solar:add-circle-bold" />}
-                            onPress={onOpenAddSectionModal}
-                            isDisabled={!isCourseActive}
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25 w-full sm:w-auto"
-                        >
-                            เพิ่มกลุ่มเรียน
-                        </Button>
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <Button
+                                variant="flat"
+                                startContent={<Icon icon="solar:history-bold" />}
+                                endContent={removedStudents.length > 0 ? <Chip size="sm" className="bg-amber-100 text-amber-700">{removedStudents.length}</Chip> : undefined}
+                                className={`border ${showHistory ? "bg-amber-100 text-amber-800 border-amber-300" : "bg-amber-50 text-amber-700 border-amber-200"}`}
+                                isDisabled={removedStudents.length === 0}
+                                onPress={() => setShowHistory(v => !v)}
+                            >
+                                รายการที่ลบ
+                            </Button>
+
+                            {canCreateSections && (
+                                <Button
+                                    color="primary"
+                                    startContent={<Icon icon="solar:add-circle-bold" />}
+                                    onPress={onOpenAddSectionModal}
+                                    isDisabled={!isCourseActive}
+                                    className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25 w-full sm:w-auto"
+                                >
+                                    เพิ่มกลุ่มเรียน
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 </CardBody>
             </Card>
+
+            {/* Removed Students History Panel */}
+            {showHistory && removedStudents.length > 0 && (
+                <Card className="shadow-sm border border-amber-200 bg-amber-50/40">
+                    <CardHeader className="px-4 py-3 flex flex-col gap-3">
+                        <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-2">
+                                <Icon icon="solar:history-bold" className="text-amber-600 text-lg" />
+                                <span className="font-semibold text-amber-800 text-sm">ประวัติการลบนักศึกษา (กู้คืนได้ภายใน 10 วัน)</span>
+                            </div>
+                            <Button
+                                isIconOnly
+                                size="sm"
+                                variant="light"
+                                className="text-amber-600"
+                                onPress={() => setShowHistory(false)}
+                            >
+                                <Icon icon="solar:close-circle-bold" className="text-lg" />
+                            </Button>
+                        </div>
+                        <Input
+                            placeholder="ค้นหาชื่อ, รหัส หรือกลุ่มเรียน..."
+                            value={historyFilter}
+                            onValueChange={setHistoryFilter}
+                            startContent={<Icon icon="solar:magnifer-linear" className="text-amber-400" />}
+                            size="sm"
+                            variant="bordered"
+                            isClearable
+                            classNames={{
+                                inputWrapper: "border-amber-200 hover:border-amber-300 focus-within:!border-amber-400 bg-white",
+                            }}
+                        />
+                    </CardHeader>
+                    <CardBody className="p-0">
+                        {filteredHistory.length === 0 ? (
+                            <div className="px-4 py-6 text-center text-sm text-amber-600/70">ไม่พบรายการที่ตรงกับคำค้นหา</div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <Table
+                                    aria-label="ประวัติการลบนักศึกษา"
+                                    removeWrapper
+                                    classNames={{
+                                        base: "min-w-[560px]",
+                                        th: "bg-amber-100/60 text-amber-700 font-semibold text-xs uppercase tracking-wide",
+                                        td: "py-2 border-b border-amber-100",
+                                        tr: "hover:bg-amber-50 transition-colors",
+                                    }}
+                                >
+                                    <TableHeader>
+                                        <TableColumn>นักศึกษา</TableColumn>
+                                        <TableColumn width={90}>กลุ่ม</TableColumn>
+                                        <TableColumn width={120}>วันที่ลบ</TableColumn>
+                                        <TableColumn width={100}>เหลือเวลา</TableColumn>
+                                        <TableColumn width={80} align="center">กู้คืน</TableColumn>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredHistory.map((removed) => (
+                                            <TableRow key={removed.removal_id}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <Avatar
+                                                            name={removed.full_name}
+                                                            size="sm"
+                                                            className="bg-gradient-to-br from-amber-400 to-orange-500 text-white flex-shrink-0"
+                                                        />
+                                                        <div className="min-w-0">
+                                                            <p className="text-sm font-medium text-slate-800 truncate">{removed.full_name}</p>
+                                                            {removed.student_ref_id !== 0 && (
+                                                                <p className="text-xs text-slate-500">{removed.student_ref_id}</p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Chip size="sm" variant="flat" className="bg-blue-100 text-blue-700">
+                                                        กลุ่ม {removed.section_no}
+                                                    </Chip>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="text-xs text-slate-500">
+                                                        {new Date(removed.removed_at).toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "2-digit" })}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Chip
+                                                        size="sm"
+                                                        variant="flat"
+                                                        className={removed.remaining_days <= 2 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}
+                                                    >
+                                                        {removed.remaining_days} วัน
+                                                    </Chip>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {canManageSectionStudents && (
+                                                        <Tooltip content="กู้คืนนักศึกษา" color="warning">
+                                                            <Button
+                                                                isIconOnly
+                                                                size="sm"
+                                                                variant="flat"
+                                                                isDisabled={!isCourseActive}
+                                                                className="bg-amber-100 text-amber-700 hover:bg-amber-200"
+                                                                onPress={() => onRestoreRemovedStudent(removed)}
+                                                            >
+                                                                <Icon icon="solar:restart-bold" className="text-base" />
+                                                            </Button>
+                                                        </Tooltip>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
+                    </CardBody>
+                </Card>
+            )}
 
             {/* Sections */}
             {course.sections && course.sections.length > 0 ? (
@@ -497,9 +703,12 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                         <Card key={section.id} className="shadow-sm border border-slate-200 overflow-hidden">
                             <SectionHeader
                                 sectionNo={section.section_no}
-                                studentCount={section.studentCount || 0}
+                                studentCount={sectionStudents[section.id]?.length || section.studentCount || 0}
                                 isExpanded={expandedSections.includes(section.id)}
                                 isCourseActive={isCourseActive}
+                                canManageSectionStudents={canManageSectionStudents}
+                                canUpdateSections={canUpdateSections}
+                                canDeleteSections={canDeleteSections}
                                 onToggle={() => onToggleSection(section.id)}
                                 onAddStudent={() => onOpenAddStudentModal(section.id)}
                                 onEdit={() => onOpenEditSectionModal(section.id)}
@@ -559,17 +768,19 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                                                 )}
                                                             </TableCell>
                                                             <TableCell>
-                                                                <Tooltip content="นำออกจากกลุ่ม" color="danger">
-                                                                    <Button
-                                                                        isIconOnly
-                                                                        size="sm"
-                                                                        variant="light"
-                                                                        color="danger"
-                                                                        onPress={() => onOpenDeleteStudentModal(section.id, student)}
-                                                                    >
-                                                                        <Icon icon="solar:user-minus-bold" className="text-lg" />
-                                                                    </Button>
-                                                                </Tooltip>
+                                                                {canManageSectionStudents && (
+                                                                    <Tooltip content="นำออกจากกลุ่ม" color="danger">
+                                                                        <Button
+                                                                            isIconOnly
+                                                                            size="sm"
+                                                                            variant="light"
+                                                                            color="danger"
+                                                                            onPress={() => onOpenDeleteStudentModal(section.id, student)}
+                                                                        >
+                                                                            <Icon icon="solar:user-minus-bold" className="text-lg" />
+                                                                        </Button>
+                                                                    </Tooltip>
+                                                                )}
                                                             </TableCell>
                                                         </TableRow>
                                                     ))}
@@ -591,15 +802,17 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                             </div>
                                             <p className="text-slate-600 font-medium mb-1">ยังไม่มีนักศึกษาในกลุ่มนี้</p>
                                             <p className="text-sm text-slate-400 mb-4">เพิ่มนักศึกษาเพื่อเริ่มต้นจัดการกลุ่มเรียน</p>
-                                            <Button
-                                                color="primary"
-                                                variant="flat"
-                                                startContent={<Icon icon="solar:user-plus-bold" />}
-                                                onPress={() => onOpenAddStudentModal(section.id)}
-                                                className="text-amber-700"
-                                            >
-                                                เพิ่มนักศึกษา
-                                            </Button>
+                                            {canManageSectionStudents && (
+                                                <Button
+                                                    color="primary"
+                                                    variant="flat"
+                                                    startContent={<Icon icon="solar:user-plus-bold" />}
+                                                    onPress={() => onOpenAddStudentModal(section.id)}
+                                                    className="text-amber-700"
+                                                >
+                                                    เพิ่มนักศึกษา
+                                                </Button>
+                                            )}
                                         </div>
                                     )}
                                 </CardBody>
@@ -617,16 +830,18 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                         <p className="text-slate-500 mb-6 max-w-md mx-auto">
                             สร้างกลุ่มเรียนเพื่อจัดการนักศึกษาในรายวิชานี้
                         </p>
-                        <Button
-                            color="primary"
-                            size="md"
-                            startContent={<Icon icon="solar:add-circle-bold" />}
-                            onPress={onOpenAddSectionModal}
-                            isDisabled={!isCourseActive}
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25"
-                        >
-                            เพิ่มกลุ่มเรียนแรก
-                        </Button>
+                        {canCreateSections && (
+                            <Button
+                                color="primary"
+                                size="md"
+                                startContent={<Icon icon="solar:add-circle-bold" />}
+                                onPress={onOpenAddSectionModal}
+                                isDisabled={!isCourseActive}
+                                className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25"
+                            >
+                                เพิ่มกลุ่มเรียนแรก
+                            </Button>
+                        )}
                     </CardBody>
                 </Card>
             )}
@@ -642,6 +857,9 @@ interface PermanentTeamsSubTabProps {
     permanentTeams: PermanentTeam[];
     isTeamsLoading: boolean;
     isCourseActive?: boolean;
+    canCreateTeams?: boolean;
+    canUpdateTeams?: boolean;
+    canDeleteTeams?: boolean;
     onOpenCreateTeamModal: (type: TeamType, method: TeamFormationMethod) => void;
     onOpenEditTeamModal: (teamId: number, type: TeamType, weekNumber?: number) => void;
     onOpenDeleteTeamModal: (teamId: number, type: TeamType, weekNumber?: number) => void;
@@ -651,6 +869,9 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
     permanentTeams,
     isTeamsLoading,
     isCourseActive = true,
+    canCreateTeams = false,
+    canUpdateTeams = false,
+    canDeleteTeams = false,
     onOpenCreateTeamModal,
     onOpenEditTeamModal,
     onOpenDeleteTeamModal,
@@ -711,7 +932,7 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                                     onPress={() => onOpenCreateTeamModal("permanent", "random")}
                                     className="bg-purple-100 text-purple-700 flex-shrink-0 md:hidden"
                                     size="md"
-                                    isDisabled={isTeamsLoading || !isCourseActive}
+                                    isDisabled={isTeamsLoading || !isCourseActive || !canCreateTeams}
                                 >
                                     <Icon icon="solar:shuffle-bold" className="text-lg" />
                                 </Button>
@@ -723,7 +944,7 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                                 onPress={() => onOpenCreateTeamModal("permanent", "random")}
                                 className="bg-purple-100 text-purple-700 flex-shrink-0 hidden md:flex"
                                 size="md"
-                                isDisabled={isTeamsLoading || !isCourseActive}
+                                isDisabled={isTeamsLoading || !isCourseActive || !canCreateTeams}
                             >
                                 สุ่มกลุ่ม
                             </Button>
@@ -734,7 +955,7 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                                     onPress={() => onOpenCreateTeamModal("permanent", "manual")}
                                     className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 flex-shrink-0 md:hidden"
                                     size="md"
-                                    isDisabled={isTeamsLoading || !isCourseActive}
+                                    isDisabled={isTeamsLoading || !isCourseActive || !canCreateTeams}
                                 >
                                     <Icon icon="solar:add-circle-bold" className="text-lg" />
                                 </Button>
@@ -745,7 +966,7 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                                 onPress={() => onOpenCreateTeamModal("permanent", "manual")}
                                 className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 flex-shrink-0 hidden md:flex"
                                 size="md"
-                                isDisabled={isTeamsLoading || !isCourseActive}
+                                isDisabled={isTeamsLoading || !isCourseActive || !canCreateTeams}
                             >
                                 สร้างกลุ่ม
                             </Button>
@@ -767,6 +988,8 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                             type="permanent"
                             onEdit={() => onOpenEditTeamModal(team.id, "permanent")}
                             onDelete={() => onOpenDeleteTeamModal(team.id, "permanent")}
+                            canUpdateTeams={canUpdateTeams}
+                            canDeleteTeams={canDeleteTeams}
                         />
                     ))}
                 </div>
@@ -791,22 +1014,26 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                             สร้างกลุ่มสำหรับโปรเจกต์หรืองานกลุ่มระยะยาวที่ต้องทำงานร่วมกันตลอดเทอม
                         </p>
                         <div className="flex items-center justify-center gap-3">
-                            <Button
-                                variant="flat"
-                                startContent={<Icon icon="solar:shuffle-bold" />}
-                                onPress={() => onOpenCreateTeamModal("permanent", "random")}
-                                className="bg-purple-100 text-purple-700"
-                            >
-                                สุ่มกลุ่มอัตโนมัติ
-                            </Button>
-                            <Button
-                                color="primary"
-                                startContent={<Icon icon="solar:add-circle-bold" />}
-                                onPress={() => onOpenCreateTeamModal("permanent", "manual")}
-                                className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
-                            >
-                                สร้างกลุ่มเอง
-                            </Button>
+                            {canCreateTeams && (
+                                <Button
+                                    variant="flat"
+                                    startContent={<Icon icon="solar:shuffle-bold" />}
+                                    onPress={() => onOpenCreateTeamModal("permanent", "random")}
+                                    className="bg-purple-100 text-purple-700"
+                                >
+                                    สุ่มกลุ่มอัตโนมัติ
+                                </Button>
+                            )}
+                            {canCreateTeams && (
+                                <Button
+                                    color="primary"
+                                    startContent={<Icon icon="solar:add-circle-bold" />}
+                                    onPress={() => onOpenCreateTeamModal("permanent", "manual")}
+                                    className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
+                                >
+                                    สร้างกลุ่มเอง
+                                </Button>
+                            )}
                         </div>
                     </CardBody>
                 </Card>
@@ -825,6 +1052,9 @@ interface WeeklyTeamsSubTabProps {
     totalWeeks: number;
     isTeamsLoading: boolean;
     isCourseActive?: boolean;
+    canCreateTeams?: boolean;
+    canUpdateTeams?: boolean;
+    canDeleteTeams?: boolean;
     onWeekChange: (week: number) => void;
     onOpenCreateTeamModal: (type: TeamType, method: TeamFormationMethod) => void;
     onOpenEditTeamModal: (teamId: number, type: TeamType, weekNumber?: number) => void;
@@ -839,6 +1069,9 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
     totalWeeks,
     isTeamsLoading,
     isCourseActive = true,
+    canCreateTeams = false,
+    canUpdateTeams = false,
+    canDeleteTeams = false,
     onWeekChange,
     onOpenCreateTeamModal,
     onOpenEditTeamModal,
@@ -963,7 +1196,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                 </Dropdown>
                             )}
                             {/* Delete all */}
-                            {weeklyTeams[selectedWeek]?.length > 0 && (
+                            {weeklyTeams[selectedWeek]?.length > 0 && canDeleteTeams && (
                                 <>
                                     <Tooltip content="ลบกลุ่มทั้งหมด" color="danger">
                                         <Button
@@ -985,7 +1218,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                     variant="flat"
                                     size="md"
                                     isIconOnly
-                                    isDisabled={!isCourseActive}
+                                    isDisabled={!isCourseActive || !canCreateTeams}
                                     onPress={() => onOpenCreateTeamModal("weekly", "random")}
                                     className="bg-emerald-100 text-emerald-700 flex-shrink-0 md:hidden"
                                 >
@@ -996,7 +1229,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                 variant="flat"
                                 size="md"
                                 startContent={<Icon icon="solar:shuffle-bold" />}
-                                isDisabled={!isCourseActive}
+                                isDisabled={!isCourseActive || !canCreateTeams}
                                 onPress={() => onOpenCreateTeamModal("weekly", "random")}
                                 className="bg-emerald-100 text-emerald-700 flex-shrink-0 hidden md:flex"
                             >
@@ -1008,7 +1241,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                     color="primary"
                                     size="md"
                                     isIconOnly
-                                    isDisabled={!isCourseActive}
+                                    isDisabled={!isCourseActive || !canCreateTeams}
                                     onPress={() => onOpenCreateTeamModal("weekly", "manual")}
                                     className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 flex-shrink-0 md:hidden"
                                 >
@@ -1019,7 +1252,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                 color="primary"
                                 size="md"
                                 startContent={<Icon icon="solar:add-circle-bold" />}
-                                isDisabled={!isCourseActive}
+                                isDisabled={!isCourseActive || !canCreateTeams}
                                 onPress={() => onOpenCreateTeamModal("weekly", "manual")}
                                 className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 flex-shrink-0 hidden md:flex"
                             >
@@ -1069,6 +1302,8 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                             weekNumber={selectedWeek}
                             onEdit={() => onOpenEditTeamModal(team.id, "weekly", selectedWeek)}
                             onDelete={() => onOpenDeleteTeamModal(team.id, "weekly", selectedWeek)}
+                            canUpdateTeams={canUpdateTeams}
+                            canDeleteTeams={canDeleteTeams}
                         />
                     ))}
                 </div>
@@ -1093,7 +1328,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                             สร้างกลุ่มใหม่หรือคัดลอกจากสัปดาห์ก่อนหน้าเพื่อเริ่มต้น
                         </p>
                         <div className="flex flex-wrap items-center justify-center gap-3">
-                            {hasOtherWeeksWithTeams && (
+                            {hasOtherWeeksWithTeams && canCreateTeams && (
                                 <Dropdown>
                                     <DropdownTrigger>
                                         <Button
@@ -1124,22 +1359,26 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                     </DropdownMenu>
                                 </Dropdown>
                             )}
-                            <Button
-                                variant="flat"
-                                startContent={<Icon icon="solar:shuffle-bold" />}
-                                onPress={() => onOpenCreateTeamModal("weekly", "random")}
-                                className="bg-emerald-100 text-emerald-700"
-                            >
-                                สุ่มกลุ่มอัตโนมัติ
-                            </Button>
-                            <Button
-                                color="primary"
-                                startContent={<Icon icon="solar:add-circle-bold" />}
-                                onPress={() => onOpenCreateTeamModal("weekly", "manual")}
-                                className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
-                            >
-                                สร้างกลุ่มเอง
-                            </Button>
+                            {canCreateTeams && (
+                                <Button
+                                    variant="flat"
+                                    startContent={<Icon icon="solar:shuffle-bold" />}
+                                    onPress={() => onOpenCreateTeamModal("weekly", "random")}
+                                    className="bg-emerald-100 text-emerald-700"
+                                >
+                                    สุ่มกลุ่มอัตโนมัติ
+                                </Button>
+                            )}
+                            {canCreateTeams && (
+                                <Button
+                                    color="primary"
+                                    startContent={<Icon icon="solar:add-circle-bold" />}
+                                    onPress={() => onOpenCreateTeamModal("weekly", "manual")}
+                                    className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
+                                >
+                                    สร้างกลุ่มเอง
+                                </Button>
+                            )}
                         </div>
                     </CardBody>
                 </Card>

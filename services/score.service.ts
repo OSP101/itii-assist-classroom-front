@@ -111,6 +111,12 @@ export interface ScoreEditRequest {
     };
 }
 
+export interface SkippedEditItem {
+    score_id: number;
+    student_name: string;
+    sub_item_name?: string | null;
+}
+
 interface ApiResponse<T> {
     success: boolean;
     data?: T;
@@ -258,7 +264,7 @@ const scoreService = {
         score_ids: number[];
         new_score: number;
         reason: string;
-    }, images?: File[]): Promise<{ created: number; skipped: number; skipped_names: string[] }> {
+    }, images?: File[]): Promise<{ created: number; skipped: number; skipped_names: string[]; skipped_items: SkippedEditItem[] }> {
         // If images provided, use FormData
         if (images && images.length > 0) {
             const formData = new FormData();
@@ -268,17 +274,27 @@ const scoreService = {
             images.forEach((image) => {
                 formData.append('images', image);
             });
-            const response = await api.post<{ count: number; skipped: number; skipped_names: string[] }>('/score-edit-requests/batch', formData);
+            const response = await api.post<{ count: number; skipped: number; skipped_names: string[]; skipped_items?: SkippedEditItem[] }>('/score-edit-requests/batch', formData);
             if (!response.success) {
                 throw new Error(getApiErrorMessage(response));
             }
-            return { created: response.data?.count ?? 0, skipped: response.data?.skipped ?? 0, skipped_names: response.data?.skipped_names ?? [] };
+            return {
+                created: response.data?.count ?? 0,
+                skipped: response.data?.skipped ?? 0,
+                skipped_names: response.data?.skipped_names ?? [],
+                skipped_items: response.data?.skipped_items ?? [],
+            };
         }
-        const response = await api.post<{ count: number; skipped: number; skipped_names: string[] }>('/score-edit-requests/batch', data);
+        const response = await api.post<{ count: number; skipped: number; skipped_names: string[]; skipped_items?: SkippedEditItem[] }>('/score-edit-requests/batch', data);
         if (!response.success) {
             throw new Error(getApiErrorMessage(response));
         }
-        return { created: response.data?.count ?? 0, skipped: response.data?.skipped ?? 0, skipped_names: response.data?.skipped_names ?? [] };
+        return {
+            created: response.data?.count ?? 0,
+            skipped: response.data?.skipped ?? 0,
+            skipped_names: response.data?.skipped_names ?? [],
+            skipped_items: response.data?.skipped_items ?? [],
+        };
     },
 
     /**
@@ -287,7 +303,62 @@ const scoreService = {
     async requestDetailedScoreEdits(data: {
         edits: { score_id: number; new_score: number }[];
         reason: string;
-    }, images?: File[]): Promise<{ created: number; skipped: number; skipped_names: string[] }> {
+    }, images?: File[]): Promise<{ created: number; skipped: number; skipped_names: string[]; skipped_items: SkippedEditItem[] }> {
+        if (!data.edits || data.edits.length === 0) {
+            return { created: 0, skipped: 0, skipped_names: [], skipped_items: [] };
+        }
+
+        const submitGroupedFallback = async (): Promise<{ created: number; skipped: number; skipped_names: string[]; skipped_items: SkippedEditItem[] }> => {
+            const groupedByScore = new Map<number, number[]>();
+            data.edits.forEach((edit) => {
+                const key = Number(edit.new_score);
+                const list = groupedByScore.get(key) ?? [];
+                list.push(edit.score_id);
+                groupedByScore.set(key, list);
+            });
+
+            let created = 0;
+            let skipped = 0;
+            const skippedNameSet = new Set<string>();
+            const skippedItems: SkippedEditItem[] = [];
+
+            for (const [newScore, scoreIds] of groupedByScore.entries()) {
+                if (images && images.length > 0) {
+                    const formData = new FormData();
+                    formData.append('score_ids', JSON.stringify(scoreIds));
+                    formData.append('new_score', newScore.toString());
+                    formData.append('reason', data.reason);
+                    images.forEach((image) => {
+                        formData.append('images', image);
+                    });
+
+                    const response = await api.post<{ count: number; skipped: number; skipped_names: string[]; skipped_items?: SkippedEditItem[] }>('/score-edit-requests/batch', formData);
+                    if (!response.success) {
+                        throw new Error(getApiErrorMessage(response));
+                    }
+                    created += response.data?.count ?? 0;
+                    skipped += response.data?.skipped ?? 0;
+                    (response.data?.skipped_names ?? []).forEach((name) => skippedNameSet.add(name));
+                    skippedItems.push(...(response.data?.skipped_items ?? []));
+                } else {
+                    const response = await api.post<{ count: number; skipped: number; skipped_names: string[]; skipped_items?: SkippedEditItem[] }>('/score-edit-requests/batch', {
+                        score_ids: scoreIds,
+                        new_score: newScore,
+                        reason: data.reason,
+                    });
+                    if (!response.success) {
+                        throw new Error(getApiErrorMessage(response));
+                    }
+                    created += response.data?.count ?? 0;
+                    skipped += response.data?.skipped ?? 0;
+                    (response.data?.skipped_names ?? []).forEach((name) => skippedNameSet.add(name));
+                    skippedItems.push(...(response.data?.skipped_items ?? []));
+                }
+            }
+
+            return { created, skipped, skipped_names: Array.from(skippedNameSet), skipped_items: skippedItems };
+        };
+
         if (images && images.length > 0) {
             const formData = new FormData();
             formData.append('edits', JSON.stringify(data.edits));
@@ -295,18 +366,41 @@ const scoreService = {
             images.forEach((image) => {
                 formData.append('images', image);
             });
-            const response = await api.post<{ count: number; skipped: number; skipped_names: string[] }>('/score-edit-requests/batch-detailed', formData);
-            if (!response.success) {
-                throw new Error(getApiErrorMessage(response));
-            }
-            return { created: response.data?.count ?? 0, skipped: response.data?.skipped ?? 0, skipped_names: response.data?.skipped_names ?? [] };
-        }
 
-        const response = await api.post<{ count: number; skipped: number; skipped_names: string[] }>('/score-edit-requests/batch-detailed', data);
-        if (!response.success) {
+            const response = await api.post<{ count: number; skipped: number; skipped_names: string[]; skipped_items?: SkippedEditItem[] }>('/score-edit-requests/batch-detailed', formData);
+            if (response.success) {
+                return {
+                    created: response.data?.count ?? 0,
+                    skipped: response.data?.skipped ?? 0,
+                    skipped_names: response.data?.skipped_names ?? [],
+                    skipped_items: response.data?.skipped_items ?? [],
+                };
+            }
+
+            const message = `${response.message ?? ""} ${response.error ?? ""}`.toLowerCase();
+            if (message.includes('not found') || message.includes('404')) {
+                return submitGroupedFallback();
+            }
+
             throw new Error(getApiErrorMessage(response));
         }
-        return { created: response.data?.count ?? 0, skipped: response.data?.skipped ?? 0, skipped_names: response.data?.skipped_names ?? [] };
+
+        const response = await api.post<{ count: number; skipped: number; skipped_names: string[]; skipped_items?: SkippedEditItem[] }>('/score-edit-requests/batch-detailed', data);
+        if (response.success) {
+            return {
+                created: response.data?.count ?? 0,
+                skipped: response.data?.skipped ?? 0,
+                skipped_names: response.data?.skipped_names ?? [],
+                skipped_items: response.data?.skipped_items ?? [],
+            };
+        }
+
+        const message = `${response.message ?? ""} ${response.error ?? ""}`.toLowerCase();
+        if (message.includes('not found') || message.includes('404')) {
+            return submitGroupedFallback();
+        }
+
+        throw new Error(getApiErrorMessage(response));
     },
 
     /**

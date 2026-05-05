@@ -56,6 +56,10 @@ interface QueueTabProps {
     course: Course;
     isLoading: boolean;
     isCourseActive?: boolean;
+    canCreateQueueSessions?: boolean;
+    canUpdateQueueSessions?: boolean;
+    canDeleteQueueSessions?: boolean;
+    canManageQueueBookings?: boolean;
 }
 
 // Loading Skeleton
@@ -113,7 +117,15 @@ const statusDisplay: Record<string, { label: string; color: "default" | "primary
     closed: { label: "ปิดแล้ว", color: "danger", icon: "solar:stop-circle-bold" },
 };
 
-export default function QueueTab({ course, isLoading, isCourseActive = true }: QueueTabProps) {
+export default function QueueTab({
+    course,
+    isLoading,
+    isCourseActive = true,
+    canCreateQueueSessions = false,
+    canUpdateQueueSessions = false,
+    canDeleteQueueSessions = false,
+    canManageQueueBookings = false,
+}: QueueTabProps) {
     const router = useRouter();
     const { emit, on, emitDataUpdate, onDataUpdate, subscribeToUpdates, unsubscribeFromUpdates } = useSocket();
     const [pendingQueueUpdate, setPendingQueueUpdate] = useState(false);
@@ -555,15 +567,17 @@ export default function QueueTab({ course, isLoading, isCourseActive = true }: Q
                     <h2 className="text-lg font-semibold text-slate-800">จองคิวตรวจงาน</h2>
                     <p className="text-sm text-slate-500">จัดการคิวตรวจงานและติดตามความคืบหน้า</p>
                 </div>
-                <Button
-                    color="primary"
-                    startContent={<Icon icon="solar:add-circle-bold" />}
-                    onPress={handleOpenCreateModal}
-                    isDisabled={!isCourseActive}
-                    className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
-                >
-                    สร้างการจองคิว
-                </Button>
+                {canCreateQueueSessions && (
+                    <Button
+                        color="primary"
+                        startContent={<Icon icon="solar:add-circle-bold" />}
+                        onPress={handleOpenCreateModal}
+                        isDisabled={!isCourseActive}
+                        className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
+                    >
+                        สร้างการจองคิว
+                    </Button>
+                )}
             </div>
 
             {/* Loading state */}
@@ -702,15 +716,17 @@ export default function QueueTab({ course, isLoading, isCourseActive = true }: Q
                                 <p className="text-slate-500 mb-6 max-w-md mx-auto">
                                     สร้างการจองคิวเพื่อให้นักศึกษาสามารถจองคิวตรวจงานได้
                                 </p>
-                                <Button
-                                    color="primary"
-                                    startContent={<Icon icon="solar:add-circle-bold" />}
-                                    onPress={handleOpenCreateModal}
-                                    isDisabled={!isCourseActive}
-                                    className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
-                                >
-                                    สร้างการจองคิวแรก
-                                </Button>
+                                {canCreateQueueSessions && (
+                                    <Button
+                                        color="primary"
+                                        startContent={<Icon icon="solar:add-circle-bold" />}
+                                        onPress={handleOpenCreateModal}
+                                        isDisabled={!isCourseActive}
+                                        className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
+                                    >
+                                        สร้างการจองคิวแรก
+                                    </Button>
+                                )}
                             </CardBody>
                         </Card>
                     ) : (
@@ -744,16 +760,18 @@ export default function QueueTab({ course, isLoading, isCourseActive = true }: Q
                                                             className="text-5xl text-slate-300 mx-auto mb-3"
                                                         />
                                                         <p className="text-slate-400">ยังไม่มีการจองคิว</p>
-                                                        <Button
-                                                            color="primary"
-                                                            variant="flat"
-                                                            size="sm"
-                                                            className="mt-3"
-                                                            onPress={handleOpenCreateModal}
-                                                            isDisabled={!isCourseActive}
-                                                        >
-                                                            สร้างการจองคิวแรก
-                                                        </Button>
+                                                        {canCreateQueueSessions && (
+                                                            <Button
+                                                                color="primary"
+                                                                variant="flat"
+                                                                size="sm"
+                                                                className="mt-3"
+                                                                onPress={handleOpenCreateModal}
+                                                                isDisabled={!isCourseActive}
+                                                            >
+                                                                สร้างการจองคิวแรก
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 }
                                             >
@@ -814,43 +832,49 @@ export default function QueueTab({ course, isLoading, isCourseActive = true }: Q
                                                                 {/* Draft status: Start, Edit, Delete */}
                                                                 {session.status === 'draft' && (
                                                                     <>
-                                                                        <Tooltip content="เริ่มการจองคิว">
-                                                                            <Button
-                                                                                isIconOnly
-                                                                                size="sm"
-                                                                                variant="light"
-                                                                                color="success"
-                                                                                onPress={() => handleOpenStartModal(session)}
-                                                                            >
-                                                                                <Icon icon="solar:play-bold" className="text-lg" />
-                                                                            </Button>
-                                                                        </Tooltip>
-                                                                        <Tooltip content="แก้ไข">
-                                                                            <Button
-                                                                                isIconOnly
-                                                                                size="sm"
-                                                                                variant="light"
-                                                                                color="primary"
-                                                                                onPress={() => handleOpenEditModal(session)}
-                                                                            >
-                                                                                <Icon icon="solar:pen-bold" className="text-lg" />
-                                                                            </Button>
-                                                                        </Tooltip>
-                                                                        <Tooltip content="ลบ" color="danger">
-                                                                            <Button
-                                                                                isIconOnly
-                                                                                size="sm"
-                                                                                variant="light"
-                                                                                color="danger"
-                                                                                isDisabled={!isCourseActive}
-                                                                                onPress={() => {
-                                                                                    setDeleteTarget(session);
-                                                                                    setIsDeleteModalOpen(true);
-                                                                                }}
-                                                                            >
-                                                                                <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
-                                                                            </Button>
-                                                                        </Tooltip>
+                                                                        {canUpdateQueueSessions && (
+                                                                            <Tooltip content="เริ่มการจองคิว">
+                                                                                <Button
+                                                                                    isIconOnly
+                                                                                    size="sm"
+                                                                                    variant="light"
+                                                                                    color="success"
+                                                                                    onPress={() => handleOpenStartModal(session)}
+                                                                                >
+                                                                                    <Icon icon="solar:play-bold" className="text-lg" />
+                                                                                </Button>
+                                                                            </Tooltip>
+                                                                        )}
+                                                                        {canUpdateQueueSessions && (
+                                                                            <Tooltip content="แก้ไข">
+                                                                                <Button
+                                                                                    isIconOnly
+                                                                                    size="sm"
+                                                                                    variant="light"
+                                                                                    color="primary"
+                                                                                    onPress={() => handleOpenEditModal(session)}
+                                                                                >
+                                                                                    <Icon icon="solar:pen-bold" className="text-lg" />
+                                                                                </Button>
+                                                                            </Tooltip>
+                                                                        )}
+                                                                        {canDeleteQueueSessions && (
+                                                                            <Tooltip content="ลบ" color="danger">
+                                                                                <Button
+                                                                                    isIconOnly
+                                                                                    size="sm"
+                                                                                    variant="light"
+                                                                                    color="danger"
+                                                                                    isDisabled={!isCourseActive}
+                                                                                    onPress={() => {
+                                                                                        setDeleteTarget(session);
+                                                                                        setIsDeleteModalOpen(true);
+                                                                                    }}
+                                                                                >
+                                                                                    <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
+                                                                                </Button>
+                                                                            </Tooltip>
+                                                                        )}
                                                                     </>
                                                                 )}
                                                                 {/* Active status: Projector, Worker, Pause, Delete */}
@@ -872,28 +896,32 @@ export default function QueueTab({ course, isLoading, isCourseActive = true }: Q
                                                                                     <Icon icon="solar:monitor-bold" className="text-lg" />
                                                                                 </Button>
                                                                             </Tooltip>
-                                                                            <Tooltip content="เข้าหน้ารับคิว">
-                                                                                <Button
-                                                                                    isIconOnly
-                                                                                    size="sm"
-                                                                                    variant="light"
-                                                                                    color="primary"
-                                                                                    onPress={() => handleGoToWorker(session)}
-                                                                                >
-                                                                                    <Icon icon="solar:user-check-bold" className="text-lg" />
-                                                                                </Button>
-                                                                            </Tooltip>
-                                                                            <Tooltip content="หยุดรับคิว">
-                                                                                <Button
-                                                                                    isIconOnly
-                                                                                    size="sm"
-                                                                                    variant="light"
-                                                                                    color="warning"
-                                                                                    onPress={() => handleOpenPauseModal(session, 'paused')}
-                                                                                >
-                                                                                    <Icon icon="solar:pause-bold" className="text-lg" />
-                                                                                </Button>
-                                                                            </Tooltip>
+                                                                            {canManageQueueBookings && (
+                                                                                <Tooltip content="เข้าหน้ารับคิว">
+                                                                                    <Button
+                                                                                        isIconOnly
+                                                                                        size="sm"
+                                                                                        variant="light"
+                                                                                        color="primary"
+                                                                                        onPress={() => handleGoToWorker(session)}
+                                                                                    >
+                                                                                        <Icon icon="solar:user-check-bold" className="text-lg" />
+                                                                                    </Button>
+                                                                                </Tooltip>
+                                                                            )}
+                                                                            {canUpdateQueueSessions && (
+                                                                                <Tooltip content="หยุดรับคิว">
+                                                                                    <Button
+                                                                                        isIconOnly
+                                                                                        size="sm"
+                                                                                        variant="light"
+                                                                                        color="warning"
+                                                                                        onPress={() => handleOpenPauseModal(session, 'paused')}
+                                                                                    >
+                                                                                        <Icon icon="solar:pause-bold" className="text-lg" />
+                                                                                    </Button>
+                                                                                </Tooltip>
+                                                                            )}
                                                                             <Tooltip content={deleteTooltip} color="danger">
                                                                                 <span>
                                                                                     <Button
@@ -926,74 +954,82 @@ export default function QueueTab({ course, isLoading, isCourseActive = true }: Q
                                                                                     <Icon icon="solar:monitor-bold" className="text-lg" />
                                                                                 </Button>
                                                                             </Tooltip>
-                                                                            <Tooltip content="เข้าหน้ารับคิว">
-                                                                                <Button
-                                                                                    isIconOnly
-                                                                                    size="sm"
-                                                                                    variant="light"
-                                                                                    color="primary"
-                                                                                    onPress={() => handleGoToWorker(session)}
-                                                                                >
-                                                                                    <Icon icon="solar:user-check-bold" className="text-lg" />
-                                                                                </Button>
-                                                                            </Tooltip>
-                                                                            <Tooltip content="เปิดรับคิว">
-                                                                                <Button
-                                                                                    isIconOnly
-                                                                                    size="sm"
-                                                                                    variant="light"
-                                                                                    color="success"
-                                                                                    onPress={() => handleOpenPauseModal(session, 'active')}
-                                                                                >
-                                                                                    <Icon icon="solar:play-bold" className="text-lg" />
-                                                                                </Button>
-                                                                            </Tooltip>
-                                                                            <Tooltip
-                                                                                content={hasPending
-                                                                                    ? `ยังมีคิวค้างอยู่ (รอ ${session.stats?.waiting || 0} / กำลังตรวจ ${session.stats?.in_progress || 0})`
-                                                                                    : "ลบ"
-                                                                                }
-                                                                                color={hasPending ? "warning" : "danger"}
-                                                                            >
-                                                                                <span>
+                                                                            {canManageQueueBookings && (
+                                                                                <Tooltip content="เข้าหน้ารับคิว">
                                                                                     <Button
                                                                                         isIconOnly
                                                                                         size="sm"
                                                                                         variant="light"
-                                                                                        color="danger"
-                                                                                        isDisabled={hasPending || !isCourseActive}
-                                                                                        onPress={() => {
-                                                                                            if (!hasPending) {
-                                                                                                setDeleteTarget(session);
-                                                                                                setIsDeleteModalOpen(true);
-                                                                                            }
-                                                                                        }}
+                                                                                        color="primary"
+                                                                                        onPress={() => handleGoToWorker(session)}
                                                                                     >
-                                                                                        <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
+                                                                                        <Icon icon="solar:user-check-bold" className="text-lg" />
                                                                                     </Button>
-                                                                                </span>
-                                                                            </Tooltip>
+                                                                                </Tooltip>
+                                                                            )}
+                                                                            {canUpdateQueueSessions && (
+                                                                                <Tooltip content="เปิดรับคิว">
+                                                                                    <Button
+                                                                                        isIconOnly
+                                                                                        size="sm"
+                                                                                        variant="light"
+                                                                                        color="success"
+                                                                                        onPress={() => handleOpenPauseModal(session, 'active')}
+                                                                                    >
+                                                                                        <Icon icon="solar:play-bold" className="text-lg" />
+                                                                                    </Button>
+                                                                                </Tooltip>
+                                                                            )}
+                                                                            {canDeleteQueueSessions && (
+                                                                                <Tooltip
+                                                                                    content={hasPending
+                                                                                        ? `ยังมีคิวค้างอยู่ (รอ ${session.stats?.waiting || 0} / กำลังตรวจ ${session.stats?.in_progress || 0})`
+                                                                                        : "ลบ"
+                                                                                    }
+                                                                                    color={hasPending ? "warning" : "danger"}
+                                                                                >
+                                                                                    <span>
+                                                                                        <Button
+                                                                                            isIconOnly
+                                                                                            size="sm"
+                                                                                            variant="light"
+                                                                                            color="danger"
+                                                                                            isDisabled={hasPending || !isCourseActive}
+                                                                                            onPress={() => {
+                                                                                                if (!hasPending) {
+                                                                                                    setDeleteTarget(session);
+                                                                                                    setIsDeleteModalOpen(true);
+                                                                                                }
+                                                                                            }}
+                                                                                        >
+                                                                                            <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
+                                                                                        </Button>
+                                                                                    </span>
+                                                                                </Tooltip>
+                                                                            )}
                                                                         </>
                                                                     );
                                                                 })()}
                                                                 {session.status === 'closed' && (
                                                                     <>
                                                                         <Chip size="sm" variant="flat" className="text-slate-400">ปิดแล้ว</Chip>
-                                                                        <Tooltip content="ลบ" color="danger">
-                                                                            <Button
-                                                                                isIconOnly
-                                                                                size="sm"
-                                                                                variant="light"
-                                                                                color="danger"
-                                                                                isDisabled={!isCourseActive}
-                                                                                onPress={() => {
-                                                                                    setDeleteTarget(session);
-                                                                                    setIsDeleteModalOpen(true);
-                                                                                }}
-                                                                            >
-                                                                                <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
-                                                                            </Button>
-                                                                        </Tooltip>
+                                                                        {canDeleteQueueSessions && (
+                                                                            <Tooltip content="ลบ" color="danger">
+                                                                                <Button
+                                                                                    isIconOnly
+                                                                                    size="sm"
+                                                                                    variant="light"
+                                                                                    color="danger"
+                                                                                    isDisabled={!isCourseActive}
+                                                                                    onPress={() => {
+                                                                                        setDeleteTarget(session);
+                                                                                        setIsDeleteModalOpen(true);
+                                                                                    }}
+                                                                                >
+                                                                                    <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
+                                                                                </Button>
+                                                                            </Tooltip>
+                                                                        )}
                                                                     </>
                                                                 )}
                                                             </div>

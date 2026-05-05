@@ -57,6 +57,11 @@ interface AssignmentsTabViewProps {
     ungradedSummary?: UngradedSummary;
     hasPendingUpdate?: boolean;
     onPendingUpdateAck?: () => void;
+    canCreateAssignments?: boolean;
+    canUpdateAssignments?: boolean;
+    canDeleteAssignments?: boolean;
+    canGradeAssignments?: boolean;
+    canEditScores?: boolean;
 }
 
 function AssignmentsTabViewComponent({
@@ -93,6 +98,11 @@ function AssignmentsTabViewComponent({
     ungradedSummary = {},
     hasPendingUpdate,
     onPendingUpdateAck,
+    canCreateAssignments = false,
+    canUpdateAssignments = false,
+    canDeleteAssignments = false,
+    canGradeAssignments = false,
+    canEditScores = false,
 }: AssignmentsTabViewProps) {
     const getUngradedTooltipContent = (assignment: AssignmentType) => {
         const info = ungradedSummary[assignment.id];
@@ -154,25 +164,37 @@ function AssignmentsTabViewComponent({
     const renderGridCard = (assignment: AssignmentType) => {
         const typeInfo = getTypeInfo(assignment.assignment_type);
         return (
-            <Card key={assignment.id} className="shadow-sm border border-slate-200 hover:shadow-md transition-all" onPress={() => onOpenScoreModal(assignment)} isPressable>
+            <Card
+                key={assignment.id}
+                as="div"
+                isPressable={canGradeAssignments || canEditScores}
+                className="shadow-sm border border-slate-200 hover:shadow-md transition-all"
+                onPress={() => (canGradeAssignments || canEditScores) && onOpenScoreModal(assignment)}
+            >
                 <CardBody className="p-4">
                     {/* Header with Actions */}
                     <div className="flex items-start justify-between gap-2 mb-3">
                         <div className={`p-2 rounded-lg ${getTypeBgColor(assignment.assignment_type)}`}>
                             <Icon icon={typeInfo.icon} className={`text-xl ${getTypeTextColor(assignment.assignment_type)}`} />
                         </div>
-                        <div className="flex items-center gap-1">
-                            <Tooltip content="แก้ไข">
-                                <Button isIconOnly size="sm" variant="light" color="default" onPress={() => onOpenEditModal(assignment)}>
-                                    <Icon icon="solar:pen-linear" />
-                                </Button>
-                            </Tooltip>
-                            <Tooltip content="ลบ" color="danger">
-                                <Button isIconOnly size="sm" variant="light" color="danger" onPress={() => onDeleteAssignment(assignment)}>
-                                    <Icon icon="solar:trash-bin-trash-linear" />
-                                </Button>
-                            </Tooltip>
-                        </div>
+                        {(canUpdateAssignments || canDeleteAssignments) && (
+                            <div className="flex items-center gap-1" onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+                                {canUpdateAssignments && (
+                                    <Tooltip content="แก้ไข">
+                                        <Button isIconOnly size="sm" variant="light" color="default" onPress={() => onOpenEditModal(assignment)}>
+                                            <Icon icon="solar:pen-linear" />
+                                        </Button>
+                                    </Tooltip>
+                                )}
+                                {canDeleteAssignments && (
+                                    <Tooltip content="ลบ" color="danger">
+                                        <Button isIconOnly size="sm" variant="light" color="danger" onPress={() => onDeleteAssignment(assignment)}>
+                                            <Icon icon="solar:trash-bin-trash-linear" />
+                                        </Button>
+                                    </Tooltip>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Title */}
@@ -213,7 +235,13 @@ function AssignmentsTabViewComponent({
     const renderListRow = (assignment: AssignmentType) => {
         const typeInfo = getTypeInfo(assignment.assignment_type);
         return (
-            <Card key={assignment.id} className="shadow-sm border border-slate-200 hover:shadow-md transition-all w-full" onPress={() => onOpenScoreModal(assignment)} isPressable>
+            <Card
+                key={assignment.id}
+                as="div"
+                isPressable={canGradeAssignments || canEditScores}
+                className="shadow-sm border border-slate-200 hover:shadow-md transition-all w-full"
+                onPress={() => (canGradeAssignments || canEditScores) && onOpenScoreModal(assignment)}
+            >
                 <CardBody className="p-3 sm:p-4">
                     <div className="flex items-center gap-3 sm:gap-4">
                         {/* Icon */}
@@ -267,18 +295,24 @@ function AssignmentsTabViewComponent({
                         </div>
 
                         {/* Actions */}
-                        <div className="flex items-center gap-1 shrink-0">
-                            <Tooltip content="แก้ไข">
-                                <Button isIconOnly size="sm" variant="light" color="default" onPress={() => onOpenEditModal(assignment)}>
-                                    <Icon icon="solar:pen-linear" className="text-lg" />
-                                </Button>
-                            </Tooltip>
-                            <Tooltip content="ลบ" color="danger">
-                                <Button isIconOnly size="sm" variant="light" color="danger" onPress={() => onDeleteAssignment(assignment)}>
-                                    <Icon icon="solar:trash-bin-trash-linear" className="text-lg" />
-                                </Button>
-                            </Tooltip>
-                        </div>
+                        {(canUpdateAssignments || canDeleteAssignments) && (
+                            <div className="flex items-center gap-1 shrink-0" onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+                                {canUpdateAssignments && (
+                                    <Tooltip content="แก้ไข">
+                                        <Button isIconOnly size="sm" variant="light" color="default" onPress={() => onOpenEditModal(assignment)}>
+                                            <Icon icon="solar:pen-linear" className="text-lg" />
+                                        </Button>
+                                    </Tooltip>
+                                )}
+                                {canDeleteAssignments && (
+                                    <Tooltip content="ลบ" color="danger">
+                                        <Button isIconOnly size="sm" variant="light" color="danger" onPress={() => onDeleteAssignment(assignment)}>
+                                            <Icon icon="solar:trash-bin-trash-linear" className="text-lg" />
+                                        </Button>
+                                    </Tooltip>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </CardBody>
             </Card>
@@ -424,54 +458,62 @@ function AssignmentsTabViewComponent({
                                     </div>
 
                                     {/* Bonus Score Button - Icon only on mobile */}
-                                    <Tooltip content="ให้คะแนนพิเศษ (ถาม-ตอบ)">
-                                        <Button
-                                            color="warning"
-                                            variant="flat"
-                                            isIconOnly
-                                            onPress={onOpenBonusScoreModal}
-                                            className="sm:hidden"
-                                            isDisabled={!isCourseActive}
-                                        >
-                                            <Icon icon="solar:star-bold" />
-                                        </Button>
-                                    </Tooltip>
+                                    {canGradeAssignments && onOpenBonusScoreModal && (
+                                        <Tooltip content="ให้คะแนนพิเศษ (ถาม-ตอบ)">
+                                            <Button
+                                                color="warning"
+                                                variant="flat"
+                                                isIconOnly
+                                                onPress={onOpenBonusScoreModal}
+                                                className="sm:hidden"
+                                                isDisabled={!isCourseActive}
+                                            >
+                                                <Icon icon="solar:star-bold" />
+                                            </Button>
+                                        </Tooltip>
+                                    )}
                                     {/* Bonus Score Button - Full on desktop */}
-                                    <Tooltip content="ให้คะแนนพิเศษ (ถาม-ตอบ)">
-                                        <Button
-                                            color="warning"
-                                            variant="flat"
-                                            startContent={<Icon icon="solar:star-bold" />}
-                                            onPress={onOpenBonusScoreModal}
-                                            className="hidden sm:flex"
-                                            isDisabled={!isCourseActive}
-                                        >
-                                            คะแนนพิเศษ
-                                        </Button>
-                                    </Tooltip>
+                                    {canGradeAssignments && onOpenBonusScoreModal && (
+                                        <Tooltip content="ให้คะแนนพิเศษ (ถาม-ตอบ)">
+                                            <Button
+                                                color="warning"
+                                                variant="flat"
+                                                startContent={<Icon icon="solar:star-bold" />}
+                                                onPress={onOpenBonusScoreModal}
+                                                className="hidden sm:flex"
+                                                isDisabled={!isCourseActive}
+                                            >
+                                                คะแนนพิเศษ
+                                            </Button>
+                                        </Tooltip>
+                                    )}
 
                                     {/* Create Button - Icon only on mobile */}
-                                    <Tooltip content="สร้างงานใหม่">
+                                    {canCreateAssignments && (
+                                        <Tooltip content="สร้างงานใหม่">
+                                            <Button
+                                                color="primary"
+                                                isIconOnly
+                                                onPress={onOpenCreateModal}
+                                                className="sm:hidden bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25"
+                                                isDisabled={!isCourseActive}
+                                            >
+                                                <Icon icon="solar:add-circle-bold" />
+                                            </Button>
+                                        </Tooltip>
+                                    )}
+                                    {/* Create Button - Full on desktop */}
+                                    {canCreateAssignments && (
                                         <Button
                                             color="primary"
-                                            isIconOnly
+                                            startContent={<Icon icon="solar:add-circle-bold" />}
                                             onPress={onOpenCreateModal}
-                                            className="sm:hidden bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25"
+                                            className="hidden sm:flex bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25"
                                             isDisabled={!isCourseActive}
                                         >
-                                            <Icon icon="solar:add-circle-bold" />
+                                            สร้างงานใหม่
                                         </Button>
-                                    </Tooltip>
-                                    {/* Create Button - Full on desktop */}
-                                    <Button
-                                        color="primary"
-                                        startContent={<Icon icon="solar:add-circle-bold" />}
-                                        onPress={onOpenCreateModal}
-                                        className="hidden sm:flex bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25"
-                                        isDisabled={!isCourseActive}
-                                    >
-                                        สร้างงานใหม่
-                                    </Button>
+                                    )}
                                 </div>
                             </div>
                         </CardBody>
@@ -522,16 +564,18 @@ function AssignmentsTabViewComponent({
                                         <p className="text-slate-500 mb-6 max-w-md mx-auto">
                                             สร้างงานเพื่อกำหนดหัวข้อการลงคะแนนให้นักศึกษา
                                         </p>
-                                        <Button
-                                            color="primary"
-                                            size="lg"
-                                            startContent={<Icon icon="solar:add-circle-bold" />}
-                                            onPress={onOpenCreateModal}
-                                            className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25"
-                                            isDisabled={!isCourseActive}
-                                        >
-                                            สร้างงานแรก
-                                        </Button>
+                                        {canCreateAssignments && (
+                                            <Button
+                                                color="primary"
+                                                size="lg"
+                                                startContent={<Icon icon="solar:add-circle-bold" />}
+                                                onPress={onOpenCreateModal}
+                                                className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25"
+                                                isDisabled={!isCourseActive}
+                                            >
+                                                สร้างงานแรก
+                                            </Button>
+                                        )}
                                     </>
                                 )}
                             </CardBody>

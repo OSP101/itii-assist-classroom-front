@@ -13,7 +13,7 @@ import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, DropdownSection 
 import { Icon } from "@iconify/react";
 import { IoSchool } from "react-icons/io5";
 import { AdminProvider, useAdmin } from "@/contexts/AdminContext";
-import { FeedbackButton } from "@/components/feedback";
+import { AppFooter } from "@/components/Footer";
 
 interface MenuItem {
     key: string;
@@ -225,7 +225,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             </aside>
 
             {/* Main Content - Responsive margin */}
-            <div className={`flex-1 min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
+            <div className={`flex-1 min-w-0 flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
                 {/* Header */}
                 <header className="sticky top-0 z-30 bg-white border-b border-slate-200 h-14 sm:h-16">
                     <div className="flex items-center justify-between h-full px-4 sm:px-6">
@@ -283,12 +283,11 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 </header>
 
                 {/* Page Content - Responsive padding */}
-                <main className="p-3 sm:p-4 lg:p-6">
+                <main className="flex-1 p-3 sm:p-4 lg:p-6">
                     {children}
                 </main>
 
-                {/* Feedback Button */}
-                <FeedbackButton userEmail={user?.email} position="bottom-right" />
+                <AppFooter userEmail={user?.email} />
             </div>
         </div>
     );

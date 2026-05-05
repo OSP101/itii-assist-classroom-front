@@ -6,7 +6,6 @@ import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
-import { Spinner } from "@heroui/spinner";
 import { Avatar } from "@heroui/avatar";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Input } from "@heroui/input";
@@ -18,6 +17,7 @@ import {
     ModalFooter,
 } from "@heroui/modal";
 import { Select, SelectItem } from "@heroui/select";
+import { Spinner } from "@heroui/spinner";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import Link from "next/link";
@@ -34,10 +34,11 @@ import {
 
 // Import service types
 import type { Assignment as AssignmentType, AssignmentSubItem } from "@/services/assignment.service";
-import type { SectionStudent } from "@/services/course.service";
+import { getCurrentCourseMemberPermissions } from "@/services/course.service";
+import type { CourseMemberPermissions, SectionStudent } from "@/services/course.service";
 
 // Import Skeletons directly (they're small and used for loading states)
-import { OverviewSkeleton, TeamsGridSkeleton } from "./components/Skeletons";
+import { OverviewSkeleton, TeamsGridSkeleton, SidebarMenuSkeleton, PeopleTableSkeleton, AssignmentsSkeleton, ScoresSkeleton, TabListSkeleton } from "./components/Skeletons";
 
 // Lazy load heavy Tab components with custom loading states
 const OverviewTab = dynamic(() => import("./components/OverviewTab"), {
@@ -46,74 +47,42 @@ const OverviewTab = dynamic(() => import("./components/OverviewTab"), {
 });
 
 const SectionsTab = dynamic(() => import("./components/SectionsTab"), {
-    loading: () => (
-        <div className="flex items-center justify-center py-12">
-            <Spinner size="lg" color="primary" />
-        </div>
-    ),
+    loading: () => <TabListSkeleton />,
     ssr: false,
 });
 
 const PeopleTab = dynamic(() => import("./components/PeopleTab"), {
-    loading: () => (
-        <div className="flex items-center justify-center py-12">
-            <Spinner size="lg" color="primary" />
-        </div>
-    ),
+    loading: () => <PeopleTableSkeleton />,
     ssr: false,
 });
 
 const AssignmentsTab = dynamic(() => import("./components/AssignmentsTab"), {
-    loading: () => (
-        <div className="flex items-center justify-center py-12">
-            <Spinner size="lg" color="primary" />
-        </div>
-    ),
+    loading: () => <AssignmentsSkeleton />,
     ssr: false,
 });
 
 const AttendanceTab = dynamic(() => import("./components/AttendanceTab"), {
-    loading: () => (
-        <div className="flex items-center justify-center py-12">
-            <Spinner size="lg" color="primary" />
-        </div>
-    ),
+    loading: () => <TabListSkeleton />,
     ssr: false,
 });
 
 const ScoresTab = dynamic(() => import("./components/ScoreSummaryTab"), {
-    loading: () => (
-        <div className="flex items-center justify-center py-12">
-            <Spinner size="lg" color="primary" />
-        </div>
-    ),
+    loading: () => <ScoresSkeleton />,
     ssr: false,
 });
 
 const QueueTab = dynamic(() => import("./components/QueueTab"), {
-    loading: () => (
-        <div className="flex items-center justify-center py-12">
-            <Spinner size="lg" color="primary" />
-        </div>
-    ),
+    loading: () => <TabListSkeleton />,
     ssr: false,
 });
 
 const ScoreApprovalTab = dynamic(() => import("./components/ScoreApprovalTab"), {
-    loading: () => (
-        <div className="flex items-center justify-center py-12">
-            <Spinner size="lg" color="primary" />
-        </div>
-    ),
+    loading: () => <TabListSkeleton />,
     ssr: false,
 });
 
 const ExamScoresTab = dynamic(() => import("./components/exam-scores/ExamScoresTab"), {
-    loading: () => (
-        <div className="flex items-center justify-center py-12">
-            <Spinner size="lg" color="primary" />
-        </div>
-    ),
+    loading: () => <TabListSkeleton />,
     ssr: false,
 });
 
@@ -129,29 +98,17 @@ const BonusScoreModal = dynamic(() => import("./components/BonusScoreModal"), {
 });
 
 const SettingsTab = dynamic(() => import("./components/SettingsTab"), {
-    loading: () => (
-        <div className="flex items-center justify-center py-12">
-            <Spinner size="lg" color="primary" />
-        </div>
-    ),
+    loading: () => <TabListSkeleton />,
     ssr: false,
 });
 
 const ActivityLogTab = dynamic(() => import("./components/ActivityLogTab"), {
-    loading: () => (
-        <div className="flex items-center justify-center py-12">
-            <Spinner size="lg" color="primary" />
-        </div>
-    ),
+    loading: () => <TabListSkeleton />,
     ssr: false,
 });
 
 const TAStatsTab = dynamic(() => import("./components/TAStatsTab"), {
-    loading: () => (
-        <div className="flex items-center justify-center py-12">
-            <Spinner size="lg" color="primary" />
-        </div>
-    ),
+    loading: () => <TabListSkeleton />,
     ssr: false,
 });
 
@@ -259,6 +216,49 @@ export default function ClassroomDetailPage() {
     const totalStudents = useMemo(() => {
         return course?.sections?.reduce((acc, section) => acc + (section.studentCount || 0), 0) || 0;
     }, [course?.sections]);
+
+    const currentCoursePermissions = useMemo<CourseMemberPermissions>(() => {
+        return getCurrentCourseMemberPermissions(course, currentUserId, userRole);
+    }, [course, currentUserId, userRole]);
+
+    const canViewPeople = currentCoursePermissions.view_people || currentCoursePermissions.add_people || currentCoursePermissions.remove_people || currentCoursePermissions.edit_member_permissions;
+    const canAddPeople = currentCoursePermissions.add_people;
+    const canRemovePeople = currentCoursePermissions.remove_people;
+    const canEditMemberPermissions = currentCoursePermissions.edit_member_permissions;
+    const canAccessSections = currentCoursePermissions.view_sections
+        || currentCoursePermissions.create_sections
+        || currentCoursePermissions.update_sections
+        || currentCoursePermissions.delete_sections
+        || currentCoursePermissions.manage_section_students
+        || currentCoursePermissions.view_teams
+        || currentCoursePermissions.create_teams
+        || currentCoursePermissions.update_teams
+        || currentCoursePermissions.delete_teams
+        || currentCoursePermissions.manage_team_members;
+    const canAccessAssignments = currentCoursePermissions.view_assignments
+        || currentCoursePermissions.create_assignments
+        || currentCoursePermissions.update_assignments
+        || currentCoursePermissions.delete_assignments
+        || currentCoursePermissions.grade_assignments
+        || currentCoursePermissions.edit_scores;
+    const canAccessScores = currentCoursePermissions.view_score_summary || currentCoursePermissions.grade_assignments || currentCoursePermissions.edit_scores;
+    const canAccessExamScores = currentCoursePermissions.view_exam_scores
+        || currentCoursePermissions.create_exam_scores
+        || currentCoursePermissions.update_exam_scores
+        || currentCoursePermissions.delete_exam_scores
+        || currentCoursePermissions.update_exam_settings;
+    const canAccessApproval = currentCoursePermissions.review_own_score_requests || currentCoursePermissions.review_all_score_requests;
+    const canAccessAttendance = currentCoursePermissions.view_attendance
+        || currentCoursePermissions.create_attendance_sessions
+        || currentCoursePermissions.update_attendance_sessions
+        || currentCoursePermissions.delete_attendance_sessions
+        || currentCoursePermissions.update_attendance_status;
+    const canAccessQueue = currentCoursePermissions.view_queue
+        || currentCoursePermissions.create_queue_sessions
+        || currentCoursePermissions.update_queue_sessions
+        || currentCoursePermissions.delete_queue_sessions
+        || currentCoursePermissions.manage_queue_bookings;
+    const approvalRole = currentCoursePermissions.review_all_score_requests ? "instructor" : "ta";
 
     const availableTAs = useMemo(() => {
         return tasList.filter(ta => !course?.tas?.some(courseTa => courseTa.id === ta.id));
@@ -779,6 +779,19 @@ export default function ClassroomDetailPage() {
     }, [course?.sections, modals.deleteModal]);
 
     const handleRemoveTA = useCallback((userId: number) => {
+        if (!canRemovePeople || !course?.is_active) {
+            return;
+        }
+        if (userId === currentUserId) {
+            addToast({
+                title: "ไม่สามารถลบตัวเองออกได้",
+                description: "ระบบไม่อนุญาตให้ลบตัวเองออกจากรายวิชา",
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
         const ta = course?.tas?.find(t => t.id === userId);
         if (!ta) return;
         modals.deleteModal.open("ta", {
@@ -787,17 +800,40 @@ export default function ClassroomDetailPage() {
             taEmail: ta.email || ta.username,
             taAvatar: ta.avatar || undefined,
         });
-    }, [course?.tas, modals.deleteModal]);
+    }, [canRemovePeople, course?.is_active, course?.tas, currentUserId, modals.deleteModal]);
 
     const handleRemoveInstructor = useCallback((userId: number) => {
+        if (!canRemovePeople || !course?.is_active) {
+            return;
+        }
+        if (userId === currentUserId) {
+            addToast({
+                title: "ไม่สามารถลบตัวเองออกได้",
+                description: "ระบบไม่อนุญาตให้ลบตัวเองออกจากรายวิชา",
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
         const instructor = course?.instructors?.find(i => i.id === userId);
         if (!instructor) return;
+        if (instructor.CourseInstructor?.is_primary) {
+            addToast({
+                title: "ไม่สามารถลบเจ้าของวิชา",
+                description: "อาจารย์เจ้าของวิชาไม่สามารถถูกลบออกได้",
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
         modals.deleteModal.open("instructor" as any, {
             instructorId: userId,
             instructorName: instructor.full_name,
             instructorEmail: instructor.email || undefined,
         } as any);
-    }, [course?.instructors, modals.deleteModal]);
+    }, [canRemovePeople, course?.is_active, course?.instructors, currentUserId, modals.deleteModal]);
 
     const openDeleteStudentModal = useCallback((sectionId: number, student: SectionStudent) => {
         const section = course?.sections?.find(s => s.id === sectionId);
@@ -902,54 +938,35 @@ export default function ClassroomDetailPage() {
 
     const menuItems = useMemo(() => [
         { key: "overview", label: "ภาพรวม", icon: "solar:chart-2-bold" },
-        { key: "sections", label: "กลุ่มเรียน", icon: "solar:notebook-bold" },
-        { key: "people", label: "บุคลากร", icon: "solar:users-group-rounded-bold" },
-        {
-            key: "assignments", label: "งานในชั้นเรียน", icon: "solar:clipboard-list-bold"
-            // , badge: assignments.length > 0 ? assignments.length : undefined 
-        },
-        { key: "scores", label: "คะแนนในชั้นเรียน", icon: "solar:chart-square-bold" },
-        { key: "exam-scores", label: "คะแนนสอบ", icon: "solar:diploma-bold" },
-        ...(userRole === 'instructor' || userRole === 'ta' ? [{
+        ...(canAccessSections ? [{ key: "sections", label: "กลุ่มเรียน", icon: "solar:notebook-bold" }] : []),
+        ...(canViewPeople ? [{ key: "people", label: "บุคลากร", icon: "solar:users-group-rounded-bold" }] : []),
+        ...(canAccessAssignments ? [{ key: "assignments", label: "งานในชั้นเรียน", icon: "solar:clipboard-list-bold" }] : []),
+        ...(canAccessScores ? [{ key: "scores", label: "คะแนนในชั้นเรียน", icon: "solar:chart-square-bold" }] : []),
+        ...(canAccessExamScores ? [{ key: "exam-scores", label: "คะแนนสอบ", icon: "solar:diploma-bold" }] : []),
+        ...(canAccessApproval ? [{
             key: "approval",
-            label: userRole === 'ta' ? "สถานะคำร้องคะแนน" : "อนุมัติคะแนน",
+            label: approvalRole === "ta" ? "สถานะคำร้องคะแนน" : "อนุมัติคะแนน",
             icon: "solar:clipboard-check-bold",
-            // badge: pendingApprovalCount > 0 ? pendingApprovalCount : undefined,
-            // badgeColor: "warning" as const,
         }] : []),
-        { key: "attendance", label: "เช็คชื่อ", icon: "solar:user-check-bold" },
-        {
-            key: "queue", label: "คิวตรวจงาน", icon: "solar:sort-by-time-bold",
-            // badge: 'BETA', badgeColor: "warning" as const 
-        },
+        ...(canAccessAttendance ? [{ key: "attendance", label: "เช็คชื่อ", icon: "solar:user-check-bold" }] : []),
+        ...(canAccessQueue ? [{ key: "queue", label: "คิวตรวจงาน", icon: "solar:sort-by-time-bold" }] : []),
+        ...(userRole === 'instructor' ? [{ key: "activity-log", label: "บันทึกกิจกรรม", icon: "solar:document-text-bold" }] : []),
+        ...(userRole === 'instructor' ? [{ key: "ta-stats", label: "สถิติ TA", icon: "solar:graph-new-up-bold" }] : []),
+        ...(userRole === 'instructor' ? [{ key: "settings", label: "ตั้งค่ารายวิชา", icon: "solar:settings-bold" }] : []),
+    ], [approvalRole, canAccessApproval, canAccessAssignments, canAccessAttendance, canAccessExamScores, canAccessQueue, canAccessScores, canAccessSections, canViewPeople, userRole]);
 
-        ...(userRole === 'instructor' ? [{
-            key: "activity-log",
-            label: "บันทึกกิจกรรม",
-            icon: "solar:document-text-bold",
-            // badge: 'ใหม่',
-            // badgeColor: "success" as const,
-        }] : []),
-        ...(userRole === 'instructor' ? [{
-            key: "ta-stats",
-            label: "สถิติ TA",
-            icon: "solar:graph-new-up-bold",
-            // badge: 'ใหม่',
-            // badgeColor: "success" as const,
-        }] : []),
-        ...(userRole === 'instructor' ? [{
-            key: "settings",
-            label: "ตั้งค่ารายวิชา",
-            icon: "solar:settings-bold",
-        }] : []),
-    ], [assignments.length, userRole, pendingApprovalCount]);
+    useEffect(() => {
+        if (!menuItems.some((item) => item.key === activeTab)) {
+            setActiveTab("overview");
+        }
+    }, [activeTab, menuItems]);
 
     // ============================================
     // Render
     // ============================================
 
     return (
-        <div className="min-h-[calc(100vh-3.2rem)] bg-slate-100">
+        <div className="min-h-[calc(100vh-6rem)] bg-slate-100">
             {/* Mobile Header */}
             <div className="lg:hidden sticky top-0 z-50 bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 px-4 py-3">
                 <div className="flex items-center gap-3">
@@ -962,15 +979,15 @@ export default function ClassroomDetailPage() {
                         <Icon icon="solar:hamburger-menu-linear" className="text-xl" />
                     </Button>
                     <div className="flex-1 min-w-0">
-                        {isLoading ? (
-                            <>
-                                <div className="h-5 w-32 bg-white/20 rounded animate-pulse" />
-                                <div className="h-3 w-20 bg-white/20 rounded animate-pulse mt-1" />
-                            </>
-                        ) : course ? (
+                        {course ? (
                             <>
                                 <h1 className="text-white font-semibold truncate">{course.name}</h1>
                                 <p className="text-white/70 text-xs">{course.code}</p>
+                            </>
+                        ) : isLoading ? (
+                            <>
+                                <div className="h-5 w-32 bg-white/20 rounded animate-pulse" />
+                                <div className="h-3 w-20 bg-white/20 rounded animate-pulse mt-1" />
                             </>
                         ) : (
                             <>
@@ -995,12 +1012,12 @@ export default function ClassroomDetailPage() {
                         {/* Mobile Sidebar Header */}
                         <div className="bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 p-4">
                             <div className="flex items-center justify-between mb-3">
-                                {isLoading ? (
-                                    <div className="h-6 w-20 bg-white/20 rounded animate-pulse" />
-                                ) : course ? (
+                                {course ? (
                                     <Chip size="sm" className="bg-white/20 text-white border-0">
                                         {course.code}
                                     </Chip>
+                                ) : isLoading ? (
+                                    <div className="h-6 w-20 bg-white/20 rounded animate-pulse" />
                                 ) : (
                                     <Chip size="sm" className="bg-red-500/30 text-white border-0">
                                         N/A
@@ -1016,18 +1033,18 @@ export default function ClassroomDetailPage() {
                                     <Icon icon="solar:close-circle-linear" className="text-lg" />
                                 </Button>
                             </div>
-                            {isLoading ? (
-                                <>
-                                    <div className="h-6 w-48 bg-white/20 rounded animate-pulse mb-2" />
-                                    <div className="h-4 w-24 bg-white/20 rounded animate-pulse" />
-                                </>
-                            ) : course ? (
+                            {course ? (
                                 <>
                                     <h2 className="text-white font-bold text-lg leading-tight mb-1">{course.name}</h2>
                                     <p className="text-white/70 text-sm">{course.year}/{course.semester === 3 ? "ฤดูร้อน" : course.semester}</p>
                                     {course.instructor && (
                                         <p className="text-white/60 text-xs mt-2">{course.instructor.full_name}</p>
                                     )}
+                                </>
+                            ) : isLoading ? (
+                                <>
+                                    <div className="h-6 w-48 bg-white/20 rounded animate-pulse mb-2" />
+                                    <div className="h-4 w-24 bg-white/20 rounded animate-pulse" />
                                 </>
                             ) : (
                                 <>
@@ -1039,7 +1056,10 @@ export default function ClassroomDetailPage() {
 
                         {/* Mobile Menu Items */}
                         <nav className="flex-1 overflow-y-auto p-3">
-                            {menuItems.map((item) => (
+                            {!course ? (
+                                <SidebarMenuSkeleton />
+                            ) : (
+                                menuItems.map((item) => (
                                 <button
                                     key={item.key}
                                     onClick={() => {
@@ -1056,18 +1076,9 @@ export default function ClassroomDetailPage() {
                                 >
                                     <Icon icon={item.icon} className="text-xl" />
                                     <span className="font-medium">{item.label}</span>
-                                    {/* {item.badge && (
-                                        <Chip
-                                            size="sm"
-                                            variant="flat"
-                                            color={(item as any).badgeColor || "primary"}
-                                            className="h-5 min-w-5 px-1 ml-auto"
-                                        >
-                                            {item.badge}
-                                        </Chip>
-                                    )} */}
                                 </button>
-                            ))}
+                            ))
+                            )}
                         </nav>
                     </div>
                 </div>
@@ -1078,7 +1089,10 @@ export default function ClassroomDetailPage() {
                 <aside className="hidden lg:flex flex-col w-64 h-[calc(100vh)] bg-white border-r border-slate-200 fixed top-12 left-0 overflow-y-auto z-40">
                     {/* Navigation Menu */}
                     <nav className="flex-1 p-3">
-                        {menuItems.map((item) => (
+                        {!course ? (
+                            <SidebarMenuSkeleton />
+                        ) : (
+                            menuItems.map((item) => (
                             <button
                                 key={item.key}
                                 disabled={(item as any).status === "coming_soon"}
@@ -1094,18 +1108,9 @@ export default function ClassroomDetailPage() {
                             >
                                 <Icon icon={item.icon} className={`text-lg ${activeTab === item.key ? "text-blue-500" : "text-slate-400"}`} />
                                 <span className="text-sm">{item.label}</span>
-                                {/* {item.badge && (
-                                    <Chip
-                                        size="sm"
-                                        variant="flat"
-                                        color={(item as any).badgeColor || "primary"}
-                                        className="h-5 min-w-5 px-1 ml-auto text-xs"
-                                    >
-                                        {item.badge}
-                                    </Chip>
-                                )} */}
                             </button>
-                        ))}
+                        ))
+                        )}
                     </nav>
                 </aside>
 
@@ -1140,6 +1145,11 @@ export default function ClassroomDetailPage() {
                                     </div>
                                 </div>
                             </div>
+                        )}
+
+                        {/* Loading State - Show while course data is fetching */}
+                        {isLoading && !course && (
+                            <OverviewSkeleton />
                         )}
 
                         {/* Content - Only show when course is loaded */}
@@ -1186,11 +1196,21 @@ export default function ClassroomDetailPage() {
                                     />
                                 )}
 
-                                {activeTab === "sections" && (
-                                    <SectionsTab courseId={courseId} isCourseActive={course.is_active} />
+                                {activeTab === "sections" && canAccessSections && (
+                                    <SectionsTab
+                                        courseId={courseId}
+                                        isCourseActive={course.is_active}
+                                        canCreateSections={currentCoursePermissions.create_sections}
+                                        canUpdateSections={currentCoursePermissions.update_sections}
+                                        canDeleteSections={currentCoursePermissions.delete_sections}
+                                        canManageSectionStudents={currentCoursePermissions.manage_section_students}
+                                        canCreateTeams={currentCoursePermissions.create_teams}
+                                        canUpdateTeams={currentCoursePermissions.update_teams}
+                                        canDeleteTeams={currentCoursePermissions.delete_teams}
+                                    />
                                 )}
 
-                                {activeTab === "people" && (
+                                {activeTab === "people" && canViewPeople && (
                                     <PeopleTab
                                         course={course}
                                         isLoading={isPeopleLoading}
@@ -1199,13 +1219,18 @@ export default function ClassroomDetailPage() {
                                         onOpenAddInstructorModal={() => modals.instructorModal.setIsOpen(true)}
                                         onRemoveTA={handleRemoveTA}
                                         onRemoveInstructor={handleRemoveInstructor}
+                                        onUpdatePermissions={classroomActions.updateMemberPermissions}
                                         userRole={userRole}
                                         currentUserId={currentUserId}
+                                        canViewPeople={canViewPeople}
+                                        canAddPeople={canAddPeople}
+                                        canRemovePeople={canRemovePeople}
+                                        canEditMemberPermissions={canEditMemberPermissions}
                                         isCourseActive={course.is_active}
                                     />
                                 )}
 
-                                {activeTab === "assignments" && (
+                                {activeTab === "assignments" && canAccessAssignments && (
                                     <AssignmentsTab
                                         assignments={assignments}
                                         setAssignments={setAssignments}
@@ -1224,32 +1249,46 @@ export default function ClassroomDetailPage() {
                                         hasPendingUpdate={pendingAssignmentUpdate}
                                         onPendingUpdateAck={ackAssignmentUpdate}
                                         isCourseActive={course.is_active}
+                                        canCreateAssignments={currentCoursePermissions.create_assignments}
+                                        canUpdateAssignments={currentCoursePermissions.update_assignments}
+                                        canDeleteAssignments={currentCoursePermissions.delete_assignments}
+                                        canGradeAssignments={currentCoursePermissions.grade_assignments}
+                                        canEditScores={currentCoursePermissions.edit_scores}
                                     />
                                 )}
 
-                                {activeTab === "scores" && (
+                                {activeTab === "scores" && canAccessScores && (
                                     <ScoresTab courseId={courseId} isCourseActive={course.is_active} />
                                 )}
 
-                                {activeTab === "exam-scores" && (
-                                    <ExamScoresTab courseId={courseId} isCourseActive={course.is_active} />
+                                {activeTab === "exam-scores" && canAccessExamScores && (
+                                    <ExamScoresTab
+                                        courseId={courseId}
+                                        isCourseActive={course.is_active}
+                                        canCreateExamScores={currentCoursePermissions.create_exam_scores}
+                                        canUpdateExamScores={currentCoursePermissions.update_exam_scores}
+                                        canUpdateExamSettings={currentCoursePermissions.update_exam_settings}
+                                    />
                                 )}
 
-                                {activeTab === "approval" && (userRole === "instructor" || userRole === "ta") && (
+                                {activeTab === "approval" && canAccessApproval && (
                                     <ScoreApprovalTab
                                         courseId={courseId}
-                                        userRole={userRole}
+                                        userRole={approvalRole}
                                         onPendingCountChange={setPendingApprovalCount}
                                         isCourseActive={course.is_active}
                                     />
                                 )}
 
-                                {activeTab === "attendance" && (
+                                {activeTab === "attendance" && canAccessAttendance && (
                                     <AttendanceTab
                                         course={course}
                                         isLoading={isOverviewLoading}
                                         onAttendanceChanged={() => fetchOverview(true)}
                                         isCourseActive={course.is_active}
+                                        canCreateAttendanceSessions={currentCoursePermissions.create_attendance_sessions}
+                                        canUpdateAttendanceSessions={currentCoursePermissions.update_attendance_sessions}
+                                        canDeleteAttendanceSessions={currentCoursePermissions.delete_attendance_sessions}
                                     />
                                 )}
 
@@ -1261,8 +1300,16 @@ export default function ClassroomDetailPage() {
                                     />
                                 )}
 
-                                {activeTab === "queue" && (
-                                    <QueueTab course={course} isLoading={isOverviewLoading} isCourseActive={course.is_active} />
+                                {activeTab === "queue" && canAccessQueue && (
+                                    <QueueTab
+                                        course={course}
+                                        isLoading={isOverviewLoading}
+                                        isCourseActive={course.is_active}
+                                        canCreateQueueSessions={currentCoursePermissions.create_queue_sessions}
+                                        canUpdateQueueSessions={currentCoursePermissions.update_queue_sessions}
+                                        canDeleteQueueSessions={currentCoursePermissions.delete_queue_sessions}
+                                        canManageQueueBookings={currentCoursePermissions.manage_queue_bookings}
+                                    />
                                 )}
 
                                 {activeTab === "activity-log" && userRole === "instructor" && (
@@ -1287,6 +1334,8 @@ export default function ClassroomDetailPage() {
                 }}
                 assignment={scoreModalAssignment}
                 courseId={courseId}
+                canGradeAssignments={currentCoursePermissions.grade_assignments}
+                canEditScores={currentCoursePermissions.edit_scores}
                 onScoreSubmitted={() => {
                     fetchOverview(true);
                     if (scores.selectedAssignment) {

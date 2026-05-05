@@ -7,7 +7,7 @@ import { Card, CardBody, CardFooter } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
-import { Spinner } from "@heroui/spinner";
+import { Skeleton } from "@heroui/skeleton";
 import { Chip } from "@heroui/chip";
 import { Pagination } from "@heroui/pagination";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
@@ -19,6 +19,7 @@ import { addToast } from "@heroui/toast";
 import { authService } from "@/services/auth.service";
 import { courseService, Course } from "@/services/course.service";
 import { useSocket } from "@/contexts/SocketContext";
+import { CourseListSkeleton } from "@/components/loading-skeletons";
 import { IoSchool, IoBook, IoPeople, IoPersonAdd } from "react-icons/io5";
 
 interface Stats {
@@ -362,11 +363,11 @@ export default function ClosedCoursesPage() {
                         onPress={() => router.push('/home')}
                     >
                         กลับไปวิชาที่เปิด
-                        {stats?.byStatus?.active ? (
+                        <Skeleton isLoaded={Boolean(stats)} className="ml-1 w-7 h-5 rounded-full bg-blue-50">
                             <Chip size="sm" className="ml-1 bg-blue-100 text-blue-600" variant="flat">
-                                {stats.byStatus.active}
+                                {stats?.byStatus?.active ?? 0}
                             </Chip>
-                        ) : null}
+                        </Skeleton>
                     </Button>
                 </div>
             </div>
@@ -379,6 +380,7 @@ export default function ClosedCoursesPage() {
                         {/* Search */}
                         <div className="flex flex-row gap-2 sm:gap-3">
                             <Input
+                                aria-label="ค้นหารายวิชา"
                                 placeholder="ค้นหารายวิชา..."
                                 value={search}
                                 onValueChange={setSearch}
@@ -395,6 +397,7 @@ export default function ClosedCoursesPage() {
                             <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
                                 <Tooltip content="แบบการ์ด">
                                     <Button
+                                        aria-label="แสดงแบบการ์ด"
                                         isIconOnly
                                         size="md"
                                         variant="light"
@@ -407,6 +410,7 @@ export default function ClosedCoursesPage() {
                                 <div className="w-px h-5 bg-slate-200" />
                                 <Tooltip content="แบบรายการ">
                                     <Button
+                                        aria-label="แสดงแบบรายการ"
                                         isIconOnly
                                         size="md"
                                         variant="light"
@@ -423,6 +427,7 @@ export default function ClosedCoursesPage() {
                         <div className="flex flex-row gap-2 sm:gap-3">
                             
                             <Select
+                                aria-label="กรองตามปีการศึกษา"
                                 placeholder="ปีการศึกษา"
                                 selectedKeys={yearFilter ? [yearFilter] : []}
                                 onSelectionChange={(keys) => setYearFilter(Array.from(keys)[0] as string || "")}
@@ -436,6 +441,7 @@ export default function ClosedCoursesPage() {
                             </Select>
 
                             <Select
+                                aria-label="กรองตามภาคเรียน"
                                 placeholder="ภาคเรียน"
                                 selectedKeys={semesterFilter ? [semesterFilter] : []}
                                 onSelectionChange={(keys) => setSemesterFilter(Array.from(keys)[0] as string || "")}
@@ -466,9 +472,7 @@ export default function ClosedCoursesPage() {
 
             {/* Course List */}
             {isLoading ? (
-                <div className="flex justify-center py-12">
-                    <Spinner size="lg" color="primary" />
-                </div>
+                <CourseListSkeleton viewMode={viewMode} tone="closed" />
             ) : paginatedCourses.length === 0 ? (
                 <Card className="border border-slate-200 shadow-sm">
                     <CardBody className="py-16 text-center">
@@ -506,6 +510,7 @@ export default function ClosedCoursesPage() {
                         {paginatedCourses.map((course) => (
                             <Card
                                 key={course.id}
+                                as="div"
                                 isPressable
                                 onPress={() => handleCourseClick(course.id)}
                                 className="border border-slate-200 shadow-sm hover:shadow-md transition-shadow opacity-80 hover:opacity-100"
@@ -550,10 +555,13 @@ export default function ClosedCoursesPage() {
                                                 <Dropdown>
                                                     <DropdownTrigger>
                                                         <Button
+                                                            aria-label="เมนูรายวิชา"
                                                             isIconOnly
                                                             size="sm"
                                                             variant="light"
                                                             className="min-w-8 w-8 h-8"
+                                                            onClick={(event) => event.stopPropagation()}
+                                                            onKeyDown={(event) => event.stopPropagation()}
                                                         >
                                                             <Icon icon="solar:menu-dots-bold" className="text-lg text-slate-500" />
                                                         </Button>
@@ -639,6 +647,7 @@ export default function ClosedCoursesPage() {
                         {paginatedCourses.map((course) => (
                             <Card
                                 key={course.id}
+                                as="div"
                                 isPressable
                                 onPress={() => handleCourseClick(course.id)}
                                 className="border border-slate-200 shadow-sm hover:shadow-md transition-shadow w-full opacity-80 hover:opacity-100"
@@ -687,10 +696,13 @@ export default function ClosedCoursesPage() {
                                                     <Dropdown>
                                                         <DropdownTrigger>
                                                             <Button
+                                                                aria-label="เมนูรายวิชา"
                                                                 isIconOnly
                                                                 size="sm"
                                                                 variant="light"
                                                                 className="min-w-8 w-8 h-8"
+                                                                onClick={(event) => event.stopPropagation()}
+                                                                onKeyDown={(event) => event.stopPropagation()}
                                                             >
                                                                 <Icon icon="solar:menu-dots-bold" className="text-lg text-slate-500" />
                                                             </Button>

@@ -10,6 +10,7 @@ import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { SocketProvider } from "@/contexts/SocketContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { authService } from "@/services/auth.service";
+import { IconifyPreload } from "@/components/IconifyPreload";
 
 export interface ProvidersProps {
   children: React.ReactNode;
@@ -56,6 +57,7 @@ export function Providers({ children, themeProps }: ProvidersProps) {
 
   return (
     <HeroUIProvider navigate={router.push}>
+      <IconifyPreload />
       <NextThemesProvider {...themeProps}>
         <SocketProvider>
           <NotificationProvider>

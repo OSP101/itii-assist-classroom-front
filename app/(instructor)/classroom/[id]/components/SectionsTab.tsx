@@ -16,6 +16,13 @@ import { useSectionsTab, SectionsTabView } from "./sections";
 interface SectionsTabProps {
     courseId: string;
     isCourseActive?: boolean;
+    canCreateSections?: boolean;
+    canUpdateSections?: boolean;
+    canDeleteSections?: boolean;
+    canManageSectionStudents?: boolean;
+    canCreateTeams?: boolean;
+    canUpdateTeams?: boolean;
+    canDeleteTeams?: boolean;
 }
 
 /**
@@ -32,7 +39,17 @@ interface SectionsTabProps {
  * - Reduced re-renders through React.memo in SectionsTabView
  * - Self-contained component - only needs courseId prop
  */
-export default function SectionsTab({ courseId, isCourseActive = true }: SectionsTabProps) {
+export default function SectionsTab({
+    courseId,
+    isCourseActive = true,
+    canCreateSections = false,
+    canUpdateSections = false,
+    canDeleteSections = false,
+    canManageSectionStudents = false,
+    canCreateTeams = false,
+    canUpdateTeams = false,
+    canDeleteTeams = false,
+}: SectionsTabProps) {
     const hook = useSectionsTab(courseId);
     
     const {
@@ -52,6 +69,7 @@ export default function SectionsTab({ courseId, isCourseActive = true }: Section
         permanentTeams,
         weeklyTeams,
         sectionStudents,
+        removedStudents,
         studentsList,
         
         // Computed
@@ -65,6 +83,7 @@ export default function SectionsTab({ courseId, isCourseActive = true }: Section
         deleteModal,
         bulkDeleteModal,
         editSectionModal,
+        restoreModal,
         isSubmitting,
         
         // UI Handlers
@@ -81,6 +100,8 @@ export default function SectionsTab({ courseId, isCourseActive = true }: Section
         handleAddStudent,
         handleBulkAddStudents,
         handleRemoveStudent,
+        handleRestoreStudent,
+        confirmRestoreStudent,
         handleCreateTeam,
         handleSaveEditedTeam,
         handleDeleteTeam,
@@ -158,7 +179,15 @@ export default function SectionsTab({ courseId, isCourseActive = true }: Section
                 expandedSections={expandedSections}
                 isTeamsLoading={isTeamsLoading}
                 sectionStudents={sectionStudents}
+                removedStudents={removedStudents}
                 isCourseActive={isCourseActive}
+                canCreateSections={canCreateSections}
+                canUpdateSections={canUpdateSections}
+                canDeleteSections={canDeleteSections}
+                canManageSectionStudents={canManageSectionStudents}
+                canCreateTeams={canCreateTeams}
+                canUpdateTeams={canUpdateTeams}
+                canDeleteTeams={canDeleteTeams}
                 
                 // UI Handlers
                 onSubTabChange={onSubTabChange}
@@ -169,6 +198,7 @@ export default function SectionsTab({ courseId, isCourseActive = true }: Section
                 onOpenAddStudentModal={openAddStudentModal}
                 onRemoveSection={handleRemoveSection}
                 onOpenDeleteStudentModal={openDeleteStudentModal}
+                onRestoreRemovedStudent={handleRestoreStudent}
                 onOpenCreateTeamModal={openCreateTeamModal}
                 onOpenDeleteTeamModal={openDeleteTeamModal}
                 onOpenEditTeamModal={openEditTeamModal}
@@ -1252,9 +1282,96 @@ export default function SectionsTab({ courseId, isCourseActive = true }: Section
                 </ModalContent>
             </Modal>
 
+            {/* Restore Student Confirmation Modal */}
+            <Modal
+                isOpen={restoreModal.isOpen}
+                onClose={restoreModal.reset}
+                size="md"
+                scrollBehavior="outside"
+                placement="center"
+            >
+                <ModalContent>
+                    <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl shadow-lg shadow-amber-500/30">
+                                <Icon icon="solar:restart-bold" className="text-2xl text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-800">กู้คืนนักศึกษา</h3>
+                                <p className="text-sm text-slate-500 font-normal mt-1">
+                                    กรุณาตรวจสอบข้อมูลก่อนดำเนินการ
+                                </p>
+                            </div>
+                        </div>
+                    </ModalHeader>
+                    <ModalBody className="px-6 py-4">
+                        <div className="space-y-4">
+                            {/* Student Info Card */}
+                            <Card className="border border-amber-100 bg-amber-50/50">
+                                <CardBody className="py-4 px-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-14 h-14 rounded-xl flex items-center justify-center shadow-lg bg-gradient-to-br from-amber-400 to-orange-500">
+                                            <Icon icon="solar:user-bold" className="text-2xl text-white" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="font-semibold text-lg text-slate-800">{restoreModal.target?.full_name}</p>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                {restoreModal.target?.student_ref_id !== 0 && (
+                                                    <Chip size="sm" variant="flat" className="bg-slate-100 text-slate-700">
+                                                        {restoreModal.target?.student_ref_id}
+                                                    </Chip>
+                                                )}
+                                                <Chip size="sm" variant="flat" className="bg-blue-50 text-blue-600">
+                                                    Section {restoreModal.target?.section_no}
+                                                </Chip>
+                                                <Chip size="sm" variant="flat" className="bg-amber-100 text-amber-700">
+                                                    เหลือ {restoreModal.target?.remaining_days} วัน
+                                                </Chip>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </CardBody>
+                            </Card>
+
+                            {/* Info */}
+                            <Card className="border border-green-200 bg-green-50">
+                                <CardBody className="py-3 px-4">
+                                    <div className="flex items-start gap-3">
+                                        <Icon icon="solar:info-circle-bold" className="text-xl text-green-600 mt-0.5" />
+                                        <div>
+                                            <p className="font-medium text-green-800">สิ่งที่จะเกิดขึ้น</p>
+                                            <p className="text-sm text-green-700 mt-1">
+                                                นักศึกษาจะถูกเพิ่มกลับเข้ากลุ่ม Section {restoreModal.target?.section_no} ตามเดิม
+                                            </p>
+                                        </div>
+                                    </div>
+                                </CardBody>
+                            </Card>
+                        </div>
+                    </ModalBody>
+                    <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                        <Button
+                            variant="light"
+                            onPress={restoreModal.reset}
+                            isDisabled={isSubmitting}
+                        >
+                            ยกเลิก
+                        </Button>
+                        <Button
+                            onPress={confirmRestoreStudent}
+                            isLoading={isSubmitting}
+                            className="bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-500/25"
+                            startContent={!isSubmitting && <Icon icon="solar:restart-bold" />}
+                        >
+                            กู้คืนนักศึกษา
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
             {/* Bulk Delete Teams Modal */}
-            <Modal 
-                isOpen={bulkDeleteModal.isOpen} 
+            <Modal
+                isOpen={bulkDeleteModal.isOpen}
                 onClose={() => bulkDeleteModal.setIsOpen(false)}
                 size="lg"
                 scrollBehavior="outside"

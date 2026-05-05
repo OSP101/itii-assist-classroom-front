@@ -7,7 +7,7 @@ import { Card, CardBody, CardFooter } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Input, Textarea } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
-import { Spinner } from "@heroui/spinner";
+import { Skeleton } from "@heroui/skeleton";
 import { Chip } from "@heroui/chip";
 import { Pagination } from "@heroui/pagination";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
@@ -19,6 +19,7 @@ import { authService } from "@/services/auth.service";
 import { courseService, Course, Instructor } from "@/services/course.service";
 import { twoFactorService } from "@/services/twoFactor.service";
 import { useSocket } from "@/contexts/SocketContext";
+import { CourseListSkeleton } from "@/components/loading-skeletons";
 import Link from "next/link";
 import { IoSchool, IoBook, IoPeople, IoPersonAdd } from "react-icons/io5";
 
@@ -38,6 +39,7 @@ export default function HomePage() {
     const [stats, setStats] = useState<Stats | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [userRole, setUserRole] = useState<string>("");
+    const [isUserRoleLoading, setIsUserRoleLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState<number | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 12;
@@ -84,10 +86,14 @@ export default function HomePage() {
     // Get user role and ID
     useEffect(() => {
         const fetchUser = async () => {
-            const user = await authService.getCurrentUser();
-            if (user) {
-                setUserRole(user.role);
-                setCurrentUserId(user.id);
+            try {
+                const user = await authService.getCurrentUser();
+                if (user) {
+                    setUserRole(user.role);
+                    setCurrentUserId(user.id);
+                }
+            } finally {
+                setIsUserRoleLoading(false);
             }
         };
         fetchUser();
@@ -584,6 +590,7 @@ export default function HomePage() {
                             size="sm"
                             variant="light"
                             isIconOnly
+                            aria-label="ปิดการแจ้งเตือน"
                             onPress={dismiss2FABanner}
                             className="text-amber-600 hover:bg-amber-100"
                         >
@@ -599,11 +606,13 @@ export default function HomePage() {
                 <div className="flex items-center gap-3">
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900">รายวิชาของฉัน</h1>
-                        <p className="text-slate-500 mt-1">
-                            {userRole === "instructor"
-                                ? "รายวิชาที่คุณเป็นผู้สอน"
-                                : "รายวิชาที่คุณเป็นผู้ช่วยสอน"}
-                        </p>
+                        <Skeleton isLoaded={!isUserRoleLoading} className="mt-2 w-44 h-5 rounded-lg">
+                            <p className="text-slate-500 mt-1">
+                                {userRole === "instructor"
+                                    ? "รายวิชาที่คุณเป็นผู้สอน"
+                                    : "รายวิชาที่คุณเป็นผู้ช่วยสอน"}
+                            </p>
+                        </Skeleton>
                     </div>
                     {/* Real-time connection indicator */}
                     <Tooltip content={isConnected ? "ข้อมูลอัปเดตแบบ Real-time" : "กำลังเชื่อมต่อ..."}>
@@ -624,13 +633,15 @@ export default function HomePage() {
                         onPress={() => router.push('/home/closed')}
                     >
                         วิชาที่ปิดใช้งาน
-                        {stats?.byStatus?.inactive ? (
+                        <Skeleton isLoaded={Boolean(stats)} className="ml-1 w-7 h-5 rounded-full">
                             <Chip size="sm" className="ml-1 bg-slate-200 text-slate-600" variant="flat">
-                                {stats.byStatus.inactive}
+                                {stats?.byStatus?.inactive ?? 0}
                             </Chip>
-                        ) : null}
+                        </Skeleton>
                     </Button>
-                    {userRole === "instructor" && (
+                    {isUserRoleLoading ? (
+                        <Skeleton className="w-40 h-10 rounded-lg bg-blue-100" />
+                    ) : userRole === "instructor" && (
                         <Button
                             color="primary"
                             startContent={<Icon icon="solar:add-circle-bold" className="text-xl" />}
@@ -651,6 +662,7 @@ export default function HomePage() {
                         {/* Search */}
                         <div className="flex flex-row gap-2 sm:gap-3 w-full">
                             <Input
+                                aria-label="ค้นหารายวิชา"
                                 placeholder="ค้นหารายวิชา..."
                                 value={search}
                                 onValueChange={setSearch}
@@ -667,6 +679,7 @@ export default function HomePage() {
                             <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
                                 <Tooltip content="แบบการ์ด">
                                     <Button
+                                        aria-label="แสดงแบบการ์ด"
                                         isIconOnly
                                         size="md"
                                         variant="light"
@@ -679,6 +692,7 @@ export default function HomePage() {
                                 <div className="w-px h-5 bg-slate-200" />
                                 <Tooltip content="แบบรายการ">
                                     <Button
+                                        aria-label="แสดงแบบรายการ"
                                         isIconOnly
                                         size="md"
                                         variant="light"
@@ -695,13 +709,13 @@ export default function HomePage() {
                         <div className="flex flex-row gap-2 sm:gap-3">
                             
                             <Select
+                                aria-label="กรองตามปีการศึกษา"
                                 placeholder="ปีการศึกษา"
                                 selectedKeys={yearFilter ? [yearFilter] : []}
                                 onSelectionChange={(keys) => setYearFilter(Array.from(keys)[0] as string || "")}
                                 className="w-full sm:w-36"
                                 size="md"
                                 variant="bordered"
-
                             >
                                 {yearOptions.map((option) => (
                                     <SelectItem key={option.value}>{option.label}</SelectItem>
@@ -709,13 +723,13 @@ export default function HomePage() {
                             </Select>
 
                             <Select
+                                aria-label="กรองตามภาคเรียน"
                                 placeholder="ภาคเรียน"
                                 selectedKeys={semesterFilter ? [semesterFilter] : []}
                                 onSelectionChange={(keys) => setSemesterFilter(Array.from(keys)[0] as string || "")}
                                 className="w-full sm:w-32"
                                 size="md"
                                 variant="bordered"
-
                             >
                                 {semesterOptions.map((option) => (
                                     <SelectItem key={option.value}>{option.label}</SelectItem>
@@ -740,9 +754,7 @@ export default function HomePage() {
 
             {/* Course List */}
             {isLoading ? (
-                <div className="flex justify-center py-12">
-                    <Spinner size="lg" color="primary" />
-                </div>
+                <CourseListSkeleton viewMode={viewMode} />
             ) : paginatedCourses.length === 0 ? (
                 <Card className="border border-slate-200 shadow-sm">
                     <CardBody className="flex flex-col items-center justify-center py-12">
@@ -775,6 +787,7 @@ export default function HomePage() {
                         {paginatedCourses.map((course) => (
                             <Card
                                 key={course.id}
+                                as="div"
                                 isPressable
                                 onPress={() => handleCourseClick(course.id)}
                                 className="border border-slate-200 shadow-sm hover:shadow-md transition-shadow"
@@ -812,10 +825,13 @@ export default function HomePage() {
                                                 <Dropdown>
                                                     <DropdownTrigger>
                                                         <Button
+                                                            aria-label="เมนูรายวิชา"
                                                             isIconOnly
                                                             size="sm"
                                                             variant="light"
                                                             className="min-w-8 w-8 h-8"
+                                                            onClick={(event) => event.stopPropagation()}
+                                                            onKeyDown={(event) => event.stopPropagation()}
                                                         >
                                                             <Icon icon="solar:menu-dots-bold" className="text-lg text-slate-500" />
                                                         </Button>
@@ -904,6 +920,7 @@ export default function HomePage() {
                         {paginatedCourses.map((course) => (
                             <Card
                                 key={course.id}
+                                as="div"
                                 isPressable
                                 onPress={() => handleCourseClick(course.id)}
                                 className="border border-slate-200 shadow-sm hover:shadow-md transition-shadow w-full"
@@ -947,10 +964,13 @@ export default function HomePage() {
                                                     <Dropdown>
                                                         <DropdownTrigger>
                                                             <Button
+                                                                aria-label="เมนูรายวิชา"
                                                                 isIconOnly
                                                                 size="sm"
                                                                 variant="light"
                                                                 className="min-w-8 w-8 h-8"
+                                                                onClick={(event) => event.stopPropagation()}
+                                                                onKeyDown={(event) => event.stopPropagation()}
                                                             >
                                                                 <Icon icon="solar:menu-dots-bold" className="text-lg text-slate-500" />
                                                             </Button>
@@ -1197,6 +1217,7 @@ export default function HomePage() {
                                 </div>
                                 <div className="py-3">
                                     <Select
+                                        label="เลือกผู้สอนร่วม"
                                         labelPlacement="outside"
                                         placeholder="เลือกผู้สอนร่วม (ถ้ามี)"
                                         variant="bordered"

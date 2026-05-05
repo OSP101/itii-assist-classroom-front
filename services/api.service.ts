@@ -183,8 +183,32 @@ class ApiService {
         return { success: false, error: 'Session expired. Please login again.' };
       }
 
-      const data = await response.json();
-      return data;
+      const rawText = await response.text();
+      let data: ApiResponse<T> | null = null;
+
+      if (rawText) {
+        try {
+          data = JSON.parse(rawText) as ApiResponse<T>;
+        } catch {
+          // Keep null and map to a standard error response below.
+        }
+      }
+
+      if (data) {
+        return data;
+      }
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: rawText || `HTTP ${response.status}`,
+          message: rawText || response.statusText,
+        };
+      }
+
+      return {
+        success: true,
+      };
     } catch (error) {
       // Retry on network errors (but not too many times)
       if (retryCount < this.MAX_RETRIES && error instanceof TypeError && error.message.includes('fetch')) {

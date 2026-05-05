@@ -27,16 +27,35 @@ interface AttendanceTabProps {
     isLoading: boolean;
     onAttendanceChanged?: () => void;
     isCourseActive?: boolean;
+    canCreateAttendanceSessions?: boolean;
+    canUpdateAttendanceSessions?: boolean;
+    canDeleteAttendanceSessions?: boolean;
 }
 
-export default function AttendanceTab({ course, isLoading, onAttendanceChanged, isCourseActive = true }: AttendanceTabProps) {
+export default function AttendanceTab({
+    course,
+    isLoading,
+    onAttendanceChanged,
+    isCourseActive = true,
+    canCreateAttendanceSessions = false,
+    canUpdateAttendanceSessions = false,
+    canDeleteAttendanceSessions = false,
+}: AttendanceTabProps) {
     // All state and logic handled by custom hook
     const hook = useAttendanceTab(course, onAttendanceChanged);
 
     return (
         <>
             {/* View layer */}
-            <AttendanceTabView course={course} isLoading={isLoading} hook={hook} isCourseActive={isCourseActive} />
+            <AttendanceTabView
+                course={course}
+                isLoading={isLoading}
+                hook={hook}
+                isCourseActive={isCourseActive}
+                canCreateAttendanceSessions={canCreateAttendanceSessions}
+                canUpdateAttendanceSessions={canUpdateAttendanceSessions}
+                canDeleteAttendanceSessions={canDeleteAttendanceSessions}
+            />
 
             {/* Pending update toast — portaled to body to escape stacking contexts */}
             {hook.pendingAttendanceUpdate && createPortal(

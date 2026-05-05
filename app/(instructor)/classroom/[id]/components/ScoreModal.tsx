@@ -35,6 +35,8 @@ interface ScoreModalProps {
     assignment: AssignmentType | null;
     courseId: string;
     onScoreSubmitted?: () => void;
+    canGradeAssignments?: boolean;
+    canEditScores?: boolean;
 }
 
 interface SubItemScore {
@@ -84,11 +86,18 @@ export default function ScoreModal({
     assignment,
     courseId,
     onScoreSubmitted,
+    canGradeAssignments = true,
+    canEditScores = true,
 }: ScoreModalProps) {
     // DEBUG: First line of component
     console.log("=== ScoreModal Component Called ===", { isOpen, assignment: assignment?.id, courseId });
+
+    // Determine which tabs are available
+    const defaultTab: "grade" | "edit" = canGradeAssignments ? "grade" : "edit";
+    const showBothTabs = canGradeAssignments && canEditScores;
+
     // States
-    const [activeTab, setActiveTab] = useState<"grade" | "edit">("grade");
+    const [activeTab, setActiveTab] = useState<"grade" | "edit">(defaultTab);
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -145,6 +154,7 @@ export default function ScoreModal({
     const [groupMemberScores, setGroupMemberScores] = useState<{ studentId: number; studentName: string; scoreId: number | null; score: number | null; hasAnySubItemScore: boolean; selected: boolean; hasPendingEdit: boolean }[]>([]);
     // For group editing with sub-items - map studentId → [{subItemId, scoreId}]
     const [groupMemberSubItemScores, setGroupMemberSubItemScores] = useState<Map<number, { subItemId: number; scoreId: number | null }[]>>(new Map());
+    const [pendingEditSubItemByStudent, setPendingEditSubItemByStudent] = useState<Record<number, number[]>>({});
     const [editGroupMode, setEditGroupMode] = useState<"all" | "selected">("all"); // "all" = edit all members, "selected" = edit selected members only
     const [editGroupMemberScores, setEditGroupMemberScores] = useState<Record<number, string>>({});
     const [editGroupMemberSubItemScores, setEditGroupMemberSubItemScores] = useState<Record<number, Record<number, string>>>({});
@@ -184,6 +194,9 @@ export default function ScoreModal({
         if (!isOpen) {
             resetStates();
             console.log("Testing - States reset on modal close");
+        } else {
+            // Sync active tab to what's available when modal opens
+            setActiveTab(canGradeAssignments ? "grade" : "edit");
         }
     }, [isOpen]);
 
@@ -223,7 +236,7 @@ export default function ScoreModal({
     };
 
     const resetStates = () => {
-        setActiveTab("grade");
+        setActiveTab(defaultTab);
         setSearchQuery("");
         setSelectedStudent(null);
         setSelectedGroup(null);
@@ -260,6 +273,7 @@ export default function ScoreModal({
         setGroupSearchQuery("");
         setGroupMemberScores([]);
         setGroupMemberSubItemScores(new Map());
+        setPendingEditSubItemByStudent({});
         setEditGroupMode("all");
         setEditGroupMemberScores({});
         setEditGroupMemberSubItemScores({});
@@ -427,68 +441,19 @@ export default function ScoreModal({
         }
     }, [selectedStudent?.id, scoresData]);
 
-    // Check for existing scores when group is selected  
+    // Check for existing scores when group is selected
     useEffect(() => {
-        if (selectedGroup && scoresData) {
-            // For group assignments, check if any member has a score (main score OR sub-item scores)
-            const memberWithScore = selectedGroup.members.find(member => {
-                const studentScore = scoresData.student_scores.find(
-                    ss => ss.student.id === member.id
-                );
-                if (!studentScore) return false;
-
-                // Check main score
-                if (studentScore.score !== null && studentScore.score !== undefined) return true;
-
-                // Check sub-item scores
-                if (studentScore.sub_item_scores && studentScore.sub_item_scores.some(si => si.score !== null)) {
-                    return true;
-                }
-
-                return false;
-            });
-
-            if (memberWithScore) {
-                const studentScore = scoresData.student_scores.find(
-                    ss => ss.student.id === memberWithScore.id
-                );
-                if (studentScore) {
-                    // Set existing main score (if any)
-                    if (studentScore.score !== null && studentScore.score !== undefined) {
-                        setExistingScore({
-                            score: studentScore.score ?? null,
-                            graded_by: studentScore.graded_by,
-                            graded_at: studentScore.graded_at,
-                        });
-                    } else {
-                        setExistingScore(null);
-                    }
-
-                    // Check sub-item scores for group
-                    if (studentScore.sub_item_scores && studentScore.sub_item_scores.length > 0) {
-                        const existingSubScores: SubItemExistingScore[] = studentScore.sub_item_scores
-                            .filter(si => si.score !== null)
-                            .map(si => ({
-                                subItemId: si.sub_item_id,
-                                score: si.score,
-                                graded_by: si.graded_by || undefined,
-                                graded_at: si.graded_at || undefined,
-                            }));
-                        setSubItemExistingScores(existingSubScores);
-                    } else {
-                        setSubItemExistingScores([]);
-                    }
-                }
-            } else {
-                setExistingScore(null);
-                setSubItemExistingScores([]);
-            }
+        if (isGroupAssignment && selectedGroup && scoresData) {
+            // Group grading uses per-member score checks (gradeGroupMembers/getMemberSubItemScoreData).
+            // Keep these global states empty to avoid locking inputs based on one scored member.
+            setExistingScore(null);
+            setSubItemExistingScores([]);
         }
         // Note: Don't reset existingScore when !selectedGroup because 
         // this useEffect also triggers for individual assignments
         // and would override the student's existingScore
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedGroup?.id, scoresData]);
+    }, [isGroupAssignment, selectedGroup?.id, scoresData]);
 
     // Filter students based on search query
     const filteredStudents = useMemo(() => {
@@ -596,7 +561,16 @@ export default function ScoreModal({
                 const memberScore = latestScores?.student_scores?.find(
                     ss => ss.student.id === member.id
                 );
-                const hasExistingScore = memberScore?.score !== null && memberScore?.score !== undefined;
+                const hasMainScore = memberScore?.score !== null && memberScore?.score !== undefined;
+                const subItemCount = assignment?.subItems?.length ?? 0;
+                const scoredSubItemCount = memberScore?.sub_item_scores?.filter(
+                    (si) => si.score !== null && si.score !== undefined
+                ).length ?? 0;
+                // For sub-item assignments: member only "has score" when ALL sub-items are scored.
+                // This allows re-selecting them to grade remaining sub-items without locking.
+                const hasExistingScore = subItemCount > 0
+                    ? scoredSubItemCount >= subItemCount
+                    : hasMainScore;
                 
                 return {
                     studentId: member.id,
@@ -1222,6 +1196,21 @@ export default function ScoreModal({
 
                 return hasAnyValidEntry;
             }
+
+            if (hasSubItems && gradeGroupMode === "all") {
+                const filledItems = subItemScores.filter(item => item.score !== "");
+                if (filledItems.length === 0) return false;
+                if (!filledItems.every(item => validateScore(item.score.toString(), item.maxScore))) return false;
+                // Must have at least one member who does not yet have each filled sub-item scored
+                const hasAnySubmittable = filledItems.some(item =>
+                    gradeGroupMembers.some(m => {
+                        if (!m.canScore) return false;
+                        const existing = getMemberSubItemScoreData(m.studentId, item.subItemId);
+                        return existing?.score === null || existing?.score === undefined;
+                    })
+                );
+                return hasAnySubmittable;
+            }
         }
 
         if (hasSubItems) {
@@ -1236,7 +1225,7 @@ export default function ScoreModal({
         } else {
             return mainScore !== "" && validateScore(mainScore, assignment.max_score);
         }
-    }, [assignment, selectedStudent, selectedGroup, mainScore, subItemScores, hasSubItems, isGroupAssignment, existingScore, subItemExistingScores, isCheckingScore, canScoreSelected, gradeGroupMode, selectedGradeMembers, allMembersHaveScores, gradeGroupMemberScores, gradeGroupMemberSubItemScores, scoresData]);
+    }, [assignment, selectedStudent, selectedGroup, mainScore, subItemScores, hasSubItems, isGroupAssignment, existingScore, subItemExistingScores, isCheckingScore, canScoreSelected, gradeGroupMode, selectedGradeMembers, allMembersHaveScores, gradeGroupMemberScores, gradeGroupMemberSubItemScores, scoresData, gradeGroupMembers]);
 
     const handleSubmitGrade = async () => {
         if (!assignment || !canSubmitGrade) return;
@@ -1251,6 +1240,9 @@ export default function ScoreModal({
             if (hasSubItems) {
                 // Submit each sub-item score individually
                 const itemsToSubmit = subItemScores.filter(item => {
+                    if (isGroupAssignment) {
+                        return item.score !== "";
+                    }
                     const existingSubScore = subItemExistingScores.find(s => s.subItemId === item.subItemId);
                     return item.score !== "" && !existingSubScore;
                 });
@@ -1279,13 +1271,24 @@ export default function ScoreModal({
                         }
                     } else {
                         for (const item of itemsToSubmit) {
+                            // Per sub-item: only send to members who don't have this sub-item scored yet
+                            const membersForSubItem = gradeGroupMembers
+                                .filter(m => m.canScore)
+                                .filter(m => {
+                                    const existingSubScore = getMemberSubItemScoreData(m.studentId, item.subItemId);
+                                    return existingSubScore?.score === null || existingSubScore?.score === undefined;
+                                })
+                                .map(m => m.studentId);
+
+                            if (membersForSubItem.length === 0) continue; // All members already have this sub-item scored
+
                             await scoreService.submitGroupScore({
                                 assignment_id: assignment.id,
                                 group_id: selectedGroup.id,
                                 score: parseFloat(item.score.toString()),
                                 sub_item_id: item.subItemId,
                                 comment: comment || undefined,
-                                student_ids: studentIdsForGrade,
+                                student_ids: membersForSubItem,
                             });
                         }
                     }
@@ -1440,6 +1443,7 @@ export default function ScoreModal({
             setSelectedEditSubItemId(null);
             setGroupMemberScores([]);
             setGroupMemberSubItemScores(new Map());
+            setPendingEditSubItemByStudent({});
             setEditGroupMode("all");
             setEditGroupMemberScores({});
             setEditGroupMemberSubItemScores({});
@@ -1457,23 +1461,34 @@ export default function ScoreModal({
 
                 // Fetch pending edit requests to mark locked members
                 let pendingStudentIds = new Set<number>();
+                const pendingSubItemByStudent: Record<number, number[]> = {};
                 try {
                     const pendingRequests = await scoreEditRequestService.getEditRequests(courseId, 'pending');
                     if (pendingRequests?.data) {
                         pendingRequests.data
                             .filter(req => req.assignment.id === assignment.id)
-                            .forEach(req => pendingStudentIds.add(req.student.id));
+                            .forEach(req => {
+                                if (req.sub_item?.id) {
+                                    const existing = pendingSubItemByStudent[req.student.id] ?? [];
+                                    if (!existing.includes(req.sub_item.id)) {
+                                        pendingSubItemByStudent[req.student.id] = [...existing, req.sub_item.id];
+                                    }
+                                } else {
+                                    pendingStudentIds.add(req.student.id);
+                                }
+                            });
                     }
                 } catch {
                     // If pending request fetch fails, continue without lock info
                 }
+                setPendingEditSubItemByStudent(pendingSubItemByStudent);
 
                 // Collect scores for ALL members in the group
         const memberScoresData = group.members.map(member => {
                     const studentScore = scoresData?.student_scores.find(
                         ss => ss.student.id === member.id
                     );
-                    const hasPendingEdit = pendingStudentIds.has(member.id);
+                    const hasPendingEdit = !hasSubItems && pendingStudentIds.has(member.id);
                     const hasAnySubItemScore = (studentScore?.sub_item_scores || []).some(si => si.score_id != null);
                     const canEditMember = hasSubItems ? hasAnySubItemScore : !!studentScore?.score_id;
                     return {
@@ -1482,7 +1497,7 @@ export default function ScoreModal({
                         scoreId: studentScore?.score_id || null,
                         score: studentScore?.score ?? null,
                         hasAnySubItemScore,
-                        selected: !hasPendingEdit && canEditMember, // Don't auto-select members with pending requests or no editable score
+                        selected: canEditMember,
                         hasPendingEdit,
                     };
                 });
@@ -1631,6 +1646,10 @@ export default function ScoreModal({
         }));
     };
 
+    const hasPendingSubItemEdit = (studentId: number, subItemId: number): boolean => {
+        return (pendingEditSubItemByStudent[studentId] || []).includes(subItemId);
+    };
+
     // Filter groups for edit search
     const filteredEditGroups = useMemo(() => {
         if (!editGroupSearchQuery.trim()) return groups;
@@ -1651,7 +1670,7 @@ export default function ScoreModal({
         // Group + sub-items: allow submitting all changed sub-items in one request flow
         if (isGroupAssignment && editSelectedGroup && hasSubItems) {
             if (!hasValidReason) return false;
-            const selectedMembers = groupMemberScores.filter(m => m.selected && !m.hasPendingEdit);
+            const selectedMembers = groupMemberScores.filter(m => m.selected);
 
             if (selectedMembers.length === 0) return false;
 
@@ -1668,6 +1687,7 @@ export default function ScoreModal({
                         const maxScore = assignment?.subItems?.find(si => si.id === subItemId)?.max_score || 0;
                         const currentScore = getMemberSubItemScoreData(member.studentId, subItemId)?.score;
                         const value = editGroupMemberSubItemScores[member.studentId]?.[subItemId] ?? (currentScore?.toString() || "");
+                        if (hasPendingSubItemEdit(member.studentId, subItemId)) continue;
 
                         if (value === "") continue;
                         if (!validateScore(value, maxScore)) return false;
@@ -1695,6 +1715,9 @@ export default function ScoreModal({
                 if (!isChanged) continue;
 
                 const hasAnyTarget = selectedMembers.some((member) => {
+                    if (hasPendingSubItemEdit(member.studentId, subItem.subItemId)) {
+                        return false;
+                    }
                     const sub = groupMemberSubItemScores.get(member.studentId);
                     return sub?.find(s => s.subItemId === subItem.subItemId)?.scoreId != null;
                 });
@@ -1745,7 +1768,7 @@ export default function ScoreModal({
         if (!currentScore || !hasValidReason) return false;
         if (newScore === "" || !validateScore(newScore, assignment?.max_score || 0)) return false;
         return true;
-    }, [currentScore, newScore, editReasonType, editReasonCustom, assignment, hasSubItems, selectedEditSubItemId, editSubItemScores, isGroupAssignment, editSelectedGroup, groupMemberScores, groupMemberSubItemScores, editGroupMode, editGroupMemberScores, editGroupMemberSubItemScores]);
+    }, [currentScore, newScore, editReasonType, editReasonCustom, assignment, hasSubItems, selectedEditSubItemId, editSubItemScores, isGroupAssignment, editSelectedGroup, groupMemberScores, groupMemberSubItemScores, editGroupMode, editGroupMemberScores, editGroupMemberSubItemScores, pendingEditSubItemByStudent]);
 
     const handleSubItemNewScoreChange = (subItemId: number, value: string) => {
         setEditSubItemScores(prev => prev.map(s =>
@@ -1759,7 +1782,7 @@ export default function ScoreModal({
         if (isGroupAssignment && editSelectedGroup && hasSubItems) {
             lines.push(`กลุ่ม: ${editSelectedGroup.name}`);
 
-            const selectedMembers = groupMemberScores.filter(m => m.selected && !m.hasPendingEdit);
+            const selectedMembers = groupMemberScores.filter(m => m.selected);
             if (editGroupMode === "selected") {
                 let changedCount = 0;
 
@@ -1767,6 +1790,7 @@ export default function ScoreModal({
                     const subScores = groupMemberSubItemScores.get(member.studentId) || [];
                     subScores.forEach((subScore) => {
                         if (!subScore.scoreId) return;
+                        if (hasPendingSubItemEdit(member.studentId, subScore.subItemId)) return;
                         const currentScore = getMemberSubItemScoreData(member.studentId, subScore.subItemId)?.score;
                         const targetScore = editGroupMemberSubItemScores[member.studentId]?.[subScore.subItemId] ?? (currentScore?.toString() || "");
                         if (targetScore === "") return;
@@ -1794,6 +1818,9 @@ export default function ScoreModal({
                     changedSubItems.forEach((subItem) => {
                         const subItemName = assignment?.subItems?.find(si => si.id === subItem.subItemId)?.name || `ข้อ ${subItem.subItemId}`;
                         const targetCount = selectedMembers.filter((member) => {
+                            if (hasPendingSubItemEdit(member.studentId, subItem.subItemId)) {
+                                return false;
+                            }
                             const sub = groupMemberSubItemScores.get(member.studentId);
                             return sub?.some(s => s.subItemId === subItem.subItemId && s.scoreId != null);
                         }).length;
@@ -1841,6 +1868,33 @@ export default function ScoreModal({
         lines.push(`คะแนนใหม่: ${newScore}`);
         return lines;
     };
+    const formatSkippedEditDetails = (result: {
+        skipped: number;
+        skipped_names: string[];
+        skipped_items?: { student_name: string; sub_item_name?: string | null }[];
+    }): string => {
+        if (result.skipped <= 0) {
+            return "";
+        }
+
+        const itemLabels = (result.skipped_items ?? [])
+            .map((item) => item.sub_item_name ? `${item.student_name} (${item.sub_item_name})` : item.student_name)
+            .filter((value) => value.trim().length > 0);
+
+        const fallbackNames = (result.skipped_names ?? []).filter((value) => value.trim().length > 0);
+        const merged = itemLabels.length > 0 ? itemLabels : fallbackNames;
+        const unique = Array.from(new Set(merged));
+
+        if (unique.length === 0) {
+            return "";
+        }
+
+        if (unique.length <= 5) {
+            return unique.join(", ");
+        }
+
+        return `${unique.slice(0, 5).join(", ")} และอีก ${unique.length - 5} รายการ`;
+    };
 
     const handleSubmitEdit = async () => {
         setIsSubmitting(true);
@@ -1849,7 +1903,7 @@ export default function ScoreModal({
 
             // Group + sub-items: submit all changed sub-items in one action
             if (isGroupAssignment && editSelectedGroup && hasSubItems) {
-                const selectedMembers = groupMemberScores.filter(m => m.selected && !m.hasPendingEdit);
+                const selectedMembers = groupMemberScores.filter(m => m.selected);
                 if (selectedMembers.length === 0) {
                     addToast({ title: "ไม่มีสมาชิกที่เลือก", description: "กรุณาเลือกอย่างน้อย 1 คนที่มีคะแนนในข้อย่อยนี้", color: "warning", timeout: 3000, shouldShowTimeoutProgress: true });
                     return;
@@ -1862,6 +1916,7 @@ export default function ScoreModal({
                         const subScores = groupMemberSubItemScores.get(member.studentId) || [];
                         for (const subScore of subScores) {
                             if (!subScore.scoreId) continue;
+                            if (hasPendingSubItemEdit(member.studentId, subScore.subItemId)) continue;
 
                             const currentScore = getMemberSubItemScoreData(member.studentId, subScore.subItemId)?.score;
                             const rawValue = editGroupMemberSubItemScores[member.studentId]?.[subScore.subItemId] ?? (currentScore?.toString() || "");
@@ -1900,9 +1955,10 @@ export default function ScoreModal({
                     }, editImages);
 
                     if (detailedBatchResult.skipped > 0) {
+                        const skippedDetails = formatSkippedEditDetails(detailedBatchResult);
                         addToast({
                             title: "ส่งคำขอแก้ไขสำเร็จ (บางส่วน)",
-                            description: `ส่งคำขอรวม ${detailedBatchResult.created} รายการ | ข้าม ${detailedBatchResult.skipped} รายการที่มีคำร้องรออนุมัติอยู่แล้ว: ${detailedBatchResult.skipped_names.join(', ')}`,
+                            description: `ส่งคำขอรวม ${detailedBatchResult.created} รายการ | ข้าม ${detailedBatchResult.skipped} รายการที่มีคำร้องรออนุมัติอยู่แล้ว${skippedDetails ? `: ${skippedDetails}` : ""}`,
                             color: "warning",
                             timeout: 5000,
                             shouldShowTimeoutProgress: true,
@@ -1938,7 +1994,12 @@ export default function ScoreModal({
 
                     for (const subItem of changedSubItems) {
                         const scoreIds = selectedMembers
-                            .map((member) => groupMemberSubItemScores.get(member.studentId)?.find(s => s.subItemId === subItem.subItemId)?.scoreId ?? null)
+                            .map((member) => {
+                                if (hasPendingSubItemEdit(member.studentId, subItem.subItemId)) {
+                                    return null;
+                                }
+                                return groupMemberSubItemScores.get(member.studentId)?.find(s => s.subItemId === subItem.subItemId)?.scoreId ?? null;
+                            })
                             .filter((scoreId): scoreId is number => scoreId !== null);
 
                         scoreIds.forEach((scoreId) => {
@@ -1966,9 +2027,10 @@ export default function ScoreModal({
                     }, editImages);
 
                     if (detailedBatchResult.skipped > 0) {
+                        const skippedDetails = formatSkippedEditDetails(detailedBatchResult);
                         addToast({
                             title: "ส่งคำขอแก้ไขสำเร็จ (บางส่วน)",
-                            description: `ส่งคำขอรวม ${detailedBatchResult.created} รายการ | ข้าม ${detailedBatchResult.skipped} รายการที่มีคำร้องรออนุมัติอยู่แล้ว: ${detailedBatchResult.skipped_names.join(', ')}`,
+                            description: `ส่งคำขอรวม ${detailedBatchResult.created} รายการ | ข้าม ${detailedBatchResult.skipped} รายการที่มีคำร้องรออนุมัติอยู่แล้ว${skippedDetails ? `: ${skippedDetails}` : ""}`,
                             color: "warning",
                             timeout: 5000,
                             shouldShowTimeoutProgress: true,
@@ -2012,9 +2074,10 @@ export default function ScoreModal({
                 }, editImages);
 
                 if (detailedBatchResult.skipped > 0) {
+                    const skippedDetails = formatSkippedEditDetails(detailedBatchResult);
                     addToast({
                         title: "ส่งคำขอแก้ไขสำเร็จ (บางส่วน)",
-                        description: `ส่งคำขอรวม ${detailedBatchResult.created} รายการ | ข้าม ${detailedBatchResult.skipped} รายการที่มีคำร้องรออนุมัติอยู่แล้ว: ${detailedBatchResult.skipped_names.join(', ')}`,
+                        description: `ส่งคำขอรวม ${detailedBatchResult.created} รายการ | ข้าม ${detailedBatchResult.skipped} รายการที่มีคำร้องรออนุมัติอยู่แล้ว${skippedDetails ? `: ${skippedDetails}` : ""}`,
                         color: "warning",
                         timeout: 5000,
                         shouldShowTimeoutProgress: true,
@@ -2069,9 +2132,10 @@ export default function ScoreModal({
                     }, editImages);
 
                     if (batchResult.skipped > 0) {
+                        const skippedDetails = formatSkippedEditDetails(batchResult);
                         addToast({
                             title: "ส่งคำขอแก้ไขสำเร็จ (บางส่วน)",
-                            description: `ส่งคำขอสำหรับ ${batchResult.created} คน | ข้าม ${batchResult.skipped} คนที่มีคำร้องรออนุมัติอยู่แล้ว: ${batchResult.skipped_names.join(', ')}`,
+                            description: `ส่งคำขอสำหรับ ${batchResult.created} คน | ข้าม ${batchResult.skipped} คนที่มีคำร้องรออนุมัติอยู่แล้ว${skippedDetails ? `: ${skippedDetails}` : ""}`,
                             color: "warning",
                             timeout: 5000,
                             shouldShowTimeoutProgress: true,
@@ -2201,6 +2265,7 @@ export default function ScoreModal({
                     ) : (
                         <div className="space-y-5">
                             {/* Tabs */}
+                            {showBothTabs && (
                             <Tabs
                                 selectedKey={activeTab}
                                 onSelectionChange={(key) => setActiveTab(key as "grade" | "edit")}
@@ -2231,6 +2296,7 @@ export default function ScoreModal({
                                     }
                                 />
                             </Tabs>
+                            )}
 
                             {activeTab === "grade" ? (
                                 /* Grade Tab */
@@ -2854,7 +2920,9 @@ export default function ScoreModal({
                                                         ) : (
                                                         assignment.subItems?.filter(item => item.id !== undefined).slice().sort((a, b) => a.id! - b.id!).map((subItem, idx) => {
                                                             const subItemId = subItem.id!;
-                                                            const existingSubScore = subItemExistingScores.find(s => s.subItemId === subItemId);
+                                                            const existingSubScore = isGroupAssignment
+                                                                ? null
+                                                                : subItemExistingScores.find(s => s.subItemId === subItemId);
                                                             const isLocked = existingSubScore && existingSubScore.score !== null;
 
                                                             return (
@@ -3435,9 +3503,9 @@ export default function ScoreModal({
                                                                 <div className="flex items-center justify-between text-xs">
                                                                     <p className="text-slate-500 flex items-center gap-1">
                                                                         <Icon icon="solar:user-check-bold" className="text-amber-500" />
-                                                                        เลือกแล้ว {groupMemberScores.filter(m => m.selected && !m.hasPendingEdit && (hasSubItems ? m.hasAnySubItemScore : !!m.scoreId)).length} / {groupMemberScores.filter(m => !m.hasPendingEdit && (hasSubItems ? m.hasAnySubItemScore : !!m.scoreId)).length} คน
+                                                                        เลือกแล้ว {groupMemberScores.filter(m => m.selected && (hasSubItems ? m.hasAnySubItemScore : (!m.hasPendingEdit && !!m.scoreId))).length} / {groupMemberScores.filter(m => hasSubItems ? m.hasAnySubItemScore : (!m.hasPendingEdit && !!m.scoreId)).length} คน
                                                                     </p>
-                                                                    {groupMemberScores.filter(m => m.selected && !m.hasPendingEdit && (hasSubItems ? m.hasAnySubItemScore : !!m.scoreId)).length === 0 && (
+                                                                    {groupMemberScores.filter(m => m.selected && (hasSubItems ? m.hasAnySubItemScore : (!m.hasPendingEdit && !!m.scoreId))).length === 0 && (
                                                                         <p className="text-amber-600 flex items-center gap-1">
                                                                             <Icon icon="solar:danger-triangle-bold" />
                                                                             กรุณาเลือกอย่างน้อย 1 คน
@@ -3492,32 +3560,63 @@ export default function ScoreModal({
                                                         <div className="space-y-2">
                                                             {assignment.subItems?.filter(item => item.id !== undefined).map((subItem, idx) => {
                                                                 const editScore = editSubItemScores.find(s => s.subItemId === subItem.id);
-                                                                const selectedActiveMembers = groupMemberScores.filter(m => m.selected && !m.hasPendingEdit);
+                                                                const selectedActiveMembers = groupMemberScores.filter(m => m.selected);
                                                                 const candidateMembers = isGroupAssignment && editSelectedGroup && editGroupMode === "selected"
-                                                                    ? (selectedActiveMembers.length > 0 ? selectedActiveMembers : groupMemberScores.filter(m => !m.hasPendingEdit))
-                                                                    : groupMemberScores.filter(m => !m.hasPendingEdit);
-                                                                const hasScore = isGroupAssignment && editSelectedGroup
-                                                                    ? candidateMembers.some((member) => groupMemberSubItemScores.get(member.studentId)?.some((s) => s.subItemId === subItem.id && s.scoreId != null))
+                                                                    ? (selectedActiveMembers.length > 0 ? selectedActiveMembers : groupMemberScores)
+                                                                    : groupMemberScores;
+                                                                const editableMemberCount = isGroupAssignment && editSelectedGroup
+                                                                    ? candidateMembers.filter((member) => {
+                                                                        if (hasPendingSubItemEdit(member.studentId, subItem.id!)) return false;
+                                                                        return groupMemberSubItemScores.get(member.studentId)?.some((s) => s.subItemId === subItem.id && s.scoreId != null);
+                                                                    }).length
+                                                                    : 0;
+                                                                const pendingMemberCount = isGroupAssignment && editSelectedGroup
+                                                                    ? candidateMembers.filter((member) => {
+                                                                        if (!hasPendingSubItemEdit(member.studentId, subItem.id!)) return false;
+                                                                        return groupMemberSubItemScores.get(member.studentId)?.some((s) => s.subItemId === subItem.id && s.scoreId != null);
+                                                                    }).length
+                                                                    : 0;
+                                                                const hasEditableScore = isGroupAssignment && editSelectedGroup
+                                                                    ? candidateMembers.some((member) => {
+                                                                        if (hasPendingSubItemEdit(member.studentId, subItem.id!)) return false;
+                                                                        return groupMemberSubItemScores.get(member.studentId)?.some((s) => s.subItemId === subItem.id && s.scoreId != null);
+                                                                    })
                                                                     : !!(editScore && editScore.currentScore !== null);
+                                                                const hasLockedOnlyScore = isGroupAssignment && editSelectedGroup
+                                                                    ? !hasEditableScore && candidateMembers.some((member) => {
+                                                                        if (!hasPendingSubItemEdit(member.studentId, subItem.id!)) return false;
+                                                                        return groupMemberSubItemScores.get(member.studentId)?.some((s) => s.subItemId === subItem.id && s.scoreId != null);
+                                                                    })
+                                                                    : false;
                                                                 const isSelected = selectedEditSubItemId === subItem.id;
 
                                                                 return (
                                                                     <div
                                                                         key={subItem.id}
-                                                                        onClick={() => hasScore && setSelectedEditSubItemId(subItem.id!)}
+                                                                        onClick={() => hasEditableScore && setSelectedEditSubItemId(subItem.id!)}
                                                                         className={`flex items-center gap-3 p-3 rounded-lg border  transition-colors ${isSelected
                                                                             ? 'bg-blue-50 border-blue-300'
-                                                                            : hasScore
+                                                                            : hasEditableScore
                                                                                 ? 'bg-white border-slate-200 hover:bg-slate-50 cursor-pointer'
+                                                                                : hasLockedOnlyScore
+                                                                                    ? 'bg-amber-50 border-amber-200 cursor-not-allowed'
                                                                                 : 'bg-slate-100 border-slate-200 cursor-not-allowed opacity-60'
                                                                             }`}
                                                                     >
-                                                                        <span className={`w-8 h-8 flex items-center justify-center text-sm font-bold rounded-full shrink-0 ${isSelected ? 'bg-blue-500 text-white' : hasScore ? 'bg-blue-100 text-blue-600' : 'bg-slate-200 text-slate-400'
+                                                                        <span className={`w-8 h-8 flex items-center justify-center text-sm font-bold rounded-full shrink-0 ${isSelected ? 'bg-blue-500 text-white' : hasEditableScore ? 'bg-blue-100 text-blue-600' : hasLockedOnlyScore ? 'bg-amber-100 text-amber-600' : 'bg-slate-200 text-slate-400'
                                                                             }`}>
                                                                             {idx + 1}
                                                                         </span>
                                                                         <div className="flex-1 min-w-0">
                                                                             <p className="text-sm font-medium text-slate-700 truncate">{subItem.name}</p>
+                                                                            {isGroupAssignment && editSelectedGroup && (
+                                                                                <p className="text-xs text-slate-500">
+                                                                                    แก้ได้ {editableMemberCount} คน{pendingMemberCount > 0 ? ` • รออนุมัติ ${pendingMemberCount} คน` : ""}
+                                                                                </p>
+                                                                            )}
+                                                                            {hasLockedOnlyScore && (
+                                                                                <p className="text-xs text-amber-600">มีคำร้องค้างในข้อนี้ (แก้ข้ออื่นได้)</p>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 );
@@ -3560,12 +3659,14 @@ export default function ScoreModal({
                                                                     {isGroupAssignment && editSelectedGroup && editGroupMode === "selected" ? (
                                                                         <div className="space-y-2">
                                                                             {groupMemberScores
-                                                                                .filter((m) => m.selected && !m.hasPendingEdit)
+                                                                                .filter((m) => m.selected)
                                                                                 .map((member) => {
                                                                                     const hasSubItemScore = groupMemberSubItemScores
                                                                                         .get(member.studentId)
                                                                                         ?.some((s) => s.subItemId === selectedEditSubItemId && s.scoreId);
                                                                                     if (!hasSubItemScore) return null;
+
+                                                                                    const isPendingForSubItem = hasPendingSubItemEdit(member.studentId, selectedEditSubItemId);
 
                                                                                     return (
                                                                                         <div key={`${member.studentId}_${selectedEditSubItemId}`} className="flex items-center justify-between gap-3 p-2 rounded-md border border-slate-200">
@@ -3583,12 +3684,20 @@ export default function ScoreModal({
                                                                                                     size="sm"
                                                                                                     variant="bordered"
                                                                                                     className="w-24"
+                                                                                                    isDisabled={isPendingForSubItem}
                                                                                                     classNames={{
                                                                                                         input: "text-center font-semibold",
-                                                                                                        inputWrapper: "bg-white border-blue-200 hover:border-blue-400",
+                                                                                                        inputWrapper: isPendingForSubItem
+                                                                                                            ? "bg-slate-100 border-slate-200"
+                                                                                                            : "bg-white border-blue-200 hover:border-blue-400",
                                                                                                     }}
                                                                                                 />
                                                                                                 <span className="text-xs text-slate-500">/ {selectedSubItem?.max_score}</span>
+                                                                                                {isPendingForSubItem && (
+                                                                                                    <Chip size="sm" color="warning" variant="flat" className="text-[10px]" startContent={<Icon icon="solar:hourglass-bold" className="text-xs" />}>
+                                                                                                        รออนุมัติ
+                                                                                                    </Chip>
+                                                                                                )}
                                                                                             </div>
                                                                                         </div>
                                                                                     );

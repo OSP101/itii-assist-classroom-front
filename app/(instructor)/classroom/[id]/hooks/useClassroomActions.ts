@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { addToast } from "@heroui/toast";
 import { courseService } from "@/services/course.service";
 import { studentService } from "@/services/student.service";
-import type { Course, SectionStudent } from "@/services/course.service";
+import type { Course, CourseMemberPermissions, SectionStudent } from "@/services/course.service";
 import type { Student } from "@/services/student.service";
 import type { TeamMember, PermanentTeam, WeeklyTeam } from "./useClassroomData";
 
@@ -321,6 +321,77 @@ export function useClassroomActions({
             addToast({
                 title: "เกิดข้อผิดพลาด",
                 description: err.message || "ไม่สามารถนำอาจารย์ออกได้",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return false;
+        }
+    }, [courseId, setCourse, emitUpdate]);
+
+    const updateMemberPermissions = useCallback(async (
+        memberType: "instructor" | "ta",
+        userId: number,
+        permissions: CourseMemberPermissions,
+    ) => {
+        try {
+            const response = memberType === "instructor"
+                ? await courseService.updateCourseInstructorPermissions(courseId, userId, permissions)
+                : await courseService.updateTAPermissions(courseId, userId, permissions);
+
+            if (!response.success) {
+                return false;
+            }
+
+            setCourse(prev => {
+                if (!prev) return prev;
+
+                if (memberType === "instructor") {
+                    return {
+                        ...prev,
+                        instructors: prev.instructors?.map(instructor =>
+                            instructor.id === userId
+                                ? {
+                                    ...instructor,
+                                    CourseInstructor: instructor.CourseInstructor
+                                        ? { ...instructor.CourseInstructor, permissions }
+                                        : { is_primary: false, assigned_at: new Date().toISOString(), permissions },
+                                }
+                                : instructor,
+                        ) || [],
+                    };
+                }
+
+                return {
+                    ...prev,
+                    tas: prev.tas?.map(ta =>
+                        ta.id === userId
+                            ? {
+                                ...ta,
+                                CourseTA: ta.CourseTA
+                                    ? { ...ta.CourseTA, permissions }
+                                    : { assigned_at: new Date().toISOString(), permissions },
+                            }
+                            : ta,
+                    ) || [],
+                };
+            });
+
+            addToast({
+                title: "สำเร็จ",
+                description: "อัปเดตสิทธิ์เรียบร้อย",
+                color: "success",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+
+            emitUpdate("user", "update", userId);
+            return true;
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            addToast({
+                title: "เกิดข้อผิดพลาด",
+                description: err.message || "ไม่สามารถอัปเดตสิทธิ์ได้",
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -772,6 +843,7 @@ export function useClassroomActions({
         // Instructor actions
         addInstructors,
         removeInstructor,
+        updateMemberPermissions,
 
         // Student actions
         addStudentToSection,

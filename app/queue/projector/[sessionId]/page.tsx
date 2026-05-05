@@ -16,7 +16,7 @@ import {
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { IoSchool } from "react-icons/io5";
-import { io, Socket } from "socket.io-client";
+import { io, Socket } from "@/services/realtime-socket";
 import QRCode from "react-qr-code";
 
 import { API_BASE_URL } from "@/config/api";
