@@ -11,6 +11,11 @@ interface OverviewTabProps {
     userRole: string;
     assignments: AssignmentType[];
     onNavigateToAssignments: () => void;
+    onNavigateToAttendance?: () => void;
+    onNavigateToQueue?: () => void;
+    onNavigateToScores?: () => void;
+    onNavigateToApproval?: () => void;
+    onNavigateToPeople?: () => void;
 }
 
 /**
@@ -32,6 +37,11 @@ export default function OverviewTab({
     userRole,
     assignments,
     onNavigateToAssignments,
+    onNavigateToAttendance,
+    onNavigateToQueue,
+    onNavigateToScores,
+    onNavigateToApproval,
+    onNavigateToPeople,
 }: OverviewTabProps) {
     const {
         // State
@@ -61,6 +71,11 @@ export default function OverviewTab({
             onNavigateToAssignments={onNavigateToAssignments}
             onSetSelectedAssignmentType={setSelectedAssignmentType}
             onResetAssignmentTypeFilter={resetAssignmentTypeFilter}
+            onNavigateToAttendance={onNavigateToAttendance}
+            onNavigateToQueue={onNavigateToQueue}
+            onNavigateToScores={onNavigateToScores}
+            onNavigateToApproval={onNavigateToApproval}
+            onNavigateToPeople={onNavigateToPeople}
         />
     );
 }

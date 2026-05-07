@@ -1193,6 +1193,11 @@ export default function ClassroomDetailPage() {
                                         userRole={userRole}
                                         assignments={assignments}
                                         onNavigateToAssignments={() => setActiveTab("assignments")}
+                                        onNavigateToAttendance={() => setActiveTab("attendance")}
+                                        onNavigateToQueue={() => setActiveTab("queue")}
+                                        onNavigateToScores={() => setActiveTab("scores")}
+                                        onNavigateToApproval={() => setActiveTab("approval")}
+                                        onNavigateToPeople={() => setActiveTab("people")}
                                     />
                                 )}
 

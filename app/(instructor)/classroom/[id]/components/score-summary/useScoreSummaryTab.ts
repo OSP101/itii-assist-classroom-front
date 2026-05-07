@@ -30,6 +30,15 @@ interface StudentType {
         graded_at?: string | null;
         updated_at?: string | null;
         comment?: string | null;
+        edit_requests?: {
+            old_score: number | null;
+            new_score: number;
+            reason: string | null;
+            requester: string | null;
+            reviewer: string | null;
+            reviewed_at: string | null;
+            review_comment: string | null;
+        }[];
     }>;
 }
 
@@ -57,11 +66,13 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
     const matrixData = selectedTab === "lab" ? labData : selectedTab === "assignment" ? assignmentData : groupData;
 
     // Fetch matrix data (with caching)
-    const fetchMatrix = useCallback(async (type: AssignmentTabType, forceRefresh = false) => {
+    const fetchMatrix = useCallback(async (type: AssignmentTabType, forceRefresh = false, showLoading = true) => {
         // Skip if already fetched and not forcing refresh
         if (!forceRefresh && hasFetchedRef.current[type]) return;
 
-        setIsLoading(true);
+        if (showLoading) {
+            setIsLoading(true);
+        }
         try {
             // Map tab type to API assignment type
             const apiType = type === "lab" ? "individual" : type === "assignment" ? "assignment" : "group";
@@ -79,13 +90,26 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
         } catch (error) {
             console.error("Failed to fetch score matrix:", error);
         } finally {
-            setIsLoading(false);
+            if (showLoading) {
+                setIsLoading(false);
+            }
         }
     }, [courseId]);
 
     // Initial fetch for current tab
     useEffect(() => {
         fetchMatrix(selectedTab);
+    }, [selectedTab, fetchMatrix]);
+
+    // Prefetch remaining tabs so all chip counts are visible on first paint.
+    useEffect(() => {
+        const tabs: AssignmentTabType[] = ["lab", "assignment", "group"];
+        const tabsToPrefetch = tabs.filter((tab) => tab !== selectedTab && !hasFetchedRef.current[tab]);
+        if (tabsToPrefetch.length === 0) return;
+
+        Promise.all(tabsToPrefetch.map((tab) => fetchMatrix(tab, false, false))).catch((error) => {
+            console.error("Failed to prefetch score matrix tabs:", error);
+        });
     }, [selectedTab, fetchMatrix]);
 
     // Filter students by search query and section
@@ -182,7 +206,24 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
     const handleScoreClick = useCallback((
         student: StudentType,
         col: ColumnDef,
-        scoreData: { score: number | null; max_score: number; sub_item_name?: string; graded_by?: string | null; graded_at?: string | null; updated_at?: string | null; comment?: string | null } | undefined
+        scoreData: {
+            score: number | null;
+            max_score: number;
+            sub_item_name?: string;
+            graded_by?: string | null;
+            graded_at?: string | null;
+            updated_at?: string | null;
+            comment?: string | null;
+            edit_requests?: {
+                old_score: number | null;
+                new_score: number;
+                reason: string | null;
+                requester: string | null;
+                reviewer: string | null;
+                reviewed_at: string | null;
+                review_comment: string | null;
+            }[];
+        } | undefined
     ) => {
         setScoreModal({
             isOpen: true,
@@ -196,6 +237,7 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
             gradedAt: scoreData?.graded_at ?? undefined,
             updatedAt: scoreData?.updated_at ?? undefined,
             comment: scoreData?.comment ?? undefined,
+            editRequests: scoreData?.edit_requests ?? undefined,
         });
     }, []);
 

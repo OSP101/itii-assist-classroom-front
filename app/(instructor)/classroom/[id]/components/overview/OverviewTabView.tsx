@@ -1,782 +1,728 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import Image from "next/image";
-import { Card, CardBody, CardHeader } from "@heroui/card";
-import { Chip } from "@heroui/chip";
-import { Divider } from "@heroui/divider";
+import { motion } from "framer-motion";
 import { Progress } from "@heroui/progress";
 import { Button } from "@heroui/button";
 import { Avatar } from "@heroui/avatar";
 import { Tooltip } from "@heroui/tooltip";
+import { Chip } from "@heroui/chip";
+import { Divider } from "@heroui/divider";
 import {
-    Table,
-    TableHeader,
-    TableColumn,
-    TableBody,
-    TableRow,
-    TableCell,
+  Table, TableHeader, TableColumn, TableBody, TableRow, TableCell,
 } from "@heroui/table";
 import { Icon } from "@iconify/react";
 import { OverviewSkeleton } from "../Skeletons";
-import type { Course, CourseOverview, AssignmentTypeStats, OverviewAssignment } from "@/services/course.service";
+import type {
+  Course, CourseOverview, AssignmentTypeStats, OverviewAssignment, OverviewStudent,
+} from "@/services/course.service";
 import type { AssignmentType } from "../types";
 import { getAssignmentTypeConfig, formatRelativeTime } from "./config";
 import {
-    CircularProgress,
-    ScoreDistributionBar,
-    StatsCard,
-    AssignmentTypeSummaryCard,
-    StudentDetailModal,
+  computeHealthScore, computeActionItems, generateInsights,
+  computeRiskStudents, buildGradeDistributionData, buildAssignmentDifficultyData,
+} from "./analytics";
+import {
+  StudentDetailModal, HealthScoreBadge, InsightPanel, ActionCenter,
+  RiskTable, GradeDistributionChart, AssignmentDifficultyChart,
+  ActivityTimeline, QuickActionsBar,
 } from "./components";
-import type { OverviewStudent } from "@/services/course.service";
+import type { RiskStudent } from "./analytics";
 
-interface OverviewTabViewProps {
-    // Data
-    course: Course;
-    overview: CourseOverview | null;
-    isLoading: boolean;
-    userRole: string;
-    assignments: AssignmentType[];
-    // State from hook
-    mounted: boolean;
-    selectedAssignmentType: string;
-    // Computed from hook
-    assignmentStatsByType: Record<string, AssignmentTypeStats>;
-    availableTypes: string[];
-    filteredAssignments: OverviewAssignment[];
-    // Actions
-    onNavigateToAssignments: () => void;
-    onSetSelectedAssignmentType: (type: string) => void;
-    onResetAssignmentTypeFilter: () => void;
+// ─── Design Tokens ──────────────────────────────────────────────────────────
+const CARD = "bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-sm dark:shadow-zinc-950/50";
+const CARD_HDR = "flex items-center gap-2.5 px-4 py-3 sm:px-6 sm:py-4 border-b border-slate-100 dark:border-zinc-800";
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+function CardHeader({
+  icon, iconColor = "text-slate-400", title, badge, action,
+}: {
+  icon: string; iconColor?: string; title: string;
+  badge?: React.ReactNode; action?: React.ReactNode;
+}) {
+  return (
+    <div className={CARD_HDR}>
+      <Icon icon={icon} className={"text-[15px] " + iconColor} />
+      <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{title}</span>
+      {badge}
+      {action && <div className="ml-auto flex items-center gap-2">{action}</div>}
+    </div>
+  );
 }
 
+function Fade({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.32, delay }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function formatPercent(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "0%";
+  const bounded = Math.max(0, Math.min(100, value));
+  return `${Math.round(bounded)}%`;
+}
+
+// ─── Props ──────────────────────────────────────────────────────────────────
+interface OverviewTabViewProps {
+  course: Course;
+  overview: CourseOverview | null;
+  isLoading: boolean;
+  userRole: string;
+  assignments: AssignmentType[];
+  mounted: boolean;
+  selectedAssignmentType: string;
+  assignmentStatsByType: Record<string, AssignmentTypeStats>;
+  availableTypes: string[];
+  filteredAssignments: OverviewAssignment[];
+  onNavigateToAssignments: () => void;
+  onSetSelectedAssignmentType: (type: string) => void;
+  onResetAssignmentTypeFilter: () => void;
+  onNavigateToAttendance?: () => void;
+  onNavigateToQueue?: () => void;
+  onNavigateToScores?: () => void;
+  onNavigateToApproval?: () => void;
+  onNavigateToPeople?: () => void;
+}
+
+// ─── Component ──────────────────────────────────────────────────────────────
 function OverviewTabViewComponent({
-    course,
-    overview,
-    isLoading,
-    userRole,
-    assignments,
-    mounted,
-    selectedAssignmentType,
-    assignmentStatsByType,
-    availableTypes,
-    filteredAssignments,
-    onNavigateToAssignments,
-    onSetSelectedAssignmentType,
-    onResetAssignmentTypeFilter,
+  course, overview, isLoading, userRole, assignments, mounted,
+  selectedAssignmentType, assignmentStatsByType, availableTypes,
+  filteredAssignments, onNavigateToAssignments, onSetSelectedAssignmentType,
+  onResetAssignmentTypeFilter, onNavigateToAttendance, onNavigateToQueue,
+  onNavigateToScores, onNavigateToApproval, onNavigateToPeople,
 }: OverviewTabViewProps) {
-    const [selectedStudent, setSelectedStudent] = useState<OverviewStudent | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<OverviewStudent | null>(null);
 
-    if (isLoading || !mounted) {
-        return <OverviewSkeleton />;
-    }
+  const healthScore = useMemo(() => overview ? computeHealthScore(overview) : null, [overview]);
+  const actionItems = useMemo(() => overview ? computeActionItems(overview) : [], [overview]);
+  const insights    = useMemo(() => overview ? generateInsights(overview) : [], [overview]);
+  const riskStudents = useMemo(
+    () => overview ? computeRiskStudents(overview.lowPerformers, overview.summary.totalAssignments) : [],
+    [overview],
+  );
+  const gradeData  = useMemo(() => overview?.scoreDistribution ? buildGradeDistributionData(overview.scoreDistribution) : [], [overview?.scoreDistribution]);
+  const diffData   = useMemo(() => overview?.assignments ? buildAssignmentDifficultyData(overview.assignments) : [], [overview?.assignments]);
 
-    return (
-        <div className="space-y-6">
-            {/* Hero Course Card */}
-            <Card className="shadow-lg border-0 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white overflow-hidden">
-                <div className="absolute inset-0 overflow-hidden">
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2" />
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full blur-3xl transform -translate-x-1/2 translate-y-1/2" />
-                    <div className="absolute top-1/2 left-1/2 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
-                </div>
-                <CardBody className="relative p-6">
-                    <div className="flex flex-col md:flex-row gap-6">
-                        {/* Course Image */}
-                        <div className="shrink-0">
-                            {course.image ? (
-                                <div className="relative w-full md:w-36 h-36">
-                                    <Image
-                                        src={course.image}
-                                        alt={course.name}
-                                        fill
-                                        className="object-cover rounded-2xl border-2 border-white/20 shadow-xl"
-                                        sizes="144px"
-                                    />
-                                </div>
-                            ) : (
-                                <div className="w-full md:w-36 h-36 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center border-2 border-white/20">
-                                    <Icon icon="solar:book-2-bold-duotone" className="text-5xl text-white/60" />
-                                </div>
-                            )}
-                        </div>
-                        
-                        {/* Course Info */}
-                        <div className="flex-1">
-                            <div className="flex flex-wrap gap-2 mb-3">
-                                <Chip size="sm" className="bg-white/20 text-white border-0 backdrop-blur-sm">{course.code}</Chip>
-                                <Chip size="sm" className="bg-white/20 text-white border-0 backdrop-blur-sm">
-                                    {course.year}/{course.semester === 3 ? "ฤดูร้อน" : course.semester}
-                                </Chip>
-                                <Chip 
-                                    size="sm" 
-                                    className={`border-0 ${course.is_active ? "bg-emerald-500/30 text-emerald-100" : "bg-slate-500/30 text-slate-200"}`}
-                                    startContent={<div className={`w-2 h-2 rounded-full ${course.is_active ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`} />}
-                                >
-                                    {course.is_active ? "เปิดใช้งาน" : "ปิด"}
-                                </Chip>
-                            </div>
-                            <h2 className="text-2xl md:text-3xl font-bold mb-2">{course.name}</h2>
-                            {course.description && (
-                                <p className="text-white/80 text-sm mb-3 line-clamp-2">{course.description}</p>
-                            )}
-                            {course.instructor && (
-                                <div className="flex items-center gap-2 text-white/70 text-sm">
-                                    <Icon icon="solar:user-bold" className="text-lg" />
-                                    <span>{course.instructor.full_name}</span>
-                                </div>
-                            )}
-                        </div>
+  const handleNavigate = useMemo(() => (tab: string) => {
+    const map: Record<string, (() => void) | undefined> = {
+      assignments: onNavigateToAssignments,
+      attendance: onNavigateToAttendance,
+      queue: onNavigateToQueue,
+      scores: onNavigateToScores,
+      approval: onNavigateToApproval,
+      people: onNavigateToPeople,
+    };
+    map[tab]?.();
+  }, [onNavigateToAssignments, onNavigateToAttendance, onNavigateToQueue, onNavigateToScores, onNavigateToApproval, onNavigateToPeople]);
 
-                        {/* Quick Stats */}
-                        <div className="flex md:flex-col gap-6 md:gap-4 justify-around md:justify-center items-center md:border-l md:border-white/20 md:pl-6">
-                            <div className="text-center">
-                                <p className="text-4xl font-bold">{overview?.summary.totalStudents || 0}</p>
-                                <p className="text-xs text-white/70 mt-1">นักศึกษา</p>
-                            </div>
-                            <div className="text-center">
-                                <p className="text-4xl font-bold">{overview?.summary.totalAssignments || 0}</p>
-                                <p className="text-xs text-white/70 mt-1">งาน</p>
-                            </div>
-                        </div>
-                    </div>
-                </CardBody>
-            </Card>
+  const avgScorePct = overview?.summary.totalMaxScore && overview.summary.totalMaxScore > 0
+    ? Math.max(0, Math.min(100, Math.round((overview.summary.averageScore / overview.summary.totalMaxScore) * 100)))
+    : 0;
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <StatsCard
-                    icon="solar:users-group-rounded-bold"
-                    iconBg="bg-gradient-to-br from-blue-500 to-blue-600"
-                    label="นักศึกษาทั้งหมด"
-                    value={overview?.summary.totalStudents || 0}
-                    suffix="คน"
-                />
-                <StatsCard
-                    icon="solar:document-text-bold"
-                    iconBg="bg-gradient-to-br from-purple-500 to-purple-600"
-                    label="งานที่มอบหมาย"
-                    value={overview?.summary.totalAssignments || 0}
-                    suffix="งาน"
-                />
-                <StatsCard
-                    icon="solar:diploma-bold"
-                    iconBg="bg-gradient-to-br from-emerald-500 to-emerald-600"
-                    label="คะแนนเฉลี่ย"
-                    value={
-                        overview?.summary.totalMaxScore && overview.summary.totalMaxScore > 0
-                            ? Math.round((overview.summary.averageScore / overview.summary.totalMaxScore) * 100)
-                            : 0
-                    }
-                    suffix="%"
-                />
-                <StatsCard
-                    icon="solar:user-hands-bold"
-                    iconBg="bg-gradient-to-br from-amber-500 to-amber-600"
-                    label="ผู้ช่วยสอน"
-                    value={overview?.summary.totalTAs || 0}
-                    suffix="คน"
-                />
+  const gradedCount = useMemo(() => {
+    if (!overview?.assignments) return 0;
+    return overview.assignments.filter(a => a.scoredCount > 0).length;
+  }, [overview?.assignments]);
+
+  const scoredSubmissionCount = useMemo(() => {
+    if (!overview?.assignments) return 0;
+    return overview.assignments.reduce((sum, a) => sum + a.scoredCount, 0);
+  }, [overview?.assignments]);
+
+  const pendingSubmissionCount = useMemo(() => {
+    if (!overview?.assignments) return 0;
+    return overview.assignments.reduce((sum, a) => sum + a.notScoredCount, 0);
+  }, [overview?.assignments]);
+
+  if (isLoading || !mounted) return <OverviewSkeleton />;
+
+  // ── Metric tiles config ────────────────────────────────────────────────────
+  const metrics = [
+    {
+      icon: "solar:users-group-rounded-bold",
+      label: "นักศึกษา",
+      value: overview?.summary.totalStudents ?? 0,
+      sub: "คนทั้งหมด",
+      iconBg: "bg-blue-50", iconColor: "text-blue-600",
+    },
+    {
+      icon: "solar:clipboard-list-bold",
+      label: "งาน",
+      value: overview?.summary.totalAssignments ?? 0,
+      sub: scoredSubmissionCount > 0 ? `${scoredSubmissionCount} รายการตรวจแล้ว` : `${gradedCount} งานที่มีการตรวจ`,
+      iconBg: "bg-violet-50", iconColor: "text-violet-600",
+    },
+    {
+      icon: "solar:diploma-bold",
+      label: "คะแนนเฉลี่ย",
+      value: avgScorePct + "%",
+      sub: "ของคะแนนเต็ม",
+      iconBg: "bg-emerald-50", iconColor: "text-emerald-600",
+    },
+    {
+      icon: "solar:calendar-bold",
+      label: "เข้าเรียน",
+      value: formatPercent(overview?.summary.attendanceRate),
+      sub: `${overview?.summary.totalAttendanceSessions ?? 0} ครั้งที่เช็คชื่อ`,
+      iconBg: "bg-amber-50", iconColor: "text-amber-600",
+    },
+    {
+      icon: "solar:user-hands-bold",
+      label: "TA",
+      value: overview?.summary.totalTAs ?? 0,
+      sub: "ผู้ช่วยสอน",
+      iconBg: "bg-rose-50", iconColor: "text-rose-600",
+    },
+  ];
+
+  const healthComponents = healthScore ? [
+    { label: "เข้าเรียน", value: healthScore.components.attendance },
+    { label: "ตรวจงาน",  value: healthScore.components.grading },
+    { label: "คะแนน",    value: healthScore.components.avgScore },
+    { label: "TA",        value: healthScore.components.taCoverage },
+  ] : [];
+
+  return (
+    <div className="space-y-3 sm:space-y-4">
+
+      {/* ══ 1. COURSE HEADER ══════════════════════════════════════════════ */}
+      <Fade>
+        <div className={CARD + " overflow-hidden relative"}>
+          <div className="absolute -top-20 -right-10 w-64 h-64 rounded-full bg-gradient-to-br from-blue-100/25 to-indigo-100/15 dark:from-blue-900/10 dark:to-transparent blur-3xl pointer-events-none" />
+          <div className="relative p-4 sm:p-6">
+          <div className="flex items-start gap-4">
+            {/* Thumbnail */}
+            <div className="w-14 h-14 shrink-0 rounded-xl bg-slate-100 overflow-hidden flex items-center justify-center border border-slate-200">
+              {course.image
+                ? <Image src={course.image} alt={course.name} width={56} height={56} className="object-cover w-full h-full" />
+                : <Icon icon="solar:book-2-bold-duotone" className="text-2xl text-slate-400" />
+              }
             </div>
 
-            {/* Performance Cards Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Submission Rate */}
-                <Card className="shadow-sm border border-slate-200">
-                    <CardBody className="p-6">
-                        <div className="flex flex-col items-center">
-                            <CircularProgress 
-                                value={overview?.summary.submissionRate || 0}
-                                color="primary"
-                                sublabel="อัตราการตรวจงาน"
-                            />
-                        </div>
-                    </CardBody>
-                </Card>
-
-                {/* Attendance Rate */}
-                <Card className="shadow-sm border border-slate-200">
-                    <CardBody className="p-6">
-                        <div className="flex flex-col items-center">
-                            <CircularProgress 
-                                value={overview?.summary.attendanceRate || 0}
-                                color="success"
-                                sublabel="อัตราการเข้าเรียน"
-                            />
-                            {overview?.summary.totalAttendanceSessions !== undefined && (
-                                <p className="text-xs text-slate-400 mt-2">
-                                    จาก {overview.summary.totalAttendanceSessions} รอบเช็คชื่อ
-                                </p>
-                            )}
-                        </div>
-                    </CardBody>
-                </Card>
-
-                {/* Score Distribution */}
-                <Card className="shadow-sm border border-slate-200">
-                    <CardBody className="p-6">
-                        <h4 className="text-sm font-semibold text-slate-700 mb-4 text-center">การกระจายคะแนน</h4>
-                        {overview?.scoreDistribution ? (
-                            <ScoreDistributionBar distribution={overview.scoreDistribution} />
-                        ) : (
-                            <div className="text-center text-sm text-slate-400 py-4">
-                                ยังไม่มีข้อมูล
-                            </div>
-                        )}
-                    </CardBody>
-                </Card>
+            {/* Name + meta */}
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
+                <span className="text-xs font-semibold text-slate-600 bg-slate-100 rounded-md px-2 py-0.5">{course.code}</span>
+                <span className="text-xs text-slate-400">{course.year} / {course.semester === 3 ? "ฤดูร้อน" : "เทอม " + course.semester}</span>
+                <span className="flex items-center gap-1 text-xs font-medium">
+                  <span className={"w-1.5 h-1.5 rounded-full " + (course.is_active ? "bg-emerald-500 animate-pulse" : "bg-slate-300")} />
+                  <span className={course.is_active ? "text-emerald-600" : "text-slate-400"}>
+                    {course.is_active ? "เปิดใช้งาน" : "ปิด"}
+                  </span>
+                </span>
+              </div>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight">{course.name}</h1>
+              {course.description && <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{course.description}</p>}
+              {course.instructor && (
+                <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-1">
+                  <Icon icon="solar:user-linear" className="text-xs" />
+                  {course.instructor.full_name}
+                </p>
+              )}
             </div>
 
-            {/* Leaderboard & Low Performers Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Top Students - Leaderboard */}
-                <Card className="shadow-sm border border-slate-200 overflow-hidden">
-                    <CardHeader className="px-5 py-4 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
-                                <Icon icon="solar:cup-star-bold" className="text-xl text-white" />
-                            </div>
-                            <div>
-                                <span className="font-semibold text-slate-800 block">นักศึกษาที่โดดเด่น</span>
-                                <span className="text-xs text-slate-500">5 อันดับแรก</span>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardBody className="px-5 py-4">
-                        {overview?.topStudents && overview.topStudents.length > 0 ? (
-                            <div className="space-y-3">
-                                {overview.topStudents.map((student, index) => (
-                                    <div 
-                                        key={student.id} 
-                                        className={`flex items-center justify-between p-3 rounded-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer ${
-                                            index === 0 ? "bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-200" :
-                                            index === 1 ? "bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200" :
-                                            index === 2 ? "bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200" :
-                                            "bg-slate-50 border border-slate-100"
-                                        }`}
-                                        onClick={() => setSelectedStudent(student)}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            {/* Rank Badge */}
-                                            <div className={`relative w-10 h-10 flex items-center justify-center rounded-full font-bold text-sm ${
-                                                index === 0 ? "bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-lg" :
-                                                index === 1 ? "bg-gradient-to-br from-slate-400 to-slate-600 text-white shadow-md" :
-                                                index === 2 ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-md" :
-                                                "bg-blue-100 text-blue-600"
-                                            }`}>
-                                                {index < 3 ? (
-                                                    <Icon icon="solar:crown-bold" className="text-lg" />
-                                                ) : (
-                                                    `#${index + 1}`
-                                                )}
-                                            </div>
-                                            <div>
-                                                <p className="font-semibold text-slate-800">{student.full_name}</p>
-                                                <p className="text-xs text-slate-400">{student.student_id}</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className={`text-lg font-bold ${
-                                                index === 0 ? "text-amber-600" :
-                                                index === 1 ? "text-slate-600" :
-                                                index === 2 ? "text-orange-600" :
-                                                "text-blue-600"
-                                            }`}>
-                                                {student.totalScore.toFixed(1)}
-                                            </p>
-                                            <p className="text-xs text-slate-400">{student.percentage}%</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center py-8">
-                                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <Icon icon="solar:cup-star-linear" className="text-3xl text-slate-300" />
-                                </div>
-                                <p className="text-sm text-slate-500">ยังไม่มีข้อมูลคะแนน</p>
-                                <p className="text-xs text-slate-400 mt-1">เมื่อมีการให้คะแนน จะแสดงนักศึกษาที่โดดเด่น</p>
-                            </div>
-                        )}
-                    </CardBody>
-                </Card>
-
-                {/* Students Need Attention */}
-                <Card className="shadow-sm border border-slate-200 overflow-hidden">
-                    <CardHeader className="px-5 py-4 bg-gradient-to-r from-red-50 to-orange-50 border-b border-red-100">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-red-400 to-red-500 rounded-xl flex items-center justify-center shadow-lg">
-                                <Icon icon="solar:danger-triangle-bold" className="text-xl text-white" />
-                            </div>
-                            <div>
-                                <span className="font-semibold text-slate-800 block">นักศึกษาที่ควรได้รับการดูแลเพิ่มเติม</span>
-                                <span className="text-xs text-slate-500">คะแนนต่ำกว่า {course.attention_threshold ?? 60}% (5 อันดับแรก)</span>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardBody className="px-5 py-4">
-                        {overview?.lowPerformers && overview.lowPerformers.length > 0 ? (
-                            <div className="space-y-3">
-                                {overview.lowPerformers.slice(0, 5).map((student, index) => (
-                                    <div 
-                                        key={student.id} 
-                                        className={`flex items-center justify-between p-3 rounded-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer ${
-                                            (student.percentage || 0) < 30 
-                                                ? "bg-gradient-to-r from-red-50 to-red-100 border border-red-200" 
-                                                : "bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200"
-                                        }`}
-                                        onClick={() => setSelectedStudent(student)}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            {/* Warning Badge */}
-                                            <div className={`relative w-10 h-10 flex items-center justify-center rounded-full font-bold text-sm ${
-                                                (student.percentage || 0) < 30 
-                                                    ? "bg-gradient-to-br from-red-400 to-red-600 text-white shadow-lg" 
-                                                    : "bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md"
-                                            }`}>
-                                                <Icon icon="solar:danger-triangle-bold" className="text-lg" />
-                                            </div>
-                                            <div>
-                                                <p className="font-semibold text-slate-800">{student.full_name}</p>
-                                                <p className="text-xs text-slate-400">{student.student_id}</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className={`text-lg font-bold ${
-                                                (student.percentage || 0) < 30 ? "text-red-600" : "text-amber-600"
-                                            }`}>
-                                                {student.percentage || 0}%
-                                            </p>
-                                            <p className="text-xs text-slate-400">{student.totalScore?.toFixed(1) || 0} คะแนน</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center py-8">
-                                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <Icon icon="solar:check-circle-bold" className="text-3xl text-emerald-500" />
-                                </div>
-                                <p className="text-sm text-slate-500">ทุกคนมีผลการเรียนที่ดี</p>
-                                <p className="text-xs text-slate-400 mt-1">ไม่มีนักศึกษาที่ต้องการความช่วยเหลือ</p>
-                            </div>
-                        )}
-                    </CardBody>
-                </Card>
+            <div className="hidden lg:flex items-center gap-2 shrink-0">
+              <Button size="sm" variant="flat" color="default" className="bg-slate-100 text-slate-700" onPress={onNavigateToAssignments}>งาน</Button>
+              {onNavigateToAttendance && (
+                <Button size="sm" variant="flat" color="default" className="bg-slate-100 text-slate-700" onPress={onNavigateToAttendance}>เช็คชื่อ</Button>
+              )}
+              {onNavigateToQueue && (
+                <Button size="sm" variant="flat" color="default" className="bg-slate-100 text-slate-700" onPress={onNavigateToQueue}>คิว</Button>
+              )}
             </div>
+          </div>
 
-            {/* Assignment Types Summary */}
-            {Object.keys(assignmentStatsByType).length > 0 && (
-                <Card className="shadow-sm border border-slate-200">
-                    <CardHeader className="px-5 py-4 border-b border-slate-100">
-                        <div className="flex items-center gap-2">
-                            <Icon icon="solar:chart-2-bold" className="text-xl text-indigo-500" />
-                            <span className="font-semibold text-slate-800">สรุปประเภทงาน</span>
-                        </div>
-                    </CardHeader>
-                    <CardBody className="p-5">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {Object.entries(assignmentStatsByType).map(([type, stats]) => (
-                                <AssignmentTypeSummaryCard
-                                    key={type}
-                                    type={type}
-                                    stats={stats}
-                                />
-                            ))}
-                        </div>
-                    </CardBody>
-                </Card>
+          <div className="mt-3 flex lg:hidden items-center gap-2 overflow-x-auto pb-1">
+            <Button size="sm" variant="flat" color="default" className="bg-slate-100 text-slate-700 shrink-0" onPress={onNavigateToAssignments}>งาน</Button>
+            {onNavigateToAttendance && (
+              <Button size="sm" variant="flat" color="default" className="bg-slate-100 text-slate-700 shrink-0" onPress={onNavigateToAttendance}>เช็คชื่อ</Button>
             )}
+            {onNavigateToQueue && (
+              <Button size="sm" variant="flat" color="default" className="bg-slate-100 text-slate-700 shrink-0" onPress={onNavigateToQueue}>คิว</Button>
+            )}
+            {onNavigateToScores && (
+              <Button size="sm" variant="flat" color="default" className="bg-slate-100 text-slate-700 shrink-0" onPress={onNavigateToScores}>คะแนน</Button>
+            )}
+          </div>
 
-            {/* Assignment Analysis & Recent Activity Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Assignment Analysis Table */}
-                <Card className="shadow-sm border border-slate-200 lg:col-span-2">
-                    <CardHeader className="px-5 py-4 border-b border-slate-100">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3">
-                            <div className="flex items-center gap-2">
-                                <Icon icon="solar:document-text-bold" className="text-xl text-blue-500" />
-                                <span className="font-semibold text-slate-800">การวิเคราะห์งาน</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                {/* Assignment Type Filter Chips */}
-                                <div className="flex flex-wrap gap-1">
-                                    <Chip
-                                        size="sm"
-                                        variant={selectedAssignmentType === "all" ? "solid" : "flat"}
-                                        color={selectedAssignmentType === "all" ? "primary" : "default"}
-                                        className="cursor-pointer"
-                                        onClick={() => onSetSelectedAssignmentType("all")}
-                                    >
-                                        ทั้งหมด
-                                    </Chip>
-                                    {availableTypes.map((type) => {
-                                        const config = getAssignmentTypeConfig(type);
-                                        return (
-                                            <Chip
-                                                key={type}
-                                                size="sm"
-                                                variant={selectedAssignmentType === type ? "solid" : "flat"}
-                                                color={selectedAssignmentType === type ? config.color : "default"}
-                                                className="cursor-pointer"
-                                                onClick={() => onSetSelectedAssignmentType(type)}
-                                                startContent={<Icon icon={config.icon} className="text-xs" />}
-                                            >
-                                                <span className="hidden sm:inline">{config.shortLabel}</span>
-                                            </Chip>
-                                        );
-                                    })}
-                                </div>
-                                {assignments.length > 0 && (
-                                    <Button
-                                        size="sm"
-                                        variant="light"
-                                        color="primary"
-                                        onPress={onNavigateToAssignments}
-                                        endContent={<Icon icon="solar:arrow-right-linear" />}
-                                        className="hidden sm:flex"
-                                    >
-                                        ดูทั้งหมด
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardBody className="p-0">
-                        {filteredAssignments.length > 0 ? (
-                            <div className="overflow-x-auto">
-                                <Table removeWrapper aria-label="Assignment analysis table">
-                                    <TableHeader>
-                                        <TableColumn>งาน</TableColumn>
-                                        <TableColumn align="center">คะแนนเฉลี่ย</TableColumn>
-                                        <TableColumn align="center">ตรวจแล้ว</TableColumn>
-                                        <TableColumn align="center">ความก้าวหน้า</TableColumn>
-                                    </TableHeader>
-                                    <TableBody items={filteredAssignments.slice(0, 8)}>
-                                        {(assignment) => (
-                                            <TableRow key={assignment.id}>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-3">
-                                                        <Tooltip content={getAssignmentTypeConfig(assignment.assignment_type).label}>
-                                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${getAssignmentTypeConfig(assignment.assignment_type).bgClass}`}>
-                                                                <Icon icon={getAssignmentTypeConfig(assignment.assignment_type).icon} className={`text-lg ${getAssignmentTypeConfig(assignment.assignment_type).textClass}`} />
-                                                            </div>
-                                                        </Tooltip>
-                                                        <div>
-                                                            <div className="flex items-center gap-1.5">
-                                                                <p className="font-medium text-slate-800">{assignment.name}</p>
-                                                                {assignment.is_score_visible === false && (
-                                                                    <Tooltip content="คะแนนงานนี้ถูกซ่อนจากนักศึกษา">
-                                                                        <div className="flex items-center text-amber-500 cursor-help">
-                                                                            <Icon icon="solar:eye-closed-linear" width={16} />
-                                                                        </div>
-                                                                    </Tooltip>
-                                                                )}
-                                                            </div>
-                                                            <div className="flex items-center gap-2 mt-0.5">
-                                                                <Chip 
-                                                                    size="sm" 
-                                                                    variant="flat" 
-                                                                    color={getAssignmentTypeConfig(assignment.assignment_type).color}
-                                                                    className="h-5 text-xs"
-                                                                >
-                                                                    {getAssignmentTypeConfig(assignment.assignment_type).shortLabel}
-                                                                </Chip>
-                                                                <span className="text-xs text-slate-400">เต็ม {assignment.max_score}</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {assignment.avgScore !== null ? (
-                                                        <div className="text-center">
-                                                            <span className="font-semibold text-slate-700 text-lg">{assignment.avgScore}</span>
-                                                            <span className="text-xs text-slate-400 ml-1">/ {assignment.max_score}</span>
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-slate-400 text-center block">-</span>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col items-center">
-                                                        <Chip 
-                                                            size="sm" 
-                                                            color={assignment.scoredCount > 0 ? "success" : "default"} 
-                                                            variant="flat"
-                                                        >
-                                                            {assignment.scoredCount} {(assignment.assignment_type === 'permanent_group' || assignment.assignment_type === 'weekly_group') ? 'กลุ่ม' : 'คน'}
-                                                        </Chip>
-                                                        {!(assignment.assignment_type === 'permanent_group' || assignment.assignment_type === 'weekly_group') && assignment.notScoredCount > 0 && (
-                                                            <span className="text-xs text-slate-400 mt-1">
-                                                                ยังไม่ตรวจ {assignment.notScoredCount}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {!(assignment.assignment_type === 'permanent_group' || assignment.assignment_type === 'weekly_group') ? (
-                                                        <div className="flex items-center gap-2 justify-center">
-                                                            <Progress
-                                                                value={assignment.submittedRate}
-                                                                color={assignment.submittedRate >= 80 ? "success" : assignment.submittedRate >= 50 ? "warning" : "danger"}
-                                                                size="sm"
-                                                                className="w-20"
-                                                            />
-                                                            <span className="text-xs text-slate-500 w-10 text-right">{assignment.submittedRate}%</span>
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-xs text-slate-400 text-center block">งานกลุ่ม</span>
-                                                    )}
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        ) : overview?.assignments && overview.assignments.length > 0 ? (
-                            <div className="text-center py-12">
-                                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <Icon icon="solar:filter-linear" className="text-3xl text-slate-300" />
-                                </div>
-                                <p className="text-sm text-slate-500">ไม่มีงานประเภทนี้</p>
-                                <Button
-                                    size="sm"
-                                    variant="flat"
-                                    className="mt-3"
-                                    onPress={onResetAssignmentTypeFilter}
-                                >
-                                    แสดงงานทั้งหมด
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="text-center py-12">
-                                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <Icon icon="solar:document-add-linear" className="text-3xl text-slate-300" />
-                                </div>
-                                <p className="text-sm text-slate-500">ยังไม่มีงานที่มอบหมาย</p>
-                                <Button
-                                    size="sm"
-                                    color="primary"
-                                    variant="flat"
-                                    className="mt-3"
-                                    onPress={onNavigateToAssignments}
-                                    startContent={<Icon icon="solar:add-circle-bold" />}
-                                >
-                                    สร้างงานใหม่
-                                </Button>
-                            </div>
-                        )}
-                        
-                        {/* Mobile: Show all assignments button */}
-                        {assignments.length > 0 && (
-                            <div className="p-4 border-t border-slate-100 sm:hidden">
-                                <Button
-                                    size="sm"
-                                    variant="flat"
-                                    color="primary"
-                                    className="w-full"
-                                    onPress={onNavigateToAssignments}
-                                    endContent={<Icon icon="solar:arrow-right-linear" />}
-                                >
-                                    ดูงานทั้งหมด
-                                </Button>
-                            </div>
-                        )}
-                    </CardBody>
-                </Card>
-
-                {/* Recent Activity */}
-                <Card className="shadow-sm border border-slate-200">
-                    <CardHeader className="px-5 py-4 border-b border-slate-100">
-                        <div className="flex items-center gap-2">
-                            <Icon icon="solar:history-bold" className="text-xl text-purple-500" />
-                            <span className="font-semibold text-slate-800">กิจกรรมล่าสุด</span>
-                        </div>
-                    </CardHeader>
-                    <CardBody className="px-4 py-3">
-                        {overview?.recentActivities && overview.recentActivities.length > 0 ? (
-                            <div className="space-y-3">
-                                {overview.recentActivities.slice(0, 5).map((activity) => (
-                                    <div key={activity.id} className="flex items-start gap-3">
-                                        <Avatar
-                                            name={activity.user?.full_name || '?'}
-                                            src={activity.user?.avatar || undefined}
-                                            size="sm"
-                                            className="shrink-0 bg-gradient-to-br from-purple-400 to-pink-500"
-                                        />
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm text-slate-700 line-clamp-2">{activity.description}</p>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <span className="text-xs text-slate-400">{formatRelativeTime(activity.timestamp)}</span>
-                                                <Chip size="sm" variant="flat" color="primary" className="h-5">
-                                                    {activity.score} คะแนน
-                                                </Chip>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center py-8">
-                                <Icon icon="solar:history-2-linear" className="text-4xl text-slate-300 mx-auto mb-2" />
-                                <p className="text-sm text-slate-400">ยังไม่มีกิจกรรม</p>
-                            </div>
-                        )}
-                    </CardBody>
-                </Card>
+          {/* Health components row — mobile only */}
+          {healthScore && (
+            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-zinc-800 lg:hidden grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {healthComponents.map(c => (
+                <div key={c.label}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] text-slate-500 dark:text-zinc-400">{c.label}</span>
+                    <span className="text-[10px] font-semibold text-slate-600 dark:text-zinc-300">{c.value}%</span>
+                  </div>
+                  <Progress value={c.value} size="sm" color={c.value >= 70 ? "success" : c.value >= 50 ? "warning" : "danger"} />
+                </div>
+              ))}
             </div>
-
-            {/* TA Activity & Course Info Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* TA Activity - Only visible to instructor */}
-                {(userRole === "instructor" || userRole === "admin") && (
-                    <Card className="shadow-sm border border-slate-200 overflow-hidden">
-                        <CardHeader className="px-5 py-4 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center shadow-lg">
-                                    <Icon icon="solar:user-hands-bold" className="text-xl text-white" />
-                                </div>
-                                <div>
-                                    <span className="font-semibold text-slate-800 block">กิจกรรม TA</span>
-                                    <span className="text-xs text-slate-500">เฉพาะอาจารย์</span>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardBody className="px-5 py-4">
-                            {overview?.taActivity && overview.taActivity.length > 0 ? (
-                                <div className="space-y-3">
-                                    {overview.taActivity.map((ta, idx) => (
-                                        <div key={ta.id} className="flex items-center gap-4 p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
-                                            <div className="relative">
-                                                <Avatar
-                                                    name={ta.full_name}
-                                                    src={ta.avatar || undefined}
-                                                    size="md"
-                                                    className="bg-gradient-to-br from-emerald-500 to-teal-600"
-                                                />
-                                                {idx === 0 && ta.gradedCount > 0 && (
-                                                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-amber-400 rounded-full flex items-center justify-center">
-                                                        <Icon icon="solar:star-bold" className="text-xs text-white" />
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="flex-1">
-                                                <p className="font-medium text-slate-800">{ta.full_name}</p>
-                                                <p className="text-xs text-slate-400">
-                                                    {ta.lastActive ? formatRelativeTime(ta.lastActive) : 'ยังไม่มีกิจกรรม'}
-                                                </p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-lg font-bold text-emerald-600">{ta.gradedCount}</p>
-                                                <p className="text-xs text-slate-500">ชิ้นงาน</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-8">
-                                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                        <Icon icon="solar:user-hands-linear" className="text-3xl text-slate-300" />
-                                    </div>
-                                    <p className="text-sm text-slate-500">ยังไม่มีผู้ช่วยสอน</p>
-                                </div>
-                            )}
-                        </CardBody>
-                    </Card>
-                )}
-
-                {/* Course Info */}
-                <Card className="shadow-sm border border-slate-200">
-                    <CardHeader className="px-5 py-4 border-b border-slate-100">
-                        <div className="flex items-center gap-2">
-                            <Icon icon="solar:info-circle-bold" className="text-xl text-blue-500" />
-                            <span className="font-semibold text-slate-800">ข้อมูลรายวิชา</span>
-                        </div>
-                    </CardHeader>
-                    <CardBody className="px-5 py-4 space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Icon icon="solar:hashtag-bold" className="text-blue-500" />
-                                    <p className="text-xs text-slate-500">รหัสวิชา</p>
-                                </div>
-                                <p className="font-bold text-slate-800">{course.code}</p>
-                            </div>
-                            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-100">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Icon icon="solar:calendar-bold" className="text-purple-500" />
-                                    <p className="text-xs text-slate-500">ปีการศึกษา</p>
-                                </div>
-                                <p className="font-bold text-slate-800">{course.year}</p>
-                            </div>
-                            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-100">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Icon icon="solar:notebook-bold" className="text-emerald-500" />
-                                    <p className="text-xs text-slate-500">ภาคเรียน</p>
-                                </div>
-                                <p className="font-bold text-slate-800">
-                                    {course.semester === 3 ? "ฤดูร้อน" : `ภาค ${course.semester}`}
-                                </p>
-                            </div>
-                            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-100">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Icon icon="solar:user-bold" className="text-amber-500" />
-                                    <p className="text-xs text-slate-500">ผู้สอน</p>
-                                </div>
-                                <p className="font-bold text-slate-800 truncate">{course.instructor?.full_name || "-"}</p>
-                            </div>
-                        </div>
-                        
-                        {course.description && (
-                            <>
-                                <Divider />
-                                <div>
-                                    <p className="text-xs text-slate-500 mb-2 flex items-center gap-1">
-                                        <Icon icon="solar:document-text-bold" className="text-sm" />
-                                        คำอธิบายรายวิชา
-                                    </p>
-                                    <p className="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">{course.description}</p>
-                                </div>
-                            </>
-                        )}
-                        
-                        {/* TAs List for TA view */}
-                        {userRole === "ta" && course.tas && course.tas.length > 0 && (
-                            <>
-                                <Divider />
-                                <div>
-                                    <p className="text-xs text-slate-500 mb-2 flex items-center gap-1">
-                                        <Icon icon="solar:users-group-rounded-bold" className="text-sm" />
-                                        ผู้ช่วยสอนในรายวิชา
-                                    </p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {course.tas.map((ta) => (
-                                            <Chip
-                                                key={ta.id}
-                                                variant="flat"
-                                                color="success"
-                                                size="sm"
-                                            >
-                                                {ta.full_name}
-                                            </Chip>
-                                        ))}
-                                    </div>
-                                </div>
-                            </>
-                        )}
-                    </CardBody>
-                </Card>
-            </div>
-            {/* Student Detail Modal */}
-            <StudentDetailModal
-                isOpen={!!selectedStudent}
-                onClose={() => setSelectedStudent(null)}
-                student={selectedStudent}
-                courseId={course.id}
-            />
+          )}
+          </div>
         </div>
-    );
+      </Fade>
+
+      {/* ══ 2. METRIC TILES ═══════════════════════════════════════════════ */}
+      <Fade delay={0.05}>
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
+          {metrics.map((m) => (
+            <div key={m.label} className={CARD + " p-3 sm:p-4 hover:shadow-md dark:hover:shadow-zinc-900 transition-shadow duration-200"}>
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className={"w-8 h-8 rounded-lg flex items-center justify-center " + m.iconBg}>
+                  <Icon icon={m.icon} className={"text-base " + m.iconColor} />
+                </div>
+                <span className="text-[11px] font-medium text-slate-400 dark:text-zinc-500 uppercase tracking-widest text-right leading-tight max-w-[74px]">
+                  {m.label}
+                </span>
+              </div>
+              <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white leading-none tabular-nums">{m.value}</p>
+              <p className="text-xs text-slate-400 dark:text-zinc-500 mt-1.5">{m.sub}</p>
+            </div>
+          ))}
+        </div>
+      </Fade>
+
+      {/* ══ 3. HEALTH SCORE + ACTION CENTER ══════════════════════════════ */}
+      <Fade delay={0.1}>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+
+          {/* Health Score */}
+          {healthScore && (
+            <div className={CARD + " md:col-span-4"}>
+              <CardHeader icon="solar:heart-pulse-bold" iconColor="text-rose-400" title="Course Health" />
+              <div className="p-3 sm:p-4 flex flex-col items-center">
+                <HealthScoreBadge data={healthScore} />
+                <div className="w-full mt-4 space-y-2">
+                  {healthComponents.map(c => (
+                    <div key={c.label} className="flex items-center gap-2">
+                      <span className="text-[11px] text-slate-500 dark:text-zinc-400 w-16 shrink-0">{c.label}</span>
+                      <Progress
+                        value={c.value} size="sm" className="flex-1"
+                        color={c.value >= 70 ? "success" : c.value >= 50 ? "warning" : "danger"}
+                      />
+                      <span className="text-[11px] font-semibold text-slate-600 dark:text-zinc-300 w-7 text-right shrink-0">{c.value}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Action Center + Quick Actions */}
+          <div className={CARD + " md:col-span-8 flex flex-col"}>
+            <CardHeader
+              icon="solar:bell-bing-bold" iconColor="text-rose-500"
+              title="สิ่งที่ต้องดำเนินการ"
+              badge={actionItems.length > 0
+                ? <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-bold">{actionItems.length}</span>
+                : null
+              }
+            />
+            <div className="flex-1 px-4 py-3 sm:px-5 sm:py-3.5">
+              {actionItems.length > 0
+                ? <ActionCenter items={actionItems} onNavigate={handleNavigate} />
+                : (
+                  <div className="flex items-center gap-3 py-3 text-slate-400">
+                    <div className="w-8 h-8 bg-emerald-50 rounded-full flex items-center justify-center">
+                      <Icon icon="solar:check-circle-bold" className="text-emerald-500 text-lg" />
+                    </div>
+                    <span className="text-sm text-slate-500 dark:text-zinc-400">ไม่มีรายการที่ต้องดำเนินการ</span>
+                  </div>
+                )
+              }
+              {pendingSubmissionCount > 0 && (
+                <p className="mt-3 text-xs text-slate-400 dark:text-zinc-500">
+                  ค้างตรวจรวม {pendingSubmissionCount} รายการ
+                </p>
+              )}
+            </div>
+            {/* Quick Actions at bottom */}
+            <div className="px-4 pb-3 pt-2.5 sm:px-5 sm:pb-4 sm:pt-3 border-t border-slate-100">
+              <p className="text-[10px] text-slate-400 dark:text-zinc-600 uppercase tracking-widest mb-2">Quick Actions</p>
+              <QuickActionsBar onNavigate={handleNavigate} />
+            </div>
+          </div>
+        </div>
+      </Fade>
+
+      {/* ══ 4. SMART INSIGHTS ════════════════════════════════════════════ */}
+      {insights.length > 0 && (
+        <Fade delay={0.15}>
+          <div className={CARD}>
+            <CardHeader
+              icon="solar:lightbulb-bolt-bold" iconColor="text-amber-400"
+              title="Smart Insights"
+              badge={<span className="text-xs text-slate-400">— วิเคราะห์จากข้อมูลจริง</span>}
+            />
+            <div className="p-4">
+              <InsightPanel insights={insights} />
+            </div>
+          </div>
+        </Fade>
+      )}
+
+      {/* ══ 5. ASSIGNMENT TABLE + ACTIVITY ═══════════════════════════════ */}
+      <Fade delay={0.2}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+
+          {/* Assignment Table */}
+          <div className={CARD + " lg:col-span-2 flex flex-col"}>
+            <CardHeader
+              icon="solar:document-text-bold" iconColor="text-blue-500"
+              title="การวิเคราะห์งาน"
+              action={
+                <>
+                  <div className="hidden sm:flex gap-1 flex-wrap">
+                    <button
+                      className={"text-[11px] px-2.5 py-1 rounded-lg font-medium transition-colors " + (selectedAssignmentType === "all" ? "bg-blue-600 text-white" : "bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-zinc-700")}
+                      onClick={() => onSetSelectedAssignmentType("all")}
+                    >ทั้งหมด</button>
+                    {availableTypes.map(type => {
+                      const cfg = getAssignmentTypeConfig(type);
+                      return (
+                        <button
+                          key={type}
+                          className={"text-[11px] px-2.5 py-1 rounded-lg font-medium transition-colors flex items-center gap-1 " + (selectedAssignmentType === type ? "bg-blue-600 text-white" : "bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-zinc-700")}
+                          onClick={() => onSetSelectedAssignmentType(type)}
+                        >
+                          <Icon icon={cfg.icon} className="text-xs" />
+                          <span className="hidden sm:inline">{cfg.shortLabel}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {assignments.length > 0 && (
+                    <Button size="sm" variant="flat" color="primary" onPress={onNavigateToAssignments} className="text-xs h-7 hidden sm:flex">
+                      ดูทั้งหมด
+                    </Button>
+                  )}
+                </>
+              }
+            />
+
+            <div className="sm:hidden px-4 pt-3 pb-1 flex gap-1.5 overflow-x-auto border-b border-slate-100">
+              <button
+                  className={"text-[11px] px-2.5 py-1 rounded-lg font-medium shrink-0 transition-colors " + (selectedAssignmentType === "all" ? "bg-blue-600 text-white" : "bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300")}
+                onClick={() => onSetSelectedAssignmentType("all")}
+              >
+                ทั้งหมด
+              </button>
+              {availableTypes.map(type => {
+                const cfg = getAssignmentTypeConfig(type);
+                return (
+                  <button
+                    key={type}
+                    className={"text-[11px] px-2.5 py-1 rounded-lg font-medium shrink-0 transition-colors flex items-center gap-1 " + (selectedAssignmentType === type ? "bg-blue-600 text-white" : "bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300")}
+                    onClick={() => onSetSelectedAssignmentType(type)}
+                  >
+                    <Icon icon={cfg.icon} className="text-xs" />
+                    {cfg.shortLabel}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex-1 overflow-x-auto">
+              {filteredAssignments.length > 0 ? (
+                <>
+                  <div className="md:hidden px-4 py-3 space-y-2">
+                    {filteredAssignments.slice(0, 6).map(assignment => {
+                      const cfg = getAssignmentTypeConfig(assignment.assignment_type);
+                      const isGroup = assignment.assignment_type === "permanent_group" || assignment.assignment_type === "weekly_group";
+                      const submittedRate = Math.max(0, Math.min(100, assignment.submittedRate));
+                      return (
+                        <button
+                          key={assignment.id}
+                          type="button"
+                          onClick={onNavigateToAssignments}
+                          className="w-full text-left bg-slate-50 dark:bg-zinc-800/60 border border-slate-100 dark:border-zinc-700/60 rounded-xl p-3 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className={"w-8 h-8 rounded-lg flex items-center justify-center shrink-0 " + cfg.bgClass}>
+                                <Icon icon={cfg.icon} className={"text-sm " + cfg.textClass} />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{assignment.name}</p>
+                                <p className="text-[11px] text-slate-400 dark:text-zinc-500">{cfg.shortLabel} • เต็ม {assignment.max_score}</p>
+                              </div>
+                            </div>
+                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
+                              {assignment.avgScore !== null ? Math.round(assignment.avgScore * 10) / 10 : "—"}
+                            </span>
+                          </div>
+                          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 tabular-nums">
+                            <span>ตรวจแล้ว {assignment.scoredCount}{isGroup ? " กลุ่ม" : " คน"}</span>
+                            {!isGroup ? <span>ส่ง {submittedRate}%</span> : <span>งานกลุ่ม</span>}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="hidden md:block">
+                    <Table removeWrapper aria-label="Assignments">
+                  <TableHeader>
+                    <TableColumn className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">งาน</TableColumn>
+                    <TableColumn align="center" className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">คะแนนเฉลี่ย</TableColumn>
+                    <TableColumn align="center" className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">ตรวจแล้ว</TableColumn>
+                    <TableColumn align="center" className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">ความก้าวหน้า</TableColumn>
+                  </TableHeader>
+                  <TableBody items={filteredAssignments.slice(0, 8)}>
+                    {(assignment) => {
+                      const cfg = getAssignmentTypeConfig(assignment.assignment_type);
+                      const isGroup = assignment.assignment_type === "permanent_group" || assignment.assignment_type === "weekly_group";
+                      return (
+                        <TableRow key={assignment.id} className="hover:bg-slate-50/50">
+                          <TableCell>
+                            <div className="flex items-center gap-2.5">
+                              <div className={"w-8 h-8 rounded-xl flex items-center justify-center shrink-0 " + cfg.bgClass}>
+                                <Icon icon={cfg.icon} className={"text-sm " + cfg.textClass} />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-1">
+                                  <p className="text-sm font-medium text-slate-800 leading-tight">{assignment.name}</p>
+                                  {assignment.is_score_visible === false && (
+                                    <Tooltip content="คะแนนถูกซ่อน">
+                                      <Icon icon="solar:eye-closed-linear" className="text-amber-400" width={12} />
+                                    </Tooltip>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <span className={"text-[10px] font-medium px-1.5 py-0.5 rounded-md " + cfg.bgClass + " " + cfg.textClass}>{cfg.shortLabel}</span>
+                                  <span className="text-[11px] text-slate-400">/ {assignment.max_score} คะแนน</span>
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {assignment.avgScore !== null ? (
+                              <div className="text-center tabular-nums">
+                                <span className="text-sm font-semibold text-slate-700">{Math.round(assignment.avgScore * 10) / 10}</span>
+                                <span className="text-[11px] text-slate-400 ml-0.5">/ {assignment.max_score}</span>
+                              </div>
+                            ) : <span className="block text-center text-slate-300 text-sm">—</span>}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col items-center gap-0.5 tabular-nums">
+                              <span className={"text-sm font-semibold " + (assignment.scoredCount > 0 ? "text-emerald-600" : "text-slate-400")}>
+                                {assignment.scoredCount}
+                              </span>
+                              <span className="text-[10px] text-slate-400">{isGroup ? "กลุ่ม" : "คน"}</span>
+                              {!isGroup && assignment.notScoredCount > 0 && (
+                                <span className="text-[10px] text-rose-400">ค้าง {assignment.notScoredCount}</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {!isGroup ? (
+                              <div className="flex items-center gap-1.5 justify-center tabular-nums">
+                                <Progress
+                                  value={assignment.submittedRate} size="sm" className="w-14"
+                                  color={assignment.submittedRate >= 80 ? "success" : assignment.submittedRate >= 50 ? "warning" : "danger"}
+                                />
+                                <span className="text-[11px] text-slate-500 w-8 text-right shrink-0">{assignment.submittedRate}%</span>
+                              </div>
+                            ) : <span className="block text-center text-[11px] text-slate-400">งานกลุ่ม</span>}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    }}
+                  </TableBody>
+                </Table>
+                  </div>
+                </>
+              ) : overview?.assignments && overview.assignments.length > 0 ? (
+                <div className="py-12 text-center">
+                  <Icon icon="solar:filter-linear" className="text-3xl text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm text-slate-500 mb-3">ไม่มีงานประเภทนี้</p>
+                  <Button size="sm" variant="flat" onPress={onResetAssignmentTypeFilter}>แสดงทั้งหมด</Button>
+                </div>
+              ) : (
+                <div className="py-12 text-center">
+                  <Icon icon="solar:document-add-linear" className="text-3xl text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm text-slate-500 mb-3">ยังไม่มีงานที่มอบหมาย</p>
+                  <Button size="sm" color="primary" variant="flat" onPress={onNavigateToAssignments}
+                    startContent={<Icon icon="solar:add-circle-bold" />}>
+                    สร้างงานใหม่
+                  </Button>
+                </div>
+              )}
+            </div>
+            {assignments.length > 0 && (
+              <div className="px-5 pb-4 pt-3 border-t border-slate-100 sm:hidden">
+                <Button size="sm" variant="flat" color="primary" className="w-full text-xs" onPress={onNavigateToAssignments}>
+                  ดูงานทั้งหมด →
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Recent Activity */}
+          <div className={CARD + " flex flex-col"}>
+            <CardHeader icon="solar:history-bold" iconColor="text-purple-500" title="กิจกรรมล่าสุด" />
+            <div className="flex-1 p-4 overflow-y-auto max-h-[420px]">
+              <ActivityTimeline activities={overview?.recentActivities?.slice(0, 8) ?? []} />
+            </div>
+          </div>
+        </div>
+      </Fade>
+
+      {/* ══ 6. ANALYTICS CHARTS ══════════════════════════════════════════ */}
+      <Fade delay={0.25}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div className={CARD}>
+            <CardHeader icon="solar:chart-square-bold" iconColor="text-emerald-500" title="การกระจายคะแนน" />
+            <div className="p-4">
+              <GradeDistributionChart data={gradeData} />
+              {gradeData.length > 0 && (
+                <div className="flex flex-wrap gap-3 mt-3 justify-center">
+                  {gradeData.map(d => (
+                    <div key={d.label} className="flex items-center gap-1">
+                      <span className="w-2.5 h-2.5 rounded-sm" style={{ background: d.fill }} />
+                      <span className="text-[11px] text-slate-500">{d.label}</span>
+                      <span className="text-[11px] font-semibold text-slate-700">({d.count})</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className={CARD}>
+            <CardHeader icon="solar:graph-new-up-bold" iconColor="text-blue-500" title="ความยากของงาน (คะแนนเฉลี่ย %)" />
+            <div className="p-4">
+              <AssignmentDifficultyChart data={diffData} />
+            </div>
+          </div>
+        </div>
+      </Fade>
+
+      {/* ══ 7. STUDENT RISK ANALYTICS ════════════════════════════════════ */}
+      {riskStudents.length > 0 && (
+        <Fade delay={0.3}>
+          <div className={CARD}>
+            <CardHeader
+              icon="solar:danger-triangle-bold" iconColor="text-rose-500"
+              title="นักศึกษากลุ่มเสี่ยง"
+              badge={
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">
+                  {riskStudents.filter((s: RiskStudent) => s.riskLevel === "high").length} เสี่ยงสูง
+                </span>
+              }
+            />
+            <div className="p-4">
+              <RiskTable students={riskStudents} onSelectStudent={s => setSelectedStudent(s)} />
+            </div>
+          </div>
+        </Fade>
+      )}
+
+      {/* ══ 8. TA ACTIVITY + COURSE INFO ═════════════════════════════════ */}
+      <Fade delay={0.35}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+
+          {/* TA Activity (instructor/admin only) */}
+          {(userRole === "instructor" || userRole === "admin") && (
+            <div className={CARD}>
+              <CardHeader icon="solar:user-hands-bold" iconColor="text-emerald-500" title="กิจกรรม TA" />
+              <div className="p-4">
+                {overview?.taActivity && overview.taActivity.length > 0 ? (
+                  <div className="divide-y divide-slate-100">
+                    {overview.taActivity.map((ta, idx) => (
+                      <div key={ta.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0 border-b border-slate-50 dark:border-zinc-800/60 last:border-0">
+                        <div className="relative shrink-0">
+                          <Avatar name={ta.full_name} src={ta.avatar || undefined} size="sm" />
+                          {idx === 0 && ta.gradedCount > 0 && (
+                            <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-amber-400 rounded-full flex items-center justify-center">
+                              <Icon icon="solar:star-bold" className="text-[8px] text-white" />
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{ta.full_name}</p>
+                          <p className="text-xs text-slate-400 dark:text-zinc-500">{ta.lastActive ? formatRelativeTime(ta.lastActive) : "ยังไม่มีกิจกรรม"}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-base font-bold text-slate-800 dark:text-white">{ta.gradedCount}</p>
+                          <p className="text-[10px] text-slate-400 dark:text-zinc-500">ชิ้น</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center">
+                    <Icon icon="solar:user-hands-linear" className="text-3xl text-slate-300 mx-auto mb-2" />
+                    <p className="text-sm text-slate-400">ยังไม่มีผู้ช่วยสอน</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Course Info */}
+          <div className={CARD + ((userRole !== "instructor" && userRole !== "admin") ? " lg:col-span-2" : "")}>
+            <CardHeader icon="solar:info-circle-bold" iconColor="text-blue-500" title="ข้อมูลรายวิชา" />
+            <div className="p-4">
+              <div className="grid grid-cols-2 gap-2.5">
+                {[
+                  { icon: "solar:hashtag-bold",  label: "รหัสวิชา",    value: course.code,             iconColor: "text-blue-500",    bg: "bg-blue-50" },
+                  { icon: "solar:calendar-bold", label: "ปีการศึกษา",  value: course.year + "",        iconColor: "text-purple-500",  bg: "bg-purple-50" },
+                  { icon: "solar:notebook-bold", label: "ภาคเรียน",    value: course.semester === 3 ? "ฤดูร้อน" : "ภาค " + course.semester, iconColor: "text-emerald-500", bg: "bg-emerald-50" },
+                  { icon: "solar:user-bold",     label: "อาจารย์ผู้สอน", value: course.instructor?.full_name || "—", iconColor: "text-amber-500", bg: "bg-amber-50" },
+                ].map(item => (
+                  <div key={item.label} className="flex items-start gap-2.5 p-3 bg-slate-50 dark:bg-zinc-800/60 rounded-xl border border-transparent dark:border-zinc-700/40 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors">
+                    <div className={"w-7 h-7 rounded-lg flex items-center justify-center shrink-0 " + item.bg}>
+                      <Icon icon={item.icon} className={"text-xs " + item.iconColor} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] text-slate-400 dark:text-zinc-500">{item.label}</p>
+                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">{item.value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {course.description && (
+                <div className="mt-3">
+                  <p className="text-[10px] text-slate-400 uppercase tracking-widest mb-1.5">คำอธิบาย</p>
+                  <p className="text-xs text-slate-600 dark:text-zinc-300 bg-slate-50 dark:bg-zinc-800/60 rounded-xl p-3 leading-relaxed">{course.description}</p>
+                </div>
+              )}
+
+              {userRole === "ta" && course.tas && course.tas.length > 0 && (
+                <div className="mt-3">
+                  <Divider className="mb-3" />
+                  <p className="text-[10px] text-slate-400 uppercase tracking-widest mb-2">ผู้ช่วยสอน</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {course.tas.map(ta => (
+                      <Chip key={ta.id} size="sm" variant="flat" color="success">{ta.full_name}</Chip>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </Fade>
+
+      {/* Student Detail Modal */}
+      <StudentDetailModal
+        isOpen={!!selectedStudent}
+        onClose={() => setSelectedStudent(null)}
+        student={selectedStudent}
+        courseId={course.id}
+      />
+    </div>
+  );
 }
 
 export const OverviewTabView = memo(OverviewTabViewComponent);

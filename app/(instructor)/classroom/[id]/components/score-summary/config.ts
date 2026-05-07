@@ -13,6 +13,15 @@ export interface ScoreDetailModal {
     gradedAt?: string;
     updatedAt?: string;
     comment?: string;
+    editRequests?: {
+        old_score: number | null;
+        new_score: number;
+        reason: string | null;
+        requester: string | null;
+        reviewer: string | null;
+        reviewed_at: string | null;
+        review_comment: string | null;
+    }[];
 }
 
 export interface ColumnDef {

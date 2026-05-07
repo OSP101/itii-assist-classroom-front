@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo } from "react";
+import React, { memo, useEffect, useMemo, useState } from "react";
 import { Card, CardBody } from "@heroui/card";
 import { Chip } from "@heroui/chip";
 import { Input } from "@heroui/input";
@@ -38,6 +38,16 @@ interface StudentType {
         graded_by?: string | null;
         graded_at?: string | null;
         updated_at?: string | null;
+        comment?: string | null;
+        edit_requests?: {
+            old_score: number | null;
+            new_score: number;
+            reason: string | null;
+            requester: string | null;
+            reviewer: string | null;
+            reviewed_at: string | null;
+            review_comment: string | null;
+        }[];
     }>;
 }
 
@@ -71,7 +81,24 @@ interface ScoreSummaryTabViewProps {
     onScoreClick: (
         student: StudentType,
         col: ColumnDef,
-        scoreData: { score: number | null; max_score: number; sub_item_name?: string; graded_by?: string | null; graded_at?: string | null; updated_at?: string | null } | undefined
+        scoreData: {
+            score: number | null;
+            max_score: number;
+            sub_item_name?: string;
+            graded_by?: string | null;
+            graded_at?: string | null;
+            updated_at?: string | null;
+            comment?: string | null;
+            edit_requests?: {
+                old_score: number | null;
+                new_score: number;
+                reason: string | null;
+                requester: string | null;
+                reviewer: string | null;
+                reviewed_at: string | null;
+                review_comment: string | null;
+            }[];
+        } | undefined
     ) => void;
     onCloseScoreModal: () => void;
     isCourseActive?: boolean;
@@ -103,6 +130,22 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
     onCloseScoreModal,
     isCourseActive = true,
 }: ScoreSummaryTabViewProps) {
+    const [isEditHistoryOpen, setIsEditHistoryOpen] = useState(false);
+
+    const hasEditHistory = useMemo(() => (scoreModal.editRequests?.length ?? 0) > 0, [scoreModal.editRequests]);
+    const gradedAtLabel = useMemo(() => formatDate(scoreModal.gradedAt), [scoreModal.gradedAt]);
+    const updatedAtLabel = useMemo(() => formatDate(scoreModal.updatedAt), [scoreModal.updatedAt]);
+    const shouldShowUpdatedAt = useMemo(() => {
+        if (!scoreModal.updatedAt || !scoreModal.gradedAt) return false;
+        return updatedAtLabel !== gradedAtLabel;
+    }, [scoreModal.updatedAt, scoreModal.gradedAt, updatedAtLabel, gradedAtLabel]);
+
+    useEffect(() => {
+        if (!scoreModal.isOpen) {
+            setIsEditHistoryOpen(false);
+        }
+    }, [scoreModal.isOpen]);
+
     return (
         <div className="space-y-4">
             {/* Header */}
@@ -327,9 +370,9 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                                 `}
                                             >
                                                 <td className="px-3 py-3 text-center text-slate-800">{index + 1}</td>
-                                                <td className="px-3 py-3 font-mono text-slate-800">{student.student_id}</td>
-                                                <td className="px-3 py-3 font-mono text-slate-800">{student.full_name}</td>
-                                                <td className="px-2 py-3 font-mono text-slate-800 text-center">
+                                                <td className="px-3 py-3 text-slate-700">{student.student_id}</td>
+                                                <td className="px-3 py-3 text-slate-800 font-medium">{student.full_name}</td>
+                                                <td className="px-2 py-3 text-slate-700 text-center">
                                                     {student.section_number}
                                                 </td>
                                                 {columns.map((col) => {
@@ -388,116 +431,157 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
             {/* Score Detail Modal */}
             <Modal isOpen={scoreModal.isOpen} onClose={onCloseScoreModal} size="md">
                 <ModalContent>
-                    <ModalHeader className="flex flex-col gap-1 pb-2">
-                        <span className="text-lg font-semibold text-slate-800">รายละเอียดคะแนน</span>
+                    <ModalHeader className="flex items-start justify-between gap-3 pb-2">
+                        <div>
+                            <p className="text-lg font-semibold text-slate-800">รายละเอียดคะแนน</p>
+                            <p className="text-xs text-slate-500">ตรวจสอบข้อมูลคะแนนและสถานะการให้คะแนน</p>
+                        </div>
+                        {scoreModal.score !== null ? (
+                            <Chip
+                                size="sm"
+                                variant="flat"
+                                className={`${getScoreColor(scoreModal.score, scoreModal.maxScore).bg} ${getScoreColor(scoreModal.score, scoreModal.maxScore).text}`}
+                            >
+                                {fmtScore(scoreModal.score)} / {scoreModal.maxScore}
+                            </Chip>
+                        ) : (
+                            <Chip size="sm" variant="flat" className="bg-slate-100 text-slate-500">
+                                ยังไม่ได้ให้คะแนน
+                            </Chip>
+                        )}
                     </ModalHeader>
                     <Divider />
                     <ModalBody className="py-4">
                         <div className="space-y-4">
-                            {/* Student Info */}
-                            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                    <Icon icon="solar:user-bold" className="text-xl text-blue-600" />
-                                </div>
-                                <div>
-                                    <p className="font-medium text-slate-800">{scoreModal.studentName}</p>
-                                    <p className="text-sm text-slate-500 font-mono">{scoreModal.studentId}</p>
-                                </div>
-                            </div>
-
-                            {/* Assignment Info */}
-                            <div className="space-y-3">
-                                <div className="flex items-start gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
-                                        <Icon icon="solar:document-text-bold" className="text-purple-600" />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                    <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
+                                        <Icon icon="solar:user-bold" className="text-lg text-blue-600" />
                                     </div>
-                                    <div className="flex-1">
+                                    <div>
+                                        <p className="text-xs text-slate-500">นักศึกษา</p>
+                                        <p className="font-medium text-slate-800">{scoreModal.studentName}</p>
+                                        <p className="text-sm text-slate-500">{scoreModal.studentId}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                    <div className="w-9 h-9 rounded-lg bg-indigo-100 flex items-center justify-center">
+                                        <Icon icon="solar:document-text-bold" className="text-lg text-indigo-600" />
+                                    </div>
+                                    <div>
                                         <p className="text-xs text-slate-500">งาน</p>
                                         <p className="font-medium text-slate-800">{scoreModal.assignmentTitle}</p>
                                         {scoreModal.subItemName && (
-                                            <p className="text-sm text-slate-600 mt-0.5">
-                                                <Icon icon="solar:arrow-right-linear" className="inline text-slate-400 mr-1" />
-                                                {scoreModal.subItemName}
-                                            </p>
+                                            <p className="text-sm text-slate-600">{scoreModal.subItemName}</p>
                                         )}
                                     </div>
                                 </div>
+                            </div>
 
-                                {/* Score */}
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                                        <Icon icon="solar:star-bold" className="text-emerald-600" />
+                            <div className="rounded-xl border border-slate-200 overflow-hidden">
+                                <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Icon icon="solar:star-bold" className="text-amber-500" />
+                                        <p className="text-sm font-semibold text-slate-700">ข้อมูลการให้คะแนน</p>
                                     </div>
-                                    <div className="flex-1">
-                                        <p className="text-xs text-slate-500">คะแนน</p>
-                                        <p className="text-lg font-bold text-slate-800">
-                                            {scoreModal.score !== null ? (
-                                                <>
-                                                    <span className={getScoreColor(scoreModal.score, scoreModal.maxScore).text}>
-                                                        {fmtScore(scoreModal.score)}
-                                                    </span>
-                                                    <span className="text-slate-400 font-normal text-base"> / {scoreModal.maxScore}</span>
-                                                </>
-                                            ) : (
-                                                <span className="text-slate-400">ยังไม่ได้ให้คะแนน</span>
-                                            )}
-                                        </p>
+                                    <div className="text-sm text-slate-500">
+                                        คะแนนเต็ม {scoreModal.maxScore}
                                     </div>
                                 </div>
-
-                                {/* Grader Info */}
-                                {scoreModal.gradedBy && (
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                                            <Icon icon="solar:pen-bold" className="text-amber-600" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="text-xs text-slate-500">ผู้ให้คะแนน</p>
-                                            <p className="font-medium text-slate-800">{scoreModal.gradedBy}</p>
-                                        </div>
+                                <div className="p-4 space-y-3">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <p className="text-sm text-slate-500">คะแนนที่ได้</p>
+                                        {scoreModal.score !== null ? (
+                                            <p className="text-xl font-bold">
+                                                <span className={getScoreColor(scoreModal.score, scoreModal.maxScore).text}>
+                                                    {fmtScore(scoreModal.score)}
+                                                </span>
+                                                <span className="text-slate-400 text-base font-medium"> / {scoreModal.maxScore}</span>
+                                            </p>
+                                        ) : (
+                                            <p className="text-sm font-medium text-slate-400">ยังไม่ได้ให้คะแนน</p>
+                                        )}
                                     </div>
-                                )}
 
-                                {/* Date Info */}
-                                {scoreModal.gradedAt && (
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center flex-shrink-0">
-                                            <Icon icon="solar:calendar-bold" className="text-sky-600" />
+                                    {scoreModal.gradedBy && (
+                                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                                            <Icon icon="solar:pen-bold" className="text-amber-500" />
+                                            <span>ผู้ให้คะแนน: {scoreModal.gradedBy}</span>
                                         </div>
-                                        <div className="flex-1">
-                                            <p className="text-xs text-slate-500">วันที่ให้คะแนน</p>
-                                            <p className="font-medium text-slate-800">{formatDate(scoreModal.gradedAt)}</p>
-                                            {scoreModal.updatedAt && scoreModal.updatedAt !== scoreModal.gradedAt && (
-                                                <p className="text-xs text-amber-600 mt-0.5">
-                                                    <Icon icon="solar:pen-2-linear" className="inline mr-1" />
-                                                    แก้ไขล่าสุด: {formatDate(scoreModal.updatedAt)}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                {/* Comment/Note */}
-                                {scoreModal.comment && (
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center flex-shrink-0">
-                                            <Icon icon="solar:chat-round-dots-bold" className="text-violet-600" />
+                                    {scoreModal.gradedAt && (
+                                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                                            <Icon icon="solar:calendar-bold" className="text-sky-500" />
+                                            <span>วันที่ให้คะแนน: {gradedAtLabel}</span>
                                         </div>
-                                        <div className="flex-1">
-                                            <p className="text-xs text-slate-500">หมายเหตุ</p>
-                                            <p className="font-medium text-slate-700 whitespace-pre-wrap">{scoreModal.comment}</p>
-                                        </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                {/* No score info */}
-                                {scoreModal.score === null && (
-                                    <div className="p-3 bg-slate-50 rounded-lg text-center">
-                                        <Icon icon="solar:info-circle-linear" className="text-2xl text-slate-400 mb-1" />
-                                        <p className="text-sm text-slate-500">ยังไม่มีการบันทึกคะแนนสำหรับรายการนี้</p>
-                                    </div>
-                                )}
+                                    {shouldShowUpdatedAt && (
+                                        <div className="flex items-center gap-2 text-sm text-amber-700">
+                                            <Icon icon="solar:pen-2-linear" className="text-amber-500" />
+                                            <span>แก้ไขล่าสุด: {updatedAtLabel}</span>
+                                        </div>
+                                    )}
+
+                                    {scoreModal.comment && (
+                                        <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
+                                            <p className="text-xs text-slate-500 mb-1">หมายเหตุ</p>
+                                            <p className="text-sm text-slate-700 whitespace-pre-wrap">{scoreModal.comment}</p>
+                                        </div>
+                                    )}
+
+                                    {scoreModal.score === null && (
+                                        <div className="p-3 bg-slate-50 rounded-lg text-center border border-slate-100">
+                                            <Icon icon="solar:info-circle-linear" className="text-2xl text-slate-400 mb-1 mx-auto" />
+                                            <p className="text-sm text-slate-500">ยังไม่มีการบันทึกคะแนนสำหรับรายการนี้</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
+
+                            {hasEditHistory && (
+                                <div className="rounded-xl border border-amber-200 bg-amber-50/40">
+                                    <div className="p-3 flex items-center justify-between gap-3">
+                                        <div className="flex items-center gap-2 text-amber-700">
+                                            <Icon icon="solar:history-bold" className="text-base" />
+                                            <span className="text-sm font-semibold">ประวัติการแก้ไขคะแนน</span>
+                                        </div>
+                                        <Button
+                                            size="sm"
+                                            variant="flat"
+                                            className="bg-amber-100 text-amber-700"
+                                            endContent={<Icon icon={isEditHistoryOpen ? "solar:alt-arrow-up-linear" : "solar:alt-arrow-down-linear"} className="text-sm" />}
+                                            onPress={() => setIsEditHistoryOpen((prev) => !prev)}
+                                        >
+                                            {isEditHistoryOpen ? "ซ่อนรายละเอียด" : "ดูรายละเอียดการแก้ไข"}
+                                        </Button>
+                                    </div>
+                                    {isEditHistoryOpen && (
+                                        <div className="px-3 pb-3 space-y-2">
+                                            {(scoreModal.editRequests || []).map((req, idx) => (
+                                                <div key={`${req.reviewed_at || "na"}-${idx}`} className="rounded-lg border border-amber-200 bg-white p-3 space-y-1.5">
+                                                    <div className="flex items-center justify-between gap-3 text-sm">
+                                                        <span className="font-semibold text-slate-700">ครั้งที่ {idx + 1}</span>
+                                                        {req.reviewed_at && (
+                                                            <span className="text-xs text-slate-500">อนุมัติเมื่อ {formatDate(req.reviewed_at)}</span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-sm text-slate-600">ผู้ขอแก้ไข: {req.requester || "-"}</p>
+                                                    <p className="text-sm text-slate-600">เหตุผล: {req.reason || "-"}</p>
+                                                    <p className="text-sm text-slate-600">
+                                                        คะแนนเดิม: {fmtScore(req.old_score)} → คะแนนใหม่: {fmtScore(req.new_score)}
+                                                    </p>
+                                                    <p className="text-sm text-slate-600">ผู้อนุมัติ: {req.reviewer || "-"}</p>
+                                                    {req.review_comment && (
+                                                        <p className="text-sm text-slate-600">หมายเหตุผู้อนุมัติ: {req.review_comment}</p>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </ModalBody>
                     <Divider />
