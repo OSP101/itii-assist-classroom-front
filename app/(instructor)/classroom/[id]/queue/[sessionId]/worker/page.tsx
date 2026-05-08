@@ -863,18 +863,7 @@ export default function WorkerDashboardPage() {
               )
             : null;
 
-    if (isLoading) {
-        return (
-            <div className="min-h-screen bg-slate-100 p-6">
-                <div className="max-w-4xl mx-auto space-y-6">
-                    <Skeleton className="h-8 w-64 rounded-lg" />
-                    <Skeleton className="h-64 rounded-2xl" />
-                </div>
-            </div>
-        );
-    }
-
-    if (!session) {
+    if (!session && !isLoading) {
         return (
             <div className="min-h-screen bg-slate-100 flex items-center justify-center">
                 <Card className="max-w-md">
@@ -887,6 +876,14 @@ export default function WorkerDashboardPage() {
                         </Button>
                     </CardBody>
                 </Card>
+            </div>
+        );
+    }
+
+    if (!session) {
+        return (
+            <div className="bg-slate-100 p-8 flex items-center justify-center">
+                <Spinner size="lg" color="primary" />
             </div>
         );
     }

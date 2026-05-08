@@ -26,6 +26,7 @@ import { Select, SelectItem } from "@heroui/select";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
+import { useTableParams } from "@/lib/table/use-table-params";
 import {
   getLogs,
   getLogStats,
@@ -91,18 +92,32 @@ export default function SystemLogsPage() {
   const [isExporting, setIsExporting] = useState(false);
 
   // Pagination & Filters
-  const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [limit] = useState(50);
-  const [search, setSearch] = useState("");
-  const [logTypeFilter, setLogTypeFilter] = useState("all");
-  const [severityFilter, setSeverityFilter] = useState("all");
-  const [timeRange, setTimeRange] = useState("24h");
+  const {
+    params,
+    setSearch,
+    setPage,
+    setSort,
+    setFilter,
+  } = useTableParams({
+    defaultLimit: 50,
+    defaultSort: "created_at",
+    defaultOrder: "desc",
+    searchDebounceMs: 300,
+  });
+  const [searchInput, setSearchInput] = useState(String(params.search ?? ""));
+
+  const page = Number(params.page) || 1;
+  const limit = Number(params.limit) || 50;
+  const search = String(params.search ?? "");
+  const logTypeFilter = String(params.logType ?? "all");
+  const severityFilter = String(params.severity ?? "all");
+  const timeRange = String(params.timeRange ?? "24h");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
-  const [sortBy, setSortBy] = useState<string>("created_at");
-  const [sortOrder, setSortOrder] = useState<"ASC" | "DESC">("DESC");
+  const sortBy = String(params.sort ?? "created_at");
+  const sortOrder: "ASC" | "DESC" = params.order === "asc" ? "ASC" : "DESC";
 
   // Modal states
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -202,6 +217,10 @@ export default function SystemLogsPage() {
     fetchStats();
   }, [fetchLogs, fetchStats]);
 
+  useEffect(() => {
+    setSearchInput(search);
+  }, [search]);
+
   // Handle view detail
   const handleViewDetail = async (log: SystemLog) => {
     setIsDetailModalOpen(true);
@@ -255,12 +274,10 @@ export default function SystemLogsPage() {
   // Handle sort
   const handleSort = (column: string) => {
     if (sortBy === column) {
-      setSortOrder(sortOrder === "ASC" ? "DESC" : "ASC");
+      setSort(column, sortOrder === "ASC" ? "desc" : "asc");
     } else {
-      setSortBy(column);
-      setSortOrder("DESC");
+      setSort(column, "desc");
     }
-    setPage(1);
   };
 
   // Format date
@@ -493,14 +510,17 @@ export default function SystemLogsPage() {
             <Input
               className="w-full"
               placeholder="ค้นหา action, URL, IP..."
-              value={search}
+              value={searchInput}
               onValueChange={(value) => {
+                setSearchInput(value);
                 setSearch(value);
-                setPage(1);
               }}
               startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
               isClearable
-              onClear={() => setSearch("")}
+              onClear={() => {
+                setSearchInput("");
+                setSearch("");
+              }}
               classNames={{
                 inputWrapper: "bg-slate-50 border-slate-200 hover:border-slate-300",
               }}
@@ -513,8 +533,7 @@ export default function SystemLogsPage() {
                 onSelectionChange={(keys) => {
                   const value = Array.from(keys)[0] as string;
                   if (value) {
-                    setLogTypeFilter(value);
-                    setPage(1);
+                    setFilter("logType", value);
                   }
                 }}
                 classNames={{
@@ -532,8 +551,7 @@ export default function SystemLogsPage() {
                 onSelectionChange={(keys) => {
                   const value = Array.from(keys)[0] as string;
                   if (value) {
-                    setSeverityFilter(value);
-                    setPage(1);
+                    setFilter("severity", value);
                   }
                 }}
                 classNames={{
@@ -551,8 +569,7 @@ export default function SystemLogsPage() {
                 onSelectionChange={(keys) => {
                   const value = Array.from(keys)[0] as string;
                   if (value) {
-                    setTimeRange(value);
-                    setPage(1);
+                    setFilter("timeRange", value);
                   }
                 }}
                 classNames={{

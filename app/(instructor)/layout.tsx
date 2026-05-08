@@ -11,7 +11,6 @@ import { authService } from "@/services/auth.service";
 import { courseService, Course } from "@/services/course.service";
 import Link from "next/link";
 import { IoSchool } from "react-icons/io5";
-import { PageBootSkeleton } from "@/components/loading-skeletons";
 import { AppFooter } from "@/components/Footer";
 
 interface User {
@@ -57,7 +56,7 @@ export default function InstructorLayout({
 }) {
     const router = useRouter();
     const pathname = usePathname();
-    const [user, setUser] = useState<User | null>(null);
+    const [user, setUser] = useState<User | null>(() => authService.getStoredUser() as User | null);
     const [isLoading, setIsLoading] = useState(true);
     const [courseInfo, setCourseInfo] = useState<CourseInfo | null>(null);
     const [activeCourses, setActiveCourses] = useState<Course[]>([]);
@@ -205,14 +204,8 @@ export default function InstructorLayout({
     const isHomePage = pathname === "/home/closed" || pathname === "/home";
     const isClassroomPage = pathname.includes("/classroom/");
 
-    // Show loading screen while checking auth
-    if (isLoading) {
-        const isClassroom = pathname.includes("/classroom/");
-        return <PageBootSkeleton variant={isClassroom ? "classroom" : "home"} />;
-    }
-
     // Don't render content if user is not authenticated (will be redirected by useEffect)
-    if (!user) {
+    if (!user && !isLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100">
                 <div className="flex flex-col items-center gap-4">
@@ -257,10 +250,14 @@ export default function InstructorLayout({
                             <Dropdown>
                                 <DropdownTrigger>
                                     <button className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-slate-100 transition-colors text-slate-700">
-                                        <span className="font-medium max-w-[150px] truncate">{user?.full_name}</span>
-                                        <Chip size="sm" variant="flat" className="bg-emerald-50 text-emerald-600 h-5 text-[10px]">
-                                            {getRoleLabel(user?.role || "")}
-                                        </Chip>
+                                        <Skeleton isLoaded={Boolean(user)} className="rounded-md">
+                                            <span className="font-medium max-w-[150px] truncate">{user?.full_name || "กำลังโหลดผู้ใช้"}</span>
+                                        </Skeleton>
+                                        <Skeleton isLoaded={Boolean(user)} className="rounded-full">
+                                            <Chip size="sm" variant="flat" className="bg-emerald-50 text-emerald-600 h-5 text-[10px]">
+                                                {getRoleLabel(user?.role || "")}
+                                            </Chip>
+                                        </Skeleton>
                                         <Icon icon="solar:alt-arrow-down-linear" className="text-slate-400 text-sm" />
                                     </button>
                                 </DropdownTrigger>

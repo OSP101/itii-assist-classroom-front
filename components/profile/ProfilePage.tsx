@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@heroui/card";
 import { Button } from "@heroui/button";
-import { Spinner } from "@heroui/spinner";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { Icon } from "@iconify/react";
 import { addToast } from "@heroui/toast";
@@ -38,9 +37,8 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
   const validTabs: MenuKey[] = ["personal", "authentication", "sessions"];
   const initialTab = tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : "personal";
   
-  // User state
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // User state — seed from localStorage for instant render, then verify via API
+  const [user, setUser] = useState<User | null>(() => authService.getStoredUser());
   
   // Navigation state
   const [activeMenu, setActiveMenu] = useState<MenuKey>(initialTab);
@@ -67,8 +65,15 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
   const [showRevokeSessionModal, setShowRevokeSessionModal] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   
-  // Load user data
+  // Load user data — stored user shown immediately; API call updates in background
   useEffect(() => {
+    const stored = authService.getStoredUser();
+    if (stored) {
+      setFullName(stored.full_name || "");
+      setUsername(stored.username || "");
+      setEmail(stored.email || "");
+    }
+
     const loadUser = async () => {
       try {
         const currentUser = await authService.getCurrentUser();
@@ -83,8 +88,6 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
       } catch (error) {
         console.error("Failed to load user:", error);
         router.push("/login");
-      } finally {
-        setIsLoading(false);
       }
     };
     
@@ -344,14 +347,6 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
     };
     return config[role] || { color: "secondary" as const, label: role };
   }, []);
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Spinner size="lg" color="primary" />
-      </div>
-    );
-  }
 
   if (!user) {
     return null;

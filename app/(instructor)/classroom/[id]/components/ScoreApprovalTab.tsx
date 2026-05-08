@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardBody } from "@heroui/card";
 import { Chip } from "@heroui/chip";
-import { Spinner } from "@heroui/spinner";
 import { Tabs, Tab } from "@heroui/tabs";
 import { Button } from "@heroui/button";
 import { Textarea } from "@heroui/input";
@@ -467,11 +466,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
             </Tabs>
 
             {/* Content */}
-            {isLoading ? (
-                <div className="flex items-center justify-center py-20">
-                    <Spinner size="lg" color="primary" />
-                </div>
-            ) : groupedRequests.length === 0 ? (
+            {isLoading ? null : groupedRequests.length === 0 ? (
                 <Card className="shadow-sm">
                     <CardBody className="py-16">
                         <div className="text-center">

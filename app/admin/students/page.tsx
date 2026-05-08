@@ -29,6 +29,7 @@ import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { studentService } from "@/services/student.service";
 import type { Student, CreateStudentDto, UpdateStudentDto, StudentStats } from "@/services/student.service";
+import { useTableParams } from "@/lib/table/use-table-params";
 
 // Column definitions
 const columns = [
@@ -54,14 +55,28 @@ export default function StudentsPage() {
     const [isLoading, setIsLoading] = useState(true);
 
     // Pagination & Filters
-    const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
-    const [limit] = useState(10);
-    const [search, setSearch] = useState("");
-    const [statusFilter, setStatusFilter] = useState("all");
-    const [sortBy, setSortBy] = useState<string>("created_at");
-    const [sortOrder, setSortOrder] = useState<"ASC" | "DESC">("DESC");
+    const {
+        params,
+        setSearch,
+        setPage,
+        setSort,
+        setFilter,
+    } = useTableParams({
+        defaultLimit: 10,
+        defaultSort: "created_at",
+        defaultOrder: "desc",
+        searchDebounceMs: 300,
+    });
+    const [searchInput, setSearchInput] = useState(String(params.search ?? ""));
+
+    const page = Number(params.page) || 1;
+    const limit = Number(params.limit) || 10;
+    const search = String(params.search ?? "");
+    const statusFilter = String(params.status ?? "all");
+    const sortBy = String(params.sort ?? "created_at");
+    const sortOrder: "ASC" | "DESC" = params.order === "asc" ? "ASC" : "DESC";
 
     // Modal states
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -132,6 +147,10 @@ export default function StudentsPage() {
         fetchStats();
     }, [fetchStudents, fetchStats]);
 
+    useEffect(() => {
+        setSearchInput(search);
+    }, [search]);
+
     // Real-time sync - Subscribe to student updates
     useEffect(() => {
         subscribeToUpdates();
@@ -149,15 +168,6 @@ export default function StudentsPage() {
         });
         return unsubscribe;
     }, [onDataUpdate, fetchStudents, fetchStats]);
-
-    // Debounced search
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setPage(1);
-            fetchStudents();
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [search]);
 
     // Reset form
     const resetForm = () => {
@@ -484,10 +494,9 @@ export default function StudentsPage() {
     // Handle sort
     const handleSort = (column: string) => {
         if (sortBy === column) {
-            setSortOrder(sortOrder === "ASC" ? "DESC" : "ASC");
+            setSort(column, sortOrder === "ASC" ? "desc" : "asc");
         } else {
-            setSortBy(column);
-            setSortOrder("ASC");
+            setSort(column, "asc");
         }
     };
 
@@ -668,10 +677,18 @@ export default function StudentsPage() {
                     <div className="flex flex-col md:flex-row gap-3 pb-3 sm:pb-4">
                         <Input
                             placeholder="ค้นหารหัสนักศึกษา, ชื่อ, อีเมล..."
-                            value={search}
-                            onValueChange={setSearch}
+                            value={searchInput}
+                            onValueChange={(value) => {
+                                setSearchInput(value);
+                                setSearch(value);
+                            }}
                             startContent={<Icon icon="solar:magnifer-linear" className="text-slate-400" />}
                             className="w-full md:flex-1"
+                            isClearable
+                            onClear={() => {
+                                setSearchInput("");
+                                setSearch("");
+                            }}
                             classNames={{
                                 inputWrapper: "bg-slate-50 border-slate-200 hover:border-slate-300",
                             }}
@@ -681,8 +698,7 @@ export default function StudentsPage() {
                             selectedKeys={[statusFilter]}
                             onSelectionChange={(keys) => {
                                 const value = Array.from(keys)[0] as string;
-                                setStatusFilter(value);
-                                setPage(1);
+                                setFilter("status", value);
                             }}
                             className="w-full md:w-44"
                             classNames={{

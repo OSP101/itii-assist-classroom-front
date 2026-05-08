@@ -21,6 +21,7 @@ import QRCode from "react-qr-code";
 
 import { API_BASE_URL } from "@/config/api";
 import { Divider } from "@heroui/divider";
+import { Skeleton } from "@heroui/skeleton";
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
 const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
@@ -357,13 +358,30 @@ export default function ProjectorViewPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-15 h-15 bg-gradient-to-br from-blue-400 to-indigo-500 rounded flex items-center justify-center text-white text-4xl">
-                        <IoSchool />
+            <div className="min-h-screen bg-slate-100 p-4 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                        <Skeleton className="w-72 h-8 rounded-lg" />
+                        <Skeleton className="w-56 h-5 rounded-lg" />
                     </div>
-                    <Spinner size="lg" color="primary" />
-                    {/* <p className="text-slate-600">กำลังโหลด...</p> */}
+                    <div className="flex items-center gap-3">
+                        <Skeleton className="w-28 h-9 rounded-full" />
+                        <Skeleton className="w-32 h-9 rounded-full" />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-4 flex-1 min-h-0">
+                    <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4">
+                        <Skeleton className="w-full h-[62vh] rounded-lg" />
+                    </div>
+                    <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 space-y-3">
+                        <Skeleton className="w-40 h-6 rounded-lg" />
+                        <Skeleton className="w-full h-48 rounded-lg" />
+                        <Divider />
+                        <Skeleton className="w-full h-10 rounded-lg" />
+                        <Skeleton className="w-full h-10 rounded-lg" />
+                        <Skeleton className="w-full h-10 rounded-lg" />
+                    </div>
                 </div>
             </div>
         );

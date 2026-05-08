@@ -7,7 +7,6 @@ import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
 import { Tooltip } from "@heroui/tooltip";
 import { Avatar } from "@heroui/avatar";
-import { Spinner } from "@heroui/spinner";
 import { Progress } from "@heroui/progress";
 import { Input } from "@heroui/input";
 import {
@@ -207,15 +206,7 @@ export default function AttendanceSummaryPage() {
         URL.revokeObjectURL(url);
     };
 
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-100">
-                <Spinner size="lg" label="กำลังโหลด..." />
-            </div>
-        );
-    }
-
-    if (!session) {
+    if (!session && !isLoading) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100">
                 <Icon icon="solar:clipboard-remove-bold-duotone" className="text-6xl text-slate-300 mb-4" />
@@ -230,6 +221,10 @@ export default function AttendanceSummaryPage() {
                 </Button>
             </div>
         );
+    }
+
+    if (!session) {
+        return null;
     }
 
     return (

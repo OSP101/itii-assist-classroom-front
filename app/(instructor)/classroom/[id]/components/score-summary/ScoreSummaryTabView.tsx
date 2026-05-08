@@ -4,7 +4,6 @@ import React, { memo, useEffect, useMemo, useState } from "react";
 import { Card, CardBody } from "@heroui/card";
 import { Chip } from "@heroui/chip";
 import { Input } from "@heroui/input";
-import { Spinner } from "@heroui/spinner";
 import { Tabs, Tab } from "@heroui/tabs";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
@@ -12,6 +11,7 @@ import { Button } from "@heroui/button";
 import { Divider } from "@heroui/divider";
 import { Link } from "@heroui/link";
 import { Icon } from "@iconify/react";
+import { ScoresSkeleton } from "../Skeletons";
 import type { ScoreSummaryMatrix } from "@/services/score.service";
 import {
     AssignmentTabType,
@@ -146,6 +146,10 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
         }
     }, [scoreModal.isOpen]);
 
+    if (isLoading) {
+        return <ScoresSkeleton />;
+    }
+
     return (
         <div className="space-y-4">
             {/* Header */}
@@ -271,11 +275,7 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
             {/* Score Matrix */}
             <Card className="shadow-sm border border-slate-200">
                 <CardBody className="p-0">
-                    {isLoading ? (
-                        <div className="flex items-center justify-center py-20">
-                            <Spinner size="lg" color="primary" />
-                        </div>
-                    ) : !matrixData || matrixData.assignments.length === 0 ? (
+                    {!matrixData || matrixData.assignments.length === 0 ? (
                         <div className="text-center py-20">
                             <Icon icon="solar:clipboard-list-linear" className="text-5xl text-slate-300 mx-auto mb-3" />
                             <p className="text-slate-500">ยังไม่มี{selectedTab === "lab" ? "Lab" : selectedTab === "assignment" ? "Assignment" : "งานกลุ่ม"}</p>

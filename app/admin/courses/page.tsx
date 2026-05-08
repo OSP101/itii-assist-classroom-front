@@ -32,6 +32,7 @@ import { useRouter } from "next/navigation";
 import { courseService } from "@/services/course.service";
 import { useSocket } from "@/contexts/SocketContext";
 import type { Course, CreateCourseDto, UpdateCourseDto, CourseStats, Instructor } from "@/services/course.service";
+import { useTableParams } from "@/lib/table/use-table-params";
 
 // Column definitions
 const columns = [
@@ -66,16 +67,30 @@ export default function CoursesPage() {
     const [isLoading, setIsLoading] = useState(true);
 
     // Pagination & Filters
-    const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
-    const [limit] = useState(10);
-    const [search, setSearch] = useState("");
-    const [yearFilter, setYearFilter] = useState("all");
-    const [semesterFilter, setSemesterFilter] = useState("all");
-    const [statusFilter, setStatusFilter] = useState("all");
-    const [sortBy, setSortBy] = useState<string>("created_at");
-    const [sortOrder, setSortOrder] = useState<"ASC" | "DESC">("DESC");
+    const {
+        params,
+        setSearch,
+        setPage,
+        setSort,
+        setFilter,
+    } = useTableParams({
+        defaultLimit: 10,
+        defaultSort: "created_at",
+        defaultOrder: "desc",
+        searchDebounceMs: 300,
+    });
+    const [searchInput, setSearchInput] = useState(String(params.search ?? ""));
+
+    const page = Number(params.page) || 1;
+    const limit = Number(params.limit) || 10;
+    const search = String(params.search ?? "");
+    const yearFilter = String(params.year ?? "all");
+    const semesterFilter = String(params.semester ?? "all");
+    const statusFilter = String(params.status ?? "all");
+    const sortBy = String(params.sort ?? "created_at");
+    const sortOrder: "ASC" | "DESC" = params.order === "asc" ? "ASC" : "DESC";
 
     // Modal states
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -175,6 +190,10 @@ export default function CoursesPage() {
     }, [fetchCourses]);
 
     useEffect(() => {
+        setSearchInput(search);
+    }, [search]);
+
+    useEffect(() => {
         fetchStats();
         fetchInstructors();
     }, []);
@@ -215,10 +234,9 @@ export default function CoursesPage() {
     // Handle sort
     const handleSort = (column: string) => {
         if (sortBy === column) {
-            setSortOrder(sortOrder === "ASC" ? "DESC" : "ASC");
+            setSort(column, sortOrder === "ASC" ? "desc" : "asc");
         } else {
-            setSortBy(column);
-            setSortOrder("ASC");
+            setSort(column, "asc");
         }
     };
 
@@ -792,9 +810,17 @@ export default function CoursesPage() {
                     <div className="flex flex-col md:flex-row gap-3 pb-3 sm:pb-4">
                         <Input
                             placeholder="ค้นหารหัสวิชา, ชื่อวิชา..."
-                            value={search}
-                            onValueChange={setSearch}
+                            value={searchInput}
+                            onValueChange={(value) => {
+                                setSearchInput(value);
+                                setSearch(value);
+                            }}
                             startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
+                            isClearable
+                            onClear={() => {
+                                setSearchInput("");
+                                setSearch("");
+                            }}
                             className="w-full md:flex-1"
                             classNames={{
                                 inputWrapper: "bg-slate-50 border-slate-200 hover:border-slate-300",
@@ -804,7 +830,10 @@ export default function CoursesPage() {
                             <Select
                                 placeholder="ปีการศึกษา"
                                 selectedKeys={[yearFilter]}
-                                onChange={(e) => setYearFilter(e.target.value)}
+                                onSelectionChange={(keys) => {
+                                    const value = Array.from(keys)[0] as string;
+                                    setFilter("year", value);
+                                }}
                                 className="flex-1 min-w-[150px] sm:w-48"
                                 size="md"
                                 classNames={{
@@ -818,7 +847,10 @@ export default function CoursesPage() {
                             <Select
                                 placeholder="ภาคเรียน"
                                 selectedKeys={[semesterFilter]}
-                                onChange={(e) => setSemesterFilter(e.target.value)}
+                                onSelectionChange={(keys) => {
+                                    const value = Array.from(keys)[0] as string;
+                                    setFilter("semester", value);
+                                }}
                                 className="flex-1 min-w-[150px] sm:w-48"
                                 size="md"
                                 classNames={{
@@ -832,7 +864,10 @@ export default function CoursesPage() {
                             <Select
                                 placeholder="สถานะ"
                                 selectedKeys={[statusFilter]}
-                                onChange={(e) => setStatusFilter(e.target.value)}
+                                onSelectionChange={(keys) => {
+                                    const value = Array.from(keys)[0] as string;
+                                    setFilter("status", value);
+                                }}
                                 className="flex-1 min-w-[150px] sm:w-48"
                                 size="md"
                                 classNames={{

@@ -1,8 +1,10 @@
 /**
  * Monitoring Service
  * 
- * Provides methods to fetch server health, container, and website
- * monitoring data from the admin-only /api/monitoring/* endpoints.
+ * Provides methods to fetch system monitoring data.
+ *
+ * NOTE: Backend currently exposes only /api/system/* routes.
+ * Container and website monitoring endpoints are not available yet.
  * 
  * The backend returns raw metrics (bytes, seconds) — this service
  * transforms them into the UI-friendly units the components expect.
@@ -205,86 +207,48 @@ function computeLoadStatus(
 }
 
 /**
- * Fetch container metrics
- * Backend returns bytes → we convert to MB
+ * Fetch container metrics.
+ *
+ * TODO: Backend endpoint for container monitoring is not implemented.
+ * Return an empty list until /api/system/containers (or equivalent) exists.
  */
 async function getContainerMetrics(): Promise<ContainerMetrics[]> {
-  try {
-    const response = await apiService.get<RawData>(
-      API_ENDPOINTS.MONITORING.CONTAINERS
-    );
-    if (!response.success || !response.data) return [];
-
-    const raw = response.data.containers;
-    if (!Array.isArray(raw)) return [];
-
-    return raw.map((c: RawData) => ({
-      name: c.name ?? 'unknown',
-      cpuPercent: c.cpuPercent ?? 0,
-      memoryUsageMB: bytesToMB(c.memoryBytes),
-      memoryLimitMB: bytesToMB(c.memoryLimitBytes),
-      memoryPercent: c.memoryPercent ?? 0,
-      restarts: c.restarts ?? 0,
-      status: c.status ?? 'stopped',
-    }));
-  } catch (error) {
-    console.error('Failed to fetch container metrics:', error);
-    return [];
-  }
+  return [];
 }
 
 /**
- * Fetch website health metrics
- * Backend returns seconds → we convert to ms
+ * Fetch website health metrics.
+ *
+ * TODO: Backend endpoint for website monitoring is not implemented.
+ * Return a safe fallback model so UI can render without crashing.
  */
 async function getWebsiteMetrics(): Promise<WebsiteMetrics | null> {
-  try {
-    const response = await apiService.get<RawData>(
-      API_ENDPOINTS.MONITORING.WEBSITE
-    );
-    if (!response.success || !response.data) return null;
-
-    const d = response.data;
-    const p95ms = secToMs(d.responseTime?.p95);
-
-    // Parse status codes from backend { "200": 0.3, "404": 0.01, ... }
-    const statusCodes = d.statusCodes
-      ? Object.entries(d.statusCodes).map(([code, count]) => ({
-          code,
-          count: typeof count === 'number' ? count : 0,
-        }))
-      : [];
-
-    return {
-      uptime: {
-        isUp: d.uptime?.isUp ?? false,
-        uptimePercent: d.uptime?.isUp ? 100 : 0,
-        lastDowntime: null,
-      },
-      responseTime: {
-        avgMs: secToMs(d.responseTime?.p50),
-        p50Ms: secToMs(d.responseTime?.p50),
-        p95Ms: secToMs(d.responseTime?.p95),
-        p99Ms: secToMs(d.responseTime?.p99),
-        status: p95ms > 2000 ? 'critical' : p95ms > 500 ? 'slow' : 'good',
-      },
-      errorRate: {
-        percent: d.errorRate?.percent ?? 0,
-        total5xx: 0,
-        total4xx: 0,
-        totalRequests: 0,
-        status: d.errorRate?.status ?? 'normal',
-      },
-      statusCodes,
-      requestRate: {
-        perSecond: d.requestRate?.perSecond ?? 0,
-        perMinute: (d.requestRate?.perSecond ?? 0) * 60,
-      },
-    };
-  } catch (error) {
-    console.error('Failed to fetch website metrics:', error);
-    return null;
-  }
+  return {
+    uptime: {
+      isUp: false,
+      uptimePercent: 0,
+      lastDowntime: null,
+    },
+    responseTime: {
+      avgMs: 0,
+      p50Ms: 0,
+      p95Ms: 0,
+      p99Ms: 0,
+      status: 'critical',
+    },
+    errorRate: {
+      percent: 0,
+      total5xx: 0,
+      total4xx: 0,
+      totalRequests: 0,
+      status: 'normal',
+    },
+    statusCodes: [],
+    requestRate: {
+      perSecond: 0,
+      perMinute: 0,
+    },
+  };
 }
 
 /**

@@ -29,6 +29,7 @@ import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { feedbackService } from "@/services/feedback.service";
 import type { Feedback, FeedbackStats, UpdateFeedbackDto } from "@/services/feedback.service";
+import { useTableParams } from "@/lib/table/use-table-params";
 
 // Column definitions
 const columns = [
@@ -112,14 +113,27 @@ export default function FeedbackPage() {
     const [stats, setStats] = useState<FeedbackStats | null>(null);
 
     // Pagination & Filters
-    const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
-    const [limit] = useState(10);
-    const [search, setSearch] = useState("");
-    const [typeFilter, setTypeFilter] = useState("all");
-    const [statusFilter, setStatusFilter] = useState("all");
-    const [priorityFilter, setPriorityFilter] = useState("all");
+    const {
+        params,
+        setSearch,
+        setPage,
+        setFilter,
+    } = useTableParams({
+        defaultLimit: 10,
+        defaultSort: "created_at",
+        defaultOrder: "desc",
+        searchDebounceMs: 300,
+    });
+    const [searchInput, setSearchInput] = useState(String(params.search ?? ""));
+
+    const page = Number(params.page) || 1;
+    const limit = Number(params.limit) || 10;
+    const search = String(params.search ?? "");
+    const typeFilter = String(params.type ?? "all");
+    const statusFilter = String(params.status ?? "all");
+    const priorityFilter = String(params.priority ?? "all");
 
     // Loading state
     const [isLoading, setIsLoading] = useState(true);
@@ -179,13 +193,8 @@ export default function FeedbackPage() {
         fetchStats();
     }, [fetchFeedbacks, fetchStats]);
 
-    // Debounced search
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setPage(1);
-            fetchFeedbacks();
-        }, 300);
-        return () => clearTimeout(timer);
+        setSearchInput(search);
     }, [search]);
 
     // Open view modal
@@ -450,9 +459,17 @@ export default function FeedbackPage() {
                 <div className="flex flex-col md:flex-row gap-3 pb-3 sm:pb-4">
                     <Input
                         placeholder="ค้นหา..."
-                        value={search}
-                        onValueChange={setSearch}
+                        value={searchInput}
+                        onValueChange={(value) => {
+                            setSearchInput(value);
+                            setSearch(value);
+                        }}
                         startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
+                        isClearable
+                        onClear={() => {
+                            setSearchInput("");
+                            setSearch("");
+                        }}
                         className="w-full md:flex-1"
                         size="md"
                         classNames={{
@@ -465,8 +482,7 @@ export default function FeedbackPage() {
                             selectedKeys={[typeFilter]}
                             onSelectionChange={(keys) => {
                                 const selected = Array.from(keys)[0] as string;
-                                setTypeFilter(selected);
-                                setPage(1);
+                                setFilter("type", selected);
                             }}
                             className="flex-1 min-w-[150px] sm:w-48"
                                 size="md"
@@ -483,8 +499,7 @@ export default function FeedbackPage() {
                             selectedKeys={[statusFilter]}
                             onSelectionChange={(keys) => {
                                 const selected = Array.from(keys)[0] as string;
-                                setStatusFilter(selected);
-                                setPage(1);
+                                setFilter("status", selected);
                             }}
                             className="flex-1 min-w-[150px] sm:w-48"
                                 size="md"
@@ -501,8 +516,7 @@ export default function FeedbackPage() {
                             selectedKeys={[priorityFilter]}
                             onSelectionChange={(keys) => {
                                 const selected = Array.from(keys)[0] as string;
-                                setPriorityFilter(selected);
-                                setPage(1);
+                                setFilter("priority", selected);
                             }}
                             className="flex-1 min-w-[150px] sm:w-48"
                                 size="md"

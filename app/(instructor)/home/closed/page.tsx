@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Card, CardBody, CardFooter } from "@heroui/card";
@@ -36,7 +36,8 @@ export default function ClosedCoursesPage() {
     const { subscribeToCourseUpdates, unsubscribeFromCourseUpdates, onCourseUpdate, emitCourseUpdate, isConnected } = useSocket();
     const [allCourses, setAllCourses] = useState<Course[]>([]);
     const [stats, setStats] = useState<Stats | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isInitialCoursesLoading, setIsInitialCoursesLoading] = useState(true);
+    const [isRefreshingCourses, setIsRefreshingCourses] = useState(false);
     const [userRole, setUserRole] = useState<string>("");
     const [currentUserId, setCurrentUserId] = useState<number | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
@@ -53,6 +54,7 @@ export default function ClosedCoursesPage() {
     const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [deleteConfirmChecked, setDeleteConfirmChecked] = useState(false);
+    const hasLoadedCoursesRef = useRef(false);
 
     // Filters
     const [search, setSearch] = useState("");
@@ -72,8 +74,13 @@ export default function ClosedCoursesPage() {
     }, []);
 
     // Fetch all courses once on load
-    const fetchCourses = useCallback(async () => {
-        setIsLoading(true);
+    const fetchCourses = useCallback(async (background = false) => {
+        if (!hasLoadedCoursesRef.current) {
+            setIsInitialCoursesLoading(true);
+        } else if (background) {
+            setIsRefreshingCourses(true);
+        }
+
         try {
             // Fetch all courses without pagination (set high limit)
             const response = await courseService.getMyCourses({ limit: 1000 });
@@ -83,7 +90,9 @@ export default function ClosedCoursesPage() {
         } catch (error) {
             console.error("Failed to fetch courses:", error);
         } finally {
-            setIsLoading(false);
+            hasLoadedCoursesRef.current = true;
+            setIsInitialCoursesLoading(false);
+            setIsRefreshingCourses(false);
         }
     }, []);
 
@@ -100,7 +109,7 @@ export default function ClosedCoursesPage() {
     }, []);
 
     useEffect(() => {
-        fetchCourses();
+        fetchCourses(false);
         fetchStats();
     }, [fetchCourses, fetchStats]);
 
@@ -119,7 +128,7 @@ export default function ClosedCoursesPage() {
     useEffect(() => {
         const unsubscribe = onCourseUpdate((data) => {
             console.log("📥 Received course update:", data);
-            fetchCourses();
+            fetchCourses(true);
             fetchStats();
 
             addToast({
@@ -255,7 +264,7 @@ export default function ClosedCoursesPage() {
                 });
                 setIsRestoreModalOpen(false);
                 setSelectedCourse(null);
-                fetchCourses();
+                fetchCourses(true);
                 fetchStats();
                 emitCourseUpdate("toggle", selectedCourse.id);
             } else {
@@ -301,7 +310,7 @@ export default function ClosedCoursesPage() {
                 setIsDeleteModalOpen(false);
                 setSelectedCourse(null);
                 setDeleteConfirmChecked(false);
-                fetchCourses();
+                fetchCourses(true);
                 fetchStats();
                 emitCourseUpdate("delete", selectedCourse.id);
             } else {
@@ -354,6 +363,11 @@ export default function ClosedCoursesPage() {
                             <span className="hidden sm:inline">{isConnected ? "Live" : "..."}</span>
                         </div>
                     </Tooltip>
+                    {isRefreshingCourses && (
+                        <Chip size="sm" variant="flat" className="bg-blue-50 text-blue-600">
+                            กำลังอัปเดตข้อมูล
+                        </Chip>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -471,7 +485,7 @@ export default function ClosedCoursesPage() {
             </Card>
 
             {/* Course List */}
-            {isLoading ? (
+            {isInitialCoursesLoading ? (
                 <CourseListSkeleton viewMode={viewMode} tone="closed" />
             ) : paginatedCourses.length === 0 ? (
                 <Card className="border border-slate-200 shadow-sm">

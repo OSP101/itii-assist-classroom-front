@@ -32,6 +32,7 @@ import classroomService, {
     Desk as APIDesk,
     ClassroomStats,
 } from "@/services/classroom.service";
+import { useTableParams } from "@/lib/table/use-table-params";
 
 // Dynamic import Canvas component (client-side only)
 const CanvasEditor = dynamic(() => import("./CanvasEditor"), {
@@ -196,9 +197,20 @@ export default function ClassroomsPage() {
     const [toggleTarget, setToggleTarget] = useState<Classroom | null>(null);
     const [isToggling, setIsToggling] = useState(false);
 
-    // Search and filter state
-    const [searchQuery, setSearchQuery] = useState("");
-    const [floorFilter, setFloorFilter] = useState<string>("all");
+    // Search and filter state (URL-synced)
+    const {
+        params,
+        setSearch,
+        setFilter,
+    } = useTableParams({
+        defaultLimit: 50,
+        defaultSort: "created_at",
+        defaultOrder: "desc",
+        searchDebounceMs: 300,
+    });
+    const [searchInput, setSearchInput] = useState(String(params.search ?? ""));
+    const searchQuery = String(params.search ?? "");
+    const floorFilter = String(params.floor ?? "all");
 
     // Form state
     const [formData, setFormData] = useState({
@@ -243,6 +255,10 @@ export default function ClassroomsPage() {
     useEffect(() => {
         fetchClassrooms();
     }, [fetchClassrooms]);
+
+    useEffect(() => {
+        setSearchInput(searchQuery);
+    }, [searchQuery]);
 
     // Helper function to refresh stats only (reduces duplicate code)
     const refreshStats = useCallback(async () => {
@@ -1139,11 +1155,17 @@ export default function ClassroomsPage() {
                     <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pb-3 sm:pb-4">
                         <Input
                             placeholder="ค้นหาห้องเรียน..."
-                            value={searchQuery}
-                            onValueChange={setSearchQuery}
+                            value={searchInput}
+                            onValueChange={(value) => {
+                                setSearchInput(value);
+                                setSearch(value);
+                            }}
                             startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
                             isClearable
-                            onClear={() => setSearchQuery("")}
+                            onClear={() => {
+                                setSearchInput("");
+                                setSearch("");
+                            }}
                             className="flex-1"
                             size="md"
                             classNames={{
@@ -1154,7 +1176,10 @@ export default function ClassroomsPage() {
                             <Select
                                 placeholder="เลือกชั้น"
                                 selectedKeys={[floorFilter]}
-                                onSelectionChange={(keys) => setFloorFilter(Array.from(keys)[0] as string)}
+                                onSelectionChange={(keys) => {
+                                    const value = Array.from(keys)[0] as string;
+                                    setFilter("floor", value);
+                                }}
                                 className="flex-1 min-w-[150px] sm:w-48"
                                 size="md"
                                 classNames={{

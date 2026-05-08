@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
@@ -75,12 +76,60 @@ const tabs: { key: TabKey; label: string; icon: string }[] = [
   { key: "containers", label: "Containers", icon: "solar:box-bold" },
 ];
 
+const TAB_SET = new Set<TabKey>(tabs.map((tab) => tab.key));
+
 // ---------------------------------------------------------------------------
 // Main Page
 // ---------------------------------------------------------------------------
 
-export default function MonitoringPage() {
-  const [activeTab, setActiveTab] = useState<TabKey>("overview");
+interface MonitoringPageProps {
+  initialTab?: TabKey;
+}
+
+export function MonitoringPage({ initialTab = "overview" }: MonitoringPageProps) {
+  const pathname = usePathname();
+
+  // Derive tab from current pathname (for initial render / real Next.js navigation)
+  const tabFromPath = useMemo<TabKey | null>(() => {
+    const segments = pathname.split("/").filter(Boolean);
+    const maybeTab = segments[segments.length - 1] as TabKey;
+    return TAB_SET.has(maybeTab) ? maybeTab : null;
+  }, [pathname]);
+
+  const [activeTab, setActiveTab] = useState<TabKey>(tabFromPath ?? initialTab);
+  const [isTabTransitioning, setIsTabTransitioning] = useState(false);
+  const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync activeTab when Next.js pathname changes (real navigation, not pushState)
+  useEffect(() => {
+    if (tabFromPath && tabFromPath !== activeTab) {
+      setActiveTab(tabFromPath);
+    }
+  }, [tabFromPath]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const navigateToTab = useCallback(
+    (tab: TabKey) => {
+      if (tab === activeTab) return;
+      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+      setIsTabTransitioning(true);
+      transitionTimerRef.current = setTimeout(() => {
+        setActiveTab(tab);
+        window.history.pushState(null, "", `/admin/monitoring/${tab}`);
+        setIsTabTransitioning(false);
+      }, 80);
+    },
+    [activeTab]
+  );
+
+  useEffect(() => {
+    const onPopState = () => {
+      const segments = window.location.pathname.split("/").filter(Boolean);
+      const maybeTab = segments[segments.length - 1] as TabKey;
+      if (TAB_SET.has(maybeTab)) setActiveTab(maybeTab);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
   const {
     system,
     containers,
@@ -228,7 +277,7 @@ export default function MonitoringPage() {
         {tabs.map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
+            onClick={() => navigateToTab(tab.key)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               activeTab === tab.key
                 ? "bg-background text-foreground shadow-sm"
@@ -242,6 +291,12 @@ export default function MonitoringPage() {
       </div>
 
       {/* Content */}
+      <div
+        style={{
+          opacity: isTabTransitioning ? 0.72 : 1,
+          transition: "opacity 80ms ease",
+        }}
+      >
       {isLoading ? (
         <LoadingGrid />
       ) : (
@@ -312,6 +367,7 @@ export default function MonitoringPage() {
           )}
         </>
       )}
+      </div>
 
       {/* Footer info */}
       <div className="flex items-center justify-between text-[11px] text-default-400 pt-2">
@@ -324,4 +380,8 @@ export default function MonitoringPage() {
       </div>
     </div>
   );
+}
+
+export default function MonitoringDefaultPage() {
+  return <MonitoringPage initialTab="overview" />;
 }

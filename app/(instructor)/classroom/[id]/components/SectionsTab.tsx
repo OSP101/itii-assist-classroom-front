@@ -155,13 +155,10 @@ export default function SectionsTab({
         );
     };
 
-    // Show loading spinner while fetching initial data
+    // Initial tab loading is handled by route/tab skeletons.
+    // Keep this container blank until course data is ready.
     if (isLoading || !course) {
-        return (
-            <div className="flex items-center justify-center py-12">
-                <Spinner size="lg" color="primary" />
-            </div>
-        );
+        return null;
     }
 
     return (

@@ -8,6 +8,7 @@ import { Button } from "@heroui/button";
 import { Input, Textarea } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
 import { Skeleton } from "@heroui/skeleton";
+import { Spinner } from "@heroui/spinner";
 import { Chip } from "@heroui/chip";
 import { Pagination } from "@heroui/pagination";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
@@ -37,7 +38,8 @@ export default function HomePage() {
     const { subscribeToCourseUpdates, unsubscribeFromCourseUpdates, onCourseUpdate, emitCourseUpdate, isConnected } = useSocket();
     const [allCourses, setAllCourses] = useState<Course[]>([]); // All courses from API
     const [stats, setStats] = useState<Stats | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isInitialCoursesLoading, setIsInitialCoursesLoading] = useState(true);
+    const [isRefreshingCourses, setIsRefreshingCourses] = useState(false);
     const [userRole, setUserRole] = useState<string>("");
     const [isUserRoleLoading, setIsUserRoleLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState<number | null>(null);
@@ -82,6 +84,7 @@ export default function HomePage() {
     // 2FA reminder banner
     const [show2FABanner, setShow2FABanner] = useState(false);
     const [is2FAEnabled, setIs2FAEnabled] = useState(true); // Default true to hide banner initially
+    const hasLoadedCoursesRef = useRef(false);
 
     // Get user role and ID
     useEffect(() => {
@@ -150,8 +153,13 @@ export default function HomePage() {
     }, [fetchInstructors]);
 
     // Fetch all courses once on load
-    const fetchCourses = useCallback(async () => {
-        setIsLoading(true);
+    const fetchCourses = useCallback(async (background = false) => {
+        if (!hasLoadedCoursesRef.current) {
+            setIsInitialCoursesLoading(true);
+        } else if (background) {
+            setIsRefreshingCourses(true);
+        }
+
         try {
             // Fetch all courses without pagination (set high limit)
             const response = await courseService.getMyCourses({ limit: 1000 });
@@ -161,7 +169,9 @@ export default function HomePage() {
         } catch (error) {
             console.error("Failed to fetch courses:", error);
         } finally {
-            setIsLoading(false);
+            hasLoadedCoursesRef.current = true;
+            setIsInitialCoursesLoading(false);
+            setIsRefreshingCourses(false);
         }
     }, []);
 
@@ -178,7 +188,7 @@ export default function HomePage() {
     }, []);
 
     useEffect(() => {
-        fetchCourses();
+        fetchCourses(false);
         fetchStats();
     }, [fetchCourses, fetchStats]);
 
@@ -198,7 +208,7 @@ export default function HomePage() {
         const unsubscribe = onCourseUpdate((data) => {
             console.log("📥 Received course update:", data);
             // Refresh data when any course change is detected
-            fetchCourses();
+            fetchCourses(true);
             fetchStats();
 
             // Show notification
@@ -369,7 +379,7 @@ export default function HomePage() {
                 });
                 setIsCreateModalOpen(false);
                 resetForm();
-                fetchCourses();
+                fetchCourses(true);
                 fetchStats();
                 // Emit real-time update to other clients
                 emitCourseUpdate("create", response.data?.id);
@@ -456,7 +466,7 @@ export default function HomePage() {
                 setIsEditModalOpen(false);
                 resetForm();
                 setSelectedCourse(null);
-                fetchCourses();
+                fetchCourses(true);
                 // Emit real-time update to other clients
                 emitCourseUpdate("update", selectedCourse.id);
             } else {
@@ -525,7 +535,7 @@ export default function HomePage() {
                 });
                 setIsToggleStatusModalOpen(false);
                 setCourseToToggle(null);
-                fetchCourses();
+                fetchCourses(true);
                 fetchStats();
                 // Emit real-time update to other clients
                 emitCourseUpdate("toggle", courseToToggle.id);
@@ -623,6 +633,11 @@ export default function HomePage() {
                             <span className="hidden sm:inline">{isConnected ? "Live" : "..."}</span>
                         </div>
                     </Tooltip>
+                    {isRefreshingCourses && (
+                        <Chip size="sm" variant="flat" className="bg-blue-50 text-blue-600" startContent={<Spinner size="sm" color="primary" />}>
+                            กำลังอัปเดตข้อมูล
+                        </Chip>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -753,7 +768,7 @@ export default function HomePage() {
             </Card>
 
             {/* Course List */}
-            {isLoading ? (
+            {isInitialCoursesLoading ? (
                 <CourseListSkeleton viewMode={viewMode} />
             ) : paginatedCourses.length === 0 ? (
                 <Card className="border border-slate-200 shadow-sm">

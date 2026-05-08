@@ -8,11 +8,11 @@ import { Switch } from "@heroui/switch";
 import { Checkbox } from "@heroui/checkbox";
 import { Input } from "@heroui/input";
 import { Chip } from "@heroui/chip";
-import { Spinner } from "@heroui/spinner";
 import { Tooltip } from "@heroui/tooltip";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
+import { ScoresSkeleton } from "../Skeletons";
 import examScoreService, { 
     ExamSetting, 
     Student, 
@@ -300,11 +300,7 @@ export default function ExamScoresTab({
     };
 
     if (isLoading) {
-        return (
-            <div className="flex items-center justify-center py-12">
-                <Spinner size="lg" />
-            </div>
-        );
+        return <ScoresSkeleton />;
     }
 
     const activeSettings = settings?.filter(s => s.is_active) || [];

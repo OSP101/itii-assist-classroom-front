@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef, type ComponentType } from "react";
 import { createPortal } from "react-dom";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
@@ -43,47 +43,38 @@ import { OverviewSkeleton, TeamsGridSkeleton, SidebarMenuSkeleton, PeopleTableSk
 // Lazy load heavy Tab components with custom loading states
 const OverviewTab = dynamic(() => import("./components/OverviewTab"), {
     loading: () => <OverviewSkeleton />,
-    ssr: false,
 });
 
 const SectionsTab = dynamic(() => import("./components/SectionsTab"), {
     loading: () => <TabListSkeleton />,
-    ssr: false,
 });
 
 const PeopleTab = dynamic(() => import("./components/PeopleTab"), {
     loading: () => <PeopleTableSkeleton />,
-    ssr: false,
 });
 
 const AssignmentsTab = dynamic(() => import("./components/AssignmentsTab"), {
     loading: () => <AssignmentsSkeleton />,
-    ssr: false,
 });
 
 const AttendanceTab = dynamic(() => import("./components/AttendanceTab"), {
     loading: () => <TabListSkeleton />,
-    ssr: false,
 });
 
 const ScoresTab = dynamic(() => import("./components/ScoreSummaryTab"), {
     loading: () => <ScoresSkeleton />,
-    ssr: false,
 });
 
 const QueueTab = dynamic(() => import("./components/QueueTab"), {
     loading: () => <TabListSkeleton />,
-    ssr: false,
 });
 
 const ScoreApprovalTab = dynamic(() => import("./components/ScoreApprovalTab"), {
     loading: () => <TabListSkeleton />,
-    ssr: false,
 });
 
 const ExamScoresTab = dynamic(() => import("./components/exam-scores/ExamScoresTab"), {
     loading: () => <TabListSkeleton />,
-    ssr: false,
 });
 
 // Lazy load Modal (only needed when user opens it)
@@ -99,21 +90,73 @@ const BonusScoreModal = dynamic(() => import("./components/BonusScoreModal"), {
 
 const SettingsTab = dynamic(() => import("./components/SettingsTab"), {
     loading: () => <TabListSkeleton />,
-    ssr: false,
 });
 
 const ActivityLogTab = dynamic(() => import("./components/ActivityLogTab"), {
     loading: () => <TabListSkeleton />,
-    ssr: false,
 });
 
 const TAStatsTab = dynamic(() => import("./components/TAStatsTab"), {
     loading: () => <TabListSkeleton />,
-    ssr: false,
 });
 
-export default function ClassroomDetailPage() {
+const preloadDynamic = (component: ComponentType<any>) => {
+    (component as ComponentType<any> & { preload?: () => void }).preload?.();
+};
+
+const TAB_PRELOADERS: Partial<Record<ClassroomTabKey, () => void>> = {
+    overview: () => preloadDynamic(OverviewTab),
+    sections: () => preloadDynamic(SectionsTab),
+    people: () => preloadDynamic(PeopleTab),
+    assignments: () => preloadDynamic(AssignmentsTab),
+    scores: () => preloadDynamic(ScoresTab),
+    "exam-scores": () => preloadDynamic(ExamScoresTab),
+    approval: () => preloadDynamic(ScoreApprovalTab),
+    attendance: () => preloadDynamic(AttendanceTab),
+    queue: () => preloadDynamic(QueueTab),
+    "activity-log": () => preloadDynamic(ActivityLogTab),
+    "ta-stats": () => preloadDynamic(TAStatsTab),
+    settings: () => preloadDynamic(SettingsTab),
+};
+
+export type ClassroomTabKey =
+    | "overview"
+    | "sections"
+    | "people"
+    | "assignments"
+    | "scores"
+    | "exam-scores"
+    | "approval"
+    | "attendance"
+    | "queue"
+    | "activity-log"
+    | "ta-stats"
+    | "settings";
+
+const TAB_ROUTE_MAP: Record<ClassroomTabKey, string> = {
+    overview: "overview",
+    sections: "sections",
+    people: "people",
+    assignments: "assignments",
+    scores: "scores",
+    "exam-scores": "exam-scores",
+    approval: "approval",
+    attendance: "attendance",
+    queue: "queue",
+    "activity-log": "activity-log",
+    "ta-stats": "ta-stats",
+    settings: "settings",
+};
+
+const ALL_TABS = new Set<ClassroomTabKey>(Object.keys(TAB_ROUTE_MAP) as ClassroomTabKey[]);
+
+interface ClassroomDetailPageProps {
+    initialTab?: ClassroomTabKey;
+}
+
+export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetailPageProps) {
     const params = useParams();
+    const pathname = usePathname();
     const courseId = params.id as string;
 
     // ============================================
@@ -192,7 +235,18 @@ export default function ClassroomDetailPage() {
     // UI-Only States (local to this component)
     // ============================================
 
-    const [activeTab, setActiveTab] = useState("overview");
+    const activeTabFromPath = useMemo<ClassroomTabKey | null>(() => {
+        const segments = pathname.split("/").filter(Boolean);
+        const tabCandidate = segments[segments.length - 1] as ClassroomTabKey;
+        if (ALL_TABS.has(tabCandidate)) {
+            return tabCandidate;
+        }
+        return null;
+    }, [pathname]);
+
+    const [activeTab, setActiveTab] = useState<ClassroomTabKey>(activeTabFromPath ?? initialTab);
+    const [isTabTransitioning, setIsTabTransitioning] = useState(false);
+    const hasInitializedRef = useRef(false);
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     const [expandedSections, setExpandedSections] = useState<number[]>([]);
 
@@ -423,10 +477,60 @@ export default function ClassroomDetailPage() {
     // Effects
     // ============================================
 
+    const navigateToTab = useCallback((tab: ClassroomTabKey) => {
+        if (activeTab !== tab) {
+            setActiveTab(tab);
+        }
+
+        if (typeof window === "undefined") {
+            return;
+        }
+
+        const targetPath = `/classroom/${courseId}/${TAB_ROUTE_MAP[tab]}`;
+        if (window.location.pathname !== targetPath) {
+            window.history.pushState(null, "", targetPath);
+        }
+    }, [activeTab, courseId]);
+
     // Initialize data on mount
     useEffect(() => {
-        initializeData();
+        hasInitializedRef.current = false;
+        let isCancelled = false;
+
+        const runInitialization = async () => {
+            await initializeData(activeTabFromPath ?? initialTab);
+            if (!isCancelled) {
+                hasInitializedRef.current = true;
+            }
+        };
+
+        runInitialization();
+
+        return () => {
+            isCancelled = true;
+        };
     }, [courseId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Keep UI tab state in sync with route segment
+    useEffect(() => {
+        const nextTab = activeTabFromPath ?? initialTab;
+        if (activeTab !== nextTab) {
+            setActiveTab(nextTab);
+        }
+    }, [activeTab, activeTabFromPath, initialTab]);
+
+    // Keep tab state in sync when user uses browser back/forward
+    useEffect(() => {
+        const handlePopState = () => {
+            const segments = window.location.pathname.split("/").filter(Boolean);
+            const tabCandidate = segments[segments.length - 1] as ClassroomTabKey;
+            const nextTab = ALL_TABS.has(tabCandidate) ? tabCandidate : initialTab;
+            setActiveTab(nextTab);
+        };
+
+        window.addEventListener("popstate", handlePopState);
+        return () => window.removeEventListener("popstate", handlePopState);
+    }, [initialTab]);
 
     // Fetch section students when course sections load
     useEffect(() => {
@@ -437,8 +541,18 @@ export default function ClassroomDetailPage() {
 
     // Refresh data when changing tabs
     useEffect(() => {
+        if (!hasInitializedRef.current) {
+            return;
+        }
         refreshForTab(activeTab);
     }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Subtle content-only fade to avoid harsh visual jumps between tabs
+    useEffect(() => {
+        setIsTabTransitioning(true);
+        const timeoutId = window.setTimeout(() => setIsTabTransitioning(false), 140);
+        return () => window.clearTimeout(timeoutId);
+    }, [activeTab]);
 
     // ============================================
     // UI Handlers
@@ -932,6 +1046,10 @@ export default function ClassroomDetailPage() {
         modals.instructorModal.setSelectedIds([]);
     }, [modals.instructorModal]);
 
+    const preloadTab = useCallback((tab: ClassroomTabKey) => {
+        TAB_PRELOADERS[tab]?.();
+    }, []);
+
     // ============================================
     // Menu Items
     // ============================================
@@ -956,10 +1074,46 @@ export default function ClassroomDetailPage() {
     ], [approvalRole, canAccessApproval, canAccessAssignments, canAccessAttendance, canAccessExamScores, canAccessQueue, canAccessScores, canAccessSections, canViewPeople, userRole]);
 
     useEffect(() => {
-        if (!menuItems.some((item) => item.key === activeTab)) {
-            setActiveTab("overview");
+        if (isLoading || !course) {
+            return;
         }
-    }, [activeTab, menuItems]);
+        if (!menuItems.some((item) => item.key === activeTab)) {
+            navigateToTab((menuItems[0]?.key as ClassroomTabKey) || "overview");
+        }
+    }, [activeTab, menuItems, navigateToTab, isLoading, course]);
+
+    // Proactively preload next likely tab chunks during idle time for smoother switches.
+    useEffect(() => {
+        if (typeof window === "undefined" || menuItems.length === 0) {
+            return;
+        }
+
+        const candidateTabs = menuItems
+            .map((item) => item.key as ClassroomTabKey)
+            .filter((tab) => tab !== activeTab)
+            .slice(0, 3);
+
+        const runPreload = () => {
+            candidateTabs.forEach((tab) => preloadTab(tab));
+        };
+
+        const requestIdle = (window as any).requestIdleCallback as
+            | ((cb: () => void, opts?: { timeout: number }) => number)
+            | undefined;
+        const cancelIdle = (window as any).cancelIdleCallback as
+            | ((id: number) => void)
+            | undefined;
+
+        if (requestIdle) {
+            const idleId = requestIdle(runPreload, { timeout: 1200 });
+            return () => {
+                cancelIdle?.(idleId);
+            };
+        }
+
+        const timeoutId = globalThis.setTimeout(runPreload, 250);
+        return () => globalThis.clearTimeout(timeoutId);
+    }, [activeTab, menuItems, preloadTab]);
 
     // ============================================
     // Render
@@ -1062,9 +1216,11 @@ export default function ClassroomDetailPage() {
                                 menuItems.map((item) => (
                                 <button
                                     key={item.key}
+                                    onMouseEnter={() => preloadTab(item.key as ClassroomTabKey)}
+                                    onFocus={() => preloadTab(item.key as ClassroomTabKey)}
                                     onClick={() => {
                                         if ((item as any).status !== "coming_soon") {
-                                            setActiveTab(item.key);
+                                            navigateToTab(item.key as ClassroomTabKey);
                                             setIsMobileSidebarOpen(false);
                                         }
                                     }}
@@ -1096,9 +1252,11 @@ export default function ClassroomDetailPage() {
                             <button
                                 key={item.key}
                                 disabled={(item as any).status === "coming_soon"}
+                                onMouseEnter={() => preloadTab(item.key as ClassroomTabKey)}
+                                onFocus={() => preloadTab(item.key as ClassroomTabKey)}
                                 onClick={() => {
                                     if ((item as any).status !== "coming_soon") {
-                                        setActiveTab(item.key);
+                                        navigateToTab(item.key as ClassroomTabKey);
                                     }
                                 }}
                                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-all ${activeTab === item.key
@@ -1175,7 +1333,7 @@ export default function ClassroomDetailPage() {
                                                     size="sm"
                                                     color="warning"
                                                     variant="flat"
-                                                    onPress={() => setActiveTab("settings")}
+                                                    onPress={() => navigateToTab("settings")}
                                                     startContent={<Icon icon="solar:settings-linear" width={16} />}
                                                 >
                                                     ไปที่ตั้งค่า
@@ -1185,145 +1343,150 @@ export default function ClassroomDetailPage() {
                                     </div>
                                 )}
 
-                                {activeTab === "overview" && (
-                                    <OverviewTab
-                                        course={course}
-                                        overview={overview}
-                                        isLoading={isOverviewLoading}
-                                        userRole={userRole}
-                                        assignments={assignments}
-                                        onNavigateToAssignments={() => setActiveTab("assignments")}
-                                        onNavigateToAttendance={() => setActiveTab("attendance")}
-                                        onNavigateToQueue={() => setActiveTab("queue")}
-                                        onNavigateToScores={() => setActiveTab("scores")}
-                                        onNavigateToApproval={() => setActiveTab("approval")}
-                                        onNavigateToPeople={() => setActiveTab("people")}
-                                    />
-                                )}
+                                <div
+                                    className="transition-opacity duration-150 ease-out"
+                                    style={{ opacity: isTabTransitioning ? 0.72 : 1 }}
+                                >
+                                    {activeTab === "overview" && (
+                                        <OverviewTab
+                                            course={course}
+                                            overview={overview}
+                                            isLoading={isOverviewLoading}
+                                            userRole={userRole}
+                                            assignments={assignments}
+                                            onNavigateToAssignments={() => navigateToTab("assignments")}
+                                            onNavigateToAttendance={() => navigateToTab("attendance")}
+                                            onNavigateToQueue={() => navigateToTab("queue")}
+                                            onNavigateToScores={() => navigateToTab("scores")}
+                                            onNavigateToApproval={() => navigateToTab("approval")}
+                                            onNavigateToPeople={() => navigateToTab("people")}
+                                        />
+                                    )}
 
-                                {activeTab === "sections" && canAccessSections && (
-                                    <SectionsTab
-                                        courseId={courseId}
-                                        isCourseActive={course.is_active}
-                                        canCreateSections={currentCoursePermissions.create_sections}
-                                        canUpdateSections={currentCoursePermissions.update_sections}
-                                        canDeleteSections={currentCoursePermissions.delete_sections}
-                                        canManageSectionStudents={currentCoursePermissions.manage_section_students}
-                                        canCreateTeams={currentCoursePermissions.create_teams}
-                                        canUpdateTeams={currentCoursePermissions.update_teams}
-                                        canDeleteTeams={currentCoursePermissions.delete_teams}
-                                    />
-                                )}
+                                    {activeTab === "sections" && canAccessSections && (
+                                        <SectionsTab
+                                            courseId={courseId}
+                                            isCourseActive={course.is_active}
+                                            canCreateSections={currentCoursePermissions.create_sections}
+                                            canUpdateSections={currentCoursePermissions.update_sections}
+                                            canDeleteSections={currentCoursePermissions.delete_sections}
+                                            canManageSectionStudents={currentCoursePermissions.manage_section_students}
+                                            canCreateTeams={currentCoursePermissions.create_teams}
+                                            canUpdateTeams={currentCoursePermissions.update_teams}
+                                            canDeleteTeams={currentCoursePermissions.delete_teams}
+                                        />
+                                    )}
 
-                                {activeTab === "people" && canViewPeople && (
-                                    <PeopleTab
-                                        course={course}
-                                        isLoading={isPeopleLoading}
-                                        isPeopleLoading={isPeopleLoading}
-                                        onOpenAddTAModal={() => modals.taModal.setIsOpen(true)}
-                                        onOpenAddInstructorModal={() => modals.instructorModal.setIsOpen(true)}
-                                        onRemoveTA={handleRemoveTA}
-                                        onRemoveInstructor={handleRemoveInstructor}
-                                        onUpdatePermissions={classroomActions.updateMemberPermissions}
-                                        userRole={userRole}
-                                        currentUserId={currentUserId}
-                                        canViewPeople={canViewPeople}
-                                        canAddPeople={canAddPeople}
-                                        canRemovePeople={canRemovePeople}
-                                        canEditMemberPermissions={canEditMemberPermissions}
-                                        isCourseActive={course.is_active}
-                                    />
-                                )}
+                                    {activeTab === "people" && canViewPeople && (
+                                        <PeopleTab
+                                            course={course}
+                                            isLoading={isLoading}
+                                            isPeopleLoading={isPeopleLoading}
+                                            onOpenAddTAModal={() => modals.taModal.setIsOpen(true)}
+                                            onOpenAddInstructorModal={() => modals.instructorModal.setIsOpen(true)}
+                                            onRemoveTA={handleRemoveTA}
+                                            onRemoveInstructor={handleRemoveInstructor}
+                                            onUpdatePermissions={classroomActions.updateMemberPermissions}
+                                            userRole={userRole}
+                                            currentUserId={currentUserId}
+                                            canViewPeople={canViewPeople}
+                                            canAddPeople={canAddPeople}
+                                            canRemovePeople={canRemovePeople}
+                                            canEditMemberPermissions={canEditMemberPermissions}
+                                            isCourseActive={course.is_active}
+                                        />
+                                    )}
 
-                                {activeTab === "assignments" && canAccessAssignments && (
-                                    <AssignmentsTab
-                                        assignments={assignments}
-                                        setAssignments={setAssignments}
-                                        isLoading={isAssignmentsLoading}
-                                        courseId={courseId}
-                                        weeklyTeams={weeklyTeams}
-                                        onOpenScoreModal={(assignment) => {
-                                            setScoreModalAssignment(assignment);
-                                            modals.scoreModals.setIsScoreModalOpen(true);
-                                        }}
-                                        onOpenBonusScoreModal={() => modals.scoreModals.setIsBonusScoreModalOpen(true)}
-                                        onAssignmentChanged={() => {
-                                            fetchAssignments(true, true);
-                                            fetchOverview(true);
-                                        }}
-                                        hasPendingUpdate={pendingAssignmentUpdate}
-                                        onPendingUpdateAck={ackAssignmentUpdate}
-                                        isCourseActive={course.is_active}
-                                        canCreateAssignments={currentCoursePermissions.create_assignments}
-                                        canUpdateAssignments={currentCoursePermissions.update_assignments}
-                                        canDeleteAssignments={currentCoursePermissions.delete_assignments}
-                                        canGradeAssignments={currentCoursePermissions.grade_assignments}
-                                        canEditScores={currentCoursePermissions.edit_scores}
-                                    />
-                                )}
+                                    {activeTab === "assignments" && canAccessAssignments && (
+                                        <AssignmentsTab
+                                            assignments={assignments}
+                                            setAssignments={setAssignments}
+                                            isLoading={isAssignmentsLoading}
+                                            courseId={courseId}
+                                            weeklyTeams={weeklyTeams}
+                                            onOpenScoreModal={(assignment) => {
+                                                setScoreModalAssignment(assignment);
+                                                modals.scoreModals.setIsScoreModalOpen(true);
+                                            }}
+                                            onOpenBonusScoreModal={() => modals.scoreModals.setIsBonusScoreModalOpen(true)}
+                                            onAssignmentChanged={() => {
+                                                fetchAssignments(true, true);
+                                                fetchOverview(true);
+                                            }}
+                                            hasPendingUpdate={pendingAssignmentUpdate}
+                                            onPendingUpdateAck={ackAssignmentUpdate}
+                                            isCourseActive={course.is_active}
+                                            canCreateAssignments={currentCoursePermissions.create_assignments}
+                                            canUpdateAssignments={currentCoursePermissions.update_assignments}
+                                            canDeleteAssignments={currentCoursePermissions.delete_assignments}
+                                            canGradeAssignments={currentCoursePermissions.grade_assignments}
+                                            canEditScores={currentCoursePermissions.edit_scores}
+                                        />
+                                    )}
 
-                                {activeTab === "scores" && canAccessScores && (
-                                    <ScoresTab courseId={courseId} isCourseActive={course.is_active} />
-                                )}
+                                    {activeTab === "scores" && canAccessScores && (
+                                        <ScoresTab courseId={courseId} isCourseActive={course.is_active} />
+                                    )}
 
-                                {activeTab === "exam-scores" && canAccessExamScores && (
-                                    <ExamScoresTab
-                                        courseId={courseId}
-                                        isCourseActive={course.is_active}
-                                        canCreateExamScores={currentCoursePermissions.create_exam_scores}
-                                        canUpdateExamScores={currentCoursePermissions.update_exam_scores}
-                                        canUpdateExamSettings={currentCoursePermissions.update_exam_settings}
-                                    />
-                                )}
+                                    {activeTab === "exam-scores" && canAccessExamScores && (
+                                        <ExamScoresTab
+                                            courseId={courseId}
+                                            isCourseActive={course.is_active}
+                                            canCreateExamScores={currentCoursePermissions.create_exam_scores}
+                                            canUpdateExamScores={currentCoursePermissions.update_exam_scores}
+                                            canUpdateExamSettings={currentCoursePermissions.update_exam_settings}
+                                        />
+                                    )}
 
-                                {activeTab === "approval" && canAccessApproval && (
-                                    <ScoreApprovalTab
-                                        courseId={courseId}
-                                        userRole={approvalRole}
-                                        onPendingCountChange={setPendingApprovalCount}
-                                        isCourseActive={course.is_active}
-                                    />
-                                )}
+                                    {activeTab === "approval" && canAccessApproval && (
+                                        <ScoreApprovalTab
+                                            courseId={courseId}
+                                            userRole={approvalRole}
+                                            onPendingCountChange={setPendingApprovalCount}
+                                            isCourseActive={course.is_active}
+                                        />
+                                    )}
 
-                                {activeTab === "attendance" && canAccessAttendance && (
-                                    <AttendanceTab
-                                        course={course}
-                                        isLoading={isOverviewLoading}
-                                        onAttendanceChanged={() => fetchOverview(true)}
-                                        isCourseActive={course.is_active}
-                                        canCreateAttendanceSessions={currentCoursePermissions.create_attendance_sessions}
-                                        canUpdateAttendanceSessions={currentCoursePermissions.update_attendance_sessions}
-                                        canDeleteAttendanceSessions={currentCoursePermissions.delete_attendance_sessions}
-                                    />
-                                )}
+                                    {activeTab === "attendance" && canAccessAttendance && (
+                                        <AttendanceTab
+                                            course={course}
+                                            isLoading={isOverviewLoading}
+                                            onAttendanceChanged={() => fetchOverview(true)}
+                                            isCourseActive={course.is_active}
+                                            canCreateAttendanceSessions={currentCoursePermissions.create_attendance_sessions}
+                                            canUpdateAttendanceSessions={currentCoursePermissions.update_attendance_sessions}
+                                            canDeleteAttendanceSessions={currentCoursePermissions.delete_attendance_sessions}
+                                        />
+                                    )}
 
-                                {activeTab === "settings" && userRole === "instructor" && (
-                                    <SettingsTab
-                                        courseId={String(course.id)}
-                                        course={course}
-                                        onCourseUpdate={(updatedCourse) => setCourse(updatedCourse)}
-                                    />
-                                )}
+                                    {activeTab === "settings" && userRole === "instructor" && (
+                                        <SettingsTab
+                                            courseId={String(course.id)}
+                                            course={course}
+                                            onCourseUpdate={(updatedCourse) => setCourse(updatedCourse)}
+                                        />
+                                    )}
 
-                                {activeTab === "queue" && canAccessQueue && (
-                                    <QueueTab
-                                        course={course}
-                                        isLoading={isOverviewLoading}
-                                        isCourseActive={course.is_active}
-                                        canCreateQueueSessions={currentCoursePermissions.create_queue_sessions}
-                                        canUpdateQueueSessions={currentCoursePermissions.update_queue_sessions}
-                                        canDeleteQueueSessions={currentCoursePermissions.delete_queue_sessions}
-                                        canManageQueueBookings={currentCoursePermissions.manage_queue_bookings}
-                                    />
-                                )}
+                                    {activeTab === "queue" && canAccessQueue && (
+                                        <QueueTab
+                                            course={course}
+                                            isLoading={isOverviewLoading}
+                                            isCourseActive={course.is_active}
+                                            canCreateQueueSessions={currentCoursePermissions.create_queue_sessions}
+                                            canUpdateQueueSessions={currentCoursePermissions.update_queue_sessions}
+                                            canDeleteQueueSessions={currentCoursePermissions.delete_queue_sessions}
+                                            canManageQueueBookings={currentCoursePermissions.manage_queue_bookings}
+                                        />
+                                    )}
 
-                                {activeTab === "activity-log" && userRole === "instructor" && (
-                                    <ActivityLogTab courseId={courseId} />
-                                )}
+                                    {activeTab === "activity-log" && userRole === "instructor" && (
+                                        <ActivityLogTab courseId={courseId} />
+                                    )}
 
-                                {activeTab === "ta-stats" && userRole === "instructor" && (
-                                    <TAStatsTab courseId={courseId} />
-                                )}
+                                    {activeTab === "ta-stats" && userRole === "instructor" && (
+                                        <TAStatsTab courseId={courseId} />
+                                    )}
+                                </div>
                             </>
                         )}
                     </div>
@@ -1331,30 +1494,34 @@ export default function ClassroomDetailPage() {
             </div>
 
             {/* Score Modal */}
-            <ScoreModal
-                isOpen={modals.scoreModals.isScoreModalOpen}
-                onClose={() => {
-                    modals.scoreModals.setIsScoreModalOpen(false);
-                    setScoreModalAssignment(null);
-                }}
-                assignment={scoreModalAssignment}
-                courseId={courseId}
-                canGradeAssignments={currentCoursePermissions.grade_assignments}
-                canEditScores={currentCoursePermissions.edit_scores}
-                onScoreSubmitted={() => {
-                    fetchOverview(true);
-                    if (scores.selectedAssignment) {
-                        scores.fetchScores(scores.selectedAssignment);
-                    }
-                }}
-            />
+            {(modals.scoreModals.isScoreModalOpen || scoreModalAssignment) && (
+                <ScoreModal
+                    isOpen={modals.scoreModals.isScoreModalOpen}
+                    onClose={() => {
+                        modals.scoreModals.setIsScoreModalOpen(false);
+                        setScoreModalAssignment(null);
+                    }}
+                    assignment={scoreModalAssignment}
+                    courseId={courseId}
+                    canGradeAssignments={currentCoursePermissions.grade_assignments}
+                    canEditScores={currentCoursePermissions.edit_scores}
+                    onScoreSubmitted={() => {
+                        fetchOverview(true);
+                        if (scores.selectedAssignment) {
+                            scores.fetchScores(scores.selectedAssignment);
+                        }
+                    }}
+                />
+            )}
 
             {/* Bonus Score Modal */}
-            <BonusScoreModal
-                isOpen={modals.scoreModals.isBonusScoreModalOpen}
-                onClose={() => modals.scoreModals.setIsBonusScoreModalOpen(false)}
-                courseId={courseId}
-            />
+            {modals.scoreModals.isBonusScoreModalOpen && (
+                <BonusScoreModal
+                    isOpen={modals.scoreModals.isBonusScoreModalOpen}
+                    onClose={() => modals.scoreModals.setIsBonusScoreModalOpen(false)}
+                    courseId={courseId}
+                />
+            )}
 
             {/* Add Section Modal */}
             <Modal isOpen={modals.sectionModal.isOpen} onClose={modals.sectionModal.reset} size="md">
@@ -3071,4 +3238,8 @@ export default function ClassroomDetailPage() {
             )}
         </div>
     );
+}
+
+export default function ClassroomDetailDefaultPage() {
+    return <ClassroomDetailPage initialTab="overview" />;
 }

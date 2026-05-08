@@ -7,7 +7,6 @@ import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
 import { Tooltip } from "@heroui/tooltip";
 import { Avatar } from "@heroui/avatar";
-import { Spinner } from "@heroui/spinner";
 import { Progress } from "@heroui/progress";
 import {
     Table,
@@ -410,21 +409,7 @@ export default function LiveAttendancePage() {
     // Total students count (should be fetched from course enrollment)
     const totalStudents = (session?.course as { enrollment_count?: number } | undefined)?.enrollment_count || records.length || 0;
 
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-15 h-15 bg-gradient-to-br from-blue-400 to-indigo-500 rounded flex items-center justify-center text-white text-4xl">
-                        <IoSchool />
-                    </div>
-                    <Spinner size="lg" color="primary" />
-                    <p className="text-slate-500">กำลังโหลดข้อมูล...</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (!session) {
+    if (!session && !isLoading) {
         return (
             <div className="flex justify-center items-center min-h-screen bg-slate-50">
                 <Card className="max-w-md shadow-xl border-2 border-dashed">
@@ -442,6 +427,10 @@ export default function LiveAttendancePage() {
                 </Card>
             </div>
         );
+    }
+
+    if (!session) {
+        return null;
     }
 
     return (

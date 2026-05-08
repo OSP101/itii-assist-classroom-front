@@ -14,6 +14,7 @@ import { Icon } from "@iconify/react";
 import { IoSchool } from "react-icons/io5";
 import { AdminProvider, useAdmin } from "@/contexts/AdminContext";
 import { AppFooter } from "@/components/Footer";
+import { NetworkMetricsPanel } from "@/components/dev/network-metrics-panel";
 
 interface MenuItem {
     key: string;
@@ -120,22 +121,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         };
     }, [isMobileSidebarOpen]);
 
-    if (isLoading) {
-        return (
-            <div className="flex min-h-screen items-center justify-center bg-slate-50">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-15 h-15 bg-gradient-to-br from-blue-400 to-indigo-500 rounded flex items-center justify-center text-white text-4xl">
-                        <IoSchool />
-                    </div>
-                    <p className="text-xl text-slate-700">กำลังโหลด...</p>
-                    <Spinner size="lg" color="primary" />
-                </div>
-            </div>
-        );
-    }
-
     // Don't render content if user is not authenticated (will be redirected by AdminContext)
-    if (!user) {
+    if (!user && !isLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-slate-50">
                 <div className="flex flex-col items-center gap-4">
@@ -286,6 +273,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 <main className="flex-1 p-3 sm:p-4 lg:p-6">
                     {children}
                 </main>
+
+                <NetworkMetricsPanel />
 
                 <AppFooter userEmail={user?.email} />
             </div>

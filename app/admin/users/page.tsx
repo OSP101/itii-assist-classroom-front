@@ -31,6 +31,7 @@ import { Icon } from "@iconify/react";
 import { userService } from "@/services/user.service";
 import type { User, CreateUserDto, UpdateUserDto, UserStats } from "@/services/user.service";
 import { useAdmin } from "@/contexts/AdminContext";
+import { useTableParams } from "@/lib/table/use-table-params";
 
 // Column definitions
 const columns = [
@@ -76,15 +77,29 @@ export default function UsersPage() {
     const [stats, setStats] = useState<UserStats | null>(null);
 
     // Pagination & Filters
-    const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
-    const [limit] = useState(7);
-    const [search, setSearch] = useState("");
-    const [roleFilter, setRoleFilter] = useState("all");
-    const [statusFilter, setStatusFilter] = useState("all");
-    const [sortBy, setSortBy] = useState<string>("created_at");
-    const [sortOrder, setSortOrder] = useState<"ASC" | "DESC">("DESC");
+    const {
+        params,
+        setSearch,
+        setPage,
+        setSort,
+        setFilter,
+    } = useTableParams({
+        defaultLimit: 7,
+        defaultSort: "created_at",
+        defaultOrder: "desc",
+        searchDebounceMs: 300,
+    });
+    const [searchInput, setSearchInput] = useState(String(params.search ?? ""));
+
+    const page = Number(params.page) || 1;
+    const limit = Number(params.limit) || 7;
+    const search = String(params.search ?? "");
+    const roleFilter = String(params.role ?? "all");
+    const statusFilter = String(params.status ?? "all");
+    const sortBy = String(params.sort ?? "created_at");
+    const sortOrder: "ASC" | "DESC" = params.order === "asc" ? "ASC" : "DESC";
 
     // Loading state
     const [isLoading, setIsLoading] = useState(true);
@@ -162,6 +177,10 @@ export default function UsersPage() {
         fetchStats();
     }, [fetchUsers, fetchStats]);
 
+    useEffect(() => {
+        setSearchInput(search);
+    }, [search]);
+
     // Real-time sync - Subscribe to user updates
     useEffect(() => {
         subscribeToUpdates();
@@ -179,15 +198,6 @@ export default function UsersPage() {
         });
         return unsubscribe;
     }, [onDataUpdate, fetchUsers, fetchStats]);
-
-    // Debounced search
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setPage(1);
-            fetchUsers();
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [search]);
 
     // Handle create user
     const handleCreate = async () => {
@@ -574,10 +584,9 @@ export default function UsersPage() {
     // Handle sort
     const handleSort = (column: string) => {
         if (sortBy === column) {
-            setSortOrder(sortOrder === "ASC" ? "DESC" : "ASC");
+            setSort(column, sortOrder === "ASC" ? "desc" : "asc");
         } else {
-            setSortBy(column);
-            setSortOrder("ASC");
+            setSort(column, "asc");
         }
     };
 
@@ -674,11 +683,17 @@ export default function UsersPage() {
                         <Input
                             className="w-full md:flex-1"
                             placeholder="ค้นหาผู้ใช้..."
-                            value={search}
-                            onValueChange={setSearch}
+                            value={searchInput}
+                            onValueChange={(value) => {
+                                setSearchInput(value);
+                                setSearch(value);
+                            }}
                             startContent={<Icon icon="solar:magnifer-linear" className="text-blue-400" />}
                             isClearable
-                            onClear={() => setSearch("")}
+                            onClear={() => {
+                                setSearchInput("");
+                                setSearch("");
+                            }}
                             variant="bordered"
                             classNames={{
                                 inputWrapper: "border-blue-200 hover:border-blue-300 focus-within:!border-blue-400",
@@ -692,8 +707,7 @@ export default function UsersPage() {
                                 selectedKeys={[roleFilter]}
                                 onSelectionChange={(keys) => {
                                     const value = Array.from(keys)[0] as string;
-                                    setRoleFilter(value);
-                                    setPage(1);
+                                    setFilter("role", value);
                                 }}
                                 classNames={{
                                     trigger: "bg-slate-50 border-slate-200 hover:border-slate-300",
@@ -710,8 +724,7 @@ export default function UsersPage() {
                                 selectedKeys={[statusFilter]}
                                 onSelectionChange={(keys) => {
                                     const value = Array.from(keys)[0] as string;
-                                    setStatusFilter(value);
-                                    setPage(1);
+                                    setFilter("status", value);
                                 }}
                                 classNames={{
                                     trigger: "bg-slate-50 border-slate-200 hover:border-slate-300",

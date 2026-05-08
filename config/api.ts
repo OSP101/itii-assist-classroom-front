@@ -70,10 +70,17 @@ export const API_ENDPOINTS = {
   LOGS_STATS: '/logs/stats',
 
   // Monitoring (Admin)
+  // Monitoring (Admin) — mapped to real backend /system/* endpoints.
+  // NOTE: /monitoring/containers and /monitoring/website do NOT exist in the backend yet.
+  // TODO: Confirm with backend team whether container/website monitoring endpoints will be added.
+  // See docs/performance-data-audit.md — "Monitoring Endpoint Mismatch" section.
   MONITORING: {
-    SYSTEM: '/monitoring/system',
-    CONTAINERS: '/monitoring/containers',
-    WEBSITE: '/monitoring/website',
+    // Maps to GET /api/system/metrics (confirmed in system_route.go)
+    SYSTEM: '/system/metrics',
+    // TODO: No backend endpoint confirmed — remove this TODO when backend adds the route
+    CONTAINERS: '/system/containers',
+    // TODO: No backend endpoint confirmed — remove this TODO when backend adds the route
+    WEBSITE: '/system/website',
   },
 };
 

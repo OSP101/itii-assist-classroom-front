@@ -6,10 +6,10 @@ import { Chip } from "@heroui/chip";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 import { Tooltip } from "@heroui/tooltip";
-import { Spinner } from "@heroui/spinner";
 import { Tabs, Tab } from "@heroui/tabs";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { Icon } from "@iconify/react";
+import { AssignmentsSkeleton } from "../Skeletons";
 import type { AssignmentType } from "../types";
 import type { AssignmentTabType, ViewMode } from "./config";
 import { getTypeInfo, getTypeBgColor, getTypeTextColor } from "./config";
@@ -331,9 +331,7 @@ function AssignmentsTabViewComponent({
 
             {/* Loading State */}
             {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                    <Spinner size="lg" />
-                </div>
+                <AssignmentsSkeleton />
             ) : (
                 <>
                     {/* Sub-tabs Navigation */}

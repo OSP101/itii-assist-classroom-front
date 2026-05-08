@@ -89,7 +89,7 @@ export function useClassroomData(courseId: string) {
         assignments: false,
         attendance: false,
         teams: true,
-        people: true,
+        people: false,
         students: true,
     });
 
@@ -376,45 +376,72 @@ export function useClassroomData(courseId: string) {
         await fetchAssignments(true, true);
     }, [fetchAssignments]);
 
-    // Refresh data for specific tab (with force refresh)
-    const refreshForTab = useCallback(async (tab: string) => {
+    // Refresh data for specific tab (cache-first by default to avoid loading flicker)
+    const refreshForTab = useCallback(async (tab: string, options?: { force?: boolean }) => {
+        const force = options?.force ?? false;
+
         // Dismiss any pending update notification when switching tabs
         setPendingAssignmentUpdate(false);
 
         switch (tab) {
             case "overview":
-                await fetchOverview(true);
+                await fetchOverview(force);
                 break;
             case "assignments":
-                await fetchAssignments(true);
+                await fetchAssignments(force, !force);
                 break;
             case "attendance":
-                await fetchAttendanceSessions(true);
+                await fetchAttendanceSessions(force);
+                break;
+            case "people":
+                await Promise.all([fetchTAsList(), fetchInstructorsList()]);
                 break;
             case "sections":
-                await Promise.all([fetchCourse(true), fetchAllSectionStudents()]);
+                if (force) {
+                    await Promise.all([fetchCourse(true), fetchAllSectionStudents()]);
+                } else {
+                    await fetchCourse(false);
+                }
                 break;
             case "scores":
             case "score-summary":
-                await fetchAssignments(true);
+                await fetchAssignments(force, !force);
                 break;
         }
-    }, [fetchOverview, fetchAssignments, fetchAttendanceSessions, fetchCourse, fetchAllSectionStudents]);
+    }, [fetchOverview, fetchAssignments, fetchAttendanceSessions, fetchCourse, fetchAllSectionStudents, fetchTAsList, fetchInstructorsList]);
 
-    // Initial data load
-    const initializeData = useCallback(async () => {
-        await Promise.all([
+    // Initial data load (route-aware to avoid fetching every heavy dataset at once)
+    const initializeData = useCallback(async (tab: string = "overview") => {
+        const baseRequests: Promise<any>[] = [
             fetchCourse(),
             fetchOverview(),
-            fetchTAsList(),
-            fetchInstructorsList(),
-            fetchStudentsList(),
-            fetchTeams(),
-            fetchAssignments(),
-            fetchAttendanceSessions(),
             fetchUserData(),
-        ]);
-    }, [fetchCourse, fetchOverview, fetchTAsList, fetchInstructorsList, fetchStudentsList, fetchTeams, fetchAssignments, fetchAttendanceSessions, fetchUserData]);
+        ];
+
+        const tabRequests: Promise<any>[] = [];
+
+        switch (tab) {
+            case "sections":
+                tabRequests.push(fetchTeams(), fetchStudentsList());
+                break;
+            case "people":
+                tabRequests.push(fetchTAsList(), fetchInstructorsList());
+                break;
+            case "assignments":
+            case "scores":
+            case "exam-scores":
+            case "approval":
+                tabRequests.push(fetchAssignments());
+                break;
+            case "attendance":
+                tabRequests.push(fetchAttendanceSessions());
+                break;
+            default:
+                break;
+        }
+
+        await Promise.all([...baseRequests, ...tabRequests]);
+    }, [fetchCourse, fetchOverview, fetchUserData, fetchTeams, fetchStudentsList, fetchTAsList, fetchInstructorsList, fetchAssignments, fetchAttendanceSessions]);
 
     // Handle real-time updates
     useEffect(() => {
