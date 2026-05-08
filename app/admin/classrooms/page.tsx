@@ -7,7 +7,6 @@ import { Chip } from "@heroui/chip";
 import { Input, Textarea } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
 import { Switch } from "@heroui/switch";
-import { Spinner } from "@heroui/spinner";
 import { Tooltip } from "@heroui/tooltip";
 import {
     Table,
@@ -33,6 +32,7 @@ import classroomService, {
     ClassroomStats,
 } from "@/services/classroom.service";
 import { useTableParams } from "@/lib/table/use-table-params";
+import { MetricCardSkeleton, TableRowsSkeleton } from "@/components/ui/resource-loading";
 
 // Dynamic import Canvas component (client-side only)
 const CanvasEditor = dynamic(() => import("./CanvasEditor"), {
@@ -145,6 +145,7 @@ export default function ClassroomsPage() {
     const [classrooms, setClassrooms] = useState<Classroom[]>([]);
     const [stats, setStats] = useState<ClassroomStats | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isStatsLoading, setIsStatsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showLayoutModal, setShowLayoutModal] = useState(false);
@@ -224,18 +225,11 @@ export default function ClassroomsPage() {
     const fetchClassrooms = useCallback(async () => {
         try {
             setIsLoading(true);
-            const [classroomsRes, statsRes] = await Promise.all([
-                classroomService.getClassrooms({ showDeleted: "all" }),
-                classroomService.getStats(),
-            ]);
+            const classroomsRes = await classroomService.getClassrooms({ showDeleted: "all" });
             
             if (classroomsRes.success && classroomsRes.data) {
                 const transformedClassrooms = classroomsRes.data.classrooms.map(transformClassroomFromAPI);
                 setClassrooms(transformedClassrooms);
-            }
-            
-            if (statsRes.success && statsRes.data) {
-                setStats(statsRes.data);
             }
         } catch (error: any) {
             console.error("Failed to fetch classrooms:", error);
@@ -251,17 +245,13 @@ export default function ClassroomsPage() {
         }
     }, []);
 
-    // Load data on mount
-    useEffect(() => {
-        fetchClassrooms();
-    }, [fetchClassrooms]);
-
     useEffect(() => {
         setSearchInput(searchQuery);
     }, [searchQuery]);
 
     // Helper function to refresh stats only (reduces duplicate code)
     const refreshStats = useCallback(async () => {
+        setIsStatsLoading(true);
         try {
             const statsRes = await classroomService.getStats();
             if (statsRes.success && statsRes.data) {
@@ -269,8 +259,16 @@ export default function ClassroomsPage() {
             }
         } catch (error) {
             console.error("Failed to refresh stats:", error);
+        } finally {
+            setIsStatsLoading(false);
         }
     }, []);
+
+    // Load independent resources on mount. Classroom rows should not wait for stats.
+    useEffect(() => {
+        fetchClassrooms();
+        refreshStats();
+    }, [fetchClassrooms, refreshStats]);
 
     // Update stage size based on container
     useEffect(() => {
@@ -1102,6 +1100,15 @@ export default function ClassroomsPage() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                {isStatsLoading && !stats ? (
+                    <>
+                        <MetricCardSkeleton iconClassName="bg-blue-100" />
+                        <MetricCardSkeleton iconClassName="bg-green-100" />
+                        <MetricCardSkeleton iconClassName="bg-purple-100" />
+                        <MetricCardSkeleton iconClassName="bg-red-100" />
+                    </>
+                ) : (
+                    <>
                 <div className="bg-white rounded-xl p-3 sm:p-4 border border-default-200 shadow-sm">
                     <div className="flex items-center gap-3">
                         <div className="p-2 sm:p-2.5 bg-blue-100 rounded-xl">
@@ -1146,6 +1153,8 @@ export default function ClassroomsPage() {
                         </div>
                     </div>
                 </div>
+                    </>
+                )}
             </div>
 
             {/* Table Card with Filters */}
@@ -1220,7 +1229,12 @@ export default function ClassroomsPage() {
                         <TableBody
                             items={filteredClassrooms}
                             isLoading={isLoading}
-                            loadingContent={<Spinner color="primary" label="กำลังโหลด..." />}
+                            loadingContent={
+                                <TableRowsSkeleton
+                                    rows={8}
+                                    columns={["w-32", "w-24", "w-16", "w-20", "w-16", "w-16"]}
+                                />
+                            }
                             emptyContent={
                                 <div className="py-10">
                                     <Icon

@@ -232,11 +232,11 @@ export default function InstructorLayout({
                 <header className="sticky top-0 z-50 bg-white border-b border-slate-200">
                     <div className="flex items-center justify-between h-12 px-4">
                         {/* Left: Breadcrumb Navigation */}
-                        <div className="flex items-center gap-1 text-sm overflow-x-auto">
+                        <div className="flex min-w-0 items-center gap-1 text-sm overflow-x-auto">
                             {/* Home Icon */}
                             <Link
                                 href={getBackPath()}
-                                className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-slate-100 transition-colors text-slate-600 hover:text-slate-900"
+                                className="relative z-30 shrink-0 flex items-center gap-2 px-2 py-1 rounded-md hover:bg-slate-100 transition-colors text-slate-600 hover:text-slate-900"
                             >
                                 <div className="w-6 h-6 bg-gradient-to-br from-blue-400 to-indigo-500 rounded flex items-center justify-center text-white text-xs">
                                     <IoSchool />
@@ -249,7 +249,7 @@ export default function InstructorLayout({
                             {/* เมนูบาร์ ผู้ใช้ */}
                             <Dropdown>
                                 <DropdownTrigger>
-                                    <button className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-slate-100 transition-colors text-slate-700">
+                                    <button type="button" className="relative z-10 shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-slate-100 transition-colors text-slate-700">
                                         <Skeleton isLoaded={Boolean(user)} className="rounded-md">
                                             <span className="font-medium max-w-[150px] truncate">{user?.full_name || "กำลังโหลดผู้ใช้"}</span>
                                         </Skeleton>
@@ -353,7 +353,7 @@ export default function InstructorLayout({
                         <div className="flex items-center gap-2 flex-shrink-0">
                             <Dropdown placement="bottom-end">
                                 <DropdownTrigger>
-                                    <button className="p-0.5 rounded-full hover:ring-2 hover:ring-blue-200 transition-all">
+                                    <button type="button" className="p-0.5 rounded-full hover:ring-2 hover:ring-blue-200 transition-all">
                                         <Avatar
                                             name={user?.full_name}
                                             size="md"

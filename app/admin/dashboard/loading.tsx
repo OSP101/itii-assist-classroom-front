@@ -7,9 +7,9 @@ export default function DashboardLoading() {
       {/* Welcome Banner Skeleton */}
       <div className="bg-gradient-to-r from-blue-400 to-indigo-500 rounded-2xl p-6">
         <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <Skeleton className="w-64 h-8 rounded-lg bg-white/20" />
-            <Skeleton className="w-80 h-5 rounded-lg bg-white/20" />
+          <div>
+            <h2 className="text-lg sm:text-2xl font-bold mb-1 text-white">Dashboard</h2>
+            <p className="text-blue-100 text-sm sm:text-base">ITII Assist Classroom</p>
           </div>
           <div className="hidden md:block">
             <Skeleton className="w-32 h-8 rounded-lg bg-white/20" />

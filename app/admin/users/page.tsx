@@ -15,7 +15,6 @@ import { Pagination } from "@heroui/pagination";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
-import { Spinner } from "@heroui/spinner";
 import { Tooltip } from "@heroui/tooltip";
 import { Avatar } from "@heroui/avatar";
 import {
@@ -32,6 +31,7 @@ import { userService } from "@/services/user.service";
 import type { User, CreateUserDto, UpdateUserDto, UserStats } from "@/services/user.service";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useTableParams } from "@/lib/table/use-table-params";
+import { MetricCardSkeleton, TableRowsSkeleton } from "@/components/ui/resource-loading";
 
 // Column definitions
 const columns = [
@@ -103,6 +103,7 @@ export default function UsersPage() {
 
     // Loading state
     const [isLoading, setIsLoading] = useState(true);
+    const [isStatsLoading, setIsStatsLoading] = useState(true);
 
     // Modal states
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -162,6 +163,7 @@ export default function UsersPage() {
 
     // Fetch stats
     const fetchStats = useCallback(async () => {
+        setIsStatsLoading(true);
         try {
             const response = await userService.getStats();
             if (response.success && response.data) {
@@ -169,6 +171,8 @@ export default function UsersPage() {
             }
         } catch (error) {
             console.error("Error fetching stats:", error);
+        } finally {
+            setIsStatsLoading(false);
         }
     }, []);
 
@@ -627,7 +631,7 @@ export default function UsersPage() {
             </div>
 
             {/* Stats Cards */}
-            {stats && (
+            {stats ? (
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     <div className="bg-white rounded-xl p-3 sm:p-4 border border-default-200 shadow-sm">
                         <div className="flex items-center gap-3">
@@ -674,7 +678,14 @@ export default function UsersPage() {
                         </div>
                     </div>
                 </div>
-            )}
+            ) : isStatsLoading ? (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <MetricCardSkeleton iconClassName="bg-blue-100" />
+                    <MetricCardSkeleton iconClassName="bg-red-100" />
+                    <MetricCardSkeleton iconClassName="bg-purple-100" />
+                    <MetricCardSkeleton iconClassName="bg-green-100" />
+                </div>
+            ) : null}
 
             {/* Table Card with Filters */}
             <div className="bg-white rounded-xl border border-default-200 shadow-sm overflow-hidden">
@@ -772,7 +783,12 @@ export default function UsersPage() {
                                             <p className="text-default-400">ไม่พบข้อมูลผู้ใช้</p>
                                         </div>
                                     }
-                                    loadingContent={<Spinner color="primary" label="กำลังโหลด..." />}
+                                    loadingContent={
+                                        <TableRowsSkeleton
+                                            rows={limit}
+                                            columns={["w-24", "w-32", "w-40", "w-16", "w-16", "w-16", "w-14"]}
+                                        />
+                                    }
                                 >
                                     {(item) => (
                                         <TableRow key={item.ID}>

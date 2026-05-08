@@ -13,17 +13,25 @@ import { ProSkeleton } from "./pro-skeleton";
 // ---------------------------------------------------------------------------
 
 /** Course grid skeleton — used on instructor home */
-export function CourseGridSkeleton({ count = 6 }: { count?: number }) {
+export function CourseGridSkeleton({
+  count = 6,
+  showToolbar = true,
+}: {
+  count?: number;
+  showToolbar?: boolean;
+}) {
   return (
     <div className="space-y-6 p-4 lg:p-6">
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-3">
-        <ProSkeleton variant="title" />
-        <div className="flex gap-2">
-          <ProSkeleton variant="button" />
-          <ProSkeleton variant="button" />
+      {showToolbar && (
+        <div className="flex items-center justify-between gap-3">
+          <ProSkeleton variant="title" />
+          <div className="flex gap-2">
+            <ProSkeleton variant="button" />
+            <ProSkeleton variant="button" />
+          </div>
         </div>
-      </div>
+      )}
       {/* Search */}
       <ProSkeleton variant="input" className="max-w-xs" />
       {/* Course cards */}
@@ -63,14 +71,16 @@ export function DashboardSkeleton() {
 
 /** Full classroom page shell — sidebar + main content */
 export function ClassroomPageSkeleton() {
+  const sidebarWidths = [96, 128, 112, 144, 104, 120, 88, 132];
+
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}
       <aside className="hidden lg:flex flex-col gap-1 w-64 border-r border-divider p-3 pt-4">
-        {Array.from({ length: 8 }).map((_, i) => (
+        {sidebarWidths.map((width, i) => (
           <div key={i} className="flex items-center gap-3 px-3 py-2.5">
             <ProSkeleton variant="badge" className="h-5 w-5" />
-            <ProSkeleton variant="text" className="h-4" style={{ width: `${60 + Math.random() * 60}px` }} />
+            <ProSkeleton variant="text" className="h-4" style={{ width }} />
           </div>
         ))}
       </aside>

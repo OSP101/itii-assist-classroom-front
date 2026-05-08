@@ -14,7 +14,6 @@ import { Pagination } from "@heroui/pagination";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
-import { Spinner } from "@heroui/spinner";
 import { Tooltip } from "@heroui/tooltip";
 import { Avatar } from "@heroui/avatar";
 import {
@@ -30,6 +29,7 @@ import { Icon } from "@iconify/react";
 import { studentService } from "@/services/student.service";
 import type { Student, CreateStudentDto, UpdateStudentDto, StudentStats } from "@/services/student.service";
 import { useTableParams } from "@/lib/table/use-table-params";
+import { MetricCardSkeleton, TableRowsSkeleton } from "@/components/ui/resource-loading";
 
 // Column definitions
 const columns = [
@@ -53,6 +53,7 @@ export default function StudentsPage() {
     const [students, setStudents] = useState<Student[]>([]);
     const [stats, setStats] = useState<StudentStats | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isStatsLoading, setIsStatsLoading] = useState(true);
 
     // Pagination & Filters
     const [totalPages, setTotalPages] = useState(1);
@@ -132,6 +133,7 @@ export default function StudentsPage() {
 
     // Fetch stats
     const fetchStats = useCallback(async () => {
+        setIsStatsLoading(true);
         try {
             const response = await studentService.getStats();
             if (response.success && response.data) {
@@ -139,6 +141,8 @@ export default function StudentsPage() {
             }
         } catch (error) {
             console.error("Error fetching stats:", error);
+        } finally {
+            setIsStatsLoading(false);
         }
     }, []);
 
@@ -636,6 +640,14 @@ export default function StudentsPage() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                {isStatsLoading && !stats ? (
+                    <>
+                        <MetricCardSkeleton iconClassName="bg-blue-100" />
+                        <MetricCardSkeleton iconClassName="bg-green-100" />
+                        <MetricCardSkeleton iconClassName="bg-red-100" />
+                    </>
+                ) : (
+                    <>
                 <div className="bg-white rounded-xl p-3 sm:p-4 border border-default-200 shadow-sm">
                     <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-3 text-center sm:text-left">
                         <div className="p-2 sm:p-2.5 bg-blue-100 rounded-xl">
@@ -669,6 +681,8 @@ export default function StudentsPage() {
                         </div>
                     </div>
                 </div>
+                    </>
+                )}
             </div>
 
             {/* Filters */}
@@ -738,7 +752,12 @@ export default function StudentsPage() {
                     <TableBody
                         items={students}
                         isLoading={isLoading}
-                        loadingContent={<Spinner color="primary" label="กำลังโหลด..." />}
+                        loadingContent={
+                            <TableRowsSkeleton
+                                rows={limit}
+                                columns={["w-28", "w-36", "w-44", "w-16", "w-24", "w-14"]}
+                            />
+                        }
                         emptyContent={
                             <div className="py-10 text-center">
                                 <Icon icon="solar:user-cross-rounded-linear" className="text-5xl text-slate-300 mx-auto mb-3" />

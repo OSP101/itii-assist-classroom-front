@@ -7,12 +7,12 @@ export default function StudentsLoading() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <Skeleton className="w-48 h-8 rounded-lg mb-2" />
-          <Skeleton className="w-72 h-4 rounded-lg" />
+          <h1 className="text-xl sm:text-2xl font-bold text-default-900">จัดการนักศึกษา</h1>
+          <p className="text-sm text-default-500">จัดการข้อมูลนักศึกษาในระบบ</p>
         </div>
         <div className="flex gap-2">
-          <Skeleton className="w-28 h-10 rounded-lg" />
-          <Skeleton className="w-32 h-10 rounded-lg" />
+          <div className="h-10 rounded-lg bg-default-100 px-4 py-2.5 text-sm text-default-600">นำเข้า</div>
+          <div className="h-10 rounded-lg bg-blue-500/10 px-4 py-2.5 text-sm font-medium text-blue-600">เพิ่ม</div>
         </div>
       </div>
 

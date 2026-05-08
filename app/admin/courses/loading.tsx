@@ -7,10 +7,12 @@ export default function CoursesLoading() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <Skeleton className="w-44 h-8 rounded-lg mb-2" />
-          <Skeleton className="w-64 h-4 rounded-lg" />
+          <h1 className="text-xl sm:text-2xl font-bold text-default-900">จัดการรายวิชา</h1>
+          <p className="text-sm text-default-500">จัดการรายวิชาและกลุ่มเรียน</p>
         </div>
-        <Skeleton className="w-32 h-10 rounded-lg" />
+        <div className="h-10 rounded-lg bg-blue-500/10 px-6 py-2.5 text-sm font-medium text-blue-600">
+          เพิ่มรายวิชา
+        </div>
       </div>
 
       {/* Stats Cards */}

@@ -8,4 +8,5 @@ export type {
     PermanentTeam,
     WeeklyTeam,
     AttendanceSession,
+    CourseRealtimeNotification,
 } from './useClassroomData';

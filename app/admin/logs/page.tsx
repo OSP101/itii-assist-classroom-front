@@ -27,6 +27,7 @@ import { Card, CardBody, CardHeader } from "@heroui/card";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { useTableParams } from "@/lib/table/use-table-params";
+import { MetricCardSkeleton, TableRowsSkeleton } from "@/components/ui/resource-loading";
 import {
   getLogs,
   getLogStats,
@@ -89,6 +90,7 @@ export default function SystemLogsPage() {
   const [logs, setLogs] = useState<SystemLog[]>([]);
   const [stats, setStats] = useState<LogStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isStatsLoading, setIsStatsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
 
   // Pagination & Filters
@@ -200,6 +202,7 @@ export default function SystemLogsPage() {
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
+    setIsStatsLoading(true);
     try {
       const dateRange = getDateRange();
       const response = await getLogStats(dateRange.startDate, dateRange.endDate);
@@ -208,6 +211,8 @@ export default function SystemLogsPage() {
       }
     } catch (error) {
       console.error("Failed to fetch stats:", error);
+    } finally {
+      setIsStatsLoading(false);
     }
   }, [getDateRange]);
 
@@ -442,7 +447,7 @@ export default function SystemLogsPage() {
       </div>
 
       {/* Stats Cards */}
-      {stats && (
+      {stats ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
           <div className="bg-white rounded-xl p-3 sm:p-4 border border-default-200 shadow-sm">
             <div className="flex items-center gap-2 sm:gap-3">
@@ -500,7 +505,15 @@ export default function SystemLogsPage() {
             </div>
           </div>
         </div>
-      )}
+      ) : isStatsLoading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
+          <MetricCardSkeleton iconClassName="bg-blue-100" />
+          <MetricCardSkeleton iconClassName="bg-cyan-100" />
+          <MetricCardSkeleton iconClassName="bg-red-100" />
+          <MetricCardSkeleton iconClassName="bg-purple-100" />
+          <MetricCardSkeleton iconClassName="bg-amber-100" />
+        </div>
+      ) : null}
 
       {/* Table Card with Filters */}
       <div className="bg-white rounded-xl border border-default-200 shadow-sm overflow-hidden">
@@ -646,7 +659,12 @@ export default function SystemLogsPage() {
             <TableBody
               items={logs}
               isLoading={isLoading}
-              loadingContent={<Spinner color="primary" label="กำลังโหลด..." />}
+              loadingContent={
+                <TableRowsSkeleton
+                  rows={Math.min(limit, 12)}
+                  columns={["w-24", "w-16", "w-16", "w-32", "w-14", "w-24", "w-28", "w-20", "w-10"]}
+                />
+              }
               emptyContent={
                 <div className="py-10 text-center">
                   <Icon icon="solar:document-text-linear" className="text-5xl text-default-300 mx-auto mb-3" />

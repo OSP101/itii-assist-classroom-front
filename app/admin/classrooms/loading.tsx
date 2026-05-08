@@ -7,10 +7,12 @@ export default function ClassroomsLoading() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <Skeleton className="w-48 h-8 rounded-lg mb-2" />
-          <Skeleton className="w-72 h-4 rounded-lg" />
+          <h1 className="text-xl sm:text-2xl font-bold text-default-900">จัดการห้องเรียน</h1>
+          <p className="text-sm text-default-500">จัดการผังห้องเรียนและโต๊ะเรียน</p>
         </div>
-        <Skeleton className="w-36 h-10 rounded-lg" />
+        <div className="h-10 rounded-lg bg-blue-500/10 px-6 py-2.5 text-sm font-medium text-blue-600">
+          สร้างห้อง
+        </div>
       </div>
 
       {/* Stats Cards */}

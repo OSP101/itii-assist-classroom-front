@@ -45,6 +45,28 @@ interface CacheEntry<T> {
     timestamp: number;
 }
 
+interface IncomingRealtimeEvent {
+    resource: string;
+    action: string;
+    id?: string | number;
+    data?: {
+        courseId?: string | number;
+        course_id?: string | number;
+        [key: string]: unknown;
+    };
+    timestamp?: number;
+}
+
+export interface CourseRealtimeNotification {
+    id: string;
+    courseId: string;
+    resource: string;
+    action: string;
+    message: string;
+    createdAt: number;
+    read: boolean;
+}
+
 /**
  * Custom hook for managing classroom data with caching and optimized fetching
  */
@@ -81,6 +103,7 @@ export function useClassroomData(courseId: string) {
     const [currentUserId, setCurrentUserId] = useState<number | null>(null);
     const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
     const [pendingAssignmentUpdate, setPendingAssignmentUpdate] = useState(false);
+    const [notifications, setNotifications] = useState<CourseRealtimeNotification[]>([]);
 
     // Loading states - separate for each resource
     const [loadingStates, setLoadingStates] = useState({
@@ -355,9 +378,9 @@ export function useClassroomData(courseId: string) {
     // Emit data update with debounce protection
     const emitUpdate = useCallback((resource: string, action: string, id?: string | number) => {
         isUpdatingRef.current = true;
-        emitDataUpdate(resource as any, action as any, id);
+        emitDataUpdate(resource as any, action as any, id, { courseId });
         setTimeout(() => { isUpdatingRef.current = false; }, 500);
-    }, [emitDataUpdate]);
+    }, [courseId, emitDataUpdate]);
 
     // Invalidate cache
     const invalidateCache = useCallback((resource?: 'course' | 'overview' | 'assignments' | 'attendanceSessions' | 'teams') => {
@@ -375,6 +398,71 @@ export function useClassroomData(courseId: string) {
         delete cache.current['assignments'];
         await fetchAssignments(true, true);
     }, [fetchAssignments]);
+
+    const extractEventCourseId = useCallback((event: IncomingRealtimeEvent): string | null => {
+        if (event.resource === "course" && event.id !== undefined && event.id !== null) {
+            return String(event.id);
+        }
+        const payloadCourseId = event.data?.courseId ?? event.data?.course_id;
+        if (payloadCourseId === undefined || payloadCourseId === null || payloadCourseId === "") {
+            return null;
+        }
+        return String(payloadCourseId);
+    }, []);
+
+    const isCourseEventForCurrentClassroom = useCallback((event: IncomingRealtimeEvent): boolean => {
+        const eventCourseId = extractEventCourseId(event);
+        return eventCourseId !== null && eventCourseId === String(courseId);
+    }, [courseId, extractEventCourseId]);
+
+    const toNotificationMessage = useCallback((event: IncomingRealtimeEvent): string => {
+        if (event.resource === "assignment") {
+            if (event.action === "create") return "มีการสร้างงานใหม่ในรายวิชานี้";
+            if (event.action === "delete") return "มีการลบงานในรายวิชานี้";
+            return "มีการแก้ไขข้อมูลงานในรายวิชานี้";
+        }
+        if (event.resource === "attendance") return "มีการอัปเดตข้อมูลการเช็คชื่อ";
+        if (event.resource === "section") return "มีการอัปเดตข้อมูลกลุ่มเรียน";
+        if (event.resource === "group") return "มีการอัปเดตข้อมูลทีม";
+        if (event.resource === "score") return "มีการอัปเดตข้อมูลคะแนน";
+        if (event.resource === "student") return "มีการอัปเดตข้อมูลนักศึกษาในรายวิชา";
+        if (event.resource === "queue") return "มีการอัปเดตข้อมูลคิว";
+        return "มีการอัปเดตข้อมูลรายวิชา";
+    }, []);
+
+    const pushNotification = useCallback((event: IncomingRealtimeEvent) => {
+        const eventCourseId = extractEventCourseId(event);
+        if (!eventCourseId) return;
+
+        const entry: CourseRealtimeNotification = {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            courseId: eventCourseId,
+            resource: event.resource,
+            action: event.action,
+            message: toNotificationMessage(event),
+            createdAt: event.timestamp ?? Date.now(),
+            read: false,
+        };
+
+        setNotifications((prev) => [entry, ...prev].slice(0, 50));
+    }, [extractEventCourseId, toNotificationMessage]);
+
+    const unreadNotificationCount = useMemo(
+        () => notifications.reduce((count, item) => count + (item.read ? 0 : 1), 0),
+        [notifications]
+    );
+
+    const markNotificationAsRead = useCallback((id: string) => {
+        setNotifications((prev) => prev.map((item) => (item.id === id ? { ...item, read: true } : item)));
+    }, []);
+
+    const markAllNotificationsAsRead = useCallback(() => {
+        setNotifications((prev) => prev.map((item) => (item.read ? item : { ...item, read: true })));
+    }, []);
+
+    const clearNotifications = useCallback(() => {
+        setNotifications([]);
+    }, []);
 
     // Refresh data for specific tab (cache-first by default to avoid loading flicker)
     const refreshForTab = useCallback(async (tab: string, options?: { force?: boolean }) => {
@@ -447,13 +535,14 @@ export function useClassroomData(courseId: string) {
     useEffect(() => {
         subscribeToUpdates();
         
-        const unsubscribe = onDataUpdate((data) => {
+        const unsubscribe = onDataUpdate((data: IncomingRealtimeEvent) => {
             if (isUpdatingRef.current) return;
+            if (!isCourseEventForCurrentClassroom(data)) return;
+
+            pushNotification(data);
             
             switch (data.resource) {
                 case "assignment":
-                    // Ignore events from other classrooms
-                    if (data.data?.courseId && String(data.data.courseId) !== String(courseId)) break;
                     invalidateCache('assignments');
                     invalidateCache('overview');
                     setPendingAssignmentUpdate(true);
@@ -484,6 +573,10 @@ export function useClassroomData(courseId: string) {
                     fetchAllSectionStudents();
                     fetchOverview(true);
                     break;
+                case "queue":
+                    invalidateCache('overview');
+                    fetchOverview(true);
+                    break;
             }
         });
 
@@ -491,7 +584,7 @@ export function useClassroomData(courseId: string) {
             unsubscribe();
             unsubscribeFromUpdates();
         };
-    }, [subscribeToUpdates, unsubscribeFromUpdates, onDataUpdate, invalidateCache, fetchOverview, fetchAttendanceSessions, fetchCourse, fetchTeams, fetchAllSectionStudents]);
+    }, [subscribeToUpdates, unsubscribeFromUpdates, onDataUpdate, isCourseEventForCurrentClassroom, pushNotification, invalidateCache, fetchOverview, fetchAttendanceSessions, fetchCourse, fetchTeams, fetchAllSectionStudents]);
 
     return {
         // Data
@@ -528,6 +621,13 @@ export function useClassroomData(courseId: string) {
         // Pending update flags
         pendingAssignmentUpdate,
         ackAssignmentUpdate,
+
+        // Notification center state
+        notifications,
+        unreadNotificationCount,
+        markNotificationAsRead,
+        markAllNotificationsAsRead,
+        clearNotifications,
 
         // Actions
         fetchCourse,
