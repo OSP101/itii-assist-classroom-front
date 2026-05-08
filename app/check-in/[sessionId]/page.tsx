@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
-import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
 import { InputOtp } from "@heroui/input-otp";
@@ -10,7 +9,6 @@ import { Spinner } from "@heroui/spinner";
 import { Avatar } from "@heroui/avatar";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
-import { IoSchool } from "react-icons/io5";
 import { io, Socket } from "@/services/realtime-socket";
 import attendanceService, { type AttendanceSession } from "@/services/attendance.service";
 
@@ -363,127 +361,151 @@ export default function StudentCheckInPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 flex items-center justify-center p-4">
-            <Card className="w-full max-w-md shadow-2xl">
-                <CardBody className="p-6">
-                    {/* Loading */}
-                    {step === "loading" && (
-                        <div className="flex flex-col items-center gap-4 py-10">
-                            <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-2xl flex items-center justify-center text-white text-4xl">
-                                <IoSchool />
+        <div className="min-h-screen bg-slate-50">
+
+            {/* ── Loading state (full screen) ── */}
+            {step === "loading" && (
+                <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg">
+                        <Icon icon="solar:clipboard-check-bold" className="text-3xl text-white" />
+                    </div>
+                    <Spinner size="lg" color="primary" />
+                    <p className="text-sm text-slate-500">กำลังโหลด…</p>
+                </div>
+            )}
+
+            {/* ── Error state (full screen) ── */}
+            {step === "error" && (
+                <div className="flex min-h-screen flex-col items-center justify-center p-6 text-center">
+                    <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-red-100">
+                        <Icon icon="solar:danger-triangle-bold-duotone" className="text-4xl text-red-500" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900 mb-2">ไม่สามารถเข้าถึงได้</h2>
+                    <p className="text-sm text-slate-500 mb-6 max-w-xs">{errorMessage}</p>
+                    <Button variant="flat" radius="lg" onPress={() => window.location.reload()}>
+                        ลองใหม่
+                    </Button>
+                </div>
+            )}
+
+            {/* ── All non-loading, non-error states ── */}
+            {step !== "loading" && step !== "error" && (
+                <>
+                    {/* Top hero strip — session info */}
+                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 px-5 pb-8 pt-10 text-white">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+                                <Icon icon="solar:clipboard-check-bold-duotone" className="text-2xl text-white" />
                             </div>
-                            <Spinner size="lg" color="primary" />
-                            <p className="text-slate-500">กำลังโหลด...</p>
-                        </div>
-                    )}
-
-                    {/* Session Info Header */}
-                    {step !== "loading" && session && step !== "error" && (
-                        <div className="text-center mb-6 pb-6 border-b border-slate-100">
-                            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
-                                <Icon icon="solar:clipboard-check-bold" className="text-3xl text-white" />
+                            <div>
+                                <p className="text-xs text-blue-200 font-medium">เช็คชื่อเข้าเรียน</p>
+                                <h1 className="text-lg font-bold leading-tight line-clamp-1">
+                                    {session?.title || "กำลังโหลด…"}
+                                </h1>
                             </div>
-                            <h1 className="text-xl font-bold text-slate-800">{session.title}</h1>
-                            <p className="text-slate-500 text-sm mt-1">
-                                {session.course?.code} - {session.course?.name}
-                            </p>
                         </div>
-                    )}
-
-                    {/* Google Login Step */}
-                    {step === "google-login" && (
-                        <div className="text-center">
-                            <Icon icon="solar:user-circle-bold-duotone" className="text-6xl text-blue-500 mx-auto mb-4" />
-                            <h2 className="text-lg font-semibold text-slate-800 mb-2">เข้าสู่ระบบด้วย Google</h2>
-                            <p className="text-slate-500 text-sm mb-6">
-                                กรุณาเข้าสู่ระบบด้วยอีเมลนักศึกษา (@kkumail.com)
+                        {session?.course && (
+                            <p className="text-sm text-blue-100">
+                                {session.course.code} · {session.course.name}
                             </p>
-                            <div ref={googleButtonRef} className="flex justify-center mb-4" />
-                            <p className="text-xs text-slate-400 mt-4">
-                                ระบบจะตรวจสอบอีเมลกับฐานข้อมูลนักศึกษา
-                            </p>
-                        </div>
-                    )}
+                        )}
+                    </div>
 
-                    {/* Location Step */}
-                    {step === "location" && (
-                        <div className="text-center">
-                            <Icon icon="solar:map-point-bold-duotone" className="text-6xl text-blue-500 mx-auto mb-4" />
-                            <h2 className="text-lg font-semibold text-slate-800 mb-2">ยืนยันตำแหน่งที่ตั้ง</h2>
-                            <p className="text-slate-500 text-sm mb-6">
-                                รอบการเช็คชื่อนี้ต้องยืนยันตำแหน่งที่ตั้ง
-                                <br />
-                                <span className="text-xs text-slate-400">
-                                    (รัศมี {session?.radius_meters} เมตรจากห้องเรียน)
-                                </span>
-                            </p>
+                    {/* Pull-up white sheet */}
+                    <div className="-mt-4 min-h-[calc(100vh-8rem)] rounded-t-3xl bg-slate-50 px-5 pt-7 pb-12">
 
-                            {locationError && (
-                                <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm">
-                                    <Icon icon="solar:danger-triangle-bold" className="inline mr-2" />
-                                    {locationError}
+                        {/* ── Google Login ── */}
+                        {step === "google-login" && (
+                            <div className="flex flex-col items-center text-center gap-5">
+                                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-100">
+                                    <Icon icon="solar:user-circle-bold-duotone" className="text-4xl text-blue-600" />
                                 </div>
-                            )}
-
-                            {location && (
-                                <div className="mb-4 p-3 bg-emerald-50 text-emerald-600 rounded-xl text-sm">
-                                    <Icon icon="solar:check-circle-bold" className="inline mr-2" />
-                                    ระบุตำแหน่งสำเร็จ
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-900">เข้าสู่ระบบด้วย Google</h2>
+                                    <p className="mt-1 text-sm text-slate-500">
+                                        ใช้อีเมลนักศึกษา (@kkumail.com)
+                                    </p>
                                 </div>
-                            )}
+                                <div ref={googleButtonRef} className="flex justify-center w-full" />
+                                <p className="text-xs text-slate-400">
+                                    ระบบจะตรวจสอบอีเมลกับฐานข้อมูลนักศึกษาอัตโนมัติ
+                                </p>
+                            </div>
+                        )}
 
-                            <div className="space-y-3">
+                        {/* ── Location Step ── */}
+                        {step === "location" && (
+                            <div className="flex flex-col items-center text-center gap-5">
+                                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-indigo-100">
+                                    <Icon icon="solar:map-point-bold-duotone" className="text-4xl text-indigo-600" />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-900">ยืนยันตำแหน่ง</h2>
+                                    <p className="mt-1 text-sm text-slate-500">
+                                        รอบนี้ต้องยืนยันตำแหน่ง
+                                        {session?.radius_meters ? ` ภายในรัศมี ${session.radius_meters} ม.` : ""}
+                                    </p>
+                                </div>
+
+                                {locationError && (
+                                    <div className="w-full rounded-2xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600 flex items-center gap-2">
+                                        <Icon icon="solar:danger-triangle-bold" className="shrink-0 text-lg" />
+                                        <span>{locationError}</span>
+                                    </div>
+                                )}
+                                {location && (
+                                    <div className="w-full rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-700 flex items-center gap-2">
+                                        <Icon icon="solar:check-circle-bold" className="shrink-0 text-lg" />
+                                        <span>ระบุตำแหน่งสำเร็จแล้ว</span>
+                                    </div>
+                                )}
+
                                 <Button
                                     color="primary"
                                     size="lg"
-                                    className="w-full bg-gradient-to-r from-blue-400 to-indigo-500"
-                                    startContent={
-                                        !isGettingLocation && <Icon icon="solar:gps-bold" className="text-xl" />
-                                    }
+                                    radius="lg"
+                                    className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 font-semibold"
+                                    startContent={!isGettingLocation && <Icon icon="solar:gps-bold" className="text-xl" />}
                                     isLoading={isGettingLocation}
                                     onPress={getLocation}
                                 >
-                                    {isGettingLocation ? "กำลังระบุตำแหน่ง..." : "อนุญาตการเข้าถึงตำแหน่ง"}
+                                    {isGettingLocation ? "กำลังระบุตำแหน่ง…" : "อนุญาตการเข้าถึงตำแหน่ง"}
                                 </Button>
-                                {/* <Button
-                                    variant="flat"
-                                    size="lg"
-                                    className="w-full"
-                                    onPress={skipLocation}
-                                >
-                                    ข้ามขั้นตอนนี้
-                                </Button> */}
+                                <p className="text-xs text-slate-400">
+                                    หากไม่ยืนยันตำแหน่ง อาจถูกบันทึกว่า "ขาด" หรือ "สาย"
+                                </p>
                             </div>
+                        )}
 
-                            <p className="text-xs text-slate-400 mt-4">
-                                หากไม่ยืนยันตำแหน่ง อาจถูกบันทึกว่า "ขาด" หรือ "สาย"
-                            </p>
-                        </div>
-                    )}
+                        {/* ── PIN Entry ── */}
+                        {step === "pin-entry" && (
+                            <div className="flex flex-col items-center gap-5">
+                                {/* Student identity pill */}
+                                {studentInfo && (
+                                    <div className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                                        <Avatar
+                                            name={studentInfo.full_name}
+                                            src={googleUser?.picture}
+                                            size="md"
+                                            className="shrink-0 bg-blue-500"
+                                        />
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-slate-900 truncate">{studentInfo.full_name}</p>
+                                            <p className="text-xs text-slate-500">{studentInfo.student_id}</p>
+                                        </div>
+                                    </div>
+                                )}
 
-                    {/* PIN Entry Step */}
-                    {step === "pin-entry" && (
-                        <div className="text-center">
-                            {studentInfo && (
-                                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-6 text-left">
-                                    <Avatar
-                                        name={studentInfo.full_name}
-                                        src={googleUser?.picture}
-                                        size="md"
-                                        className="bg-blue-500"
-                                    />
+                                <div className="flex flex-col items-center text-center gap-3 pt-2">
+                                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
+                                        <Icon icon="solar:key-bold-duotone" className="text-3xl text-blue-600" />
+                                    </div>
                                     <div>
-                                        <p className="font-medium text-slate-800">{studentInfo.full_name}</p>
-                                        <p className="text-sm text-slate-500">{studentInfo.student_id}</p>
+                                        <h2 className="text-xl font-bold text-slate-900">กรอกรหัส PIN</h2>
+                                        <p className="mt-1 text-sm text-slate-500">6 หลัก จากจอหน้าห้องเรียน</p>
                                     </div>
                                 </div>
-                            )}
 
-                            <Icon icon="solar:key-bold-duotone" className="text-6xl text-blue-500 mx-auto mb-4" />
-                            <h2 className="text-lg font-semibold text-slate-800 mb-2">กรอกรหัส PIN</h2>
-                            <p className="text-slate-500 text-sm mb-6">กรอกรหัส PIN 6 หลักที่แสดงในห้องเรียน</p>
-
-                            <div className="flex justify-center">
                                 <InputOtp
                                     length={6}
                                     value={pinCode}
@@ -493,113 +515,106 @@ export default function StudentCheckInPage() {
                                     color="primary"
                                     onComplete={handleCheckIn}
                                     classNames={{
-                                        segment: "w-11 h-14 text-xl font-bold",
-                                        segmentWrapper: "gap-1.5",
+                                        segment: "w-12 h-14 text-2xl font-bold",
+                                        segmentWrapper: "gap-2",
                                     }}
                                 />
-                            </div>
 
-                            {location && (
-                                <div className="mt-4 p-2 bg-emerald-50 text-emerald-600 rounded-lg text-xs flex items-center justify-center gap-1">
-                                    <Icon icon="solar:map-point-bold" />
-                                    ตำแหน่งที่ตั้งถูกระบุแล้ว
-                                </div>
-                            )}
-
-                            <Button
-                                color="primary"
-                                size="lg"
-                                className="w-full mt-6 bg-gradient-to-r from-blue-400 to-indigo-500"
-                                isDisabled={pinCode.length !== 6}
-                                isLoading={isSubmitting}
-                                onPress={handleCheckIn}
-                            >
-                                เช็คชื่อ
-                            </Button>
-                        </div>
-                    )}
-
-                    {/* Success Step */}
-                    {step === "success" && checkInResult && (
-                        <div className="text-center py-6">
-                            <div
-                                className={`w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center ${
-                                    statusDisplay[checkInResult.status]?.color || "bg-emerald-100"
-                                }`}
-                            >
-                                <Icon
-                                    icon={statusDisplay[checkInResult.status]?.icon || "solar:check-circle-bold"}
-                                    className="text-4xl"
-                                />
-                            </div>
-                            <h2 className="text-xl font-bold text-slate-800 mb-2">เช็คชื่อสำเร็จ!</h2>
-                            <Chip
-                                size="lg"
-                                className={statusDisplay[checkInResult.status]?.color}
-                            >
-                                {statusDisplay[checkInResult.status]?.label}
-                            </Chip>
-
-                            <div className="mt-6 p-4 bg-slate-50 rounded-xl text-left space-y-2">
-                                <div className="flex justify-between">
-                                    <span className="text-slate-500">เวลาเช็คชื่อ</span>
-                                    <span className="font-mono font-semibold">
-                                        {formatTime(checkInResult.check_in_time)}
-                                    </span>
-                                </div>
-                                {checkInResult.location_verified && (
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-500">ตำแหน่ง</span>
-                                        <span className="text-emerald-600 flex items-center gap-1">
-                                            <Icon icon="solar:check-circle-bold" />
-                                            ยืนยันแล้ว ({checkInResult.distance_meters?.toFixed(0)}m)
-                                        </span>
+                                {location && (
+                                    <div className="flex items-center gap-1.5 text-xs text-emerald-600">
+                                        <Icon icon="solar:map-point-bold" />
+                                        ตำแหน่งที่ตั้งถูกระบุแล้ว
                                     </div>
                                 )}
-                            </div>
 
-                            <p className="text-sm text-slate-400 mt-6">คุณสามารถปิดหน้านี้ได้</p>
-                        </div>
-                    )}
-
-                    {/* Already Checked In */}
-                    {step === "already-checked-in" && alreadyCheckedIn && (
-                        <div className="text-center py-6">
-                            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-                                <Icon icon="solar:info-circle-bold" className="text-4xl text-blue-600" />
+                                <Button
+                                    color="primary"
+                                    size="lg"
+                                    radius="lg"
+                                    className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 font-semibold mt-2"
+                                    isDisabled={pinCode.length !== 6}
+                                    isLoading={isSubmitting}
+                                    onPress={handleCheckIn}
+                                >
+                                    เช็คชื่อ
+                                </Button>
                             </div>
-                            <h2 className="text-xl font-bold text-slate-800 mb-2">เช็คชื่อไปแล้ว</h2>
-                            <p className="text-slate-500 mb-4">
-                                คุณได้เช็คชื่อในรอบนี้ไปแล้วเมื่อเวลา {formatTime(alreadyCheckedIn.check_in_time)}
-                            </p>
-                            <Chip
-                                size="lg"
-                                className={statusDisplay[alreadyCheckedIn.status]?.color || "bg-slate-100"}
-                            >
-                                {statusDisplay[alreadyCheckedIn.status]?.label || alreadyCheckedIn.status}
-                            </Chip>
-                        </div>
-                    )}
+                        )}
 
-                    {/* Error Step */}
-                    {step === "error" && (
-                        <div className="text-center py-6">
-                            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
-                                <Icon icon="solar:danger-triangle-bold" className="text-4xl text-red-600" />
+                        {/* ── Success ── */}
+                        {step === "success" && checkInResult && (
+                            <div className="flex flex-col items-center text-center gap-6 pt-4">
+                                {/* Big status circle */}
+                                <div className={`flex h-24 w-24 items-center justify-center rounded-full ${
+                                    checkInResult.status === "present" ? "bg-emerald-100" :
+                                    checkInResult.status === "late" ? "bg-amber-100" : "bg-slate-100"
+                                }`}>
+                                    <Icon
+                                        icon={statusDisplay[checkInResult.status]?.icon || "solar:check-circle-bold"}
+                                        className={`text-5xl ${
+                                            checkInResult.status === "present" ? "text-emerald-600" :
+                                            checkInResult.status === "late" ? "text-amber-600" : "text-slate-600"
+                                        }`}
+                                    />
+                                </div>
+
+                                <div>
+                                    <h2 className="text-2xl font-bold text-slate-900">เช็คชื่อสำเร็จ!</h2>
+                                    <Chip
+                                        size="lg"
+                                        className={`mt-2 ${statusDisplay[checkInResult.status]?.color}`}
+                                    >
+                                        {statusDisplay[checkInResult.status]?.label}
+                                    </Chip>
+                                </div>
+
+                                {/* Info card */}
+                                <div className="w-full rounded-2xl border border-slate-200 bg-white px-5 py-4 text-left space-y-3 shadow-sm">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-slate-500">เวลาเช็คชื่อ</span>
+                                        <span className="font-mono font-semibold text-slate-900">
+                                            {formatTime(checkInResult.check_in_time)}
+                                        </span>
+                                    </div>
+                                    {checkInResult.location_verified && (
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm text-slate-500">ตำแหน่ง</span>
+                                            <span className="text-emerald-600 flex items-center gap-1 text-sm font-medium">
+                                                <Icon icon="solar:check-circle-bold" />
+                                                ยืนยันแล้ว ({checkInResult.distance_meters?.toFixed(0)} ม.)
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <p className="text-sm text-slate-400">คุณสามารถปิดหน้านี้ได้แล้ว</p>
                             </div>
-                            <h2 className="text-xl font-bold text-slate-800 mb-2">เกิดข้อผิดพลาด</h2>
-                            <p className="text-slate-500">{errorMessage}</p>
-                            <Button
-                                variant="flat"
-                                className="mt-6"
-                                onPress={() => window.location.reload()}
-                            >
-                                ลองใหม่
-                            </Button>
-                        </div>
-                    )}
-                </CardBody>
-            </Card>
+                        )}
+
+                        {/* ── Already Checked In ── */}
+                        {step === "already-checked-in" && alreadyCheckedIn && (
+                            <div className="flex flex-col items-center text-center gap-5 pt-4">
+                                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-sky-100">
+                                    <Icon icon="solar:info-circle-bold-duotone" className="text-4xl text-sky-600" />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-900">เช็คชื่อไปแล้ว</h2>
+                                    <p className="mt-1 text-sm text-slate-500">
+                                        รอบนี้เมื่อ {formatTime(alreadyCheckedIn.check_in_time)}
+                                    </p>
+                                </div>
+                                <Chip
+                                    size="lg"
+                                    className={statusDisplay[alreadyCheckedIn.status]?.color || "bg-slate-100 text-slate-700"}
+                                >
+                                    {statusDisplay[alreadyCheckedIn.status]?.label || alreadyCheckedIn.status}
+                                </Chip>
+                            </div>
+                        )}
+
+                    </div>
+                </>
+            )}
         </div>
     );
 }

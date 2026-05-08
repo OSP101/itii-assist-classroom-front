@@ -11,6 +11,8 @@ import {
     getNotificationPermissionStatus,
 } from "@/config/firebase";
 import { authService } from "@/services/auth.service";
+import { useSocket } from "@/contexts/SocketContext";
+import userNotificationService, { UserNotificationItem } from "@/services/user-notification.service";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
@@ -37,6 +39,15 @@ interface NotificationContextType {
     // Latest notification (for in-app handling)
     lastNotification: MessagePayload | null;
     clearLastNotification: () => void;
+
+    // Navbar notification inbox (DB-backed)
+    notifications: UserNotificationItem[];
+    unreadCount: number;
+    isInboxLoading: boolean;
+    refreshNotifications: () => Promise<void>;
+    markNotificationRead: (id: number) => Promise<void>;
+    markAllNotificationsRead: () => Promise<void>;
+    clearReadNotifications: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | null>(null);
@@ -54,11 +65,15 @@ interface NotificationProviderProps {
 }
 
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
+    const { joinUserRoom, onNotification } = useSocket();
     const [isSupported, setIsSupported] = useState(false);
     const [permissionStatus, setPermissionStatus] = useState<NotificationPermission | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [fcmToken, setFcmToken] = useState<string | null>(null);
     const [lastNotification, setLastNotification] = useState<MessagePayload | null>(null);
+    const [notifications, setNotifications] = useState<UserNotificationItem[]>([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [isInboxLoading, setIsInboxLoading] = useState(false);
 
     const unsubscribeRef = useRef<(() => void) | null>(null);
 
@@ -261,6 +276,99 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         setLastNotification(null);
     }, []);
 
+    const refreshNotifications = useCallback(async () => {
+        setIsInboxLoading(true);
+        try {
+            const [listResult, count] = await Promise.all([
+                userNotificationService.getNotifications(30, 0),
+                userNotificationService.getUnreadCount(),
+            ]);
+            setNotifications(listResult.items);
+            setUnreadCount(count);
+        } catch (error) {
+            console.error("Failed to load notifications:", error);
+        } finally {
+            setIsInboxLoading(false);
+        }
+    }, []);
+
+    const markNotificationRead = useCallback(async (id: number) => {
+        const target = notifications.find((item) => item.id === id);
+        if (!target || target.is_read) {
+            return;
+        }
+        setNotifications((prev) => prev.map((item) => item.id === id ? { ...item, is_read: true, read_at: new Date().toISOString() } : item));
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+        try {
+            await userNotificationService.markRead(id);
+        } catch (error) {
+            console.error("Failed to mark notification read:", error);
+            refreshNotifications();
+        }
+    }, [notifications, refreshNotifications]);
+
+    const markAllNotificationsRead = useCallback(async () => {
+        const nowIso = new Date().toISOString();
+        setNotifications((prev) => prev.map((item) => ({ ...item, is_read: true, read_at: item.read_at ?? nowIso })));
+        setUnreadCount(0);
+        try {
+            await userNotificationService.markAllRead();
+        } catch (error) {
+            console.error("Failed to mark all notifications read:", error);
+            refreshNotifications();
+        }
+    }, [refreshNotifications]);
+
+    const clearReadNotifications = useCallback(async () => {
+        try {
+            await userNotificationService.clearRead();
+            setNotifications((prev) => prev.filter((item) => !item.is_read));
+        } catch (error) {
+            console.error("Failed to clear read notifications:", error);
+            refreshNotifications();
+        }
+    }, [refreshNotifications]);
+
+    useEffect(() => {
+        const user = authService.getStoredUser();
+        if (!user?.id) {
+            return;
+        }
+
+        joinUserRoom(user.id);
+        refreshNotifications();
+
+        return onNotification((data: any) => {
+            const incomingId = Number(data?.id || 0);
+            const incoming: UserNotificationItem = {
+                id: incomingId,
+                user_id: user.id,
+                type: String(data?.type || "notification"),
+                title: String(data?.title || "แจ้งเตือน"),
+                message: String(data?.message || ""),
+                course_id: data?.course_id ? String(data.course_id) : undefined,
+                link: data?.link ? String(data.link) : undefined,
+                data: typeof data?.data === "object" && data?.data ? data.data : undefined,
+                is_read: Boolean(data?.is_read),
+                read_at: data?.read_at || null,
+                created_at: data?.created_at || new Date().toISOString(),
+            };
+
+            setNotifications((prev) => {
+                if (incoming.id > 0 && prev.some((item) => item.id === incoming.id)) {
+                    return prev;
+                }
+                return [incoming, ...prev].slice(0, 50);
+            });
+
+            if (typeof data?.unread_count === "number") {
+                setUnreadCount(data.unread_count);
+            } else if (!incoming.is_read) {
+                setUnreadCount((prev) => prev + 1);
+            }
+        });
+    }, [joinUserRoom, onNotification, refreshNotifications]);
+
     const value: NotificationContextType = {
         isSupported,
         permissionStatus,
@@ -271,6 +379,13 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         unregisterFcmToken,
         lastNotification,
         clearLastNotification,
+        notifications,
+        unreadCount,
+        isInboxLoading,
+        refreshNotifications,
+        markNotificationRead,
+        markAllNotificationsRead,
+        clearReadNotifications,
     };
 
     return (

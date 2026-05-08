@@ -73,7 +73,7 @@ export const getTypeTextColor = (type: string): string => {
 };
 
 // Tab types
-export type AssignmentTabType = "all" | "lab" | "assignment" | "group";
+export type AssignmentTabType = "lab" | "assignment" | "group";
 export type ViewMode = "grid" | "list";
 
 // Placeholder for ASSIGNMENT_TYPE_CONFIG (kept for backward compatibility)

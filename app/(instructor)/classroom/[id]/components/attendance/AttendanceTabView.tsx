@@ -52,26 +52,43 @@ interface HeaderProps {
     onCreateClick: () => void;
     isCourseActive?: boolean;
     canCreateAttendanceSessions?: boolean;
+    canLaunchAttendanceDisplay?: boolean;
 }
 
-const Header = memo(function Header({ onCreateClick, isCourseActive = true, canCreateAttendanceSessions = false }: HeaderProps) {
+const Header = memo(function Header({
+    onCreateClick,
+    isCourseActive = true,
+    canCreateAttendanceSessions = false,
+    canLaunchAttendanceDisplay = false,
+}: HeaderProps) {
     return (
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
                 <h2 className="text-lg font-semibold text-slate-800">การเช็คชื่อเข้าเรียน</h2>
                 <p className="text-sm text-slate-500">จัดการรอบการเช็คชื่อและดูสถิติการเข้าเรียน</p>
             </div>
-            {canCreateAttendanceSessions && (
-                <Button
-                    color="primary"
-                    startContent={<Icon icon="solar:add-circle-bold" />}
-                    onPress={onCreateClick}
-                    isDisabled={!isCourseActive}
-                    className="bg-gradient-to-r from-blue-400 to-indigo-500 "
-                >
-                    สร้างรอบเช็คชื่อ
-                </Button>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+                {canLaunchAttendanceDisplay && (
+                    <Button
+                        variant="flat"
+                        startContent={<Icon icon="solar:monitor-smartphone-bold" />}
+                        onPress={() => window.open("/d", "_blank", "noopener,noreferrer")}
+                    >
+                        เปิดหน้าจอเช็คชื่อ
+                    </Button>
+                )}
+                {canCreateAttendanceSessions && (
+                    <Button
+                        color="primary"
+                        startContent={<Icon icon="solar:add-circle-bold" />}
+                        onPress={onCreateClick}
+                        isDisabled={!isCourseActive}
+                        className="bg-linear-to-r from-blue-400 to-indigo-500"
+                    >
+                        สร้างรอบเช็คชื่อ
+                    </Button>
+                )}
+            </div>
         </div>
     );
 });
@@ -252,6 +269,7 @@ function AttendanceTabViewComponent({
                 onCreateClick={openCreateModal}
                 isCourseActive={isCourseActive}
                 canCreateAttendanceSessions={canCreateAttendanceSessions}
+                canLaunchAttendanceDisplay={canCreateAttendanceSessions || canUpdateAttendanceSessions}
             />
 
             {showLoading ? (

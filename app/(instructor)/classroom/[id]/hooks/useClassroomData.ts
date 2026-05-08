@@ -539,6 +539,20 @@ export function useClassroomData(courseId: string) {
             if (isUpdatingRef.current) return;
             if (!isCourseEventForCurrentClassroom(data)) return;
 
+            // Self-filter: skip if the current user was the actor who triggered the event
+            try {
+                const rawUser = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+                if (rawUser) {
+                    const myId = String(JSON.parse(rawUser)?.id ?? '');
+                    const eventActorId = String(
+                        (data as any).actor_id ??
+                        (data as any).data?.actor_id ??
+                        ''
+                    );
+                    if (myId && eventActorId && myId === eventActorId) return;
+                }
+            } catch { /* ignore parse errors */ }
+
             pushNotification(data);
             
             switch (data.resource) {

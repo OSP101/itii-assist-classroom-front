@@ -57,6 +57,13 @@ export default function AssignmentsTab({
         groupAssignments,
         currentAssignments,
         ungradedSummary,
+        // Drag reorder
+        draggingId,
+        dragOverId,
+        handleDragStart,
+        handleDragOver,
+        handleDrop,
+        handleDragEnd,
         // Actions
         setSearchQuery,
         setActiveTab,
@@ -95,6 +102,12 @@ export default function AssignmentsTab({
             homeworkAssignments={homeworkAssignments}
             groupAssignments={groupAssignments}
             currentAssignments={currentAssignments}
+            draggingId={draggingId}
+            dragOverId={dragOverId}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            onDragEnd={handleDragEnd}
             onSetSearchQuery={setSearchQuery}
             onSetActiveTab={setActiveTab}
             onSetViewMode={setViewMode}

@@ -14,6 +14,7 @@ import type { AssignmentType } from "../types";
 import type { AssignmentTabType, ViewMode } from "./config";
 import { getTypeInfo, getTypeBgColor, getTypeTextColor } from "./config";
 import { AssignmentModal } from "./AssignmentModal";
+import assignmentService from "@/services/assignment.service";
 import type { UngradedSummary } from "@/services/score.service";
 
 interface AssignmentsTabViewProps {
@@ -37,6 +38,13 @@ interface AssignmentsTabViewProps {
     homeworkAssignments: AssignmentType[];
     groupAssignments: AssignmentType[];
     currentAssignments: AssignmentType[];
+    // Drag reorder
+    draggingId: number | null;
+    dragOverId: number | null;
+    onDragStart: (id: number) => void;
+    onDragOver: (id: number) => void;
+    onDrop: (id: number) => Promise<void>;
+    onDragEnd: () => void;
     // Actions from hook
     onSetSearchQuery: (query: string) => void;
     onSetActiveTab: (tab: AssignmentTabType) => void;
@@ -81,6 +89,12 @@ function AssignmentsTabViewComponent({
     homeworkAssignments,
     groupAssignments,
     currentAssignments,
+    draggingId,
+    dragOverId,
+    onDragStart,
+    onDragOver,
+    onDrop,
+    onDragEnd,
     onSetSearchQuery,
     onSetActiveTab,
     onSetViewMode,
@@ -160,22 +174,55 @@ function AssignmentsTabViewComponent({
         );
     };
 
+    // Render draft badge
+    const renderDraftBadge = (assignment: AssignmentType) => {
+        if (!assignment.is_draft) return null;
+        const publishAt = assignment.publish_at ? new Date(assignment.publish_at) : null;
+        const isScheduled = publishAt && publishAt > new Date();
+        return (
+            <Chip
+                size="sm"
+                variant="flat"
+                className="bg-yellow-100 text-yellow-700 gap-1"
+                startContent={<Icon icon={isScheduled ? "solar:calendar-date-bold" : "solar:pen-new-square-bold"} width={13} />}
+            >
+                {isScheduled
+                    ? `เผยแพร่ ${publishAt.toLocaleDateString("th-TH", { day: "numeric", month: "short" })} ${publishAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}`
+                    : "ฉบับร่าง"}
+            </Chip>
+        );
+    };
+
     // Render grid card view
     const renderGridCard = (assignment: AssignmentType) => {
         const typeInfo = getTypeInfo(assignment.assignment_type);
+        const isDragging = draggingId === assignment.id;
+        const isDragOver = dragOverId === assignment.id;
         return (
             <Card
                 key={assignment.id}
                 as="div"
-                isPressable={canGradeAssignments || canEditScores}
-                className="shadow-sm border border-slate-200 hover:shadow-md transition-all"
-                onPress={() => (canGradeAssignments || canEditScores) && onOpenScoreModal(assignment)}
+                isPressable={!canUpdateAssignments && (canGradeAssignments || canEditScores)}
+                className={`shadow-sm border transition-all ${isDragging ? "opacity-40 scale-95" : ""} ${isDragOver ? "border-blue-400 border-2 shadow-lg" : "border-slate-200 hover:shadow-md"} ${assignment.is_draft ? "bg-yellow-50/60" : ""}`}
+                onPress={() => !canUpdateAssignments && (canGradeAssignments || canEditScores) && onOpenScoreModal(assignment)}
+                draggable={canUpdateAssignments}
+                onDragStart={canUpdateAssignments ? () => onDragStart(assignment.id) : undefined}
+                onDragOver={canUpdateAssignments ? (e) => { e.preventDefault(); onDragOver(assignment.id); } : undefined}
+                onDrop={canUpdateAssignments ? (e) => { e.preventDefault(); onDrop(assignment.id); } : undefined}
+                onDragEnd={canUpdateAssignments ? onDragEnd : undefined}
             >
                 <CardBody className="p-4">
                     {/* Header with Actions */}
                     <div className="flex items-start justify-between gap-2 mb-3">
-                        <div className={`p-2 rounded-lg ${getTypeBgColor(assignment.assignment_type)}`}>
-                            <Icon icon={typeInfo.icon} className={`text-xl ${getTypeTextColor(assignment.assignment_type)}`} />
+                        <div className="flex items-center gap-2">
+                            {canUpdateAssignments && (
+                                <div className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 transition-colors" title="ลากเพื่อจัดเรียง">
+                                    <Icon icon="solar:reorder-bold" className="text-lg" />
+                                </div>
+                            )}
+                            <div className={`p-2 rounded-lg ${getTypeBgColor(assignment.assignment_type)}`}>
+                                <Icon icon={typeInfo.icon} className={`text-xl ${getTypeTextColor(assignment.assignment_type)}`} />
+                            </div>
                         </div>
                         {(canUpdateAssignments || canDeleteAssignments) && (
                             <div className="flex items-center gap-1" onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
@@ -216,6 +263,7 @@ function AssignmentsTabViewComponent({
                                 </Chip>
                             </Tooltip>
                         )}
+                        {renderDraftBadge(assignment)}
                     </div>
 
                     {/* Footer Info */}
@@ -224,6 +272,24 @@ function AssignmentsTabViewComponent({
                             <Icon icon="solar:medal-star-bold" className="text-amber-500" />
                             <span className="font-medium text-slate-700">{assignment.max_score}</span> คะแนน
                         </span>
+                        {assignment.is_draft && canUpdateAssignments && (
+                            <Tooltip content="เผยแพร่ทันที">
+                                <Button
+                                    size="sm"
+                                    color="success"
+                                    variant="flat"
+                                    startContent={<Icon icon="solar:eye-bold" className="text-sm" />}
+                                    onPress={async () => {
+                                        await assignmentService.publishAssignment(assignment.id);
+                                        onAssignmentSaved();
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="h-7 px-2 text-xs"
+                                >
+                                    เผยแพร่
+                                </Button>
+                            </Tooltip>
+                        )}
                     </div>
                     {renderUngradedInfo(assignment)}
                 </CardBody>
@@ -234,16 +300,33 @@ function AssignmentsTabViewComponent({
     // Render list row view
     const renderListRow = (assignment: AssignmentType) => {
         const typeInfo = getTypeInfo(assignment.assignment_type);
+        const isDragging = draggingId === assignment.id;
+        const isDragOver = dragOverId === assignment.id;
         return (
-            <Card
+            <div
                 key={assignment.id}
+                draggable={canUpdateAssignments}
+                onDragStart={canUpdateAssignments ? () => onDragStart(assignment.id) : undefined}
+                onDragOver={canUpdateAssignments ? (e) => { e.preventDefault(); onDragOver(assignment.id); } : undefined}
+                onDrop={canUpdateAssignments ? (e) => { e.preventDefault(); onDrop(assignment.id); } : undefined}
+                onDragEnd={canUpdateAssignments ? onDragEnd : undefined}
+                className={`transition-all ${isDragging ? "opacity-40" : ""} ${isDragOver ? "scale-[1.01]" : ""}`}
+            >
+            <Card
                 as="div"
-                isPressable={canGradeAssignments || canEditScores}
-                className="shadow-sm border border-slate-200 hover:shadow-md transition-all w-full"
-                onPress={() => (canGradeAssignments || canEditScores) && onOpenScoreModal(assignment)}
+                isPressable={!canUpdateAssignments && (canGradeAssignments || canEditScores)}
+                className={`shadow-sm border transition-all w-full ${isDragOver ? "border-blue-400 border-2 shadow-md" : "border-slate-200 hover:shadow-md"} ${assignment.is_draft ? "bg-yellow-50/60" : ""}`}
+                onPress={() => !canUpdateAssignments && (canGradeAssignments || canEditScores) && onOpenScoreModal(assignment)}
             >
                 <CardBody className="p-3 sm:p-4">
                     <div className="flex items-center gap-3 sm:gap-4">
+                        {/* Drag Handle */}
+                        {canUpdateAssignments && (
+                            <div className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 transition-colors shrink-0" title="ลากเพื่อจัดเรียง">
+                                <Icon icon="solar:reorder-bold" className="text-xl" />
+                            </div>
+                        )}
+
                         {/* Icon */}
                         <div className={`p-2 sm:p-2.5 rounded-lg shrink-0 ${getTypeBgColor(assignment.assignment_type)}`}>
                             <Icon icon={typeInfo.icon} className={`text-lg sm:text-xl ${getTypeTextColor(assignment.assignment_type)}`} />
@@ -265,6 +348,7 @@ function AssignmentsTabViewComponent({
                                             </Chip>
                                         </Tooltip>
                                     )}
+                                    {renderDraftBadge(assignment)}
                                 </div>
                             </div>
                             <div className="flex items-center gap-3 mt-1 text-sm text-slate-500">
@@ -297,6 +381,22 @@ function AssignmentsTabViewComponent({
                         {/* Actions */}
                         {(canUpdateAssignments || canDeleteAssignments) && (
                             <div className="flex items-center gap-1 shrink-0" onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+                                {assignment.is_draft && canUpdateAssignments && (
+                                    <Tooltip content="เผยแพร่ทันที">
+                                        <Button
+                                            isIconOnly
+                                            size="sm"
+                                            variant="flat"
+                                            color="success"
+                                            onPress={async () => {
+                                                await assignmentService.publishAssignment(assignment.id);
+                                                onAssignmentSaved();
+                                            }}
+                                        >
+                                            <Icon icon="solar:eye-bold" className="text-lg" />
+                                        </Button>
+                                    </Tooltip>
+                                )}
                                 {canUpdateAssignments && (
                                     <Tooltip content="แก้ไข">
                                         <Button isIconOnly size="sm" variant="light" color="default" onPress={() => onOpenEditModal(assignment)}>
@@ -316,6 +416,7 @@ function AssignmentsTabViewComponent({
                     </div>
                 </CardBody>
             </Card>
+            </div>
         );
     };
 
@@ -347,20 +448,6 @@ function AssignmentsTabViewComponent({
                                 tabContent: "group-data-[selected=true]:text-blue-600 text-slate-500 font-medium text-sm"
                             }}
                         >
-                            <Tab
-                                key="all"
-                                title={
-                                    <div className="flex items-center gap-2">
-                                        <Icon icon="solar:clipboard-list-bold" className="text-lg" />
-                                        <span>ทั้งหมด</span>
-                                        {assignments.length > 0 && (
-                                            <Chip size="sm" variant="flat" className="bg-blue-100 text-blue-700 h-5 min-w-5 px-1">
-                                                {assignments.length}
-                                            </Chip>
-                                        )}
-                                    </div>
-                                }
-                            />
                             <Tab
                                 key="lab"
                                 title={
@@ -557,7 +644,7 @@ function AssignmentsTabViewComponent({
                                         <h3 className="text-lg font-semibold text-slate-700 mb-2">
                                             {activeTab === "lab" ? "ยังไม่มี Lab" :
                                                 activeTab === "assignment" ? "ยังไม่มี Assignment" :
-                                                activeTab === "group" ? "ยังไม่มีงานกลุ่ม" : "ยังไม่มีงาน"}
+                                                "ยังไม่มีงานกลุ่ม"}
                                         </h3>
                                         <p className="text-slate-500 mb-6 max-w-md mx-auto">
                                             สร้างงานเพื่อกำหนดหัวข้อการลงคะแนนให้นักศึกษา

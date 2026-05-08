@@ -6,9 +6,11 @@ import { Skeleton } from "@heroui/skeleton";
 import { Avatar } from "@heroui/avatar";
 import { Chip } from "@heroui/chip";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, DropdownSection } from "@heroui/dropdown";
+import { Popover, PopoverTrigger, PopoverContent } from "@heroui/popover";
 import { Icon } from "@iconify/react";
 import { authService } from "@/services/auth.service";
 import { courseService, Course } from "@/services/course.service";
+import { useNotification } from "@/contexts/NotificationContext";
 import Link from "next/link";
 import { IoSchool } from "react-icons/io5";
 import { AppFooter } from "@/components/Footer";
@@ -62,6 +64,131 @@ export default function InstructorLayout({
     const [activeCourses, setActiveCourses] = useState<Course[]>([]);
     const [isCoursesLoading, setIsCoursesLoading] = useState(false);
     const [isCourseInfoLoading, setIsCourseInfoLoading] = useState(false);
+    const [isNotifOpen, setIsNotifOpen] = useState(false);
+    const [notifTab, setNotifTab] = useState<"all" | "unread">("all");
+    const [notifShowAll, setNotifShowAll] = useState(false);
+    const {
+        notifications,
+        unreadCount,
+        isInboxLoading,
+        markNotificationRead,
+        markAllNotificationsRead,
+        clearReadNotifications,
+    } = useNotification();
+
+    const formatRelativeTime = (isoDate: string) => {
+        const ts = new Date(isoDate).getTime();
+        if (!ts) return "เมื่อสักครู่";
+        const diffMs = Date.now() - ts;
+        const diffMin = Math.floor(diffMs / 60000);
+        if (diffMin < 1) return "เมื่อสักครู่";
+        if (diffMin < 60) return `${diffMin} นาทีที่แล้ว`;
+        const diffHour = Math.floor(diffMin / 60);
+        if (diffHour < 24) return `${diffHour} ชั่วโมงที่แล้ว`;
+        const diffDay = Math.floor(diffHour / 24);
+        return `${diffDay} วันที่แล้ว`;
+    };
+
+    const getCourseLabel = (courseId?: string) => {
+        if (!courseId) return "ไม่ระบุวิชา";
+        const fromList = activeCourses.find((c) => String(c.id) === String(courseId));
+        if (fromList) {
+            return `${fromList.code} - ${fromList.name}`;
+        }
+        if (courseInfo && String(courseInfo.id) === String(courseId)) {
+            return `${courseInfo.code} - ${courseInfo.name}`;
+        }
+        return `วิชา ${courseId}`;
+    };
+
+    const getActionLabel = (type?: string) => {
+        const mapping: Record<string, string> = {
+            assignment_created: "สร้างงาน",
+            assignment_updated: "แก้ไขงาน",
+            attendance_created: "สร้างเช็คชื่อ",
+            attendance_started: "เปิดเช็คชื่อ",
+            attendance_opened: "เปิดเช็คชื่อ",
+            attendance_closed: "ปิดเช็คชื่อ",
+            queue_created: "สร้างคิว",
+            queue_updated: "แก้ไขคิว",
+            queue_opened: "เปิดคิว",
+            queue_closed: "ปิดคิว",
+            score_edit_request: "ส่งคำขอแก้ไขคะแนน",
+            score_edit_approved: "อนุมัติคำขอคะแนน",
+            score_edit_rejected: "ปฏิเสธคำขอคะแนน",
+            admin_message: "ประกาศระบบ",
+        };
+        return mapping[String(type || "")] || "อัปเดตข้อมูล";
+    };
+
+    const getEntityName = (notification: any) => {
+        const payload = notification?.data && typeof notification.data === "object" ? notification.data : {};
+        const fromPayload = payload.resource_name || payload.title || payload.name;
+        if (fromPayload) return String(fromPayload);
+
+        const title = String(notification?.title || "").trim();
+        if (title.includes(":")) {
+            const parts = title.split(":");
+            const tail = parts.slice(1).join(":").trim();
+            if (tail) return tail;
+        }
+        return title || "(ไม่ระบุชื่อรายการ)";
+    };
+
+    const resolveNotificationLink = (notification: any): string | null => {
+        const rawLink = notification?.link ? String(notification.link) : "";
+        const courseId = notification?.course_id ? String(notification.course_id) : "";
+
+        if (!rawLink && courseId) {
+            const fallbackByType: Record<string, string> = {
+                assignment_created: "assignments",
+                assignment_updated: "assignments",
+                attendance_created: "attendance",
+                attendance_started: "attendance",
+                attendance_opened: "attendance",
+                attendance_closed: "attendance",
+                queue_created: "queue",
+                queue_updated: "queue",
+                queue_opened: "queue",
+                queue_closed: "queue",
+                score_edit_request: "approval",
+                score_edit_approved: "approval",
+                score_edit_rejected: "approval",
+            };
+            const tab = fallbackByType[String(notification?.type || "")] || "overview";
+            return `/classroom/${courseId}/${tab}`;
+        }
+
+        if (!rawLink) return null;
+
+        try {
+            const url = new URL(rawLink, typeof window !== "undefined" ? window.location.origin : "http://localhost");
+            const path = url.pathname || "";
+            const tabQuery = (url.searchParams.get("tab") || "").trim();
+
+            const match = path.match(/^\/classroom\/([^\/]+)\/?$/);
+            if (match && tabQuery) {
+                const tabAliases: Record<string, string> = {
+                    "score-requests": "approval",
+                };
+                const normalizedTab = tabAliases[tabQuery] || tabQuery;
+                return `/classroom/${match[1]}/${normalizedTab}`;
+            }
+
+            if (tabQuery && path.includes("/classroom/")) {
+                const tabAliases: Record<string, string> = {
+                    "score-requests": "approval",
+                };
+                const normalizedTab = tabAliases[tabQuery] || tabQuery;
+                const cleaned = path.replace(/\/+$/, "");
+                return `${cleaned}/${normalizedTab}`;
+            }
+
+            return `${path}${url.search}${url.hash}`;
+        } catch {
+            return rawLink;
+        }
+    };
 
     // Extract course ID from pathname
     const courseId = pathname.includes("/classroom/")
@@ -351,6 +478,180 @@ export default function InstructorLayout({
 
                         {/* Right: User Avatar */}
                         <div className="flex items-center gap-2 flex-shrink-0">
+                            <Popover
+                                isOpen={isNotifOpen}
+                                onOpenChange={(isOpen) => {
+                                    setIsNotifOpen(isOpen);
+                                    if (!isOpen) {
+                                        setNotifTab("all");
+                                        setNotifShowAll(false);
+                                    }
+                                }}
+                                placement="bottom-end"
+                            >
+                                <PopoverTrigger>
+                                    <button
+                                        type="button"
+                                        className="relative p-1.5 rounded-full hover:bg-slate-100 transition-colors"
+                                        aria-label="Notifications"
+                                    >
+                                        <Icon icon="solar:bell-linear" className="text-xl text-slate-600" />
+                                        {unreadCount > 0 && (
+                                            <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center leading-none">
+                                                {unreadCount > 99 ? "99+" : unreadCount}
+                                            </span>
+                                        )}
+                                    </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="p-0 overflow-hidden">
+                                    {(() => {
+                                        const filtered = notifTab === "unread"
+                                            ? notifications.filter((n) => !n.is_read)
+                                            : notifications;
+                                        const unreadItems = filtered.filter((n) => !n.is_read);
+                                        const readItems = filtered.filter((n) => n.is_read);
+                                        const INITIAL_LIMIT = 5;
+                                        const visibleUnread = notifShowAll ? unreadItems : unreadItems.slice(0, INITIAL_LIMIT);
+                                        const remainingSlots = notifShowAll ? readItems.length : Math.max(0, INITIAL_LIMIT - unreadItems.length);
+                                        const visibleRead = notifShowAll ? readItems : readItems.slice(0, remainingSlots);
+                                        const hasMore = !notifShowAll && (unreadItems.length > INITIAL_LIMIT || (unreadItems.length <= INITIAL_LIMIT && readItems.length > remainingSlots));
+
+                                        const NotifItem = ({ notification }: { notification: typeof notifications[0] }) => (
+                                            <button
+                                                key={`notif-${notification.id}`}
+                                                type="button"
+                                                onClick={() => {
+                                                    markNotificationRead(notification.id);
+                                                    const targetLink = resolveNotificationLink(notification);
+                                                    if (targetLink) {
+                                                        setIsNotifOpen(false);
+                                                        router.push(targetLink);
+                                                    }
+                                                }}
+                                                className={`w-full text-left px-3 py-2.5 transition-all hover:bg-slate-100 flex items-start gap-3 ${notification.is_read ? "bg-white" : "bg-blue-100/70 border-l-4 border-blue-500"}`}
+                                            >
+                                                <div className="flex-shrink-0 w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center mt-0.5">
+                                                    <Icon
+                                                        icon={
+                                                            notification.type === "assignment_created" ? "solar:document-add-bold" :
+                                                            notification.type === "assignment_updated" ? "solar:document-text-bold" :
+                                                            notification.type === "attendance_created" ? "solar:calendar-add-bold" :
+                                                            notification.type === "score_edit_request" ? "solar:pen-new-round-bold" :
+                                                            notification.type === "score_edit_approved" ? "solar:check-circle-bold" :
+                                                            notification.type === "score_edit_rejected" ? "solar:close-circle-bold" :
+                                                            "solar:bell-bing-bold"
+                                                        }
+                                                        className={`text-base ${notification.is_read ? "text-slate-400" : "text-blue-500"}`}
+                                                    />
+                                                </div>
+                                                <div className={`flex-1 min-w-0 ${notification.is_read ? "opacity-80" : "opacity-100"}`}>
+                                                    <p className={`text-xs leading-snug truncate ${notification.is_read ? "text-slate-500" : "text-blue-700 font-medium"}`}>
+                                                        วิชา: {getCourseLabel(notification.course_id)}
+                                                    </p>
+                                                    <p className={`text-sm leading-snug mt-0.5 line-clamp-2 ${notification.is_read ? "text-slate-600 font-normal" : "text-slate-800 font-medium"}`}>
+                                                        {getActionLabel(notification.type)}: {getEntityName(notification)}
+                                                    </p>
+                                                    <p className="text-xs leading-snug text-slate-500 line-clamp-2 mt-0.5">
+                                                        {notification.message || "มีการอัปเดตในรายวิชา"}
+                                                    </p>
+                                                    <p className={`text-[11px] mt-0.5 ${notification.is_read ? "text-slate-400" : "text-blue-500 font-medium"}`}>
+                                                        {formatRelativeTime(notification.created_at)}
+                                                    </p>
+                                                </div>
+                                                {!notification.is_read && (
+                                                    <div className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-blue-500 mt-2" />
+                                                )}
+                                            </button>
+                                        );
+
+                                        return (
+                                            <div className="w-[360px]">
+                                                {/* Header */}
+                                                <div className="px-4 pt-3 pb-2">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <p className="text-lg font-bold text-slate-900">การแจ้งเตือน</p>
+                                                        <div className="flex items-center gap-3">
+                                                            <button
+                                                                type="button"
+                                                                onClick={markAllNotificationsRead}
+                                                                className="text-[11px] text-blue-500 hover:text-blue-700 font-medium"
+                                                            >
+                                                                อ่านทั้งหมด
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setNotifTab("unread")}
+                                                                className="text-[11px] text-blue-500 hover:text-blue-700 font-medium"
+                                                            >
+                                                                ยังไม่ได้อ่าน {unreadCount > 0 ? `(${unreadCount})` : ""}
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={clearReadNotifications}
+                                                                className="text-[11px] text-slate-500 hover:text-slate-700 font-medium"
+                                                            >
+                                                                ลบที่อ่านแล้ว
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    {/* Tabs */}
+                                                    <div className="flex gap-1">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => { setNotifTab("all"); setNotifShowAll(false); }}
+                                                            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${notifTab === "all" ? "bg-blue-100 text-blue-700" : "text-slate-600 hover:bg-slate-100"}`}
+                                                        >
+                                                            ทั้งหมด
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => { setNotifTab("unread"); setNotifShowAll(false); }}
+                                                            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${notifTab === "unread" ? "bg-blue-100 text-blue-700" : "text-slate-600 hover:bg-slate-100"}`}
+                                                        >
+                                                            ยังไม่ได้อ่าน
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* List */}
+                                                <div className="max-h-[440px] overflow-y-auto">
+                                                    {isInboxLoading && (
+                                                        <div className="py-6 text-center text-sm text-slate-500">กำลังโหลด...</div>
+                                                    )}
+                                                    {!isInboxLoading && filtered.length === 0 && (
+                                                        <div className="py-8 text-center text-sm text-slate-400">
+                                                            <Icon icon="solar:bell-off-linear" className="text-3xl mx-auto mb-2 text-slate-300" />
+                                                            {notifTab === "unread" ? "ไม่มีการแจ้งเตือนที่ยังไม่ได้อ่าน" : "ยังไม่มีการแจ้งเตือน"}
+                                                        </div>
+                                                    )}
+                                                    {!isInboxLoading && visibleUnread.length > 0 && (
+                                                        <>
+                                                            <p className="px-4 py-1.5 text-[11px] font-bold text-blue-600 uppercase tracking-wide">ยังไม่ได้อ่าน</p>
+                                                            {visibleUnread.map((n) => <NotifItem key={n.id} notification={n} />)}
+                                                        </>
+                                                    )}
+                                                    {!isInboxLoading && visibleRead.length > 0 && (
+                                                        <>
+                                                            <p className="px-4 py-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wide">อ่านแล้ว</p>
+                                                            {visibleRead.map((n) => <NotifItem key={n.id} notification={n} />)}
+                                                        </>
+                                                    )}
+                                                    {!isInboxLoading && hasMore && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setNotifShowAll(true)}
+                                                            className="w-full py-2.5 text-sm font-medium text-blue-600 hover:bg-slate-50 transition-colors border-t border-slate-100"
+                                                        >
+                                                            ดูการแจ้งเตือนก่อนหน้า
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                </PopoverContent>
+                            </Popover>
+
                             <Dropdown placement="bottom-end">
                                 <DropdownTrigger>
                                     <button type="button" className="p-0.5 rounded-full hover:ring-2 hover:ring-blue-200 transition-all">

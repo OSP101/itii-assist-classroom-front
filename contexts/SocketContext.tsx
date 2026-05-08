@@ -42,6 +42,9 @@ interface SocketContextType {
     unsubscribeFromCourseUpdates: (userId: number) => void;
     emitCourseUpdate: (action: ActionType, courseId?: string) => void;
     onCourseUpdate: (callback: (data: DataUpdateEvent) => void) => () => void;
+    // User-scoped notifications
+    joinUserRoom: (userId: number) => void;
+    onNotification: (callback: (data: any) => void) => () => void;
     // Generic events
     emit: (event: string, data?: any) => void;
     on: (event: string, callback: (data: any) => void) => () => void;
@@ -99,6 +102,29 @@ interface SocketProviderProps {
 }
 
 // Get socket URL from environment or derive from API URL
+const getStoredUserId = (): number | null => {
+    if (typeof window === "undefined") {
+        return null;
+    }
+    try {
+        const rawUser = localStorage.getItem("user");
+        if (!rawUser) {
+            return null;
+        }
+        const parsed = JSON.parse(rawUser);
+        const id = Number(parsed?.id);
+        return Number.isFinite(id) && id > 0 ? id : null;
+    } catch {
+        return null;
+    }
+};
+
+const getEventActorId = (eventData: any): number | null => {
+    const actor = eventData?.data?.actor_id ?? eventData?.data?.actorId ?? eventData?.actor_id ?? eventData?.actorId;
+    const actorId = Number(actor);
+    return Number.isFinite(actorId) && actorId > 0 ? actorId : null;
+};
+
 const getSocketUrl = (): string => {
     // Priority 1: Use explicit Socket URL from env
     if (process.env.NEXT_PUBLIC_SOCKET_URL) {
@@ -125,6 +151,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     const [isConnected, setIsConnected] = useState(false);
     const dataUpdateCallbacks = useRef<Set<(data: DataUpdateEvent) => void>>(new Set());
     const resourceCallbacks = useRef<Map<ResourceType, Set<(data: DataUpdateEvent) => void>>>(new Map());
+    const notificationCallbacks = useRef<Set<(data: any) => void>>(new Set());
 
     // Initialize socket connection
     useEffect(() => {
@@ -158,6 +185,11 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
         // Listen for generic data updates
         socketInstance.on("data-updated", (data: DataUpdateEvent) => {
+            const myId = getStoredUserId();
+            const actorId = getEventActorId(data);
+            if (myId !== null && actorId !== null && myId === actorId) {
+                return; // skip self-events
+            }
             console.log("📢 Data update received:", data);
             // Notify all general callbacks
             dataUpdateCallbacks.current.forEach(callback => callback(data));
@@ -170,13 +202,23 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
         // Legacy course-updated event (backward compatibility)
         socketInstance.on("course-updated", (data: any) => {
+            const myId = getStoredUserId();
+            const actorId = getEventActorId(data);
+            if (myId !== null && actorId !== null && myId === actorId) {
+                return; // skip self-events
+            }
             const updateEvent: DataUpdateEvent = {
                 resource: "course",
                 action: data.action || "update",
                 id: data.courseId,
+                data,
                 timestamp: data.timestamp || Date.now(),
             };
             dataUpdateCallbacks.current.forEach(callback => callback(updateEvent));
+        });
+
+        socketInstance.on("notification", (data: any) => {
+            notificationCallbacks.current.forEach((callback) => callback(data));
         });
 
         setSocket(socketInstance);
@@ -210,11 +252,22 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         data?: any
     ) => {
         if (socket) {
+            const actorId = getStoredUserId();
+            let payloadData = data;
+            if (data === undefined || data === null) {
+                payloadData = actorId ? { actor_id: actorId } : data;
+            } else if (typeof data === "object" && !Array.isArray(data)) {
+                const typedData = data as Record<string, unknown>;
+                if ((typedData.actor_id === undefined || typedData.actor_id === null) && (typedData.actorId === undefined || typedData.actorId === null) && actorId) {
+                    payloadData = { ...typedData, actor_id: actorId };
+                }
+            }
+
             const event: DataUpdateEvent = {
                 resource,
                 action,
                 id,
-                data,
+                data: payloadData,
                 timestamp: Date.now(),
             };
             socket.emit("data-change", event);
@@ -266,6 +319,19 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         return onResourceUpdate("course", callback);
     }, [onResourceUpdate]);
 
+    const joinUserRoom = useCallback((userId: number) => {
+        if (socket && userId > 0) {
+            socket.emit("join-user", String(userId));
+        }
+    }, [socket]);
+
+    const onNotification = useCallback((callback: (data: any) => void) => {
+        notificationCallbacks.current.add(callback);
+        return () => {
+            notificationCallbacks.current.delete(callback);
+        };
+    }, []);
+
     // Generic emit
     const emit = useCallback((event: string, data?: any) => {
         if (socket) {
@@ -296,6 +362,8 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         unsubscribeFromCourseUpdates,
         emitCourseUpdate,
         onCourseUpdate,
+        joinUserRoom,
+        onNotification,
         emit,
         on,
     };

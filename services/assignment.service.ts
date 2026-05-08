@@ -37,6 +37,8 @@ export interface Assignment {
     order_index: number;
     is_active: boolean;
     is_score_visible?: boolean; // Whether students can see their scores
+    is_draft?: boolean; // Draft mode - not visible to students
+    publish_at?: string | null; // Auto-publish at this datetime (ISO string)
     created_by?: number;
     created_at?: string;
     updated_at?: string;
@@ -59,7 +61,9 @@ export interface CreateAssignmentData {
     max_score?: number;
     sub_items?: Omit<AssignmentSubItem, 'id' | 'assignment_id'>[];
     due_date?: string;
-    is_score_visible?: boolean; // Whether students can see their scores
+    is_score_visible?: boolean;
+    is_draft?: boolean;
+    publish_at?: string | null;
 }
 
 export interface UpdateAssignmentData {
@@ -73,6 +77,9 @@ export interface UpdateAssignmentData {
     max_score?: number;
     sub_items?: Omit<AssignmentSubItem, 'assignment_id'>[]; // Include id for existing sub-items to preserve scores
     due_date?: string;
+    is_draft?: boolean;
+    publish_at?: string | null;
+    clear_publish_at?: boolean;
 }
 
 interface ApiResponse<T> {
@@ -124,11 +131,25 @@ const assignmentService = {
     },
 
     /**
-     * Reorder assignments
+     * Reorder assignments (sends ordered IDs to backend)
      */
-    async reorderAssignments(assignments: { id: number; order_index: number }[]): Promise<boolean> {
-        const response = await api.put<null>('/assignments/reorder/batch', { assignments });
+    async reorderAssignments(courseId: string, orderedIds: number[]): Promise<boolean> {
+        const response = await api.put<null>('/assignments/reorder/batch', {
+            course_id: courseId,
+            ordered_ids: orderedIds,
+        });
         return response.success;
+    },
+
+    /**
+     * Publish a draft assignment immediately
+     */
+    async publishAssignment(id: number): Promise<Assignment | null> {
+        const response = await api.put<Assignment>(`/assignments/${id}`, {
+            is_draft: false,
+            clear_publish_at: true,
+        });
+        return response.data || null;
     },
 };
 

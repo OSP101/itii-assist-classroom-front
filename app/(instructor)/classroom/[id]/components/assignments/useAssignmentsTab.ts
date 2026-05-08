@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { addToast } from "@heroui/toast";
 import assignmentService from "@/services/assignment.service";
 import scoreService from "@/services/score.service";
@@ -34,6 +34,13 @@ export interface UseAssignmentsTabReturn {
     currentAssignments: AssignmentType[];
     courseId: string;
     ungradedSummary: UngradedSummary;
+    // Drag reorder
+    draggingId: number | null;
+    dragOverId: number | null;
+    handleDragStart: (id: number) => void;
+    handleDragOver: (id: number) => void;
+    handleDrop: (dropId: number) => Promise<void>;
+    handleDragEnd: () => void;
     // Actions
     setSearchQuery: (query: string) => void;
     setActiveTab: (tab: AssignmentTabType) => void;
@@ -64,8 +71,13 @@ export function useAssignmentsTab({
     
     // State
     const [searchQuery, setSearchQuery] = useState("");
-    const [activeTab, setActiveTab] = useState<AssignmentTabType>("all");
+    const [activeTab, setActiveTab] = useState<AssignmentTabType>("lab");
     const [viewMode, setViewMode] = useState<ViewMode>("list");
+
+    // Drag-to-reorder state
+    const [draggingId, setDraggingId] = useState<number | null>(null);
+    const [dragOverId, setDragOverId] = useState<number | null>(null);
+    const dragSourceList = useRef<AssignmentType[]>([]);
     
     // Delete modal states
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -112,8 +124,7 @@ export function useAssignmentsTab({
 
     // Get current tab assignments with search filter
     const currentAssignments = useMemo(() => {
-        let list = assignments;
-        if (activeTab === "lab") list = labAssignments;
+        let list = labAssignments;
         if (activeTab === "assignment") list = homeworkAssignments;
         if (activeTab === "group") list = groupAssignments;
 
@@ -121,7 +132,61 @@ export function useAssignmentsTab({
             list = list.filter(a => a.name.toLowerCase().includes(searchQuery.toLowerCase()));
         }
         return list;
-    }, [assignments, activeTab, searchQuery, labAssignments, homeworkAssignments, groupAssignments]);
+    }, [activeTab, searchQuery, labAssignments, homeworkAssignments, groupAssignments]);
+
+    // Drag-reorder handlers
+    const handleDragStart = useCallback((id: number) => {
+        setDraggingId(id);
+        // Snapshot the current tab list (without search filter) for reorder calculation
+        let tabList = labAssignments;
+        if (activeTab === "assignment") tabList = homeworkAssignments;
+        if (activeTab === "group") tabList = groupAssignments;
+        dragSourceList.current = tabList;
+    }, [activeTab, labAssignments, homeworkAssignments, groupAssignments]);
+
+    const handleDragOver = useCallback((id: number) => {
+        if (id !== draggingId) setDragOverId(id);
+    }, [draggingId]);
+
+    const handleDragEnd = useCallback(() => {
+        setDraggingId(null);
+        setDragOverId(null);
+    }, []);
+
+    const handleDrop = useCallback(async (dropId: number) => {
+        const dragId = draggingId;
+        setDraggingId(null);
+        setDragOverId(null);
+        if (!dragId || dragId === dropId) return;
+
+        const tabList = dragSourceList.current;
+        const fromIdx = tabList.findIndex(a => a.id === dragId);
+        const toIdx = tabList.findIndex(a => a.id === dropId);
+        if (fromIdx === -1 || toIdx === -1) return;
+
+        const newTabList = [...tabList];
+        const [moved] = newTabList.splice(fromIdx, 1);
+        newTabList.splice(toIdx, 0, moved);
+        const orderedIds = newTabList.map(a => a.id);
+
+        // Optimistic update: assign new order_index for the tab items
+        setAssignments(prev => {
+            const updated = prev.map(a => {
+                const newIdx = orderedIds.indexOf(a.id);
+                if (newIdx !== -1) return { ...a, order_index: newIdx + 1 };
+                return a;
+            });
+            return updated.sort((a, b) => a.order_index - b.order_index);
+        });
+
+        try {
+            await assignmentService.reorderAssignments(courseId, orderedIds);
+            emitDataUpdate("assignment", "update", undefined, { courseId });
+        } catch {
+            addToast({ title: "เกิดข้อผิดพลาด", description: "ไม่สามารถบันทึกลำดับได้", color: "danger", timeout: 3000, shouldShowTimeoutProgress: true });
+            onAssignmentChanged?.(); // Revert by refreshing
+        }
+    }, [draggingId, courseId, setAssignments, emitDataUpdate, onAssignmentChanged]);
 
     // Delete modal actions
     const openDeleteModal = useCallback((assignment: AssignmentType) => {
@@ -223,6 +288,13 @@ export function useAssignmentsTab({
         currentAssignments,
         courseId,
         ungradedSummary,
+        // Drag reorder
+        draggingId,
+        dragOverId,
+        handleDragStart,
+        handleDragOver,
+        handleDrop,
+        handleDragEnd,
         // Actions
         setSearchQuery,
         setActiveTab,

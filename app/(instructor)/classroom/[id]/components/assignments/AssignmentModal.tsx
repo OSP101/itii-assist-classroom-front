@@ -4,6 +4,7 @@ import { useState, useEffect, memo } from "react";
 import { Chip } from "@heroui/chip";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
+import { Switch } from "@heroui/switch";
 import { Select, SelectItem } from "@heroui/select";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { addToast } from "@heroui/toast";
@@ -32,6 +33,8 @@ interface AssignmentFormData {
     dueDate: string;
     description: string;
     isScoreVisible: boolean;
+    isDraft: boolean;
+    publishAt: string; // ISO datetime-local string
 }
 
 interface AssignmentModalProps {
@@ -54,7 +57,9 @@ const initialFormData: AssignmentFormData = {
     maxScore: 10,
     dueDate: "",
     description: "",
-    isScoreVisible: true, // Default: students can see scores
+    isScoreVisible: true,
+    isDraft: false,
+    publishAt: "",
 };
 
 function AssignmentModalComponent({
@@ -109,7 +114,11 @@ function AssignmentModalComponent({
                     maxScore: Number(editingAssignment.max_score),
                     dueDate: editingAssignment.due_date || "",
                     description: editingAssignment.description || "",
-                    isScoreVisible: editingAssignment.is_score_visible !== false, // Default to true if undefined
+                    isScoreVisible: editingAssignment.is_score_visible !== false,
+                    isDraft: editingAssignment.is_draft === true,
+                    publishAt: editingAssignment.publish_at
+                        ? new Date(editingAssignment.publish_at).toISOString().slice(0, 16)
+                        : "",
                 });
             } else {
                 // Reset to initial form data
@@ -183,6 +192,13 @@ function AssignmentModalComponent({
                     : undefined,
                 due_date: formData.dueDate || undefined,
                 is_score_visible: formData.isScoreVisible,
+                is_draft: formData.isDraft,
+                publish_at: formData.isDraft && formData.publishAt
+                    ? new Date(formData.publishAt).toISOString()
+                    : undefined,
+                clear_publish_at: formData.isDraft && !formData.publishAt && editingAssignment?.publish_at
+                    ? true
+                    : undefined,
             };
 
             let result;
@@ -765,6 +781,59 @@ function AssignmentModalComponent({
                                 </div>
                             )}
                         </div>
+                        {/* Draft Mode Section */}
+                        <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-200">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-lg ${formData.isDraft ? "bg-yellow-200" : "bg-slate-100"}`}>
+                                        <Icon
+                                            icon={formData.isDraft ? "solar:pen-new-square-bold" : "solar:global-bold"}
+                                            className={`text-lg ${formData.isDraft ? "text-yellow-700" : "text-slate-500"}`}
+                                        />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-slate-700">โหมดฉบับร่าง</p>
+                                        <p className="text-xs text-slate-500">
+                                            {formData.isDraft
+                                                ? "งานนี้เป็นฉบับร่าง — นักศึกษายังไม่เห็น"
+                                                : "เผยแพร่ทันที — นักศึกษาเห็นได้เลย"}
+                                        </p>
+                                    </div>
+                                </div>
+                                <Switch
+                                    isSelected={formData.isDraft}
+                                    onValueChange={(v) => setFormData(prev => ({ ...prev, isDraft: v, publishAt: v ? prev.publishAt : "" }))}
+                                    color="warning"
+                                />
+                            </div>
+                            {formData.isDraft && (
+                                <div className="mt-3 space-y-3">
+                                    <Input
+                                        type="datetime-local"
+                                        label="วันที่และเวลาเผยแพร่อัตโนมัติ (ไม่บังคับ)"
+                                        labelPlacement="outside"
+                                        size="md"
+                                        variant="bordered"
+                                        value={formData.publishAt}
+                                        onValueChange={(val) => setFormData(prev => ({ ...prev, publishAt: val }))}
+                                        classNames={{
+                                            inputWrapper: "bg-white border-yellow-300 hover:border-yellow-400 focus-within:!border-yellow-500",
+                                            label: "text-slate-600 font-medium text-sm",
+                                        }}
+                                    />
+                                    <div className="p-3 bg-yellow-100 rounded-lg border border-yellow-300">
+                                        <p className="text-xs text-yellow-800 flex items-start gap-2">
+                                            <Icon icon="solar:info-circle-bold" className="mt-0.5 flex-shrink-0 text-yellow-600" />
+                                            <span>
+                                                {formData.publishAt
+                                                    ? `งานนี้จะเผยแพร่อัตโนมัติในวันที่ ${new Date(formData.publishAt).toLocaleDateString("th-TH", { dateStyle: "long" })} เวลา ${new Date(formData.publishAt).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })} น.`
+                                                    : "ไม่ระบุวันที่ — ต้องกดเผยแพร่ด้วยตนเอง"}
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </ModalBody>
 
@@ -784,13 +853,21 @@ function AssignmentModalComponent({
                                 ยกเลิก
                             </Button>
                             <Button
-                                color="primary"
+                                color={formData.isDraft ? "warning" : "primary"}
                                 onPress={handleSubmit}
                                 isLoading={isSubmitting}
-                                className="bg-blue-500"
-                                startContent={!isSubmitting && <Icon icon={editingAssignment ? "solar:pen-bold" : "solar:add-circle-bold"} />}
+                                className={formData.isDraft ? "bg-yellow-500 text-white" : "bg-blue-500"}
+                                startContent={!isSubmitting && <Icon icon={
+                                    formData.isDraft
+                                        ? "solar:pen-new-square-bold"
+                                        : editingAssignment
+                                            ? "solar:pen-bold"
+                                            : "solar:add-circle-bold"
+                                } />}
                             >
-                                {editingAssignment ? "บันทึกการแก้ไข" : "สร้างงาน"}
+                                {formData.isDraft
+                                    ? (editingAssignment ? "บันทึกร่าง" : "บันทึกฉบับร่าง")
+                                    : (editingAssignment ? "บันทึกการแก้ไข" : "สร้างงาน")}
                             </Button>
                         </div>
                     </div>

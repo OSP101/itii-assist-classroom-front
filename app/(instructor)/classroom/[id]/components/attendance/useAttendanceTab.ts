@@ -306,6 +306,15 @@ export function useAttendanceTab(
             if (data.resource !== "attendance") return;
             // Filter events to this classroom only
             if (data.data?.courseId && String(data.data.courseId) !== String(course.id)) return;
+            // Self-filter: skip if current user triggered the event
+            try {
+                const rawUser = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+                if (rawUser) {
+                    const myId = String(JSON.parse(rawUser)?.id ?? '');
+                    const actorId = String((data as any).actor_id ?? (data as any).data?.actor_id ?? '');
+                    if (myId && actorId && myId === actorId) return;
+                }
+            } catch { /* ignore */ }
             setPendingAttendanceUpdate(true);
         });
         return () => {

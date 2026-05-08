@@ -371,15 +371,15 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#fafafa] text-[#111827]">
+        <div className="flex min-h-dvh flex-col bg-[#fafafa] text-[#111827]">
             <header className="flex h-20 items-center px-6 sm:px-10">
                 <Link href="/" aria-label="ITII Assist Classroom home" className="inline-flex items-center">
                     <AppMark />
                 </Link>
             </header>
 
-            <main className="flex min-h-[calc(100vh-128px)] flex-col items-center justify-center px-5 pb-16 pt-10 sm:px-6">
-                <section className="w-full max-w-[450px] rounded-[16px] border border-[#d9d9d9] bg-white px-8 py-12 shadow-[0_1px_2px_rgba(0,0,0,0.06)] sm:px-12">
+            <main className="flex w-full flex-1 flex-col items-center justify-start px-5 pb-6 pt-4 sm:min-h-[calc(100vh-128px)] sm:justify-center sm:px-6 sm:pb-16 sm:pt-10">
+                <section className="w-full max-w-[450px] px-2 py-4 sm:rounded-[16px] sm:border sm:border-[#d9d9d9] sm:bg-white sm:px-12 sm:py-12 sm:shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
                     <h1 className="mb-7 text-[25px] font-semibold leading-tight tracking-[-0.01em] text-[#0b0f19]">
                         เข้าสู่ระบบ ITII Assist Classroom
                     </h1>
@@ -519,7 +519,7 @@ export default function LoginPage() {
                                         ref={refTurnstile}
                                         siteKey={turnstileKey ?? ""}
                                         onSuccess={() => {
-                                            setCanSubmit(false);
+                                            setCanSubmit(true);
                                             setTurnstileReady(true);
                                         }}
                                         onError={() => {

@@ -17,6 +17,7 @@ const publicRoutes = [
 // Routes that start with these prefixes are public
 const publicPrefixes = [
     '/check-in/',  // Public check-in page for students
+    '/display/',   // Public display board (device-authenticated via display grant cookie)
 ];
 
 export function proxy(request: NextRequest) {

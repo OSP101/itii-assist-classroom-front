@@ -860,7 +860,7 @@ export const SessionsTable = memo(function SessionsTable({
                                                 <div className="flex items-center gap-2">
                                                     <Tooltip content="มาเรียน">
                                                         <Chip size="sm" color="success" variant="flat">
-                                                            {session.stats.present + session.stats.late}
+                                                            {session.stats.present}
                                                         </Chip>
                                                     </Tooltip>
                                                     <Tooltip content="สาย">
