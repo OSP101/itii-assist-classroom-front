@@ -830,7 +830,7 @@ function BookQueueContent() {
                     <Button
                         color="primary"
                         size="lg"
-                        className="w-full max-w-[200px] bg-gradient-to-r from-blue-400 to-indigo-500"
+                        className="w-full max-w-[200px] bg-linear-to-r from-blue-400 to-indigo-500"
                         isDisabled={deskNoticeCountdown > 0}
                         onPress={() => setIsDeskNoticeOpen(false)}
                     >
@@ -904,7 +904,7 @@ function BookQueueContent() {
                             <Button
                                 color="primary"
                                 size="lg"
-                                className="w-full bg-gradient-to-r from-blue-400 to-indigo-500"
+                                className="w-full bg-linear-to-r from-blue-400 to-indigo-500"
                                 onPress={handleVerifyPIN}
                                 isLoading={isVerifying}
                                 isDisabled={pinCode.length !== 6}
@@ -1135,7 +1135,7 @@ function BookQueueContent() {
                                 <Button
                                     color="primary"
                                     size="lg"
-                                    className="flex-1 bg-gradient-to-r from-blue-400 to-indigo-500"
+                                    className="flex-1 bg-linear-to-r from-blue-400 to-indigo-500"
                                     onPress={handleCreateBooking}
                                     isLoading={isBooking}
                                     isDisabled={!studentId || !deskNumber || validationErrors.length > 0}
@@ -1421,7 +1421,7 @@ function BookQueueContent() {
                                     <Button
                                         color="primary"
                                         size="lg"
-                                        className="w-full bg-gradient-to-r from-blue-400 to-indigo-500"
+                                        className="w-full bg-linear-to-r from-blue-400 to-indigo-500"
                                         onPress={() => {
                                             // Cleanup polling/socket before resetting
                                             cleanupPolling();

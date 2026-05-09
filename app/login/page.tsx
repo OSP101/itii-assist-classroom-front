@@ -552,7 +552,7 @@ export default function LoginPage() {
                         <Button
                             type="submit"
                             radius="sm"
-                            className="h-[42px] w-full bg-gradient-to-r from-blue-400 to-indigo-500 text-[15px] font-semibold text-white shadow-lg shadow-blue-300/40 data-[hover=true]:from-blue-500 data-[hover=true]:to-indigo-600"
+                            className="h-[42px] w-full bg-linear-to-r from-blue-400 to-indigo-500 text-[15px] font-semibold text-white shadow-lg shadow-blue-300/40 data-[hover=true]:from-blue-500 data-[hover=true]:to-indigo-600"
                             isLoading={isLoading}
                         >
                             เข้าสู่ระบบ
@@ -735,7 +735,7 @@ export default function LoginPage() {
                             onPress={handleForceChangePassword}
                             isLoading={isChangingPassword}
                             isDisabled={!isPasswordValid || newPassword !== confirmPassword}
-                            className="w-full font-medium bg-gradient-to-r from-blue-400 to-indigo-500"
+                            className="w-full font-medium bg-linear-to-r from-blue-400 to-indigo-500"
                             startContent={!isChangingPassword && <Icon icon="solar:key-bold" className="text-lg" />}
                         >
                             เปลี่ยนรหัสผ่าน
@@ -839,7 +839,7 @@ export default function LoginPage() {
                             <Button
                                 color="primary"
                                 onPress={closeForgotPasswordModal}
-                                className="w-full font-medium bg-gradient-to-r from-blue-400 to-indigo-500"
+                                className="w-full font-medium bg-linear-to-r from-blue-400 to-indigo-500"
                             >
                                 กลับไปหน้าเข้าสู่ระบบ
                             </Button>
@@ -857,7 +857,7 @@ export default function LoginPage() {
                                     onPress={handleForgotPassword}
                                     isLoading={isSendingResetEmail}
                                     isDisabled={!forgotPasswordEmail}
-                                    className="flex-1 font-medium bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                                    className="flex-1 font-medium bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                                     startContent={!isSendingResetEmail && <Icon icon="solar:letter-bold" className="text-lg" />}
                                 >
                                     ส่งลิงก์รีเซ็ต

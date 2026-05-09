@@ -393,7 +393,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Security Warning Header */}
-      <div className="flex items-center gap-3 p-3 sm:p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-warning-900/20 dark:to-orange-900/20 border border-warning-200 dark:border-warning-800 rounded-xl">
+      <div className="flex items-center gap-3 p-3 sm:p-4 bg-linear-to-r from-amber-50 to-orange-50 dark:from-warning-900/20 dark:to-orange-900/20 border border-warning-200 dark:border-warning-800 rounded-xl">
         <div className="p-2 bg-warning-100 dark:bg-warning-900/50 rounded-full animate-pulse">
           <Icon icon="solar:shield-warning-bold" className="text-xl sm:text-2xl text-warning-600 dark:text-warning-400" />
         </div>
@@ -808,7 +808,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                     color="primary" 
                     onPress={handleConfirmUnlink}
                     startContent={<Icon icon="solar:link-broken-linear" />}
-                    className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                    className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                   >
                     ยกเลิกการเชื่อมต่อ
                   </Button>

@@ -163,7 +163,7 @@ ${backupCodes.map((code, i) => `${i + 1}. ${code}`).join("\n")}
           onPress={handleRegenerate} 
           isLoading={isLoading}
           isDisabled={!password.trim()}
-          className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+          className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
         >
           สร้างรหัสใหม่
         </Button>

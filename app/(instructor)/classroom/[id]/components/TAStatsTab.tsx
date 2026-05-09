@@ -867,7 +867,7 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
               color="primary"
               startContent={<Icon icon="solar:refresh-bold" />}
               onPress={fetchData}
-              className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
+              className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
             >
               ลองอีกครั้ง
             </Button>

@@ -337,7 +337,7 @@ function TwoFactorDisableModal({
             onPress={handleDisable} 
             isLoading={isLoading}
             isDisabled={!password.trim()}
-            className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
           >
             ปิดการใช้งาน 2FA
           </Button>

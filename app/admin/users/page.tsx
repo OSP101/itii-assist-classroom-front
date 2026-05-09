@@ -624,7 +624,7 @@ export default function UsersPage() {
                         resetForm();
                         setIsCreateModalOpen(true);
                     }}
-                    className="font-medium px-6 bg-gradient-to-r from-blue-400 to-indigo-500 w-full sm:w-auto"
+                    className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 w-full sm:w-auto"
                 >
                     เพิ่มผู้ใช้
                 </Button>
@@ -994,7 +994,7 @@ export default function UsersPage() {
                             color="primary"
                             onPress={handleCreate}
                             isLoading={isSubmitting}
-                            className="font-medium px-6 bg-gradient-to-r from-blue-400 to-indigo-500"
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500"
                             startContent={!isSubmitting && <Icon icon="solar:add-circle-bold" className="text-lg" />}
                         >
                             เพิ่มผู้ใช้
@@ -1167,7 +1167,7 @@ export default function UsersPage() {
                             color="primary"
                             onPress={handleUpdate}
                             isLoading={isSubmitting}
-                            className="font-medium px-6 bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             startContent={!isSubmitting && <Icon icon="solar:diskette-bold" className="text-lg" />}
                         >
                             บันทึกการแก้ไข
@@ -1221,7 +1221,7 @@ export default function UsersPage() {
                         <Button
                             color="primary"
                             onPress={handleToggleStatus}
-                            className="font-medium px-6 bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             startContent={<Icon icon={userToToggle?.is_active ? "solar:eye-closed-bold" : "solar:eye-bold"} className="text-lg" />}
                         >
                             {userToToggle?.is_active ? "ปิดใช้งาน" : "เปิดใช้งาน"}
@@ -1267,7 +1267,7 @@ export default function UsersPage() {
                             color="primary"
                             onPress={handleDelete}
                             isLoading={isSubmitting}
-                            className="font-medium px-6 bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             startContent={!isSubmitting && <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />}
                         >
                             ลบผู้ใช้
@@ -1381,7 +1381,7 @@ export default function UsersPage() {
                                 setIsCredentialsModalOpen(false);
                                 setNewCredentials(null);
                             }}
-                            className="w-full font-medium bg-gradient-to-r from-blue-400 to-indigo-500"
+                            className="w-full font-medium bg-linear-to-r from-blue-400 to-indigo-500"
                         >
                             เสร็จสิ้น
                         </Button>

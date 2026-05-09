@@ -628,7 +628,7 @@ export default function QueueTab({
                         startContent={<Icon icon="solar:add-circle-bold" />}
                         onPress={handleOpenCreateModal}
                         isDisabled={!isCourseActive}
-                        className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
+                        className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
                     >
                         สร้างการจองคิว
                     </Button>
@@ -777,7 +777,7 @@ export default function QueueTab({
                                         startContent={<Icon icon="solar:add-circle-bold" />}
                                         onPress={handleOpenCreateModal}
                                         isDisabled={!isCourseActive}
-                                        className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
+                                        className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
                                     >
                                         สร้างการจองคิวแรก
                                     </Button>
@@ -1407,7 +1407,7 @@ export default function QueueTab({
                             color="primary"
                             onPress={handleCreateSession}
                             isLoading={isSubmitting}
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500"
+                            className="bg-linear-to-r from-blue-400 to-indigo-500"
                         >
                             สร้างการจองคิว
                         </Button>
@@ -1721,7 +1721,7 @@ export default function QueueTab({
                             color="primary"
                             onPress={handleUpdateSession}
                             isLoading={isSubmitting}
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                         >
                             บันทึกการแก้ไข
                         </Button>
@@ -1746,7 +1746,7 @@ export default function QueueTab({
                         <Button variant="light" onPress={() => setIsDeleteModalOpen(false)}>
                             ยกเลิก
                         </Button>
-                        <Button color="primary" onPress={handleDeleteSession} isLoading={isSubmitting} className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white">
+                        <Button color="primary" onPress={handleDeleteSession} isLoading={isSubmitting} className="bg-linear-to-r from-blue-400 to-indigo-500 text-white">
                             ลบ
                         </Button>
                     </ModalFooter>
@@ -1786,7 +1786,7 @@ export default function QueueTab({
                             color="primary" 
                             onPress={handleStartQueue} 
                             isLoading={isSubmitting}
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             startContent={<Icon icon="solar:play-bold" />}
                         >
                             เริ่มการจองคิว
@@ -1850,7 +1850,7 @@ export default function QueueTab({
                             color="primary" 
                             onPress={handlePauseResumeQueue} 
                             isLoading={isSubmitting}
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             startContent={<Icon icon={pauseAction === 'paused' ? "solar:pause-bold" : "solar:play-bold"} />}
                         >
                             {pauseAction === 'paused' ? 'หยุดรับคิว' : 'เปิดรับคิว'}
@@ -1873,7 +1873,7 @@ export default function QueueTab({
                         <Button
                             size="sm"
                             color="primary"
-                            className="shrink-0 bg-gradient-to-r from-blue-500 to-indigo-600 text-white"
+                            className="shrink-0 bg-linear-to-r from-blue-500 to-indigo-600 text-white"
                             startContent={<Icon icon="solar:refresh-bold" />}
                             onPress={() => { setPendingQueueUpdate(false); fetchSessions(true); }}
                         >

@@ -143,7 +143,7 @@ function SettingsTabViewComponent({
                                 </Button>
                                 <Button
                                     size="sm"
-                                    className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white shadow-lg"
+                                    className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg"
                                     isLoading={isSaving}
                                     startContent={!isSaving && <Icon icon="solar:check-circle-bold" />}
                                     onPress={onSave}
@@ -253,7 +253,7 @@ function SettingsTabViewComponent({
                                             size="sm"
                                             variant={formData.semester === sem ? "solid" : "bordered"}
                                             color={formData.semester === sem ? "primary" : "default"}
-                                            className={formData.semester === sem ? "bg-gradient-to-r from-blue-400 to-indigo-500 text-white flex-1" : "flex-1 border-slate-300"}
+                                            className={formData.semester === sem ? "bg-linear-to-r from-blue-400 to-indigo-500 text-white flex-1" : "flex-1 border-slate-300"}
                                             onPress={() => onUpdateField("semester", sem)}
                                         >
                                             {sem === 3 ? "ฤดูร้อน" : `ภาค ${sem}`}
@@ -446,7 +446,7 @@ function SettingsTabViewComponent({
 
 
                     <Button
-                        className="w-full bg-gradient-to-r from-emerald-400 to-teal-500 text-white shadow-lg shadow-emerald-500/20"
+                        className="w-full bg-linear-to-r from-emerald-400 to-teal-500 text-white shadow-lg shadow-emerald-500/20"
                         size="md"
                         startContent={!isExporting && <Icon icon="solar:file-download-bold" className="text-lg" />}
                         isLoading={isExporting}

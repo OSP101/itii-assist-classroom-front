@@ -250,7 +250,7 @@ export default function MyScorePage() {
 
                 {/* Sub Items */}
                 {hasSubItems && (
-                    <div className="px-4 py-3 bg-gradient-to-r from-blue-50/50 to-indigo-50/50">
+                    <div className="px-4 py-3 bg-linear-to-r from-blue-50/50 to-indigo-50/50">
                         <p className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
                             <Icon icon="solar:list-check-linear" />
                             รายละเอียดคะแนน
@@ -456,7 +456,7 @@ export default function MyScorePage() {
                             >
                                 <div className="p-4 sm:p-5">
                                     {/* Lab Summary */}
-                                    <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl p-4 mb-4 border border-indigo-100">
+                                    <div className="bg-linear-to-r from-indigo-50 to-blue-50 rounded-xl p-4 mb-4 border border-indigo-100">
                                         <div className="flex items-center justify-between mb-3">
                                             <div className="flex items-center gap-2">
                                                 <div className="w-10 h-10 bg-indigo-500 rounded-lg flex items-center justify-center">
@@ -481,7 +481,7 @@ export default function MyScorePage() {
                                         {/* Progress Bar */}
                                         <div className="h-3 bg-indigo-100 rounded-full overflow-hidden">
                                             <div 
-                                                className="h-full bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full transition-all duration-500"
+                                                className="h-full bg-linear-to-r from-indigo-500 to-blue-500 rounded-full transition-all duration-500"
                                                 style={{ width: `${labMaxScore > 0 ? (labScore / labMaxScore) * 100 : 0}%` }}
                                             />
                                         </div>
@@ -507,7 +507,7 @@ export default function MyScorePage() {
                             >
                                 <div className="p-4 sm:p-5">
                                     {/* Assignment Summary */}
-                                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4 mb-4 border border-amber-100">
+                                    <div className="bg-linear-to-r from-amber-50 to-orange-50 rounded-xl p-4 mb-4 border border-amber-100">
                                         <div className="flex items-center justify-between mb-3">
                                             <div className="flex items-center gap-2">
                                                 <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center">
@@ -532,7 +532,7 @@ export default function MyScorePage() {
                                         {/* Progress Bar */}
                                         <div className="h-3 bg-amber-100 rounded-full overflow-hidden">
                                             <div 
-                                                className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500"
+                                                className="h-full bg-linear-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500"
                                                 style={{ width: `${homeworkMaxScore > 0 ? (homeworkScore / homeworkMaxScore) * 100 : 0}%` }}
                                             />
                                         </div>
@@ -559,7 +559,7 @@ export default function MyScorePage() {
                             >
                                 <div className="p-4 sm:p-5">
                                     {/* Group Summary */}
-                                    <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 mb-4 border border-emerald-100">
+                                    <div className="bg-linear-to-r from-emerald-50 to-teal-50 rounded-xl p-4 mb-4 border border-emerald-100">
                                         <div className="flex items-center justify-between mb-3">
                                             <div className="flex items-center gap-2">
                                                 <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
@@ -584,7 +584,7 @@ export default function MyScorePage() {
                                         {/* Progress Bar */}
                                         <div className="h-3 bg-emerald-100 rounded-full overflow-hidden">
                                             <div 
-                                                className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
+                                                className="h-full bg-linear-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
                                                 style={{ width: `${groupMaxScore > 0 ? (groupScore / groupMaxScore) * 100 : 0}%` }}
                                             />
                                         </div>
@@ -610,7 +610,7 @@ export default function MyScorePage() {
                             >
                                 <div className="p-4 sm:p-5">
                                     {/* Attendance Summary with Progress */}
-                                    <div className="bg-gradient-to-r from-sky-50 to-cyan-50 rounded-xl p-4 mb-4 border border-sky-100">
+                                    <div className="bg-linear-to-r from-sky-50 to-cyan-50 rounded-xl p-4 mb-4 border border-sky-100">
                                         <div className="flex items-center justify-between mb-3">
                                             <div className="flex items-center gap-2">
                                                 <div className="w-10 h-10 bg-sky-500 rounded-lg flex items-center justify-center">
@@ -635,7 +635,7 @@ export default function MyScorePage() {
                                         {/* Progress Bar */}
                                         <div className="h-3 bg-sky-100 rounded-full overflow-hidden">
                                             <div 
-                                                className="h-full bg-gradient-to-r from-sky-500 to-cyan-500 rounded-full transition-all duration-500"
+                                                className="h-full bg-linear-to-r from-sky-500 to-cyan-500 rounded-full transition-all duration-500"
                                                 style={{ width: `${sortedAttendance.length > 0 ? ((attendance.summary.present + attendance.summary.late) / sortedAttendance.length) * 100 : 0}%` }}
                                             />
                                         </div>
@@ -714,7 +714,7 @@ export default function MyScorePage() {
                             >
                                 <div className="p-4 sm:p-5">
                                     {/* Bonus Score Summary */}
-                                    <div className="flex items-center justify-center gap-4 mb-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-200">
+                                    <div className="flex items-center justify-center gap-4 mb-6 p-4 bg-linear-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-200">
                                         <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
                                             <Icon icon="solar:star-bold" className="text-3xl text-white" />
                                         </div>
@@ -797,7 +797,7 @@ export default function MyScorePage() {
                                                     const midtermTotal = gradedMidterm.reduce((sum: number, e: ExamScoreData) => sum + (e.score || 0), 0);
                                                     const midtermMaxTotal = gradedMidterm.reduce((sum: number, e: ExamScoreData) => sum + e.max_score, 0);
                                                     return (
-                                                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 mb-4 border border-blue-100">
+                                                        <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl p-4 mb-4 border border-blue-100">
                                                             <div className="flex items-center justify-between mb-3">
                                                                 <div className="flex items-center gap-2">
                                                                     <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -821,7 +821,7 @@ export default function MyScorePage() {
                                                             </div>
                                                             <div className="h-3 bg-blue-100 rounded-full overflow-hidden">
                                                                 <div 
-                                                                    className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-500"
+                                                                    className="h-full bg-linear-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-500"
                                                                     style={{ width: `${midtermMaxTotal > 0 ? (midtermTotal / midtermMaxTotal) * 100 : 0}%` }}
                                                                 />
                                                             </div>
@@ -899,7 +899,7 @@ export default function MyScorePage() {
                                                     const finalTotal = gradedFinal.reduce((sum: number, e: ExamScoreData) => sum + (e.score || 0), 0);
                                                     const finalMaxTotal = gradedFinal.reduce((sum: number, e: ExamScoreData) => sum + e.max_score, 0);
                                                     return (
-                                                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 mb-4 border border-indigo-100">
+                                                        <div className="bg-linear-to-r from-indigo-50 to-purple-50 rounded-xl p-4 mb-4 border border-indigo-100">
                                                             <div className="flex items-center justify-between mb-3">
                                                                 <div className="flex items-center gap-2">
                                                                     <div className="w-10 h-10 bg-indigo-500 rounded-lg flex items-center justify-center">
@@ -923,7 +923,7 @@ export default function MyScorePage() {
                                                             </div>
                                                             <div className="h-3 bg-indigo-100 rounded-full overflow-hidden">
                                                                 <div 
-                                                                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
+                                                                    className="h-full bg-linear-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
                                                                     style={{ width: `${finalMaxTotal > 0 ? (finalTotal / finalMaxTotal) * 100 : 0}%` }}
                                                                 />
                                                             </div>
@@ -1047,7 +1047,7 @@ export default function MyScorePage() {
                                 onPress={handleSearch}
                                 isLoading={isLoading}
                                 isDisabled={cooldown > 0 && !isLoading}
-                                className="bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30 h-14 min-w-[140px] text-base font-medium"
+                                className="bg-linear-to-r from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30 h-14 min-w-[140px] text-base font-medium"
                             >
                                 {cooldown > 0 && !isLoading ? `รอ ${cooldown} วินาที` : "ค้นหาคะแนน"}
                             </Button>
@@ -1070,7 +1070,7 @@ export default function MyScorePage() {
                         {/* Student Info Card */}
                         <Card className="mb-6 shadow-lg border-none overflow-hidden">
                             <CardBody className="p-0">
-                                <div className="bg-gradient-to-r from-slate-700 to-slate-800 p-5 sm:p-6">
+                                <div className="bg-linear-to-r from-slate-700 to-slate-800 p-5 sm:p-6">
                                     <div className="flex items-center gap-4">
                                         <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-lg">
                                             <Icon icon="solar:user-bold" className="text-white text-3xl sm:text-4xl" />

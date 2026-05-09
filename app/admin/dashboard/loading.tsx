@@ -5,7 +5,7 @@ export default function DashboardLoading() {
   return (
     <div className="space-y-6">
       {/* Welcome Banner Skeleton */}
-      <div className="bg-gradient-to-r from-blue-400 to-indigo-500 rounded-2xl p-6">
+      <div className="bg-linear-to-r from-blue-400 to-indigo-500 rounded-2xl p-6">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg sm:text-2xl font-bold mb-1 text-white">Dashboard</h2>

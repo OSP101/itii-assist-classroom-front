@@ -364,7 +364,7 @@ export function FeedbackButton({ userEmail, position = "bottom-right" }: Feedbac
         <>
             <button
                 onClick={() => setIsOpen(true)}
-                className={`fixed bottom-4 sm:bottom-6 ${positionClasses[position]} z-50 p-3 sm:p-4 bg-gradient-to-r from-blue-400 to-indigo-500 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 group`}
+                className={`fixed bottom-4 sm:bottom-6 ${positionClasses[position]} z-50 p-3 sm:p-4 bg-linear-to-r from-blue-400 to-indigo-500 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 group`}
                 title="ส่ง Feedback"
             >
                 <Icon icon="solar:chat-round-like-bold" className="text-xl sm:text-2xl" />

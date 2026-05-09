@@ -363,7 +363,7 @@ export const EmptyState = memo(function EmptyState({ onCreateClick, canCreateAtt
                         color="primary"
                         startContent={<Icon icon="solar:add-circle-bold" />}
                         onPress={onCreateClick}
-                        className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
+                        className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
                     >
                         สร้างรอบเช็คชื่อแรก
                     </Button>
@@ -477,7 +477,7 @@ export const QRPreviewModal = memo(function QRPreviewModal({
                     <div className="text-center mb-3">
                         <p className="text-xs text-slate-400 uppercase tracking-wider mb-2">PIN CODE</p>
                         <div
-                            className="inline-block px-8 py-4 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl cursor-pointer hover:from-blue-600 hover:to-indigo-600 transition-colors"
+                            className="inline-block px-8 py-4 bg-linear-to-r from-blue-500 to-indigo-500 rounded-2xl cursor-pointer hover:from-blue-600 hover:to-indigo-600 transition-colors"
                             onClick={copyPIN}
                         >
                             <div className="flex gap-4 px-5">
@@ -963,7 +963,7 @@ export const LocationCheckCard = memo(function LocationCheckCard({
         <Card className="border border-slate-200 overflow-hidden">
             <CardBody className="p-0">
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <div className="flex items-center justify-between p-4 bg-linear-to-r from-blue-50 to-indigo-50">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-blue-100 rounded-xl">
                             <Icon icon="solar:map-point-bold" className="text-xl text-blue-600" />
@@ -1027,7 +1027,7 @@ export const LocationCheckCard = memo(function LocationCheckCard({
 
                         {/* Location Status */}
                         {locationLat && locationLng ? (
-                            <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl">
+                            <div className="p-4 bg-linear-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl">
                                 <div className="flex items-start gap-3">
                                     <div className="p-2 bg-green-100 rounded-lg">
                                         <Icon icon="solar:map-point-wave-bold" className="text-xl text-green-600" />
@@ -1350,7 +1350,7 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                         color="primary"
                         onPress={onSubmit}
                         isLoading={isSubmitting}
-                        className="bg-gradient-to-r from-blue-400 to-indigo-500"
+                        className="bg-linear-to-r from-blue-400 to-indigo-500"
                     >
                         สร้างรอบเช็คชื่อ
                     </Button>
@@ -1629,7 +1629,7 @@ export const EditSessionModal = memo(function EditSessionModal({
                         color="primary"
                         onPress={onSubmit}
                         isLoading={isSubmitting}
-                        className="bg-gradient-to-r from-amber-400 to-orange-500"
+                        className="bg-linear-to-r from-amber-400 to-orange-500"
                     >
                         บันทึกการแก้ไข
                     </Button>
@@ -2082,7 +2082,7 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                         color={hasDestructiveChanges ? 'danger' : 'primary'}
                         onPress={onConfirm}
                         isLoading={isApplying}
-                        className={hasDestructiveChanges ? 'bg-red-500' : 'bg-gradient-to-r from-amber-400 to-orange-500'}
+                        className={hasDestructiveChanges ? 'bg-red-500' : 'bg-linear-to-r from-amber-400 to-orange-500'}
                         startContent={!isApplying ? <Icon icon={hasDestructiveChanges ? 'solar:shield-warning-bold' : 'solar:check-circle-bold'} /> : undefined}
                     >
                         {hasDestructiveChanges ? 'ยืนยันการเปลี่ยนแปลง' : 'บันทึกการแก้ไข'}

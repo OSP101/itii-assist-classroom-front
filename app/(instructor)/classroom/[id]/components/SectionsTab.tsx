@@ -266,7 +266,7 @@ export default function SectionsTab({
                         <Button 
                             onPress={handleAddSection}
                             isLoading={isSubmitting}
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-400/25"
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-400/25"
                             startContent={!isSubmitting && <Icon icon="solar:add-circle-bold" />}
                         >
                             เพิ่มกลุ่มเรียน
@@ -334,7 +334,7 @@ export default function SectionsTab({
                             onPress={handleEditSection}
                             isLoading={isSubmitting}
                             isDisabled={!editSectionModal.sectionNo.trim()}
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-400/25"
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-400/25"
                             startContent={!isSubmitting && <Icon icon="solar:diskette-bold" />}
                         >
                             บันทึก
@@ -515,7 +515,7 @@ export default function SectionsTab({
                                 onPress={handleAddStudent}
                                 isLoading={isSubmitting}
                                 isDisabled={!studentModal.studentId}
-                                className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-400/25"
+                                className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-400/25"
                                 startContent={!isSubmitting && <Icon icon="solar:user-plus-bold" />}
                             >
                                 เพิ่มนักศึกษา
@@ -525,7 +525,7 @@ export default function SectionsTab({
                                 onPress={handleBulkAddStudents}
                                 isLoading={isSubmitting}
                                 isDisabled={studentModal.parsedStudents.filter(p => p.status === "matched").length === 0}
-                                className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-400/25"
+                                className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-400/25"
                                 startContent={!isSubmitting && <Icon icon="solar:users-group-rounded-bold" />}
                             >
                                 เพิ่มนักศึกษา ({studentModal.parsedStudents.filter(p => p.status === "matched").length})
@@ -912,7 +912,7 @@ export default function SectionsTab({
                                     ? !teamModal.name.trim() || teamModal.members.length === 0
                                     : getUnassignedStudents(teamModal.type, teamModal.type === "weekly" ? selectedWeek : undefined).length === 0
                             }
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-500/25"
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-500/25"
                             startContent={!isSubmitting && <Icon icon={teamModal.formationMethod === "random" ? "solar:shuffle-bold" : "solar:add-circle-bold"} />}
                         >
                             {teamModal.formationMethod === "random"
@@ -1064,7 +1064,7 @@ export default function SectionsTab({
                             onPress={handleSaveEditedTeam}
                             isLoading={isSubmitting}
                             isDisabled={!editTeamModal.name.trim() || editTeamModal.members.length === 0}
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-400/25"
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-400/25"
                             startContent={!isSubmitting && <Icon icon="solar:diskette-bold" />}
                         >
                             บันทึก
@@ -1269,7 +1269,7 @@ export default function SectionsTab({
                                     ? deleteModal.confirmInput !== deleteModal.target?.sectionNo
                                     : false
                             }
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                         >
                             {deleteModal.target?.type === "section" && "ลบกลุ่มเรียน"}
                             {deleteModal.target?.type === "student" && "นำออก"}
@@ -1357,7 +1357,7 @@ export default function SectionsTab({
                         <Button
                             onPress={confirmRestoreStudent}
                             isLoading={isSubmitting}
-                            className="bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-500/25"
+                            className="bg-linear-to-r from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-500/25"
                             startContent={!isSubmitting && <Icon icon="solar:restart-bold" />}
                         >
                             กู้คืนนักศึกษา
@@ -1459,7 +1459,7 @@ export default function SectionsTab({
                             color="primary"
                             onPress={handleBulkDeleteTeams}
                             isLoading={isSubmitting}
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                         >
                             ลบทั้งหมด
                         </Button>

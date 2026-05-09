@@ -72,7 +72,7 @@ export default function AttendanceTab({
                             <Button
                                 size="sm"
                                 color="primary"
-                                className="shrink-0 bg-gradient-to-r from-blue-500 to-indigo-600 text-white"
+                                className="shrink-0 bg-linear-to-r from-blue-500 to-indigo-600 text-white"
                                 startContent={<Icon icon="solar:refresh-bold" />}
                                 onPress={() => hook.ackAttendanceUpdate()}
                             >

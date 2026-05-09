@@ -157,7 +157,7 @@ function ResetPasswordContent() {
                                 <Button
                                     color="primary"
                                     onPress={() => router.push("/login")}
-                                    className="w-full font-medium bg-gradient-to-r from-blue-400 to-indigo-500"
+                                    className="w-full font-medium bg-linear-to-r from-blue-400 to-indigo-500"
                                     startContent={<Icon icon="solar:arrow-left-bold" className="text-lg" />}
                                 >
                                     กลับไปหน้าเข้าสู่ระบบ
@@ -195,7 +195,7 @@ function ResetPasswordContent() {
                                 <Button
                                     color="primary"
                                     onPress={() => router.push("/login")}
-                                    className="w-full font-medium bg-gradient-to-r from-blue-400 to-indigo-500"
+                                    className="w-full font-medium bg-linear-to-r from-blue-400 to-indigo-500"
                                     startContent={<Icon icon="solar:login-3-bold" className="text-lg" />}
                                 >
                                     ไปหน้าเข้าสู่ระบบ
@@ -344,7 +344,7 @@ function ResetPasswordContent() {
                                 onPress={handleResetPassword}
                                 isLoading={isResetting}
                                 isDisabled={!isPasswordValid || newPassword !== confirmPassword}
-                                className="w-full font-medium mt-2 bg-gradient-to-r from-blue-400 to-indigo-500"
+                                className="w-full font-medium mt-2 bg-linear-to-r from-blue-400 to-indigo-500"
                                 startContent={!isResetting && <Icon icon="solar:key-bold" className="text-lg" />}
                             >
                                 ตั้งรหัสผ่านใหม่

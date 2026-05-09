@@ -108,7 +108,7 @@ const SectionHeader = React.memo(function SectionHeader({
     return (
         <div
             className={`flex items-center justify-between p-4 cursor-pointer transition-all ${isExpanded
-                ? "bg-gradient-to-r from-blue-400 to-indigo-500"
+                ? "bg-linear-to-r from-blue-400 to-indigo-500"
                 : "bg-white hover:from-amber-50 hover:to-blue-50"
                 }`}
             onClick={onToggle}
@@ -222,7 +222,7 @@ const TeamCard = React.memo(function TeamCard({
 
     return (
         <Card className={`shadow-sm border border-slate-200 hover:shadow-lg ${hoverClass} transition-all group`}>
-            <CardHeader className={`px-4 py-3 bg-gradient-to-r ${gradientClass}`}>
+            <CardHeader className={`px-4 py-3 bg-linear-to-r ${gradientClass}`}>
                 <div className="flex items-center justify-between w-full gap-2">
                     <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
                         <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-white flex-shrink-0">
@@ -569,7 +569,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                     startContent={<Icon icon="solar:add-circle-bold" />}
                                     onPress={onOpenAddSectionModal}
                                     isDisabled={!isCourseActive}
-                                    className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25 w-full sm:w-auto"
+                                    className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25 w-full sm:w-auto"
                                 >
                                     เพิ่มกลุ่มเรียน
                                 </Button>
@@ -837,7 +837,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                 startContent={<Icon icon="solar:add-circle-bold" />}
                                 onPress={onOpenAddSectionModal}
                                 isDisabled={!isCourseActive}
-                                className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25"
+                                className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25"
                             >
                                 เพิ่มกลุ่มเรียนแรก
                             </Button>
@@ -953,7 +953,7 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                                     color="primary"
                                     isIconOnly
                                     onPress={() => onOpenCreateTeamModal("permanent", "manual")}
-                                    className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 flex-shrink-0 md:hidden"
+                                    className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 flex-shrink-0 md:hidden"
                                     size="md"
                                     isDisabled={isTeamsLoading || !isCourseActive || !canCreateTeams}
                                 >
@@ -964,7 +964,7 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                                 color="primary"
                                 startContent={<Icon icon="solar:add-circle-bold" />}
                                 onPress={() => onOpenCreateTeamModal("permanent", "manual")}
-                                className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 flex-shrink-0 hidden md:flex"
+                                className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 flex-shrink-0 hidden md:flex"
                                 size="md"
                                 isDisabled={isTeamsLoading || !isCourseActive || !canCreateTeams}
                             >
@@ -1029,7 +1029,7 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                                     color="primary"
                                     startContent={<Icon icon="solar:add-circle-bold" />}
                                     onPress={() => onOpenCreateTeamModal("permanent", "manual")}
-                                    className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
+                                    className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
                                 >
                                     สร้างกลุ่มเอง
                                 </Button>
@@ -1243,7 +1243,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                     isIconOnly
                                     isDisabled={!isCourseActive || !canCreateTeams}
                                     onPress={() => onOpenCreateTeamModal("weekly", "manual")}
-                                    className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 flex-shrink-0 md:hidden"
+                                    className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 flex-shrink-0 md:hidden"
                                 >
                                     <Icon icon="solar:add-circle-bold" className="text-lg" />
                                 </Button>
@@ -1254,7 +1254,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                 startContent={<Icon icon="solar:add-circle-bold" />}
                                 isDisabled={!isCourseActive || !canCreateTeams}
                                 onPress={() => onOpenCreateTeamModal("weekly", "manual")}
-                                className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 flex-shrink-0 hidden md:flex"
+                                className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 flex-shrink-0 hidden md:flex"
                             >
                                 สร้างกลุ่ม
                             </Button>
@@ -1273,7 +1273,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                             key={week}
                             onClick={() => onWeekChange(week)}
                             className={`flex-shrink-0 px-4 py-2 rounded-xl font-medium text-sm transition-all ${isSelected
-                                ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25"
+                                ? "bg-linear-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25"
                                 : hasTeams
                                     ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
                                     : "bg-slate-100 text-slate-500 hover:bg-slate-200"
@@ -1374,7 +1374,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                     color="primary"
                                     startContent={<Icon icon="solar:add-circle-bold" />}
                                     onPress={() => onOpenCreateTeamModal("weekly", "manual")}
-                                    className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
+                                    className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
                                 >
                                     สร้างกลุ่มเอง
                                 </Button>

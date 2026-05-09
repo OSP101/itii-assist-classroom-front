@@ -464,7 +464,7 @@ export default function StudentCheckInPage() {
                                     color="primary"
                                     size="lg"
                                     radius="lg"
-                                    className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 font-semibold"
+                                    className="w-full bg-linear-to-r from-blue-500 to-indigo-600 font-semibold"
                                     startContent={!isGettingLocation && <Icon icon="solar:gps-bold" className="text-xl" />}
                                     isLoading={isGettingLocation}
                                     onPress={getLocation}
@@ -531,7 +531,7 @@ export default function StudentCheckInPage() {
                                     color="primary"
                                     size="lg"
                                     radius="lg"
-                                    className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 font-semibold mt-2"
+                                    className="w-full bg-linear-to-r from-blue-500 to-indigo-600 font-semibold mt-2"
                                     isDisabled={pinCode.length !== 6}
                                     isLoading={isSubmitting}
                                     onPress={handleCheckIn}

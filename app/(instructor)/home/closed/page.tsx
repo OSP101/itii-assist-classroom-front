@@ -831,7 +831,7 @@ export default function ClosedCoursesPage() {
                             color="primary"
                             onPress={handleRestoreCourse}
                             isLoading={isSubmitting}
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                         >
                             เปิดใช้งาน
                         </Button>
@@ -911,7 +911,7 @@ export default function ClosedCoursesPage() {
                             onPress={handleDeleteCourse}
                             isLoading={isSubmitting}
                             isDisabled={!deleteConfirmChecked}
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                         >
                             ลบถาวร
                         </Button>
@@ -962,7 +962,7 @@ export default function ClosedCoursesPage() {
                                 setDuplicateCourse(null);
                                 setSelectedCourse(null);
                             }}
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                         >
                             เข้าใจแล้ว
                         </Button>

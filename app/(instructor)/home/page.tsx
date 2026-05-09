@@ -570,7 +570,7 @@ export default function HomePage() {
         <div className="space-y-6">
             {/* 2FA Reminder Banner */}
             {show2FABanner && !is2FAEnabled && (
-                <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between gap-4">
+                <div className="bg-linear-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                         <div className="flex-shrink-0 w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
                             <Icon icon="solar:shield-warning-bold" className="text-xl text-amber-600" />
@@ -661,7 +661,7 @@ export default function HomePage() {
                             color="primary"
                             startContent={<Icon icon="solar:add-circle-bold" className="text-xl" />}
                             onPress={handleCreateCourse}
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500"
+                            className="bg-linear-to-r from-blue-400 to-indigo-500"
                         >
                             สร้างรายวิชาใหม่
                         </Button>
@@ -1330,7 +1330,7 @@ export default function HomePage() {
                             color="primary"
                             onPress={handleCreate}
                             isLoading={isSubmitting}
-                            className="font-medium px-6 bg-gradient-to-r from-blue-400 to-indigo-500"
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500"
                             startContent={!isSubmitting && <Icon icon="solar:add-circle-bold" className="text-lg" />}
                         >
                             สร้างรายวิชา
@@ -1616,7 +1616,7 @@ export default function HomePage() {
                             color="primary"
                             onPress={handleUpdate}
                             isLoading={isSubmitting}
-                            className="font-medium px-6 bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             startContent={!isSubmitting && <Icon icon="solar:diskette-bold" className="text-lg" />}
                         >
                             บันทึกการแก้ไข
@@ -1723,7 +1723,7 @@ export default function HomePage() {
                             color="primary"
                             onPress={handleToggleStatus}
                             isLoading={isSubmitting}
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                         >
                             {courseToToggle?.is_active ? "ปิดใช้งาน" : "เปิดใช้งาน"}
                         </Button>
@@ -1774,7 +1774,7 @@ export default function HomePage() {
                                 setDuplicateCourse(null);
                                 setCourseToToggle(null);
                             }}
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                         >
                             เข้าใจแล้ว
                         </Button>

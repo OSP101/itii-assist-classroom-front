@@ -753,7 +753,7 @@ export default function CoursesPage() {
                         resetForm();
                         setIsCreateModalOpen(true);
                     }}
-                    className="font-medium px-6 bg-gradient-to-r from-blue-400 to-indigo-500 w-full sm:w-auto"
+                    className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 w-full sm:w-auto"
                 >
                     เพิ่มรายวิชา
                 </Button>
@@ -1214,7 +1214,7 @@ export default function CoursesPage() {
                             color="primary"
                             onPress={handleCreate}
                             isLoading={isSubmitting}
-                            className="font-medium px-6 bg-gradient-to-r from-blue-400 to-indigo-500"
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500"
                             startContent={!isSubmitting && <Icon icon="solar:add-circle-bold" className="text-lg" />}
                         >
                             สร้างรายวิชา
@@ -1460,7 +1460,7 @@ export default function CoursesPage() {
                             color="primary"
                             onPress={handleUpdate}
                             isLoading={isSubmitting}
-                            className="font-medium px-6 bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             startContent={!isSubmitting && <Icon icon="solar:pen-bold" className="text-lg" />}
                         >
                             บันทึกการเปลี่ยนแปลง
@@ -1509,7 +1509,7 @@ export default function CoursesPage() {
                             color="primary"
                             onPress={handleDelete}
                             isLoading={isSubmitting}
-                            className="font-medium px-6 bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             startContent={!isSubmitting && <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />}
                         >
                             ลบรายวิชา
@@ -1572,7 +1572,7 @@ export default function CoursesPage() {
                             color="primary"
                             onPress={handleToggleStatus}
                             isLoading={isSubmitting}
-                            className="font-medium px-6 bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             startContent={!isSubmitting && <Icon icon={selectedCourse?.is_active ? "solar:eye-closed-bold" : "solar:eye-bold"} className="text-lg" />}
                         >
                             {selectedCourse?.is_active ? "ปิดใช้งาน" : "เปิดใช้งาน"}
@@ -1634,7 +1634,7 @@ export default function CoursesPage() {
                                 setSelectedCourse(null);
                                 setDuplicateCourse(null);
                             }}
-                            className="font-medium px-6 bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                         >
                             รับทราบ
                         </Button>

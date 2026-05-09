@@ -630,7 +630,7 @@ export default function StudentsPage() {
                         color="primary"
                         startContent={<Icon icon="solar:add-circle-bold" className="text-xl" />}
                         onPress={() => setIsCreateModalOpen(true)}
-                        className="font-medium flex-1 sm:flex-none sm:px-6 bg-gradient-to-r from-blue-400 to-indigo-500"
+                        className="font-medium flex-1 sm:flex-none sm:px-6 bg-linear-to-r from-blue-400 to-indigo-500"
                     >
                         <span className="hidden sm:inline">เพิ่มนักศึกษา</span>
                         <span className="sm:hidden">เพิ่ม</span>
@@ -891,7 +891,7 @@ export default function StudentsPage() {
                             color="primary"
                             onPress={handleCreate}
                             isLoading={isSubmitting}
-                            className="font-medium px-6 bg-gradient-to-r from-blue-400 to-indigo-500"
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500"
                             startContent={!isSubmitting && <Icon icon="solar:add-circle-bold" className="text-lg" />}
                         >
                             เพิ่มนักศึกษา
@@ -985,7 +985,7 @@ export default function StudentsPage() {
                             color="primary"
                             onPress={handleUpdate}
                             isLoading={isSubmitting}
-                            className="font-medium px-6 bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             startContent={!isSubmitting && <Icon icon="solar:diskette-bold" className="text-lg" />}
                         >
                             บันทึกการแก้ไข
@@ -1039,7 +1039,7 @@ export default function StudentsPage() {
                         <Button
                             color="primary"
                             onPress={confirmToggleStatus}
-                            className="font-medium px-6 bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             startContent={<Icon icon={studentToToggle?.is_active ? "solar:eye-closed-bold" : "solar:eye-bold"} className="text-lg" />}
                         >
                             {studentToToggle?.is_active ? "ปิดใช้งาน" : "เปิดใช้งาน"}
@@ -1086,7 +1086,7 @@ export default function StudentsPage() {
                             color="primary"
                             onPress={handleDelete}
                             isLoading={isSubmitting}
-                            className="font-medium px-6 bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             startContent={!isSubmitting && <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />}
                         >
                             ลบนักศึกษา
@@ -1165,7 +1165,7 @@ export default function StudentsPage() {
                             color="primary"
                             onPress={handleImport}
                             isLoading={isSubmitting}
-                            className="font-medium px-6 bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             startContent={!isSubmitting && <Icon icon="solar:import-bold" className="text-lg" />}
                         >
                             นำเข้าข้อมูล

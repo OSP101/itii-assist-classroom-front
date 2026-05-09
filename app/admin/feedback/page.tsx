@@ -768,7 +768,7 @@ export default function FeedbackPage() {
                                     color="primary"
                                     onPress={handleDelete}
                                     isLoading={isSubmitting}
-                                    className="font-medium px-6 bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                                    className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                                     startContent={!isSubmitting && <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />}
                                 >
                                     ลบ

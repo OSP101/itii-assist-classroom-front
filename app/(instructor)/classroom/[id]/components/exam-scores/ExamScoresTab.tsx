@@ -315,7 +315,7 @@ export default function ExamScoresTab({
                     <p className="text-sm text-slate-500">จัดการคะแนนสอบกลางภาคและปลายภาค</p>
                 </div>
                 <Button
-                    className="font-medium bg-gradient-to-r from-blue-400 to-indigo-500 text-white shadow-md hover:shadow-lg"
+                    className="font-medium bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-md hover:shadow-lg"
                     startContent={<Icon icon="solar:settings-bold" />}
                     onPress={() => {
                         // Initialize settings data
@@ -815,7 +815,7 @@ export default function ExamScoresTab({
                         </Button>
                         <Button 
                             color="primary"
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white shadow-md"
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-md"
                             onPress={handleBulkImport}
                             isLoading={isBulkSaving}
                             isDisabled={parsedBulkData.filter(p => p.status === "valid").length === 0}

@@ -418,7 +418,7 @@ export default function LiveAttendancePage() {
                         <p className="text-lg text-slate-600 mb-2">ไม่พบข้อมูลการเช็คชื่อ</p>
                         <p className="text-sm text-slate-400 mb-6">กรุณาตรวจสอบลิงก์อีกครั้ง</p>
                         <Button
-                            className="w-full bg-gradient-to-r from-blue-400 to-indigo-500 text-white shadow-lg"
+                            className="w-full bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg"
                             onPress={() => router.back()}
                         >
                             กลับหน้าหลัก
@@ -438,7 +438,7 @@ export default function LiveAttendancePage() {
             {/* Header Card with Purple Gradient Bar */}
             <Card className="mb-6 shadow-lg border-0 overflow-hidden">
                 {/* Purple Gradient Bar */}
-                {/* <div className="h-2 bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400" /> */}
+                {/* <div className="h-2 bg-linear-to-r from-purple-400 via-pink-400 to-purple-400" /> */}
 
                 <CardBody className="p-6">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">

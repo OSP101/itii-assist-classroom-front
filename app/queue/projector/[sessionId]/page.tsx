@@ -950,7 +950,7 @@ export default function ProjectorViewPage() {
                             color="primary"
                             onPress={handleCancelDeskBooking}
                             isLoading={isCancelling}
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             startContent={<Icon icon="solar:trash-bin-trash-bold" />}
                         >
                             ยกเลิกการจอง
