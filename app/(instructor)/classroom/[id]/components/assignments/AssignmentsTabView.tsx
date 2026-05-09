@@ -228,14 +228,28 @@ function AssignmentsTabViewComponent({
                             <div className="flex items-center gap-1" onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
                                 {canUpdateAssignments && (
                                     <Tooltip content="แก้ไข">
-                                        <Button isIconOnly size="sm" variant="light" color="default" onPress={() => onOpenEditModal(assignment)}>
+                                        <Button
+                                            isIconOnly
+                                            size="sm"
+                                            variant="light"
+                                            color="default"
+                                            aria-label="แก้ไขงาน"
+                                            onPress={() => onOpenEditModal(assignment)}
+                                        >
                                             <Icon icon="solar:pen-linear" />
                                         </Button>
                                     </Tooltip>
                                 )}
                                 {canDeleteAssignments && (
                                     <Tooltip content="ลบ" color="danger">
-                                        <Button isIconOnly size="sm" variant="light" color="danger" onPress={() => onDeleteAssignment(assignment)}>
+                                        <Button
+                                            isIconOnly
+                                            size="sm"
+                                            variant="light"
+                                            color="danger"
+                                            aria-label="ลบงาน"
+                                            onPress={() => onDeleteAssignment(assignment)}
+                                        >
                                             <Icon icon="solar:trash-bin-trash-linear" />
                                         </Button>
                                     </Tooltip>

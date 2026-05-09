@@ -1464,6 +1464,7 @@ export default function ClassroomsPage() {
                                         size="sm"
                                         variant="flat"
                                         isDisabled={undoStack.length === 0}
+                                        aria-label="ย้อนกลับ"
                                         onPress={handleUndo}
                                     >
                                         <Icon icon="solar:undo-left-round-bold" className="text-lg" />
@@ -1475,6 +1476,7 @@ export default function ClassroomsPage() {
                                         size="sm"
                                         variant="flat"
                                         isDisabled={redoStack.length === 0}
+                                        aria-label="ทำซ้ำ"
                                         onPress={handleRedo}
                                     >
                                         <Icon icon="solar:undo-right-round-bold" className="text-lg" />
@@ -1483,7 +1485,7 @@ export default function ClassroomsPage() {
                                 <div className="h-5 w-px bg-slate-300 mx-1" />
                                 {/* Zoom Controls */}
                                 <Tooltip content="ซูมออก">
-                                    <Button isIconOnly size="sm" variant="flat" onPress={handleZoomOut} isDisabled={zoomLevel <= MIN_ZOOM}>
+                                    <Button isIconOnly size="sm" variant="flat" aria-label="ซูมออก" onPress={handleZoomOut} isDisabled={zoomLevel <= MIN_ZOOM}>
                                         <Icon icon="solar:minimize-bold" className="text-lg" />
                                     </Button>
                                 </Tooltip>
@@ -1491,7 +1493,7 @@ export default function ClassroomsPage() {
                                     {Math.round(zoomLevel * 100)}%
                                 </Chip>
                                 <Tooltip content="ซูมเข้า">
-                                    <Button isIconOnly size="sm" variant="flat" onPress={handleZoomIn} isDisabled={zoomLevel >= MAX_ZOOM}>
+                                    <Button isIconOnly size="sm" variant="flat" aria-label="ซูมเข้า" onPress={handleZoomIn} isDisabled={zoomLevel >= MAX_ZOOM}>
                                         <Icon icon="solar:maximize-bold" className="text-lg" />
                                     </Button>
                                 </Tooltip>
@@ -1614,6 +1616,7 @@ export default function ClassroomsPage() {
                                                     size="sm"
                                                     variant="flat"
                                                     color="primary"
+                                                    aria-label="เพิ่มโซน"
                                                     onPress={() => {
                                                         setEditingZone(null);
                                                         setZoneForm({ name: "" });
@@ -1633,12 +1636,12 @@ export default function ClassroomsPage() {
                                                         <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: zone.color }} />
                                                         <span className="text-xs text-slate-700 flex-1 truncate">{zone.name}</span>
                                                         <Tooltip content="แก้ไข">
-                                                            <Button isIconOnly size="sm" variant="light" onPress={() => handleEditZone(zone)}>
+                                                            <Button isIconOnly size="sm" variant="light" aria-label="แก้ไขโซน" onPress={() => handleEditZone(zone)}>
                                                                 <Icon icon="solar:pen-linear" className="text-sm text-slate-400" />
                                                             </Button>
                                                         </Tooltip>
                                                         <Tooltip content="ลบ">
-                                                            <Button isIconOnly size="sm" variant="light" color="danger" onPress={() => handleDeleteZone(zone.id)}>
+                                                            <Button isIconOnly size="sm" variant="light" color="danger" aria-label="ลบโซน" onPress={() => handleDeleteZone(zone.id)}>
                                                                 <Icon icon="solar:trash-bin-trash-linear" className="text-sm" />
                                                             </Button>
                                                         </Tooltip>
@@ -1726,6 +1729,7 @@ export default function ClassroomsPage() {
                                             isIconOnly
                                             color="success"
                                             size="sm"
+                                            aria-label="เพิ่มโต๊ะนักศึกษา"
                                             onPress={() => handleAddDesk("normal", bulkCount)}
                                         >
                                             <Icon icon="solar:document-bold" className="text-lg" />
@@ -1734,17 +1738,18 @@ export default function ClassroomsPage() {
                                             isIconOnly
                                             color="warning"
                                             size="sm"
+                                            aria-label="เพิ่มโต๊ะอาจารย์"
                                             onPress={() => handleAddDesk("teacher", bulkCount)}
                                         >
                                             <Icon icon="solar:user-speak-bold" className="text-lg" />
                                         </Button>
                                         <Tooltip content="ย้อนกลับ">
-                                            <Button isIconOnly size="sm" variant="flat" isDisabled={undoStack.length === 0} onPress={handleUndo}>
+                                            <Button isIconOnly size="sm" variant="flat" aria-label="ย้อนกลับ" isDisabled={undoStack.length === 0} onPress={handleUndo}>
                                                 <Icon icon="solar:undo-left-round-bold" className="text-lg" />
                                             </Button>
                                         </Tooltip>
                                         <Tooltip content="ทำซ้ำ">
-                                            <Button isIconOnly size="sm" variant="flat" isDisabled={redoStack.length === 0} onPress={handleRedo}>
+                                            <Button isIconOnly size="sm" variant="flat" aria-label="ทำซ้ำ" isDisabled={redoStack.length === 0} onPress={handleRedo}>
                                                 <Icon icon="solar:undo-right-round-bold" className="text-lg" />
                                             </Button>
                                         </Tooltip>

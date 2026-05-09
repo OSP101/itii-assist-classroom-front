@@ -1,7 +1,6 @@
 "use client";
 
 import { memo } from "react";
-import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import type { InsightItem, InsightType } from "../analytics";
 
@@ -30,13 +29,9 @@ function InsightPanelComponent({ insights }: InsightPanelProps) {
       {insights.map((item, i) => {
         const cfg = TYPE_CONFIG[item.type];
         return (
-          <motion.div
+          <div
             key={item.id}
             className={`min-h-[80px] sm:min-h-[96px] ${cfg.cardBg} rounded-xl border border-l-4 border-slate-200/80 dark:border-zinc-700/50 ${cfg.border} p-3 sm:p-4 flex items-start gap-2.5`}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            whileHover={{ y: -2, transition: { duration: 0.15 } }}
-            transition={{ delay: i * 0.06, duration: 0.3 }}
           >
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${cfg.iconBg}`}>
               <Icon icon={item.icon} className={`text-base ${cfg.iconColor}`} />
@@ -45,7 +40,7 @@ function InsightPanelComponent({ insights }: InsightPanelProps) {
               <p className={`text-sm font-semibold leading-snug ${cfg.titleColor}`}>{item.title}</p>
               <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 leading-relaxed">{item.description}</p>
             </div>
-          </motion.div>
+          </div>
         );
       })}
     </div>

@@ -18,6 +18,9 @@ export interface QueueSession {
     linked_assignment_id?: number | null;
     require_attendance: boolean;
     linked_attendance_session_id?: number | null;
+    is_cutoff_enabled?: boolean;
+    cutoff_at?: string | null;
+    cutoff_note?: string;
     status: 'draft' | 'active' | 'paused' | 'closed';
     start_time?: string;
     end_time?: string;
@@ -87,6 +90,8 @@ export interface QueueBooking {
     desk_number: string;
     booking_type: 'grading' | 'help';
     queue_number: number;
+    is_late_booking?: boolean;
+    late_reason?: string;
     status: 'waiting' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
     note?: string;
     assigned_worker_id?: number | null;
@@ -159,6 +164,9 @@ export interface CreateQueueSessionData {
     linked_assignment_id?: number | null;
     require_attendance?: boolean;
     linked_attendance_session_id?: number | null;
+    is_cutoff_enabled?: boolean;
+    cutoff_at?: string | null;
+    cutoff_note?: string;
 }
 
 export interface UpdateQueueSessionData {
@@ -167,6 +175,9 @@ export interface UpdateQueueSessionData {
     linked_assignment_id?: number | null;
     require_attendance?: boolean;
     linked_attendance_session_id?: number | null;
+    is_cutoff_enabled?: boolean;
+    cutoff_at?: string | null;
+    cutoff_note?: string;
 }
 
 export interface CreateBookingData {
@@ -187,6 +198,11 @@ export interface CompleteBookingData {
     sub_item_scores?: SubItemScore[];
     score_comment?: string;
     worker_note?: string;
+}
+
+export interface WorkerBookingActionResult {
+    booking: QueueBooking;
+    next_booking: QueueBooking | null;
 }
 
 export interface ProjectorViewData {
@@ -338,17 +354,24 @@ const queueService = {
         sessionId: string,
         preferences: { accept_grading?: boolean; accept_help?: boolean }
     ): Promise<{ worker: QueueWorker; assignedBooking: QueueBooking | null }> {
-        const response = await api.post<QueueWorker & { assignedBooking?: QueueBooking | null }>(
+        const response = await api.post<QueueWorker | { worker: QueueWorker; assignedBooking?: QueueBooking | null }>(
             `/courses/${courseId}/queue/sessions/${sessionId}/workers/join`,
             preferences
         );
         if (!response.data) throw new Error('เข้าร่วมรับงานไม่สำเร็จ');
-        
-        // Extract assignedBooking from the response (it's at response level, not data level)
-        const fullResponse = response as { data?: QueueWorker; assignedBooking?: QueueBooking | null };
-        
+
+        const fullResponse = response as { data?: QueueWorker | { worker: QueueWorker; assignedBooking?: QueueBooking | null }; assignedBooking?: QueueBooking | null };
+        const payload = response.data;
+        if ((payload as { worker?: QueueWorker }).worker) {
+            const dataPayload = payload as { worker: QueueWorker; assignedBooking?: QueueBooking | null };
+            return {
+                worker: dataPayload.worker,
+                assignedBooking: dataPayload.assignedBooking || fullResponse.assignedBooking || null,
+            };
+        }
+
         return {
-            worker: response.data,
+            worker: payload as QueueWorker,
             assignedBooking: fullResponse.assignedBooking || null,
         };
     },
@@ -439,8 +462,8 @@ const queueService = {
         sessionId: string,
         bookingId: number,
         data: CompleteBookingData
-    ): Promise<QueueBooking> {
-        const response = await api.post<QueueBooking>(
+    ): Promise<WorkerBookingActionResult> {
+        const response = await api.post<WorkerBookingActionResult>(
             `/courses/${courseId}/queue/sessions/${sessionId}/bookings/${bookingId}/complete`,
             data
         );
@@ -456,11 +479,13 @@ const queueService = {
         sessionId: string,
         bookingId: number,
         reason?: string
-    ): Promise<void> {
-        await api.post(
+    ): Promise<WorkerBookingActionResult> {
+        const response = await api.post<WorkerBookingActionResult>(
             `/courses/${courseId}/queue/sessions/${sessionId}/bookings/${bookingId}/skip`,
             { reason }
         );
+        if (!response.data) throw new Error('ข้ามคิวไม่สำเร็จ');
+        return response.data;
     },
 
     // ============================================

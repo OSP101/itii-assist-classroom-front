@@ -1071,7 +1071,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
         ...(userRole === 'instructor' ? [{ key: "activity-log", label: "บันทึกกิจกรรม", icon: "solar:document-text-bold" }] : []),
         ...(userRole === 'instructor' ? [{ key: "ta-stats", label: "สถิติ TA", icon: "solar:graph-new-up-bold" }] : []),
         ...(userRole === 'instructor' ? [{ key: "settings", label: "ตั้งค่ารายวิชา", icon: "solar:settings-bold" }] : []),
-    ], [approvalRole, canAccessApproval, canAccessAssignments, canAccessAttendance, canAccessExamScores, canAccessQueue, canAccessScores, canAccessSections, canViewPeople, userRole]);
+    ], [approvalRole, canAccessApproval, canAccessAssignments, canAccessAttendance, canAccessExamScores, canAccessScores, canAccessSections, canViewPeople, userRole]);
 
     useEffect(() => {
         if (isLoading || !course) {
@@ -1723,7 +1723,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                                     name={ta.full_name}
                                                     src={ta.avatar || undefined}
                                                     size="sm"
-                                                    className={`flex-shrink-0 bg-gradient-to-br from-blue-400 to-indigo-500`}
+                                                    className="flex-shrink-0 bg-gradient-to-br from-blue-400 to-indigo-500"
                                                 />
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-medium truncate text-slate-800">
@@ -2094,6 +2094,9 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                                         item.status === "already_enrolled" ? "border-amber-200 bg-amber-50" :
                                                             "border-red-200 bg-red-50"
                                                         }`}
+                                                    title={item.status === "matched" ? `→ ${item.matchedStudent.student_id} ${item.matchedStudent.full_name}` :
+                                                        item.status === "already_enrolled" ? "ลงทะเบียนแล้ว" :
+                                                            "ไม่พบ"}
                                                 >
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex items-center gap-2">
@@ -3079,12 +3082,12 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                                         <Icon icon="solar:add-circle-linear" className="text-xl text-amber-500" />
                                                     </div>
                                                 ))
-                                        ) : (
-                                            <div className="text-center py-6">
-                                                <Icon icon="solar:users-group-rounded-linear" className="text-3xl text-slate-300 mx-auto mb-2" />
-                                                <p className="text-slate-400 text-sm">นักศึกษาทั้งหมดอยู่ในกลุ่มแล้ว</p>
-                                            </div>
-                                        )}
+                                            ) : (
+                                                <div className="text-center py-6">
+                                                    <Icon icon="solar:users-group-rounded-linear" className="text-3xl text-slate-300 mx-auto mb-2" />
+                                                    <p className="text-slate-400 text-sm">นักศึกษาทั้งหมดอยู่ในกลุ่มแล้ว</p>
+                                                </div>
+                                            )}
                                     </div>
                                 </div>
                             </div>

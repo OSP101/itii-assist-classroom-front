@@ -10,6 +10,7 @@ import { Chip } from "@heroui/chip";
 import { Tooltip } from "@heroui/tooltip";
 import { Skeleton } from "@heroui/skeleton";
 import { Input } from "@heroui/input";
+import { Checkbox } from "@heroui/checkbox";
 import { Select, SelectItem } from "@heroui/select";
 import {
     Table,
@@ -109,6 +110,21 @@ function formatDateTime(dateString: string): string {
     return `${formatDate(dateString)} ${formatTime(dateString)}`;
 }
 
+function toLocalDateTimeInputValue(value?: string | null): string {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    const offsetMs = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
+function localDateTimeInputToIso(value: string): string | null {
+    if (!value) return null;
+    const localDate = new Date(value);
+    if (Number.isNaN(localDate.getTime())) return null;
+    return localDate.toISOString();
+}
+
 // Status display
 const statusDisplay: Record<string, { label: string; color: "default" | "primary" | "secondary" | "success" | "warning" | "danger"; icon: string }> = {
     draft: { label: "ฉบับร่าง", color: "default", icon: "solar:document-bold" },
@@ -168,6 +184,9 @@ export default function QueueTab({
         linked_assignment_id: null,
         require_attendance: false,
         linked_attendance_session_id: null,
+        is_cutoff_enabled: false,
+        cutoff_at: null,
+        cutoff_note: "",
     });
 
     // Fetch sessions
@@ -272,6 +291,9 @@ export default function QueueTab({
             linked_assignment_id: null,
             require_attendance: false,
             linked_attendance_session_id: null,
+            is_cutoff_enabled: false,
+            cutoff_at: null,
+            cutoff_note: "",
         });
     };
 
@@ -292,6 +314,9 @@ export default function QueueTab({
             linked_assignment_id: session.linked_assignment_id || null,
             require_attendance: session.require_attendance,
             linked_attendance_session_id: session.linked_attendance_session_id || null,
+            is_cutoff_enabled: Boolean(session.is_cutoff_enabled),
+            cutoff_at: session.cutoff_at || null,
+            cutoff_note: session.cutoff_note || "",
         });
         fetchOptions();
         setIsEditModalOpen(true);
@@ -350,9 +375,25 @@ export default function QueueTab({
             return;
         }
 
+        if (formData.is_cutoff_enabled && !formData.cutoff_at) {
+            addToast({
+                title: "กรุณาตั้งเวลา Cutoff",
+                description: "เมื่อเปิดใช้งาน cutoff ต้องระบุวันและเวลา",
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+
         setIsSubmitting(true);
         try {
-            const result = await queueService.createQueueSession(course.id, formData);
+            const result = await queueService.createQueueSession(course.id, {
+                ...formData,
+                is_cutoff_enabled: Boolean(formData.is_cutoff_enabled),
+                cutoff_at: formData.is_cutoff_enabled ? formData.cutoff_at || null : null,
+                cutoff_note: formData.is_cutoff_enabled ? formData.cutoff_note : "",
+            });
             if (result) {
                 addToast({
                     title: "สำเร็จ",
@@ -384,6 +425,17 @@ export default function QueueTab({
     const handleUpdateSession = async () => {
         if (!editTarget) return;
 
+        if (formData.is_cutoff_enabled && !formData.cutoff_at) {
+            addToast({
+                title: "กรุณาตั้งเวลา Cutoff",
+                description: "เมื่อเปิดใช้งาน cutoff ต้องระบุวันและเวลา",
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             await queueService.updateQueueSession(course.id, editTarget.id, {
@@ -392,6 +444,9 @@ export default function QueueTab({
                 linked_assignment_id: formData.linked_assignment_id,
                 require_attendance: formData.require_attendance,
                 linked_attendance_session_id: formData.linked_attendance_session_id,
+                is_cutoff_enabled: Boolean(formData.is_cutoff_enabled),
+                cutoff_at: formData.is_cutoff_enabled ? formData.cutoff_at || null : null,
+                cutoff_note: formData.is_cutoff_enabled ? formData.cutoff_note : "",
             });
             addToast({
                 title: "สำเร็จ",
@@ -1415,6 +1470,62 @@ export default function QueueTab({
                                     label: "text-slate-600 font-medium text-sm",
                                 }}
                             />
+
+                            <div className="p-4 bg-rose-50 rounded-xl border border-rose-200 space-y-3">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p className="font-semibold text-rose-700">Cutoff เวลาในการจอง</p>
+                                        <p className="text-xs text-rose-600">จองหลังเวลานี้จะถูกติดป้ายว่า Late Booking</p>
+                                    </div>
+                                    <Checkbox
+                                        isSelected={Boolean(formData.is_cutoff_enabled)}
+                                        onValueChange={(value) =>
+                                            setFormData((prev) => ({
+                                                ...prev,
+                                                is_cutoff_enabled: value,
+                                                cutoff_at: value ? prev.cutoff_at || null : null,
+                                                cutoff_note: value ? prev.cutoff_note || "" : "",
+                                            }))
+                                        }
+                                    >
+                                        เปิดใช้งาน
+                                    </Checkbox>
+                                </div>
+
+                                {formData.is_cutoff_enabled && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block mb-1 text-rose-700 font-medium text-sm">เวลา Cutoff</label>
+                                            <input
+                                                type="datetime-local"
+                                                value={toLocalDateTimeInputValue(formData.cutoff_at)}
+                                                onChange={(event) =>
+                                                    setFormData((prev) => ({
+                                                        ...prev,
+                                                        cutoff_at: localDateTimeInputToIso(event.target.value),
+                                                    }))
+                                                }
+                                                className="w-full h-11 px-3 rounded-xl border border-rose-200 bg-white text-slate-800 outline-none transition-colors hover:border-rose-300 focus:border-rose-400"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block mb-1 text-rose-700 font-medium text-sm">ข้อความเตือน (ถ้ามี)</label>
+                                            <input
+                                                type="text"
+                                                placeholder="เช่น ส่งหลัง cutoff จะถูกหักคะแนน"
+                                                value={formData.cutoff_note || ""}
+                                                onChange={(event) =>
+                                                    setFormData((prev) => ({
+                                                        ...prev,
+                                                        cutoff_note: event.target.value,
+                                                    }))
+                                                }
+                                                className="w-full h-11 px-3 rounded-xl border border-rose-200 bg-white text-slate-800 placeholder:text-slate-400 outline-none transition-colors hover:border-rose-300 focus:border-rose-400"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
 
                             {/* ลิงก์กับหัวข้องาน */}
                             <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">

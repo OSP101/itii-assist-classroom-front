@@ -55,6 +55,9 @@ interface ProjectorViewData {
         title: string;
         pin_code: string;
         status: string;
+        is_cutoff_enabled?: boolean;
+        cutoff_at?: string | null;
+        cutoff_note?: string;
     };
     classroom: {
         id: string;
@@ -83,9 +86,11 @@ export default function ProjectorViewPage() {
     const [selectedDesk, setSelectedDesk] = useState<DeskWithStatus | null>(null);
     const [isDeskModalOpen, setIsDeskModalOpen] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
+	const [isCutoffConfirmOpen, setIsCutoffConfirmOpen] = useState(false);
 
     // Status toggle states
     const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+    const [isTogglingCutoff, setIsTogglingCutoff] = useState(false);
 
     // Real-time clock
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -169,6 +174,10 @@ export default function ProjectorViewPage() {
             fetchData();
         });
 
+        socket.on("session-cutoff-changed", () => {
+            fetchData();
+        });
+
         socket.on("pin-changed", () => {
             fetchData();
         });
@@ -240,6 +249,54 @@ export default function ProjectorViewPage() {
             });
         } finally {
             setIsTogglingStatus(false);
+        }
+    };
+
+    const handleToggleCutoff = async () => {
+        if (!data || isClosed) return;
+
+        const nextEnabled = !Boolean(data.session.is_cutoff_enabled);
+        setIsTogglingCutoff(true);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/queue/sessions/${sessionId}/cutoff`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ is_cutoff_enabled: nextEnabled }),
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                addToast({
+                    title: nextEnabled ? "เปิด Cutoff แล้ว" : "ปิด Cutoff แล้ว",
+                    description: nextEnabled
+                        ? "การจองใหม่จากนี้จะถูกติดป้าย Late Booking"
+                        : "การจองใหม่จะไม่ถูกติดป้าย Late Booking",
+                    color: nextEnabled ? "warning" : "success",
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+                });
+                fetchData();
+            } else {
+                addToast({
+                    title: "เกิดข้อผิดพลาด",
+                    description: result.error?.message || "ไม่สามารถเปลี่ยนสถานะ Cutoff ได้",
+                    color: "danger",
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+                });
+            }
+        } catch (error) {
+            console.error("Error toggling cutoff:", error);
+            addToast({
+                title: "เกิดข้อผิดพลาด",
+                description: "ไม่สามารถเปลี่ยนสถานะ Cutoff ได้",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } finally {
+            setIsTogglingCutoff(false);
         }
     };
 
@@ -412,6 +469,8 @@ export default function ProjectorViewPage() {
     // Check if queue is paused or closed
     const isPaused = data.session.status === "paused";
     const isClosed = data.session.status === "closed";
+    const isCutoffEnabled = Boolean(data.session.is_cutoff_enabled);
+    const nextCutoffEnabled = !isCutoffEnabled;
 
     return (
         <div ref={containerRef} className="min-h-screen bg-slate-100 p-4 flex flex-col">
@@ -443,6 +502,16 @@ export default function ProjectorViewPage() {
                             startContent={<Icon icon="solar:stop-circle-bold" />}
                         >
                             ปิดแล้ว
+                        </Chip>
+                    )}
+                    {isCutoffEnabled && (
+                        <Chip
+                            size="lg"
+                            color="warning"
+                            variant="flat"
+                            startContent={<Icon icon="solar:danger-triangle-bold" />}
+                        >
+                            Cutoff เปิดอยู่
                         </Chip>
                     )}
                 </div>
@@ -523,6 +592,21 @@ export default function ProjectorViewPage() {
                             {isClosed ? 'ปิดแล้ว' : isPaused ? 'หยุดรับคิว' : 'เปิดรับคิว'}
                         </span>
                     </div>
+
+                    {/* Cutoff Toggle */}
+                    <Button
+                        size="lg"
+                        variant="flat"
+                        className={`border shadow-sm ${isCutoffEnabled
+                            ? 'bg-rose-50 border-rose-200 text-rose-700'
+                            : 'bg-white border-slate-200 text-slate-700'}`}
+                        isLoading={isTogglingCutoff}
+                        isDisabled={isClosed || isTogglingCutoff}
+                        onPress={() => setIsCutoffConfirmOpen(true)}
+                        startContent={<Icon icon={isCutoffEnabled ? "solar:lock-bold" : "solar:lock-unlocked-bold"} className="text-lg" />}
+                    >
+                        {isCutoffEnabled ? 'ปิด Cutoff' : 'เปิด Cutoff'}
+                    </Button>
 
                     {/* Layout Toggle */}
                     <Button
@@ -870,6 +954,47 @@ export default function ProjectorViewPage() {
                             startContent={<Icon icon="solar:trash-bin-trash-bold" />}
                         >
                             ยกเลิกการจอง
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
+            <Modal isOpen={isCutoffConfirmOpen} onClose={() => setIsCutoffConfirmOpen(false)}>
+                <ModalContent>
+                    <ModalHeader className="flex items-center gap-2">
+                        <div className="p-2 bg-gradient-to-br from-rose-400 to-pink-500 rounded-lg shadow-lg shadow-rose-500/30">
+                            <Icon icon="solar:danger-triangle-bold" className="text-xl text-white" />
+                        </div>
+                        <span>{nextCutoffEnabled ? "ยืนยันเปิด Cutoff" : "ยืนยันปิด Cutoff"}</span>
+                    </ModalHeader>
+                    <ModalBody>
+                        <div className="space-y-3 text-sm text-slate-700">
+                            <p>
+                                {nextCutoffEnabled
+                                    ? "หลังจากนี้การจองใหม่ทั้งหมดจะถูกติดป้ายว่า Late Booking"
+                                    : "หลังจากนี้การจองใหม่จะไม่ถูกติดป้าย Late Booking"}
+                            </p>
+                            {nextCutoffEnabled && (
+                                <p className="text-rose-600">
+                                    แจ้งนักศึกษาให้เรียบร้อยก่อนกดยืนยันเพื่อป้องกันความสับสน
+                                </p>
+                            )}
+                        </div>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button variant="light" onPress={() => setIsCutoffConfirmOpen(false)}>
+                            ยกเลิก
+                        </Button>
+                        <Button
+                            color={nextCutoffEnabled ? "warning" : "success"}
+                            onPress={async () => {
+                                setIsCutoffConfirmOpen(false);
+                                await handleToggleCutoff();
+                            }}
+                            isLoading={isTogglingCutoff}
+                            startContent={<Icon icon={nextCutoffEnabled ? "solar:lock-bold" : "solar:lock-unlocked-bold"} />}
+                        >
+                            {nextCutoffEnabled ? "ยืนยันเปิด Cutoff" : "ยืนยันปิด Cutoff"}
                         </Button>
                     </ModalFooter>
                 </ModalContent>

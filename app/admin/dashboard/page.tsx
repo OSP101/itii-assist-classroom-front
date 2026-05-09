@@ -549,7 +549,7 @@ export default function AdminDashboardPage() {
                     <Icon icon="solar:server-bold" className="text-lg text-blue-500" />
                     <h3 className="font-semibold text-default-800">สถานะเซิร์ฟเวอร์</h3>
                   </div>
-                  <Button isIconOnly size="sm" variant="light" onPress={fetchSystemMetrics}>
+                  <Button isIconOnly size="sm" variant="light" aria-label="รีเฟรชสถานะเซิร์ฟเวอร์" onPress={fetchSystemMetrics}>
                     <Icon icon="solar:refresh-linear" className="text-lg" />
                   </Button>
                 </div>

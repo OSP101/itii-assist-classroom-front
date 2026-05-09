@@ -35,6 +35,9 @@ interface VerifyPINResponse {
         building: string;
     };
     require_attendance: boolean;
+    is_cutoff_enabled?: boolean;
+    cutoff_at?: string | null;
+    cutoff_note?: string;
 }
 
 interface BookingResult {
@@ -44,6 +47,8 @@ interface BookingResult {
     booking_type: string;
     desk_number: string;
     status: string;
+    is_late_booking?: boolean;
+    late_reason?: string;
 }
 
 interface BookingStatus {
@@ -53,6 +58,8 @@ interface BookingStatus {
     desk_number: string;
     status: string;
     position_in_queue: number;
+    is_late_booking?: boolean;
+    late_reason?: string;
     completed_at?: string;
     zone?: {
         id: string;
@@ -67,6 +74,9 @@ interface BookingStatus {
         id: number;
         title: string;
         status: string;
+        is_cutoff_enabled?: boolean;
+        cutoff_at?: string | null;
+        cutoff_note?: string;
     };
     student?: {
         id: number;
@@ -108,6 +118,19 @@ interface ValidationWarning {
         booking_type: string;
         status: string;
     };
+}
+
+interface BookingValidationResult {
+    valid: boolean;
+    errors?: ValidationError[];
+    warnings?: ValidationWarning[];
+    student?: StudentInfo | null;
+    desk?: DeskInfo | null;
+    is_cutoff_enabled?: boolean;
+    cutoff_at?: string | null;
+    cutoff_note?: string;
+    is_late_booking_preview?: boolean;
+    late_reason_preview?: string;
 }
 
 interface StudentInfo {
@@ -194,6 +217,8 @@ function BookQueueContent() {
     const [studentInfo, setStudentInfo] = useState<StudentInfo | null>(null);
     const [deskInfo, setDeskInfo] = useState<DeskInfo | null>(null);
     const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const [isLateConfirmOpen, setIsLateConfirmOpen] = useState(false);
+    const [latePreviewInfo, setLatePreviewInfo] = useState<{ cutoffAt?: string | null; reason?: string } | null>(null);
 
     // Booking status
     const [bookingResult, setBookingResult] = useState<BookingResult | null>(null);
@@ -324,6 +349,26 @@ function BookQueueContent() {
         }
     }, [pinCode, studentId, deskNumber, bookingType]);
 
+    const validateBookingForSubmit = useCallback(async (): Promise<BookingValidationResult | null> => {
+        const response = await fetch(`${API_BASE_URL}/queue/validate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                pin_code: pinCode,
+                student_id: studentId,
+                desk_number: deskNumber,
+                booking_type: bookingType,
+            }),
+        });
+
+        const result = await response.json();
+        if (!result.success) {
+            return null;
+        }
+
+        return result.data as BookingValidationResult;
+    }, [pinCode, studentId, deskNumber, bookingType]);
+
     // Debounced validation when inputs change
     useEffect(() => {
         if (step !== "form" || !studentId || !deskNumber) {
@@ -390,6 +435,22 @@ function BookQueueContent() {
     };
 
     // Create booking
+    const createBookingRequest = useCallback(async () => {
+        const response = await fetch(`${API_BASE_URL}/queue/bookings`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                pin_code: pinCode,
+                student_id: studentId,
+                desk_number: deskNumber,
+                booking_type: bookingType,
+                note: note || undefined,
+            }),
+        });
+
+        return response.json();
+    }, [pinCode, studentId, deskNumber, bookingType, note]);
+
     const handleCreateBooking = async () => {
         if (!studentId.trim()) {
             addToast({
@@ -442,19 +503,33 @@ function BookQueueContent() {
 
         setIsBooking(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/queue/bookings`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    pin_code: pinCode,
-                    student_id: studentId,
-                    desk_number: deskNumber,
-                    booking_type: bookingType,
-                    note: note || undefined,
-                }),
-            });
+            const validation = await validateBookingForSubmit();
+            if (validation) {
+                setValidationErrors(validation.errors || []);
+                setValidationWarnings(validation.warnings || []);
+                setStudentInfo(validation.student || null);
+                setDeskInfo(validation.desk || null);
 
-            const result = await response.json();
+                if (validation.errors && validation.errors.length > 0) {
+                    addToast({
+                        title: "ไม่สามารถจองได้",
+                        description: validation.errors[0].message,
+                        color: "danger",
+                    });
+                    return;
+                }
+
+                if (validation.is_late_booking_preview) {
+                    setLatePreviewInfo({
+                        cutoffAt: validation.cutoff_at,
+                        reason: validation.late_reason_preview || validation.cutoff_note,
+                    });
+                    setIsLateConfirmOpen(true);
+                    return;
+                }
+            }
+
+            const result = await createBookingRequest();
 
             if (result.success) {
                 setBookingResult(result.data);
@@ -498,6 +573,65 @@ function BookQueueContent() {
         } finally {
             setIsBooking(false);
         }
+    };
+
+    const handleConfirmLateBooking = async () => {
+        setIsLateConfirmOpen(false);
+        setIsBooking(true);
+        try {
+            const result = await createBookingRequest();
+            if (result.success) {
+                setBookingResult(result.data);
+                setStep("status");
+                saveBookingState(pinCode, studentId, result.data.id);
+
+                if (notificationSupported && permissionStatus !== "granted") {
+                    const granted = await requestPermission();
+                    if (granted) {
+                        await registerFcmToken("student", result.data.id);
+                    }
+                } else if (fcmToken) {
+                    await registerFcmToken("student", result.data.id);
+                }
+
+                addToast({
+                    title: "จองคิวสำเร็จ!",
+                    description: `คิวที่ ${result.data.queue_number}`,
+                    color: "success",
+                });
+
+                startStatusPolling(result.data.id, sessionInfo?.session_id);
+            } else {
+                const isPaused = result.error?.code === "SESSION_PAUSED";
+                addToast({
+                    title: isPaused ? "ปิดรับการจองคิว" : "จองคิวไม่สำเร็จ",
+                    description: result.error?.message || "เกิดข้อผิดพลาด",
+                    color: isPaused ? "warning" : "danger",
+                });
+            }
+        } catch (error) {
+            console.error("Error creating late booking:", error);
+            addToast({
+                title: "เกิดข้อผิดพลาด",
+                description: "ไม่สามารถจองคิวได้",
+                color: "danger",
+            });
+        } finally {
+            setIsBooking(false);
+        }
+    };
+
+    const formatCutoffDateTime = (value?: string | null) => {
+        if (!value) return "-";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "-";
+        return date.toLocaleString("th-TH", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
     };
 
     // Fetch booking status
@@ -1012,6 +1146,40 @@ function BookQueueContent() {
                         </div>
                     </CardBody>
                 </Card>
+
+                <Modal isOpen={isLateConfirmOpen} onClose={() => setIsLateConfirmOpen(false)}>
+                    <ModalContent>
+                        <ModalHeader>
+                            <div className="flex items-center gap-2 text-rose-700">
+                                <Icon icon="solar:danger-triangle-bold" className="text-xl" />
+                                <span>จองหลัง Cutoff</span>
+                            </div>
+                        </ModalHeader>
+                        <ModalBody>
+                            <p className="text-sm text-slate-700">
+                                การจองนี้เกิดขึ้นหลังเวลาที่กำหนด อาจมีเกณฑ์ให้คะแนนต่างจากผู้ที่จองตรงเวลา
+                            </p>
+                            {latePreviewInfo?.reason && (
+                                <div className="rounded-lg bg-rose-50 border border-rose-200 p-3 text-sm text-rose-700">
+                                    {latePreviewInfo.reason}
+                                </div>
+                            )}
+                            {latePreviewInfo?.cutoffAt && (
+                                <p className="text-xs text-slate-500">
+                                    cutoff: {formatCutoffDateTime(latePreviewInfo.cutoffAt)}
+                                </p>
+                            )}
+                        </ModalBody>
+                        <ModalFooter>
+                            <Button variant="flat" onPress={() => setIsLateConfirmOpen(false)}>
+                                ยกเลิก
+                            </Button>
+                            <Button color="danger" onPress={handleConfirmLateBooking} isLoading={isBooking}>
+                                ยืนยันจองต่อ
+                            </Button>
+                        </ModalFooter>
+                    </ModalContent>
+                </Modal>
             </div>
         );
     }
@@ -1084,6 +1252,17 @@ function BookQueueContent() {
 
                             {/* Details */}
                             <div className="bg-slate-50 rounded-xl p-4 space-y-3 text-left">
+                                {status.is_late_booking && (
+                                    <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-rose-700 text-sm">
+                                        <div className="flex items-start gap-2">
+                                            <Icon icon="solar:danger-triangle-bold" className="text-lg mt-0.5" />
+                                            <div>
+                                                <p className="font-medium">งานนี้จองหลัง cutoff</p>
+                                                {status.late_reason && <p className="text-xs mt-1 text-rose-600">{status.late_reason}</p>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="flex justify-between items-center">
                                     <span className="text-slate-500">โต๊ะ</span>
                                     <div className="flex items-center gap-2">

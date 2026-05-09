@@ -208,6 +208,19 @@ function MiniRoomMap({
     );
 }
 
+function formatCutoffDateTime(value?: string | null): string {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "-";
+    return date.toLocaleString("th-TH", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
+
 // ============================================================
 // Main Component
 // ============================================================
@@ -665,7 +678,7 @@ export default function WorkerDashboardPage() {
                     score: parseFloat(s.score) || 0,
                 }));
 
-            await queueService.completeBooking(courseId, sessionId, currentBooking.id, {
+            const result = await queueService.completeBooking(courseId, sessionId, currentBooking.id, {
                 score: !hasSubItems && currentBooking.booking_type === "grading" && completeForm.score !== "" 
                     ? parseFloat(completeForm.score) || 0 
                     : undefined,
@@ -688,13 +701,13 @@ export default function WorkerDashboardPage() {
             if (currentBooking?.desk_number) {
                 setPreviousDeskNumber(currentBooking.desk_number);
             }
-            setCurrentBooking(null);
             setIsCompleteModalOpen(false);
             setCompleteForm({ score: "", score_comment: "", worker_note: "", sub_item_scores: [] });
             
             // Check if worker was paused - if so, fully leave now
             // Use ref to avoid stale closure issues
             if (isPausedRef.current) {
+                setCurrentBooking(null);
                 setIsWorkerOnline(false);
                 setIsPausedAfterComplete(false);
                 isPausedRef.current = false;
@@ -707,11 +720,24 @@ export default function WorkerDashboardPage() {
                 shouldShowTimeoutProgress: true,
                 });
             } else {
-                skipPollingRef.current = false; // Allow polling again
-                // Poll immediately for new booking (don't wait for interval)
-                setTimeout(() => {
-                    pollForBooking(true);
-                }, 500);
+                if (result.next_booking) {
+                    setCurrentBooking(result.next_booking);
+                    skipPollingRef.current = true;
+                    addToast({
+                        title: "งานถัดไปมาแล้ว",
+                        description: `โต๊ะ ${result.next_booking.desk_number} - ${result.next_booking.booking_type === "grading" ? "ตรวจงาน" : "ขอความช่วยเหลือ"}`,
+                        color: "primary",
+                        timeout: 3000,
+                        shouldShowTimeoutProgress: true,
+                    });
+                } else {
+                    setCurrentBooking(null);
+                    skipPollingRef.current = false; // Allow polling again
+                    // Poll immediately for new booking (don't wait for interval)
+                    setTimeout(() => {
+                        pollForBooking(true);
+                    }, 500);
+                }
             }
         } catch (error: unknown) {
             console.error("Error completing booking:", error);
@@ -733,7 +759,7 @@ export default function WorkerDashboardPage() {
 
         setIsSkipping(true);
         try {
-            await queueService.skipBooking(courseId, sessionId, currentBooking.id, skipReason);
+            const result = await queueService.skipBooking(courseId, sessionId, currentBooking.id, skipReason);
 
             addToast({
                 title: "ข้ามคิวแล้ว",
@@ -747,9 +773,19 @@ export default function WorkerDashboardPage() {
             if (currentBooking?.desk_number) {
                 setPreviousDeskNumber(currentBooking.desk_number);
             }
-            setCurrentBooking(null);
             setIsSkipModalOpen(false);
             setSkipReason("");
+
+            if (result.next_booking) {
+                setCurrentBooking(result.next_booking);
+                skipPollingRef.current = true;
+            } else {
+                setCurrentBooking(null);
+                skipPollingRef.current = false;
+                setTimeout(() => {
+                    pollForBooking(true);
+                }, 500);
+            }
         } catch (error: unknown) {
             console.error("Error skipping booking:", error);
             addToast({
@@ -1127,6 +1163,25 @@ export default function WorkerDashboardPage() {
                                                     คิวที่ {currentBooking.queue_number}
                                                 </span>
                                             </div>
+
+                                            {currentBooking.is_late_booking && (
+                                                <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3">
+                                                    <div className="flex items-start gap-2 text-rose-700">
+                                                        <Icon icon="solar:danger-triangle-bold" className="text-lg mt-0.5 shrink-0" />
+                                                        <div className="min-w-0">
+                                                            <p className="font-semibold text-sm">นักศึกษาคนนี้จองหลัง Cutoff</p>
+                                                            <p className="text-xs mt-0.5 text-rose-600">
+                                                                {currentBooking.late_reason || "งานนี้ต้องพิจารณาเกณฑ์คะแนนหลัง cutoff"}
+                                                            </p>
+                                                            {session?.cutoff_at && (
+                                                                <p className="text-xs mt-0.5 text-rose-600">
+                                                                    เวลา cutoff: {formatCutoffDateTime(session.cutoff_at)}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             <div className="mb-5 flex items-center justify-center gap-3">
                                                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white shadow-lg">

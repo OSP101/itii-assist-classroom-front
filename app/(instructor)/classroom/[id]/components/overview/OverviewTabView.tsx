@@ -2,7 +2,6 @@
 
 import { memo, useMemo, useState } from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
 import { Progress } from "@heroui/progress";
 import { Button } from "@heroui/button";
 import { Avatar } from "@heroui/avatar";
@@ -51,16 +50,9 @@ function CardHeader({
   );
 }
 
-function Fade({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.32, delay }}
-    >
-      {children}
-    </motion.div>
-  );
+function Fade({ children, delay }: { children: React.ReactNode; delay?: number }) {
+  void delay;
+  return <div>{children}</div>;
 }
 
 function formatPercent(value: number | null | undefined): string {

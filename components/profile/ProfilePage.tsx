@@ -415,7 +415,7 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex items-center gap-3">
           {onBack && (
-            <Button isIconOnly variant="light" onPress={onBack} size="sm">
+            <Button isIconOnly variant="light" aria-label="กลับ" onPress={onBack} size="sm">
               <Icon icon="solar:arrow-left-linear" className="text-xl" />
             </Button>
           )}

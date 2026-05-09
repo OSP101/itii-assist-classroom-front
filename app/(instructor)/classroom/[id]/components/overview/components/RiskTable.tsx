@@ -1,7 +1,6 @@
 "use client";
 
 import { memo } from "react";
-import { motion } from "framer-motion";
 import { Progress } from "@heroui/progress";
 import { Chip } from "@heroui/chip";
 import { Avatar } from "@heroui/avatar";
@@ -34,13 +33,10 @@ function RiskTableComponent({ students, onSelectStudent }: RiskTableProps) {
           const pctRaw = student.percentage ?? 0;
           const pct = Math.max(0, Math.min(100, Math.round(pctRaw)));
           return (
-            <motion.button
+            <button
               key={student.id}
               type="button"
               className="w-full text-left border border-slate-100 dark:border-zinc-700/60 bg-slate-50 dark:bg-zinc-800/50 rounded-xl p-2.5 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.03 }}
               onClick={() => onSelectStudent?.(student)}
             >
               <div className="flex items-start justify-between gap-2">
@@ -72,7 +68,7 @@ function RiskTableComponent({ students, onSelectStudent }: RiskTableProps) {
                 />
                 <span className="text-[11px] text-slate-500 shrink-0">{student.recommendation}</span>
               </div>
-            </motion.button>
+            </button>
           );
         })}
       </div>
@@ -94,12 +90,9 @@ function RiskTableComponent({ students, onSelectStudent }: RiskTableProps) {
             const pctRaw = student.percentage ?? 0;
             const pct = Math.max(0, Math.min(100, Math.round(pctRaw)));
             return (
-              <motion.tr
+              <tr
                 key={student.id}
                 className="border-b border-slate-50 hover:bg-slate-50/50 cursor-pointer transition-colors"
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.04 }}
                 onClick={() => onSelectStudent?.(student)}
               >
                 {/* Student info */}
@@ -153,7 +146,7 @@ function RiskTableComponent({ students, onSelectStudent }: RiskTableProps) {
                     {student.recommendation}
                   </span>
                 </td>
-              </motion.tr>
+              </tr>
             );
           })}
         </tbody>
