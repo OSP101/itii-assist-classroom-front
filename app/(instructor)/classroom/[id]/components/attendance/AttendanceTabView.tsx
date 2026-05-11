@@ -64,8 +64,8 @@ const Header = memo(function Header({
     return (
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-                <h2 className="text-lg font-semibold text-slate-800">การเช็คชื่อเข้าเรียน</h2>
-                <p className="text-sm text-slate-500">จัดการรอบการเช็คชื่อและดูสถิติการเข้าเรียน</p>
+                <h2 className="text-lg font-semibold text-foreground">การเช็คชื่อเข้าเรียน</h2>
+                <p className="text-sm text-default-500">จัดการรอบการเช็คชื่อและดูสถิติการเข้าเรียน</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
                 {canLaunchAttendanceDisplay && (

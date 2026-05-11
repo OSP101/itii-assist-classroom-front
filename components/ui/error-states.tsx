@@ -15,6 +15,7 @@
 
 import React from "react";
 import { Button } from "@heroui/button";
+import { useI18n } from "@/hooks/useI18n";
 
 // ---------------------------------------------------------------------------
 // Page-level error — used in app/**/error.tsx files
@@ -30,26 +31,28 @@ type PageErrorStateProps = {
 export function PageErrorState({
   error,
   reset,
-  title = "เกิดข้อผิดพลาด",
+  title,
   description,
 }: PageErrorStateProps) {
+  const t = useI18n();
   const message =
     description ??
     (error?.message && !error.message.includes("undefined")
       ? error.message
-      : "ไม่สามารถโหลดหน้านี้ได้ กรุณาลองใหม่หรือติดต่อผู้ดูแลระบบ");
+      : t("cannotLoadPageTryAgainOrContactAdmin"));
+  const displayTitle = title ?? t("somethingWentWrong");
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-6 text-center">
       <span className="text-5xl" aria-hidden>⚠️</span>
       <div className="space-y-1">
-        <h2 className="text-xl font-semibold text-default-800">{title}</h2>
+        <h2 className="text-xl font-semibold text-default-800">{displayTitle}</h2>
         <p className="text-sm text-default-500 max-w-md">{message}</p>
       </div>
       <div className="flex gap-2 mt-2">
         {reset && (
           <Button color="primary" variant="flat" size="sm" onPress={reset}>
-            ลองใหม่อีกครั้ง
+            {t("tryAgain")}
           </Button>
         )}
         <Button
@@ -57,7 +60,7 @@ export function PageErrorState({
           size="sm"
           onPress={() => (window.location.href = "/")}
         >
-          กลับหน้าหลัก
+          {t("goHome")}
         </Button>
       </div>
     </div>
@@ -76,21 +79,25 @@ type SectionErrorStateProps = {
 };
 
 export function SectionErrorState({
-  title = "โหลดข้อมูลไม่สำเร็จ",
-  description = "กรุณาลองใหม่อีกครั้ง",
+  title,
+  description,
   onRetry,
   className,
 }: SectionErrorStateProps) {
+  const t = useI18n();
+  const displayTitle = title ?? t("failedToLoadData");
+  const displayDescription = description ?? t("pleaseTryAgain");
+
   return (
     <div
       className={`flex flex-col items-center justify-center gap-2 rounded-xl border border-danger/30 bg-danger/5 p-6 text-center ${className ?? ""}`}
     >
       <span className="text-2xl" aria-hidden>⚠️</span>
-      <p className="text-sm font-medium text-danger">{title}</p>
-      <p className="text-xs text-default-400">{description}</p>
+      <p className="text-sm font-medium text-danger">{displayTitle}</p>
+      <p className="text-xs text-default-400">{displayDescription}</p>
       {onRetry && (
         <Button color="danger" variant="flat" size="sm" onPress={onRetry}>
-          ลองใหม่
+          {t("retry")}
         </Button>
       )}
     </div>
@@ -107,20 +114,22 @@ type InlineErrorStateProps = {
 };
 
 export function InlineErrorState({
-  message = "โหลดไม่สำเร็จ",
+  message,
   onRetry,
 }: InlineErrorStateProps) {
+  const t = useI18n();
+
   return (
     <span className="inline-flex items-center gap-1.5 text-xs text-danger">
       <span>⚠️</span>
-      <span>{message}</span>
+      <span>{message ?? t("failedToLoad")}</span>
       {onRetry && (
         <button
           type="button"
           onClick={onRetry}
           className="underline underline-offset-2 hover:no-underline"
         >
-          ลองใหม่
+          {t("retry")}
         </button>
       )}
     </span>
@@ -132,19 +141,21 @@ export function InlineErrorState({
 // ---------------------------------------------------------------------------
 
 export function PermissionDeniedState({ onBack }: { onBack?: () => void }) {
+  const t = useI18n();
+
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-6 text-center">
       <span className="text-5xl" aria-hidden>🔒</span>
       <div className="space-y-1">
-        <h2 className="text-xl font-semibold text-default-800">ไม่มีสิทธิ์เข้าถึง</h2>
-        <p className="text-sm text-default-500">คุณไม่มีสิทธิ์ดูหน้านี้</p>
+        <h2 className="text-xl font-semibold text-default-800">{t("accessDenied")}</h2>
+        <p className="text-sm text-default-500">{t("youDoNotHaveAccessToThisPage")}</p>
       </div>
       <Button
         variant="flat"
         size="sm"
         onPress={onBack ?? (() => window.history.back())}
       >
-        ย้อนกลับ
+        {t("goBack")}
       </Button>
     </div>
   );
@@ -155,16 +166,18 @@ export function PermissionDeniedState({ onBack }: { onBack?: () => void }) {
 // ---------------------------------------------------------------------------
 
 export function NetworkErrorState({ onRetry }: { onRetry?: () => void }) {
+  const t = useI18n();
+
   return (
     <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-divider p-8 text-center">
       <span className="text-4xl" aria-hidden>📡</span>
       <div className="space-y-1">
-        <p className="font-medium text-default-700">ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้</p>
-        <p className="text-sm text-default-400">ตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองใหม่</p>
+        <p className="font-medium text-default-700">{t("cannotConnectToServer")}</p>
+        <p className="text-sm text-default-400">{t("checkInternetAndTryAgain")}</p>
       </div>
       {onRetry && (
         <Button color="primary" variant="flat" size="sm" onPress={onRetry}>
-          ลองใหม่
+          {t("retry")}
         </Button>
       )}
     </div>

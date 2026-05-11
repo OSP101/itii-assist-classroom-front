@@ -14,6 +14,7 @@ interface ApiResponse<T = unknown> {
 interface RequestOptions {
   headers?: Record<string, string>;
   params?: Record<string, string>;
+  retryOnRateLimit?: boolean;
 }
 
 class ApiService {
@@ -122,6 +123,7 @@ class ApiService {
     const headers: Record<string, string> = {
       ...options?.headers,
     };
+    const allowRateLimitRetry = options?.retryOnRateLimit !== false;
 
     // Only set Content-Type for non-FormData requests
     const isFormData = body instanceof FormData;
@@ -143,7 +145,7 @@ class ApiService {
       });
 
       // Handle 429 Too Many Requests - retry with exponential backoff
-      if (response.status === 429 && retryCount < this.MAX_RETRIES) {
+      if (response.status === 429 && allowRateLimitRetry && retryCount < this.MAX_RETRIES) {
         const retryAfter = response.headers.get('Retry-After');
         const delay = retryAfter 
           ? parseInt(retryAfter) * 1000 

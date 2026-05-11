@@ -188,7 +188,7 @@ function OverviewTabViewComponent({
       {/* ══ 1. COURSE HEADER ══════════════════════════════════════════════ */}
       <Fade>
         <div className={CARD + " overflow-hidden relative"}>
-          <div className="absolute -top-20 -right-10 w-64 h-64 rounded-full bg-gradient-to-br from-blue-100/25 to-indigo-100/15 dark:from-blue-900/10 dark:to-transparent blur-3xl pointer-events-none" />
+          <div className="absolute -top-20 -right-10 w-64 h-64 rounded-full bg-linear-to-br from-blue-100/25 to-indigo-100/15 dark:from-blue-900/10 dark:to-transparent blur-3xl pointer-events-none" />
           <div className="relative p-4 sm:p-6">
           <div className="flex items-start gap-4">
             {/* Thumbnail */}
@@ -562,7 +562,7 @@ function OverviewTabViewComponent({
           {/* Recent Activity */}
           <div className={CARD + " flex flex-col"}>
             <CardHeader icon="solar:history-bold" iconColor="text-purple-500" title="กิจกรรมล่าสุด" />
-            <div className="flex-1 p-4 overflow-y-auto max-h-[420px]">
+            <div className="flex-1 p-4 overflow-y-auto max-h-105">
               <ActivityTimeline activities={overview?.recentActivities?.slice(0, 8) ?? []} />
             </div>
           </div>

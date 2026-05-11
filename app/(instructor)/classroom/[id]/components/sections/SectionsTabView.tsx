@@ -109,21 +109,21 @@ const SectionHeader = React.memo(function SectionHeader({
         <div
             className={`flex items-center justify-between p-4 cursor-pointer transition-all ${isExpanded
                 ? "bg-linear-to-r from-blue-400 to-indigo-500"
-                : "bg-white hover:from-amber-50 hover:to-blue-50"
+                : "bg-content1 hover:bg-content2"
                 }`}
             onClick={onToggle}
         >
             <div className="flex items-center gap-4">
                 <div>
-                    <p className={`font-semibold ${isExpanded ? "text-white" : "text-slate-800"}`}>
+                    <p className={`font-semibold ${isExpanded ? "text-white" : "text-foreground"}`}>
                         Section {sectionNo}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
                         <Icon
                             icon="solar:users-group-rounded-linear"
-                            className={isExpanded ? "text-white/70" : "text-slate-400"}
+                            className={isExpanded ? "text-white/70" : "text-default-400"}
                         />
-                        <span className={`text-sm ${isExpanded ? "text-white/80" : "text-slate-500"}`}>
+                        <span className={`text-sm ${isExpanded ? "text-white/80" : "text-default-500"}`}>
                             {studentCount} นักศึกษา
                         </span>
                     </div>
@@ -173,12 +173,12 @@ const SectionHeader = React.memo(function SectionHeader({
                     </Tooltip>
                 )}
                 <div
-                    className={`ml-2 p-1 rounded-lg ${isExpanded ? "bg-white/20" : "bg-slate-200"}`}
+                    className={`ml-2 p-1 rounded-lg ${isExpanded ? "bg-white/20" : "bg-content3"}`}
                     onClick={onToggle}
                 >
                     <Icon
                         icon={isExpanded ? "solar:alt-arrow-up-bold" : "solar:alt-arrow-down-bold"}
-                        className={`text-xl ${isExpanded ? "text-white" : "text-slate-500"}`}
+                        className={`text-xl ${isExpanded ? "text-white" : "text-default-500"}`}
                     />
                 </div>
             </div>
@@ -217,15 +217,15 @@ const TeamCard = React.memo(function TeamCard({
         ? "from-purple-400 to-indigo-500"
         : "from-emerald-400 to-teal-500";
     const memberHoverClass = isPermanent
-        ? "hover:bg-purple-50"
-        : "hover:bg-emerald-50";
+        ? "hover:bg-purple-500/10"
+        : "hover:bg-emerald-500/10";
 
     return (
-        <Card className={`shadow-sm border border-slate-200 hover:shadow-lg ${hoverClass} transition-all group`}>
+        <Card className={`border border-default-200 bg-content1 shadow-sm transition-all hover:shadow-lg ${hoverClass} group`}>
             <CardHeader className={`px-4 py-3 bg-linear-to-r ${gradientClass}`}>
                 <div className="flex items-center justify-between w-full gap-2">
                     <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
-                        <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-white flex-shrink-0">
+                        <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-white shrink-0">
                             {index + 1}
                         </div>
                         <div className="min-w-0 flex-1 overflow-hidden">
@@ -235,7 +235,7 @@ const TeamCard = React.memo(function TeamCard({
                             <p className="text-xs text-white/70">{team.members.length} สมาชิก</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-1 shrink-0">
                         {canUpdateTeams && (
                             <Tooltip content="แก้ไขกลุ่ม">
                                 <Button
@@ -272,12 +272,12 @@ const TeamCard = React.memo(function TeamCard({
                             key={member.id}
                             className={`flex items-center gap-3 p-2 rounded-lg ${memberHoverClass} transition-colors`}
                         >
-                            <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${memberBgClass} flex items-center justify-center text-white text-xs font-medium`}>
+                            <div className={`w-8 h-8 rounded-full bg-linear-to-br ${memberBgClass} flex items-center justify-center text-white text-xs font-medium`}>
                                 {idx + 1}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-slate-800 truncate">{member.full_name}</p>
-                                <p className="text-xs text-slate-400">{member.student_id}</p>
+                                <p className="truncate text-sm font-medium text-foreground">{member.full_name}</p>
+                                <p className="text-xs text-default-400">{member.student_id}</p>
                             </div>
                         </div>
                     ))}
@@ -337,8 +337,8 @@ function SectionsTabViewComponent({
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <div>
-                            <h2 className="text-lg font-semibold text-slate-800">จัดการกลุ่มเรียน</h2>
-                            <p className="text-sm text-slate-500">จัดการนักศึกษาและกลุ่มทำงานในรายวิชา</p>
+                            <h2 className="text-lg font-semibold text-foreground">จัดการกลุ่มเรียน</h2>
+                            <p className="text-sm text-default-500">จัดการนักศึกษาและกลุ่มทำงานในรายวิชา</p>
                         </div>
                     </div>
                 </div>
@@ -354,7 +354,7 @@ function SectionsTabViewComponent({
                         tabList: "gap-4 md:gap-6 flex-nowrap min-w-max",
                         cursor: "bg-blue-500",
                         tab: "px-0 h-11 whitespace-nowrap",
-                        tabContent: "group-data-[selected=true]:text-blue-600 text-slate-500 font-medium text-sm"
+                        tabContent: "group-data-[selected=true]:text-blue-600 text-default-500 font-medium text-sm"
                     }}
                 >
                     <Tab
@@ -532,7 +532,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
     return (
         <div className="space-y-4">
             {/* Search & Actions Bar */}
-            <Card className="shadow-sm border border-slate-200">
+            <Card className="border border-default-200 bg-content1 shadow-sm">
                 <CardBody className="py-3 px-4">
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                         <div className="flex-1 min-w-0">
@@ -546,7 +546,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                 variant="bordered"
                                 isClearable
                                 classNames={{
-                                    inputWrapper: "border-blue-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                    inputWrapper: "bg-content1 border-blue-200 hover:border-blue-300 focus-within:!border-blue-400",
                                     label: "text-blue-400 text-sm",
                                 }}
                             />
@@ -607,7 +607,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                             variant="bordered"
                             isClearable
                             classNames={{
-                                inputWrapper: "border-amber-200 hover:border-amber-300 focus-within:!border-amber-400 bg-white",
+                                inputWrapper: "bg-content1 border-amber-200 hover:border-amber-300 focus-within:!border-amber-400",
                             }}
                         />
                     </CardHeader>
@@ -620,7 +620,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                     aria-label="ประวัติการลบนักศึกษา"
                                     removeWrapper
                                     classNames={{
-                                        base: "min-w-[560px]",
+                                        base: "min-w-140",
                                         th: "bg-amber-100/60 text-amber-700 font-semibold text-xs uppercase tracking-wide",
                                         td: "py-2 border-b border-amber-100",
                                         tr: "hover:bg-amber-50 transition-colors",
@@ -641,12 +641,12 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                                         <Avatar
                                                             name={removed.full_name}
                                                             size="sm"
-                                                            className="bg-gradient-to-br from-amber-400 to-orange-500 text-white flex-shrink-0"
+                                                            className="bg-linear-to-br from-amber-400 to-orange-500 text-white shrink-0"
                                                         />
                                                         <div className="min-w-0">
-                                                            <p className="text-sm font-medium text-slate-800 truncate">{removed.full_name}</p>
+                                                            <p className="truncate text-sm font-medium text-foreground">{removed.full_name}</p>
                                                             {removed.student_ref_id !== 0 && (
-                                                                <p className="text-xs text-slate-500">{removed.student_ref_id}</p>
+                                                                <p className="text-xs text-default-500">{removed.student_ref_id}</p>
                                                             )}
                                                         </div>
                                                     </div>
@@ -657,7 +657,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                                     </Chip>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <span className="text-xs text-slate-500">
+                                                    <span className="text-xs text-default-500">
                                                         {new Date(removed.removed_at).toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "2-digit" })}
                                                     </span>
                                                 </TableCell>
@@ -700,7 +700,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
             {course.sections && course.sections.length > 0 ? (
                 <div className="space-y-4">
                     {course.sections.map((section) => (
-                        <Card key={section.id} className="shadow-sm border border-slate-200 overflow-hidden">
+                        <Card key={section.id} className="overflow-hidden border border-default-200 bg-content1 shadow-sm">
                             <SectionHeader
                                 sectionNo={section.section_no}
                                 studentCount={sectionStudents[section.id]?.length || section.studentCount || 0}
@@ -717,7 +717,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
 
                             {/* Student Table */}
                             {expandedSections.includes(section.id) && (
-                                <CardBody className="p-0 bg-white overflow-hidden">
+                                <CardBody className="overflow-hidden bg-content1 p-0">
                                     {getFilteredSectionStudents(section.id).length > 0 ? (
                                         <div className="overflow-x-auto max-w-full">
                                             <Table
@@ -725,9 +725,9 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                                 removeWrapper
                                                 classNames={{
                                                     base: "min-w-[640px]",
-                                                    th: "bg-slate-50/80 text-slate-600 font-semibold text-xs uppercase tracking-wide",
-                                                    td: "py-3 border-b border-slate-50",
-                                                    tr: "hover:bg-amber-50/50 transition-colors",
+                                                    th: "bg-content2 text-default-600 font-semibold text-xs uppercase tracking-wide",
+                                                    td: "border-b border-divider py-3",
+                                                    tr: "transition-colors hover:bg-content2/70",
                                                 }}
                                             >
                                                 <TableHeader>
@@ -741,30 +741,30 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                                     {getFilteredSectionStudents(section.id).map((student, idx) => (
                                                         <TableRow key={student.id}>
                                                             <TableCell>
-                                                                <div className="text-sm font-medium text-black text-center">{idx + 1}</div>
+                                                                <div className="text-center text-sm font-medium text-default-700">{idx + 1}</div>
                                                             </TableCell>
                                                             <TableCell>
-                                                                <div className="text-xs font-medium text-black">{student.student_id}</div>
+                                                                <div className="text-xs font-medium text-default-700">{student.student_id}</div>
                                                             </TableCell>
                                                             <TableCell>
                                                                 <div className="flex items-center gap-2 min-w-0">
                                                                     <Avatar
                                                                         name={student.full_name}
                                                                         size="sm"
-                                                                        className="bg-gradient-to-br from-blue-400 to-indigo-500 text-white flex-shrink-0"
+                                                                        className="bg-linear-to-br from-blue-400 to-indigo-500 text-white shrink-0"
                                                                     />
-                                                                    <span className="font-medium text-black text-sm whitespace-nowrap">{student.full_name}</span>
+                                                                    <span className="whitespace-nowrap text-sm font-medium text-foreground">{student.full_name}</span>
                                                                 </div>
                                                             </TableCell>
                                                             <TableCell>
                                                                 {findStudentTeam(student.id, "permanent") ? (
                                                                     <Tooltip content={findStudentTeam(student.id, "permanent")}>
-                                                                        <span className="inline-block max-w-[280px] sm:max-w-[400px] truncate text-xs font-medium text-purple-600 bg-purple-100 px-2 py-1 rounded-md cursor-default">
+                                                                        <span className="inline-block max-w-70 sm:max-w-100 truncate text-xs font-medium text-purple-600 bg-purple-100 px-2 py-1 rounded-md cursor-default">
                                                                             {findStudentTeam(student.id, "permanent")}
                                                                         </span>
                                                                     </Tooltip>
                                                                 ) : (
-                                                                    <span className="text-slate-300 text-xs">-</span>
+                                                                    <span className="text-xs text-default-300">-</span>
                                                                 )}
                                                             </TableCell>
                                                             <TableCell>
@@ -788,20 +788,20 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                             </Table>
                                         </div>
                                     ) : sectionStudents[section.id] && sectionStudents[section.id].length > 0 ? (
-                                        <div className="text-center py-12 bg-slate-50/50">
-                                            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
-                                                <Icon icon="solar:magnifer-linear" className="text-3xl text-slate-400" />
+                                        <div className="bg-content2/60 py-12 text-center">
+                                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-content3">
+                                                <Icon icon="solar:magnifer-linear" className="text-3xl text-default-400" />
                                             </div>
-                                            <p className="text-slate-500 font-medium">ไม่พบนักศึกษาที่ค้นหา</p>
-                                            <p className="text-sm text-slate-400 mt-1">ลองเปลี่ยนคำค้นหาใหม่</p>
+                                            <p className="font-medium text-default-500">ไม่พบนักศึกษาที่ค้นหา</p>
+                                            <p className="mt-1 text-sm text-default-400">ลองเปลี่ยนคำค้นหาใหม่</p>
                                         </div>
                                     ) : (
-                                        <div className="text-center py-12 bg-gradient-to-b from-slate-50 to-white">
+                                        <div className="bg-content2/60 py-12 text-center">
                                             <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-amber-100 flex items-center justify-center">
                                                 <Icon icon="solar:users-group-rounded-bold-duotone" className="text-4xl text-amber-500" />
                                             </div>
-                                            <p className="text-slate-600 font-medium mb-1">ยังไม่มีนักศึกษาในกลุ่มนี้</p>
-                                            <p className="text-sm text-slate-400 mb-4">เพิ่มนักศึกษาเพื่อเริ่มต้นจัดการกลุ่มเรียน</p>
+                                            <p className="mb-1 font-medium text-default-600">ยังไม่มีนักศึกษาในกลุ่มนี้</p>
+                                            <p className="mb-4 text-sm text-default-400">เพิ่มนักศึกษาเพื่อเริ่มต้นจัดการกลุ่มเรียน</p>
                                             {canManageSectionStudents && (
                                                 <Button
                                                     color="primary"
@@ -821,13 +821,13 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                     ))}
                 </div>
             ) : (
-                <Card className="shadow-sm border border-dashed border-slate-300 bg-slate-50/50">
+                <Card className="border border-dashed border-default-300 bg-content2/50 shadow-sm">
                     <CardBody className="text-center py-16">
-                        <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
+                        <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-linear-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
                             <Icon icon="solar:notebook-bold-duotone" className="text-5xl text-blue-500" />
                         </div>
-                        <h3 className="text-lg font-semibold text-slate-700 mb-2">ยังไม่มีกลุ่มเรียน</h3>
-                        <p className="text-slate-500 mb-6 max-w-md mx-auto">
+                        <h3 className="mb-2 text-lg font-semibold text-default-700">ยังไม่มีกลุ่มเรียน</h3>
+                        <p className="mx-auto mb-6 max-w-md text-default-500">
                             สร้างกลุ่มเรียนเพื่อจัดการนักศึกษาในรายวิชานี้
                         </p>
                         {canCreateSections && (
@@ -894,17 +894,17 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
     return (
         <div className="space-y-4">
             {/* Search & Action Bar */}
-            <Card className="shadow-sm border border-slate-200">
+            <Card className="border border-default-200 bg-content1 shadow-sm">
                 <CardBody className="py-3 px-4">
                     <div className="flex items-center justify-between gap-2">
                         {/* Info - hidden on mobile */}
-                        <div className="hidden md:flex items-center gap-3 flex-shrink-0">
-                            <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0">
+                        <div className="hidden md:flex items-center gap-3 shrink-0">
+                            <div className="p-2 bg-purple-100 rounded-lg shrink-0">
                                 <Icon icon="solar:info-circle-bold" className="text-xl text-purple-500" />
                             </div>
                             <div>
-                                <p className="font-medium text-slate-700">กลุ่มโปรเจกต์</p>
-                                <p className="text-sm text-slate-500">
+                                <p className="font-medium text-default-700">กลุ่มโปรเจกต์</p>
+                                <p className="text-sm text-default-500">
                                     {searchQuery ? `พบ ${filteredTeams.length} จาก ${permanentTeams.length} กลุ่ม` : `${permanentTeams.length} กลุ่ม · ที่ใช้ตลอดทั้งเทอม`}
                                 </p>
                             </div>
@@ -921,7 +921,7 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                                 variant="bordered"
                                 isClearable
                                 classNames={{
-                                    inputWrapper: "border-purple-200 hover:border-purple-300 focus-within:!border-purple-400",
+                                    inputWrapper: "bg-content1 border-purple-200 hover:border-purple-300 focus-within:!border-purple-400",
                                 }}
                             />
                             <Tooltip content="สุ่มกลุ่มอัตโนมัติ">
@@ -930,7 +930,7 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                                     variant="flat"
                                     isIconOnly
                                     onPress={() => onOpenCreateTeamModal("permanent", "random")}
-                                    className="bg-purple-100 text-purple-700 flex-shrink-0 md:hidden"
+                                    className="bg-purple-100 text-purple-700 shrink-0 md:hidden"
                                     size="md"
                                     isDisabled={isTeamsLoading || !isCourseActive || !canCreateTeams}
                                 >
@@ -942,7 +942,7 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                                 variant="flat"
                                 startContent={<Icon icon="solar:shuffle-bold" />}
                                 onPress={() => onOpenCreateTeamModal("permanent", "random")}
-                                className="bg-purple-100 text-purple-700 flex-shrink-0 hidden md:flex"
+                                className="bg-purple-100 text-purple-700 shrink-0 hidden md:flex"
                                 size="md"
                                 isDisabled={isTeamsLoading || !isCourseActive || !canCreateTeams}
                             >
@@ -953,7 +953,7 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                                     color="primary"
                                     isIconOnly
                                     onPress={() => onOpenCreateTeamModal("permanent", "manual")}
-                                    className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 flex-shrink-0 md:hidden"
+                                    className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 shrink-0 md:hidden"
                                     size="md"
                                     isDisabled={isTeamsLoading || !isCourseActive || !canCreateTeams}
                                 >
@@ -964,7 +964,7 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                                 color="primary"
                                 startContent={<Icon icon="solar:add-circle-bold" />}
                                 onPress={() => onOpenCreateTeamModal("permanent", "manual")}
-                                className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 flex-shrink-0 hidden md:flex"
+                                className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 shrink-0 hidden md:flex"
                                 size="md"
                                 isDisabled={isTeamsLoading || !isCourseActive || !canCreateTeams}
                             >
@@ -999,18 +999,18 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-purple-100 flex items-center justify-center">
                             <Icon icon="solar:magnifer-linear" className="text-3xl text-purple-400" />
                         </div>
-                        <p className="text-slate-500 font-medium">ไม่พบกลุ่มที่ค้นหา</p>
-                        <p className="text-sm text-slate-400 mt-1">ลองเปลี่ยนคำค้นหาใหม่</p>
+                        <p className="font-medium text-default-500">ไม่พบกลุ่มที่ค้นหา</p>
+                        <p className="mt-1 text-sm text-default-400">ลองเปลี่ยนคำค้นหาใหม่</p>
                     </CardBody>
                 </Card>
             ) : (
                 <Card className="shadow-sm border border-dashed border-purple-200 bg-purple-50/30">
                     <CardBody className="text-center py-16">
-                        <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center">
+                        <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-linear-to-br from-purple-100 to-indigo-100 flex items-center justify-center">
                             <Icon icon="solar:users-group-two-rounded-bold-duotone" className="text-5xl text-purple-500" />
                         </div>
-                        <h3 className="text-lg font-semibold text-slate-700 mb-2">ยังไม่มีกลุ่มโปรเจกต์</h3>
-                        <p className="text-slate-500 mb-6 max-w-md mx-auto">
+                        <h3 className="mb-2 text-lg font-semibold text-default-700">ยังไม่มีกลุ่มโปรเจกต์</h3>
+                        <p className="mx-auto mb-6 max-w-md text-default-500">
                             สร้างกลุ่มสำหรับโปรเจกต์หรืองานกลุ่มระยะยาวที่ต้องทำงานร่วมกันตลอดเทอม
                         </p>
                         <div className="flex items-center justify-center gap-3">
@@ -1102,17 +1102,17 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
     return (
         <div className="space-y-4">
             {/* Search & Week Selector Bar */}
-            <Card className="shadow-sm border border-slate-200">
+            <Card className="border border-default-200 bg-content1 shadow-sm">
                 <CardBody className="py-3 px-4">
                     <div className="flex items-center justify-between gap-2">
                         {/* Info - hidden on mobile */}
-                        <div className="hidden md:flex items-center gap-3 flex-shrink-0">
-                            <div className="p-2 bg-emerald-100 rounded-lg flex-shrink-0">
+                        <div className="hidden md:flex items-center gap-3 shrink-0">
+                            <div className="p-2 bg-emerald-100 rounded-lg shrink-0">
                                 <Icon icon="solar:calendar-bold" className="text-xl text-emerald-500" />
                             </div>
                             <div>
-                                <p className="font-medium text-slate-700">สัปดาห์ที่ {selectedWeek}</p>
-                                <p className="text-sm text-slate-500">
+                                <p className="font-medium text-default-700">สัปดาห์ที่ {selectedWeek}</p>
+                                <p className="text-sm text-default-500">
                                     {searchQuery ? `พบ ${filteredTeams.length} จาก ${currentWeekTeams.length} กลุ่ม` : `${currentWeekTeams.length} กลุ่ม`}
                                 </p>
                             </div>
@@ -1129,7 +1129,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                 variant="bordered"
                                 isClearable
                                 classNames={{
-                                    inputWrapper: "border-emerald-200 hover:border-emerald-300 focus-within:!border-emerald-400",
+                                    inputWrapper: "bg-content1 border-emerald-200 hover:border-emerald-300 focus-within:!border-emerald-400",
                                 }}
                             />
                             {/* Copy dropdown */}
@@ -1140,7 +1140,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                             variant="flat"
                                             size="md"
                                             isIconOnly
-                                            className="bg-slate-100 flex-shrink-0 md:hidden"
+                                            className="bg-content3 text-default-600 shrink-0 md:hidden"
                                         >
                                             <Icon icon="solar:copy-bold" className="text-lg" />
                                         </Button>
@@ -1171,7 +1171,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                             variant="flat"
                                             size="md"
                                             startContent={<Icon icon="solar:copy-bold" />}
-                                            className="bg-slate-100 flex-shrink-0 hidden md:flex"
+                                            className="bg-content3 text-default-600 shrink-0 hidden md:flex"
                                         >
                                             คัดลอก
                                         </Button>
@@ -1205,7 +1205,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                             color="danger"
                                             isIconOnly
                                             onPress={onOpenBulkDeleteModal}
-                                            className="flex-shrink-0"
+                                            className="shrink-0"
                                         >
                                             <Icon icon="solar:eraser-bold" className="text-lg" />
                                         </Button>
@@ -1220,7 +1220,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                     isIconOnly
                                     isDisabled={!isCourseActive || !canCreateTeams}
                                     onPress={() => onOpenCreateTeamModal("weekly", "random")}
-                                    className="bg-emerald-100 text-emerald-700 flex-shrink-0 md:hidden"
+                                    className="bg-emerald-100 text-emerald-700 shrink-0 md:hidden"
                                 >
                                     <Icon icon="solar:shuffle-bold" className="text-lg" />
                                 </Button>
@@ -1231,7 +1231,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                 startContent={<Icon icon="solar:shuffle-bold" />}
                                 isDisabled={!isCourseActive || !canCreateTeams}
                                 onPress={() => onOpenCreateTeamModal("weekly", "random")}
-                                className="bg-emerald-100 text-emerald-700 flex-shrink-0 hidden md:flex"
+                                className="bg-emerald-100 text-emerald-700 shrink-0 hidden md:flex"
                             >
                                 สุ่มกลุ่ม
                             </Button>
@@ -1243,7 +1243,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                     isIconOnly
                                     isDisabled={!isCourseActive || !canCreateTeams}
                                     onPress={() => onOpenCreateTeamModal("weekly", "manual")}
-                                    className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 flex-shrink-0 md:hidden"
+                                    className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 shrink-0 md:hidden"
                                 >
                                     <Icon icon="solar:add-circle-bold" className="text-lg" />
                                 </Button>
@@ -1254,7 +1254,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                 startContent={<Icon icon="solar:add-circle-bold" />}
                                 isDisabled={!isCourseActive || !canCreateTeams}
                                 onPress={() => onOpenCreateTeamModal("weekly", "manual")}
-                                className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 flex-shrink-0 hidden md:flex"
+                                className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 shrink-0 hidden md:flex"
                             >
                                 สร้างกลุ่ม
                             </Button>
@@ -1272,11 +1272,11 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                         <button
                             key={week}
                             onClick={() => onWeekChange(week)}
-                            className={`flex-shrink-0 px-4 py-2 rounded-xl font-medium text-sm transition-all ${isSelected
+                            className={`shrink-0 px-4 py-2 rounded-xl font-medium text-sm transition-all ${isSelected
                                 ? "bg-linear-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25"
                                 : hasTeams
                                     ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                                    : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                                    : "bg-content3 text-default-500 hover:bg-content4"
                                 }`}
                         >
                             W{week}
@@ -1313,18 +1313,18 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-100 flex items-center justify-center">
                             <Icon icon="solar:magnifer-linear" className="text-3xl text-emerald-400" />
                         </div>
-                        <p className="text-slate-500 font-medium">ไม่พบกลุ่มที่ค้นหา</p>
-                        <p className="text-sm text-slate-400 mt-1">ลองเปลี่ยนคำค้นหาใหม่</p>
+                        <p className="font-medium text-default-500">ไม่พบกลุ่มที่ค้นหา</p>
+                        <p className="mt-1 text-sm text-default-400">ลองเปลี่ยนคำค้นหาใหม่</p>
                     </CardBody>
                 </Card>
             ) : (
                 <Card className="shadow-sm border border-dashed border-emerald-200 bg-emerald-50/30">
                     <CardBody className="text-center py-16">
-                        <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center">
+                        <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-linear-to-br from-emerald-100 to-teal-100 flex items-center justify-center">
                             <Icon icon="solar:calendar-bold-duotone" className="text-5xl text-emerald-500" />
                         </div>
-                        <h3 className="text-lg font-semibold text-slate-700 mb-2">ยังไม่มีกลุ่มสำหรับสัปดาห์ที่ {selectedWeek}</h3>
-                        <p className="text-slate-500 mb-6 max-w-md mx-auto">
+                        <h3 className="mb-2 text-lg font-semibold text-default-700">ยังไม่มีกลุ่มสำหรับสัปดาห์ที่ {selectedWeek}</h3>
+                        <p className="mx-auto mb-6 max-w-md text-default-500">
                             สร้างกลุ่มใหม่หรือคัดลอกจากสัปดาห์ก่อนหน้าเพื่อเริ่มต้น
                         </p>
                         <div className="flex flex-wrap items-center justify-center gap-3">
@@ -1335,7 +1335,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                             variant="flat"
                                             startContent={<Icon icon="solar:copy-bold" />}
                                             endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-sm" />}
-                                            className="bg-slate-100"
+                                            className="bg-content3 text-default-600"
                                         >
                                             คัดลอกจากสัปดาห์อื่น
                                         </Button>

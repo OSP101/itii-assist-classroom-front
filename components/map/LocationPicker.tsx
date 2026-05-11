@@ -18,7 +18,7 @@ const MapWithNoSSR = dynamic(
     { 
         ssr: false,
         loading: () => (
-            <div className="h-[300px] bg-slate-100 rounded-xl flex items-center justify-center">
+            <div className="h-75 bg-slate-100 rounded-xl flex items-center justify-center">
                 <span className="text-sm text-slate-500">กำลังโหลดแผนที่...</span>
             </div>
         )
@@ -42,7 +42,7 @@ export default function LocationPicker({
     if (!isMounted) {
         return (
             <div className={`relative ${className}`}>
-                <div className="h-[300px] bg-slate-100 rounded-xl flex items-center justify-center">
+                <div className="h-75 bg-slate-100 rounded-xl flex items-center justify-center">
                     <span className="text-sm text-slate-500">กำลังโหลดแผนที่...</span>
                 </div>
             </div>
@@ -57,7 +57,7 @@ export default function LocationPicker({
                 radius={radius}
                 onLocationChange={onLocationChange}
             />
-            <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs text-slate-600 shadow-sm z-[1000]">
+            <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs text-slate-600 shadow-sm z-1000">
                 คลิกบนแผนที่เพื่อปักหมุด
             </div>
         </div>

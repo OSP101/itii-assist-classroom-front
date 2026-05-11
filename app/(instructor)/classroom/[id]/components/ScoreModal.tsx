@@ -89,9 +89,6 @@ export default function ScoreModal({
     canGradeAssignments = true,
     canEditScores = true,
 }: ScoreModalProps) {
-    // DEBUG: First line of component
-    console.log("=== ScoreModal Component Called ===", { isOpen, assignment: assignment?.id, courseId });
-
     // Determine which tabs are available
     const defaultTab: "grade" | "edit" = canGradeAssignments ? "grade" : "edit";
     const showBothTabs = canGradeAssignments && canEditScores;
@@ -179,12 +176,8 @@ export default function ScoreModal({
 
     // Load students and groups when modal opens
     useEffect(() => {
-        console.log("🔵 useEffect triggered - isOpen:", isOpen, "assignment:", assignment?.id, "isGroupAssignment:", isGroupAssignment);
         if (isOpen && assignment) {
-            console.log("🟢 Calling loadData...");
             loadData();
-        } else {
-            console.log("🔴 NOT calling loadData - isOpen:", isOpen, "assignment:", !!assignment);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, assignment?.id]);
@@ -193,7 +186,6 @@ export default function ScoreModal({
     useEffect(() => {
         if (!isOpen) {
             resetStates();
-            console.log("Testing - States reset on modal close");
         } else {
             // Sync active tab to what's available when modal opens
             setActiveTab(canGradeAssignments ? "grade" : "edit");
@@ -201,24 +193,19 @@ export default function ScoreModal({
     }, [isOpen]);
 
     const loadData = async () => {
-        console.log("loadData called - courseId:", courseId, "assignment:", assignment?.id, "type:", assignment?.assignment_type);
         setIsLoading(true);
         try {
             const studentData = await scoreService.searchStudents(courseId);
-            console.log("Student Data loaded:", studentData.length, "students");
             setStudents(studentData);
 
             if (isGroupAssignment && assignment) {
-                console.log("Loading groups for assignment:", assignment.id);
                 const groupData = await scoreService.getGroupsForAssignment(assignment.id);
-                console.log("Groups loaded:", groupData.length);
                 setGroups(groupData);
             }
 
             // Load existing scores for this assignment
             if (assignment) {
                 const scores = await scoreService.getScores(assignment.id);
-                console.log("Scores data loaded:", scores?.student_scores?.length, "student scores");
                 setScoresData(scores);
             }
         } catch (error) {
@@ -1322,12 +1309,6 @@ export default function ScoreModal({
                             }
                         }
                     } else {
-                        console.log('Submitting group score:', {
-                            assignment_id: assignment.id,
-                            group_id: selectedGroup.id,
-                            score: parseFloat(mainScore),
-                            student_ids: studentIdsForGrade,
-                        });
                         const result = await scoreService.submitGroupScore({
                             assignment_id: assignment.id,
                             group_id: selectedGroup.id,
@@ -1335,7 +1316,6 @@ export default function ScoreModal({
                             comment: comment || undefined,
                             student_ids: studentIdsForGrade,
                         });
-                        console.log('Group score result:', result);
                         if (!result) {
                             throw new Error('Failed to submit group score');
                         }
@@ -1347,7 +1327,6 @@ export default function ScoreModal({
                         score: parseFloat(mainScore),
                         comment: comment || undefined,
                     });
-                    console.log('Individual score result:', result);
                     if (!result) {
                         throw new Error('Failed to submit score');
                     }
@@ -2214,9 +2193,6 @@ export default function ScoreModal({
         }
     };
 
-    // Debug: Log when component renders
-    console.log("ScoreModal render - isOpen:", isOpen, "assignment:", assignment?.id, "courseId:", courseId);
-
     // Don't render anything if no assignment
     if (!assignment) return null;
 
@@ -2321,7 +2297,7 @@ export default function ScoreModal({
                                                     }}
                                                     classNames={{
                                                         base: "w-full",
-                                                        listboxWrapper: "max-h-[300px]",
+                                                        listboxWrapper: "max-h-75",
                                                         selectorButton: "text-blue-400"
                                                     }}
                                                 >
@@ -2334,7 +2310,7 @@ export default function ScoreModal({
                                                                 <Avatar
                                                                     name={`${student.full_name}`}
                                                                     size="sm"
-                                                                    className="bg-gradient-to-br from-blue-400 to-indigo-500 text-white shrink-0"
+                                                                    className="bg-linear-to-br from-blue-400 to-indigo-500 text-white shrink-0"
                                                                 />
                                                                 <div>
                                                                     <p className="font-medium text-slate-800">{student.full_name}</p>
@@ -2353,7 +2329,7 @@ export default function ScoreModal({
                                                         <Avatar
                                                             name={`${selectedStudent.full_name}`}
                                                             size="md"
-                                                            className={`text-white ${!canScoreSelected ? 'bg-red-400' : 'bg-gradient-to-br from-blue-400 to-indigo-500'}`}
+                                                            className={`text-white ${!canScoreSelected ? 'bg-red-400' : 'bg-linear-to-br from-blue-400 to-indigo-500'}`}
                                                         />
                                                         <div className="flex-1">
                                                             <p className="font-semibold text-slate-800">
@@ -2455,7 +2431,7 @@ export default function ScoreModal({
                                                     variant="bordered"
                                                     classNames={{
                                                         base: "w-full",
-                                                        listboxWrapper: "max-h-[300px]",
+                                                        listboxWrapper: "max-h-75",
                                                         selectorButton: "text-blue-400"
                                                     }}
                                                     inputProps={{
@@ -2585,7 +2561,7 @@ export default function ScoreModal({
 
                                     {/* Grade Mode Selection for Group Assignments */}
                                     {isGroupAssignment && selectedGroup && !isCheckingScore && canScoreSelected && !allMembersHaveScores && (
-                                        <div className="mb-4 p-4 bg-gradient-to-br from-slate-50 to-blue-50/30 rounded-xl border border-slate-200">
+                                        <div className="mb-4 p-4 bg-linear-to-br from-slate-50 to-blue-50/30 rounded-xl border border-slate-200">
                                             {/* Show members who already have scores */}
                                             {gradeGroupMembers.some(m => m.hasScore) && (
                                                 <div className="mb-4 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
@@ -2991,7 +2967,7 @@ export default function ScoreModal({
                                                                                                 size="sm"
                                                                                                 variant={currentScore === score.toString() ? "solid" : "flat"}
                                                                                                 color={currentScore === score.toString() ? "primary" : "default"}
-                                                                                                className={`min-w-[2.5rem] h-7 text-xs ${currentScore === score.toString()
+                                                                                                className={`min-w-10 h-7 text-xs ${currentScore === score.toString()
                                                                                                     ? "bg-blue-500 text-white font-semibold"
                                                                                                     : "bg-slate-100 font-medium"
                                                                                                     }`}
@@ -3156,8 +3132,8 @@ export default function ScoreModal({
                                                                                 variant={mainScore === score.toString() ? "solid" : "flat"}
                                                                                 color={mainScore === score.toString() ? "primary" : "default"}
                                                                                 className={mainScore === score.toString()
-                                                                                    ? "bg-blue-500 text-white font-semibold min-w-[3rem]"
-                                                                                    : "bg-white border border-slate-200 font-medium min-w-[3rem]"
+                                                                                    ? "bg-blue-500 text-white font-semibold min-w-12"
+                                                                                    : "bg-white border border-slate-200 font-medium min-w-12"
                                                                                 }
                                                                                 onPress={() => setMainScore(score.toString())}
                                                                             >
@@ -3221,7 +3197,7 @@ export default function ScoreModal({
                                                     variant="bordered"
                                                     classNames={{
                                                         base: "w-full",
-                                                        listboxWrapper: "max-h-[300px]",
+                                                        listboxWrapper: "max-h-75",
                                                         selectorButton: "text-blue-400"
                                                     }}
                                                     inputProps={{
@@ -3239,7 +3215,7 @@ export default function ScoreModal({
                                                                 <Avatar
                                                                     name={`${student.full_name}`}
                                                                     size="sm"
-                                                                    className="bg-gradient-to-br from-blue-400 to-indigo-500 text-white shrink-0"
+                                                                    className="bg-linear-to-br from-blue-400 to-indigo-500 text-white shrink-0"
                                                                 />
                                                                 <div>
                                                                     <p className="font-medium text-slate-800">{student.full_name}</p>
@@ -3258,7 +3234,7 @@ export default function ScoreModal({
                                                         <Avatar
                                                             name={editSelectedStudent.full_name}
                                                             size="md"
-                                                            className="bg-gradient-to-br from-blue-400 to-indigo-500 text-white"
+                                                            className="bg-linear-to-br from-blue-400 to-indigo-500 text-white"
                                                         />
                                                         <div className="flex-1">
                                                             <p className="font-semibold text-slate-800">{editSelectedStudent.full_name}</p>
@@ -3297,7 +3273,7 @@ export default function ScoreModal({
                                                     variant="bordered"
                                                     classNames={{
                                                         base: "w-full",
-                                                        listboxWrapper: "max-h-[300px]",
+                                                        listboxWrapper: "max-h-75",
                                                         selectorButton: "text-blue-400"
                                                     }}
                                                     inputProps={{
@@ -3370,7 +3346,7 @@ export default function ScoreModal({
 
                                                     </div>
 
-                                                    <div className="mb-3 p-4 bg-gradient-to-br from-slate-50 to-amber-50/30 rounded-xl border border-slate-200">
+                                                    <div className="mb-3 p-4 bg-linear-to-br from-slate-50 to-amber-50/30 rounded-xl border border-slate-200">
                                                         <p className="text-xs text-slate-500 mb-3 font-medium flex items-center gap-1.5">
                                                             {/* <Icon icon="solar:settings-bold" className="text-slate-400" /> */}
                                                             เลือกโหมดการแก้ไข
@@ -3629,7 +3605,7 @@ export default function ScoreModal({
                                                         const selectedSubItem = assignment.subItems?.find(s => s.id === selectedEditSubItemId);
                                                         const selectedEditScore = editSubItemScores.find(s => s.subItemId === selectedEditSubItemId);
                                                         return (
-                                                            <div className="space-y-4 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                                                            <div className="space-y-4 p-4 bg-linear-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
                                                                 {/* Header */}
                                                                 <div className="flex items-center justify-between">
                                                                     <div className="flex items-center gap-2">

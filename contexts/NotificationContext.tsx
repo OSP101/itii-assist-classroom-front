@@ -142,7 +142,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
                 // Setup foreground message listener
                 const unsubscribe = onForegroundMessage((payload) => {
-                    console.log("Foreground notification:", payload);
                     setLastNotification(payload);
 
                     // Show in-app toast for foreground notifications
@@ -236,7 +235,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
             const result = await response.json();
 
             if (result.success) {
-                console.log("FCM token registered successfully");
                 return true;
             } else {
                 console.error("Failed to register FCM token:", result.error);

@@ -126,12 +126,12 @@ const DateTimeInput = memo(function DateTimeInput({
     };
 
     const borderColor = colorScheme === "amber"
-        ? "border-slate-200 hover:border-amber-300 focus:border-amber-500 focus:ring-amber-500/20"
-        : "border-slate-200 hover:border-blue-300 focus:border-blue-500 focus:ring-blue-500/20";
+        ? "border-default-200 hover:border-amber-300 focus:border-amber-500 focus:ring-amber-500/20"
+        : "border-default-200 hover:border-blue-300 focus:border-blue-500 focus:ring-blue-500/20";
 
     return (
         <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-slate-700">
+            <label className="text-sm font-medium text-default-700">
                 {label}
                 {isRequired && <span className="text-red-500 ml-1">*</span>}
             </label>
@@ -141,13 +141,13 @@ const DateTimeInput = memo(function DateTimeInput({
                 onChange={handleChange}
                 min={min}
                 max={max}
-                className={`w-full px-3 py-2.5 rounded-xl bg-white border-2 ${borderColor} 
-                    text-slate-800 text-sm transition-all duration-200
+                className={`w-full px-3 py-2.5 rounded-xl bg-content1 border-2 ${borderColor} 
+                    text-foreground text-sm transition-all duration-200
                     focus:outline-none focus:ring-4
-                    placeholder:text-slate-400`}
+                    placeholder:text-default-400`}
             />
             {description && (
-                <p className={`text-xs font-medium ${colorScheme === "amber" ? "text-amber-600" : "text-slate-500"}`}>
+                <p className={`text-xs font-medium ${colorScheme === "amber" ? "text-amber-600" : "text-default-500"}`}>
                     {description}
                 </p>
             )}
@@ -161,7 +161,7 @@ const DateTimeInput = memo(function DateTimeInput({
 
 export const AttendanceTableSkeleton = memo(function AttendanceTableSkeleton() {
     return (
-        <Card className="shadow-sm border border-slate-200">
+        <Card className="border border-default-200 bg-content1 shadow-sm">
             <CardBody className="p-2">
                 <div className="space-y-3">
                     {[1, 2, 3, 4].map((i) => (
@@ -185,7 +185,7 @@ export const StatsSkeleton = memo(function StatsSkeleton() {
     return (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[1, 2, 3, 4].map((i) => (
-                <Card key={i} className="shadow-sm border border-slate-200">
+                <Card key={i} className="border border-default-200 bg-content1 shadow-sm">
                     <CardBody className="p-4">
                         <div className="flex items-center gap-3">
                             <Skeleton className="w-12 h-12 rounded-xl" />
@@ -229,8 +229,8 @@ export const StatsCards = memo(function StatsCards({ stats }: StatsCardsProps) {
             label: "ฉบับร่าง",
             value: stats.draft,
             icon: "solar:document-bold",
-            iconClass: "text-slate-600",
-            bgClass: "bg-slate-100",
+            iconClass: "text-default-600",
+            bgClass: "bg-content3",
         },
         {
             label: "ปิดแล้ว",
@@ -244,15 +244,15 @@ export const StatsCards = memo(function StatsCards({ stats }: StatsCardsProps) {
     return (
         <div className="hidden md:grid grid-cols-2 md:grid-cols-4 gap-3">
             {items.map((item) => (
-                <Card key={item.label} className="shadow-sm border border-slate-200">
+                <Card key={item.label} className="border border-default-200 bg-content1 shadow-sm">
                     <CardBody className="p-4">
                         <div className="flex items-center gap-3">
                             <div className={`p-2.5 ${item.bgClass} rounded-xl`}>
                                 <Icon icon={item.icon} className={`text-2xl ${item.iconClass}`} />
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500">{item.label}</p>
-                                <p className="text-2xl font-bold text-slate-800">{item.value}</p>
+                                <p className="text-xs text-default-500">{item.label}</p>
+                                <p className="text-2xl font-bold text-foreground">{item.value}</p>
                             </div>
                         </div>
                     </CardBody>
@@ -284,14 +284,14 @@ export const FiltersCard = memo(function FiltersCard({
     onTypeChange,
 }: FiltersCardProps) {
     return (
-        <Card className="shadow-sm border border-slate-200">
+        <Card className="border border-default-200 bg-content1 shadow-sm">
             <CardBody className="p-4">
                 <div className="flex flex-col sm:flex-row gap-3">
                     <Input
                         placeholder="ค้นหาชื่อรอบการเช็คชื่อ..."
                         value={searchQuery}
                         onValueChange={onSearchChange}
-                        startContent={<Icon icon="solar:magnifer-linear" className="text-slate-400" />}
+                        startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
                         className="flex-1"
                         size="md"
                         variant="bordered"
@@ -346,16 +346,16 @@ interface EmptyStateProps {
 
 export const EmptyState = memo(function EmptyState({ onCreateClick, canCreateAttendanceSessions = false }: EmptyStateProps) {
     return (
-        <Card className="shadow-sm border border-dashed border-slate-300 bg-slate-50/50">
+        <Card className="border border-dashed border-default-300 bg-content2/50 shadow-sm">
             <CardBody className="text-center py-16">
-                <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
+                <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-linear-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
                     <Icon
                         icon="solar:clipboard-check-bold-duotone"
                         className="text-5xl text-blue-500"
                     />
                 </div>
-                <h3 className="text-lg font-semibold text-slate-700 mb-2">ยังไม่มีรอบการเช็คชื่อ</h3>
-                <p className="text-slate-500 mb-6 max-w-md mx-auto">
+                <h3 className="mb-2 text-lg font-semibold text-default-700">ยังไม่มีรอบการเช็คชื่อ</h3>
+                <p className="mx-auto mb-6 max-w-md text-default-500">
                     สร้างรอบการเช็คชื่อเพื่อให้นักศึกษาสามารถเช็คชื่อเข้าเรียนได้
                 </p>
                 {canCreateAttendanceSessions && (
@@ -450,7 +450,7 @@ export const QRPreviewModal = memo(function QRPreviewModal({
                     </div>
                     <div>
                         <p className="font-semibold">QR Code และ PIN</p>
-                        <p className="text-sm font-normal text-slate-500">สำหรับตั้งเวลาโพสต์</p>
+                        <p className="text-sm font-normal text-default-500">สำหรับตั้งเวลาโพสต์</p>
                     </div>
                 </ModalHeader>
                 <Divider />
@@ -459,8 +459,8 @@ export const QRPreviewModal = memo(function QRPreviewModal({
 
                     {/* QR Code */}
                     <div className="text-center mb-3">
-                        <p className="text-xs text-slate-400 uppercase tracking-wider mb-3">QR CODE</p>
-                        <div className="inline-block p-4 bg-white rounded-xl border-2 border-slate-200">
+                        <p className="mb-3 text-xs uppercase tracking-wider text-default-400">QR CODE</p>
+                        <div className="inline-block rounded-xl border-2 border-default-200 bg-content1 p-4">
                             <QRCodeSVG
                                 id="qr-code-preview"
                                 value={checkInUrl}
@@ -475,7 +475,7 @@ export const QRPreviewModal = memo(function QRPreviewModal({
 
                     {/* PIN Code */}
                     <div className="text-center mb-3">
-                        <p className="text-xs text-slate-400 uppercase tracking-wider mb-2">PIN CODE</p>
+                        <p className="mb-2 text-xs uppercase tracking-wider text-default-400">PIN CODE</p>
                         <div
                             className="inline-block px-8 py-4 bg-linear-to-r from-blue-500 to-indigo-500 rounded-2xl cursor-pointer hover:from-blue-600 hover:to-indigo-600 transition-colors"
                             onClick={copyPIN}
@@ -491,10 +491,10 @@ export const QRPreviewModal = memo(function QRPreviewModal({
                     </div>
 
                     {/* URL */}
-                    <div className="p-3 bg-slate-50 rounded-xl">
-                        <p className="text-xs text-slate-400 mb-1">ลิงก์เช็คชื่อ</p>
+                    <div className="rounded-xl bg-content2 p-3">
+                        <p className="mb-1 text-xs text-default-400">ลิงก์เช็คชื่อ</p>
                         <div className="flex items-center gap-2">
-                            <code className="flex-1 text-sm text-blue-600 bg-white px-3 py-2 rounded-lg border truncate">
+                            <code className="flex-1 truncate rounded-lg border border-default-200 bg-content1 px-3 py-2 text-sm text-blue-600">
                                 {checkInUrl}
                             </code>
                             <Button
@@ -618,7 +618,7 @@ const SessionRowActions = memo(function SessionRowActions({
             <>
                 <Tooltip content="ดูหน้าเช็คชื่อ">
                     <Link
-                        className="inline-flex items-center justify-center p-2 rounded-lg hover:bg-gray-100"
+                        className="inline-flex items-center justify-center rounded-lg p-2 hover:bg-content2"
                         href={`/attendance/${courseId}/session/${session.id}/live`}
                         target="_blank"
                     >
@@ -627,7 +627,7 @@ const SessionRowActions = memo(function SessionRowActions({
                 </Tooltip>
                 <Tooltip content="ดูสรุป">
                     <Link
-                        className="inline-flex items-center justify-center p-2 rounded-lg hover:bg-gray-100"
+                        className="inline-flex items-center justify-center rounded-lg p-2 hover:bg-content2"
                         href={`/classroom/${courseId}/attendance/${session.id}/summary`}
                         target="_blank"
                     >
@@ -669,7 +669,7 @@ const SessionRowActions = memo(function SessionRowActions({
         <>
             <Tooltip content="ดูหน้าเช็คชื่อ">
                 <Link
-                    className="inline-flex items-center justify-center p-2 rounded-lg hover:bg-gray-100"
+                    className="inline-flex items-center justify-center rounded-lg p-2 hover:bg-content2"
                     href={`/attendance/${courseId}/session/${session.id}/live`}
                     target="_blank"
                 >
@@ -678,7 +678,7 @@ const SessionRowActions = memo(function SessionRowActions({
             </Tooltip>
             <Tooltip content="ดูสรุป">
                 <Link
-                    className="inline-flex items-center justify-center p-2 rounded-lg hover:bg-gray-100"
+                    className="inline-flex items-center justify-center rounded-lg p-2 hover:bg-content2"
                     href={`/classroom/${courseId}/attendance/${session.id}/summary`}
                     target="_blank"
                 >
@@ -747,35 +747,35 @@ export const SessionsTable = memo(function SessionsTable({
 
     return (
         <>
-            <Card className="shadow-sm border border-slate-200">
+            <Card className="border border-default-200 bg-content1 shadow-sm">
                 <CardBody className="p-2">
                     <div className="overflow-x-auto">
                         <Table
                             aria-label="Attendance sessions table"
                             removeWrapper
                             classNames={{
-                                base: "min-w-[900px]",
-                                th: "bg-slate-50 text-slate-600 font-semibold text-sm whitespace-nowrap",
+                                base: "min-w-225",
+                                th: "bg-content2 text-default-600 font-semibold text-sm whitespace-nowrap",
                                 td: "py-3 whitespace-nowrap",
                             }}
                         >
                             <TableHeader>
-                                <TableColumn className="min-w-[160px]">รอบการเช็คชื่อ</TableColumn>
-                                <TableColumn className="min-w-[100px]">เซคชัน</TableColumn>
-                                <TableColumn className="min-w-[90px]">ประเภท</TableColumn>
-                                <TableColumn className="min-w-[140px]">วันเวลา</TableColumn>
-                                <TableColumn className="min-w-[90px]">สถานะ</TableColumn>
-                                <TableColumn className="min-w-[140px]">สถิติ</TableColumn>
-                                <TableColumn align="center" className="min-w-[120px]">จัดการ</TableColumn>
+                                <TableColumn className="min-w-40">รอบการเช็คชื่อ</TableColumn>
+                                <TableColumn className="min-w-25">เซคชัน</TableColumn>
+                                <TableColumn className="min-w-22.5">ประเภท</TableColumn>
+                                <TableColumn className="min-w-35">วันเวลา</TableColumn>
+                                <TableColumn className="min-w-22.5">สถานะ</TableColumn>
+                                <TableColumn className="min-w-35">สถิติ</TableColumn>
+                                <TableColumn align="center" className="min-w-30">จัดการ</TableColumn>
                             </TableHeader>
                             <TableBody
                                 emptyContent={
                                     <div className="py-10 text-center">
                                         <Icon
                                             icon="solar:clipboard-list-linear"
-                                            className="text-5xl text-slate-300 mx-auto mb-3"
+                                            className="mx-auto mb-3 text-5xl text-default-300"
                                         />
-                                        <p className="text-slate-400">ไม่พบรอบการเช็คชื่อที่ตรงกับเงื่อนไข</p>
+                                        <p className="text-default-400">ไม่พบรอบการเช็คชื่อที่ตรงกับเงื่อนไข</p>
                                         {canCreateAttendanceSessions && (
                                             <Button
                                                 color="primary"
@@ -795,9 +795,9 @@ export const SessionsTable = memo(function SessionsTable({
                                         <TableCell>
                                             <div className="flex items-center gap-3">
                                                 <div>
-                                                    <p className="font-medium text-slate-800">{session.title}</p>
+                                                    <p className="font-medium text-foreground">{session.title}</p>
                                                     {session.check_location && (
-                                                        <div className="flex items-center gap-1 text-xs text-slate-500">
+                                                        <div className="flex items-center gap-1 text-xs text-default-500">
                                                             <span>ตรวจสอบตำแหน่ง</span>
                                                         </div>
                                                     )}
@@ -818,7 +818,7 @@ export const SessionsTable = memo(function SessionsTable({
                                                     {session.section.section_no}
                                                 </Chip>
                                             ) : (
-                                                <span className="text-slate-500 text-sm">ทุกเซคชัน</span>
+                                                <span className="text-sm text-default-500">ทุกเซคชัน</span>
                                             )}
                                         </TableCell>
                                         <TableCell>
@@ -832,8 +832,8 @@ export const SessionsTable = memo(function SessionsTable({
                                         </TableCell>
                                         <TableCell>
                                             <div className="text-sm">
-                                                <p className="text-slate-800">{formatDate(session.start_time)}</p>
-                                                <p className="text-slate-500">
+                                                <p className="text-foreground">{formatDate(session.start_time)}</p>
+                                                <p className="text-default-500">
                                                     {formatTime(session.start_time)} - {formatTime(session.end_time)}
                                                 </p>
                                             </div>
@@ -875,7 +875,7 @@ export const SessionsTable = memo(function SessionsTable({
                                                     </Tooltip>
                                                 </div>
                                             ) : (
-                                                <span className="text-slate-400">-</span>
+                                                <span className="text-default-400">-</span>
                                             )}
                                         </TableCell>
                                         <TableCell>
@@ -901,7 +901,7 @@ export const SessionsTable = memo(function SessionsTable({
 
                     {/* Pagination */}
                     {totalPages > 1 && (
-                        <div className="flex justify-center py-4 border-t border-slate-100">
+                        <div className="flex justify-center border-t border-divider py-4">
                             <Pagination
                                 total={totalPages}
                                 page={currentPage}
@@ -960,17 +960,17 @@ export const LocationCheckCard = memo(function LocationCheckCard({
     onClearLocation,
 }: LocationCheckCardProps) {
     return (
-        <Card className="border border-slate-200 overflow-hidden">
+        <Card className="overflow-hidden border border-default-200 bg-content1">
             <CardBody className="p-0">
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 bg-linear-to-r from-blue-50 to-indigo-50">
+                <div className="flex items-center justify-between bg-content2 p-4">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-blue-100 rounded-xl">
                             <Icon icon="solar:map-point-bold" className="text-xl text-blue-600" />
                         </div>
                         <div>
-                            <span className="font-semibold text-slate-800">ตรวจสอบตำแหน่ง GPS</span>
-                            <p className="text-xs text-slate-500">ให้นักศึกษาต้องอยู่ในบริเวณที่กำหนด</p>
+                            <span className="font-semibold text-foreground">ตรวจสอบตำแหน่ง GPS</span>
+                            <p className="text-xs text-default-500">ให้นักศึกษาต้องอยู่ในบริเวณที่กำหนด</p>
                         </div>
                     </div>
                     <Button
@@ -998,7 +998,7 @@ export const LocationCheckCard = memo(function LocationCheckCard({
                             disabled={isGettingLocation}
                             className={`group relative p-4 rounded-xl border-2 border-dashed transition-all duration-200 w-full ${isGettingLocation
                                 ? "border-blue-400 bg-blue-50 cursor-wait"
-                                : "border-slate-200 hover:border-blue-400 hover:bg-blue-50/50"
+                                : "border-default-200 hover:border-blue-400 hover:bg-content2"
                                 }`}
                         >
                             <div className="flex flex-col items-center gap-2">
@@ -1011,10 +1011,10 @@ export const LocationCheckCard = memo(function LocationCheckCard({
                                         className={`text-2xl text-blue-600 ${isGettingLocation ? "animate-spin" : ""}`}
                                     />
                                 </div>
-                                <span className="font-medium text-slate-700">
+                                <span className="font-medium text-default-700">
                                     {isGettingLocation ? "กำลังดึง GPS..." : "ดึงจาก GPS ของเครื่อง"}
                                 </span>
-                                <span className="text-xs text-slate-500">
+                                <span className="text-xs text-default-500">
                                     {isGettingLocation ? "รอสักครู่..." : "ใช้ GPS ความแม่นยำสูง"}
                                 </span>
                             </div>
@@ -1039,14 +1039,14 @@ export const LocationCheckCard = memo(function LocationCheckCard({
                                         </div>
                                         <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
                                             <div className="flex items-center gap-1.5">
-                                                <span className="text-slate-500">Lat:</span>
-                                                <code className="px-1.5 py-0.5 bg-white rounded text-green-700 font-mono text-xs">
+                                                <span className="text-default-500">Lat:</span>
+                                                <code className="rounded bg-content1 px-1.5 py-0.5 font-mono text-xs text-green-700">
                                                     {Number(locationLat).toFixed(6)}
                                                 </code>
                                             </div>
                                             <div className="flex items-center gap-1.5">
-                                                <span className="text-slate-500">Lng:</span>
-                                                <code className="px-1.5 py-0.5 bg-white rounded text-green-700 font-mono text-xs">
+                                                <span className="text-default-500">Lng:</span>
+                                                <code className="rounded bg-content1 px-1.5 py-0.5 font-mono text-xs text-green-700">
                                                     {Number(locationLng).toFixed(6)}
                                                 </code>
                                             </div>
@@ -1080,16 +1080,16 @@ export const LocationCheckCard = memo(function LocationCheckCard({
                         {/* Map Section */}
                         <div className="space-y-3">
                             <div className="flex items-center gap-2">
-                                <Icon icon="solar:map-bold" className="text-slate-400" />
-                                <span className="text-sm font-medium text-slate-600">แผนที่ (คลิกเพื่อปักหมุด)</span>
+                                <Icon icon="solar:map-bold" className="text-default-400" />
+                                <span className="text-sm font-medium text-default-600">แผนที่ (คลิกเพื่อปักหมุด)</span>
                             </div>
                             <Suspense fallback={
-                                <div className="h-[280px] bg-gradient-to-br from-slate-100 to-slate-50 rounded-xl flex items-center justify-center border border-slate-200">
+                                <div className="flex h-70 items-center justify-center rounded-xl border border-default-200 bg-content2">
                                     <div className="flex flex-col items-center gap-3">
-                                        <div className="p-4 bg-white rounded-full shadow-sm">
-                                            <Icon icon="solar:map-bold" className="text-4xl text-slate-400 animate-pulse" />
+                                        <div className="rounded-full bg-content1 p-4 shadow-sm">
+                                            <Icon icon="solar:map-bold" className="animate-pulse text-4xl text-default-400" />
                                         </div>
-                                        <span className="text-sm text-slate-500">กำลังโหลดแผนที่...</span>
+                                        <span className="text-sm text-default-500">กำลังโหลดแผนที่...</span>
                                     </div>
                                 </div>
                             }>
@@ -1103,14 +1103,14 @@ export const LocationCheckCard = memo(function LocationCheckCard({
                         </div>
 
                         {/* Radius Setting */}
-                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <div className="rounded-xl border border-default-200 bg-content2 p-4">
                             <div className="flex items-center gap-3 mb-3">
                                 <div className="p-2 bg-violet-100 rounded-lg">
                                     <Icon icon="solar:ruler-angular-bold" className="text-lg text-violet-600" />
                                 </div>
                                 <div>
-                                    <span className="font-medium text-slate-700">รัศมีที่อนุญาต</span>
-                                    <p className="text-xs text-slate-500">ระยะห่างจากจุดกำหนดที่อนุญาตให้เช็คชื่อได้</p>
+                                    <span className="font-medium text-default-700">รัศมีที่อนุญาต</span>
+                                    <p className="text-xs text-default-500">ระยะห่างจากจุดกำหนดที่อนุญาตให้เช็คชื่อได้</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
@@ -1120,8 +1120,8 @@ export const LocationCheckCard = memo(function LocationCheckCard({
                                     value={String(radiusMeters)}
                                     onValueChange={(value) => onRadiusChange(parseInt(value) || 10)}
                                     size="sm"
-                                    endContent={<span className="text-slate-400 text-sm">เมตร</span>}
-                                    className="max-w-[150px]"
+                                    endContent={<span className="text-sm text-default-400">เมตร</span>}
+                                    className="max-w-37.5"
                                 />
                                 <div className="flex gap-1.5">
                                     {RADIUS_OPTIONS.map((r) => (
@@ -1199,12 +1199,12 @@ export const CreateSessionModal = memo(function CreateSessionModal({
             <ModalContent>
                 <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg">
+                        <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg">
                             <Icon icon="solar:clipboard-check-bold" className="text-2xl text-white" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-slate-800">สร้างรอบการเช็คชื่อ</h3>
-                            <p className="text-sm text-slate-500 font-normal mt-1">
+                            <h3 className="text-xl font-bold text-foreground">สร้างรอบการเช็คชื่อ</h3>
+                            <p className="mt-1 text-sm font-normal text-default-500">
                                 กำหนดรายละเอียดการเช็คชื่อเข้าเรียน
                             </p>
                         </div>
@@ -1224,8 +1224,8 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                                 variant="bordered"
                                 size="md"
                                 classNames={{
-                                    inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                    label: "text-slate-600 font-medium text-sm",
+                                    inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                    label: "text-default-600 font-medium text-sm",
                                 }}
                             />
                         </div>
@@ -1250,8 +1250,8 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                                     }));
                                 }}
                                 classNames={{
-                                    trigger: "bg-white border-slate-200",
-                                    label: "text-slate-600 font-medium text-sm",
+                                    trigger: "bg-content1 border-default-200",
+                                    label: "text-default-600 font-medium text-sm",
                                 }}
                             >
                                 {sections.map((section) => (
@@ -1277,8 +1277,8 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                                 labelPlacement="outside"
                                 size="md"
                                 classNames={{
-                                    trigger: "bg-white border-slate-200",
-                                    label: "text-slate-600 font-medium text-sm",
+                                    trigger: "bg-content1 border-default-200",
+                                    label: "text-default-600 font-medium text-sm",
                                 }}
                             >
                                 <SelectItem key="lecture">
@@ -1342,7 +1342,7 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                         />
                     </div>
                 </ModalBody>
-                <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                <ModalFooter className="border-t border-divider px-6 py-4">
                     <Button variant="light" onPress={onClose}>
                         ยกเลิก
                     </Button>
@@ -1417,12 +1417,12 @@ export const EditSessionModal = memo(function EditSessionModal({
             <ModalContent>
                 <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl shadow-lg">
+                        <div className="p-3 bg-linear-to-br from-amber-400 to-orange-500 rounded-xl shadow-lg">
                             <Icon icon="solar:pen-bold" className="text-2xl text-white" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-slate-800">แก้ไขรอบการเช็คชื่อ</h3>
-                            <p className="text-sm text-slate-500 font-normal mt-1">
+                            <h3 className="text-xl font-bold text-foreground">แก้ไขรอบการเช็คชื่อ</h3>
+                            <p className="mt-1 text-sm font-normal text-default-500">
                                 {editTarget?.title}
                             </p>
                         </div>
@@ -1440,8 +1440,8 @@ export const EditSessionModal = memo(function EditSessionModal({
                             variant="bordered"
                             size="md"
                             classNames={{
-                                inputWrapper: "bg-white border-slate-200 hover:border-amber-300 focus-within:!border-amber-400",
-                                label: "text-slate-600 font-medium text-sm",
+                                inputWrapper: "bg-content1 border-default-200 hover:border-amber-300 focus-within:!border-amber-400",
+                                label: "text-default-600 font-medium text-sm",
                             }}
                         />
 
@@ -1464,8 +1464,8 @@ export const EditSessionModal = memo(function EditSessionModal({
                                 }));
                             }}
                             classNames={{
-                                trigger: "bg-white border-slate-200",
-                                label: "text-slate-800 font-medium text-sm",
+                                trigger: "bg-content1 border-default-200",
+                                label: "text-default-700 font-medium text-sm",
                             }}
                         >
                             {sections.map((section) => (
@@ -1487,8 +1487,8 @@ export const EditSessionModal = memo(function EditSessionModal({
                                 setFormData((prev: CreateAttendanceData) => ({ ...prev, session_type: selected }));
                             }}
                             classNames={{
-                                trigger: "bg-white border-slate-200",
-                                label: "text-slate-800 font-medium text-sm",
+                                trigger: "bg-content1 border-default-200",
+                                label: "text-default-700 font-medium text-sm",
                             }}
                         >
                             <SelectItem key="lecture" startContent={<Icon icon="solar:presentation-graph-bold" className="text-blue-500" />}>
@@ -1538,12 +1538,12 @@ export const EditSessionModal = memo(function EditSessionModal({
 
 
                         {/* Location Check */}
-                        <Card className="border border-slate-200">
+                        <Card className="border border-default-200 bg-content1">
                             <CardBody className="p-4">
                                 <div className="flex items-center justify-between mb-4">
                                     <div>
-                                        <p className="font-medium text-slate-700">ตรวจสอบตำแหน่ง GPS</p>
-                                        <p className="text-sm text-slate-500">ให้นักศึกษาเช็คชื่อได้เฉพาะในพื้นที่ที่กำหนด</p>
+                                        <p className="font-medium text-default-700">ตรวจสอบตำแหน่ง GPS</p>
+                                        <p className="text-sm text-default-500">ให้นักศึกษาเช็คชื่อได้เฉพาะในพื้นที่ที่กำหนด</p>
                                     </div>
                                     <Button
                                         color={formData.check_location ? "primary" : "default"}
@@ -1557,10 +1557,10 @@ export const EditSessionModal = memo(function EditSessionModal({
                                 {formData.check_location && (
                                     <div className="space-y-4">
                                         {/* Map */}
-                                        <div className="rounded-xl overflow-hidden border border-slate-200">
+                                        <div className="overflow-hidden rounded-xl border border-default-200">
                                             <Suspense fallback={
-                                                <div className="h-64 bg-slate-100 flex items-center justify-center">
-                                                    <span className="text-slate-400">กำลังโหลดแผนที่...</span>
+                                                <div className="flex h-64 items-center justify-center bg-content2">
+                                                    <span className="text-default-400">กำลังโหลดแผนที่...</span>
                                                 </div>
                                             }>
                                                 <LocationPicker
@@ -1591,7 +1591,7 @@ export const EditSessionModal = memo(function EditSessionModal({
                                                 {isGettingLocation ? "กำลังระบุตำแหน่ง..." : "ใช้ตำแหน่งปัจจุบัน (GPS)"}
                                             </Button>
                                             <div className="flex-1">
-                                                <p className="text-xs text-slate-500">
+                                                <p className="text-xs text-default-500">
                                                     ตำแหน่ง: {formData.location_lat ? Number(formData.location_lat).toFixed(6) : "-"}, {formData.location_lng ? Number(formData.location_lng).toFixed(6) : "-"}
                                                 </p>
                                             </div>
@@ -1599,7 +1599,7 @@ export const EditSessionModal = memo(function EditSessionModal({
 
                                         {/* Radius */}
                                         <div>
-                                            <p className="text-sm text-slate-600 mb-2">รัศมีการเช็คชื่อ</p>
+                                            <p className="mb-2 text-sm text-default-600">รัศมีการเช็คชื่อ</p>
                                             <div className="flex gap-1.5">
                                                 {RADIUS_OPTIONS.map((r) => (
                                                     <Button
@@ -1621,7 +1621,7 @@ export const EditSessionModal = memo(function EditSessionModal({
                         </Card>
                     </div>
                 </ModalBody>
-                <ModalFooter>
+                <ModalFooter className="border-t border-divider">
                     <Button variant="light" onPress={onClose}>
                         ยกเลิก
                     </Button>
@@ -1675,7 +1675,7 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
                     </p>
                     <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
                         <div className="flex items-start gap-2">
-                            <Icon icon="solar:danger-triangle-bold" className="text-red-500 text-lg mt-0.5 flex-shrink-0" />
+                            <Icon icon="solar:danger-triangle-bold" className="text-red-500 text-lg mt-0.5 shrink-0" />
                             <div className="text-sm text-red-700">
                                 <p className="font-bold">คำเตือน: การลบจะไม่สามารถกู้คืนได้!</p>
                                 <ul className="list-disc list-inside mt-2 space-y-1">
@@ -1786,7 +1786,7 @@ const CHANGE_TYPE_CONFIG: Record<string, { label: string; color: string; icon: s
     present_to_late: { label: 'มาตรงเวลา → สาย', color: 'text-amber-600', icon: 'solar:clock-circle-bold', bgClass: 'bg-amber-50' },
     late_to_present: { label: 'สาย → มาตรงเวลา', color: 'text-emerald-600', icon: 'solar:check-circle-bold', bgClass: 'bg-emerald-50' },
     recovered: { label: 'กลับมาถูกต้อง', color: 'text-blue-600', icon: 'solar:refresh-circle-bold', bgClass: 'bg-blue-50' },
-    already_invalid: { label: 'ยังคงอยู่นอกช่วงเวลา', color: 'text-slate-500', icon: 'solar:minus-circle-bold', bgClass: 'bg-slate-50' },
+    already_invalid: { label: 'ยังคงอยู่นอกช่วงเวลา', color: 'text-default-500', icon: 'solar:minus-circle-bold', bgClass: 'bg-content2' },
 };
 
 interface TimeChangePreviewModalProps {
@@ -1813,14 +1813,14 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
             <ModalContent>
                 <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                     <div className="flex items-center gap-4">
-                        <div className={`p-3 rounded-xl shadow-lg ${hasDestructiveChanges ? 'bg-gradient-to-br from-red-500 to-rose-600' : hasAnyImpact ? 'bg-gradient-to-br from-amber-400 to-orange-500' : 'bg-gradient-to-br from-blue-400 to-indigo-500'}`}>
+                        <div className={`p-3 rounded-xl shadow-lg ${hasDestructiveChanges ? 'bg-linear-to-br from-red-500 to-rose-600' : hasAnyImpact ? 'bg-linear-to-br from-amber-400 to-orange-500' : 'bg-linear-to-br from-blue-400 to-indigo-500'}`}>
                             <Icon icon={hasDestructiveChanges ? 'solar:danger-triangle-bold' : hasAnyImpact ? 'solar:info-circle-bold' : 'solar:check-circle-bold'} className="text-2xl text-white" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-slate-800">
+                            <h3 className="text-xl font-bold text-foreground">
                                 {hasDestructiveChanges ? 'คำเตือน: การเปลี่ยนแปลงนี้มีผลกระทบ' : hasAnyImpact ? 'ตรวจสอบผลกระทบก่อนบันทึก' : 'ไม่มีผลกระทบต่อข้อมูลที่มีอยู่'}
                             </h3>
-                            <p className="text-sm text-slate-500 font-normal mt-1">
+                            <p className="mt-1 text-sm font-normal text-default-500">
                                 {preview.session_title} — {summary.total_checked_in} รายการเช็คชื่อ
                             </p>
                         </div>
@@ -1830,7 +1830,7 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                 <ModalBody className="px-6 py-4 space-y-4">
                     {/* Time Rules Diff */}
                     <div className="space-y-2">
-                        <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                        <h4 className="flex items-center gap-2 text-sm font-semibold text-default-700">
                             <Icon icon="solar:clock-circle-bold" className="text-blue-500" />
                             การเปลี่ยนแปลงเวลา
                         </h4>
@@ -1839,10 +1839,10 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                                 <div className="flex items-center gap-2 p-2.5 bg-blue-50 rounded-lg border border-blue-100">
                                     <Icon icon="solar:play-bold" className="text-blue-500" />
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-xs text-slate-500">เวลาเริ่มต้น</p>
+                                        <p className="text-xs text-default-500">เวลาเริ่มต้น</p>
                                         <div className="flex items-center gap-2 text-sm">
-                                            <span className="text-slate-500 line-through">{formatPreviewTime(timeChanges.start_time.old)}</span>
-                                            <Icon icon="solar:arrow-right-linear" className="text-slate-400" width={14} />
+                                            <span className="text-default-500 line-through">{formatPreviewTime(timeChanges.start_time.old)}</span>
+                                            <Icon icon="solar:arrow-right-linear" className="text-default-400" width={14} />
                                             <span className="font-medium text-blue-700">{formatPreviewTime(timeChanges.start_time.new)}</span>
                                         </div>
                                     </div>
@@ -1852,10 +1852,10 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                                 <div className="flex items-center gap-2 p-2.5 bg-amber-50 rounded-lg border border-amber-100">
                                     <Icon icon="solar:clock-circle-bold" className="text-amber-500" />
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-xs text-slate-500">เวลาตัดสาย</p>
+                                        <p className="text-xs text-default-500">เวลาตัดสาย</p>
                                         <div className="flex items-center gap-2 text-sm">
-                                            <span className="text-slate-500 line-through">{formatPreviewTime(timeChanges.late_threshold.old)}</span>
-                                            <Icon icon="solar:arrow-right-linear" className="text-slate-400" width={14} />
+                                            <span className="text-default-500 line-through">{formatPreviewTime(timeChanges.late_threshold.old)}</span>
+                                            <Icon icon="solar:arrow-right-linear" className="text-default-400" width={14} />
                                             <span className="font-medium text-amber-700">{formatPreviewTime(timeChanges.late_threshold.new)}</span>
                                         </div>
                                     </div>
@@ -1865,19 +1865,19 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                                 <div className="flex items-center gap-2 p-2.5 bg-rose-50 rounded-lg border border-rose-100">
                                     <Icon icon="solar:stop-bold" className="text-rose-500" />
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-xs text-slate-500">เวลาสิ้นสุด</p>
+                                        <p className="text-xs text-default-500">เวลาสิ้นสุด</p>
                                         <div className="flex items-center gap-2 text-sm">
-                                            <span className="text-slate-500 line-through">{formatPreviewTime(timeChanges.end_time.old)}</span>
-                                            <Icon icon="solar:arrow-right-linear" className="text-slate-400" width={14} />
+                                            <span className="text-default-500 line-through">{formatPreviewTime(timeChanges.end_time.old)}</span>
+                                            <Icon icon="solar:arrow-right-linear" className="text-default-400" width={14} />
                                             <span className="font-medium text-rose-700">{formatPreviewTime(timeChanges.end_time.new)}</span>
                                         </div>
                                     </div>
                                 </div>
                             )}
                             {!timeChanges.start_time.changed && !timeChanges.late_threshold.changed && !timeChanges.end_time.changed && (
-                                <div className="flex items-center gap-2 p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                                <div className="flex items-center gap-2 rounded-lg border border-default-200 bg-content2 p-2.5">
                                     <Icon icon="solar:check-circle-bold" className="text-emerald-500" />
-                                    <span className="text-sm text-slate-600">ไม่มีการเปลี่ยนแปลงเวลา</span>
+                                    <span className="text-sm text-default-600">ไม่มีการเปลี่ยนแปลงเวลา</span>
                                 </div>
                             )}
                         </div>
@@ -1886,7 +1886,7 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                     {/* Impact Summary Cards */}
                     {hasAnyImpact && (
                         <div className="space-y-2">
-                            <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                            <h4 className="flex items-center gap-2 text-sm font-semibold text-default-700">
                                 <Icon icon="solar:chart-2-bold" className="text-indigo-500" />
                                 ผลกระทบต่อข้อมูลเช็คชื่อ
                             </h4>
@@ -1915,9 +1915,9 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                                         <p className="text-xs text-blue-500 mt-0.5">กลับมาถูกต้อง</p>
                                     </div>
                                 )}
-                                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center">
-                                    <p className="text-2xl font-bold text-slate-600">{summary.unchanged}</p>
-                                    <p className="text-xs text-slate-500 mt-0.5">ไม่เปลี่ยนแปลง</p>
+                                <div className="rounded-xl border border-default-200 bg-content2 p-3 text-center">
+                                    <p className="text-2xl font-bold text-default-600">{summary.unchanged}</p>
+                                    <p className="mt-0.5 text-xs text-default-500">ไม่เปลี่ยนแปลง</p>
                                 </div>
                             </div>
                         </div>
@@ -2014,12 +2014,12 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                     {/* Affected Records Table */}
                     {changes.length > 0 && (
                         <div className="space-y-2">
-                            <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                                <Icon icon="solar:users-group-rounded-bold" className="text-slate-500" />
+                            <h4 className="flex items-center gap-2 text-sm font-semibold text-default-700">
+                                <Icon icon="solar:users-group-rounded-bold" className="text-default-500" />
                                 รายละเอียดนักศึกษาที่ได้รับผลกระทบ ({changes.length} คน)
                             </h4>
                             <div className="overflow-x-auto">
-                                <Table removeWrapper aria-label="ผลกระทบ" classNames={{ th: "bg-slate-50 text-xs", td: "text-sm" }}>
+                                <Table removeWrapper aria-label="ผลกระทบ" classNames={{ th: "bg-content2 text-default-600 text-xs", td: "text-sm" }}>
                                     <TableHeader>
                                         <TableColumn>นักศึกษา</TableColumn>
                                         <TableColumn align="center">เวลาเช็คอิน</TableColumn>
@@ -2032,12 +2032,12 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                                                 <TableRow key={record.record_id}>
                                                     <TableCell>
                                                         <div>
-                                                            <p className="font-medium text-slate-800">{record.student_name || '-'}</p>
-                                                            <p className="text-xs text-slate-400">{record.student_id || ''}</p>
+                                                            <p className="font-medium text-foreground">{record.student_name || '-'}</p>
+                                                            <p className="text-xs text-default-400">{record.student_id || ''}</p>
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <span className="text-xs text-slate-600">
+                                                        <span className="text-xs text-default-600">
                                                             {new Date(record.check_in_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                                         </span>
                                                     </TableCell>
@@ -2052,7 +2052,7 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                                     </TableBody>
                                 </Table>
                                 {changes.length > 20 && (
-                                    <p className="text-xs text-slate-400 text-center mt-2">
+                                    <p className="mt-2 text-center text-xs text-default-400">
                                         แสดง 20 จาก {changes.length} รายการ
                                     </p>
                                 )}
@@ -2066,15 +2066,15 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                             <div className="w-16 h-16 mx-auto mb-3 bg-emerald-100 rounded-full flex items-center justify-center">
                                 <Icon icon="solar:check-circle-bold" className="text-3xl text-emerald-500" />
                             </div>
-                            <p className="font-medium text-slate-700">ไม่มีผลกระทบต่อข้อมูลเช็คชื่อ</p>
-                            <p className="text-sm text-slate-500 mt-1">
+                            <p className="font-medium text-default-700">ไม่มีผลกระทบต่อข้อมูลเช็คชื่อ</p>
+                            <p className="mt-1 text-sm text-default-500">
                                 การเปลี่ยนแปลงเวลาไม่ส่งผลกระทบต่อสถานะเช็คชื่อที่มีอยู่
                             </p>
                         </div>
                     )}
                 </ModalBody>
 
-                <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                <ModalFooter className="border-t border-divider px-6 py-4">
                     <Button variant="light" onPress={onClose} isDisabled={isApplying}>
                         ยกเลิก
                     </Button>
@@ -2128,14 +2128,14 @@ export const SectionChangeWarningModal = memo(function SectionChangeWarningModal
             <ModalContent>
                 <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl shadow-lg">
+                        <div className="p-3 bg-linear-to-br from-red-500 to-rose-600 rounded-xl shadow-lg">
                             <Icon icon="solar:danger-triangle-bold" className="text-2xl text-white" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-slate-800">
+                            <h3 className="text-xl font-bold text-foreground">
                                 คำเตือน: มีนักศึกษาที่เช็คชื่อแล้ว
                             </h3>
-                            <p className="text-sm text-slate-500 font-normal mt-1">
+                            <p className="mt-1 text-sm font-normal text-default-500">
                                 {preview.session_title}
                             </p>
                         </div>
@@ -2145,7 +2145,7 @@ export const SectionChangeWarningModal = memo(function SectionChangeWarningModal
                 <ModalBody className="px-6 py-4 space-y-4">
                     {/* Removed Sections */}
                     <div className="space-y-2">
-                        <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                        <h4 className="flex items-center gap-2 text-sm font-semibold text-default-700">
                             <Icon icon="solar:minus-circle-bold" className="text-red-500" />
                             กลุ่มเรียนที่จะถูกนำออก
                         </h4>
@@ -2183,12 +2183,12 @@ export const SectionChangeWarningModal = memo(function SectionChangeWarningModal
                     {/* Affected Students Table */}
                     {affected_students.length > 0 && (
                         <div className="space-y-2">
-                            <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                                <Icon icon="solar:users-group-rounded-bold" className="text-slate-500" />
+                            <h4 className="flex items-center gap-2 text-sm font-semibold text-default-700">
+                                <Icon icon="solar:users-group-rounded-bold" className="text-default-500" />
                                 นักศึกษาที่ได้รับผลกระทบ ({total_affected} คน)
                             </h4>
                             <div className="overflow-x-auto">
-                                <Table removeWrapper aria-label="นักศึกษาที่ได้รับผลกระทบ" classNames={{ th: "bg-slate-50 text-xs", td: "text-sm" }}>
+                                <Table removeWrapper aria-label="นักศึกษาที่ได้รับผลกระทบ" classNames={{ th: "bg-content2 text-default-600 text-xs", td: "text-sm" }}>
                                     <TableHeader>
                                         <TableColumn>นักศึกษา</TableColumn>
                                         <TableColumn align="center">กลุ่ม</TableColumn>
@@ -2202,12 +2202,12 @@ export const SectionChangeWarningModal = memo(function SectionChangeWarningModal
                                                 <TableRow key={student.record_id}>
                                                     <TableCell>
                                                         <div>
-                                                            <p className="font-medium text-slate-800">{student.student_name || '-'}</p>
-                                                            <p className="text-xs text-slate-400">{student.student_id || ''}</p>
+                                                            <p className="font-medium text-foreground">{student.student_name || '-'}</p>
+                                                            <p className="text-xs text-default-400">{student.student_id || ''}</p>
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <span className="text-xs text-slate-600">{student.section_no}</span>
+                                                        <span className="text-xs text-default-600">{student.section_no}</span>
                                                     </TableCell>
                                                     <TableCell>
                                                         <Chip size="sm" variant="flat" className={`${cfg.color} gap-1`} startContent={<Icon icon={cfg.icon} width={14} />}>
@@ -2215,7 +2215,7 @@ export const SectionChangeWarningModal = memo(function SectionChangeWarningModal
                                                         </Chip>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <span className="text-xs text-slate-600">
+                                                        <span className="text-xs text-default-600">
                                                             {student.check_in_time
                                                                 ? new Date(student.check_in_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
                                                                 : '-'}
@@ -2227,7 +2227,7 @@ export const SectionChangeWarningModal = memo(function SectionChangeWarningModal
                                     </TableBody>
                                 </Table>
                                 {affected_students.length > 30 && (
-                                    <p className="text-xs text-slate-400 text-center mt-2">
+                                    <p className="mt-2 text-center text-xs text-default-400">
                                         แสดง 30 จาก {affected_students.length} รายการ
                                     </p>
                                 )}
@@ -2236,7 +2236,7 @@ export const SectionChangeWarningModal = memo(function SectionChangeWarningModal
                     )}
                 </ModalBody>
 
-                <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                <ModalFooter className="border-t border-divider px-6 py-4">
                     <Button variant="light" onPress={onClose} isDisabled={isSubmitting}>
                         ยกเลิก
                     </Button>

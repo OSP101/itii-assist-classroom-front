@@ -12,6 +12,9 @@ import { IoSchool } from "react-icons/io5";
 import type { TurnstileInstance } from '@marsidev/react-turnstile';
 import { addToast } from "@heroui/toast";
 import { authService } from "@/services";
+import { AppFooter } from "@/components/Footer";
+import { loginPolicyLinks } from "@/config/public-links";
+import { useI18n } from "@/hooks/useI18n";
 
 // Dynamic import Turnstile - completely skip SSR
 const Turnstile = dynamic(
@@ -41,16 +44,9 @@ function SocialIconGoogle() {
     );
 }
 
-function FooterLink({ children, href = "#" }: { children: React.ReactNode; href?: string }) {
-    return (
-        <Link href={href} className="text-[13px] text-slate-500 hover:text-blue-500">
-            {children}
-        </Link>
-    );
-}
-
 export default function LoginPage() {
     const router = useRouter();
+    const t = useI18n();
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
     const [isVisible, setIsVisible] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -140,8 +136,8 @@ export default function LoginPage() {
 
         if (!formData.username || !formData.password) {
             addToast({
-                title: "กรุณากรอกข้อมูล",
-                description: "กรุณากรอกชื่อผู้ใช้และรหัสผ่าน",
+                title: t("pleaseFillInformation"),
+                description: t("pleaseEnterUsernameAndPassword"),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -177,8 +173,8 @@ export default function LoginPage() {
                     }
 
                     addToast({
-                        title: "เข้าสู่ระบบสำเร็จ",
-                        description: `ยินดีต้อนรับ ${formData.username}`,
+                        title: t("signInSuccessful"),
+                        description: t("welcomeUser", { username: formData.username }),
                         color: "success",
                         timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -201,7 +197,7 @@ export default function LoginPage() {
                 }
             } else {
                 // Handle error - might be string or object
-                let errorMessage = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";
+                let errorMessage = t("invalidUsernameOrPassword");
                 if (typeof result.error === 'string') {
                     errorMessage = result.error;
                 } else if (result.error && typeof result.error === 'object') {
@@ -209,7 +205,7 @@ export default function LoginPage() {
                 }
 
                 addToast({
-                    title: "เข้าสู่ระบบไม่สำเร็จ",
+                    title: t("signInFailed"),
                     description: errorMessage,
                     color: "danger",
                     timeout: 3000,
@@ -219,8 +215,8 @@ export default function LoginPage() {
             }
         } catch (error) {
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้",
+                title: t("somethingWentWrong"),
+                description: t("cannotConnectToServer"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -234,8 +230,8 @@ export default function LoginPage() {
     const handleForceChangePassword = async () => {
         if (!isPasswordValid) {
             addToast({
-                title: "รหัสผ่านไม่ผ่านเงื่อนไข",
-                description: "กรุณาตรวจสอบเงื่อนไขรหัสผ่าน",
+                title: t("passwordRequirementFailed"),
+                description: t("pleaseCheckPasswordRequirements"),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -245,8 +241,8 @@ export default function LoginPage() {
 
         if (newPassword !== confirmPassword) {
             addToast({
-                title: "รหัสผ่านไม่ตรงกัน",
-                description: "กรุณากรอกรหัสผ่านให้ตรงกันทั้ง 2 ช่อง",
+                title: t("passwordsDoNotMatch"),
+                description: t("pleaseEnterMatchingPasswords"),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -259,8 +255,8 @@ export default function LoginPage() {
             const result = await authService.forceChangePassword(newPassword);
             if (result.success) {
                 addToast({
-                    title: "เปลี่ยนรหัสผ่านสำเร็จ",
-                    description: "กรุณาเข้าสู่ระบบอีกครั้งด้วยรหัสผ่านใหม่",
+                    title: t("passwordChangedSuccessfully"),
+                    description: t("signInAgainWithNewPassword"),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -272,8 +268,8 @@ export default function LoginPage() {
                 setFormData({ username: formData.username, password: "" });
             } else {
                 addToast({
-                    title: "เกิดข้อผิดพลาด",
-                    description: result.error || "ไม่สามารถเปลี่ยนรหัสผ่านได้",
+                    title: t("somethingWentWrong"),
+                    description: result.error || t("unableToChangePassword"),
                     color: "danger",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -281,8 +277,8 @@ export default function LoginPage() {
             }
         } catch (error) {
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถเปลี่ยนรหัสผ่านได้",
+                title: t("somethingWentWrong"),
+                description: t("unableToChangePassword"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -304,8 +300,8 @@ export default function LoginPage() {
 
     const handleUnavailableLogin = (provider: string) => {
         addToast({
-            title: `ยังไม่รองรับการเข้าสู่ระบบด้วย ${provider}`,
-            description: "กรุณาเข้าสู่ระบบด้วยบัญชีของคุณ Google หรือ GitHub",
+            title: t("unsupportedSignInWithProvider", { provider }),
+            description: t("pleaseSignInWithGoogleOrGitHub"),
             color: "default",
             timeout: 3000,
             shouldShowTimeoutProgress: true,
@@ -315,8 +311,8 @@ export default function LoginPage() {
     const handleForgotPassword = async () => {
         if (!forgotPasswordEmail) {
             addToast({
-                title: "กรุณากรอกอีเมล",
-                description: "กรุณากรอกอีเมลของคุณ",
+                title: t("pleaseEnterEmail"),
+                description: t("pleaseEnterYourEmail"),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -328,8 +324,8 @@ export default function LoginPage() {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(forgotPasswordEmail)) {
             addToast({
-                title: "รูปแบบอีเมลไม่ถูกต้อง",
-                description: "กรุณากรอกอีเมลให้ถูกต้อง",
+                title: t("invalidEmailFormat"),
+                description: t("pleaseEnterValidEmail"),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -359,8 +355,8 @@ export default function LoginPage() {
     // Show loading while checking auth
     if (isCheckingAuth) {
         return (
-            <div className="flex min-h-screen flex-col items-center justify-center bg-[#fafafa]">
-                <div className="flex flex-col items-center gap-4" aria-label="กำลังตรวจสอบสถานะการเข้าสู่ระบบ">
+            <div data-auth-shell="true" className="flex min-h-screen flex-col items-center justify-center bg-background text-foreground">
+                <div className="flex flex-col items-center gap-4" aria-label={t("checkingSignInStatus")}>
                     <AppMark />
                     <div className="h-1 w-12 overflow-hidden rounded-full bg-blue-100">
                         <div className="h-full w-5 animate-pulse rounded-full bg-linear-to-r from-blue-400 to-indigo-500" />
@@ -371,17 +367,17 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="flex min-h-dvh flex-col bg-[#fafafa] text-[#111827]">
+        <div data-auth-shell="true" className="flex min-h-dvh flex-col bg-background text-foreground">
             <header className="flex h-20 items-center px-6 sm:px-10">
-                <Link href="/" aria-label="ITII Assist Classroom home" className="inline-flex items-center">
+                <Link href="/" aria-label={t("itiiAssistClassroomHome")} className="inline-flex items-center">
                     <AppMark />
                 </Link>
             </header>
 
             <main className="flex w-full flex-1 flex-col items-center justify-start px-5 pb-6 pt-4 sm:min-h-[calc(100vh-128px)] sm:justify-center sm:px-6 sm:pb-16 sm:pt-10">
-                <section className="w-full max-w-[450px] px-2 py-4 sm:rounded-[16px] sm:border sm:border-[#d9d9d9] sm:bg-white sm:px-12 sm:py-12 sm:shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
-                    <h1 className="mb-7 text-[25px] font-semibold leading-tight tracking-[-0.01em] text-[#0b0f19]">
-                        เข้าสู่ระบบ ITII Assist Classroom
+                <section className="w-full max-w-112.5 px-2 py-4 sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white sm:px-12 sm:py-12 sm:shadow-sm sm:shadow-slate-200/60 dark:sm:shadow-zinc-950/50">
+                    <h1 className="mb-7 text-[25px] font-semibold leading-tight tracking-[-0.01em] text-slate-800">
+                        {t("signInToITIIAssistClassroom")}
                     </h1>
 
                     <div className="grid grid-cols-3 gap-2">
@@ -389,7 +385,7 @@ export default function LoginPage() {
                             type="button"
                             variant="bordered"
                             radius="sm"
-                            className="h-[42px] border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50"
+                            className="h-10.5 border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50"
                             onPress={handleGoogleLogin}
                             startContent={<SocialIconGoogle />}
                         >
@@ -399,7 +395,7 @@ export default function LoginPage() {
                             type="button"
                             variant="bordered"
                             radius="sm"
-                            className="h-[42px] border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50"
+                            className="h-10.5 border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50"
                             onPress={() => handleUnavailableLogin("Apple")}
                             startContent={<Icon icon="fa6-brands:apple" className="text-[17px] text-slate-700" />}
                         >
@@ -409,7 +405,7 @@ export default function LoginPage() {
                             type="button"
                             variant="bordered"
                             radius="sm"
-                            className="h-[42px] border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50"
+                            className="h-10.5 border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50"
                             onPress={handleGitHubLogin}
                             startContent={<Icon icon="fa6-brands:github" className="text-[16px] text-slate-700" />}
                         >
@@ -429,16 +425,16 @@ export default function LoginPage() {
                     </Button> */}
 
                     <div className="my-5 flex items-center gap-3">
-                        <div className="h-px flex-1 bg-[#d9d9d9]" />
-                        <span className="text-sm text-slate-400">หรือ</span>
-                        <div className="h-px flex-1 bg-[#d9d9d9]" />
+                        <div className="h-px flex-1 bg-slate-200" />
+                        <span className="text-sm text-slate-400">{t("or")}</span>
+                        <div className="h-px flex-1 bg-slate-200" />
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <Input
-                            label="ชื่อผู้ใช้"
+                            label={t("username")}
                             labelPlacement="outside"
-                            placeholder="กรอกชื่อผู้ใช้"
+                            placeholder={t("enterUsername")}
                             type="text"
                             variant="bordered"
                             radius="sm"
@@ -456,26 +452,26 @@ export default function LoginPage() {
                             classNames={{
                                 base: "gap-1",
                                 label: "text-[14px] font-medium text-slate-600",
-                                inputWrapper: "h-[42px] min-h-[42px] rounded-md border-blue-200 bg-white shadow-none data-[hover=true]:border-blue-300 group-data-[focus=true]:!border-blue-400 group-data-[focus=true]:ring-1 group-data-[focus=true]:ring-blue-300",
+                                inputWrapper: "h-10.5 min-h-10.5 rounded-md border-blue-200 bg-white shadow-none data-[hover=true]:border-blue-300 group-data-[focus=true]:!border-blue-400 group-data-[focus=true]:ring-1 group-data-[focus=true]:ring-blue-300",
                                 input: "text-[15px] text-slate-800 placeholder:text-slate-400",
                             }}
                         />
 
                         <div className="space-y-1">
                             <div className="flex items-center justify-between">
-                                <label className="text-[14px] font-medium text-slate-600">รหัสผ่าน</label>
+                                <label className="text-[14px] font-medium text-slate-600">{t("password")}</label>
                                 <button
                                     type="button"
                                     onClick={() => setIsForgotPasswordModalOpen(true)}
                                     className="text-[13px] text-blue-400 underline-offset-2 hover:text-blue-500 hover:underline"
                                 >
-                                    ลืมรหัสผ่าน?
+                                    {t("forgotPassword")}
                                 </button>
                             </div>
 
                             <Input
-                                aria-label="รหัสผ่าน"
-                                placeholder="กรอกรหัสผ่าน"
+                                aria-label={t("password")}
+                                placeholder={t("enterPassword")}
                                 variant="bordered"
                                 radius="sm"
                                 size="md"
@@ -494,7 +490,7 @@ export default function LoginPage() {
                                         className="flex h-6 w-6 items-center justify-center text-blue-400 hover:text-blue-500"
                                         type="button"
                                         onClick={toggleVisibility}
-                                        aria-label={isVisible ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
+                                        aria-label={isVisible ? t("hidePassword") : t("showPassword")}
                                     >
                                         <Icon
                                             icon={isVisible ? "solar:eye-linear" : "solar:eye-closed-linear"}
@@ -504,14 +500,14 @@ export default function LoginPage() {
                                 }
                                 type={isVisible ? "text" : "password"}
                                 classNames={{
-                                    inputWrapper: "h-[42px] min-h-[42px] rounded-md border-blue-200 bg-white shadow-none data-[hover=true]:border-blue-300 group-data-[focus=true]:!border-blue-400 group-data-[focus=true]:ring-1 group-data-[focus=true]:ring-blue-300",
+                                    inputWrapper: "h-10.5 min-h-10.5 rounded-md border-blue-200 bg-white shadow-none data-[hover=true]:border-blue-300 group-data-[focus=true]:!border-blue-400 group-data-[focus=true]:ring-1 group-data-[focus=true]:ring-blue-300",
                                     input: "text-[15px] text-slate-800 placeholder:text-slate-400",
                                 }}
                             />
                         </div>
 
                         <div className="pt-1">
-                            <p className="mb-2 text-[14px] text-slate-600">ยืนยันว่าคุณไม่ใช่บอท</p>
+                            <p className="mb-2 text-[14px] text-slate-600">{t("verifyYouAreNotABot")}</p>
                             <div className="w-full" suppressHydrationWarning>
                                 {turnstileKey ? (
                                     <Turnstile
@@ -533,15 +529,15 @@ export default function LoginPage() {
                                             setTurnstileReady(true);
                                         }}
                                         options={{
-                                            theme: 'light',
+                                            theme: 'auto',
                                             size: 'flexible',
                                         }}
                                     />
                                 ) : !turnstileReady ? (
-                                    <div className="flex h-[65px] w-full items-center justify-between border border-blue-100 bg-blue-50/40 px-3">
+                                    <div className="flex h-16.25 w-full items-center justify-between border border-blue-100 bg-blue-50/40 px-3">
                                         <div className="flex items-center gap-3">
                                             <span className="h-6 w-6 rounded-sm border-2 border-blue-300 bg-white" />
-                                            <span className="text-[14px] text-slate-700">ยืนยันว่าคุณไม่ใช่บอท</span>
+                                            <span className="text-[14px] text-slate-700">{t("verifyYouAreNotABot")}</span>
                                         </div>
                                         <AppMark className="scale-75" />
                                     </div>
@@ -552,42 +548,33 @@ export default function LoginPage() {
                         <Button
                             type="submit"
                             radius="sm"
-                            className="h-[42px] w-full bg-linear-to-r from-blue-400 to-indigo-500 text-[15px] font-semibold text-white shadow-lg shadow-blue-300/40 data-[hover=true]:from-blue-500 data-[hover=true]:to-indigo-600"
+                            className="h-10.5 w-full bg-linear-to-r from-blue-400 to-indigo-500 text-[15px] font-semibold text-white shadow-lg shadow-blue-300/40 data-[hover=true]:from-blue-500 data-[hover=true]:to-indigo-600"
                             isLoading={isLoading}
                         >
-                            เข้าสู่ระบบ
+                            {t("signIn")}
                         </Button>
                     </form>
 
                 </section>
 
-                <p className="mt-5 max-w-[340px] text-center text-[13px] leading-5 text-slate-500">
-                    การดำเนินการต่อถือว่าคุณยอมรับ{" "}
-                    <Link href="#" className="text-[13px] text-slate-500 underline hover:text-blue-500">
-                        ข้อกำหนดการใช้งาน
+                <p className="mt-5 max-w-85 text-center text-[13px] leading-5 text-slate-500">
+                    {t("continuingMeansAccept")}{" "}
+                    <Link href={loginPolicyLinks.terms} className="text-[13px] text-slate-500 underline hover:text-blue-500">
+                        {t("termsOfUse")}
                     </Link>
                     ,{" "}
-                    <Link href="#" className="text-[13px] text-slate-500 underline hover:text-blue-500">
-                        นโยบายความเป็นส่วนตัว
+                    <Link href={loginPolicyLinks.privacy} className="text-[13px] text-slate-500 underline hover:text-blue-500">
+                        {t("privacyPolicy")}
                     </Link>
                     , และ{" "}
-                    <Link href="#" className="text-[13px] text-slate-500 underline hover:text-blue-500">
-                        นโยบายคุกกี้
+                    <Link href={loginPolicyLinks.cookies} className="text-[13px] text-slate-500 underline hover:text-blue-500">
+                        {t("cookiePolicy")}
                     </Link>
-                    ของ ITII Assist Classroom
+                    {" "}{t("ofITIIAssistClassroom")}
                 </p>
             </main>
 
-            <footer className="flex min-h-12 flex-col items-center justify-center gap-2 border-t border-slate-200 bg-white px-4 py-3 text-[13px] text-slate-500 lg:flex-row">
-                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-                    <FooterLink>ช่วยเหลือ</FooterLink>
-                    <FooterLink>สถานะระบบ</FooterLink>
-                    <FooterLink>ข้อกำหนดการใช้งาน</FooterLink>
-                    <FooterLink>แจ้งปัญหาความปลอดภัย</FooterLink>
-                    <FooterLink>นโยบายความเป็นส่วนตัว</FooterLink>
-                </div>
-                <span className="text-slate-400">© 2026 ITII Assist Classroom.</span>
-            </footer>
+            <AppFooter />
 
 
             {/* Force Change Password Modal */}
@@ -601,12 +588,12 @@ export default function LoginPage() {
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/30">
+                            <div className="p-3 bg-linear-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:key-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">เปลี่ยนรหัสผ่าน</h3>
-                                <p className="text-sm text-slate-500 font-normal mt-1">กรุณาตั้งรหัสผ่านใหม่เพื่อความปลอดภัย</p>
+                                <h3 className="text-xl font-bold text-slate-800">{t("changePassword")}</h3>
+                                <p className="text-sm text-slate-500 font-normal mt-1">{t("setNewPasswordForSecurity")}</p>
                             </div>
                         </div>
                     </ModalHeader>
@@ -617,8 +604,8 @@ export default function LoginPage() {
                                 <div className="flex items-start gap-3">
                                     <Icon icon="solar:info-circle-bold" className="text-blue-500 text-xl mt-0.5" />
                                     <div className="text-sm text-blue-700">
-                                        <p className="font-semibold">ยินดีต้อนรับ {pendingUser?.username}!</p>
-                                        <p className="mt-1">นี่คือการเข้าสู่ระบบครั้งแรกของคุณ กรุณาตั้งรหัสผ่านใหม่เพื่อความปลอดภัย</p>
+                                        <p className="font-semibold">{t("welcomeFirstLogin", { username: pendingUser?.username || "" })}</p>
+                                        <p className="mt-1">{t("firstLoginSetNewPassword")}</p>
                                     </div>
                                 </div>
                             </div>
@@ -626,9 +613,9 @@ export default function LoginPage() {
                             <div className="grid grid-cols-1 gap-4">
                                 {/* New Password */}
                                 <Input
-                                    label="รหัสผ่านใหม่"
+                                    label={t("newPassword")}
                                     labelPlacement="outside"
-                                    placeholder="กรอกรหัสผ่านใหม่"
+                                    placeholder={t("enterNewPassword")}
                                     variant="bordered"
                                     size="md"
                                     type={showNewPassword ? "text" : "password"}
@@ -655,9 +642,9 @@ export default function LoginPage() {
 
                                 {/* Confirm Password */}
                                 <Input
-                                    label="ยืนยันรหัสผ่าน"
+                                    label={t("confirmPassword")}
                                     labelPlacement="outside"
-                                    placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
+                                    placeholder={t("confirmNewPassword")}
                                     variant="bordered"
                                     size="md"
                                     type={showConfirmPassword ? "text" : "password"}
@@ -681,13 +668,13 @@ export default function LoginPage() {
                                         label: "text-slate-600 font-medium text-sm",
                                     }}
                                     isInvalid={confirmPassword !== "" && newPassword !== confirmPassword}
-                                    errorMessage={confirmPassword !== "" && newPassword !== confirmPassword ? "รหัสผ่านไม่ตรงกัน" : ""}
+                                    errorMessage={confirmPassword !== "" && newPassword !== confirmPassword ? t("passwordsDoNotMatch") : ""}
                                 />
                             </div>
 
                             {/* Password Requirements */}
                             <div className="bg-slate-50 rounded-lg p-3 space-y-2">
-                                <p className="text-xs font-medium text-slate-600 mb-2">ข้อกำหนดรหัสผ่าน:</p>
+                                <p className="text-xs font-medium text-slate-600 mb-2">{t("passwordRequirements")}</p>
                                 <div className="space-y-1.5">
                                     <div className="flex items-center gap-2">
                                         <Icon 
@@ -695,7 +682,7 @@ export default function LoginPage() {
                                             className={passwordValidation.minLength ? "text-green-500" : "text-slate-400"} 
                                         />
                                         <span className={`text-xs ${passwordValidation.minLength ? "text-green-600" : "text-slate-500"}`}>
-                                            อย่างน้อย 8 ตัวอักษร
+                                            {t("atLeastEightCharacters")}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -704,7 +691,7 @@ export default function LoginPage() {
                                             className={passwordValidation.hasLowercase ? "text-green-500" : "text-slate-400"} 
                                         />
                                         <span className={`text-xs ${passwordValidation.hasLowercase ? "text-green-600" : "text-slate-500"}`}>
-                                            มีตัวอักษรพิมพ์เล็ก (a-z)
+                                            {t("containsLowercaseLetter")}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -713,7 +700,7 @@ export default function LoginPage() {
                                             className={passwordValidation.hasUppercase ? "text-green-500" : "text-slate-400"} 
                                         />
                                         <span className={`text-xs ${passwordValidation.hasUppercase ? "text-green-600" : "text-slate-500"}`}>
-                                            มีตัวอักษรพิมพ์ใหญ่ (A-Z)
+                                            {t("containsUppercaseLetter")}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -722,7 +709,7 @@ export default function LoginPage() {
                                             className={passwordValidation.hasSpecialChar ? "text-green-500" : "text-slate-400"} 
                                         />
                                         <span className={`text-xs ${passwordValidation.hasSpecialChar ? "text-green-600" : "text-slate-500"}`}>
-                                            มีอักขระพิเศษ (!@#$%^&* ฯลฯ)
+                                            {t("containsSpecialCharacter")}
                                         </span>
                                     </div>
                                 </div>
@@ -738,7 +725,7 @@ export default function LoginPage() {
                             className="w-full font-medium bg-linear-to-r from-blue-400 to-indigo-500"
                             startContent={!isChangingPassword && <Icon icon="solar:key-bold" className="text-lg" />}
                         >
-                            เปลี่ยนรหัสผ่าน
+                            {t("changePassword")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -753,13 +740,13 @@ export default function LoginPage() {
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                            <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:key-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">ลืมรหัสผ่าน</h3>
+                                <h3 className="text-xl font-bold text-slate-800">{t("forgotPasswordTitle")}</h3>
                                 <p className="text-sm text-slate-500 font-normal mt-1">
-                                    {resetEmailSent ? "ตรวจสอบอีเมลของคุณ" : "กรอกอีเมลเพื่อรีเซ็ตรหัสผ่าน"}
+                                    {resetEmailSent ? t("checkYourEmail") : t("enterEmailToResetPassword")}
                                 </p>
                             </div>
                         </div>
@@ -774,10 +761,8 @@ export default function LoginPage() {
                                             <Icon icon="solar:check-circle-bold" className="text-green-600 text-xl" />
                                         </div>
                                         <div className="text-sm text-green-700">
-                                            <p className="font-semibold">ส่งอีเมลแล้ว!</p>
-                                            <p className="mt-1">
-                                                เราได้ส่งลิงก์สำหรับรีเซ็ตรหัสผ่านไปยังอีเมลของคุณแล้ว กรุณาตรวจสอบอีเมลและทำตามขั้นตอนเพื่อรีเซ็ตรหัสผ่านของคุณ
-                                            </p>
+                                            <p className="font-semibold">{t("resetEmailSent")}</p>
+                                            <p className="mt-1">{t("resetEmailSentDescription")}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -787,11 +772,11 @@ export default function LoginPage() {
                                     <div className="flex items-start gap-3">
                                         <Icon icon="solar:info-circle-bold" className="text-blue-500 text-xl mt-0.5" />
                                         <div className="text-sm text-blue-700">
-                                            <p className="font-semibold">ขั้นตอนต่อไป:</p>
+                                            <p className="font-semibold">{t("nextSteps")}</p>
                                             <ul className="mt-2 space-y-1 list-disc list-inside">
-                                                <li>ตรวจสอบกล่องจดหมายของคุณ</li>
-                                                <li>ตรวจสอบโฟลเดอร์สแปมด้วย</li>
-                                                <li>ลิงก์จะหมดอายุใน 1 ชั่วโมง</li>
+                                                <li>{t("checkYourInbox")}</li>
+                                                <li>{t("checkSpamFolder")}</li>
+                                                <li>{t("linkExpiresInOneHour")}</li>
                                             </ul>
                                         </div>
                                     </div>
@@ -804,16 +789,16 @@ export default function LoginPage() {
                                     <div className="flex items-start gap-3">
                                         <Icon icon="solar:info-circle-bold" className="text-amber-500 text-xl mt-0.5" />
                                         <div className="text-sm text-amber-700">
-                                            <p>กรอกอีเมลที่ลงทะเบียนไว้ในระบบ เราจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปยังอีเมลของคุณ</p>
+                                            <p>{t("enterRegisteredEmailToReset")}</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Email Input */}
                                 <Input
-                                    label="อีเมล"
+                                    label={t("email")}
                                     labelPlacement="outside"
-                                    placeholder="กรอกอีเมลของคุณ"
+                                    placeholder={t("pleaseEnterYourEmail")}
                                     type="email"
                                     variant="bordered"
                                     size="md"
@@ -841,7 +826,7 @@ export default function LoginPage() {
                                 onPress={closeForgotPasswordModal}
                                 className="w-full font-medium bg-linear-to-r from-blue-400 to-indigo-500"
                             >
-                                กลับไปหน้าเข้าสู่ระบบ
+                                {t("backToLoginPage")}
                             </Button>
                         ) : (
                             <div className="flex gap-3">
@@ -850,7 +835,7 @@ export default function LoginPage() {
                                     onPress={closeForgotPasswordModal}
                                     className="flex-1"
                                 >
-                                    ยกเลิก
+                                    {t("cancel")}
                                 </Button>
                                 <Button
                                     color="primary"
@@ -860,7 +845,7 @@ export default function LoginPage() {
                                     className="flex-1 font-medium bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                                     startContent={!isSendingResetEmail && <Icon icon="solar:letter-bold" className="text-lg" />}
                                 >
-                                    ส่งลิงก์รีเซ็ต
+                                    {t("sendResetLink")}
                                 </Button>
                             </div>
                         )}

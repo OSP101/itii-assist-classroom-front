@@ -311,8 +311,8 @@ export default function ExamScoresTab({
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-lg font-semibold text-slate-800">คะแนนสอบ</h2>
-                    <p className="text-sm text-slate-500">จัดการคะแนนสอบกลางภาคและปลายภาค</p>
+                    <h2 className="text-lg font-semibold text-foreground">คะแนนสอบ</h2>
+                    <p className="text-sm text-default-500">จัดการคะแนนสอบกลางภาคและปลายภาค</p>
                 </div>
                 <Button
                     className="font-medium bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-md hover:shadow-lg"
@@ -337,13 +337,13 @@ export default function ExamScoresTab({
 
             {!hasActiveSettings ? (
                 // No active settings
-                <Card className="shadow-sm border border-dashed border-slate-300 bg-slate-50/50">
+                <Card className="border border-dashed border-default-300 bg-content2/50 shadow-sm">
                     <CardBody className="text-center py-16">
-                        <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
+                        <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-linear-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
                             <Icon icon="solar:document-add-bold-duotone" className="text-5xl text-blue-500" />
                         </div>
-                        <h3 className="text-lg font-semibold text-slate-700 mb-2">ยังไม่เปิดใช้งานการสอบ</h3>
-                        <p className="text-slate-500 mb-6 max-w-md mx-auto">
+                        <h3 className="mb-2 text-lg font-semibold text-default-700">ยังไม่เปิดใช้งานการสอบ</h3>
+                        <p className="mx-auto mb-6 max-w-md text-default-500">
                             กดปุ่ม "ตั้งค่าการสอบ" เพื่อเปิดใช้งานและกำหนดคะแนนเต็มของแต่ละการสอบ
                         </p>
                     </CardBody>
@@ -359,7 +359,7 @@ export default function ExamScoresTab({
                             tabList: "gap-6",
                             cursor: "bg-blue-500",
                             tab: "px-0 h-11",
-                            tabContent: "group-data-[selected=true]:text-blue-600 text-slate-500 font-medium"
+                            tabContent: "group-data-[selected=true]:text-blue-600 text-default-500 font-medium"
                         }}
                     >
                         <Tab
@@ -383,21 +383,21 @@ export default function ExamScoresTab({
                     </Tabs>
 
                     {/* Search & Actions */}
-                    <Card className="shadow-sm border border-slate-200">
+                    <Card className="border border-default-200 bg-content1 shadow-sm">
                         <CardBody className="py-3 px-4">
                             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                                 <Input
                                     placeholder="ค้นหารหัสหรือชื่อนักศึกษา..."
                                     value={searchQuery}
                                     onValueChange={setSearchQuery}
-                                    startContent={<Icon icon="solar:magnifer-linear" className="text-slate-400" />}
+                                    startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
                                     className="w-full sm:max-w-sm"
                                     size="md"
                                     variant="bordered"
                                     isClearable
                                 />
                                 <div className="flex items-center gap-2">
-                                    <Chip size="md" variant="flat" className="bg-slate-100">
+                                    <Chip size="md" variant="flat" className="bg-content3 text-default-600">
                                         {filteredStudents.length} คน
                                     </Chip>
                                 </div>
@@ -428,7 +428,7 @@ export default function ExamScoresTab({
                                 const lowScore = allSettingScores.length > 0 ? Math.min(...allSettingScores) : "-";
 
                                 return (
-                                <Card key={setting.id} className="shadow-lg border-0 overflow-hidden">
+                                <Card key={setting.id} className="overflow-hidden border border-default-200 bg-content1 shadow-lg">
                                     {/* Header */}
                                     <CardHeader className={`px-5 py-4 border-b-0 
                                      
@@ -436,13 +436,13 @@ export default function ExamScoresTab({
                                         {/* ${setting.component === 'lab' ? 'bg-emerald-500' : 'bg-blue-500'} */}
                                         <div className="flex items-center justify-between w-full">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-6 h-6 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                                <div className="flex h-6 w-6 items-center justify-center rounded-xl bg-content2/80 backdrop-blur-sm">
                                                     <Icon 
                                                         icon={setting.component === 'lab' ? 'solar:monitor-bold' : 'solar:book-bold'} 
                                                         className={`text-2xl ${setting.component === 'lab' ? 'text-emerald-500' : 'text-blue-500'}`} 
                                                     />
                                                 </div>
-                                                <div className="text-black">
+                                                <div className="text-foreground">
                                                     <p className="font-bold text-lg">
                                                         {setting.component === 'lab' ? 'ปฏิบัติการ (Lab)' : 'บรรยาย (Lecture)'}
                                                     </p>
@@ -467,62 +467,62 @@ export default function ExamScoresTab({
                                     </CardHeader>
 
                                     {/* Statistics Cards - Above Table */}
-                                    <div className="bg-white px-4 py-3 border-b border-slate-200">
+                                    <div className="border-b border-divider bg-content1 px-4 py-3">
                                         <div className="grid grid-cols-4 gap-2">
-                                            <div className="flex items-center gap-2.5 bg-blue-50 rounded-xl px-3 py-2.5 border border-blue-100">
+                                            <div className="flex items-center gap-2.5 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5 dark:border-blue-500/25 dark:bg-blue-500/12">
                                                 {/* <div className="w-9 h-9 rounded-xl bg-blue-500 flex items-center justify-center">
                                                     <Icon icon="solar:calculator-bold" className="text-white text-lg" />
                                                 </div> */}
                                                 <div>
-                                                    <p className="text-sm text-blue-600 font-medium uppercase tracking-wide">คะแนนเฉลี่ย</p>
-                                                    <p className="text-base font-bold text-slate-800">{avgScore}</p>
+                                                    <p className="text-sm font-medium uppercase tracking-wide text-blue-700 dark:text-blue-200">คะแนนเฉลี่ย</p>
+                                                    <p className="text-base font-bold text-blue-950 dark:text-blue-50">{avgScore}</p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-2.5 bg-emerald-50 rounded-xl px-3 py-2.5 border border-emerald-100">
+                                            <div className="flex items-center gap-2.5 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2.5 dark:border-emerald-500/25 dark:bg-emerald-500/12">
                                                 {/* <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center">
                                                     <Icon icon="solar:arrow-up-bold" className="text-white text-lg" />
                                                 </div> */}
                                                 <div>
-                                                    <p className="text-sm text-emerald-600 font-medium uppercase tracking-wide">คะแนนสูงสุด</p>
-                                                    <p className="text-base font-bold text-slate-800">{highScore}</p>
+                                                    <p className="text-sm font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-200">คะแนนสูงสุด</p>
+                                                    <p className="text-base font-bold text-emerald-950 dark:text-emerald-50">{highScore}</p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-2.5 bg-orange-50 rounded-xl px-3 py-2.5 border border-orange-100">
+                                            <div className="flex items-center gap-2.5 rounded-xl border border-orange-100 bg-orange-50 px-3 py-2.5 dark:border-orange-500/25 dark:bg-orange-500/12">
                                                 {/* <div className="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center">
                                                     <Icon icon="solar:arrow-down-bold" className="text-white text-lg" />
                                                 </div> */}
                                                 <div>
-                                                    <p className="text-sm text-orange-600 font-medium uppercase tracking-wide">คะแนนต่ำสุด</p>
-                                                    <p className="text-base font-bold text-slate-800">{lowScore}</p>
+                                                    <p className="text-sm font-medium uppercase tracking-wide text-orange-700 dark:text-orange-200">คะแนนต่ำสุด</p>
+                                                    <p className="text-base font-bold text-orange-950 dark:text-orange-50">{lowScore}</p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-2.5 bg-purple-50 rounded-xl px-3 py-2.5 border border-purple-100">
+                                            <div className="flex items-center gap-2.5 rounded-xl border border-violet-100 bg-violet-50 px-3 py-2.5 dark:border-violet-500/25 dark:bg-violet-500/12">
                                                 {/* <div className="w-9 h-9 rounded-xl bg-purple-500 flex items-center justify-center">
                                                     <Icon icon="solar:star-bold" className="text-white text-lg" />
                                                 </div> */}
                                                 <div>
-                                                    <p className="text-sm text-purple-600 font-medium uppercase tracking-wide">คะแนนเต็ม</p>
-                                                    <p className="text-base font-bold text-slate-800">{setting.max_score}</p>
+                                                    <p className="text-sm font-medium uppercase tracking-wide text-violet-700 dark:text-violet-200">คะแนนเต็ม</p>
+                                                    <p className="text-base font-bold text-violet-950 dark:text-violet-50">{setting.max_score}</p>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                     
                                     {/* Table - single scroll container for synced horizontal/vertical scroll */}
-                                    <CardBody className="p-0 max-h-[450px] overflow-auto">
-                                      <div className="min-w-[500px]">
+                                    <CardBody className="max-h-112.5 overflow-auto p-0">
+                                      <div className="min-w-125">
                                         {/* Table Header - sticky top */}
-                                        <div className="flex items-center sticky top-0 bg-white z-20 border-b border-slate-200">
-                                            <div className="flex-shrink-0 w-32 px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                        <div className="sticky top-0 z-20 flex items-center border-b border-divider bg-content1">
+                                            <div className="shrink-0 w-32 px-3 py-3 text-xs font-semibold uppercase tracking-wider text-default-500">
                                                 รหัสนักศึกษา
                                             </div>
-                                            <div className="flex-1 min-w-[140px] px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                            <div className="min-w-35 flex-1 px-3 py-3 text-xs font-semibold uppercase tracking-wider text-default-500">
                                                 ชื่อ-นามสกุล
                                             </div>
-                                            <div className="flex-shrink-0 w-20 px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">
+                                            <div className="shrink-0 w-20 px-3 py-3 text-center text-xs font-semibold uppercase tracking-wider text-default-500">
                                                 Section
                                             </div>
-                                            <div className="flex-shrink-0 w-32 px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right sticky right-0 bg-white z-30 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.08)]">
+                                            <div className="sticky right-0 z-30 shrink-0 w-32 bg-content1 px-3 py-3 text-right text-xs font-semibold uppercase tracking-wider text-default-500 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.28)]">
                                                 คะแนน
                                             </div>
                                         </div>
@@ -536,20 +536,20 @@ export default function ExamScoresTab({
                                                 return (
                                                     <div 
                                                         key={student.id} 
-                                                        className={`flex items-center border-b border-slate-100 last:border-b-0 hover:bg-slate-50/80 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}
+                                                        className={`flex items-center border-b border-divider transition-colors last:border-b-0 hover:bg-content2/80 ${idx % 2 === 0 ? 'bg-content1' : 'bg-content2/50'}`}
                                                     >
-                                                        <div className="flex-shrink-0 w-32 px-3 py-3">
-                                                            <span className="text-sm text-slate-600">
+                                                        <div className="shrink-0 w-32 px-3 py-3">
+                                                            <span className="text-sm text-default-600">
                                                                 {student.student_id}
                                                             </span>
                                                         </div>
-                                                        <div className="flex-1 min-w-[140px] px-3 py-3 text-sm text-slate-700 truncate">
+                                                        <div className="min-w-35 flex-1 truncate px-3 py-3 text-sm text-default-700">
                                                             {student.full_name}
                                                         </div>
-                                                        <div className="flex-shrink-0 w-20 px-3 py-3 text-center text-sm text-slate-600">
+                                                        <div className="shrink-0 w-20 px-3 py-3 text-center text-sm text-default-600">
                                                             {student.section_no || "-"}
                                                         </div>
-                                                        <div className={`flex-shrink-0 w-32 px-3 py-3 flex items-center justify-end gap-2 sticky right-0 z-10 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.08)] ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
+                                                        <div className={`sticky right-0 z-10 flex shrink-0 w-32 items-center justify-end gap-2 px-3 py-3 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.28)] ${idx % 2 === 0 ? 'bg-content1' : 'bg-content2/50'}`}>
                                                             {isEditing ? (
                                                                 <div className="flex items-center gap-1">
                                                                     <Input
@@ -607,7 +607,7 @@ export default function ExamScoresTab({
                                                                     {(() => {
                                                                         const numScore = parseFloat(scoreValue);
                                                                         const percent = hasScore ? (numScore / setting.max_score) * 100 : 0;
-                                                                        let colorClass = 'bg-slate-100 text-slate-400';
+                                                                        let colorClass = 'bg-content3 text-default-400';
                                                                         if (hasScore) {
                                                                             if (percent >= 80) colorClass = 'bg-emerald-500 text-white';
                                                                             else if (percent >= 60) colorClass = 'bg-blue-500 text-white';
@@ -615,7 +615,7 @@ export default function ExamScoresTab({
                                                                             else colorClass = 'bg-red-500 text-white';
                                                                         }
                                                                         return (
-                                                                            <span className={`inline-flex items-center justify-center min-w-[50px] px-2.5 py-1 rounded-md text-sm font-semibold ${colorClass}`}>
+                                                                            <span className={`inline-flex min-w-12.5 items-center justify-center rounded-md px-2.5 py-1 text-sm font-semibold ${colorClass}`}>
                                                                                 {hasScore ? parseFloat(scoreValue).toFixed(2) : "0.00"}
                                                                             </span>
                                                                         );
@@ -623,7 +623,7 @@ export default function ExamScoresTab({
                                                                     {isCourseActive && canUpdateExamScores && (
                                                                         <Icon 
                                                                             icon="solar:pen-2-linear" 
-                                                                            className="text-slate-400 group-hover:text-blue-500 transition-colors" 
+                                                                            className="text-default-400 transition-colors group-hover:text-blue-500" 
                                                                         />
                                                                     )}
                                                                 </button>
@@ -634,7 +634,7 @@ export default function ExamScoresTab({
                                             })}
 
                                         {filteredStudents.length === 0 && (
-                                            <div className="text-center py-8 text-slate-500">
+                                            <div className="py-8 text-center text-default-500">
                                                 ไม่พบนักศึกษา
                                             </div>
                                         )}
@@ -646,13 +646,13 @@ export default function ExamScoresTab({
                         </div>
                         </>
                     ) : (
-                        <Card className="shadow-sm border border-slate-200">
+                        <Card className="border border-default-200 bg-content1 shadow-sm">
                             <CardBody className="text-center py-12">
-                                <Icon icon="solar:document-text-linear" className="text-4xl text-slate-300 mx-auto mb-3" />
-                                <p className="text-slate-500">
+                                <Icon icon="solar:document-text-linear" className="mx-auto mb-3 text-4xl text-default-300" />
+                                <p className="text-default-500">
                                     ยังไม่เปิดใช้งานสอบ{activeTab === 'midterm' ? 'กลางภาค' : 'ปลายภาค'}
                                 </p>
-                                <p className="text-sm text-slate-400 mt-1">
+                                <p className="mt-1 text-sm text-default-400">
                                     กดปุ่ม "ตั้งค่าการสอบ" เพื่อเปิดใช้งาน
                                 </p>
                             </CardBody>
@@ -674,39 +674,39 @@ export default function ExamScoresTab({
             >
                 <ModalContent>
                     <ModalHeader className="flex items-center gap-3">
-                        <div className="p-2 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
+                        <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
                             <Icon icon="solar:import-bold" className="text-xl text-white" />
                         </div>
                         <div>
                             <h3 className="text-lg font-semibold">นำเข้าคะแนนจาก Excel</h3>
-                            <p className="text-sm text-slate-500 font-normal">
+                            <p className="text-sm font-normal text-default-500">
                                 คัดลอกข้อมูลจาก Excel แล้ววางในช่องด้านล่าง
                             </p>
                         </div>
                     </ModalHeader>
                     <ModalBody className="space-y-4">
                         {/* Format Info */}
-                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                        <div className="rounded-xl border border-default-200 bg-content2 p-4">
                             <div className="flex items-center gap-2 mb-3">
                                 <Icon icon="solar:info-circle-bold" className="text-blue-500" />
-                                <span className="text-sm font-medium text-slate-700">รูปแบบข้อมูล</span>
+                                <span className="text-sm font-medium text-default-700">รูปแบบข้อมูล</span>
                             </div>
-                            <p className="text-sm text-slate-600 mb-3">คัดลอกข้อมูลจาก Excel โดยเรียงคอลัมน์ดังนี้:</p>
+                            <p className="mb-3 text-sm text-default-600">คัดลอกข้อมูลจาก Excel โดยเรียงคอลัมน์ดังนี้:</p>
                             <div className="flex flex-wrap gap-2 mb-3">
                                 <Chip size="sm" variant="flat" className="bg-blue-100 text-blue-700">คอลัมน์ A: รหัสนักศึกษา</Chip>
                                 <Chip size="sm" variant="flat" className="bg-emerald-100 text-emerald-700">คอลัมน์ B: คะแนน</Chip>
                             </div>
-                            <div className="flex items-start gap-2 text-xs text-slate-500">
+                            <div className="flex items-start gap-2 text-xs text-default-500">
                                 <Icon icon="solar:lightbulb-bolt-bold" className="text-amber-500 mt-0.5" />
                                 <span>เมื่อคัดลอกจาก Excel แล้ววาง ระบบจะแยกข้อมูลอัตโนมัติ</span>
                             </div>
                         </div>
 
                         {/* Textarea for paste */}
-                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                        <div className="rounded-xl border border-default-200 bg-content2 p-4">
                             <div className="flex items-center gap-2 mb-3">
-                                <Icon icon="solar:clipboard-list-bold" className="text-slate-500" />
-                                <span className="text-sm font-medium text-slate-700">ข้อมูลคะแนน</span>
+                                <Icon icon="solar:clipboard-list-bold" className="text-default-500" />
+                                <span className="text-sm font-medium text-default-700">ข้อมูลคะแนน</span>
                                 {bulkSettingId && settings.find(s => s.id === bulkSettingId) && (
                                     <Chip size="sm" variant="flat" className="bg-purple-100 text-purple-700 ml-auto">
                                         คะแนนเต็ม: {settings.find(s => s.id === bulkSettingId)?.max_score}
@@ -714,7 +714,7 @@ export default function ExamScoresTab({
                                 )}
                             </div>
                             <textarea
-                                className="w-full h-40 p-3 bg-white border border-slate-200 rounded-lg font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                className="h-40 w-full resize-none rounded-lg border border-default-200 bg-content1 p-3 font-mono text-sm text-foreground focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                 placeholder="ตัวอย่าง: 650705010-1    85"
                                 value={bulkData}
                                 onChange={(e) => {
@@ -746,7 +746,7 @@ export default function ExamScoresTab({
                                 </div>
 
                                 {/* Validation List */}
-                                <div className="max-h-64 overflow-y-auto border border-slate-200 rounded-lg divide-y divide-slate-100">
+                                <div className="max-h-64 overflow-y-auto rounded-lg border border-default-200 divide-y divide-divider">
                                     {parsedBulkData.map((item, index) => (
                                         <div 
                                             key={index}
@@ -774,7 +774,7 @@ export default function ExamScoresTab({
                                                 />
                                                 <div>
                                                     <span className="font-mono text-sm font-medium">{item.inputStudentId}</span>
-                                                    <span className="mx-2 text-slate-400">→</span>
+                                                    <span className="mx-2 text-default-400">→</span>
                                                     <span className="font-mono text-sm">{item.inputScore || "-"}</span>
                                                 </div>
                                             </div>
@@ -804,7 +804,7 @@ export default function ExamScoresTab({
                     <ModalFooter>
                         <Button 
                             variant="flat"
-                            className="bg-slate-100 text-slate-600"
+                            className="bg-content3 text-default-600"
                             onPress={() => {
                                 setIsBulkModalOpen(false);
                                 setBulkData("");
@@ -831,25 +831,25 @@ export default function ExamScoresTab({
             <Modal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} size="3xl" scrollBehavior="inside">
                 <ModalContent>
                     <ModalHeader className="flex items-center gap-3">
-                        <div className="p-2 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
+                        <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
                             <Icon icon="solar:settings-bold" className="text-xl text-white" />
                         </div>
                         <div>
                             <h3 className="text-lg font-semibold">ตั้งค่าการสอบ</h3>
-                            <p className="text-sm text-slate-500 font-normal">กำหนดการเปิดใช้งาน คะแนนเต็ม และการแสดงผล</p>
+                            <p className="text-sm font-normal text-default-500">กำหนดการเปิดใช้งาน คะแนนเต็ม และการแสดงผล</p>
                         </div>
                     </ModalHeader>
                     <ModalBody>
                         <div className="space-y-6">
                             {/* Midterm */}
                             <div>
-                                <h4 className="font-medium text-slate-700 mb-3 flex items-center gap-2">
+                                <h4 className="mb-3 flex items-center gap-2 font-medium text-default-700">
                                     <Icon icon="solar:notebook-bold" className="text-blue-500" />
                                     สอบกลางภาค
                                 </h4>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     {(settings || []).filter(s => s.exam_type === 'midterm').map(setting => (
-                                        <Card key={setting.id} className="border border-slate-200">
+                                        <Card key={setting.id} className="border border-default-200 bg-content1">
                                             <CardBody className="p-4">
                                                 <div className="flex items-center justify-between mb-3">
                                                     <div className="flex items-center gap-2">
@@ -902,13 +902,13 @@ export default function ExamScoresTab({
 
                             {/* Final */}
                             <div>
-                                <h4 className="font-medium text-slate-700 mb-3 flex items-center gap-2">
+                                <h4 className="mb-3 flex items-center gap-2 font-medium text-default-700">
                                     <Icon icon="solar:notebook-bold" className="text-indigo-500" />
                                     สอบปลายภาค
                                 </h4>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     {(settings || []).filter(s => s.exam_type === 'final').map(setting => (
-                                        <Card key={setting.id} className="border border-slate-200">
+                                        <Card key={setting.id} className="border border-default-200 bg-content1">
                                             <CardBody className="p-4">
                                                 <div className="flex items-center justify-between mb-3">
                                                     <div className="flex items-center gap-2">

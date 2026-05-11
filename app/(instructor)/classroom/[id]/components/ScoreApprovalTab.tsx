@@ -391,10 +391,10 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-lg font-semibold text-slate-800">
+                    <h2 className="text-lg font-semibold text-foreground">
                         {isReadOnly ? "สถานะคำร้องแก้ไขคะแนน" : "อนุมัติการแก้ไขคะแนน"}
                     </h2>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-default-500">
                         {isReadOnly
                             ? "ติดตามสถานะคำร้องขอแก้ไขคะแนนที่คุณส่ง"
                             : "ตรวจสอบและอนุมัติคำร้องขอแก้ไขคะแนนจาก TA"
@@ -418,7 +418,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                     tabList: "gap-6",
                     cursor: "bg-blue-500",
                     tab: "px-0 h-10",
-                    tabContent: "group-data-[selected=true]:text-blue-600 text-slate-500 font-medium text-sm",
+                    tabContent: "group-data-[selected=true]:text-blue-600 text-default-500 font-medium text-sm",
                 }}
             >
                 <Tab
@@ -472,9 +472,9 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                         <div className="text-center">
                             <Icon
                                 icon={filterStatus === "pending" ? "solar:inbox-linear" : "solar:clipboard-check-linear"}
-                                className="text-5xl text-slate-300 mx-auto mb-3"
+                                className="mx-auto mb-3 text-5xl text-default-300"
                             />
-                            <p className="text-slate-500">
+                            <p className="text-default-500">
                                 {filterStatus === "pending"
                                     ? "ไม่มีคำร้องรออนุมัติ"
                                     : filterStatus === "approved"
@@ -491,9 +491,9 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                     selectionMode="multiple"
                     className="px-0 gap-3"
                     itemClasses={{
-                        base: "shadow-sm border border-slate-200 rounded-xl",
-                        title: "font-medium text-slate-700",
-                        trigger: "px-4 py-3 data-[hover=true]:bg-slate-50 rounded-xl",
+                        base: "rounded-xl border border-default-200 bg-content1 shadow-sm",
+                        title: "font-medium text-default-700",
+                        trigger: "rounded-xl px-4 py-3 data-[hover=true]:bg-content2",
                         content: "px-4 pb-4",
                     }}
                 >
@@ -520,35 +520,35 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
                                         {isGroup ? (
                                             <>
-                                                <span className="font-medium text-slate-800">งานกลุ่ม</span>
-                                                <span className="text-slate-500 text-sm">
+                                                <span className="font-medium text-foreground">งานกลุ่ม</span>
+                                                <span className="text-sm text-default-500">
                                                     ({group.requests.map(r => r.student.full_name).join(", ")})
                                                 </span>
                                             </>
                                         ) : (
                                             <>
-                                                <span className="font-medium text-slate-800">{firstRequest.student.full_name}</span>
-                                                <span className="text-slate-500">{firstRequest.student.student_id}</span>
+                                                <span className="font-medium text-foreground">{firstRequest.student.full_name}</span>
+                                                <span className="text-default-500">{firstRequest.student.student_id}</span>
                                             </>
                                         )}
                                     </div>
                                 }
                                 subtitle={
                                     <div className="flex flex-wrap items-center gap-2 mt-1">
-                                        <span className="text-slate-600">{group.assignment.name}</span>
+                                        <span className="text-default-600">{group.assignment.name}</span>
                                         {group.sub_item && (
-                                            <span className="text-slate-400">• {group.sub_item.name}</span>
+                                            <span className="text-default-400">• {group.sub_item.name}</span>
                                         )}
-                                        <span className="text-slate-400">•</span>
+                                        <span className="text-default-400">•</span>
                                         <span className="font-medium">
-                                            <span className="text-slate-500">{group.old_score ?? "-"}</span>
-                                            <span className="mx-1 text-slate-400">→</span>
+                                            <span className="text-default-500">{group.old_score ?? "-"}</span>
+                                            <span className="mx-1 text-default-400">→</span>
                                             <span className="text-emerald-600">{group.new_score}</span>
-                                            <span className="text-slate-400 text-xs">/{group.sub_item?.max_score ?? group.assignment.max_score}</span>
+                                            <span className="text-xs text-default-400">/{group.sub_item?.max_score ?? group.assignment.max_score}</span>
                                         </span>
                                         {group.images && group.images.length > 0 && (
                                             <>
-                                                <span className="text-slate-400">•</span>
+                                                <span className="text-default-400">•</span>
                                                 <span className="text-blue-500 text-xs flex items-center gap-1">
                                                     <Icon icon="solar:gallery-bold" />
                                                     {group.images.length} รูป
@@ -561,23 +561,23 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                 <div className="space-y-4">
                                     {/* Group Members List (for group batch requests) */}
                                     {isGroup && (
-                                        <div className="rounded-lg border border-slate-200 overflow-hidden">
-                                            <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
-                                                <p className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+                                        <div className="overflow-hidden rounded-lg border border-default-200">
+                                            <div className="flex items-center justify-between border-b border-divider bg-content2 px-3 py-2">
+                                                <p className="flex items-center gap-1.5 text-xs font-semibold text-default-600">
                                                     <Icon icon="solar:users-group-two-rounded-bold" className="text-blue-500" />
                                                     สมาชิก ({group.requests.length} คน)
                                                 </p>
                                                 {group.status === "pending" && (
-                                                    <span className="text-xs text-slate-400">
+                                                    <span className="text-xs text-default-400">
                                                         รออนุมัติ {group.requests.filter(r => r.status === "pending").length} คน
                                                     </span>
                                                 )}
                                             </div>
-                                            <div className="divide-y divide-slate-100">
+                                            <div className="divide-y divide-divider">
                                                 {group.requests.map(req => (
                                                     <div key={req.id} className={`flex items-center justify-between px-3 py-2.5 ${
                                                         req.status === "approved" ? "bg-emerald-50/40" :
-                                                        req.status === "rejected" ? "bg-red-50/40" : "bg-white"
+                                                        req.status === "rejected" ? "bg-red-50/40" : "bg-content1"
                                                     }`}>
                                                         <div className="flex items-center gap-2">
                                                             <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
@@ -590,14 +590,14 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                                 }`} />
                                                             </div>
                                                             <div>
-                                                                <p className="text-sm font-medium text-slate-800">{req.student.full_name}</p>
-                                                                <p className="text-xs text-slate-400">{req.student.student_id}</p>
+                                                                <p className="text-sm font-medium text-foreground">{req.student.full_name}</p>
+                                                                <p className="text-xs text-default-400">{req.student.student_id}</p>
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-3">
-                                                            <span className="text-sm text-slate-500 hidden sm:inline">
-                                                                <span className="text-slate-400">{req.old_score ?? "-"}</span>
-                                                                <span className="mx-1 text-slate-300">→</span>
+                                                            <span className="hidden text-sm text-default-500 sm:inline">
+                                                                <span className="text-default-400">{req.old_score ?? "-"}</span>
+                                                                <span className="mx-1 text-default-300">→</span>
                                                                 <span className="text-emerald-600 font-semibold">{req.new_score}</span>
                                                             </span>
                                                             {req.status === "approved" && (
@@ -617,27 +617,27 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                     )}
 
                                     {/* Score Change Details */}
-                                    <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg">
+                                    <div className="flex items-center gap-4 rounded-lg bg-content2 p-3">
                                         {!isGroup && (
                                             <>
                                                 <div className="text-center flex-1">
-                                                    <p className="text-xs text-slate-500 mb-1">คะแนนเดิม</p>
-                                                    <p className="text-2xl font-bold text-slate-600">
+                                                    <p className="mb-1 text-xs text-default-500">คะแนนเดิม</p>
+                                                    <p className="text-2xl font-bold text-default-600">
                                                         {group.old_score ?? "-"}
                                                     </p>
                                                 </div>
-                                                <Icon icon="solar:arrow-right-linear" className="text-2xl text-slate-300" />
+                                                <Icon icon="solar:arrow-right-linear" className="text-2xl text-default-300" />
                                             </>
                                         )}
                                         <div className="text-center flex-1">
-                                            <p className="text-xs text-slate-500 mb-1">คะแนนใหม่</p>
+                                            <p className="mb-1 text-xs text-default-500">คะแนนใหม่</p>
                                             <p className="text-2xl font-bold text-emerald-600">
                                                 {group.new_score}
                                             </p>
                                         </div>
-                                        <div className={`text-center flex-1 pl-4 border-l border-slate-200 ${isGroup ? "" : ""}`}>
-                                            <p className="text-xs text-slate-500 mb-1">คะแนนเต็ม</p>
-                                            <p className="text-2xl font-medium text-slate-400">
+                                        <div className={`flex-1 border-l border-divider pl-4 text-center ${isGroup ? "" : ""}`}>
+                                            <p className="mb-1 text-xs text-default-500">คะแนนเต็ม</p>
+                                            <p className="text-2xl font-medium text-default-400">
                                                 {group.sub_item?.max_score ?? group.assignment.max_score}
                                             </p>
                                         </div>
@@ -645,12 +645,12 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
 
                                     {/* Reason */}
                                     {group.reason && (
-                                        <div className="p-3 bg-amber-50 rounded-lg border border-amber-100">
-                                            <p className="text-xs text-amber-600 font-medium mb-1">
+                                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-700/45 dark:bg-amber-950/35">
+                                            <p className="mb-1 text-xs font-medium text-amber-700 dark:text-amber-300">
                                                 <Icon icon="solar:chat-round-line-bold" className="inline mr-1" />
                                                 เหตุผลการแก้ไข
                                             </p>
-                                            <p className="text-sm text-slate-700">{group.reason}</p>
+                                            <p className="text-sm text-amber-950 dark:text-amber-50">{group.reason}</p>
                                         </div>
                                     )}
 
@@ -690,37 +690,37 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                     {/* Review Comment (for approved/rejected) */}
                                     {!isGroup && firstRequest.review_comment && firstRequest.status !== "pending" && (
                                         <div className={`p-3 rounded-lg border ${firstRequest.status === "approved"
-                                            ? "bg-emerald-50 border-emerald-100"
-                                            : "bg-red-50 border-red-100"
+                                            ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/35 dark:border-emerald-700/45"
+                                            : "bg-red-50 border-red-200 dark:bg-red-950/35 dark:border-red-700/45"
                                             }`}>
                                             <p className={`text-xs font-medium mb-1 ${firstRequest.status === "approved" ? "text-emerald-600" : "text-red-600"
                                                 }`}>
                                                 <Icon icon={firstRequest.status === "approved" ? "solar:check-circle-bold" : "solar:close-circle-bold"} className="inline mr-1" />
                                                 {firstRequest.status === "approved" ? "หมายเหตุการอนุมัติ" : "เหตุผลการปฏิเสธ"}
                                             </p>
-                                            <p className="text-sm text-slate-700">{firstRequest.review_comment}</p>
+                                            <p className={`text-sm ${firstRequest.status === "approved" ? "text-emerald-950 dark:text-emerald-50" : "text-red-950 dark:text-red-50"}`}>{firstRequest.review_comment}</p>
                                         </div>
                                     )}
                                     {isGroup && group.requests.some(r => r.review_comment && r.status !== "pending") && (
                                         <div className="space-y-2">
                                             {group.requests.filter(r => r.review_comment && r.status !== "pending").map(req => (
                                                 <div key={req.id} className={`p-3 rounded-lg border ${req.status === "approved"
-                                                    ? "bg-emerald-50 border-emerald-100"
-                                                    : "bg-red-50 border-red-100"
+                                                    ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/35 dark:border-emerald-700/45"
+                                                    : "bg-red-50 border-red-200 dark:bg-red-950/35 dark:border-red-700/45"
                                                 }`}>
                                                     <p className={`text-xs font-medium mb-1 ${req.status === "approved" ? "text-emerald-600" : "text-red-600"}`}>
                                                         <Icon icon={req.status === "approved" ? "solar:check-circle-bold" : "solar:close-circle-bold"} className="inline mr-1" />
                                                         {req.student.full_name} — {req.status === "approved" ? "หมายเหตุการอนุมัติ" : "เหตุผลการปฏิเสธ"}
                                                     </p>
-                                                    <p className="text-sm text-slate-700">{req.review_comment}</p>
+                                                    <p className={`text-sm ${req.status === "approved" ? "text-emerald-950 dark:text-emerald-50" : "text-red-950 dark:text-red-50"}`}>{req.review_comment}</p>
                                                 </div>
                                             ))}
                                         </div>
                                     )}
 
                                     {/* Meta Info & Actions */}
-                                    <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-slate-100">
-                                        <div className="flex flex-wrap gap-4 text-xs text-slate-500">
+                                    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-divider pt-2">
+                                        <div className="flex flex-wrap gap-4 text-xs text-default-500">
                                             <div className="flex items-center gap-1">
                                                 <Icon icon="solar:user-linear" />
                                                 <span>ร้องขอโดย: {group.requester.full_name}</span>
@@ -836,24 +836,24 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                         {actionModal.request && !actionModal.group && (
                             <div className="space-y-4">
                                 {/* Request Summary */}
-                                <div className="p-3 bg-slate-50 rounded-lg space-y-2">
+                                <div className="space-y-2 rounded-lg bg-content2 p-3">
                                     <p className="text-sm">
-                                        <span className="text-slate-500">งาน:</span>{" "}
+                                        <span className="text-default-500">งาน:</span>{" "}
                                         <span className="font-medium">{actionModal.request.assignment.name}</span>
                                         {actionModal.request.sub_item && (
-                                            <span className="text-slate-500"> - {actionModal.request.sub_item.name}</span>
+                                            <span className="text-default-500"> - {actionModal.request.sub_item.name}</span>
                                         )}
                                     </p>
                                     <p className="text-sm">
-                                        <span className="text-slate-500">นักศึกษา:</span>{" "}
+                                        <span className="text-default-500">นักศึกษา:</span>{" "}
                                         <span className="font-medium">{actionModal.request.student.student_id} - {actionModal.request.student.full_name}</span>
                                     </p>
                                     <p className="text-sm">
-                                        <span className="text-slate-500">คะแนน:</span>{" "}
-                                        <span className="text-slate-600">{actionModal.request.old_score ?? "-"}</span>
+                                        <span className="text-default-500">คะแนน:</span>{" "}
+                                        <span className="text-default-600">{actionModal.request.old_score ?? "-"}</span>
                                         <span className="mx-2">→</span>
                                         <span className="font-bold text-emerald-600">{actionModal.request.new_score}</span>
-                                        <span className="text-slate-400"> / {actionModal.request.sub_item?.max_score ?? actionModal.request.assignment.max_score}</span>
+                                        <span className="text-default-400"> / {actionModal.request.sub_item?.max_score ?? actionModal.request.assignment.max_score}</span>
                                     </p>
                                 </div>
 
@@ -877,27 +877,27 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                         {actionModal.group && (
                             <div className="space-y-4">
                                 {/* Group Summary */}
-                                <div className="p-3 bg-slate-50 rounded-lg space-y-2">
+                                <div className="space-y-2 rounded-lg bg-content2 p-3">
                                     <p className="text-sm">
-                                        <span className="text-slate-500">งาน:</span>{" "}
+                                        <span className="text-default-500">งาน:</span>{" "}
                                         <span className="font-medium">{actionModal.group.assignment.name}</span>
                                         {actionModal.group.sub_item && (
-                                            <span className="text-slate-500"> - {actionModal.group.sub_item.name}</span>
+                                            <span className="text-default-500"> - {actionModal.group.sub_item.name}</span>
                                         )}
                                     </p>
                                     <p className="text-sm">
-                                        <span className="text-slate-500">คะแนน:</span>{" "}
-                                        <span className="text-slate-600">{actionModal.group.old_score ?? "-"}</span>
+                                        <span className="text-default-500">คะแนน:</span>{" "}
+                                        <span className="text-default-600">{actionModal.group.old_score ?? "-"}</span>
                                         <span className="mx-2">→</span>
                                         <span className="font-bold text-emerald-600">{actionModal.group.new_score}</span>
-                                        <span className="text-slate-400"> / {actionModal.group.sub_item?.max_score ?? actionModal.group.assignment.max_score}</span>
+                                        <span className="text-default-400"> / {actionModal.group.sub_item?.max_score ?? actionModal.group.assignment.max_score}</span>
                                     </p>
                                 </div>
 
                                 {/* Member Selection */}
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between">
-                                        <p className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+                                        <p className="flex items-center gap-1.5 text-sm font-medium text-default-700">
                                             <Icon icon="solar:users-group-two-rounded-bold" className="text-blue-500" />
                                             เลือกสมาชิกที่ต้องการ{actionModal.type === "approve" ? "อนุมัติ" : "ปฏิเสธ"}
                                         </p>
@@ -922,7 +922,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                             </Button>
                                         </div>
                                     </div>
-                                    <div className="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100 overflow-hidden max-h-64 overflow-y-auto">
+                                    <div className="max-h-64 overflow-y-auto rounded-lg border border-default-200 bg-content1 divide-y divide-divider">
                                         {actionModal.group.requests
                                             .filter(r => r.status === "pending")
                                             .map(req => (
@@ -931,7 +931,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                     className={`flex items-center justify-between p-3 cursor-pointer transition-all ${
                                                         actionModal.selectedIds.includes(req.id)
                                                             ? 'bg-blue-50/70'
-                                                            : 'hover:bg-slate-50'
+                                                            : 'hover:bg-content2'
                                                     }`}
                                                     onClick={() => toggleRequestSelection(req.id)}
                                                 >
@@ -939,7 +939,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                         <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
                                                             actionModal.selectedIds.includes(req.id)
                                                                 ? 'bg-blue-500 border-blue-500 shadow-sm'
-                                                                : 'border-slate-300 bg-white hover:border-blue-300'
+                                                                : 'border-default-300 bg-content1 hover:border-blue-300'
                                                         }`}>
                                                             {actionModal.selectedIds.includes(req.id) && (
                                                                 <Icon icon="solar:check-bold" className="text-white text-xs" />
@@ -949,15 +949,15 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                             <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
                                                                 actionModal.selectedIds.includes(req.id)
                                                                     ? 'bg-blue-100 text-blue-600'
-                                                                    : 'bg-slate-100 text-slate-600'
+                                                                    : 'bg-content3 text-default-600'
                                                             }`}>
                                                                 <Icon icon="solar:user-bold" className="text-sm" />
                                                             </div>
                                                             <div>
-                                                                <p className="text-sm font-medium text-slate-700">
+                                                                <p className="text-sm font-medium text-default-700">
                                                                     {req.student.full_name}
                                                                 </p>
-                                                                <p className="text-xs text-slate-500">
+                                                                <p className="text-xs text-default-500">
                                                                     {req.student.student_id}
                                                                 </p>
                                                             </div>
@@ -965,8 +965,8 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <div className="text-sm">
-                                                            <span className="text-slate-500">{req.old_score ?? "-"}</span>
-                                                            <span className="mx-1 text-slate-400">→</span>
+                                                            <span className="text-default-500">{req.old_score ?? "-"}</span>
+                                                            <span className="mx-1 text-default-400">→</span>
                                                             <span className="text-emerald-600 font-semibold">{req.new_score}</span>
                                                         </div>
                                                         {actionModal.selectedIds.includes(req.id) && (
@@ -979,7 +979,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                             ))}
                                     </div>
                                     <div className="flex items-center justify-between text-xs">
-                                        <p className="text-slate-500 flex items-center gap-1">
+                                        <p className="flex items-center gap-1 text-default-500">
                                             <Icon icon="solar:user-check-bold" className="text-blue-500" />
                                             เลือกแล้ว {actionModal.selectedIds.length} / {actionModal.group.requests.filter(r => r.status === "pending").length} คน
                                         </p>
@@ -1050,8 +1050,8 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                 <Icon icon="solar:danger-triangle-bold" className="text-xl text-amber-600" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-semibold text-slate-800">ยืนยันการยกเลิกคำร้อง</h3>
-                                <p className="text-sm text-slate-500">กรุณาตรวจสอบข้อมูลก่อนยืนยัน</p>
+                                <h3 className="text-lg font-semibold text-foreground">ยืนยันการยกเลิกคำร้อง</h3>
+                                <p className="text-sm text-default-500">กรุณาตรวจสอบข้อมูลก่อนยืนยัน</p>
                             </div>
                         </div>
                     </ModalHeader>
@@ -1059,27 +1059,27 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                     <ModalBody className="py-4">
                         {cancelModalRequest && (
                             <div className="space-y-3">
-                                <Card className="border border-slate-200 bg-slate-50/60 shadow-none">
+                                <Card className="border border-default-200 bg-content2/80 shadow-none">
                                     <CardBody className="py-3 px-4 space-y-2">
                                         <p className="text-sm">
-                                            <span className="text-slate-500">งาน:</span>{" "}
-                                            <span className="font-medium text-slate-800">{cancelModalRequest.assignment.name}</span>
+                                            <span className="text-default-500">งาน:</span>{" "}
+                                            <span className="font-medium text-foreground">{cancelModalRequest.assignment.name}</span>
                                             {cancelModalRequest.sub_item && (
-                                                <span className="text-slate-500"> - {cancelModalRequest.sub_item.name}</span>
+                                                <span className="text-default-500"> - {cancelModalRequest.sub_item.name}</span>
                                             )}
                                         </p>
                                         <p className="text-sm">
-                                            <span className="text-slate-500">นักศึกษา:</span>{" "}
-                                            <span className="font-medium text-slate-800">
+                                            <span className="text-default-500">นักศึกษา:</span>{" "}
+                                            <span className="font-medium text-foreground">
                                                 {cancelModalRequest.student.student_id} - {cancelModalRequest.student.full_name}
                                             </span>
                                         </p>
                                         <p className="text-sm">
-                                            <span className="text-slate-500">คะแนน:</span>{" "}
-                                            <span className="text-slate-600">{cancelModalRequest.old_score ?? "-"}</span>
-                                            <span className="mx-2 text-slate-400">→</span>
+                                            <span className="text-default-500">คะแนน:</span>{" "}
+                                            <span className="text-default-600">{cancelModalRequest.old_score ?? "-"}</span>
+                                            <span className="mx-2 text-default-400">→</span>
                                             <span className="font-semibold text-emerald-600">{cancelModalRequest.new_score}</span>
-                                            <span className="text-slate-400"> / {cancelModalRequest.sub_item?.max_score ?? cancelModalRequest.assignment.max_score}</span>
+                                            <span className="text-default-400"> / {cancelModalRequest.sub_item?.max_score ?? cancelModalRequest.assignment.max_score}</span>
                                         </p>
                                     </CardBody>
                                 </Card>
@@ -1099,7 +1099,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                         )}
                     </ModalBody>
                     <Divider />
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button
                             variant="light"
                             onPress={() => setCancelModalRequest(null)}

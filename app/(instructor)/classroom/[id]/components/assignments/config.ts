@@ -44,10 +44,10 @@ export const getTypeInfo = (type: string): AssignmentTypeInfo => {
         default:
             return { 
                 label: "งาน", 
-                color: "bg-slate-100 text-slate-700", 
+                color: "bg-content3 text-default-700", 
                 icon: "solar:clipboard-list-bold",
-                bgColor: "bg-slate-100",
-                textColor: "text-slate-600"
+                bgColor: "bg-content3",
+                textColor: "text-default-600"
             };
     }
 };
@@ -58,7 +58,7 @@ export const getTypeBgColor = (type: string): string => {
         case "assignment": return "bg-amber-100";
         case "permanent_group": return "bg-purple-100";
         case "weekly_group": return "bg-emerald-100";
-        default: return "bg-slate-100";
+        default: return "bg-content3";
     }
 };
 
@@ -68,7 +68,7 @@ export const getTypeTextColor = (type: string): string => {
         case "assignment": return "text-amber-600";
         case "permanent_group": return "text-purple-600";
         case "weekly_group": return "text-emerald-600";
-        default: return "text-slate-600";
+        default: return "text-default-600";
     }
 };
 

@@ -32,35 +32,36 @@ import type { User, CreateUserDto, UpdateUserDto, UserStats } from "@/services/u
 import { useAdmin } from "@/contexts/AdminContext";
 import { useTableParams } from "@/lib/table/use-table-params";
 import { MetricCardSkeleton, TableRowsSkeleton } from "@/components/ui/resource-loading";
+import { useI18n } from "@/hooks/useI18n";
 
 // Column definitions
-const columns = [
-    { key: "username", label: "ชื่อผู้ใช้", sortable: true },
-    { key: "full_name", label: "ชื่อ-นามสกุล", sortable: true },
-    { key: "email", label: "อีเมล", sortable: true },
-    { key: "role", label: "บทบาท", sortable: true },
-    { key: "status", label: "สถานะ", sortable: true },
-    { key: "provider", label: "ประเภท", sortable: false },
-    { key: "actions", label: "จัดการ", sortable: false },
+const columnDefs = [
+    { key: "username", labelKey: "username", sortable: true },
+    { key: "full_name", labelKey: "fullName", sortable: true },
+    { key: "email", labelKey: "email", sortable: true },
+    { key: "role", labelKey: "role", sortable: true },
+    { key: "status", labelKey: "status", sortable: true },
+    { key: "provider", labelKey: "type", sortable: false },
+    { key: "actions", labelKey: "actions", sortable: false },
 ];
 
-const roleOptions = [
-    { key: "all", label: "ทุกบทบาท" },
-    { key: "admin", label: "ผู้ดูแลระบบ" },
-    { key: "instructor", label: "อาจารย์" },
-    { key: "ta", label: "ผู้ช่วยสอน" },
+const roleOptionDefs = [
+    { key: "all", labelKey: "allRoles" },
+    { key: "admin", labelKey: "roleAdmin" },
+    { key: "instructor", labelKey: "roleInstructor" },
+    { key: "ta", labelKey: "roleTa" },
 ];
 
-const statusOptions = [
-    { key: "all", label: "ทุกสถานะ" },
-    { key: "active", label: "ใช้งาน" },
-    { key: "inactive", label: "ปิดใช้งาน" },
+const statusOptionDefs = [
+    { key: "all", labelKey: "allStatuses" },
+    { key: "active", labelKey: "active" },
+    { key: "inactive", labelKey: "inactive" },
 ];
 
-const roleLabels: Record<string, string> = {
-    admin: "ผู้ดูแลระบบ",
-    instructor: "อาจารย์",
-    ta: "ผู้ช่วยสอน",
+const roleLabelKeys: Record<string, string> = {
+    admin: "roleAdmin",
+    instructor: "roleInstructor",
+    ta: "roleTa",
 };
 
 const roleColors: Record<string, "primary" | "secondary" | "success" | "warning" | "danger"> = {
@@ -70,6 +71,7 @@ const roleColors: Record<string, "primary" | "secondary" | "success" | "warning"
 };
 
 export default function UsersPage() {
+    const t = useI18n();
     const { user: authUser } = useAdmin();
     const { emitDataUpdate, onDataUpdate, subscribeToUpdates, unsubscribeFromUpdates, isConnected } = useSocket();
     const isUpdatingRef = useRef(false);
@@ -100,6 +102,21 @@ export default function UsersPage() {
     const statusFilter = String(params.status ?? "all");
     const sortBy = String(params.sort ?? "created_at");
     const sortOrder: "ASC" | "DESC" = params.order === "asc" ? "ASC" : "DESC";
+    const columns = columnDefs.map((column) => ({
+        ...column,
+        label: t(column.labelKey),
+    }));
+    const roleOptions = roleOptionDefs.map((option) => ({
+        ...option,
+        label: t(option.labelKey),
+    }));
+    const statusOptions = statusOptionDefs.map((option) => ({
+        ...option,
+        label: t(option.labelKey),
+    }));
+    const roleLabels = Object.fromEntries(
+        Object.entries(roleLabelKeys).map(([role, key]) => [role, t(key)])
+    ) as Record<string, string>;
 
     // Loading state
     const [isLoading, setIsLoading] = useState(true);
@@ -150,8 +167,8 @@ export default function UsersPage() {
         } catch (error) {
             console.error("Error fetching users:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถโหลดข้อมูลผู้ใช้ได้",
+                title: t("somethingWentWrong"),
+                description: t("cannotLoadUsers"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -195,7 +212,6 @@ export default function UsersPage() {
     useEffect(() => {
         const unsubscribe = onDataUpdate((data) => {
             if (data.resource === "user" && !isUpdatingRef.current) {
-                console.log("📥 User data updated from another source:", data);
                 fetchUsers();
                 fetchStats();
             }
@@ -207,8 +223,8 @@ export default function UsersPage() {
     const handleCreate = async () => {
         if (!formData.username || !formData.full_name) {
             addToast({
-                title: "กรุณากรอกข้อมูลให้ครบ",
-                description: "ชื่อผู้ใช้ และชื่อ-นามสกุล จำเป็นต้องกรอก",
+                title: t("pleaseFillRequiredFields"),
+                description: t("usernameAndFullNameRequired"),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -232,9 +248,9 @@ export default function UsersPage() {
                 fetchStats();
                 emitDataUpdate("user", "create");
             } else {
-                const errorMessage = (response as { error?: { message?: string } }).error?.message || "เกิดข้อผิดพลาด";
+                const errorMessage = (response as { error?: { message?: string } }).error?.message || t("somethingWentWrong");
                 addToast({
-                    title: "ไม่สามารถสร้างผู้ใช้ได้",
+                    title: t("createUserFailed"),
                     description: errorMessage,
                     color: "danger",
                     timeout: 3000,
@@ -243,8 +259,8 @@ export default function UsersPage() {
             }
         } catch (error) {
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถสร้างผู้ใช้ได้",
+                title: t("somethingWentWrong"),
+                description: t("createUserFailed"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -273,8 +289,8 @@ export default function UsersPage() {
             const response = await userService.updateUser(selectedUser.ID, updateData);
             if (response.success) {
                 addToast({
-                    title: "อัปเดตผู้ใช้สำเร็จ",
-                    description: `ผู้ใช้ ${formData.username} ถูกอัปเดตเรียบร้อยแล้ว`,
+                    title: t("updateUserSuccess"),
+                    description: t("userUpdatedForUsername", { username: formData.username }),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -284,9 +300,9 @@ export default function UsersPage() {
                 fetchUsers();
                 emitDataUpdate("user", "update", selectedUser.ID);
             } else {
-                const errorMessage = (response as { error?: { message?: string } }).error?.message || "เกิดข้อผิดพลาด";
+                const errorMessage = (response as { error?: { message?: string } }).error?.message || t("somethingWentWrong");
                 addToast({
-                    title: "ไม่สามารถอัปเดตผู้ใช้ได้",
+                    title: t("updateUserFailed"),
                     description: errorMessage,
                     color: "danger",
                     timeout: 3000,
@@ -295,8 +311,8 @@ export default function UsersPage() {
             }
         } catch (error) {
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถอัปเดตผู้ใช้ได้",
+                title: t("somethingWentWrong"),
+                description: t("updateUserFailed"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -317,8 +333,8 @@ export default function UsersPage() {
             const response = await userService.deleteUser(selectedUser.ID);
             if (response.success) {
                 addToast({
-                    title: "ลบผู้ใช้สำเร็จ",
-                    description: `ผู้ใช้ ${selectedUser.username} ถูกลบเรียบร้อยแล้ว`,
+                    title: t("deleteUserSuccess"),
+                    description: t("userDeletedForUsername", { username: selectedUser.username }),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -330,8 +346,8 @@ export default function UsersPage() {
                 emitDataUpdate("user", "delete", selectedUser.ID);
             } else {
                 addToast({
-                    title: "ไม่สามารถลบผู้ใช้ได้",
-                    description: response.message || "เกิดข้อผิดพลาด",
+                    title: t("deleteUserFailed"),
+                    description: response.message || t("somethingWentWrong"),
                     color: "danger",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -339,8 +355,8 @@ export default function UsersPage() {
             }
         } catch (error) {
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถลบผู้ใช้ได้",
+                title: t("somethingWentWrong"),
+                description: t("deleteUserFailed"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -367,8 +383,10 @@ export default function UsersPage() {
             const response = await userService.toggleStatus(user.ID);
             if (response.success) {
                 addToast({
-                    title: user.is_active ? "ปิดใช้งานสำเร็จ" : "เปิดใช้งานสำเร็จ",
-                    description: `ผู้ใช้ ${user.username} ถูก${user.is_active ? "ปิด" : "เปิด"}ใช้งานแล้ว`,
+                    title: user.is_active ? t("disableUserSuccess") : t("enableUserSuccess"),
+                    description: user.is_active
+                        ? t("userDisabledForUsername", { username: user.username })
+                        : t("userEnabledForUsername", { username: user.username }),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -378,8 +396,8 @@ export default function UsersPage() {
                 emitDataUpdate("user", "toggle", user.ID);
             } else {
                 addToast({
-                    title: "เกิดข้อผิดพลาด",
-                    description: response.message || "ไม่สามารถเปลี่ยนสถานะได้",
+                    title: t("somethingWentWrong"),
+                    description: response.message || t("toggleUserStatusFailed"),
                     color: "danger",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -387,8 +405,8 @@ export default function UsersPage() {
             }
         } catch (error) {
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถเปลี่ยนสถานะได้",
+                title: t("somethingWentWrong"),
+                description: t("toggleUserStatusFailed"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -416,16 +434,16 @@ export default function UsersPage() {
         try {
             await navigator.clipboard.writeText(text);
             addToast({
-                title: "คัดลอกแล้ว",
-                description: `${label} ถูกคัดลอกไปยังคลิปบอร์ดแล้ว`,
+                title: t("copiedToClipboard"),
+                description: t("copiedLabelToClipboard", { label }),
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
             });
         } catch (error) {
             addToast({
-                title: "ไม่สามารถคัดลอกได้",
-                description: "กรุณาคัดลอกด้วยตนเอง",
+                title: t("unableToCopy"),
+                description: t("pleaseCopyManually"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -453,8 +471,8 @@ export default function UsersPage() {
         if (file) {
             if (file.size > 2 * 1024 * 1024) {
                 addToast({
-                    title: "ไฟล์ใหญ่เกินไป",
-                    description: "กรุณาเลือกไฟล์ขนาดไม่เกิน 2MB",
+                    title: t("fileTooLarge"),
+                    description: t("chooseFileUpTo2Mb"),
                     color: "warning",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -492,7 +510,7 @@ export default function UsersPage() {
                             size="md"
                             src={user.avatar || undefined}
                             name={user.full_name}
-                            className="bg-gradient-to-br from-blue-400 to-indigo-500 text-white"
+                            className="bg-linear-to-br from-blue-400 to-indigo-500 text-white"
                         />
                         <div>
                             <p className="font-medium">{user.username}</p>
@@ -525,7 +543,7 @@ export default function UsersPage() {
                         variant="dot"
                         size="sm"
                     >
-                        {user.is_active ? "ใช้งาน" : "ปิดใช้งาน"}
+                        {user.is_active ? t("active") : t("inactive")}
                     </Chip>
                 );
             case "provider":
@@ -536,14 +554,14 @@ export default function UsersPage() {
                             className="text-lg"
                         />
                         <span className="text-sm text-default-500">
-                            {user.provider === "google" ? "Google" : "Local"}
+                            {user.provider === "google" ? t("providerGoogle") : t("providerLocal")}
                         </span>
                     </div>
                 );
             case "actions":
                 return (
                     <div className="flex items-center gap-1 justify-center">
-                        <Tooltip content="แก้ไข">
+                        <Tooltip content={t("editAction")}>
                             <Button
                                 isIconOnly
                                 size="sm"
@@ -553,7 +571,7 @@ export default function UsersPage() {
                                 <Icon icon="solar:pen-linear" className="text-lg text-default-500" />
                             </Button>
                         </Tooltip>
-                        <Tooltip content={user.is_active ? "ปิดใช้งาน" : "เปิดใช้งาน"}>
+                        <Tooltip content={user.is_active ? t("disableAction") : t("enableAction")}>
                             <Button
                                 isIconOnly
                                 size="sm"
@@ -583,7 +601,7 @@ export default function UsersPage() {
             default:
                 return getKeyValue(user, columnKey as keyof User);
         }
-    }, [authUser]);
+    }, [authUser, roleLabels, t]);
 
     // Handle sort
     const handleSort = (column: string) => {
@@ -600,11 +618,11 @@ export default function UsersPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                 <div className="flex items-center gap-3">
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-bold text-default-900">จัดการผู้ใช้งาน</h1>
-                        <p className="text-sm text-default-500">จัดการผู้ใช้งานในระบบ</p>
+                        <h1 className="text-xl sm:text-2xl font-bold text-default-900">{t("manageUsers")}</h1>
+                        <p className="text-sm text-default-500">{t("manageUsersInSystem")}</p>
                     </div>
                     {/* Live Indicator */}
-                    <Tooltip content={isConnected ? "ซิงค์แบบเรียลไทม์กำลังทำงาน" : "กำลังเชื่อมต่อ..."}>
+                    <Tooltip content={isConnected ? t("realTimeSyncRunning") : t("connectingRealtime")}>
                         <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
                             isConnected 
                                 ? "bg-emerald-100 text-emerald-700" 
@@ -613,7 +631,7 @@ export default function UsersPage() {
                             <span className={`w-2 h-2 rounded-full ${
                                 isConnected ? "bg-emerald-500 animate-pulse" : "bg-yellow-500"
                             }`}></span>
-                            {isConnected ? "Live" : "..."}
+                            {isConnected ? t("liveStatus") : "..."}
                         </div>
                     </Tooltip>
                 </div>
@@ -626,54 +644,54 @@ export default function UsersPage() {
                     }}
                     className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 w-full sm:w-auto"
                 >
-                    เพิ่มผู้ใช้
+                    {t("addUser")}
                 </Button>
             </div>
 
             {/* Stats Cards */}
             {stats ? (
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    <div className="bg-white rounded-xl p-3 sm:p-4 border border-default-200 shadow-sm">
+                    <div className="rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:p-4">
                         <div className="flex items-center gap-3">
                             <div className="p-2 sm:p-2.5 bg-blue-100 rounded-xl">
                                 <Icon icon="solar:users-group-rounded-bold" className="text-xl sm:text-2xl text-blue-600" />
                             </div>
                             <div className="min-w-0">
-                                <p className="text-xs sm:text-sm text-default-500">ผู้ใช้ทั้งหมด</p>
-                                <p className="text-xl sm:text-2xl font-bold text-default-900">{stats.total}</p>
+                                <p className="text-xs sm:text-sm text-default-500">{t("allUsers")}</p>
+                                <p className="text-xl sm:text-2xl font-bold text-foreground">{stats.total}</p>
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-xl p-3 sm:p-4 border border-default-200 shadow-sm">
+                    <div className="rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:p-4">
                         <div className="flex items-center gap-3">
                             <div className="p-2 sm:p-2.5 bg-red-100 rounded-xl">
                                 <Icon icon="solar:shield-user-bold" className="text-xl sm:text-2xl text-red-600" />
                             </div>
                             <div className="min-w-0">
-                                <p className="text-xs sm:text-sm text-default-500">ผู้ดูแลระบบ</p>
-                                <p className="text-xl sm:text-2xl font-bold text-default-900">{stats.byRole.admin}</p>
+                                <p className="text-xs sm:text-sm text-default-500">{t("roleAdmin")}</p>
+                                <p className="text-xl sm:text-2xl font-bold text-foreground">{stats.byRole.admin}</p>
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-xl p-3 sm:p-4 border border-default-200 shadow-sm">
+                    <div className="rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:p-4">
                         <div className="flex items-center gap-3">
                             <div className="p-2 sm:p-2.5 bg-purple-100 rounded-xl">
                                 <Icon icon="solar:user-check-bold" className="text-xl sm:text-2xl text-purple-600" />
                             </div>
                             <div className="min-w-0">
-                                <p className="text-xs sm:text-sm text-default-500">อาจารย์</p>
-                                <p className="text-xl sm:text-2xl font-bold text-default-900">{stats.byRole.instructor}</p>
+                                <p className="text-xs sm:text-sm text-default-500">{t("roleInstructor")}</p>
+                                <p className="text-xl sm:text-2xl font-bold text-foreground">{stats.byRole.instructor}</p>
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-xl p-3 sm:p-4 border border-default-200 shadow-sm">
+                    <div className="rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:p-4">
                         <div className="flex items-center gap-3">
                             <div className="p-2 sm:p-2.5 bg-green-100 rounded-xl">
                                 <Icon icon="solar:user-hand-up-bold" className="text-xl sm:text-2xl text-green-600" />
                             </div>
                             <div className="min-w-0">
-                                <p className="text-xs sm:text-sm text-default-500">ผู้ช่วยสอน</p>
-                                <p className="text-xl sm:text-2xl font-bold text-default-900">{stats.byRole.ta}</p>
+                                <p className="text-xs sm:text-sm text-default-500">{t("roleTa")}</p>
+                                <p className="text-xl sm:text-2xl font-bold text-foreground">{stats.byRole.ta}</p>
                             </div>
                         </div>
                     </div>
@@ -688,12 +706,12 @@ export default function UsersPage() {
             ) : null}
 
             {/* Table Card with Filters */}
-            <div className="bg-white rounded-xl border border-default-200 shadow-sm overflow-hidden">
+            <div className="overflow-hidden rounded-xl border border-default-200 bg-content1 shadow-sm">
                 <div className="p-3 sm:p-4">
                     <div className="flex flex-col md:flex-row gap-3 pb-3 sm:pb-4">
                         <Input
                             className="w-full md:flex-1"
-                            placeholder="ค้นหาผู้ใช้..."
+                            placeholder={t("searchUsers")}
                             value={searchInput}
                             onValueChange={(value) => {
                                 setSearchInput(value);
@@ -713,15 +731,15 @@ export default function UsersPage() {
                         />
                         <div className="flex gap-2 flex-wrap md:flex-nowrap">
                             <Select
-                                className="flex-1 min-w-[150px] sm:w-48"
-                                placeholder="บทบาท"
+                                className="flex-1 min-w-37.5 sm:w-48"
+                                placeholder={t("rolePlaceholder")}
                                 selectedKeys={[roleFilter]}
                                 onSelectionChange={(keys) => {
                                     const value = Array.from(keys)[0] as string;
                                     setFilter("role", value);
                                 }}
                                 classNames={{
-                                    trigger: "bg-slate-50 border-slate-200 hover:border-slate-300",
+                                    trigger: "bg-content2 border-default-200 hover:border-default-300",
                                 }}
                                 variant="bordered"
                             >
@@ -730,15 +748,15 @@ export default function UsersPage() {
                                 ))}
                             </Select>
                             <Select
-                                className="flex-1 min-w-[150px] sm:w-48"
-                                placeholder="สถานะ"
+                                className="flex-1 min-w-37.5 sm:w-48"
+                                placeholder={t("statusPlaceholder")}
                                 selectedKeys={[statusFilter]}
                                 onSelectionChange={(keys) => {
                                     const value = Array.from(keys)[0] as string;
                                     setFilter("status", value);
                                 }}
                                 classNames={{
-                                    trigger: "bg-slate-50 border-slate-200 hover:border-slate-300",
+                                    trigger: "bg-content2 border-default-200 hover:border-default-300",
                                 }}
                                 variant="bordered"
                             >
@@ -751,13 +769,13 @@ export default function UsersPage() {
 
                     {/* Table with horizontal scroll on mobile */}
                     <div className="overflow-x-auto -mx-3 sm:-mx-4 px-3 sm:px-4">
-                        <div className="min-w-[700px]">
+                        <div className="min-w-175">
                             <Table
-                                aria-label="Users table"
+                                aria-label={t("usersTable")}
                                 removeWrapper
                                 classNames={{
-                                    th: "bg-slate-50 text-slate-600 font-semibold text-xs sm:text-sm",
-                                    td: "py-2 sm:py-3 text-sm",
+                                    th: "bg-content2 text-default-600 font-semibold text-xs sm:text-sm",
+                                    td: "py-2 text-sm sm:py-3",
                                 }}
                             >
                                 <TableHeader columns={columns}>
@@ -780,7 +798,7 @@ export default function UsersPage() {
                                     emptyContent={
                                         <div className="py-10 text-center">
                                             <Icon icon="solar:users-group-rounded-linear" className="text-5xl text-default-300 mx-auto mb-3" />
-                                            <p className="text-default-400">ไม่พบข้อมูลผู้ใช้</p>
+                                            <p className="text-default-400">{t("noUsersFound")}</p>
                                         </div>
                                     }
                                     loadingContent={
@@ -805,9 +823,13 @@ export default function UsersPage() {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-3 sm:px-4 py-3 border-t border-slate-100">
-                        <span className="text-xs sm:text-sm text-slate-500 order-2 sm:order-1">
-                            แสดง {((page - 1) * limit) + 1} - {Math.min(page * limit, totalItems)} จาก {totalItems} รายการ
+                    <div className="flex flex-col items-center justify-between gap-3 border-t border-divider px-3 py-3 sm:flex-row sm:px-4">
+                        <span className="order-2 text-xs text-default-500 sm:order-1 sm:text-sm">
+                            {t("showingRangeOfTotal", {
+                                start: ((page - 1) * limit) + 1,
+                                end: Math.min(page * limit, totalItems),
+                                total: totalItems,
+                            })}
                         </span>
                         <Pagination
                             total={totalPages}
@@ -836,22 +858,22 @@ export default function UsersPage() {
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
                         <div className="flex items-center gap-3 sm:gap-4">
-                            <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                            <div className="p-2 sm:p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:user-plus-bold" className="text-xl sm:text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-lg sm:text-xl font-bold text-slate-800">เพิ่มผู้ใช้ใหม่</h3>
-                                <p className="text-xs sm:text-sm text-slate-500 font-normal mt-1">กรอกข้อมูลผู้ใช้ที่ต้องการเพิ่มในระบบ</p>
+                                <h3 className="text-lg font-bold text-foreground sm:text-xl">{t("addNewUser")}</h3>
+                                <p className="mt-1 text-xs font-normal text-default-500 sm:text-sm">{t("fillUserDetailsInSystem")}</p>
                             </div>
                         </div>
                     </ModalHeader>
                     <ModalBody className="px-4 sm:px-6 py-4 sm:py-6">
                         <div className="space-y-5">
                             {/* รูปโปรไฟล์ */}
-                            <div className="bg-slate-50 rounded-xl p-5 space-y-5">
+                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:camera-bold" className="text-lg text-purple-500" />
-                                    <span className="text-sm font-semibold text-slate-700">รูปโปรไฟล์</span>
+                                    <span className="text-sm font-semibold text-default-700">{t("profilePicture")}</span>
                                 </div>
                                 <div className="flex items-center gap-6 py-3">
                                     <div className="relative">
@@ -859,7 +881,7 @@ export default function UsersPage() {
                                             size="lg"
                                             src={avatarPreview || undefined}
                                             name={formData.full_name || "I T"}
-                                            className="w-24 h-24 text-2xl bg-gradient-to-br from-blue-400 to-indigo-500 text-white"
+                                            className="w-24 h-24 text-2xl bg-linear-to-br from-blue-400 to-indigo-500 text-white"
                                         />
                                         {avatarPreview && (
                                             <Button
@@ -882,10 +904,10 @@ export default function UsersPage() {
                                                 onChange={handleAvatarUpload}
                                                 className="hidden"
                                             />
-                                            <div className="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center hover:border-purple-400 hover:bg-purple-50/50 transition-colors">
+                                            <div className="rounded-xl border-2 border-dashed border-default-300 p-4 text-center transition-colors hover:border-purple-400 hover:bg-purple-50/50 dark:hover:bg-purple-500/10">
                                                 <Icon icon="solar:cloud-upload-bold-duotone" className="text-3xl text-purple-400 mx-auto mb-2" />
-                                                <p className="text-slate-600 text-sm font-medium">คลิกเพื่ออัปโหลดรูป</p>
-                                                <p className="text-slate-400 text-xs mt-1">JPG, PNG ไม่เกิน 2MB</p>
+                                                <p className="text-sm font-medium text-default-600">{t("clickToUploadImage")}</p>
+                                                <p className="mt-1 text-xs text-default-400">{t("imageMaxSizeHint")}</p>
                                             </div>
                                         </label>
                                     </div>
@@ -893,16 +915,16 @@ export default function UsersPage() {
                             </div>
 
                             {/* ข้อมูลส่วนตัว */}
-                            <div className="bg-slate-50 rounded-xl p-5 space-y-5">
+                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:user-id-bold" className="text-lg text-emerald-500" />
-                                    <span className="text-sm font-semibold text-slate-700">ข้อมูลส่วนตัว</span>
+                                    <span className="text-sm font-semibold text-default-700">{t("personalInformation")}</span>
                                 </div>
                                 <div className="grid grid-cols-1 gap-4 py-3">
                                     <Input
-                                        label="ชื่อ-นามสกุล"
+                                        label={t("fullName")}
                                         labelPlacement="outside"
-                                        placeholder="กรอกชื่อ-นามสกุล"
+                                        placeholder={t("enterFullName")}
                                         variant="bordered"
                                         size="md"
                                         value={formData.full_name}
@@ -910,14 +932,14 @@ export default function UsersPage() {
                                         isRequired
                                         startContent={<Icon icon="solar:user-id-linear" className="text-emerald-400 text-xl" />}
                                         classNames={{
-                                            inputWrapper: "bg-white border-slate-200 hover:border-emerald-300 focus-within:!border-emerald-400",
-                                            label: "text-slate-600 font-medium text-sm",
+                                            inputWrapper: "bg-content1 border-default-200 hover:border-emerald-300 focus-within:!border-emerald-400",
+                                            label: "text-default-600 font-medium text-sm",
                                         }}
                                     />
                                     <Input
-                                        label="อีเมล"
+                                        label={t("email")}
                                         labelPlacement="outside"
-                                        placeholder="กรอกอีเมล (ไม่บังคับ)"
+                                        placeholder={t("enterOptionalEmail")}
                                         type="email"
                                         variant="bordered"
                                         size="md"
@@ -925,24 +947,24 @@ export default function UsersPage() {
                                         onValueChange={(value) => setFormData({ ...formData, email: value })}
                                         startContent={<Icon icon="solar:letter-linear" className="text-emerald-400 text-xl" />}
                                         classNames={{
-                                            inputWrapper: "bg-white border-slate-200 hover:border-emerald-300 focus-within:!border-emerald-400",
-                                            label: "text-slate-600 font-medium text-sm",
+                                            inputWrapper: "bg-content1 border-default-200 hover:border-emerald-300 focus-within:!border-emerald-400",
+                                            label: "text-default-600 font-medium text-sm",
                                         }}
                                     />
                                 </div>
                             </div>
 
                             {/* ข้อมูลบัญชี */}
-                            <div className="bg-slate-50 rounded-xl p-5 space-y-5">
+                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:shield-user-bold" className="text-lg text-blue-500" />
-                                    <span className="text-sm font-semibold text-slate-700">ข้อมูลบัญชี</span>
+                                    <span className="text-sm font-semibold text-default-700">{t("accountInformation")}</span>
                                 </div>
                                 <div className="grid grid-cols-1 gap-5 py-3">
                                     <Input
-                                        label="ชื่อผู้ใช้"
+                                        label={t("username")}
                                         labelPlacement="outside"
-                                        placeholder="กรอกชื่อผู้ใช้"
+                                        placeholder={t("enterUsername")}
                                         variant="bordered"
                                         size="md"
                                         value={formData.username}
@@ -950,15 +972,15 @@ export default function UsersPage() {
                                         isRequired
                                         startContent={<Icon icon="solar:user-linear" className="text-blue-400 text-xl" />}
                                         classNames={{
-                                            inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                            label: "text-slate-600 font-medium text-sm",
+                                            inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                            label: "text-default-600 font-medium text-sm",
                                         }}
                                     />                                
                                 </div>
                                 <Select
-                                    label="บทบาท"
+                                    label={t("role")}
                                     labelPlacement="outside"
-                                    placeholder="เลือกบทบาท"
+                                    placeholder={t("selectRole")}
                                     variant="bordered"
                                     size="md"
                                     selectedKeys={[formData.role]}
@@ -968,27 +990,27 @@ export default function UsersPage() {
                                     }}
                                     isRequired
                                     classNames={{
-                                        trigger: "text-sm bg-white border-slate-200 hover:border-blue-300 data-[focus=true]:border-blue-400",
-                                        label: "text-slate-600 font-medium text-sm",
+                                        trigger: "bg-content1 border-default-200 text-sm hover:border-blue-300 data-[focus=true]:border-blue-400",
+                                        label: "text-default-600 font-medium text-sm",
                                     }}
                                 >
-                                    <SelectItem key="admin" startContent={<Icon icon="solar:shield-user-bold" className="text-red-500" />}>ผู้ดูแลระบบ</SelectItem>
-                                    <SelectItem key="instructor" startContent={<Icon icon="solar:user-check-bold" className="text-purple-500" />}>อาจารย์</SelectItem>
-                                    <SelectItem key="ta" startContent={<Icon icon="solar:user-hand-up-bold" className="text-green-500" />}>ผู้ช่วยสอน</SelectItem>
+                                    <SelectItem key="admin" startContent={<Icon icon="solar:shield-user-bold" className="text-red-500" />}>{t("roleAdmin")}</SelectItem>
+                                    <SelectItem key="instructor" startContent={<Icon icon="solar:user-check-bold" className="text-purple-500" />}>{t("roleInstructor")}</SelectItem>
+                                    <SelectItem key="ta" startContent={<Icon icon="solar:user-hand-up-bold" className="text-green-500" />}>{t("roleTa")}</SelectItem>
                                 </Select>
                             </div>
 
 
                         </div>
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100 gap-3">
+                    <ModalFooter className="gap-3 border-t border-divider px-6 py-4">
                         <Button
                             variant="flat"
                             color="default"
                             onPress={() => setIsCreateModalOpen(false)}
                             className="font-medium px-6"
                         >
-                            ยกเลิก
+                            {t("cancel")}
                         </Button>
                         <Button
                             color="primary"
@@ -997,7 +1019,7 @@ export default function UsersPage() {
                             className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500"
                             startContent={!isSubmitting && <Icon icon="solar:add-circle-bold" className="text-lg" />}
                         >
-                            เพิ่มผู้ใช้
+                            {t("addUser")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -1008,22 +1030,22 @@ export default function UsersPage() {
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                            <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:pen-new-square-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">แก้ไขผู้ใช้</h3>
-                                <p className="text-sm text-slate-500 font-normal mt-1">แก้ไขข้อมูลผู้ใช้ {selectedUser?.username}</p>
+                                <h3 className="text-xl font-bold text-foreground">{t("editUser")}</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">{t("editUserWithUsername", { username: selectedUser?.username || "" })}</p>
                             </div>
                         </div>
                     </ModalHeader>
                     <ModalBody className="px-6 py-6">
                         <div className="space-y-5">
                             {/* รูปโปรไฟล์ */}
-                            <div className="bg-slate-50 rounded-xl p-5 space-y-5">
+                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:camera-bold" className="text-lg text-purple-500" />
-                                    <span className="text-sm font-semibold text-slate-700">รูปโปรไฟล์</span>
+                                    <span className="text-sm font-semibold text-default-700">{t("profilePicture")}</span>
                                 </div>
                                 <div className="flex items-center gap-6 py-3">
                                     <div className="relative">
@@ -1031,7 +1053,7 @@ export default function UsersPage() {
                                             size="lg"
                                             src={avatarPreview || undefined}
                                             name={formData.full_name || "User"}
-                                            className="w-24 h-24 text-2xl bg-gradient-to-br from-blue-400 to-indigo-500 text-white"
+                                            className="w-24 h-24 text-2xl bg-linear-to-br from-blue-400 to-indigo-500 text-white"
                                         />
                                         {avatarPreview && (
                                             <Button
@@ -1054,10 +1076,10 @@ export default function UsersPage() {
                                                 onChange={handleAvatarUpload}
                                                 className="hidden"
                                             />
-                                            <div className="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center hover:border-purple-400 hover:bg-purple-50/50 transition-colors">
+                                            <div className="rounded-xl border-2 border-dashed border-default-300 p-4 text-center transition-colors hover:border-purple-400 hover:bg-purple-50/50 dark:hover:bg-purple-500/10">
                                                 <Icon icon="solar:cloud-upload-bold-duotone" className="text-3xl text-purple-400 mx-auto mb-2" />
-                                                <p className="text-slate-600 text-sm font-medium">คลิกเพื่ออัปโหลดรูป</p>
-                                                <p className="text-slate-400 text-xs mt-1">JPG, PNG ไม่เกิน 2MB</p>
+                                                <p className="text-sm font-medium text-default-600">{t("clickToUploadImage")}</p>
+                                                <p className="mt-1 text-xs text-default-400">{t("imageMaxSizeHint")}</p>
                                             </div>
                                         </label>
                                     </div>
@@ -1065,16 +1087,16 @@ export default function UsersPage() {
                             </div>
 
                             {/* ข้อมูลส่วนตัว */}
-                            <div className="bg-slate-50 rounded-xl p-5 space-y-5">
+                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:user-id-bold" className="text-lg text-emerald-500" />
-                                    <span className="text-sm font-semibold text-slate-700">ข้อมูลส่วนตัว</span>
+                                    <span className="text-sm font-semibold text-default-700">{t("personalInformation")}</span>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 py-3">
                                     <Input
-                                        label="ชื่อ-นามสกุล"
+                                        label={t("fullName")}
                                         labelPlacement="outside"
-                                        placeholder="กรอกชื่อ-นามสกุล"
+                                        placeholder={t("enterFullName")}
                                         variant="bordered"
                                         size="md"
                                         value={formData.full_name}
@@ -1082,14 +1104,14 @@ export default function UsersPage() {
                                         isRequired
                                         startContent={<Icon icon="solar:user-id-linear" className="text-emerald-400 text-xl" />}
                                         classNames={{
-                                            inputWrapper: "bg-white border-slate-200 hover:border-emerald-300 focus-within:!border-emerald-400",
-                                            label: "text-slate-600 font-medium text-sm",
+                                            inputWrapper: "bg-content1 border-default-200 hover:border-emerald-300 focus-within:!border-emerald-400",
+                                            label: "text-default-600 font-medium text-sm",
                                         }}
                                     />
                                     <Input
-                                        label="อีเมล"
+                                        label={t("email")}
                                         labelPlacement="outside"
-                                        placeholder="กรอกอีเมล (ไม่บังคับ)"
+                                        placeholder={t("enterOptionalEmail")}
                                         type="email"
                                         variant="bordered"
                                         size="md"
@@ -1097,24 +1119,24 @@ export default function UsersPage() {
                                         onValueChange={(value) => setFormData({ ...formData, email: value })}
                                         startContent={<Icon icon="solar:letter-linear" className="text-emerald-400 text-xl" />}
                                         classNames={{
-                                            inputWrapper: "bg-white border-slate-200 hover:border-emerald-300 focus-within:!border-emerald-400",
-                                            label: "text-slate-600 font-medium text-sm",
+                                            inputWrapper: "bg-content1 border-default-200 hover:border-emerald-300 focus-within:!border-emerald-400",
+                                            label: "text-default-600 font-medium text-sm",
                                         }}
                                     />
                                 </div>
                             </div>
 
                             {/* ข้อมูลบัญชี */}
-                            <div className="bg-slate-50 rounded-xl p-5 space-y-5">
+                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:shield-user-bold" className="text-lg text-blue-500" />
-                                    <span className="text-sm font-semibold text-slate-700">ข้อมูลบัญชี</span>
+                                    <span className="text-sm font-semibold text-default-700">{t("accountInformation")}</span>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 py-3">
                                     <Input
-                                        label="ชื่อผู้ใช้"
+                                        label={t("username")}
                                         labelPlacement="outside"
-                                        placeholder="กรอกชื่อผู้ใช้"
+                                        placeholder={t("enterUsername")}
                                         variant="bordered"
                                         size="md"
                                         value={formData.username}
@@ -1122,15 +1144,15 @@ export default function UsersPage() {
                                         isRequired
                                         startContent={<Icon icon="solar:user-linear" className="text-blue-400 text-xl" />}
                                         classNames={{
-                                            inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                            label: "text-slate-600 font-medium text-sm",
+                                            inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                            label: "text-default-600 font-medium text-sm",
                                         }}
                                     />
                                 </div>
                                 <Select
-                                    label="บทบาท"
+                                    label={t("role")}
                                     labelPlacement="outside"
-                                    placeholder="เลือกบทบาท"
+                                    placeholder={t("selectRole")}
                                     variant="bordered"
                                     size="md"
                                     selectedKeys={[formData.role]}
@@ -1141,27 +1163,27 @@ export default function UsersPage() {
                                     isRequired
                                     isDisabled={selectedUser?.ID === authUser?.id}
                                     classNames={{
-                                        trigger: "bg-white border-slate-200 hover:border-blue-300 data-[focus=true]:border-blue-400",
-                                        label: "text-slate-600 font-medium text-sm",
+                                        trigger: "bg-content1 border-default-200 hover:border-blue-300 data-[focus=true]:border-blue-400",
+                                        label: "text-default-600 font-medium text-sm",
                                     }}
                                 >
-                                    <SelectItem key="admin" startContent={<Icon icon="solar:shield-user-bold" className="text-red-500" />}>ผู้ดูแลระบบ</SelectItem>
-                                    <SelectItem key="instructor" startContent={<Icon icon="solar:user-check-bold" className="text-purple-500" />}>อาจารย์</SelectItem>
-                                    <SelectItem key="ta" startContent={<Icon icon="solar:user-hand-up-bold" className="text-green-500" />}>ผู้ช่วยสอน</SelectItem>
+                                    <SelectItem key="admin" startContent={<Icon icon="solar:shield-user-bold" className="text-red-500" />}>{t("roleAdmin")}</SelectItem>
+                                    <SelectItem key="instructor" startContent={<Icon icon="solar:user-check-bold" className="text-purple-500" />}>{t("roleInstructor")}</SelectItem>
+                                    <SelectItem key="ta" startContent={<Icon icon="solar:user-hand-up-bold" className="text-green-500" />}>{t("roleTa")}</SelectItem>
                                 </Select>
                             </div>
 
                             
                         </div>
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100 gap-3">
+                    <ModalFooter className="gap-3 border-t border-divider px-6 py-4">
                         <Button
                             variant="flat"
                             color="default"
                             onPress={() => setIsEditModalOpen(false)}
                             className="font-medium px-6"
                         >
-                            ยกเลิก
+                            {t("cancel")}
                         </Button>
                         <Button
                             color="primary"
@@ -1170,7 +1192,7 @@ export default function UsersPage() {
                             className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             startContent={!isSubmitting && <Icon icon="solar:diskette-bold" className="text-lg" />}
                         >
-                            บันทึกการแก้ไข
+                            {t("saveChanges")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -1182,41 +1204,41 @@ export default function UsersPage() {
                 <ModalContent>
                     <ModalHeader className="px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 rounded-xl shadow-lg bg-gradient-to-br from-blue-400 to-indigo-500 shadow-blue-500/30">
+                            <div className="p-3 rounded-xl shadow-lg bg-linear-to-br from-blue-400 to-indigo-500 shadow-blue-500/30">
                                 <Icon icon={userToToggle?.is_active ? "solar:eye-closed-bold" : "solar:eye-bold"} className="text-2xl text-white" />
                             </div>
-                            <h3 className="text-xl font-bold text-slate-800">
-                                {userToToggle?.is_active ? "ยืนยันการปิดใช้งาน" : "ยืนยันการเปิดใช้งาน"}
+                            <h3 className="text-xl font-bold text-foreground">
+                                {userToToggle?.is_active ? t("confirmDisableTitle") : t("confirmEnableTitle")}
                             </h3>
                         </div>
                     </ModalHeader>
                     <ModalBody className="px-6 py-6">
-                        <div className={`rounded-2xl p-6 border ${userToToggle?.is_active ? "bg-amber-50 border-amber-100" : "bg-emerald-50 border-emerald-100"}`}>
+                        <div className={`rounded-2xl border p-6 ${userToToggle?.is_active ? "border-amber-200 bg-amber-50 dark:border-amber-500/20 dark:bg-amber-500/10" : "border-emerald-200 bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-500/10"}`}>
                             <div className="flex items-center gap-4">
-                                <div className={`w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 ${userToToggle?.is_active ? "bg-amber-100" : "bg-emerald-100"}`}>
+                                <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full ${userToToggle?.is_active ? "bg-amber-100 dark:bg-amber-500/15" : "bg-emerald-100 dark:bg-emerald-500/15"}`}>
                                     <Icon icon="solar:user-bold" className={`text-2xl ${userToToggle?.is_active ? "text-amber-600" : "text-emerald-600"}`} />
                                 </div>
                                 <div>
-                                    <p className="font-semibold text-slate-800">{userToToggle?.full_name}</p>
-                                    <p className="text-sm text-slate-500">@{userToToggle?.username}</p>
-                                    <p className="text-xs text-slate-400 mt-1">{userToToggle ? roleLabels[userToToggle.role] : ""}</p>
+                                    <p className="font-semibold text-foreground">{userToToggle?.full_name}</p>
+                                    <p className="text-sm text-default-500">@{userToToggle?.username}</p>
+                                    <p className="mt-1 text-xs text-default-400">{userToToggle ? roleLabels[userToToggle.role] : ""}</p>
                                 </div>
                             </div>
-                            <p className={`mt-4 text-sm ${userToToggle?.is_active ? "text-amber-700" : "text-emerald-700"}`}>
+                            <p className={`mt-4 text-sm ${userToToggle?.is_active ? "text-amber-700 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-300"}`}>
                                 {userToToggle?.is_active
-                                    ? "ผู้ใช้จะไม่สามารถเข้าสู่ระบบได้หลังจากปิดใช้งาน"
-                                    : "ผู้ใช้จะสามารถเข้าสู่ระบบได้หลังจากเปิดใช้งาน"}
+                                    ? t("userCannotSignInAfterDisabled")
+                                    : t("userCanSignInAfterEnabled")}
                             </p>
                         </div>
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100 gap-3">
+                    <ModalFooter className="gap-3 border-t border-divider px-6 py-4">
                         <Button
                             variant="flat"
                             color="default"
                             onPress={() => setIsToggleStatusModalOpen(false)}
                             className="font-medium px-6"
                         >
-                            ยกเลิก
+                            {t("cancel")}
                         </Button>
                         <Button
                             color="primary"
@@ -1224,7 +1246,7 @@ export default function UsersPage() {
                             className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             startContent={<Icon icon={userToToggle?.is_active ? "solar:eye-closed-bold" : "solar:eye-bold"} className="text-lg" />}
                         >
-                            {userToToggle?.is_active ? "ปิดใช้งาน" : "เปิดใช้งาน"}
+                            {userToToggle?.is_active ? t("disableAction") : t("enableAction")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -1234,34 +1256,36 @@ export default function UsersPage() {
                 <ModalContent>
                     <ModalHeader className="px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                            <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:trash-bin-trash-bold" className="text-2xl text-white" />
                             </div>
-                            <h3 className="text-xl font-bold text-slate-800">ยืนยันการลบ</h3>
+                            <h3 className="text-xl font-bold text-foreground">{t("deleteConfirmTitle")}</h3>
                         </div>
                     </ModalHeader>
                     <ModalBody className="px-6 py-6">
-                        <div className="bg-red-50 rounded-2xl p-6 text-center border border-red-100">
-                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <div className="rounded-2xl border border-red-100 bg-red-50 p-6 text-center dark:border-danger-500/20 dark:bg-danger-500/10">
+                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-danger-500/15">
                                 <Icon icon="solar:user-cross-bold" className="text-3xl text-red-500" />
                             </div>
-                            <p className="text-slate-700 text-lg">
-                                คุณต้องการลบผู้ใช้ <strong className="text-red-600">{selectedUser?.username}</strong> หรือไม่?
+                            <p className="text-lg text-default-700">
+                                {t("doYouWantDeleteUser", { username: selectedUser?.username || "" }).split(selectedUser?.username || "")[0]}
+                                <strong className="text-red-600">{selectedUser?.username}</strong>
+                                {selectedUser?.username ? t("doYouWantDeleteUser", { username: selectedUser.username }).split(selectedUser.username)[1] : ""}
                             </p>
-                            <p className="text-sm text-slate-500 mt-3 bg-white rounded-lg p-3 border border-red-100">
+                            <p className="mt-3 rounded-lg border border-red-100 bg-content1 p-3 text-sm text-default-500 dark:border-danger-500/20">
                                 <Icon icon="solar:danger-triangle-bold" className="text-amber-500 inline mr-1" />
-                                การดำเนินการนี้ไม่สามารถย้อนกลับได้
+                                {t("irreversibleAction")}
                             </p>
                         </div>
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100 gap-3">
+                    <ModalFooter className="gap-3 border-t border-divider px-6 py-4">
                         <Button
                             variant="flat"
                             color="default"
                             onPress={() => setIsDeleteModalOpen(false)}
                             className="font-medium px-6"
                         >
-                            ยกเลิก
+                            {t("cancel")}
                         </Button>
                         <Button
                             color="primary"
@@ -1270,7 +1294,7 @@ export default function UsersPage() {
                             className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             startContent={!isSubmitting && <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />}
                         >
-                            ลบผู้ใช้
+                            {t("deleteUser")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -1290,42 +1314,42 @@ export default function UsersPage() {
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                            <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:check-circle-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">สร้างผู้ใช้สำเร็จ!</h3>
-                                <p className="text-sm text-slate-500 font-normal mt-1">กรุณาบันทึกข้อมูลด้านล่างนี้</p>
+                                <h3 className="text-xl font-bold text-foreground">{t("createUserSuccessTitle")}</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">{t("saveCredentialsBelow")}</p>
                             </div>
                         </div>
                     </ModalHeader>
                     <ModalBody className="px-6 py-6">
                         <div className="space-y-4">
                             {/* Warning */}
-                            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
                                 <div className="flex items-start gap-3">
                                     <Icon icon="solar:danger-triangle-bold" className="text-amber-500 text-xl mt-0.5" />
-                                    <div className="text-sm text-amber-700">
-                                        <p className="font-semibold">สำคัญ!</p>
-                                        <p className="mt-1">กรุณาคัดลอกรหัสผ่านนี้และส่งให้ผู้ใช้ เนื่องจากรหัสผ่านจะไม่สามารถดูได้อีกครั้ง</p>
+                                    <div className="text-sm text-amber-700 dark:text-amber-300">
+                                        <p className="font-semibold">{t("importantLabel")}</p>
+                                        <p className="mt-1">{t("copyPasswordAndShare")}</p>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Credentials */}
-                            <div className="bg-slate-50 rounded-xl p-5 space-y-4">
+                            <div className="space-y-4 rounded-xl bg-content2/80 p-5">
                                 {/* Username */}
                                 <div>
-                                    <label className="text-sm font-medium text-slate-600 mb-2 block">ชื่อผู้ใช้</label>
+                                    <label className="mb-2 block text-sm font-medium text-default-600">{t("username")}</label>
                                     <div className="flex items-center gap-2">
-                                        <div className="flex-1 p-3 bg-white border border-slate-200 rounded-lg font-mono text-slate-800">
+                                        <div className="flex-1 rounded-lg border border-default-200 bg-content1 p-3 font-mono text-foreground">
                                             {newCredentials?.username}
                                         </div>
                                         <Button
                                             isIconOnly
                                             variant="flat"
                                             color="primary"
-                                            onPress={() => copyToClipboard(newCredentials?.username || "", "ชื่อผู้ใช้")}
+                                            onPress={() => copyToClipboard(newCredentials?.username || "", t("username"))}
                                         >
                                             <Icon icon="solar:copy-bold" className="text-lg" />
                                         </Button>
@@ -1334,16 +1358,16 @@ export default function UsersPage() {
 
                                 {/* Password */}
                                 <div>
-                                    <label className="text-sm font-medium text-slate-600 mb-2 block">รหัสผ่าน (ชั่วคราว)</label>
+                                    <label className="mb-2 block text-sm font-medium text-default-600">{t("temporaryPassword")}</label>
                                     <div className="flex items-center gap-2">
-                                        <div className="flex-1 p-3 bg-white border border-slate-200 rounded-lg font-mono text-slate-800">
+                                        <div className="flex-1 rounded-lg border border-default-200 bg-content1 p-3 font-mono text-foreground">
                                             {newCredentials?.password}
                                         </div>
                                         <Button
                                             isIconOnly
                                             variant="flat"
                                             color="primary"
-                                            onPress={() => copyToClipboard(newCredentials?.password || "", "รหัสผ่าน")}
+                                            onPress={() => copyToClipboard(newCredentials?.password || "", t("password"))}
                                         >
                                             <Icon icon="solar:copy-bold" className="text-lg" />
                                         </Button>
@@ -1357,24 +1381,24 @@ export default function UsersPage() {
                                     className="w-full mt-2"
                                     startContent={<Icon icon="solar:clipboard-list-bold" className="text-lg" />}
                                     onPress={() => copyToClipboard(
-                                        `ชื่อผู้ใช้: ${newCredentials?.username}\nรหัสผ่าน: ${newCredentials?.password}`,
-                                        "ข้อมูลทั้งหมด"
+                                        `${t("username")}: ${newCredentials?.username}\n${t("password")}: ${newCredentials?.password}`,
+                                        t("copyAll")
                                     )}
                                 >
-                                    คัดลอกทั้งหมด
+                                    {t("copyAll")}
                                 </Button>
                             </div>
 
                             {/* Note */}
-                            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                <div className="flex items-center gap-2 text-sm text-blue-700">
+                            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-primary-500/20 dark:bg-primary/10">
+                                <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
                                     <Icon icon="solar:info-circle-bold" className="text-blue-500" />
-                                    <span>ผู้ใช้จะต้องเปลี่ยนรหัสผ่านเมื่อเข้าสู่ระบบครั้งแรก</span>
+                                    <span>{t("userMustChangePasswordOnFirstLogin")}</span>
                                 </div>
                             </div>
                         </div>
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button
                             color="primary"
                             onPress={() => {
@@ -1383,7 +1407,7 @@ export default function UsersPage() {
                             }}
                             className="w-full font-medium bg-linear-to-r from-blue-400 to-indigo-500"
                         >
-                            เสร็จสิ้น
+                            {t("done")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>

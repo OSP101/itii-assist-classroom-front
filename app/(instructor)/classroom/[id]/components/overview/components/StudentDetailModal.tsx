@@ -132,7 +132,7 @@ export function StudentDetailModal({ isOpen, onClose, student, courseId }: Stude
                 <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                     {student && (
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                            <div className="w-12 h-12 bg-linear-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
                                 <Icon icon="solar:user-bold" className="text-2xl text-white" />
                             </div>
                             <div className="flex-1">

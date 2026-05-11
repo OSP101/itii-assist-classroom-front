@@ -218,11 +218,11 @@ export default function SectionsTab({
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/30">
+                            <div className="p-3 bg-linear-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/30">
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">เพิ่มกลุ่มเรียน</h3>
-                                <p className="text-sm text-slate-500 font-normal mt-1">สร้างกลุ่มเรียนใหม่สำหรับรายวิชานี้</p>
+                                <h3 className="text-xl font-bold text-foreground">เพิ่มกลุ่มเรียน</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">สร้างกลุ่มเรียนใหม่สำหรับรายวิชานี้</p>
                             </div>
                         </div>
                     </ModalHeader>
@@ -240,8 +240,8 @@ export default function SectionsTab({
                                 className="pb-3"
                                 isRequired
                                 classNames={{
-                                    inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                    label: "text-slate-600 font-medium text-sm",
+                                    inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                    label: "text-sm font-medium text-default-600",
                                 }}
                             />
                             <Input
@@ -253,13 +253,13 @@ export default function SectionsTab({
                                 value={sectionModal.note}
                                 onValueChange={sectionModal.setNote}
                                 classNames={{
-                                    inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                    label: "text-slate-600 font-medium text-sm",
+                                    inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                    label: "text-sm font-medium text-default-600",
                                 }}
                             />
                         </div>
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button variant="light" onPress={sectionModal.reset}>
                             ยกเลิก
                         </Button>
@@ -285,12 +285,12 @@ export default function SectionsTab({
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                            <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:pen-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">แก้ไขกลุ่มเรียน</h3>
-                                <p className="text-sm text-slate-500 font-normal mt-1">แก้ไขข้อมูลกลุ่มเรียน</p>
+                                <h3 className="text-xl font-bold text-foreground">แก้ไขกลุ่มเรียน</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">แก้ไขข้อมูลกลุ่มเรียน</p>
                             </div>
                         </div>
                     </ModalHeader>
@@ -307,8 +307,8 @@ export default function SectionsTab({
                                 className="pb-3"
                                 isRequired
                                 classNames={{
-                                    inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                    label: "text-slate-600 font-medium text-sm",
+                                    inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                    label: "text-sm font-medium text-default-600",
                                 }}
                             />
                             <Input
@@ -320,13 +320,13 @@ export default function SectionsTab({
                                 value={editSectionModal.note}
                                 onValueChange={editSectionModal.setNote}
                                 classNames={{
-                                    inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                    label: "text-slate-600 font-medium text-sm",
+                                    inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                    label: "text-sm font-medium text-default-600",
                                 }}
                             />
                         </div>
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button variant="light" onPress={editSectionModal.reset}>
                             ยกเลิก
                         </Button>
@@ -354,12 +354,12 @@ export default function SectionsTab({
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+                            <div className="p-3 bg-linear-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
                                 <Icon icon="solar:user-plus-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">เพิ่มนักศึกษา</h3>
-                                <p className="text-sm text-slate-500 font-normal mt-1">
+                                <h3 className="text-xl font-bold text-foreground">เพิ่มนักศึกษา</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">
                                     กลุ่มเรียน Section {course.sections?.find(s => s.id === studentModal.sectionId)?.section_no}
                                 </p>
                             </div>
@@ -368,13 +368,13 @@ export default function SectionsTab({
                     <ModalBody className="px-6 py-4">
                         <div className="space-y-5">
                             {/* Mode Toggle */}
-                            <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
+                            <div className="flex gap-2 rounded-xl bg-content2 p-1">
                                 <button
                                     onClick={() => studentModal.setMode("single")}
                                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                                         studentModal.mode === "single"
-                                            ? "bg-white shadow-sm text-blue-600"
-                                            : "text-slate-600 hover:bg-slate-200"
+                                            ? "bg-content1 shadow-sm text-primary"
+                                            : "text-default-600 hover:bg-content3"
                                     }`}
                                 >
                                     <Icon icon="solar:user-bold" />
@@ -384,8 +384,8 @@ export default function SectionsTab({
                                     onClick={() => studentModal.setMode("bulk")}
                                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                                         studentModal.mode === "bulk"
-                                            ? "bg-white shadow-sm text-blue-600"
-                                            : "text-slate-600 hover:bg-slate-200"
+                                            ? "bg-content1 shadow-sm text-primary"
+                                            : "text-default-600 hover:bg-content3"
                                     }`}
                                 >
                                     <Icon icon="solar:clipboard-list-bold" />
@@ -400,20 +400,20 @@ export default function SectionsTab({
                                         value={studentModal.searchQuery}
                                         onValueChange={studentModal.setSearchQuery}
                                         variant="bordered"
-                                        startContent={<Icon icon="solar:magnifer-linear" className="text-slate-400" />}
+                                        startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
                                         classNames={{
-                                            inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                            inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
                                         }}
                                     />
-                                    <div className="border border-slate-200 rounded-xl overflow-hidden">
+                                    <div className="overflow-hidden rounded-xl border border-default-200">
                                         <div className="max-h-60 overflow-y-auto">
                                             {filteredStudents().map(student => (
                                                 <div
                                                     key={student.id}
-                                                    className={`flex items-center justify-between p-3 cursor-pointer transition-colors border-b border-slate-100 last:border-0 ${
+                                                    className={`flex items-center justify-between border-b border-divider p-3 transition-colors last:border-0 ${
                                                         studentModal.studentId === student.id.toString()
-                                                            ? "bg-blue-50 border-l-4 border-l-blue-500"
-                                                            : "hover:bg-slate-50"
+                                                            ? "border-l-4 border-l-primary bg-primary/10"
+                                                            : "hover:bg-content2"
                                                     }`}
                                                     onClick={() => studentModal.setStudentId(student.id.toString())}
                                                 >
@@ -424,8 +424,8 @@ export default function SectionsTab({
                                                             className="bg-blue-500"
                                                         />
                                                         <div>
-                                                            <p className="font-medium text-slate-800">{student.full_name}</p>
-                                                            <p className="text-sm text-slate-500">{student.student_id}</p>
+                                                            <p className="font-medium text-foreground">{student.full_name}</p>
+                                                            <p className="text-sm text-default-500">{student.student_id}</p>
                                                         </div>
                                                     </div>
                                                     {studentModal.studentId === student.id.toString() && (
@@ -435,8 +435,8 @@ export default function SectionsTab({
                                             ))}
                                             {filteredStudents().length === 0 && (
                                                 <div className="text-center py-8">
-                                                    <Icon icon="solar:users-group-rounded-linear" className="text-4xl text-slate-300 mx-auto mb-2" />
-                                                    <p className="text-slate-400">ไม่พบนักศึกษาที่ค้นหา</p>
+                                                    <Icon icon="solar:users-group-rounded-linear" className="mx-auto mb-2 text-4xl text-default-300" />
+                                                    <p className="text-default-400">ไม่พบนักศึกษาที่ค้นหา</p>
                                                 </div>
                                             )}
                                         </div>
@@ -462,14 +462,14 @@ export default function SectionsTab({
                                         minRows={5}
                                         variant="bordered"
                                         classNames={{
-                                            inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                            label: "text-slate-600 font-medium text-sm",
+                                            inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                            label: "text-sm font-medium text-default-600",
                                         }}
                                     />
                                     {studentModal.parsedStudents.length > 0 && (
-                                        <div className="border border-slate-200 rounded-xl overflow-hidden">
-                                            <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 flex items-center justify-between">
-                                                <p className="text-sm text-slate-600">ผลการตรวจสอบ</p>
+                                        <div className="overflow-hidden rounded-xl border border-default-200">
+                                            <div className="flex items-center justify-between border-b border-divider bg-content2 px-4 py-2">
+                                                <p className="text-sm text-default-600">ผลการตรวจสอบ</p>
                                                 <div className="flex gap-2 text-xs">
                                                     <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
                                                         พบ {studentModal.parsedStudents.filter(p => p.status === "matched").length}
@@ -486,7 +486,7 @@ export default function SectionsTab({
                                                 {studentModal.parsedStudents.map((result, idx) => (
                                                     <div
                                                         key={idx}
-                                                        className={`flex items-center justify-between p-3 border-b border-slate-100 last:border-0 ${
+                                                        className={`flex items-center justify-between border-b border-divider p-3 last:border-0 ${
                                                             result.status === "matched" ? "bg-blue-50" :
                                                             result.status === "already_enrolled" ? "bg-amber-50" : "bg-red-50"
                                                         }`}
@@ -506,7 +506,7 @@ export default function SectionsTab({
                             )}
                         </div>
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button variant="light" onPress={studentModal.reset}>
                             ยกเลิก
                         </Button>
@@ -546,17 +546,17 @@ export default function SectionsTab({
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 rounded-xl shadow-lg bg-gradient-to-br from-blue-400 to-indigo-500 shadow-blue-500/30">
+                            <div className="p-3 rounded-xl shadow-lg bg-linear-to-br from-blue-400 to-indigo-500 shadow-blue-500/30">
                                 <Icon icon="solar:users-group-two-rounded-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">
+                                <h3 className="text-xl font-bold text-foreground">
                                     {teamModal.formationMethod === "random"
                                         ? "สุ่มกลุ่มอัตโนมัติ"
                                         : `สร้าง${teamModal.type === "permanent" ? "กลุ่มโปรเจกต์" : "กลุ่มโปรเจกต์รายสัปดาห์"}ใหม่`
                                     }
                                 </h3>
-                                <p className="text-sm text-slate-500 font-normal mt-1">
+                                <p className="mt-1 text-sm font-normal text-default-500">
                                     {teamModal.formationMethod === "random"
                                         ? `สุ่มจับกลุ่ม${teamModal.type === "permanent" ? "โปรเจกต์" : `สัปดาห์ที่ ${selectedWeek}`}`
                                         : teamModal.type === "permanent"
@@ -573,7 +573,7 @@ export default function SectionsTab({
                                 <>
                                     {/* Random Formation Settings */}
                                     <div>
-                                        <label className="text-slate-600 font-medium text-sm mb-2 block">จำนวนสมาชิกต่อกลุ่ม</label>
+                                        <label className="mb-2 block text-sm font-medium text-default-600">จำนวนสมาชิกต่อกลุ่ม</label>
                                         <div className="flex items-center gap-3">
                                             <Button
                                                 isIconOnly
@@ -591,8 +591,8 @@ export default function SectionsTab({
                                                 <Icon icon="solar:users-group-rounded-linear" className={
                                                     teamModal.type === "permanent" ? "text-purple-500" : "text-emerald-500"
                                                 } />
-                                                <span className="font-bold text-lg text-slate-800">{teamModal.size}</span>
-                                                <span className="text-slate-500 text-sm">คน</span>
+                                                <span className="text-lg font-bold text-foreground">{teamModal.size}</span>
+                                                <span className="text-sm text-default-500">คน</span>
                                             </div>
                                             <Button
                                                 isIconOnly
@@ -660,13 +660,13 @@ export default function SectionsTab({
                                         onValueChange={teamModal.setName}
                                         isRequired
                                         classNames={{
-                                            inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                            label: "text-slate-600 font-medium text-sm",
+                                            inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                            label: "text-sm font-medium text-default-600",
                                         }}
                                     />
 
                                     {/* Member Selection Mode Toggle */}
-                                    <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
+                                    <div className="flex gap-2 rounded-xl bg-content2 p-1">
                                         <button
                                             onClick={() => {
                                                 teamModal.setMemberMode("select");
@@ -675,8 +675,8 @@ export default function SectionsTab({
                                             }}
                                             className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                                                 teamModal.memberMode === "select"
-                                                    ? `bg-white shadow-sm ${teamModal.type === "permanent" ? "text-purple-600" : "text-emerald-600"}`
-                                                    : "text-slate-600 hover:bg-slate-200"
+                                                    ? `bg-content1 shadow-sm ${teamModal.type === "permanent" ? "text-purple-600" : "text-emerald-600"}`
+                                                    : "text-default-600 hover:bg-content3"
                                             }`}
                                         >
                                             <Icon icon="solar:checklist-linear" />
@@ -689,8 +689,8 @@ export default function SectionsTab({
                                             }}
                                             className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                                                 teamModal.memberMode === "paste"
-                                                    ? `bg-white shadow-sm ${teamModal.type === "permanent" ? "text-purple-600" : "text-emerald-600"}`
-                                                    : "text-slate-600 hover:bg-slate-200"
+                                                    ? `bg-content1 shadow-sm ${teamModal.type === "permanent" ? "text-purple-600" : "text-emerald-600"}`
+                                                    : "text-default-600 hover:bg-content3"
                                             }`}
                                         >
                                             <Icon icon="solar:clipboard-list-linear" />
@@ -702,7 +702,7 @@ export default function SectionsTab({
                                     {teamModal.memberMode === "select" && (
                                         <div>
                                             <div className="flex items-center justify-between mb-2">
-                                                <label className="text-slate-600 font-medium text-sm">
+                                                <label className="text-sm font-medium text-default-600">
                                                     เลือกสมาชิก ({teamModal.members.length} คน)
                                                 </label>
                                                 {teamModal.members.length > 0 && (
@@ -716,9 +716,9 @@ export default function SectionsTab({
                                                     </Button>
                                                 )}
                                             </div>
-                                            <div className="border border-slate-200 rounded-xl overflow-hidden">
-                                                <div className="bg-slate-50 px-4 py-2 border-b border-slate-200">
-                                                    <p className="text-sm text-slate-600">
+                                            <div className="overflow-hidden rounded-xl border border-default-200">
+                                                <div className="border-b border-divider bg-content2 px-4 py-2">
+                                                    <p className="text-sm text-default-600">
                                                         นักศึกษาที่ยังไม่อยู่ในกลุ่ม: {getUnassignedStudents(teamModal.type, teamModal.type === "weekly" ? selectedWeek : undefined).length} คน
                                                     </p>
                                                 </div>
@@ -734,12 +734,12 @@ export default function SectionsTab({
                                                                         teamModal.setMembers([...teamModal.members, student.id]);
                                                                     }
                                                                 }}
-                                                                className={`flex items-center justify-between p-3 cursor-pointer transition-colors border-b border-slate-100 last:border-0 ${
+                                                                className={`flex items-center justify-between border-b border-divider p-3 transition-colors last:border-0 ${
                                                                     teamModal.members.includes(student.id)
                                                                         ? teamModal.type === "permanent"
                                                                             ? "bg-purple-50 border-l-4 border-l-purple-500"
                                                                             : "bg-emerald-50 border-l-4 border-l-emerald-500"
-                                                                        : "hover:bg-slate-50"
+                                                                        : "hover:bg-content2"
                                                                 }`}
                                                             >
                                                                 <div className="flex items-center gap-3">
@@ -747,8 +747,8 @@ export default function SectionsTab({
                                                                         teamModal.type === "permanent" ? "bg-purple-500" : "bg-emerald-500"
                                                                     } />
                                                                     <div>
-                                                                        <p className="font-medium text-slate-800">{student.full_name}</p>
-                                                                        <p className="text-sm text-slate-500">{student.student_id}</p>
+                                                                        <p className="font-medium text-foreground">{student.full_name}</p>
+                                                                        <p className="text-sm text-default-500">{student.student_id}</p>
                                                                     </div>
                                                                 </div>
                                                                 {teamModal.members.includes(student.id) && (
@@ -760,8 +760,8 @@ export default function SectionsTab({
                                                         ))
                                                     ) : (
                                                         <div className="text-center py-8">
-                                                            <Icon icon="solar:users-group-rounded-linear" className="text-4xl text-slate-300 mx-auto mb-2" />
-                                                            <p className="text-slate-400">นักศึกษาทั้งหมดอยู่ในกลุ่มแล้ว</p>
+                                                            <Icon icon="solar:users-group-rounded-linear" className="mx-auto mb-2 text-4xl text-default-300" />
+                                                            <p className="text-default-400">นักศึกษาทั้งหมดอยู่ในกลุ่มแล้ว</p>
                                                         </div>
                                                     )}
                                                 </div>
@@ -774,10 +774,10 @@ export default function SectionsTab({
                                     {teamModal.memberMode === "paste" && (
                                         <>
                                             <div>
-                                                <label className="text-slate-600 font-medium text-sm mb-2 block">
+                                                <label className="mb-2 block text-sm font-medium text-default-600">
                                                     วางรหัสนักศึกษาจาก Excel
                                                 </label>
-                                                <p className="text-xs text-slate-400 mb-2">
+                                                <p className="mb-2 text-xs text-default-400">
                                                     คัดลอกคอลัมน์รหัสนักศึกษาจาก Excel แล้ววางที่นี่ (หนึ่งรหัสต่อหนึ่งบรรทัด)
                                                 </p>
                                                 <Textarea
@@ -790,7 +790,7 @@ export default function SectionsTab({
                                                     minRows={4}
                                                     variant="bordered"
                                                     classNames={{
-                                                        inputWrapper: `bg-white ${
+                                                        inputWrapper: `bg-content1 ${
                                                             teamModal.type === "permanent"
                                                                 ? "border-purple-200 focus-within:!border-purple-400"
                                                                 : "border-emerald-200 focus-within:!border-emerald-400"
@@ -803,15 +803,15 @@ export default function SectionsTab({
                                             {teamModal.isParsing && (
                                                 <div className="flex items-center justify-center py-4">
                                                     <Spinner size="sm" color={teamModal.type === "permanent" ? "secondary" : "success"} />
-                                                    <span className="ml-2 text-slate-500">กำลังค้นหานักศึกษา...</span>
+                                                    <span className="ml-2 text-default-500">กำลังค้นหานักศึกษา...</span>
                                                 </div>
                                             )}
 
                                             {/* Parse Results */}
                                             {teamModal.parsedMembers.length > 0 && (
-                                                <div className="border border-slate-200 rounded-xl overflow-hidden">
-                                                    <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 flex items-center justify-between">
-                                                        <p className="text-sm text-slate-600">
+                                                <div className="overflow-hidden rounded-xl border border-default-200">
+                                                    <div className="flex items-center justify-between border-b border-divider bg-content2 px-4 py-2">
+                                                        <p className="text-sm text-default-600">
                                                             ผลการตรวจสอบ ({teamModal.parsedMembers.length} รายการ)
                                                         </p>
                                                         <div className="flex gap-2 text-xs">
@@ -834,7 +834,7 @@ export default function SectionsTab({
                                                         {teamModal.parsedMembers.map((result, idx) => (
                                                             <div
                                                                 key={idx}
-                                                                className={`flex items-center justify-between p-3 border-b border-slate-100 last:border-0 ${
+                                                                className={`flex items-center justify-between border-b border-divider p-3 last:border-0 ${
                                                                     result.status === "matched"
                                                                         ? teamModal.type === "permanent" ? "bg-purple-50" : "bg-emerald-50"
                                                                         : result.status === "already_in_team" ? "bg-amber-50" : "bg-red-50"
@@ -849,8 +849,8 @@ export default function SectionsTab({
                                                                                     : "bg-amber-500"
                                                                             } />
                                                                             <div>
-                                                                                <p className="font-medium text-slate-800">{result.matchedStudent.full_name}</p>
-                                                                                <p className="text-sm text-slate-500">{result.matchedStudent.student_id}</p>
+                                                                                <p className="font-medium text-foreground">{result.matchedStudent.full_name}</p>
+                                                                                <p className="text-sm text-default-500">{result.matchedStudent.student_id}</p>
                                                                             </div>
                                                                         </>
                                                                     ) : (
@@ -859,7 +859,7 @@ export default function SectionsTab({
                                                                                 <Icon icon="solar:question-circle-linear" className="text-red-600" />
                                                                             </div>
                                                                             <div>
-                                                                                <p className="font-medium text-slate-800">{result.inputValue}</p>
+                                                                                <p className="font-medium text-foreground">{result.inputValue}</p>
                                                                                 <p className="text-sm text-red-500">ไม่พบในระบบ</p>
                                                                             </div>
                                                                         </>
@@ -900,7 +900,7 @@ export default function SectionsTab({
                             )}
                         </div>
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button variant="light" onPress={teamModal.reset}>
                             ยกเลิก
                         </Button>
@@ -935,12 +935,12 @@ export default function SectionsTab({
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                            <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:pen-new-square-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">แก้ไขกลุ่ม</h3>
-                                <p className="text-sm text-slate-500 font-normal mt-1">แก้ไขชื่อและสมาชิกในกลุ่ม</p>
+                                <h3 className="text-xl font-bold text-foreground">แก้ไขกลุ่ม</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">แก้ไขชื่อและสมาชิกในกลุ่ม</p>
                             </div>
                         </div>
                     </ModalHeader>
@@ -958,17 +958,17 @@ export default function SectionsTab({
                                 isRequired
                                 className="pt-3"
                                 classNames={{
-                                    inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                    label: "text-slate-600 font-medium text-sm",
+                                    inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                    label: "text-sm font-medium text-default-600",
                                 }}
                             />
 
                             {/* Current Members */}
                             <div>
-                                <label className="text-slate-600 font-medium text-sm mb-2 block">
+                                <label className="mb-2 block text-sm font-medium text-default-600">
                                     สมาชิกปัจจุบัน ({editTeamModal.members.length} คน)
                                 </label>
-                                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                                <div className="overflow-hidden rounded-xl border border-default-200">
                                     <div className="max-h-40 overflow-y-auto">
                                         {editTeamModal.members.length > 0 ? (
                                             editTeamModal.members.map((memberId) => {
@@ -977,13 +977,13 @@ export default function SectionsTab({
                                                 return (
                                                     <div
                                                         key={memberId}
-                                                        className="flex items-center justify-between p-3 border-b border-slate-100 last:border-0 bg-blue-50"
+                                                        className="flex items-center justify-between border-b border-divider bg-primary/10 p-3 last:border-0"
                                                     >
                                                         <div className="flex items-center gap-3">
                                                             <Avatar name={student.full_name} size="sm" className="bg-blue-500" />
                                                             <div>
-                                                                <p className="font-medium text-slate-800">{student.full_name}</p>
-                                                                <p className="text-sm text-slate-500">{student.student_id}</p>
+                                                                <p className="font-medium text-foreground">{student.full_name}</p>
+                                                                <p className="text-sm text-default-500">{student.student_id}</p>
                                                             </div>
                                                         </div>
                                                         <Button
@@ -1004,8 +1004,8 @@ export default function SectionsTab({
                                             })
                                         ) : (
                                             <div className="text-center py-6">
-                                                <Icon icon="solar:users-group-rounded-linear" className="text-3xl text-slate-300 mx-auto mb-2" />
-                                                <p className="text-slate-400 text-sm">ยังไม่มีสมาชิกในกลุ่ม</p>
+                                                <Icon icon="solar:users-group-rounded-linear" className="mx-auto mb-2 text-3xl text-default-300" />
+                                                <p className="text-sm text-default-400">ยังไม่มีสมาชิกในกลุ่ม</p>
                                             </div>
                                         )}
                                     </div>
@@ -1014,12 +1014,12 @@ export default function SectionsTab({
 
                             {/* Add Members */}
                             <div>
-                                <label className="text-slate-600 font-medium text-sm mb-2 block">
+                                <label className="mb-2 block text-sm font-medium text-default-600">
                                     เพิ่มสมาชิก
                                 </label>
-                                <div className="border border-slate-200 rounded-xl overflow-hidden">
-                                    <div className="bg-slate-50 px-4 py-2 border-b border-slate-200">
-                                        <p className="text-sm text-slate-600">
+                                <div className="overflow-hidden rounded-xl border border-default-200">
+                                    <div className="border-b border-divider bg-content2 px-4 py-2">
+                                        <p className="text-sm text-default-600">
                                             นักศึกษาที่ยังไม่อยู่ในกลุ่ม: {getAvailableStudentsForEdit().filter(s => !editTeamModal.members.includes(s.id)).length} คน
                                         </p>
                                     </div>
@@ -1033,13 +1033,13 @@ export default function SectionsTab({
                                                         onClick={() => {
                                                             editTeamModal.setMembers([...editTeamModal.members, student.id]);
                                                         }}
-                                                        className="flex items-center justify-between p-3 cursor-pointer transition-colors border-b border-slate-100 last:border-0 hover:bg-slate-50"
+                                                        className="flex items-center justify-between border-b border-divider p-3 transition-colors last:border-0 hover:bg-content2"
                                                     >
                                                         <div className="flex items-center gap-3">
-                                                            <Avatar name={student.full_name} size="sm" className="bg-slate-400" />
+                                                            <Avatar name={student.full_name} size="sm" className="bg-content3" />
                                                             <div>
-                                                                <p className="font-medium text-slate-800">{student.full_name}</p>
-                                                                <p className="text-sm text-slate-500">{student.student_id}</p>
+                                                                <p className="font-medium text-foreground">{student.full_name}</p>
+                                                                <p className="text-sm text-default-500">{student.student_id}</p>
                                                             </div>
                                                         </div>
                                                         <Icon icon="solar:add-circle-linear" className="text-xl text-blue-500" />
@@ -1047,8 +1047,8 @@ export default function SectionsTab({
                                                 ))
                                         ) : (
                                             <div className="text-center py-6">
-                                                <Icon icon="solar:users-group-rounded-linear" className="text-3xl text-slate-300 mx-auto mb-2" />
-                                                <p className="text-slate-400 text-sm">นักศึกษาทั้งหมดอยู่ในกลุ่มแล้ว</p>
+                                                <Icon icon="solar:users-group-rounded-linear" className="mx-auto mb-2 text-3xl text-default-300" />
+                                                <p className="text-sm text-default-400">นักศึกษาทั้งหมดอยู่ในกลุ่มแล้ว</p>
                                             </div>
                                         )}
                                     </div>
@@ -1056,7 +1056,7 @@ export default function SectionsTab({
                             </div>
                         </div>
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button variant="light" onPress={editTeamModal.reset}>
                             ยกเลิก
                         </Button>
@@ -1084,16 +1084,16 @@ export default function SectionsTab({
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                            <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:danger-triangle-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">
+                                <h3 className="text-xl font-bold text-foreground">
                                     {deleteModal.target?.type === "section" && "ลบกลุ่มเรียน"}
                                     {deleteModal.target?.type === "student" && "นำนักศึกษาออก"}
                                     {deleteModal.target?.type === "team" && "ลบกลุ่ม"}
                                 </h3>
-                                <p className="text-sm text-slate-500 font-normal mt-1">
+                                <p className="mt-1 text-sm font-normal text-default-500">
                                     กรุณาตรวจสอบข้อมูลก่อนดำเนินการ
                                 </p>
                             </div>
@@ -1106,17 +1106,17 @@ export default function SectionsTab({
                                 <CardBody className="py-4 px-4">
                                     {deleteModal.target?.type === "section" && (
                                         <div className="flex items-center gap-4">
-                                            <div className="w-14 h-14 rounded-xl flex items-center justify-center shadow-lg bg-gradient-to-br from-blue-500 to-indigo-600">
+                                            <div className="w-14 h-14 rounded-xl flex items-center justify-center shadow-lg bg-linear-to-br from-blue-500 to-indigo-600">
                                                 <Icon icon="solar:users-group-two-rounded-bold" className="text-2xl text-white" />
                                             </div>
                                             <div className="flex-1">
-                                                <p className="font-semibold text-lg text-slate-800">Section {deleteModal.target.sectionNo}</p>
+                                                <p className="text-lg font-semibold text-foreground">Section {deleteModal.target.sectionNo}</p>
                                                 <div className="flex items-center gap-2 mt-1">
                                                     <Chip size="sm" variant="flat" className="bg-blue-100 text-blue-700">
                                                         กลุ่มเรียน
                                                     </Chip>
                                                 </div>
-                                                <div className="flex items-center gap-3 mt-2 text-sm text-slate-500">
+                                                <div className="mt-2 flex items-center gap-3 text-sm text-default-500">
                                                     <span className="flex items-center gap-1">
                                                         <Icon icon="solar:users-group-rounded-linear" className="text-blue-500" />
                                                         {deleteModal.target.sectionStudentCount || 0} คน
@@ -1127,13 +1127,13 @@ export default function SectionsTab({
                                     )}
                                     {deleteModal.target?.type === "student" && (
                                         <div className="flex items-center gap-4">
-                                            <div className="w-14 h-14 rounded-xl flex items-center justify-center shadow-lg bg-gradient-to-br from-indigo-500 to-blue-600">
+                                            <div className="w-14 h-14 rounded-xl flex items-center justify-center shadow-lg bg-linear-to-br from-indigo-500 to-blue-600">
                                                 <Icon icon="solar:user-bold" className="text-2xl text-white" />
                                             </div>
                                             <div className="flex-1">
-                                                <p className="font-semibold text-lg text-slate-800">{deleteModal.target.studentName}</p>
+                                                <p className="text-lg font-semibold text-foreground">{deleteModal.target.studentName}</p>
                                                 <div className="flex items-center gap-2 mt-1">
-                                                    <Chip size="sm" variant="flat" className="bg-slate-100 text-slate-700">
+                                                    <Chip size="sm" variant="flat" className="bg-content3 text-default-700">
                                                         {deleteModal.target.studentCode}
                                                     </Chip>
                                                     <Chip size="sm" variant="flat" className="bg-blue-50 text-blue-600">
@@ -1147,8 +1147,8 @@ export default function SectionsTab({
                                         <div className="flex items-center gap-4">
                                             <div className={`w-14 h-14 rounded-xl flex items-center justify-center shadow-lg ${
                                                 deleteModal.target.teamType === "permanent"
-                                                    ? "bg-gradient-to-br from-purple-500 to-indigo-600"
-                                                    : "bg-gradient-to-br from-emerald-500 to-teal-600"
+                                                    ? "bg-linear-to-br from-purple-500 to-indigo-600"
+                                                    : "bg-linear-to-br from-emerald-500 to-teal-600"
                                             }`}>
                                                 <Icon 
                                                     icon={deleteModal.target.teamType === "permanent" 
@@ -1159,7 +1159,7 @@ export default function SectionsTab({
                                                 />
                                             </div>
                                             <div className="flex-1">
-                                                <p className="font-semibold text-lg text-slate-800">{deleteModal.target.teamName}</p>
+                                                <p className="text-lg font-semibold text-foreground">{deleteModal.target.teamName}</p>
                                                 <div className="flex items-center gap-2 mt-1">
                                                     <Chip size="sm" variant="flat" className={
                                                         deleteModal.target.teamType === "permanent"
@@ -1169,9 +1169,9 @@ export default function SectionsTab({
                                                         {deleteModal.target.teamType === "permanent" ? "กลุ่มโปรเจกต์" : "กลุ่มสัปดาห์"}
                                                     </Chip>
                                                 </div>
-                                                <div className="flex items-center gap-3 mt-2 text-sm text-slate-500">
+                                                <div className="mt-2 flex items-center gap-3 text-sm text-default-500">
                                                     <span className="flex items-center gap-1">
-                                                        <Icon icon="solar:users-group-rounded-linear" className="text-slate-400" />
+                                                        <Icon icon="solar:users-group-rounded-linear" className="text-default-400" />
                                                         {deleteModal.target.teamMembers?.length || 0} สมาชิก
                                                     </span>
                                                 </div>
@@ -1244,7 +1244,7 @@ export default function SectionsTab({
                             )}
                         </div>
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button 
                             variant="light" 
                             onPress={deleteModal.reset}
@@ -1290,12 +1290,12 @@ export default function SectionsTab({
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl shadow-lg shadow-amber-500/30">
+                            <div className="p-3 bg-linear-to-br from-amber-400 to-orange-500 rounded-xl shadow-lg shadow-amber-500/30">
                                 <Icon icon="solar:restart-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">กู้คืนนักศึกษา</h3>
-                                <p className="text-sm text-slate-500 font-normal mt-1">
+                                <h3 className="text-xl font-bold text-foreground">กู้คืนนักศึกษา</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">
                                     กรุณาตรวจสอบข้อมูลก่อนดำเนินการ
                                 </p>
                             </div>
@@ -1307,14 +1307,14 @@ export default function SectionsTab({
                             <Card className="border border-amber-100 bg-amber-50/50">
                                 <CardBody className="py-4 px-4">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-14 h-14 rounded-xl flex items-center justify-center shadow-lg bg-gradient-to-br from-amber-400 to-orange-500">
+                                        <div className="w-14 h-14 rounded-xl flex items-center justify-center shadow-lg bg-linear-to-br from-amber-400 to-orange-500">
                                             <Icon icon="solar:user-bold" className="text-2xl text-white" />
                                         </div>
                                         <div className="flex-1">
-                                            <p className="font-semibold text-lg text-slate-800">{restoreModal.target?.full_name}</p>
+                                            <p className="text-lg font-semibold text-foreground">{restoreModal.target?.full_name}</p>
                                             <div className="flex items-center gap-2 mt-1">
                                                 {restoreModal.target?.student_ref_id !== 0 && (
-                                                    <Chip size="sm" variant="flat" className="bg-slate-100 text-slate-700">
+                                                    <Chip size="sm" variant="flat" className="bg-content3 text-default-700">
                                                         {restoreModal.target?.student_ref_id}
                                                     </Chip>
                                                 )}
@@ -1346,7 +1346,7 @@ export default function SectionsTab({
                             </Card>
                         </div>
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button
                             variant="light"
                             onPress={restoreModal.reset}
@@ -1377,12 +1377,12 @@ export default function SectionsTab({
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                            <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:danger-triangle-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">ลบกลุ่มทั้งหมด</h3>
-                                <p className="text-sm text-slate-500 font-normal mt-1">
+                                <h3 className="text-xl font-bold text-foreground">ลบกลุ่มทั้งหมด</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">
                                     กรุณาตรวจสอบข้อมูลก่อนดำเนินการ
                                 </p>
                             </div>
@@ -1394,17 +1394,17 @@ export default function SectionsTab({
                             <Card className="border border-red-100 bg-red-50/50">
                                 <CardBody className="py-4 px-4">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-14 h-14 rounded-xl flex items-center justify-center shadow-lg bg-gradient-to-br from-emerald-500 to-teal-600">
+                                        <div className="w-14 h-14 rounded-xl flex items-center justify-center shadow-lg bg-linear-to-br from-emerald-500 to-teal-600">
                                             <Icon icon="solar:calendar-bold" className="text-2xl text-white" />
                                         </div>
                                         <div className="flex-1">
-                                            <p className="font-semibold text-lg text-slate-800">สัปดาห์ที่ {selectedWeek}</p>
+                                            <p className="text-lg font-semibold text-foreground">สัปดาห์ที่ {selectedWeek}</p>
                                             <div className="flex items-center gap-2 mt-1">
                                                 <Chip size="sm" variant="flat" className="bg-emerald-100 text-emerald-700">
                                                     กลุ่มสัปดาห์
                                                 </Chip>
                                             </div>
-                                            <div className="flex items-center gap-3 mt-2 text-sm text-slate-500">
+                                            <div className="mt-2 flex items-center gap-3 text-sm text-default-500">
                                                 <span className="flex items-center gap-1">
                                                     <Icon icon="solar:users-group-rounded-linear" className="text-emerald-500" />
                                                     {weeklyTeams[selectedWeek]?.length || 0} กลุ่ม
@@ -1447,7 +1447,7 @@ export default function SectionsTab({
                             </div>
                         </div>
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button 
                             variant="light" 
                             onPress={() => bulkDeleteModal.setIsOpen(false)}

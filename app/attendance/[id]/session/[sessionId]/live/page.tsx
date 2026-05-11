@@ -29,7 +29,7 @@ import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { IoSchool } from "react-icons/io5";
 import { QRCodeSVG } from "qrcode.react";
-import { io, Socket } from "@/services/realtime-socket";
+import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket";
 import attendanceService, {
     type AttendanceSession,
     type AttendanceRecord,
@@ -90,6 +90,7 @@ export default function LiveAttendancePage() {
 
     // Socket
     const socketRef = useRef<Socket | null>(null);
+    const hasWarnedAboutConnectError = useRef(false);
 
     // Modal states
     const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null);
@@ -145,32 +146,29 @@ export default function LiveAttendancePage() {
 
     // Initialize socket connection
     useEffect(() => {
-        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL || window.location.origin;
+        const socketUrl = getRealtimeSocketBaseUrl();
         
         const socket = io(socketUrl, {
-            path: "/socket.io",
-            transports: ["websocket", "polling"],
             reconnection: true,
             reconnectionAttempts: 5,
             reconnectionDelay: 1000,
         });
 
         socket.on("connect", () => {
-            console.log("✅ Socket connected:", socket.id);
+            hasWarnedAboutConnectError.current = false;
             socket.emit("join-instructor", sessionId);
         });
 
         socket.on("connect_error", (err) => {
-            console.error("❌ Socket connect error:", err.message);
-        });
-
-        socket.on("disconnect", (reason) => {
-            console.warn("⚠️ Socket disconnected:", reason);
+            if (!hasWarnedAboutConnectError.current) {
+                const message = err instanceof Error ? err.message : "WebSocket connection error";
+                console.warn("Attendance socket unavailable:", message);
+                hasWarnedAboutConnectError.current = true;
+            }
         });
 
         // Listen for new check-ins
         socket.on("student-checked-in", (data: { record: AttendanceRecord }) => {
-            console.log("Student checked in:", data);
             setRecords((prev) => {
                 const existing = prev.find((r) => r.id === data.record.id);
                 if (existing) {
@@ -411,12 +409,12 @@ export default function LiveAttendancePage() {
 
     if (!session && !isLoading) {
         return (
-            <div className="flex justify-center items-center min-h-screen bg-slate-50">
-                <Card className="max-w-md shadow-xl border-2 border-dashed">
+            <div className="flex min-h-screen items-center justify-center bg-background">
+                <Card className="max-w-md border-2 border-dashed border-default-300 bg-content1 shadow-xl">
                     <CardBody className="text-center py-12">
-                        <Icon icon="solar:clipboard-remove-bold-duotone" className="text-6xl text-slate-300 mx-auto mb-4" />
-                        <p className="text-lg text-slate-600 mb-2">ไม่พบข้อมูลการเช็คชื่อ</p>
-                        <p className="text-sm text-slate-400 mb-6">กรุณาตรวจสอบลิงก์อีกครั้ง</p>
+                        <Icon icon="solar:clipboard-remove-bold-duotone" className="mx-auto mb-4 text-6xl text-default-300" />
+                        <p className="mb-2 text-lg text-default-600">ไม่พบข้อมูลการเช็คชื่อ</p>
+                        <p className="mb-6 text-sm text-default-400">กรุณาตรวจสอบลิงก์อีกครั้ง</p>
                         <Button
                             className="w-full bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg"
                             onPress={() => router.back()}
@@ -434,9 +432,9 @@ export default function LiveAttendancePage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-100 p-4 lg:p-6">
+        <div className="min-h-screen bg-background p-4 lg:p-6">
             {/* Header Card with Purple Gradient Bar */}
-            <Card className="mb-6 shadow-lg border-0 overflow-hidden">
+            <Card className="mb-6 overflow-hidden border border-default-200 bg-content1 shadow-lg">
                 {/* Purple Gradient Bar */}
                 {/* <div className="h-2 bg-linear-to-r from-purple-400 via-pink-400 to-purple-400" /> */}
 
@@ -444,10 +442,10 @@ export default function LiveAttendancePage() {
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                         {/* Left - Title & Course Info */}
                         <div>
-                            <h1 className="text-3xl font-bold text-slate-800 mb-2">
+                            <h1 className="mb-2 text-3xl font-bold text-foreground">
                                 {session.title}
                             </h1>
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-default-500">
                                 <span>รหัสวิชา: {session.course?.code || "-"}</span>
                                 <span>ชื่อวิชา: {session.course?.name || "-"}</span>
                                 <span>ปีการศึกษา: {session.course?.year || "-"}</span>
@@ -491,16 +489,16 @@ export default function LiveAttendancePage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
                 {/* Left Column - PIN & QR (4/12) */}
                 <div className="lg:col-span-4">
-                    <Card className="shadow-lg border-0 h-full">
+                    <Card className="h-full border border-default-200 bg-content1 shadow-lg">
                         <CardHeader className="pb-2">
                             <div className="flex items-center gap-2">
                                 <Icon icon="solar:key-minimalistic-square-2-linear" className="text-xl text-blue-500" />
-                                <h3 className="text-lg font-semibold text-slate-700">รหัสและช่องทางการเช็คชื่อ</h3>
+                                <h3 className="text-lg font-semibold text-default-700">รหัสและช่องทางการเช็คชื่อ</h3>
                             </div>
                         </CardHeader>
                         <CardBody className="text-center pt-2">
                             {/* PIN CODE */}
-                            <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">PIN CODE</p>
+                            <p className="mb-1 text-xs uppercase tracking-wider text-default-400">PIN CODE</p>
                             <div
                                 className="text-5xl font-bold text-blue-500 tracking-[0.2em] mb-6 cursor-pointer hover:text-blue-600 transition-colors"
                                 onClick={copyPIN}
@@ -509,9 +507,9 @@ export default function LiveAttendancePage() {
                             </div>
 
                             {/* QR CODE */}
-                            <p className="text-xs text-slate-400 uppercase tracking-wider mb-3">QR CODE (คลิกเพื่อขยาย)</p>
+                            <p className="mb-3 text-xs uppercase tracking-wider text-default-400">QR CODE (คลิกเพื่อขยาย)</p>
                             <div
-                                className="flex justify-center p-4 bg-white rounded-xl border-2 border-slate-200 cursor-pointer hover:shadow-lg hover:border-blue-300 transition-all mb-4"
+                                className="mb-4 flex cursor-pointer justify-center rounded-xl border-2 border-default-200 bg-content1 p-4 transition-all hover:border-blue-300 hover:shadow-lg"
                                 onClick={() => setIsQRModalOpen(true)}
                             >
                                 <QRCodeSVG
@@ -529,7 +527,7 @@ export default function LiveAttendancePage() {
 
                             {/* Countdown */}
                             <div className="mt-4">
-                                <div className="flex items-center justify-center gap-1 text-slate-400 mb-2">
+                                <div className="mb-2 flex items-center justify-center gap-1 text-default-400">
                                     <Icon icon="solar:clock-circle-linear" className="text-base" />
                                     <span className="text-xs">เวลาที่เหลือ</span>
                                 </div>
@@ -554,11 +552,11 @@ export default function LiveAttendancePage() {
 
                 {/* Right Column - Stats & Student List (8/12) */}
                 <div className="lg:col-span-8 space-y-6">
-                    <Card className="shadow-lg border-0">
+                    <Card className="border border-default-200 bg-content1 shadow-lg">
                         <CardHeader className="pb-2">
                             <div className="flex items-center gap-2">
                                 <Icon icon="solar:chart-2-linear" className="text-xl text-blue-500" />
-                                <h3 className="text-lg font-semibold text-slate-700">สถิติภาพรวมการเช็คชื่อ</h3>
+                                <h3 className="text-lg font-semibold text-default-700">สถิติภาพรวมการเช็คชื่อ</h3>
                             </div>
                         </CardHeader>
                         <CardBody>
@@ -613,14 +611,14 @@ export default function LiveAttendancePage() {
                                 </div>
 
                                 {/* ลา (Leave) */}
-                                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                <div className="rounded-xl border border-default-200 bg-content2 p-3">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <div className="p-1.5 bg-slate-100 rounded-lg">
-                                            <Icon icon="solar:document-bold" className="text-lg text-slate-500" />
+                                        <div className="rounded-lg bg-content3 p-1.5">
+                                            <Icon icon="solar:document-bold" className="text-lg text-default-500" />
                                         </div>
-                                        <p className="text-xs text-slate-600 font-medium">ลา</p>
+                                        <p className="text-xs font-medium text-default-600">ลา</p>
                                     </div>
-                                    <p className="text-2xl font-bold text-slate-600">{stats.leave}</p>
+                                    <p className="text-2xl font-bold text-default-600">{stats.leave}</p>
                                 </div>
 
                                 {/* ขาด (Absent) */}
@@ -638,9 +636,9 @@ export default function LiveAttendancePage() {
                     </Card>
 
                     {/* Student List Table */}
-                    <Card className="shadow-lg border-0 overflow-hidden">
-                        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 border-b border-slate-200 bg-blue-50/50">
-                            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <Card className="overflow-hidden border border-default-200 bg-content1 shadow-lg">
+                        <CardHeader className="flex flex-col items-start justify-between gap-3 border-b border-divider bg-content2 p-4 sm:flex-row sm:items-center">
+                            <h2 className="flex items-center gap-2 text-lg font-bold text-foreground">
                                 <Icon icon="solar:checklist-minimalistic-linear" className="text-xl text-blue-600" />
                                 รายชื่อผู้เช็คชื่อ
                                 <Chip size="sm" variant="flat" color="primary">{stats.checkedIn} คน</Chip>
@@ -652,21 +650,21 @@ export default function LiveAttendancePage() {
                                 size="sm"
                                 variant="bordered"
                                 isClearable
-                                startContent={<Icon icon="solar:magnifer-linear" className="text-slate-400" />}
+                                startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
                                 classNames={{
-                                    inputWrapper: "h-9 min-h-9 bg-white",
+                                    inputWrapper: "h-9 min-h-9 bg-content1 border-default-200",
                                     input: "text-sm"
                                 }}
                                 className="w-full sm:w-64"
                             />
                         </CardHeader>
                         <CardBody className="p-0">
-                            <div className="overflow-y-auto max-h-[400px] p-3">
+                            <div className="overflow-y-auto max-h-100 p-3">
                                 <Table
                                     aria-label="Student attendance table"
                                     removeWrapper
                                     classNames={{
-                                        th: "bg-slate-50 text-slate-500 font-medium text-xs uppercase",
+                                            th: "bg-content2 text-default-500 font-medium text-xs uppercase",
                                         td: "py-3",
                                     }}
                                 >
@@ -681,14 +679,14 @@ export default function LiveAttendancePage() {
                                     <TableBody
                                         emptyContent={
                                             <div className="py-16 text-center">
-                                                <div className="inline-block p-4 bg-slate-100 rounded-full mb-4">
+                                                <div className="mb-4 inline-block rounded-full bg-content2 p-4">
                                                     <Icon
                                                         icon="solar:users-group-rounded-linear"
-                                                        className="text-5xl text-slate-300"
+                                                        className="text-5xl text-default-300"
                                                     />
                                                 </div>
-                                                <p className="text-slate-500 font-medium">ยังไม่มีนักศึกษาเช็คชื่อ</p>
-                                                <p className="text-slate-400 text-sm mt-1">
+                                                <p className="font-medium text-default-500">ยังไม่มีนักศึกษาเช็คชื่อ</p>
+                                                <p className="mt-1 text-sm text-default-400">
                                                     รอนักศึกษาสแกน QR Code หรือกรอก PIN
                                                 </p>
                                             </div>
@@ -728,20 +726,20 @@ export default function LiveAttendancePage() {
                                                             <Avatar
                                                                 name={record.student?.full_name || "?"}
                                                                 size="sm"
-                                                                className="bg-gradient-to-br from-blue-400 to-indigo-500"
+                                                                className="bg-linear-to-br from-blue-400 to-indigo-500"
                                                             />
                                                             <div>
-                                                                <p className="font-medium text-slate-800">
+                                                                <p className="font-medium text-foreground">
                                                                     {record.student?.full_name || "-"}
                                                                 </p>
-                                                                <p className="text-xs text-slate-400">
+                                                                <p className="text-xs text-default-400">
                                                                     {record.student?.student_id || "-"}
                                                                 </p>
                                                             </div>
                                                         </div>
                                                     </TableCell>,
                                                     <TableCell key="time">
-                                                        <span className="font-mono text-slate-600 text-sm">
+                                                        <span className="font-mono text-sm text-default-600">
                                                             {formatTime(record.check_in_time)}
                                                         </span>
                                                     </TableCell>,
@@ -762,7 +760,7 @@ export default function LiveAttendancePage() {
                                                                     </Chip>
                                                                 </Tooltip>
                                                             ) : (
-                                                                <span className="text-xs text-slate-400">-</span>
+                                                                <span className="text-xs text-default-400">-</span>
                                                             )}
                                                         </TableCell>
                                                     ] : [])
@@ -777,15 +775,15 @@ export default function LiveAttendancePage() {
 
                     {/* QR Modal (Full Screen) */}
                     <Modal isOpen={isQRModalOpen} onClose={() => setIsQRModalOpen(false)} size="full">
-                        <ModalContent className="bg-white">
+                        <ModalContent className="bg-content1">
                             <ModalBody className="flex flex-col items-center justify-center min-h-screen py-10">
-                                <h2 className="text-3xl font-bold text-slate-800 mb-2">
+                                <h2 className="mb-2 text-3xl font-bold text-foreground">
                                     {session.title}
                                 </h2>
-                                <p className="text-slate-500 mb-6">สแกน QR Code เพื่อเช็คชื่อเข้าเรียน</p>
+                                <p className="mb-6 text-default-500">สแกน QR Code เพื่อเช็คชื่อเข้าเรียน</p>
                                 
                                 {/* QR Code - optimized for scanning */}
-                                <div className="p-2 bg-white rounded-3xl shadow-xl border-4 border-slate-100">
+                                <div className="rounded-3xl border-4 border-default-200 bg-white p-2 shadow-xl">
                                     <QRCodeSVG 
                                         value={checkInUrl} 
                                         size={450} 
@@ -850,17 +848,17 @@ export default function LiveAttendancePage() {
                     <ModalBody className="py-4">
                         {selectedRecord && (
                             <div className="space-y-4">
-                                <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
+                                <div className="flex items-center gap-3 rounded-xl bg-content2 p-4">
                                     <Avatar
                                         name={selectedRecord.student?.full_name || "?"}
                                         size="md"
-                                        className="bg-gradient-to-br from-blue-400 to-indigo-500"
+                                        className="bg-linear-to-br from-blue-400 to-indigo-500"
                                     />
                                     <div>
-                                        <p className="font-semibold text-slate-800">
+                                        <p className="font-semibold text-foreground">
                                             {selectedRecord.student?.full_name}
                                         </p>
-                                        <p className="text-sm text-slate-500">
+                                        <p className="text-sm text-default-500">
                                             ID: {selectedRecord.student?.student_id}
                                         </p>
                                     </div>
@@ -892,7 +890,7 @@ export default function LiveAttendancePage() {
                                     <SelectItem
                                         key="leave"
                                         startContent={
-                                            <Icon icon="solar:document-bold" className="text-slate-500" />
+                                            <Icon icon="solar:document-bold" className="text-default-500" />
                                         }
                                     >
                                         ลา

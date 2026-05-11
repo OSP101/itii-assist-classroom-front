@@ -13,12 +13,11 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@herou
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { IoSchool } from "react-icons/io5";
-import { io, Socket } from "@/services/realtime-socket";
+import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket";
 
 import { API_BASE_URL } from "@/config/api";
 import { useNotification } from "@/contexts/NotificationContext";
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
 const STORAGE_KEY = "queue_booking_state";
 
 interface VerifyPINResponse {
@@ -637,15 +636,11 @@ function BookQueueContent() {
     // Fetch booking status
     const fetchBookingStatus = useCallback(async (bookingId: number) => {
         try {
-            console.log("Fetching booking status for:", bookingId);
             const response = await fetch(`${API_BASE_URL}/queue/bookings/${bookingId}/status`);
             const result = await response.json();
 
-            console.log("Booking status result:", result);
             if (result.success) {
                 setBookingStatus(result.data);
-                console.log("BookingStatus set:", result.data);
-                console.log("Score details:", result.data.score_details);
             }
         } catch (error) {
             console.error("Error fetching status:", error);
@@ -730,23 +725,17 @@ function BookQueueContent() {
         fetchBookingStatus(bookingId);
 
         // Connect to socket for real-time updates
-        const socket = io(SOCKET_URL, {
-            transports: ["websocket"],
-        });
+        const socket = io(getRealtimeSocketBaseUrl());
 
         socket.on("connect", () => {
-            console.log("Socket connected, socketId:", socket.id);
             socket.emit("join-booking", bookingId);
-            console.log("Joined booking room:", bookingId);
             // Also join queue session room to receive position updates
             if (sessionId) {
                 socket.emit("join-queue", sessionId);
-                console.log("Joined queue session room:", sessionId);
             }
         });
 
         socket.on("your-booking-completed", (data) => {
-            console.log("=== RECEIVED your-booking-completed ===", data);
             // Wait a bit for score to be saved before fetching
             setTimeout(() => {
                 fetchBookingStatus(bookingId);
@@ -830,7 +819,7 @@ function BookQueueContent() {
                     <Button
                         color="primary"
                         size="lg"
-                        className="w-full max-w-[200px] bg-linear-to-r from-blue-400 to-indigo-500"
+                        className="w-full max-w-50 bg-linear-to-r from-blue-400 to-indigo-500"
                         isDisabled={deskNoticeCountdown > 0}
                         onPress={() => setIsDeskNoticeOpen(false)}
                     >
@@ -844,12 +833,12 @@ function BookQueueContent() {
     // Show loading while initializing
     if (isInitializing) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 flex items-center justify-center p-4">
+            <div className="min-h-screen bg-linear-to-br from-blue-500 via-blue-600 to-indigo-700 flex items-center justify-center p-4">
                 {deskNoticeModal}
                 <Card className="w-full max-w-md shadow-2xl">
                     <CardBody className="p-8">
                         <div className="flex flex-col items-center gap-4">
-                            <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-2xl flex items-center justify-center text-white text-4xl">
+                            <div className="w-16 h-16 bg-linear-to-br from-blue-400 to-indigo-500 rounded-2xl flex items-center justify-center text-white text-4xl">
                                 <IoSchool />
                             </div>
                             <Spinner size="lg" color="primary" />
@@ -864,13 +853,13 @@ function BookQueueContent() {
     // Render PIN step
     if (step === "pin") {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 flex items-center justify-center p-4">
+            <div className="min-h-screen bg-linear-to-br from-blue-500 via-blue-600 to-indigo-700 flex items-center justify-center p-4">
                 {deskNoticeModal}
                 <Card className="w-full max-w-md shadow-2xl">
                     <CardBody className="p-6">
                         {/* Header */}
                         <div className="text-center mb-6 pb-6 border-b border-slate-100">
-                            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-linear-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
                                 <Icon icon="solar:ticket-bold" className="text-3xl text-white" />
                             </div>
                             <h1 className="text-xl font-bold text-slate-800">จองคิวตรวจงาน</h1>
@@ -929,13 +918,13 @@ function BookQueueContent() {
         const existingBookingWarning = validationWarnings.find(w => w.existing_booking);
 
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 flex items-center justify-center p-4">
+            <div className="min-h-screen bg-linear-to-br from-blue-500 via-blue-600 to-indigo-700 flex items-center justify-center p-4">
                 {deskNoticeModal}
                 <Card className="w-full max-w-md shadow-2xl">
                     <CardBody className="p-6">
                         {/* Session Info Header */}
                         <div className="text-center mb-6 pb-6 border-b border-slate-100">
-                            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-linear-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
                                 <Icon icon="solar:ticket-bold" className="text-3xl text-white" />
                             </div>
                             <h1 className="text-xl font-bold text-slate-800">{sessionInfo.title}</h1>
@@ -1049,7 +1038,7 @@ function BookQueueContent() {
                             {existingBookingWarning && (
                                 <div className="p-3 bg-blue-50 text-blue-700 rounded-xl text-sm">
                                     <div className="flex items-start gap-2">
-                                        <Icon icon="solar:info-circle-bold" className="text-lg flex-shrink-0 mt-0.5" />
+                                        <Icon icon="solar:info-circle-bold" className="text-lg shrink-0 mt-0.5" />
                                         <div>
                                             <p className="font-medium">{existingBookingWarning.message}</p>
                                             <p className="text-xs mt-1 text-blue-600">
@@ -1117,7 +1106,7 @@ function BookQueueContent() {
 
                             {sessionInfo.require_attendance && (
                                 <div className="p-3 bg-amber-50 text-amber-700 rounded-xl text-sm flex items-center gap-2">
-                                    <Icon icon="solar:info-circle-bold" className="text-lg flex-shrink-0" />
+                                    <Icon icon="solar:info-circle-bold" className="text-lg shrink-0" />
                                     <span>ต้องเช็คชื่อก่อนจึงจะจองคิวได้</span>
                                 </div>
                             )}
@@ -1193,13 +1182,13 @@ function BookQueueContent() {
         const isInProgress = status.status === "in_progress";
 
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 flex items-center justify-center p-4">
+            <div className="min-h-screen bg-linear-to-br from-blue-500 via-blue-600 to-indigo-700 flex items-center justify-center p-4">
                 {deskNoticeModal}
                 <Card className="w-full max-w-md shadow-2xl">
                     <CardBody className="p-6">
                         {/* Header */}
                         <div className="text-center mb-6 pb-6 border-b border-slate-100">
-                            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-linear-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
                                 <Icon icon="solar:ticket-bold" className="text-3xl text-white" />
                             </div>
                             <h1 className="text-xl font-bold text-slate-800">สถานะการจอง</h1>

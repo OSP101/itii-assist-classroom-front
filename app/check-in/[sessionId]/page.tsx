@@ -9,8 +9,10 @@ import { Spinner } from "@heroui/spinner";
 import { Avatar } from "@heroui/avatar";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
-import { io, Socket } from "@/services/realtime-socket";
+import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket";
 import attendanceService, { type AttendanceSession } from "@/services/attendance.service";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import { useI18n } from "@/hooks/useI18n";
 
 // Declare Google Auth type
 declare global {
@@ -65,6 +67,9 @@ type Step = "loading" | "session-info" | "google-login" | "location" | "pin-entr
 export default function StudentCheckInPage() {
     const params = useParams();
     const sessionId = Number(params.sessionId);
+    const { language } = useGlobalSettings();
+    const t = useI18n();
+    const locale = language === "en" ? "en-US" : "th-TH";
 
     // State
     const [step, setStep] = useState<Step>("loading");
@@ -113,22 +118,22 @@ export default function StudentCheckInPage() {
                 if (data.status === "active") {
                     setStep("google-login");
                 } else if (data.status === "closed") {
-                    setErrorMessage("รอบการเช็คชื่อนี้ปิดไปแล้ว");
+                    setErrorMessage(t("sessionClosedAlready"));
                     setStep("error");
                 } else {
-                    setErrorMessage("รอบการเช็คชื่อยังไม่เปิดรับ");
+                    setErrorMessage(t("sessionNotOpenYet"));
                     setStep("error");
                 }
             } else {
-                setErrorMessage("ไม่พบรอบการเช็คชื่อนี้");
+                setErrorMessage(t("attendanceSessionNotFound"));
                 setStep("error");
             }
         } catch (error: unknown) {
             console.error("Error fetching session:", error);
-            setErrorMessage((error as Error).message || "ไม่สามารถโหลดข้อมูลได้");
+            setErrorMessage((error as Error).message || t("unableToLoadData"));
             setStep("error");
         }
-    }, [sessionId]);
+    }, [sessionId, t]);
 
     // Initialize Google Sign In
     useEffect(() => {
@@ -147,6 +152,7 @@ export default function StudentCheckInPage() {
                     text: "continue_with",
                     shape: "rectangular",
                     width: 280,
+                    locale: language,
                 });
             }
         };
@@ -167,15 +173,15 @@ export default function StudentCheckInPage() {
                 document.body.removeChild(script);
             };
         }
-    }, [step]);
+    }, [language, step]);
 
     // Handle Google login response
     const handleGoogleResponse = async (response: { credential: string }) => {
         const decoded = decodeJWT(response.credential);
         if (!decoded) {
             addToast({
-                title: "เข้าสู่ระบบไม่สำเร็จ",
-                description: "ไม่สามารถอ่านข้อมูลจาก Google ได้",
+                title: t("signInFailed"),
+                description: t("unableToReadGoogleData"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -209,7 +215,7 @@ export default function StudentCheckInPage() {
             }
         } catch (error: unknown) {
             console.error("Error verifying student:", error);
-            setErrorMessage((error as Error).message || "ไม่พบข้อมูลนักศึกษาในระบบ");
+            setErrorMessage((error as Error).message || t("studentNotFoundInSystem"));
             setStep("error");
         }
     };
@@ -220,7 +226,7 @@ export default function StudentCheckInPage() {
         setLocationError(null);
 
         if (!navigator.geolocation) {
-            setLocationError("เบราว์เซอร์ไม่รองรับการระบุตำแหน่ง");
+            setLocationError(t("browserDoesNotSupportGeolocation"));
             setIsGettingLocation(false);
             return;
         }
@@ -238,16 +244,16 @@ export default function StudentCheckInPage() {
                 console.error("Geolocation error:", error);
                 switch (error.code) {
                     case error.PERMISSION_DENIED:
-                        setLocationError("กรุณาอนุญาตการเข้าถึงตำแหน่งที่ตั้ง");
+                        setLocationError(t("pleaseAllowLocationAccess"));
                         break;
                     case error.POSITION_UNAVAILABLE:
-                        setLocationError("ไม่สามารถระบุตำแหน่งได้");
+                        setLocationError(t("locationUnavailable"));
                         break;
                     case error.TIMEOUT:
-                        setLocationError("หมดเวลาในการระบุตำแหน่ง");
+                        setLocationError(t("locationTimeout"));
                         break;
                     default:
-                        setLocationError("เกิดข้อผิดพลาดในการระบุตำแหน่ง");
+                        setLocationError(t("locationError"));
                 }
                 setIsGettingLocation(false);
             },
@@ -268,8 +274,8 @@ export default function StudentCheckInPage() {
     const handleCheckIn = async () => {
         if (!googleUser || pinCode.length !== 6) {
             addToast({
-                title: "ข้อมูลไม่ครบ",
-                description: "กรุณากรอก PIN 6 หลัก",
+                title: t("incompleteInformation"),
+                description: t("pleaseEnterSixDigitPin"),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -302,8 +308,8 @@ export default function StudentCheckInPage() {
         } catch (error: unknown) {
             console.error("Error checking in:", error);
             addToast({
-                title: "เช็คชื่อไม่สำเร็จ",
-                description: (error as Error).message || "กรุณาตรวจสอบ PIN และลองใหม่",
+                title: t("checkInFailed"),
+                description: (error as Error).message || t("pleaseCheckPinAndTryAgain"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -315,19 +321,16 @@ export default function StudentCheckInPage() {
 
     // Initialize socket
     useEffect(() => {
-  const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL || window.location.origin;
+    const socketUrl = getRealtimeSocketBaseUrl();
   
-  const socket = io(socketUrl, {
-    path: "/socket.io",
-    transports: ["websocket", "polling"],
-  });
+    const socket = io(socketUrl);
 
         socket.on("connect", () => {
             socket.emit("join-attendance", sessionId);
         });
 
         socket.on("session-closed", () => {
-            setErrorMessage("รอบการเช็คชื่อถูกปิดแล้ว");
+            setErrorMessage(t("sessionHasBeenClosed"));
             setStep("error");
         });
 
@@ -337,7 +340,7 @@ export default function StudentCheckInPage() {
             socket.emit("leave-attendance", sessionId);
             socket.disconnect();
         };
-    }, [sessionId]);
+    }, [sessionId, t]);
 
     // Fetch session on mount
     useEffect(() => {
@@ -346,14 +349,14 @@ export default function StudentCheckInPage() {
 
     // Status display
     const statusDisplay: Record<string, { label: string; color: string; icon: string }> = {
-        present: { label: "มาเรียน", color: "text-emerald-600 bg-emerald-100", icon: "solar:check-circle-bold" },
-        late: { label: "มาสาย", color: "text-amber-600 bg-amber-100", icon: "solar:clock-circle-bold" },
+        present: { label: t("attendanceStatusPresent"), color: "text-emerald-600 bg-emerald-100", icon: "solar:check-circle-bold" },
+        late: { label: t("attendanceStatusLate"), color: "text-amber-600 bg-amber-100", icon: "solar:clock-circle-bold" },
     };
 
     // Format time
     const formatTime = (dateString: string): string => {
         const date = new Date(dateString);
-        return date.toLocaleTimeString("th-TH", {
+        return date.toLocaleTimeString(locale, {
             hour: "2-digit",
             minute: "2-digit",
             second: "2-digit",
@@ -366,11 +369,11 @@ export default function StudentCheckInPage() {
             {/* ── Loading state (full screen) ── */}
             {step === "loading" && (
                 <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br from-blue-500 to-indigo-600 shadow-lg">
                         <Icon icon="solar:clipboard-check-bold" className="text-3xl text-white" />
                     </div>
                     <Spinner size="lg" color="primary" />
-                    <p className="text-sm text-slate-500">กำลังโหลด…</p>
+                    <p className="text-sm text-slate-500">{t("loading")}</p>
                 </div>
             )}
 
@@ -380,10 +383,10 @@ export default function StudentCheckInPage() {
                     <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-red-100">
                         <Icon icon="solar:danger-triangle-bold-duotone" className="text-4xl text-red-500" />
                     </div>
-                    <h2 className="text-xl font-bold text-slate-900 mb-2">ไม่สามารถเข้าถึงได้</h2>
+                    <h2 className="text-xl font-bold text-slate-900 mb-2">{t("accessUnavailable")}</h2>
                     <p className="text-sm text-slate-500 mb-6 max-w-xs">{errorMessage}</p>
                     <Button variant="flat" radius="lg" onPress={() => window.location.reload()}>
-                        ลองใหม่
+                        {t("reloadPage")}
                     </Button>
                 </div>
             )}
@@ -392,15 +395,15 @@ export default function StudentCheckInPage() {
             {step !== "loading" && step !== "error" && (
                 <>
                     {/* Top hero strip — session info */}
-                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 px-5 pb-8 pt-10 text-white">
+                    <div className="bg-linear-to-br from-blue-600 to-indigo-700 px-5 pb-8 pt-10 text-white">
                         <div className="flex items-center gap-3 mb-3">
                             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15">
                                 <Icon icon="solar:clipboard-check-bold-duotone" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <p className="text-xs text-blue-200 font-medium">เช็คชื่อเข้าเรียน</p>
+                                <p className="text-xs text-blue-200 font-medium">{t("attendanceCheckIn")}</p>
                                 <h1 className="text-lg font-bold leading-tight line-clamp-1">
-                                    {session?.title || "กำลังโหลด…"}
+                                    {session?.title || t("loading")}
                                 </h1>
                             </div>
                         </div>
@@ -421,14 +424,14 @@ export default function StudentCheckInPage() {
                                     <Icon icon="solar:user-circle-bold-duotone" className="text-4xl text-blue-600" />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-bold text-slate-900">เข้าสู่ระบบด้วย Google</h2>
+                                    <h2 className="text-xl font-bold text-slate-900">{t("signInWithGoogle")}</h2>
                                     <p className="mt-1 text-sm text-slate-500">
-                                        ใช้อีเมลนักศึกษา (@kkumail.com)
+                                        {t("useStudentEmail")}
                                     </p>
                                 </div>
                                 <div ref={googleButtonRef} className="flex justify-center w-full" />
                                 <p className="text-xs text-slate-400">
-                                    ระบบจะตรวจสอบอีเมลกับฐานข้อมูลนักศึกษาอัตโนมัติ
+                                    {t("systemVerifiesStudentEmail")}
                                 </p>
                             </div>
                         )}
@@ -440,10 +443,11 @@ export default function StudentCheckInPage() {
                                     <Icon icon="solar:map-point-bold-duotone" className="text-4xl text-indigo-600" />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-bold text-slate-900">ยืนยันตำแหน่ง</h2>
+                                    <h2 className="text-xl font-bold text-slate-900">{t("verifyLocation")}</h2>
                                     <p className="mt-1 text-sm text-slate-500">
-                                        รอบนี้ต้องยืนยันตำแหน่ง
-                                        {session?.radius_meters ? ` ภายในรัศมี ${session.radius_meters} ม.` : ""}
+                                        {session?.radius_meters
+                                            ? t("locationWithinRadius", { radius: session.radius_meters })
+                                            : t("locationRequiredForSession")}
                                     </p>
                                 </div>
 
@@ -456,7 +460,7 @@ export default function StudentCheckInPage() {
                                 {location && (
                                     <div className="w-full rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-700 flex items-center gap-2">
                                         <Icon icon="solar:check-circle-bold" className="shrink-0 text-lg" />
-                                        <span>ระบุตำแหน่งสำเร็จแล้ว</span>
+                                        <span>{t("locationVerifiedSuccessfully")}</span>
                                     </div>
                                 )}
 
@@ -469,10 +473,10 @@ export default function StudentCheckInPage() {
                                     isLoading={isGettingLocation}
                                     onPress={getLocation}
                                 >
-                                    {isGettingLocation ? "กำลังระบุตำแหน่ง…" : "อนุญาตการเข้าถึงตำแหน่ง"}
+                                    {isGettingLocation ? t("checkingStatus") : t("allowLocationAccess")}
                                 </Button>
                                 <p className="text-xs text-slate-400">
-                                    หากไม่ยืนยันตำแหน่ง อาจถูกบันทึกว่า "ขาด" หรือ "สาย"
+                                    {t("ifNoLocationMayBeMarked")}
                                 </p>
                             </div>
                         )}
@@ -501,8 +505,8 @@ export default function StudentCheckInPage() {
                                         <Icon icon="solar:key-bold-duotone" className="text-3xl text-blue-600" />
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-bold text-slate-900">กรอกรหัส PIN</h2>
-                                        <p className="mt-1 text-sm text-slate-500">6 หลัก จากจอหน้าห้องเรียน</p>
+                                        <h2 className="text-xl font-bold text-slate-900">{t("enterPin")}</h2>
+                                        <p className="mt-1 text-sm text-slate-500">{t("sixDigitsFromClassroomDisplay")}</p>
                                     </div>
                                 </div>
 
@@ -523,7 +527,7 @@ export default function StudentCheckInPage() {
                                 {location && (
                                     <div className="flex items-center gap-1.5 text-xs text-emerald-600">
                                         <Icon icon="solar:map-point-bold" />
-                                        ตำแหน่งที่ตั้งถูกระบุแล้ว
+                                        {t("locationCaptured")}
                                     </div>
                                 )}
 
@@ -536,7 +540,7 @@ export default function StudentCheckInPage() {
                                     isLoading={isSubmitting}
                                     onPress={handleCheckIn}
                                 >
-                                    เช็คชื่อ
+                                    {t("checkInAction")}
                                 </Button>
                             </div>
                         )}
@@ -559,7 +563,7 @@ export default function StudentCheckInPage() {
                                 </div>
 
                                 <div>
-                                    <h2 className="text-2xl font-bold text-slate-900">เช็คชื่อสำเร็จ!</h2>
+                                    <h2 className="text-2xl font-bold text-slate-900">{t("checkInSuccessful")}</h2>
                                     <Chip
                                         size="lg"
                                         className={`mt-2 ${statusDisplay[checkInResult.status]?.color}`}
@@ -571,23 +575,23 @@ export default function StudentCheckInPage() {
                                 {/* Info card */}
                                 <div className="w-full rounded-2xl border border-slate-200 bg-white px-5 py-4 text-left space-y-3 shadow-sm">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm text-slate-500">เวลาเช็คชื่อ</span>
+                                        <span className="text-sm text-slate-500">{t("checkInTime")}</span>
                                         <span className="font-mono font-semibold text-slate-900">
                                             {formatTime(checkInResult.check_in_time)}
                                         </span>
                                     </div>
                                     {checkInResult.location_verified && (
                                         <div className="flex items-center justify-between">
-                                            <span className="text-sm text-slate-500">ตำแหน่ง</span>
+                                            <span className="text-sm text-slate-500">{t("locationPermission")}</span>
                                             <span className="text-emerald-600 flex items-center gap-1 text-sm font-medium">
                                                 <Icon icon="solar:check-circle-bold" />
-                                                ยืนยันแล้ว ({checkInResult.distance_meters?.toFixed(0)} ม.)
+                                                {t("locationVerifiedWithDistance", { distance: checkInResult.distance_meters?.toFixed(0) || 0 })}
                                             </span>
                                         </div>
                                     )}
                                 </div>
 
-                                <p className="text-sm text-slate-400">คุณสามารถปิดหน้านี้ได้แล้ว</p>
+                                <p className="text-sm text-slate-400">{t("youCanCloseThisPage")}</p>
                             </div>
                         )}
 
@@ -598,9 +602,9 @@ export default function StudentCheckInPage() {
                                     <Icon icon="solar:info-circle-bold-duotone" className="text-4xl text-sky-600" />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-bold text-slate-900">เช็คชื่อไปแล้ว</h2>
+                                    <h2 className="text-xl font-bold text-slate-900">{t("alreadyCheckedIn")}</h2>
                                     <p className="mt-1 text-sm text-slate-500">
-                                        รอบนี้เมื่อ {formatTime(alreadyCheckedIn.check_in_time)}
+                                        {t("checkedInThisSessionAt", { time: formatTime(alreadyCheckedIn.check_in_time) })}
                                     </p>
                                 </div>
                                 <Chip

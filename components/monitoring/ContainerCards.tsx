@@ -90,7 +90,7 @@ function ContainerRow({ container }: ContainerRowProps) {
           <StatusIndicator
             status={statusMap[container.status] || "down"}
           />
-          <span className="text-sm font-medium truncate max-w-[180px]">
+          <span className="text-sm font-medium truncate max-w-45">
             {container.name}
           </span>
         </div>

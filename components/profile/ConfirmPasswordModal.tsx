@@ -74,7 +74,7 @@ function ConfirmPasswordModal({
       <ModalContent>
         <ModalHeader className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
+            <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
               <Icon icon="solar:lock-password-bold" className="text-xl text-white" />
             </div>
             <span>{title}</span>
@@ -129,7 +129,7 @@ function ConfirmPasswordModal({
             onPress={handleConfirm}
             isLoading={isLoading}
             isDisabled={!password.trim()}
-            className="bg-gradient-to-br from-blue-400 to-indigo-500"
+            className="bg-linear-to-br from-blue-400 to-indigo-500"
             startContent={!isLoading && <Icon icon="solar:check-circle-linear" />}
           >
             ยืนยัน

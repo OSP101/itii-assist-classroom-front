@@ -8,7 +8,7 @@ import { apiService } from './api.service';
 export interface Feedback {
   id: number;
   user_id: number | null;
-  type: 'bug' | 'feature' | 'improvement' | 'other';
+  type: 'bug' | 'feature' | 'improvement' | 'other' | 'support';
   title: string;
   description: string;
   attachments: string[];
@@ -48,15 +48,18 @@ export interface FeedbackStats {
     features: number;
     improvements: number;
     others: number;
+    supports: number;
   };
 }
 
 export interface CreateFeedbackDto {
-  type: 'bug' | 'feature' | 'improvement' | 'other';
+  type: 'bug' | 'feature' | 'improvement' | 'other' | 'support';
   title: string;
   description: string;
   attachments?: string[];
   contact_email?: string;
+  priority?: 'low' | 'medium' | 'high' | 'critical';
+  website?: string;
 }
 
 export interface UpdateFeedbackDto {
@@ -94,6 +97,13 @@ class FeedbackService {
    */
   async createFeedback(data: CreateFeedbackDto) {
     return apiService.post<Feedback>(FEEDBACK_ENDPOINT, data);
+  }
+
+  /**
+   * Create public support ticket
+   */
+  async createSupportTicket(data: CreateFeedbackDto) {
+    return apiService.post<Feedback>(`${FEEDBACK_ENDPOINT}/support`, data, { retryOnRateLimit: false });
   }
 
   /**

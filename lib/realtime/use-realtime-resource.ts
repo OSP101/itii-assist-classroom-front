@@ -30,12 +30,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NativeWebSocketClient } from "./realtime-client";
+import { getRealtimeWebSocketUrl } from "@/services/realtime-socket";
 import type { RealtimeMessage, RealtimeOptions, RealtimeState, RealtimeStatus } from "./types";
-
-const WS_BASE_URL =
-  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_WS_URL) ||
-  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL?.replace(/^http/, "ws")) ||
-  "ws://localhost:3001";
 
 export function useRealtimeResource<T>(
   options: RealtimeOptions<T>
@@ -170,7 +166,7 @@ export function useRealtimeResource<T>(
     }
 
     // WebSocket mode (with polling fallback)
-    const wsUrl = `${WS_BASE_URL}${endpoint}`;
+    const wsUrl = getRealtimeWebSocketUrl(endpoint);
     const client = new NativeWebSocketClient({
       url: wsUrl,
       maxRetries,

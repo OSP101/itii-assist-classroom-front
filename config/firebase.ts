@@ -71,7 +71,6 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
   const permission = await Notification.requestPermission();
   
   if (permission !== "granted") {
-    console.log("Notification permission denied");
     return null;
   }
   
@@ -90,7 +89,6 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
   try {
     // Register service worker first
     const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
-    console.log("Service Worker registered:", registration);
     
     // Get FCM token
     const token = await getToken(messagingInstance, {
@@ -99,10 +97,8 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
     });
     
     if (token) {
-      console.log("FCM Token obtained:", token.substring(0, 20) + "...");
       return token;
     } else {
-      console.log("No registration token available");
       return null;
     }
   } catch (error) {
@@ -117,7 +113,6 @@ export const onForegroundMessage = (callback: (payload: MessagePayload) => void)
   if (!messagingInstance) return null;
   
   return onMessage(messagingInstance, (payload) => {
-    console.log("Foreground message received:", payload);
     callback(payload);
   });
 };

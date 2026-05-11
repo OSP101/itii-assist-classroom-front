@@ -594,7 +594,6 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
     const handleAddTA = async () => {
         modals.setIsSubmitting(true);
         const success = await classroomActions.addTAs(modals.taModal.selectedIds);
-        console.log("Add TA result:", modals.taModal.selectedIds);
         modals.setIsSubmitting(false);
         if (success) modals.taModal.reset();
     };
@@ -1120,9 +1119,9 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
     // ============================================
 
     return (
-        <div className="min-h-[calc(100vh-6rem)] bg-slate-100">
+        <div className="min-h-[calc(100vh-6rem)] bg-background text-foreground">
             {/* Mobile Header */}
-            <div className="lg:hidden sticky top-0 z-50 bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 px-4 py-3">
+            <div className="lg:hidden sticky top-0 z-50 bg-linear-to-r from-blue-500 via-blue-600 to-indigo-600 px-4 py-3">
                 <div className="flex items-center gap-3">
                     <Button
                         isIconOnly
@@ -1160,11 +1159,11 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                     onClick={() => setIsMobileSidebarOpen(false)}
                 >
                     <div
-                        className="w-72 h-full bg-white shadow-xl flex flex-col"
+                        className="flex h-full w-72 flex-col bg-content1 text-foreground shadow-xl"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Mobile Sidebar Header */}
-                        <div className="bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 p-4">
+                        <div className="bg-linear-to-r from-blue-500 via-blue-600 to-indigo-600 p-4">
                             <div className="flex items-center justify-between mb-3">
                                 {course ? (
                                     <Chip size="sm" className="bg-white/20 text-white border-0">
@@ -1226,9 +1225,9 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                     }}
                                     disabled={(item as any).status === "coming_soon"}
                                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-all ${activeTab === item.key
-                                        ? "bg-blue-50 text-blue-600"
-                                        : "text-slate-600 hover:bg-slate-50"
-                                        } ${(item as any).status === "coming_soon" ? "cursor-not-allowed opacity-50 bg-slate-50" : "cursor-pointer"}`}
+                                        ? "bg-primary/10 text-primary"
+                                        : "text-default-600 hover:bg-content2"
+                                        } ${(item as any).status === "coming_soon" ? "cursor-not-allowed bg-content2 opacity-50" : "cursor-pointer"}`}
                                 >
                                     <Icon icon={item.icon} className="text-xl" />
                                     <span className="font-medium">{item.label}</span>
@@ -1242,7 +1241,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
 
             <div className="flex">
                 {/* Desktop Sidebar - Fixed position */}
-                <aside className="hidden lg:flex flex-col w-64 h-[calc(100vh)] bg-white border-r border-slate-200 fixed top-12 left-0 overflow-y-auto z-40">
+                <aside className="fixed top-12 left-0 z-40 hidden h-[calc(100vh)] w-64 flex-col overflow-y-auto border-r border-divider bg-content1 lg:flex">
                     {/* Navigation Menu */}
                     <nav className="flex-1 p-3">
                         {!course ? (
@@ -1260,11 +1259,11 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                     }
                                 }}
                                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-all ${activeTab === item.key
-                                    ? "bg-blue-50 text-blue-600 font-medium"
-                                    : "text-slate-600 hover:bg-slate-50"
-                                    } ${(item as any).status === "coming_soon" ? "cursor-not-allowed opacity-50 bg-slate-50" : "cursor-pointer"}`}
+                                    ? "bg-primary/10 text-primary font-medium"
+                                    : "text-default-600 hover:bg-content2"
+                                    } ${(item as any).status === "coming_soon" ? "cursor-not-allowed bg-content2 opacity-50" : "cursor-pointer"}`}
                             >
-                                <Icon icon={item.icon} className={`text-lg ${activeTab === item.key ? "text-blue-500" : "text-slate-400"}`} />
+                                <Icon icon={item.icon} className={`text-lg ${activeTab === item.key ? "text-primary" : "text-default-400"}`} />
                                 <span className="text-sm">{item.label}</span>
                             </button>
                         ))
@@ -1282,8 +1281,8 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                     <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                         <Icon icon="solar:danger-triangle-bold" className="text-4xl text-red-500" />
                                     </div>
-                                    <h2 className="text-xl font-semibold text-slate-700 mb-2">ไม่พบข้อมูลรายวิชา</h2>
-                                    <p className="text-slate-500 mb-6">รายวิชานี้อาจถูกลบไปแล้ว หรือคุณไม่มีสิทธิ์เข้าถึง</p>
+                                    <h2 className="mb-2 text-xl font-semibold text-default-700">ไม่พบข้อมูลรายวิชา</h2>
+                                    <p className="mb-6 text-default-500">รายวิชานี้อาจถูกลบไปแล้ว หรือคุณไม่มีสิทธิ์เข้าถึง</p>
                                     <div className="flex gap-3 justify-center">
                                         <Button
                                             color="primary"
@@ -1317,7 +1316,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                 {!course.is_active && (
                                     <div className="mb-4 rounded-xl border border-warning-200 bg-warning-50 dark:border-warning-700 dark:bg-warning-900/30 p-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="flex-shrink-0">
+                                            <div className="shrink-0">
                                                 <Icon icon="solar:lock-keyhole-bold" className="text-warning-600 dark:text-warning-400" width={24} />
                                             </div>
                                             <div className="flex-1">
@@ -1528,12 +1527,12 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-xl shadow-lg">
+                            <div className="p-3 bg-linear-to-r from-blue-400 to-indigo-500 rounded-xl shadow-lg">
                                 <Icon icon="solar:users-group-rounded-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">เพิ่มกลุ่มเรียน</h3>
-                                <p className="text-sm text-slate-500 font-normal mt-1">สร้างกลุ่มเรียนใหม่สำหรับรายวิชานี้</p>
+                                <h3 className="text-xl font-bold text-foreground">เพิ่มกลุ่มเรียน</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">สร้างกลุ่มเรียนใหม่สำหรับรายวิชานี้</p>
                             </div>
                         </div>
                     </ModalHeader>
@@ -1549,8 +1548,8 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                 onValueChange={modals.sectionModal.setSectionNo}
                                 isRequired
                                 classNames={{
-                                    inputWrapper: "h-11 sm:h-12 border-blue-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                    label: "text-slate-600 font-medium text-sm",
+                                    inputWrapper: "h-11 border-default-200 bg-content1 hover:border-blue-300 focus-within:!border-blue-400 sm:h-12",
+                                    label: "text-sm font-medium text-default-600",
                                 }}
                             />
                             <Input
@@ -1563,13 +1562,13 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                 onValueChange={modals.sectionModal.setNote}
                                 className="pt-2"
                                 classNames={{
-                                    inputWrapper: "h-11 sm:h-12 border-blue-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                    label: "text-slate-600 font-medium text-sm",
+                                    inputWrapper: "h-11 border-default-200 bg-content1 hover:border-blue-300 focus-within:!border-blue-400 sm:h-12",
+                                    label: "text-sm font-medium text-default-600",
                                 }}
                             />
                         </div>
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-slate-100">
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button variant="light" onPress={modals.sectionModal.reset}>
                             ยกเลิก
                         </Button>
@@ -1578,7 +1577,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             onPress={handleAddSection}
                             isLoading={modals.isSubmitting}
                             isDisabled={!modals.sectionModal.sectionNo.trim()}
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500"
+                            className="bg-linear-to-r from-blue-400 to-indigo-500"
                             startContent={!modals.isSubmitting && <Icon icon="solar:add-circle-bold" />}
                         >
                             เพิ่มกลุ่มเรียน
@@ -1597,23 +1596,23 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-2">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-xl shadow-lg">
+                            <div className="p-3 bg-linear-to-r from-blue-400 to-indigo-500 rounded-xl shadow-lg">
                                 <Icon icon="solar:user-hands-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">เพิ่มผู้ช่วยสอน</h3>
-                                <p className="text-sm text-slate-500 font-normal mt-1">เลือกผู้ช่วยสอนที่ต้องการเพิ่ม (เลือกได้หลายคน)</p>
+                                <h3 className="text-xl font-bold text-foreground">เพิ่มผู้ช่วยสอน</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">เลือกผู้ช่วยสอนที่ต้องการเพิ่ม (เลือกได้หลายคน)</p>
                             </div>
                         </div>
                     </ModalHeader>
                     <ModalBody className="px-6 py-4">
                         {/* Stats */}
                         <div className="mb-1 flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-sm text-slate-600">
+                            <div className="flex items-center gap-2 text-sm text-default-600">
                                 <Icon icon="solar:users-group-rounded-bold" className="text-blue-500" />
                                 <span>ผู้ช่วยสอนในระบบ <span className="font-semibold text-blue-600">{tasList.length}</span> คน</span>
                                 {course?.tas && course.tas.length > 0 && (
-                                    <span className="text-slate-400">
+                                    <span className="text-default-400">
                                         (อยู่ในวิชานี้แล้ว <span className="font-semibold text-emerald-600">{course.tas.length}</span> คน)
                                     </span>
                                 )}
@@ -1632,7 +1631,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             size="lg"
                             value={modals.taModal.searchQuery}
                             onValueChange={modals.taModal.setSearchQuery}
-                            startContent={<Icon icon="solar:magnifer-linear" className="text-slate-400" />}
+                            startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
                             endContent={
                                 modals.taModal.searchQuery && (
                                     <Button
@@ -1641,12 +1640,12 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                         variant="light"
                                         onPress={() => modals.taModal.setSearchQuery("")}
                                     >
-                                        <Icon icon="solar:close-circle-bold" className="text-slate-400" />
+                                        <Icon icon="solar:close-circle-bold" className="text-default-400" />
                                     </Button>
                                 )
                             }
                             classNames={{
-                                inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
                             }}
                         />
 
@@ -1675,8 +1674,8 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                         </div>
 
                         {/* TA List */}
-                        <div className="mt-1 border border-slate-200 rounded-xl overflow-hidden">
-                            <div className="h-[300px] overflow-y-auto">
+                        <div className="mt-1 overflow-hidden rounded-xl border border-default-200">
+                            <div className="h-75 overflow-y-auto">
                                 {(() => {
                                     const existingTAIds = course?.tas?.map(ta => ta.id) || [];
                                     const filteredTAs = tasList.filter(ta => {
@@ -1693,7 +1692,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
 
                                     if (filteredTAs.length === 0) {
                                         return (
-                                            <div className="p-8 text-center text-slate-500">
+                                            <div className="p-8 text-center text-default-500">
                                                 <Icon icon="solar:user-cross-linear" className="text-4xl mb-2" />
                                                 <p>{modals.taModal.searchQuery ? "ไม่พบผู้ช่วยสอนที่ค้นหา" : "ผู้ช่วยสอนทั้งหมดอยู่ในวิชานี้แล้ว"}</p>
                                             </div>
@@ -1707,13 +1706,13 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                             <div
                                                 key={ta.id}
                                                 onClick={() => toggleTASelection(ta.id)}
-                                                className={`flex items-center gap-3 p-3 border-b border-slate-100 last:border-0 transition-all ${isSelected
-                                                    ? "bg-blue-50 cursor-pointer"
-                                                    : "hover:bg-slate-50 cursor-pointer"
+                                                className={`flex items-center gap-3 border-b border-divider p-3 transition-all last:border-0 ${isSelected
+                                                    ? "cursor-pointer bg-primary/10"
+                                                    : "cursor-pointer hover:bg-content2"
                                                     }`}
                                             >
                                                 {/* Checkbox */}
-                                                <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 `}>
+                                                <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 `}>
                                                     {isSelected && (
                                                         <Icon icon="solar:check-circle-bold" className="text-lg text-blue-500" />
                                                     )}
@@ -1723,13 +1722,13 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                                     name={ta.full_name}
                                                     src={ta.avatar || undefined}
                                                     size="sm"
-                                                    className="flex-shrink-0 bg-gradient-to-br from-blue-400 to-indigo-500"
+                                                    className="shrink-0 bg-linear-to-br from-blue-400 to-indigo-500"
                                                 />
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="font-medium truncate text-slate-800">
+                                                    <p className="truncate font-medium text-foreground">
                                                         {ta.full_name}
                                                     </p>
-                                                    <p className="text-xs truncate text-slate-500">
+                                                    <p className="truncate text-xs text-default-500">
                                                         {ta.email || ta.username}
                                                     </p>
                                                 </div>
@@ -1743,7 +1742,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                         {/* Selected TAs Preview */}
                         {modals.taModal.selectedIds.length > 0 && (
                             <div className="mt-2">
-                                <p className="text-sm font-medium text-slate-600 mb-2">ผู้ช่วยสอนที่เลือก ({modals.taModal.selectedIds.length} คน)</p>
+                                <p className="mb-2 text-sm font-medium text-default-600">ผู้ช่วยสอนที่เลือก ({modals.taModal.selectedIds.length} คน)</p>
                                 <div className="flex flex-wrap gap-2">
                                     {modals.taModal.selectedIds.map(taId => {
                                         const ta = tasList.find(t => t.id === taId);
@@ -1764,7 +1763,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             </div>
                         )}
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button
                             variant="light"
                             onPress={modals.taModal.reset}
@@ -1777,7 +1776,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             isLoading={modals.isSubmitting}
                             isDisabled={modals.taModal.selectedIds.length === 0}
                             startContent={!modals.isSubmitting && <Icon icon="solar:add-circle-bold" />}
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
                         >
                             เพิ่มผู้ช่วยสอน {modals.taModal.selectedIds.length > 0 ? `(${modals.taModal.selectedIds.length} คน)` : ""}
                         </Button>
@@ -1795,19 +1794,19 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-2">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-xl shadow-lg">
+                            <div className="p-3 bg-linear-to-r from-indigo-400 to-purple-500 rounded-xl shadow-lg">
                                 <Icon icon="solar:user-hands-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">เพิ่มอาจารย์ผู้สอน</h3>
-                                <p className="text-sm text-slate-500 font-normal mt-1">เลือกอาจารย์ที่ต้องการเพิ่ม (เลือกได้หลายคน)</p>
+                                <h3 className="text-xl font-bold text-foreground">เพิ่มอาจารย์ผู้สอน</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">เลือกอาจารย์ที่ต้องการเพิ่ม (เลือกได้หลายคน)</p>
                             </div>
                         </div>
                     </ModalHeader>
                     <ModalBody className="px-6 py-4">
                         {/* Stats */}
                         <div className="mb-1 flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-sm text-slate-600">
+                            <div className="flex items-center gap-2 text-sm text-default-600">
                                 <Icon icon="solar:users-group-rounded-bold" className="text-indigo-500" />
                                 <span>อาจารย์ในระบบ <span className="font-semibold text-indigo-600">{instructorsList.length}</span> คน</span>
                             </div>
@@ -1825,7 +1824,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             size="md"
                             value={modals.instructorModal.searchQuery}
                             onValueChange={modals.instructorModal.setSearchQuery}
-                            startContent={<Icon icon="solar:magnifer-linear" className="text-slate-400" />}
+                            startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
                             endContent={
                                 modals.instructorModal.searchQuery && (
                                     <Button
@@ -1834,12 +1833,12 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                         variant="light"
                                         onPress={() => modals.instructorModal.setSearchQuery("")}
                                     >
-                                        <Icon icon="solar:close-circle-bold" className="text-slate-400" />
+                                        <Icon icon="solar:close-circle-bold" className="text-default-400" />
                                     </Button>
                                 )
                             }
                             classNames={{
-                                inputWrapper: "bg-white border-slate-200 hover:border-indigo-300 focus-within:!border-indigo-400",
+                                inputWrapper: "bg-content1 border-default-200 hover:border-indigo-300 focus-within:!border-indigo-400",
                             }}
                         />
 
@@ -1868,10 +1867,10 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                         </div>
 
                         {/* Instructor List */}
-                        <div className="mt-2 border border-slate-200 rounded-xl overflow-hidden">
-                            <div className="h-[300px] overflow-y-auto">
+                        <div className="mt-2 overflow-hidden rounded-xl border border-default-200">
+                            <div className="h-75 overflow-y-auto">
                                 {filteredInstructors.length === 0 ? (
-                                    <div className="p-8 text-center text-slate-500">
+                                    <div className="p-8 text-center text-default-500">
                                         <Icon icon="solar:user-cross-linear" className="text-4xl mb-2" />
                                         <p>{modals.instructorModal.searchQuery ? "ไม่พบอาจารย์ที่ค้นหา" : "อาจารย์ทั้งหมดอยู่ในวิชานี้แล้ว"}</p>
                                     </div>
@@ -1890,13 +1889,13 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                                         modals.instructorModal.setSelectedIds([...current, instructor.id]);
                                                     }
                                                 }}
-                                                className={`flex items-center gap-3 p-3 border-b border-slate-100 last:border-0 transition-all ${isSelected
-                                                    ? "bg-indigo-50 cursor-pointer"
-                                                    : "hover:bg-slate-50 cursor-pointer"
+                                                className={`flex items-center gap-3 border-b border-divider p-3 transition-all last:border-0 ${isSelected
+                                                    ? "cursor-pointer bg-indigo-500/10"
+                                                    : "cursor-pointer hover:bg-content2"
                                                     }`}
                                             >
                                                 {/* Checkbox */}
-                                                <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0`}>
+                                                <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0`}>
                                                     {isSelected && (
                                                         <Icon icon="solar:check-circle-bold" className="text-lg text-indigo-500" />
                                                     )}
@@ -1906,13 +1905,13 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                                     name={instructor.full_name}
                                                     src={instructor.avatar || undefined}
                                                     size="sm"
-                                                    className={`flex-shrink-0 bg-gradient-to-br from-indigo-400 to-purple-500`}
+                                                    className={`shrink-0 bg-linear-to-br from-indigo-400 to-purple-500`}
                                                 />
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="font-medium truncate text-slate-800">
+                                                    <p className="truncate font-medium text-foreground">
                                                         {instructor.full_name}
                                                     </p>
-                                                    <p className="text-xs truncate text-slate-500">
+                                                    <p className="truncate text-xs text-default-500">
                                                         {instructor.email}
                                                     </p>
                                                 </div>
@@ -1926,7 +1925,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                         {/* Selected Instructors Preview */}
                         {modals.instructorModal.selectedIds.length > 0 && (
                             <div className="mt-2">
-                                <p className="text-sm font-medium text-slate-600 mb-2">อาจารย์ที่เลือก ({modals.instructorModal.selectedIds.length} คน)</p>
+                                <p className="mb-2 text-sm font-medium text-default-600">อาจารย์ที่เลือก ({modals.instructorModal.selectedIds.length} คน)</p>
                                 <div className="flex flex-wrap gap-2">
                                     {modals.instructorModal.selectedIds.map(instructorId => {
                                         const instructor = instructorsList.find(i => i.id === instructorId);
@@ -1950,7 +1949,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             </div>
                         )}
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button
                             variant="light"
                             onPress={modals.instructorModal.reset}
@@ -1963,7 +1962,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             isLoading={modals.isSubmitting}
                             isDisabled={modals.instructorModal.selectedIds.length === 0}
                             startContent={!modals.isSubmitting && <Icon icon="solar:add-circle-bold" />}
-                            className="bg-gradient-to-r from-indigo-400 to-purple-500 shadow-lg shadow-indigo-400/25"
+                            className="bg-linear-to-r from-indigo-400 to-purple-500 shadow-lg shadow-indigo-400/25"
                         >
                             เพิ่มอาจารย์ {modals.instructorModal.selectedIds.length > 0 ? `(${modals.instructorModal.selectedIds.length} คน)` : ""}
                         </Button>
@@ -1981,12 +1980,12 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-xl shadow-lg">
+                            <div className="p-3 bg-linear-to-r from-cyan-400 to-blue-500 rounded-xl shadow-lg">
                                 <Icon icon="solar:user-plus-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">เพิ่มนักศึกษา</h3>
-                                <p className="text-sm text-slate-500 font-normal mt-1">
+                                <h3 className="text-xl font-bold text-foreground">เพิ่มนักศึกษา</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">
                                     กลุ่มเรียน {course?.sections?.find(s => s.id === modals.studentModal.sectionId)?.section_no}
                                 </p>
                             </div>
@@ -2001,7 +2000,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                     variant={modals.studentModal.mode === "select" ? "solid" : "flat"}
                                     color={modals.studentModal.mode === "select" ? "primary" : "default"}
                                     onPress={() => modals.studentModal.setMode("select")}
-                                    className={modals.studentModal.mode === "select" ? "bg-gradient-to-r from-cyan-400 to-blue-500" : ""}
+                                    className={modals.studentModal.mode === "select" ? "bg-linear-to-r from-cyan-400 to-blue-500" : ""}
                                     startContent={<Icon icon="solar:user-check-bold" />}
                                 >
                                     เลือกจากรายชื่อ
@@ -2011,7 +2010,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                     variant={modals.studentModal.mode === "paste" ? "solid" : "flat"}
                                     color={modals.studentModal.mode === "paste" ? "primary" : "default"}
                                     onPress={() => modals.studentModal.setMode("paste")}
-                                    className={modals.studentModal.mode === "paste" ? "bg-gradient-to-r from-emerald-400 to-teal-500" : ""}
+                                    className={modals.studentModal.mode === "paste" ? "bg-linear-to-r from-emerald-400 to-teal-500" : ""}
                                     startContent={<Icon icon="solar:clipboard-text-bold" />}
                                 >
                                     วางจาก Excel
@@ -2026,9 +2025,9 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                         size="lg"
                                         value={modals.studentModal.searchQuery}
                                         onValueChange={modals.studentModal.setSearchQuery}
-                                        startContent={<Icon icon="solar:magnifer-linear" className="text-slate-400" />}
+                                        startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
                                         classNames={{
-                                            inputWrapper: "h-12 bg-white border-slate-200 hover:border-cyan-300 focus-within:!border-cyan-400",
+                                            inputWrapper: "h-12 bg-content1 border-default-200 hover:border-cyan-300 focus-within:!border-cyan-400",
                                         }}
                                     />
                                     <Select
@@ -2043,17 +2042,17 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                             modals.studentModal.setStudentId(selected || "");
                                         }}
                                         classNames={{
-                                            trigger: "h-12 bg-white border-slate-200 hover:border-cyan-300 data-[open=true]:border-cyan-400",
-                                            label: "text-slate-600 font-medium text-sm",
+                                            trigger: "h-12 bg-content1 border-default-200 hover:border-cyan-300 data-[open=true]:border-cyan-400",
+                                            label: "text-sm font-medium text-default-600",
                                         }}
                                     >
                                         {filteredStudents().map(student => (
                                             <SelectItem key={String(student.id)} textValue={`${student.student_id} - ${student.full_name}`}>
                                                 <div className="flex items-center gap-3">
-                                                    <Avatar size="sm" name={student.full_name} className="bg-gradient-to-br from-cyan-400 to-blue-500 text-white" />
+                                                    <Avatar size="sm" name={student.full_name} className="bg-linear-to-br from-cyan-400 to-blue-500 text-white" />
                                                     <div>
-                                                        <p className="font-medium text-slate-800">{student.student_id}</p>
-                                                        <p className="text-xs text-slate-500">{student.full_name}</p>
+                                                        <p className="font-medium text-foreground">{student.student_id}</p>
+                                                        <p className="text-xs text-default-500">{student.full_name}</p>
                                                     </div>
                                                 </div>
                                             </SelectItem>
@@ -2062,8 +2061,8 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                 </>
                             ) : (
                                 <>
-                                    <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                                        <p className="text-sm text-slate-600">
+                                    <div className="rounded-lg border border-default-200 bg-content2/80 p-3">
+                                        <p className="text-sm text-default-600">
                                             <Icon icon="solar:info-circle-bold" className="text-cyan-500 inline mr-1" />
                                             วางรหัสนักศึกษา หรือชื่อ-นามสกุล หนึ่งรายการต่อบรรทัด
                                         </p>
@@ -2079,14 +2078,14 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                             modals.studentModal.setExcelData(value);
                                             parseExcelData(value);
                                         }}
-                                        startContent={<Icon icon="solar:document-text-linear" className="text-slate-400" />}
+                                        startContent={<Icon icon="solar:document-text-linear" className="text-default-400" />}
                                         classNames={{
-                                            inputWrapper: "h-12 bg-white border-slate-200 hover:border-emerald-300 focus-within:!border-emerald-400",
-                                            label: "text-slate-600 font-medium text-sm",
+                                            inputWrapper: "h-12 bg-content1 border-default-200 hover:border-emerald-300 focus-within:!border-emerald-400",
+                                            label: "text-sm font-medium text-default-600",
                                         }}
                                     />
                                     {modals.studentModal.parsedStudents.length > 0 && (
-                                        <div className="space-y-2 max-h-60 overflow-y-auto border border-slate-200 rounded-lg p-3">
+                                        <div className="max-h-60 space-y-2 overflow-y-auto rounded-lg border border-default-200 p-3">
                                             {modals.studentModal.parsedStudents.map((item, index) => (
                                                 <div
                                                     key={index}
@@ -2127,7 +2126,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                                     </div>
                                                 </div>
                                             ))}
-                                            <div className="flex gap-2 mt-3 pt-3 border-t border-slate-200">
+                                            <div className="mt-3 flex gap-2 border-t border-divider pt-3">
                                                 <Chip size="sm" color="success" variant="flat">
                                                     <Icon icon="solar:check-circle-bold" className="mr-1" />
                                                     พบ {modals.studentModal.parsedStudents.filter(p => p.status === "matched").length}
@@ -2147,7 +2146,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             )}
                         </div>
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button
                             variant="light"
                             onPress={modals.studentModal.reset}
@@ -2161,7 +2160,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                 isLoading={modals.isSubmitting}
                                 isDisabled={!modals.studentModal.studentId}
                                 startContent={!modals.isSubmitting && <Icon icon="solar:add-circle-bold" />}
-                                className="bg-gradient-to-r from-cyan-400 to-blue-500 shadow-lg shadow-cyan-400/25"
+                                className="bg-linear-to-r from-cyan-400 to-blue-500 shadow-lg shadow-cyan-400/25"
                             >
                                 เพิ่มนักศึกษา
                             </Button>
@@ -2172,7 +2171,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                 isLoading={modals.isSubmitting}
                                 isDisabled={modals.studentModal.parsedStudents.filter(p => p.status === "matched").length === 0}
                                 startContent={!modals.isSubmitting && <Icon icon="solar:users-group-rounded-bold" />}
-                                className="bg-gradient-to-r from-emerald-400 to-teal-500 shadow-lg shadow-emerald-400/25"
+                                className="bg-linear-to-r from-emerald-400 to-teal-500 shadow-lg shadow-emerald-400/25"
                             >
                                 เพิ่ม {modals.studentModal.parsedStudents.filter(p => p.status === "matched").length} คน
                             </Button>
@@ -2190,18 +2189,18 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl shadow-lg">
+                            <div className="p-3 bg-linear-to-br from-red-500 to-rose-600 rounded-xl shadow-lg">
                                 <Icon icon="solar:danger-triangle-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">
+                                <h3 className="text-xl font-bold text-foreground">
                                     {modals.deleteModal.type === "student" && "นำนักศึกษาออก"}
                                     {modals.deleteModal.type === "section" && "ลบกลุ่มเรียน"}
                                     {modals.deleteModal.type === "team" && "ลบกลุ่ม"}
                                     {modals.deleteModal.type === "ta" && "นำผู้ช่วยสอนออก"}
                                     {modals.deleteModal.type === "instructor" && "นำอาจารย์ออก"}
                                 </h3>
-                                <p className="text-sm text-slate-500 font-normal mt-1">
+                                <p className="mt-1 text-sm font-normal text-default-500">
                                     กรุณาตรวจสอบข้อมูลก่อนดำเนินการ
                                 </p>
                             </div>
@@ -2217,16 +2216,16 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                             {/* Student Delete */}
                                             {modals.deleteModal.type === "student" && (
                                                 <>
-                                                    <div className="w-14 h-14 rounded-xl flex items-center justify-center shadow-lg bg-gradient-to-br from-blue-500 to-indigo-600">
+                                                    <div className="w-14 h-14 rounded-xl flex items-center justify-center shadow-lg bg-linear-to-br from-blue-500 to-indigo-600">
                                                         <Icon icon="solar:user-bold" className="text-2xl text-white" />
                                                     </div>
                                                     <div className="flex-1">
-                                                        <p className="font-semibold text-lg text-slate-800">{modals.deleteModal.target.studentName}</p>
+                                                        <p className="text-lg font-semibold text-foreground">{modals.deleteModal.target.studentName}</p>
                                                         <div className="flex items-center gap-2 mt-1">
                                                             <Chip size="sm" variant="flat" className="bg-blue-100 text-blue-700">
                                                                 {modals.deleteModal.target.studentCode}
                                                             </Chip>
-                                                            <Chip size="sm" variant="flat" className="bg-slate-100 text-slate-600">
+                                                            <Chip size="sm" variant="flat" className="bg-content3 text-default-600">
                                                                 Section {modals.deleteModal.target.sectionNo}
                                                             </Chip>
                                                         </div>
@@ -2236,11 +2235,11 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                             {/* Section Delete */}
                                             {modals.deleteModal.type === "section" && (
                                                 <>
-                                                    <div className="w-14 h-14 rounded-xl flex items-center justify-center shadow-lg bg-gradient-to-br from-blue-500 to-indigo-600">
+                                                    <div className="w-14 h-14 rounded-xl flex items-center justify-center shadow-lg bg-linear-to-br from-blue-500 to-indigo-600">
                                                         <Icon icon="solar:notebook-bold" className="text-2xl text-white" />
                                                     </div>
                                                     <div className="flex-1">
-                                                        <p className="font-semibold text-lg text-slate-800">กลุ่มเรียน {modals.deleteModal.target.sectionNo}</p>
+                                                        <p className="text-lg font-semibold text-foreground">กลุ่มเรียน {modals.deleteModal.target.sectionNo}</p>
                                                         <div className="flex items-center gap-2 mt-1">
                                                             <Chip size="sm" variant="flat" className="bg-blue-100 text-blue-700">
                                                                 <Icon icon="solar:users-group-rounded-linear" className="mr-1" />
@@ -2254,13 +2253,13 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                             {modals.deleteModal.type === "team" && (
                                                 <>
                                                     <div className={`w-14 h-14 rounded-xl flex items-center justify-center shadow-lg ${modals.deleteModal.target.teamType === "permanent"
-                                                        ? "bg-gradient-to-br from-purple-500 to-indigo-600"
-                                                        : "bg-gradient-to-br from-emerald-500 to-teal-600"
+                                                        ? "bg-linear-to-br from-purple-500 to-indigo-600"
+                                                        : "bg-linear-to-br from-emerald-500 to-teal-600"
                                                         }`}>
                                                         <Icon icon="solar:users-group-two-rounded-bold" className="text-2xl text-white" />
                                                     </div>
                                                     <div className="flex-1">
-                                                        <p className="font-semibold text-lg text-slate-800">{modals.deleteModal.target.teamName}</p>
+                                                        <p className="text-lg font-semibold text-foreground">{modals.deleteModal.target.teamName}</p>
                                                         <div className="flex items-center gap-2 mt-1">
                                                             <Chip size="sm" variant="flat" className={
                                                                 modals.deleteModal.target.teamType === "permanent"
@@ -2276,8 +2275,8 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                                             )}
                                                         </div>
                                                         {modals.deleteModal.target.teamMembers && modals.deleteModal.target.teamMembers.length > 0 && (
-                                                            <div className="flex items-center gap-1 mt-2 text-sm text-slate-500">
-                                                                <Icon icon="solar:users-group-rounded-linear" className="text-slate-400" />
+                                                            <div className="mt-2 flex items-center gap-1 text-sm text-default-500">
+                                                                <Icon icon="solar:users-group-rounded-linear" className="text-default-400" />
                                                                 {modals.deleteModal.target.teamMembers.length} สมาชิก
                                                             </div>
                                                         )}
@@ -2293,13 +2292,13 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                                         className="w-14 h-14 text-xl"
                                                     />
                                                     <div className="flex-1">
-                                                        <p className="font-semibold text-lg text-slate-800">{modals.deleteModal.target.taName}</p>
+                                                        <p className="text-lg font-semibold text-foreground">{modals.deleteModal.target.taName}</p>
                                                         <div className="flex items-center gap-2 mt-1">
                                                             <Chip size="sm" variant="flat" className="bg-blue-100 text-blue-700">
                                                                 ผู้ช่วยสอน
                                                             </Chip>
                                                         </div>
-                                                        <p className="text-sm text-slate-500 mt-1">{modals.deleteModal.target.taEmail}</p>
+                                                        <p className="mt-1 text-sm text-default-500">{modals.deleteModal.target.taEmail}</p>
                                                     </div>
                                                 </>
                                             )}
@@ -2312,13 +2311,13 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                                         className="w-14 h-14 text-xl"
                                                     />
                                                     <div className="flex-1">
-                                                        <p className="font-semibold text-lg text-slate-800">{(modals.deleteModal.target as any).instructorName}</p>
+                                                        <p className="text-lg font-semibold text-foreground">{(modals.deleteModal.target as any).instructorName}</p>
                                                         <div className="flex items-center gap-2 mt-1">
                                                             <Chip size="sm" variant="flat" className="bg-indigo-100 text-indigo-700">
                                                                 อาจารย์
                                                             </Chip>
                                                         </div>
-                                                        <p className="text-sm text-slate-500 mt-1">{(modals.deleteModal.target as any).instructorEmail}</p>
+                                                        <p className="mt-1 text-sm text-default-500">{(modals.deleteModal.target as any).instructorEmail}</p>
                                                     </div>
                                                 </>
                                             )}
@@ -2329,12 +2328,12 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                 {/* Additional Info Card */}
                                 {modals.deleteModal.type === "section" && (modals.deleteModal.target.sectionStudentCount || 0) > 0 && (
                                     <Card className="border border-amber-200 bg-amber-50">
-                                        <CardBody className="py-3 px-4">
+                                        <CardBody className="px-4 py-3">
                                             <div className="flex items-start gap-3">
-                                                <Icon icon="solar:users-group-rounded-bold" className="text-xl text-amber-600 mt-0.5" />
+                                                <Icon icon="solar:users-group-rounded-bold" className="mt-0.5 text-xl text-amber-600" />
                                                 <div>
                                                     <p className="font-medium text-amber-800">เกี่ยวกับนักศึกษา</p>
-                                                    <p className="text-sm text-amber-700 mt-1">
+                                                    <p className="mt-1 text-sm text-amber-700">
                                                         นักศึกษาทั้งหมด {modals.deleteModal.target.sectionStudentCount} คนในกลุ่มเรียนนี้จะถูกนำออกด้วย
                                                     </p>
                                                 </div>
@@ -2389,7 +2388,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             </div>
                         )}
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button
                             variant="light"
                             onPress={modals.deleteModal.reset}
@@ -2430,7 +2429,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl shadow-lg">
+                            <div className="p-3 bg-linear-to-br from-red-500 to-rose-600 rounded-xl shadow-lg">
                                 <Icon icon="solar:danger-triangle-bold" className="text-2xl text-white" />
                             </div>
                             <div>
@@ -2447,7 +2446,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             <Card className="border border-red-100 bg-red-50/50">
                                 <CardBody className="py-4 px-4">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-14 h-14 rounded-xl flex items-center justify-center shadow-lg bg-gradient-to-br from-emerald-500 to-teal-600">
+                                        <div className="w-14 h-14 rounded-xl flex items-center justify-center shadow-lg bg-linear-to-br from-emerald-500 to-teal-600">
                                             <Icon icon="solar:users-group-two-rounded-bold" className="text-2xl text-white" />
                                         </div>
                                         <div className="flex-1">
@@ -2541,8 +2540,8 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
                             <div className={`p-3 rounded-xl shadow-lg ${modals.teamModal.type === "permanent"
-                                ? "bg-gradient-to-br from-purple-500 to-indigo-600"
-                                : "bg-gradient-to-br from-emerald-500 to-teal-600"
+                                ? "bg-linear-to-br from-purple-500 to-indigo-600"
+                                : "bg-linear-to-br from-emerald-500 to-teal-600"
                                 }`}>
                                 <Icon icon="solar:users-group-two-rounded-bold" className="text-2xl text-white" />
                             </div>
@@ -2970,7 +2969,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl shadow-lg">
+                            <div className="p-3 bg-linear-to-br from-amber-500 to-orange-600 rounded-xl shadow-lg">
                                 <Icon icon="solar:pen-new-square-bold" className="text-2xl text-white" />
                             </div>
                             <div>
@@ -3104,7 +3103,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             onPress={saveEditedTeam}
                             isLoading={modals.isSubmitting}
                             isDisabled={!modals.editTeamModal.name.trim()}
-                            className="bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-400/25"
+                            className="bg-linear-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-400/25"
                             startContent={!modals.isSubmitting && <Icon icon="solar:diskette-bold" />}
                         >
                             บันทึก
@@ -3122,7 +3121,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-xl shadow-lg">
+                            <div className="p-3 bg-linear-to-r from-indigo-400 to-purple-500 rounded-xl shadow-lg">
                                 <Icon icon="solar:chart-square-bold" className="text-2xl text-white" />
                             </div>
                             <div>
@@ -3204,7 +3203,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             isLoading={scores.isSaving}
                             isDisabled={!scores.selectedGroup}
                             startContent={!scores.isSaving && <Icon icon="solar:diskette-bold" />}
-                            className="bg-gradient-to-r from-indigo-400 to-purple-500 shadow-lg shadow-indigo-400/25"
+                            className="bg-linear-to-r from-indigo-400 to-purple-500 shadow-lg shadow-indigo-400/25"
                         >
                             บันทึกคะแนน
                         </Button>
@@ -3214,11 +3213,11 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
 
             {/* Assignment Pending Update Toast - Portaled to body to escape all stacking contexts */}
             {pendingAssignmentUpdate && createPortal(
-                <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-[9999] sm:max-w-sm sm:w-full animate-toast-slide-up">
+                <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-9999 sm:max-w-sm sm:w-full animate-toast-slide-up">
                     <div className="bg-white/95 backdrop-blur-md border border-blue-200 rounded-2xl shadow-2xl overflow-hidden">
                         {/* <div className="h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" /> */}
                         <div className="flex items-center gap-3 p-4">
-                            <div className="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                            <div className="shrink-0 w-10 h-10 rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:bell-bing-bold" className="text-xl text-white animate-bounce" />
                             </div>
                             <div className="flex-1 min-w-0">
@@ -3228,7 +3227,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             <Button
                                 size="sm"
                                 color="primary"
-                                className="shrink-0 bg-gradient-to-r from-blue-500 to-indigo-600 text-white"
+                                className="shrink-0 bg-linear-to-r from-blue-500 to-indigo-600 text-white"
                                 startContent={<Icon icon="solar:refresh-bold" />}
                                 onPress={() => ackAssignmentUpdate()}
                             >

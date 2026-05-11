@@ -8,6 +8,9 @@ import { Icon } from "@iconify/react";
 import { addToast } from "@heroui/toast";
 import { authService } from "@/services";
 
+const AUTH_PAGE_SHELL = "flex min-h-screen items-center justify-center bg-background p-4 text-foreground";
+const AUTH_PAGE_CARD = "w-full max-w-md border border-default-200 bg-content1 shadow-2xl shadow-slate-200/40 dark:shadow-zinc-950/50";
+
 function AuthCallbackContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -336,8 +339,8 @@ function AuthCallbackContent() {
 
 export default function AuthCallbackPage() {
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 p-4">
-            <Card className="w-full max-w-md shadow-2xl border border-blue-100">
+        <div data-auth-shell="true" className={AUTH_PAGE_SHELL}>
+            <Card className={AUTH_PAGE_CARD}>
                 <CardBody className="p-8">
                     <Suspense
                         fallback={

@@ -24,7 +24,7 @@ export type RealtimeOptions<T> = {
   /** Transport mode. Falls back to polling if WebSocket fails. */
   mode: RealtimeMode;
   /**
-   * WebSocket or SSE endpoint path (relative to API_BASE_URL or WS_BASE_URL).
+    * WebSocket or SSE endpoint path resolved from the shared realtime base URL.
    * Example: `/ws?type=queue&sessionId=${sessionId}`
    */
   endpoint: string;

@@ -12,7 +12,7 @@ export default function BookQueueLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 flex flex-col">
       <main className="flex-1">{children}</main>
       <AppFooter />
     </div>

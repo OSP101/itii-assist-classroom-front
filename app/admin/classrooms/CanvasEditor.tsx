@@ -797,7 +797,7 @@ export default function CanvasEditor({
         <div
             ref={containerRef}
             style={{ width, height, overflow: "hidden" }}
-            className="bg-white"
+            className="bg-content1"
         />
     );
 }

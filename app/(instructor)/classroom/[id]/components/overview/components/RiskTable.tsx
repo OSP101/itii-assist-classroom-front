@@ -44,7 +44,7 @@ function RiskTableComponent({ students, onSelectStudent }: RiskTableProps) {
                   <Avatar
                     name={student.full_name}
                     size="sm"
-                    className="shrink-0 bg-gradient-to-br from-slate-400 to-slate-600 text-white"
+                    className="shrink-0 bg-linear-to-br from-slate-400 to-slate-600 text-white"
                   />
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{student.full_name}</p>
@@ -101,10 +101,10 @@ function RiskTableComponent({ students, onSelectStudent }: RiskTableProps) {
                     <Avatar
                       name={student.full_name}
                       size="sm"
-                      className="shrink-0 bg-gradient-to-br from-slate-400 to-slate-600 text-white"
+                      className="shrink-0 bg-linear-to-br from-slate-400 to-slate-600 text-white"
                     />
                     <div className="min-w-0">
-                      <p className="font-medium text-slate-800 truncate max-w-[130px]">{student.full_name}</p>
+                      <p className="font-medium text-slate-800 truncate max-w-32.5">{student.full_name}</p>
                       <p className="text-xs text-slate-400">{student.student_id}</p>
                     </div>
                   </div>
@@ -129,7 +129,7 @@ function RiskTableComponent({ students, onSelectStudent }: RiskTableProps) {
 
                 {/* Score progress */}
                 <td className="py-3 pr-4 hidden md:table-cell">
-                  <div className="flex items-center gap-2 min-w-[100px] tabular-nums">
+                  <div className="flex items-center gap-2 min-w-25 tabular-nums">
                     <Progress
                       value={pct}
                       size="sm"

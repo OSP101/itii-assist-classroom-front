@@ -7,20 +7,20 @@ type CourseListSkeletonProps = {
   count?: number;
 };
 
-const iconSkeletonClass = "bg-blue-100/70";
+const iconSkeletonClass = "bg-primary/15";
 
 export function PageBootSkeleton({ variant = "home" }: { variant?: "home" | "classroom" }) {
   if (variant === "classroom") {
     // Minimal header-only skeleton for classroom pages (sidebar + content handled by classroom page itself)
     return (
-      <div className="min-h-screen bg-slate-50">
-        <header className="sticky top-0 z-50 bg-white border-b border-slate-200">
+      <div className="min-h-screen bg-background text-foreground">
+        <header className="sticky top-0 z-50 border-b border-divider bg-content1">
           <div className="flex items-center justify-between h-12 px-4">
             <div className="flex items-center gap-2">
               <Skeleton className="w-6 h-6 rounded bg-blue-100" />
-              <Skeleton className="w-4 h-4 rounded bg-slate-100" />
+              <Skeleton className="w-4 h-4 rounded bg-content3" />
               <Skeleton className="w-36 h-7 rounded-md" />
-              <Skeleton className="w-4 h-4 rounded bg-slate-100" />
+              <Skeleton className="w-4 h-4 rounded bg-content3" />
               <Skeleton className="hidden sm:block w-48 h-7 rounded-md" />
             </div>
             <Skeleton className="w-7 h-7 rounded-full bg-blue-100" />
@@ -28,9 +28,9 @@ export function PageBootSkeleton({ variant = "home" }: { variant?: "home" | "cla
         </header>
         {/* Sidebar + content skeleton matching classroom layout */}
         <div className="flex">
-          <aside className="hidden lg:block w-64 h-[calc(100vh-3rem)] bg-white border-r border-slate-200 fixed top-12 left-0">
+          <aside className="fixed left-0 top-12 hidden h-[calc(100vh-3rem)] w-64 border-r border-divider bg-content1 lg:block">
             <div className="space-y-1 p-3">
-              <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-50">
+              <div className="flex items-center gap-3 rounded-lg bg-primary/10 px-3 py-2.5">
                 <Skeleton className="w-5 h-5 rounded" />
                 <Skeleton className="h-4 rounded-lg" style={{ width: 64 }} />
               </div>
@@ -60,14 +60,14 @@ export function PageBootSkeleton({ variant = "home" }: { variant?: "home" | "cla
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="sticky top-0 z-50 bg-white border-b border-slate-200">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-50 border-b border-divider bg-content1">
         <div className="flex items-center justify-between h-12 px-4">
           <div className="flex items-center gap-2">
             <Skeleton className="w-6 h-6 rounded bg-blue-100" />
-            <Skeleton className="w-4 h-4 rounded bg-slate-100" />
+            <Skeleton className="w-4 h-4 rounded bg-content3" />
             <Skeleton className="w-36 h-7 rounded-md" />
-            <Skeleton className="w-4 h-4 rounded bg-slate-100" />
+            <Skeleton className="w-4 h-4 rounded bg-content3" />
             <Skeleton className="hidden sm:block w-48 h-7 rounded-md" />
           </div>
           <Skeleton className="w-7 h-7 rounded-full bg-blue-100" />
@@ -97,16 +97,16 @@ export function CourseListSkeleton({ viewMode = "grid", tone = "active", count }
     return (
       <div className="space-y-2">
         {Array.from({ length: count ?? 6 }).map((_, index) => (
-          <Card key={index} className="border border-slate-200 shadow-sm w-full">
+          <Card key={index} className="w-full border border-default-200 shadow-sm">
             <CardBody className="p-3 sm:p-4">
               <div className="flex items-center gap-3 sm:gap-4">
-                <Skeleton className={`w-14 h-14 sm:w-16 sm:h-16 rounded-lg shrink-0 ${tone === "active" ? "bg-blue-100" : "bg-slate-200"}`} />
+                <Skeleton className={`h-14 w-14 shrink-0 rounded-lg sm:h-16 sm:w-16 ${tone === "active" ? "bg-blue-100" : "bg-content4"}`} />
                 <div className="flex-1 min-w-0 space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <div className="space-y-2 flex-1 min-w-0">
                       <Skeleton className="w-56 max-w-full h-5 rounded-lg" />
                       <div className="flex items-center gap-2">
-                        <Skeleton className="w-16 h-6 rounded-full bg-blue-50" />
+                        <Skeleton className="h-6 w-16 rounded-full bg-primary/10" />
                         <Skeleton className="w-20 h-4 rounded-lg" />
                       </div>
                     </div>
@@ -132,8 +132,8 @@ export function CourseListSkeleton({ viewMode = "grid", tone = "active", count }
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {Array.from({ length: count ?? 6 }).map((_, index) => (
-        <Card key={index} className="border border-slate-200 shadow-sm">
-          <Skeleton className={`h-32 w-full rounded-none ${tone === "active" ? "bg-blue-100" : "bg-slate-200"}`} />
+        <Card key={index} className="border border-default-200 shadow-sm">
+          <Skeleton className={`h-32 w-full rounded-none ${tone === "active" ? "bg-blue-100" : "bg-content4"}`} />
           <CardBody className="p-4">
             <div className="space-y-3">
               <div className="flex items-start justify-between gap-2">
@@ -144,12 +144,12 @@ export function CourseListSkeleton({ viewMode = "grid", tone = "active", count }
                 <Skeleton className="w-8 h-8 rounded-lg" />
               </div>
               <div className="flex items-center gap-2">
-                <Skeleton className="w-16 h-6 rounded-full bg-blue-50" />
+                <Skeleton className="h-6 w-16 rounded-full bg-primary/10" />
                 <Skeleton className="w-20 h-6 rounded-full" />
               </div>
             </div>
           </CardBody>
-          <CardFooter className="border-t border-slate-100 px-4 py-3">
+          <CardFooter className="border-t border-divider px-4 py-3">
             <div className="flex items-center justify-between w-full">
               {[0, 1, 2].map((item) => (
                 <div key={item} className="flex items-center gap-1.5">

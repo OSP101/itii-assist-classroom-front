@@ -18,12 +18,12 @@ export default function Error({
     }, [error]);
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 p-4">
+        <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 via-sky-50 to-indigo-100 p-4">
             <Card className="max-w-md w-full shadow-xl">
                 <CardBody className="p-8 text-center">
                     {/* Error Icon */}
                     <div className="mb-6">
-                        <div className="w-24 h-24 mx-auto bg-gradient-to-br from-red-100 to-orange-100 rounded-full flex items-center justify-center">
+                        <div className="w-24 h-24 mx-auto bg-linear-to-br from-red-100 to-orange-100 rounded-full flex items-center justify-center">
                             <Icon 
                                 icon="solar:danger-triangle-bold-duotone" 
                                 className="text-6xl text-red-400"

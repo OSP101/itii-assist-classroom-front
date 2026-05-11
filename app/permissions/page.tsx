@@ -8,6 +8,7 @@ import { Divider } from "@heroui/divider";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import Link from "next/link";
+import { useI18n } from "@/hooks/useI18n";
 
 type PermissionStatus = "granted" | "denied" | "prompt" | "unsupported" | "checking";
 
@@ -18,6 +19,7 @@ interface PermissionState {
 }
 
 export default function PermissionsPage() {
+    const t = useI18n();
     const [permissions, setPermissions] = useState<PermissionState>({
         location: "checking",
         notification: "checking",
@@ -113,8 +115,8 @@ export default function PermissionsPage() {
 
             setPermissions(prev => ({ ...prev, location: "granted" }));
             addToast({
-                title: "สำเร็จ",
-                description: "อนุญาตการเข้าถึงตำแหน่งแล้ว",
+                title: t("success"),
+                description: t("locationAccessGranted"),
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -124,16 +126,16 @@ export default function PermissionsPage() {
             if (geoError.code === geoError.PERMISSION_DENIED) {
                 setPermissions(prev => ({ ...prev, location: "denied" }));
                 addToast({
-                    title: "ถูกปฏิเสธ",
-                    description: "การเข้าถึงตำแหน่งถูกปฏิเสธ กรุณาเปิดในการตั้งค่าเบราว์เซอร์",
+                    title: t("denied"),
+                    description: t("pleaseEnablePermissionInBrowserSettings"),
                     color: "danger",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
                 });
             } else {
                 addToast({
-                    title: "เกิดข้อผิดพลาด",
-                    description: "ไม่สามารถระบุตำแหน่งได้ กรุณาลองใหม่",
+                    title: t("somethingWentWrong"),
+                    description: t("unableToDetermineLocationTryAgain"),
                     color: "warning",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -156,20 +158,20 @@ export default function PermissionsPage() {
             if (result === "granted") {
                 // Show test notification
                 new Notification("ITII Assist Classroom", {
-                    body: "การแจ้งเตือนเปิดใช้งานแล้ว! 🎉",
+                    body: t("notificationsEnabled"),
                     icon: "/images/logo.png",
                 });
                 addToast({
-                    title: "สำเร็จ",
-                    description: "อนุญาตการแจ้งเตือนแล้ว",
+                    title: t("success"),
+                    description: t("notificationsEnabled"),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
                 });
             } else if (result === "denied") {
                 addToast({
-                    title: "ถูกปฏิเสธ",
-                    description: "การแจ้งเตือนถูกปฏิเสธ กรุณาเปิดในการตั้งค่าเบราว์เซอร์",
+                    title: t("denied"),
+                    description: t("notificationsDeniedBrowserSettings"),
                     color: "danger",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -178,8 +180,8 @@ export default function PermissionsPage() {
         } catch (error) {
             console.error("Notification error:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถขอสิทธิ์แจ้งเตือนได้",
+                title: t("somethingWentWrong"),
+                description: t("unableToRequestNotificationPermission"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -206,8 +208,8 @@ export default function PermissionsPage() {
             setCameraStream(stream);
             setPermissions(prev => ({ ...prev, camera: "granted" }));
             addToast({
-                title: "สำเร็จ",
-                description: "อนุญาตการเข้าถึงกล้องแล้ว",
+                title: t("success"),
+                description: t("cameraAccessGranted"),
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -224,16 +226,16 @@ export default function PermissionsPage() {
             if (mediaError.name === "NotAllowedError") {
                 setPermissions(prev => ({ ...prev, camera: "denied" }));
                 addToast({
-                    title: "ถูกปฏิเสธ",
-                    description: "การเข้าถึงกล้องถูกปฏิเสธ กรุณาเปิดในการตั้งค่าเบราว์เซอร์",
+                    title: t("denied"),
+                    description: t("cameraDeniedBrowserSettings"),
                     color: "danger",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
                 });
             } else {
                 addToast({
-                    title: "เกิดข้อผิดพลาด",
-                    description: "ไม่สามารถเข้าถึงกล้องได้",
+                    title: t("somethingWentWrong"),
+                    description: t("unableToAccessCamera"),
                     color: "warning",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -258,31 +260,31 @@ export default function PermissionsPage() {
             case "granted":
                 return (
                     <Chip color="success" variant="flat" startContent={<Icon icon="solar:check-circle-bold" />}>
-                        อนุญาตแล้ว
+                        {t("allowed")}
                     </Chip>
                 );
             case "denied":
                 return (
                     <Chip color="danger" variant="flat" startContent={<Icon icon="solar:close-circle-bold" />}>
-                        ถูกปฏิเสธ
+                        {t("denied")}
                     </Chip>
                 );
             case "prompt":
                 return (
                     <Chip color="warning" variant="flat" startContent={<Icon icon="solar:question-circle-bold" />}>
-                        รอการอนุญาต
+                        {t("awaitingPermission")}
                     </Chip>
                 );
             case "unsupported":
                 return (
                     <Chip color="default" variant="flat" startContent={<Icon icon="solar:forbidden-bold" />}>
-                        ไม่รองรับ
+                        {t("unsupported")}
                     </Chip>
                 );
             case "checking":
                 return (
                     <Chip color="default" variant="flat" startContent={<Icon icon="solar:refresh-bold" className="animate-spin" />}>
-                        กำลังตรวจสอบ
+                        {t("checkingStatus")}
                     </Chip>
                 );
         }
@@ -294,16 +296,16 @@ export default function PermissionsPage() {
                        permissions.camera === "granted";
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 py-8 px-4">
+        <div className="min-h-screen bg-linear-to-br from-slate-100 to-slate-200 py-8 px-4">
             <div className="max-w-lg mx-auto space-y-6">
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-lg">
+                    <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-linear-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-lg">
                         <Icon icon="solar:settings-bold" className="text-4xl text-white" />
                     </div>
-                    <h1 className="text-2xl font-bold text-slate-800">ตั้งค่าการอนุญาต</h1>
+                    <h1 className="text-2xl font-bold text-slate-800">{t("permissionsSettings")}</h1>
                     <p className="text-slate-500 mt-2">
-                        กรุณาอนุญาตสิทธิ์เหล่านี้เพื่อการใช้งานที่สมบูรณ์(ไม่ใช่การเช็คชื่อจริง)
+                        {t("grantPermissionsForBestExperience")}
                     </p>
                 </div>
 
@@ -315,8 +317,8 @@ export default function PermissionsPage() {
                                 <Icon icon="solar:map-point-bold-duotone" className="text-2xl text-blue-600" />
                             </div>
                             <div>
-                                <h3 className="font-semibold text-slate-800">ตำแหน่งที่ตั้ง</h3>
-                                <p className="text-sm text-slate-500">สำหรับการเช็คชื่อในห้องเรียน</p>
+                                <h3 className="font-semibold text-slate-800">{t("locationPermission")}</h3>
+                                <p className="text-sm text-slate-500">{t("forAttendanceCheckIn")}</p>
                             </div>
                         </div>
                         {getStatusChip(permissions.location)}
@@ -327,7 +329,7 @@ export default function PermissionsPage() {
                             <div className="mb-4 p-3 bg-emerald-50 rounded-lg text-sm">
                                 <p className="text-emerald-700 font-medium mb-1">
                                     <Icon icon="solar:check-circle-bold" className="inline mr-1" />
-                                    ระบุตำแหน่งสำเร็จ
+                                    {t("locationVerifiedSuccessfully")}
                                 </p>
                                 <p className="text-emerald-600 text-xs">
                                     พิกัด: {locationDetails.lat.toFixed(6)}, {locationDetails.lng.toFixed(6)}
@@ -340,7 +342,7 @@ export default function PermissionsPage() {
                         {permissions.location === "denied" && (
                             <div className="mb-4 p-3 bg-red-50 rounded-lg text-sm text-red-600">
                                 <Icon icon="solar:info-circle-bold" className="inline mr-1" />
-                                กรุณาเปิดสิทธิ์ในการตั้งค่าเบราว์เซอร์
+                                {t("pleaseEnablePermissionInBrowserSettings")}
                             </div>
                         )}
 
@@ -353,7 +355,7 @@ export default function PermissionsPage() {
                             isDisabled={permissions.location === "unsupported"}
                             onPress={requestLocation}
                         >
-                            {permissions.location === "granted" ? "ทดสอบอีกครั้ง" : "อนุญาตการเข้าถึงตำแหน่ง"}
+                            {permissions.location === "granted" ? t("testAgain") : t("allowLocationAccess")}
                         </Button>
                     </CardBody>
                 </Card>
@@ -366,8 +368,8 @@ export default function PermissionsPage() {
                                 <Icon icon="solar:bell-bold-duotone" className="text-2xl text-amber-600" />
                             </div>
                             <div>
-                                <h3 className="font-semibold text-slate-800">การแจ้งเตือน</h3>
-                                <p className="text-sm text-slate-500">รับการแจ้งเตือนจากระบบ</p>
+                                <h3 className="font-semibold text-slate-800">{t("notificationsPermission")}</h3>
+                                <p className="text-sm text-slate-500">{t("receiveSystemNotifications")}</p>
                             </div>
                         </div>
                         {getStatusChip(permissions.notification)}
@@ -377,7 +379,7 @@ export default function PermissionsPage() {
                         {permissions.notification === "denied" && (
                             <div className="mb-4 p-3 bg-red-50 rounded-lg text-sm text-red-600">
                                 <Icon icon="solar:info-circle-bold" className="inline mr-1" />
-                                กรุณาเปิดสิทธิ์ในการตั้งค่าเบราว์เซอร์
+                                {t("pleaseEnablePermissionInBrowserSettings")}
                             </div>
                         )}
 
@@ -389,7 +391,7 @@ export default function PermissionsPage() {
                             isDisabled={permissions.notification === "unsupported" || permissions.notification === "denied"}
                             onPress={requestNotification}
                         >
-                            {permissions.notification === "granted" ? "ส่งการแจ้งเตือนทดสอบ" : "อนุญาตการแจ้งเตือน"}
+                            {permissions.notification === "granted" ? t("sendTestNotification") : t("allowNotifications")}
                         </Button>
                     </CardBody>
                 </Card>
@@ -402,8 +404,8 @@ export default function PermissionsPage() {
                                 <Icon icon="solar:camera-bold-duotone" className="text-2xl text-purple-600" />
                             </div>
                             <div>
-                                <h3 className="font-semibold text-slate-800">กล้อง</h3>
-                                <p className="text-sm text-slate-500">สำหรับสแกน QR Code</p>
+                                <h3 className="font-semibold text-slate-800">{t("cameraPermission")}</h3>
+                                <p className="text-sm text-slate-500">{t("forQrScanning")}</p>
                             </div>
                         </div>
                         {getStatusChip(permissions.camera)}
@@ -433,7 +435,7 @@ export default function PermissionsPage() {
                                     <Icon icon="solar:close-circle-bold" />
                                 </Button>
                                 <p className="text-xs text-center text-slate-500 mt-2">
-                                    กล้องจะปิดอัตโนมัติใน 10 วินาที
+                                    {t("cameraAutoStopsInTenSeconds")}
                                 </p>
                             </div>
                         )}
@@ -441,7 +443,7 @@ export default function PermissionsPage() {
                         {permissions.camera === "denied" && (
                             <div className="mb-4 p-3 bg-red-50 rounded-lg text-sm text-red-600">
                                 <Icon icon="solar:info-circle-bold" className="inline mr-1" />
-                                กรุณาเปิดสิทธิ์ในการตั้งค่าเบราว์เซอร์
+                                {t("pleaseEnablePermissionInBrowserSettings")}
                             </div>
                         )}
 
@@ -454,7 +456,7 @@ export default function PermissionsPage() {
                             isDisabled={permissions.camera === "unsupported" || !!cameraStream}
                             onPress={requestCamera}
                         >
-                            {permissions.camera === "granted" ? "ทดสอบกล้องอีกครั้ง" : "อนุญาตการเข้าถึงกล้อง"}
+                            {permissions.camera === "granted" ? t("testCameraAgain") : t("allowCameraAccess")}
                         </Button>
                     </CardBody>
                 </Card>
@@ -473,12 +475,12 @@ export default function PermissionsPage() {
                             </div>
                             <div className="flex-1">
                                 <h3 className={`font-semibold ${allGranted ? "text-emerald-800" : "text-slate-700"}`}>
-                                    {allGranted ? "พร้อมใช้งานแล้ว!" : "ยังไม่ครบทุกสิทธิ์"}
+                                    {allGranted ? t("allSet") : t("missingPermissions")}
                                 </h3>
                                 <p className={`text-sm ${allGranted ? "text-emerald-600" : "text-slate-500"}`}>
                                     {allGranted 
-                                        ? "คุณสามารถใช้งานระบบได้อย่างสมบูรณ์" 
-                                        : "กรุณาอนุญาตสิทธิ์ที่เหลือเพื่อประสบการณ์ที่ดีที่สุด"
+                                        ? t("fullSystemExperience") 
+                                        : t("allowRemainingPermissions")
                                     }
                                 </p>
                             </div>
@@ -512,10 +514,10 @@ export default function PermissionsPage() {
                 <div className="text-center text-sm text-slate-500 space-y-2">
                     <p>
                         <Icon icon="solar:info-circle-linear" className="inline mr-1" />
-                        หากสิทธิ์ถูกปฏิเสธไปแล้ว ให้เปิดในการตั้งค่าเบราว์เซอร์
+                        {t("ifPermissionDeniedEnableInBrowser")}
                     </p>
                     <p className="text-xs text-slate-400">
-                        Chrome: คลิกไอคอน 🔒 ที่ address bar → Site settings
+                        {t("chromeSiteSettingsTip")}
                     </p>
                 </div>
             </div>

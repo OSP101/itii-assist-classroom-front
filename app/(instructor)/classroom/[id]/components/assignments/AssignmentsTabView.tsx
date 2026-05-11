@@ -141,7 +141,7 @@ function AssignmentsTabViewComponent({
                     ))}
                 </div>
                 {info.ungraded_count > previewStudents.length && (
-                    <p className="mt-1 text-xs text-slate-300">
+                    <p className="mt-1 text-xs text-default-300">
                         {"\u0E41\u0E25\u0E30\u0E2D\u0E35\u0E01 "}
                         {info.ungraded_count - previewStudents.length}
                         {" \u0E04\u0E19..."}
@@ -158,7 +158,7 @@ function AssignmentsTabViewComponent({
         }
 
         return (
-            <div className="mt-2 border-t border-slate-100 pt-2">
+            <div className="mt-2 border-t border-divider pt-2">
                 <Tooltip content={getUngradedTooltipContent(assignment)}>
                     <div className="inline-flex cursor-help items-center gap-1.5 text-xs text-orange-600">
                         <Icon icon="solar:user-cross-rounded-bold" className="text-sm" />
@@ -202,9 +202,9 @@ function AssignmentsTabViewComponent({
             <Card
                 key={assignment.id}
                 as="div"
-                isPressable={!canUpdateAssignments && (canGradeAssignments || canEditScores)}
-                className={`shadow-sm border transition-all ${isDragging ? "opacity-40 scale-95" : ""} ${isDragOver ? "border-blue-400 border-2 shadow-lg" : "border-slate-200 hover:shadow-md"} ${assignment.is_draft ? "bg-yellow-50/60" : ""}`}
-                onPress={() => !canUpdateAssignments && (canGradeAssignments || canEditScores) && onOpenScoreModal(assignment)}
+                isPressable={canGradeAssignments || canEditScores}
+                className={`border shadow-sm transition-all ${isDragging ? "opacity-40 scale-95" : ""} ${isDragOver ? "border-blue-400 border-2 shadow-lg" : "border-default-200 hover:shadow-md"} ${assignment.is_draft ? "bg-yellow-50/60" : "bg-content1"}`}
+                onPress={() => (canGradeAssignments || canEditScores) && onOpenScoreModal(assignment)}
                 draggable={canUpdateAssignments}
                 onDragStart={canUpdateAssignments ? () => onDragStart(assignment.id) : undefined}
                 onDragOver={canUpdateAssignments ? (e) => { e.preventDefault(); onDragOver(assignment.id); } : undefined}
@@ -216,7 +216,7 @@ function AssignmentsTabViewComponent({
                     <div className="flex items-start justify-between gap-2 mb-3">
                         <div className="flex items-center gap-2">
                             {canUpdateAssignments && (
-                                <div className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 transition-colors" title="ลากเพื่อจัดเรียง">
+                                <div className="cursor-grab text-default-300 transition-colors hover:text-default-500 active:cursor-grabbing" title="ลากเพื่อจัดเรียง">
                                     <Icon icon="solar:reorder-bold" className="text-lg" />
                                 </div>
                             )}
@@ -259,7 +259,7 @@ function AssignmentsTabViewComponent({
                     </div>
 
                     {/* Title */}
-                    <p className="font-semibold text-slate-800 mb-2 line-clamp-2">{assignment.name}</p>
+                    <p className="mb-2 line-clamp-2 font-semibold text-foreground">{assignment.name}</p>
 
                     {/* Chips */}
                     <div className="flex flex-wrap items-center gap-1.5 mb-3">
@@ -268,7 +268,7 @@ function AssignmentsTabViewComponent({
                             <Chip size="sm" variant="flat" className="bg-blue-50 text-blue-600">W{assignment.week_number}</Chip>
                         )}
                         {assignment.subItems && assignment.subItems.length > 0 && (
-                            <Chip size="sm" variant="flat" className="bg-slate-100 text-slate-600">{assignment.subItems.length} ข้อย่อย</Chip>
+                            <Chip size="sm" variant="flat" className="bg-content3 text-default-600">{assignment.subItems.length} ข้อย่อย</Chip>
                         )}
                         {assignment.is_score_visible === false && (
                             <Tooltip content="ซ่อนคะแนนจากนักศึกษา">
@@ -281,10 +281,10 @@ function AssignmentsTabViewComponent({
                     </div>
 
                     {/* Footer Info */}
-                    <div className="flex items-center justify-between text-sm text-slate-500 pt-2 border-t border-slate-100">
+                    <div className="flex items-center justify-between border-t border-divider pt-2 text-sm text-default-500">
                         <span className="flex items-center gap-1">
                             <Icon icon="solar:medal-star-bold" className="text-amber-500" />
-                            <span className="font-medium text-slate-700">{assignment.max_score}</span> คะแนน
+                            <span className="font-medium text-default-700">{assignment.max_score}</span> คะแนน
                         </span>
                         {assignment.is_draft && canUpdateAssignments && (
                             <Tooltip content="เผยแพร่ทันที">
@@ -328,15 +328,15 @@ function AssignmentsTabViewComponent({
             >
             <Card
                 as="div"
-                isPressable={!canUpdateAssignments && (canGradeAssignments || canEditScores)}
-                className={`shadow-sm border transition-all w-full ${isDragOver ? "border-blue-400 border-2 shadow-md" : "border-slate-200 hover:shadow-md"} ${assignment.is_draft ? "bg-yellow-50/60" : ""}`}
-                onPress={() => !canUpdateAssignments && (canGradeAssignments || canEditScores) && onOpenScoreModal(assignment)}
+                isPressable={canGradeAssignments || canEditScores}
+                className={`w-full border shadow-sm transition-all ${isDragOver ? "border-blue-400 border-2 shadow-md" : "border-default-200 hover:shadow-md"} ${assignment.is_draft ? "bg-yellow-50/60" : "bg-content1"}`}
+                onPress={() => (canGradeAssignments || canEditScores) && onOpenScoreModal(assignment)}
             >
                 <CardBody className="p-3 sm:p-4">
                     <div className="flex items-center gap-3 sm:gap-4">
                         {/* Drag Handle */}
                         {canUpdateAssignments && (
-                            <div className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 transition-colors shrink-0" title="ลากเพื่อจัดเรียง">
+                            <div className="shrink-0 cursor-grab text-default-300 transition-colors hover:text-default-500 active:cursor-grabbing" title="ลากเพื่อจัดเรียง">
                                 <Icon icon="solar:reorder-bold" className="text-xl" />
                             </div>
                         )}
@@ -349,7 +349,7 @@ function AssignmentsTabViewComponent({
                         {/* Content */}
                         <div className="flex-1 min-w-0">
                             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-                                <p className="font-semibold text-slate-800 truncate">{assignment.name}</p>
+                                <p className="truncate font-semibold text-foreground">{assignment.name}</p>
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                     <Chip size="sm" className={typeInfo.color}>{typeInfo.label}</Chip>
                                     {assignment.week_number && (
@@ -365,14 +365,14 @@ function AssignmentsTabViewComponent({
                                     {renderDraftBadge(assignment)}
                                 </div>
                             </div>
-                            <div className="flex items-center gap-3 mt-1 text-sm text-slate-500">
+                            <div className="mt-1 flex items-center gap-3 text-sm text-default-500">
                                 <span className="flex items-center gap-1">
                                     <Icon icon="solar:medal-star-linear" className="text-amber-500" />
                                     {assignment.max_score} คะแนน
                                 </span>
                                 {assignment.subItems && assignment.subItems.length > 0 && (
                                     <span className="hidden sm:flex items-center gap-1">
-                                        <Icon icon="solar:list-bold" className="text-slate-400" />
+                                        <Icon icon="solar:list-bold" className="text-default-400" />
                                         {assignment.subItems.length} ข้อย่อย
                                     </span>
                                 )}
@@ -439,8 +439,8 @@ function AssignmentsTabViewComponent({
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-lg font-semibold text-slate-800">งานในชั้นเรียน</h2>
-                    <p className="text-sm text-slate-500">สร้างและจัดการหัวข้องานสำหรับการลงคะแนน</p>
+                    <h2 className="text-lg font-semibold text-foreground">งานในชั้นเรียน</h2>
+                    <p className="text-sm text-default-500">สร้างและจัดการหัวข้องานสำหรับการลงคะแนน</p>
                 </div>
             </div>
 
@@ -459,7 +459,7 @@ function AssignmentsTabViewComponent({
                                 tabList: "gap-4 md:gap-6 flex-nowrap min-w-max",
                                 cursor: "bg-blue-500",
                                 tab: "px-0 h-11 whitespace-nowrap",
-                                tabContent: "group-data-[selected=true]:text-blue-600 text-slate-500 font-medium text-sm"
+                                tabContent: "group-data-[selected=true]:text-blue-600 text-default-500 font-medium text-sm"
                             }}
                         >
                             <Tab
@@ -509,7 +509,7 @@ function AssignmentsTabViewComponent({
                     </div>
 
                     {/* Search & Actions Bar */}
-                    <Card className="shadow-sm border border-slate-200">
+                    <Card className="border border-default-200 shadow-sm">
                         <CardBody className="py-3 px-4">
                             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                                 <div className="flex-1 min-w-0">
@@ -523,35 +523,35 @@ function AssignmentsTabViewComponent({
                                         variant="bordered"
                                         isClearable
                                         classNames={{
-                                            inputWrapper: "border-blue-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                            inputWrapper: "bg-content1 border-blue-200 hover:border-blue-300 focus-within:!border-blue-400",
                                             label: "text-blue-400 text-sm",
                                         }}
                                     />
                                 </div>
                                 <div className="flex items-center gap-2">
                                     {/* View Mode Toggle */}
-                                    <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
+                                    <div className="flex items-center overflow-hidden rounded-lg border border-default-200 bg-content1">
                                         <Tooltip content="แบบการ์ด">
                                             <Button
                                                 isIconOnly
                                                 size="md"
                                                 variant="light"
-                                                className={`rounded-none ${viewMode === "grid" ? "bg-slate-100" : ""}`}
+                                                className={`rounded-none ${viewMode === "grid" ? "bg-content3" : ""}`}
                                                 onPress={() => onSetViewMode("grid")}
                                             >
-                                                <Icon icon="solar:widget-bold" className={`text-lg ${viewMode === "grid" ? "text-blue-600" : "text-slate-400"}`} />
+                                                <Icon icon="solar:widget-bold" className={`text-lg ${viewMode === "grid" ? "text-blue-600" : "text-default-400"}`} />
                                             </Button>
                                         </Tooltip>
-                                        <div className="w-px h-5 bg-slate-200" />
+                                        <div className="h-5 w-px bg-default-200" />
                                         <Tooltip content="แบบรายการ">
                                             <Button
                                                 isIconOnly
                                                 size="md"
                                                 variant="light"
-                                                className={`rounded-none ${viewMode === "list" ? "bg-slate-100" : ""}`}
+                                                className={`rounded-none ${viewMode === "list" ? "bg-content3" : ""}`}
                                                 onPress={() => onSetViewMode("list")}
                                             >
-                                                <Icon icon="solar:list-bold" className={`text-lg ${viewMode === "list" ? "text-blue-600" : "text-slate-400"}`} />
+                                                <Icon icon="solar:list-bold" className={`text-lg ${viewMode === "list" ? "text-blue-600" : "text-default-400"}`} />
                                             </Button>
                                         </Tooltip>
                                     </div>
@@ -594,7 +594,7 @@ function AssignmentsTabViewComponent({
                                                 color="primary"
                                                 isIconOnly
                                                 onPress={onOpenCreateModal}
-                                                className="sm:hidden bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25"
+                                                className="sm:hidden bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25"
                                                 isDisabled={!isCourseActive}
                                             >
                                                 <Icon icon="solar:add-circle-bold" />
@@ -607,7 +607,7 @@ function AssignmentsTabViewComponent({
                                             color="primary"
                                             startContent={<Icon icon="solar:add-circle-bold" />}
                                             onPress={onOpenCreateModal}
-                                            className="hidden sm:flex bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25"
+                                            className="hidden sm:flex bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25"
                                             isDisabled={!isCourseActive}
                                         >
                                             สร้างงานใหม่
@@ -632,15 +632,15 @@ function AssignmentsTabViewComponent({
                             </div>
                         )
                     ) : (
-                        <Card className="shadow-sm border border-dashed border-slate-300 bg-slate-50/50">
+                        <Card className="border border-dashed border-default-300 bg-content2/50 shadow-sm">
                             <CardBody className="text-center py-16">
                                 {searchQuery ? (
                                     <>
-                                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
-                                            <Icon icon="solar:magnifer-linear" className="text-3xl text-slate-400" />
+                                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-content3">
+                                            <Icon icon="solar:magnifer-linear" className="text-3xl text-default-400" />
                                         </div>
-                                        <p className="text-slate-600 font-medium">ไม่พบงานที่ค้นหา</p>
-                                        <p className="text-sm text-slate-400 mt-1">ลองเปลี่ยนคำค้นหาใหม่</p>
+                                        <p className="font-medium text-default-600">ไม่พบงานที่ค้นหา</p>
+                                        <p className="mt-1 text-sm text-default-400">ลองเปลี่ยนคำค้นหาใหม่</p>
                                         <Button
                                             size="sm"
                                             variant="light"
@@ -652,15 +652,15 @@ function AssignmentsTabViewComponent({
                                     </>
                                 ) : (
                                     <>
-                                        <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
+                                        <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-linear-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
                                             <Icon icon="solar:clipboard-list-bold-duotone" className="text-5xl text-blue-500" />
                                         </div>
-                                        <h3 className="text-lg font-semibold text-slate-700 mb-2">
+                                        <h3 className="mb-2 text-lg font-semibold text-default-700">
                                             {activeTab === "lab" ? "ยังไม่มี Lab" :
                                                 activeTab === "assignment" ? "ยังไม่มี Assignment" :
                                                 "ยังไม่มีงานกลุ่ม"}
                                         </h3>
-                                        <p className="text-slate-500 mb-6 max-w-md mx-auto">
+                                        <p className="mx-auto mb-6 max-w-md text-default-500">
                                             สร้างงานเพื่อกำหนดหัวข้อการลงคะแนนให้นักศึกษา
                                         </p>
                                         {canCreateAssignments && (
@@ -669,7 +669,7 @@ function AssignmentsTabViewComponent({
                                                 size="lg"
                                                 startContent={<Icon icon="solar:add-circle-bold" />}
                                                 onPress={onOpenCreateModal}
-                                                className="bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25"
+                                                className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25"
                                                 isDisabled={!isCourseActive}
                                             >
                                                 สร้างงานแรก
@@ -693,12 +693,12 @@ function AssignmentsTabViewComponent({
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl shadow-lg">
+                            <div className="p-3 bg-linear-to-br from-red-500 to-rose-600 rounded-xl shadow-lg">
                                 <Icon icon="solar:danger-triangle-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">ลบงาน</h3>
-                                <p className="text-sm text-slate-500 font-normal mt-1">
+                                <h3 className="text-xl font-bold text-foreground">ลบงาน</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">
                                     กรุณาตรวจสอบข้อมูลก่อนดำเนินการ
                                 </p>
                             </div>
@@ -713,10 +713,10 @@ function AssignmentsTabViewComponent({
                                         <div className="flex items-center gap-4">
                                             <div className={`w-14 h-14 rounded-xl flex items-center justify-center shadow-lg ${
                                                 deleteTarget.assignment_type === "individual" 
-                                                    ? "bg-gradient-to-br from-indigo-500 to-blue-600" 
+                                                    ? "bg-linear-to-br from-indigo-500 to-blue-600" 
                                                     : deleteTarget.assignment_type === "permanent_group" 
-                                                        ? "bg-gradient-to-br from-purple-500 to-indigo-600" 
-                                                        : "bg-gradient-to-br from-emerald-500 to-teal-600"
+                                                        ? "bg-linear-to-br from-purple-500 to-indigo-600" 
+                                                        : "bg-linear-to-br from-emerald-500 to-teal-600"
                                             }`}>
                                                 <Icon 
                                                     icon={
@@ -730,7 +730,7 @@ function AssignmentsTabViewComponent({
                                                 />
                                             </div>
                                             <div className="flex-1">
-                                                <p className="font-semibold text-lg text-slate-800">{deleteTarget.name}</p>
+                                                <p className="text-lg font-semibold text-foreground">{deleteTarget.name}</p>
                                                 <div className="flex items-center gap-2 mt-1">
                                                     <Chip size="sm" variant="flat" className={
                                                         deleteTarget.assignment_type === "individual"
@@ -751,14 +751,14 @@ function AssignmentsTabViewComponent({
                                                         </Chip>
                                                     )}
                                                 </div>
-                                                <div className="flex items-center gap-3 mt-2 text-sm text-slate-500">
+                                                <div className="mt-2 flex items-center gap-3 text-sm text-default-500">
                                                     <span className="flex items-center gap-1">
                                                         <Icon icon="solar:medal-star-linear" className="text-amber-500" />
                                                         {deleteTarget.max_score} คะแนน
                                                     </span>
                                                     {deleteTarget.subItems && deleteTarget.subItems.length > 0 && (
                                                         <span className="flex items-center gap-1">
-                                                            <Icon icon="solar:list-bold" className="text-slate-400" />
+                                                            <Icon icon="solar:list-bold" className="text-default-400" />
                                                             {deleteTarget.subItems.length} ข้อย่อย
                                                         </span>
                                                     )}
@@ -801,7 +801,7 @@ function AssignmentsTabViewComponent({
                             </div>
                         )}
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button 
                             variant="light" 
                             onPress={onCloseDeleteModal}

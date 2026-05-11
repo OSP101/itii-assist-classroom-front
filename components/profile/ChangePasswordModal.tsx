@@ -135,7 +135,7 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
       <ModalContent>
         <ModalHeader className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
+            <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
               <Icon icon="solar:key-bold" className="text-xl text-white" />
             </div>
             <span>เปลี่ยนรหัสผ่าน</span>
@@ -244,7 +244,7 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
           </Button>
           <Button 
             color="primary"
-            className="bg-gradient-to-br from-blue-400 to-indigo-500"
+            className="bg-linear-to-br from-blue-400 to-indigo-500"
             onPress={handleChangePassword}
             isLoading={isChangingPassword}
             isDisabled={!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword || !isPasswordValid}

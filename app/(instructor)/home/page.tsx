@@ -21,6 +21,7 @@ import { courseService, Course, Instructor } from "@/services/course.service";
 import { twoFactorService } from "@/services/twoFactor.service";
 import { useSocket } from "@/contexts/SocketContext";
 import { CourseListSkeleton } from "@/components/loading-skeletons";
+import { useI18n } from "@/hooks/useI18n";
 import Link from "next/link";
 import { IoSchool, IoBook, IoPeople, IoPersonAdd } from "react-icons/io5";
 
@@ -35,6 +36,7 @@ interface Stats {
 
 export default function HomePage() {
     const router = useRouter();
+    const t = useI18n();
     const { subscribeToCourseUpdates, unsubscribeFromCourseUpdates, onCourseUpdate, emitCourseUpdate, isConnected } = useSocket();
     const [allCourses, setAllCourses] = useState<Course[]>([]); // All courses from API
     const [stats, setStats] = useState<Stats | null>(null);
@@ -206,7 +208,6 @@ export default function HomePage() {
     // Handle real-time course updates from other clients
     useEffect(() => {
         const unsubscribe = onCourseUpdate((data) => {
-            console.log("📥 Received course update:", data);
             // Refresh data when any course change is detected
             fetchCourses(true);
             fetchStats();
@@ -564,27 +565,25 @@ export default function HomePage() {
         }
     };
 
-    console.log("courseToToggle",courseToToggle)
-
     return (
         <div className="space-y-6">
             {/* 2FA Reminder Banner */}
             {show2FABanner && !is2FAEnabled && (
                 <div className="bg-linear-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                        <div className="shrink-0 w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
                             <Icon icon="solar:shield-warning-bold" className="text-xl text-amber-600" />
                         </div>
                         <div>
                             <p className="font-medium text-amber-900">
-                                เพิ่มความปลอดภัยให้บัญชีของคุณ
+                                {t("enhanceAccountSecurity")}
                             </p>
                             <p className="text-sm text-amber-700">
-                                เราแนะนำให้เปิดใช้งานการยืนยันตัวตนสองขั้นตอน (2FA) เพื่อป้องกันบัญชีของคุณ
+                                {t("enable2FARecommendation")}
                             </p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                         <Button
                             as={Link}
                             href="/profile?tab=authentication"
@@ -594,13 +593,13 @@ export default function HomePage() {
                             className="bg-amber-500 text-white"
                             startContent={<Icon icon="solar:lock-keyhole-bold" className="text-lg" />}
                         >
-                            เปิดใช้งาน
+                            {t("enableNow")}
                         </Button>
                         <Button
                             size="sm"
                             variant="light"
                             isIconOnly
-                            aria-label="ปิดการแจ้งเตือน"
+                            aria-label={t("dismiss")}
                             onPress={dismiss2FABanner}
                             className="text-amber-600 hover:bg-amber-100"
                         >
@@ -615,27 +614,27 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center gap-3">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900">รายวิชาของฉัน</h1>
+                        <h1 className="text-2xl font-bold text-foreground">{t("myCourses")}</h1>
                         <Skeleton isLoaded={!isUserRoleLoading} className="mt-2 w-44 h-5 rounded-lg">
-                            <p className="text-slate-500 mt-1">
+                            <p className="mt-1 text-default-500">
                                 {userRole === "instructor"
-                                    ? "รายวิชาที่คุณเป็นผู้สอน"
-                                    : "รายวิชาที่คุณเป็นผู้ช่วยสอน"}
+                                    ? t("coursesYouTeach")
+                                    : t("coursesYouAssist")}
                             </p>
                         </Skeleton>
                     </div>
                     {/* Real-time connection indicator */}
-                    <Tooltip content={isConnected ? "ข้อมูลอัปเดตแบบ Real-time" : "กำลังเชื่อมต่อ..."}>
+                    <Tooltip content={isConnected ? t("realTimeData") : t("connecting")}>
                         <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs ${isConnected ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
                             }`}>
                             <span className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500 animate-pulse" : "bg-yellow-500 animate-bounce"
                                 }`} />
-                            <span className="hidden sm:inline">{isConnected ? "Live" : "..."}</span>
+                            <span className="hidden sm:inline">{isConnected ? t("live") : "..."}</span>
                         </div>
                     </Tooltip>
                     {isRefreshingCourses && (
                         <Chip size="sm" variant="flat" className="bg-blue-50 text-blue-600" startContent={<Spinner size="sm" color="primary" />}>
-                            กำลังอัปเดตข้อมูล
+                            {t("updatingData")}
                         </Chip>
                     )}
                 </div>
@@ -647,9 +646,9 @@ export default function HomePage() {
                         startContent={<Icon icon="solar:archive-bold" className="text-xl" />}
                         onPress={() => router.push('/home/closed')}
                     >
-                        วิชาที่ปิดใช้งาน
+                        {t("disabledCourses")}
                         <Skeleton isLoaded={Boolean(stats)} className="ml-1 w-7 h-5 rounded-full">
-                            <Chip size="sm" className="ml-1 bg-slate-200 text-slate-600" variant="flat">
+                            <Chip size="sm" className="ml-1 bg-content3 text-default-600" variant="flat">
                                 {stats?.byStatus?.inactive ?? 0}
                             </Chip>
                         </Skeleton>
@@ -663,7 +662,7 @@ export default function HomePage() {
                             onPress={handleCreateCourse}
                             className="bg-linear-to-r from-blue-400 to-indigo-500"
                         >
-                            สร้างรายวิชาใหม่
+                            {t("createNewCourse")}
                         </Button>
                     )}
                 </div>
@@ -671,14 +670,14 @@ export default function HomePage() {
 
 
             {/* Filters */}
-            <Card className="border border-slate-200 shadow-sm">
+            <Card className="border border-default-200 shadow-sm">
                 <CardBody className="p-4">
                     <div className="flex flex-col md:flex-row gap-4">
                         {/* Search */}
                         <div className="flex flex-row gap-2 sm:gap-3 w-full">
                             <Input
-                                aria-label="ค้นหารายวิชา"
-                                placeholder="ค้นหารายวิชา..."
+                                aria-label={t("searchCourses")}
+                                placeholder={`${t("searchCourses")}...`}
                                 value={search}
                                 onValueChange={setSearch}
                                 startContent={<Icon icon="solar:magnifer-linear" className="text-blue-400" />}
@@ -691,30 +690,30 @@ export default function HomePage() {
                                 }}
                             />
 
-                            <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
+                            <div className="flex items-center overflow-hidden rounded-lg border border-default-200 bg-content1">
                                 <Tooltip content="แบบการ์ด">
                                     <Button
                                         aria-label="แสดงแบบการ์ด"
                                         isIconOnly
                                         size="md"
                                         variant="light"
-                                        className={`rounded-none ${viewMode === "grid" ? "bg-slate-100" : ""}`}
+                                        className={`rounded-none ${viewMode === "grid" ? "bg-content3" : ""}`}
                                         onPress={() => setViewMode("grid")}
                                     >
-                                        <Icon icon="solar:widget-bold" className={`text-lg ${viewMode === "grid" ? "text-blue-600" : "text-slate-400"}`} />
+                                        <Icon icon="solar:widget-bold" className={`text-lg ${viewMode === "grid" ? "text-blue-600" : "text-default-400"}`} />
                                     </Button>
                                 </Tooltip>
-                                <div className="w-px h-5 bg-slate-200" />
+                                <div className="h-5 w-px bg-divider" />
                                 <Tooltip content="แบบรายการ">
                                     <Button
                                         aria-label="แสดงแบบรายการ"
                                         isIconOnly
                                         size="md"
                                         variant="light"
-                                        className={`rounded-none ${viewMode === "list" ? "bg-slate-100" : ""}`}
+                                        className={`rounded-none ${viewMode === "list" ? "bg-content3" : ""}`}
                                         onPress={() => setViewMode("list")}
                                     >
-                                        <Icon icon="solar:list-bold" className={`text-lg ${viewMode === "list" ? "text-blue-600" : "text-slate-400"}`} />
+                                        <Icon icon="solar:list-bold" className={`text-lg ${viewMode === "list" ? "text-blue-600" : "text-default-400"}`} />
                                     </Button>
                                 </Tooltip>
                             </div>
@@ -771,12 +770,12 @@ export default function HomePage() {
             {isInitialCoursesLoading ? (
                 <CourseListSkeleton viewMode={viewMode} />
             ) : paginatedCourses.length === 0 ? (
-                <Card className="border border-slate-200 shadow-sm">
+                <Card className="border border-default-200 shadow-sm">
                     <CardBody className="flex flex-col items-center justify-center py-12">
-                        <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-                            <IoBook className="text-3xl text-slate-400" />
+                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-content2">
+                            <IoBook className="text-3xl text-default-400" />
                         </div>
-                        <p className="text-slate-500 text-center">
+                        <p className="text-center text-default-500">
                             {hasActiveFilters
                                 ? "ไม่พบรายวิชาที่ตรงกับการค้นหา"
                                 : userRole === "instructor"
@@ -805,7 +804,7 @@ export default function HomePage() {
                                 as="div"
                                 isPressable
                                 onPress={() => handleCourseClick(course.id)}
-                                className="border border-slate-200 shadow-sm hover:shadow-md transition-shadow"
+                                className="border border-default-200 shadow-sm transition-shadow hover:shadow-md"
                             >
                                 {/* Course Image/Banner */}
                                 <div className="h-32 relative overflow-hidden">
@@ -818,7 +817,7 @@ export default function HomePage() {
                                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                                         />
                                     ) : (
-                                        <div className="w-full h-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                                                <div className="w-full h-full bg-linear-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
                                             <IoSchool className="text-white/20 text-7xl" />
                                         </div>
                                     )}
@@ -828,10 +827,10 @@ export default function HomePage() {
                                     <div className="space-y-2">
                                         <div className="flex items-start justify-between gap-2">
                                             <div className="flex-1 min-w-0">
-                                                <h3 className="font-semibold text-slate-900 truncate">
+                                                <h3 className="truncate font-semibold text-foreground">
                                                     {course.code}
                                                 </h3>
-                                                <p className="text-sm text-slate-600 line-clamp-1">
+                                                <p className="line-clamp-1 text-sm text-default-600">
                                                     {course.name}
                                                 </p>
                                             </div>
@@ -848,7 +847,7 @@ export default function HomePage() {
                                                             onClick={(event) => event.stopPropagation()}
                                                             onKeyDown={(event) => event.stopPropagation()}
                                                         >
-                                                            <Icon icon="solar:menu-dots-bold" className="text-lg text-slate-500" />
+                                                            <Icon icon="solar:menu-dots-bold" className="text-lg text-default-500" />
                                                         </Button>
                                                     </DropdownTrigger>
                                                     <DropdownMenu
@@ -888,15 +887,15 @@ export default function HomePage() {
                                             <Chip size="sm" variant="flat" className="bg-blue-50 text-blue-600">
                                                 {course.year}/{course.semester}
                                             </Chip>
-                                            <Chip size="sm" variant="flat" className="bg-slate-100 text-slate-600">
+                                            <Chip size="sm" variant="flat" className="bg-content3 text-default-600">
                                                 {getSemesterText(course.semester)}
                                             </Chip>
                                         </div>
                                     </div>
                                 </CardBody>
 
-                                <CardFooter className="border-t border-slate-100 px-4 py-3">
-                                    <div className="flex items-center justify-between w-full text-sm text-slate-500">
+                                <CardFooter className="border-t border-divider px-4 py-3">
+                                    <div className="flex w-full items-center justify-between text-sm text-default-500">
                                         <div className="flex items-center gap-1">
                                             <IoPeople className="text-lg" />
                                             <span>{course.taCount ?? 0} TA</span>
@@ -938,7 +937,7 @@ export default function HomePage() {
                                 as="div"
                                 isPressable
                                 onPress={() => handleCourseClick(course.id)}
-                                className="border border-slate-200 shadow-sm hover:shadow-md transition-shadow w-full"
+                                className="w-full border border-default-200 shadow-sm transition-shadow hover:shadow-md"
                             >
                                 <CardBody className="p-3 sm:p-4">
                                     <div className="flex items-center gap-3 sm:gap-4">
@@ -952,7 +951,7 @@ export default function HomePage() {
                                                     className="object-cover"
                                                 />
                                             ) : (
-                                                <div className="w-full h-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                                                <div className="w-full h-full bg-linear-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
                                                     <IoSchool className="text-white/30 text-2xl sm:text-3xl" />
                                                 </div>
                                             )}
@@ -962,14 +961,14 @@ export default function HomePage() {
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-start justify-between gap-2">
                                                 <div className="flex-1 min-w-0">
-                                                    <h3 className="font-semibold text-slate-900 truncate">
+                                                    <h3 className="truncate font-semibold text-foreground">
                                                         {course.code} - {course.name}
                                                     </h3>
                                                     <div className="flex items-center gap-2 flex-wrap mt-1">
                                                         <Chip size="sm" variant="flat" className="bg-blue-50 text-blue-600">
                                                             {course.year}/{course.semester}
                                                         </Chip>
-                                                        <span className="text-sm text-slate-500">
+                                                        <span className="text-sm text-default-500">
                                                             {getSemesterText(course.semester)}
                                                         </span>
                                                     </div>
@@ -987,7 +986,7 @@ export default function HomePage() {
                                                                 onClick={(event) => event.stopPropagation()}
                                                                 onKeyDown={(event) => event.stopPropagation()}
                                                             >
-                                                                <Icon icon="solar:menu-dots-bold" className="text-lg text-slate-500" />
+                                                                <Icon icon="solar:menu-dots-bold" className="text-lg text-default-500" />
                                                             </Button>
                                                         </DropdownTrigger>
                                                         <DropdownMenu
@@ -1023,7 +1022,7 @@ export default function HomePage() {
                                                 )}
                                             </div>
                                             {/* Stats - Desktop Only */}
-                                            <div className="hidden sm:flex items-center gap-4 mt-2 text-sm text-slate-500">
+                                            <div className="mt-2 hidden items-center gap-4 text-sm text-default-500 sm:flex">
                                                 <div className="flex items-center gap-1">
                                                     <IoPeople className="text-lg" />
                                                     <span>{course.taCount ?? 0} TA</span>
@@ -1076,22 +1075,22 @@ export default function HomePage() {
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
                         <div className="flex items-center gap-3 sm:gap-4">
-                            <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                            <div className="p-2 sm:p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:book-2-bold" className="text-xl sm:text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-lg sm:text-xl font-bold text-slate-800">สร้างรายวิชาใหม่</h3>
-                                <p className="text-xs sm:text-sm text-slate-500 font-normal mt-1">กรอกข้อมูลรายวิชาที่ต้องการสร้าง</p>
+                                <h3 className="text-lg font-bold text-foreground sm:text-xl">สร้างรายวิชาใหม่</h3>
+                                <p className="mt-1 text-xs font-normal text-default-500 sm:text-sm">กรอกข้อมูลรายวิชาที่ต้องการสร้าง</p>
                             </div>
                         </div>
                     </ModalHeader>
                     <ModalBody className="px-4 sm:px-6 py-4 sm:py-6">
                         <div className="space-y-5">
                             {/* Course Image Section */}
-                            <div className="bg-slate-50 rounded-xl p-5 space-y-5">
+                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:gallery-bold" className="text-lg text-blue-500" />
-                                    <span className="text-sm font-semibold text-slate-700">รูปปกรายวิชา</span>
+                                    <span className="text-sm font-semibold text-default-700">รูปปกรายวิชา</span>
                                 </div>
                                 <div className="py-3">
                                     {imagePreview ? (
@@ -1099,7 +1098,7 @@ export default function HomePage() {
                                             <img
                                                 src={imagePreview}
                                                 alt="Course preview"
-                                                className="w-full h-40 object-cover rounded-xl border border-slate-200"
+                                                className="h-40 w-full rounded-xl border border-default-200 object-cover"
                                             />
                                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-3">
                                                 <label className="cursor-pointer">
@@ -1136,10 +1135,10 @@ export default function HomePage() {
                                                 onChange={handleImageUpload}
                                                 className="hidden"
                                             />
-                                            <div className="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center hover:border-blue-400 hover:bg-blue-50/50 transition-colors">
+                                            <div className="rounded-xl border-2 border-dashed border-default-300 p-4 text-center transition-colors hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-500/10">
                                                 <Icon icon="solar:cloud-upload-bold-duotone" className="text-5xl text-blue-400 mx-auto mb-3" />
-                                                <p className="text-slate-600 font-medium">คลิกเพื่ออัปโหลดรูปปกรายวิชา</p>
-                                                <p className="text-slate-400 text-sm mt-1">รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 2MB</p>
+                                                <p className="font-medium text-default-600">คลิกเพื่ออัปโหลดรูปปกรายวิชา</p>
+                                                <p className="mt-1 text-sm text-default-400">รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 2MB</p>
                                             </div>
                                         </label>
                                     )}
@@ -1147,10 +1146,10 @@ export default function HomePage() {
                             </div>
 
                             {/* Course Info Section */}
-                            <div className="bg-slate-50 rounded-xl p-5 space-y-5">
+                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:document-text-bold" className="text-lg text-blue-500" />
-                                    <span className="text-sm font-semibold text-slate-700">ข้อมูลรายวิชา</span>
+                                    <span className="text-sm font-semibold text-default-700">ข้อมูลรายวิชา</span>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 py-3">
                                     <div className="md:col-span-2">
@@ -1165,8 +1164,8 @@ export default function HomePage() {
                                             isRequired
                                             startContent={<Icon icon="solar:hashtag-linear" className="text-blue-400 text-xl" />}
                                             classNames={{
-                                                inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                                label: "text-slate-600 font-medium text-sm",
+                                                inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                                label: "text-default-600 font-medium text-sm",
                                             }}
                                         />
                                     </div>
@@ -1182,8 +1181,8 @@ export default function HomePage() {
                                             isRequired
                                             startContent={<Icon icon="solar:book-linear" className="text-blue-400 text-xl" />}
                                             classNames={{
-                                                inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                                label: "text-slate-600 font-medium text-sm",
+                                                inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                                label: "text-default-600 font-medium text-sm",
                                             }}
                                         />
                                     </div>
@@ -1199,8 +1198,8 @@ export default function HomePage() {
                                         isRequired
                                         startContent={<Icon icon="solar:calendar-linear" className="text-blue-400 text-xl" />}
                                         classNames={{
-                                            inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                            label: "text-slate-600 font-medium text-sm",
+                                            inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                            label: "text-default-600 font-medium text-sm",
                                         }}
                                     />
                                     <Select
@@ -1213,8 +1212,8 @@ export default function HomePage() {
                                         onChange={(e) => setFormData({ ...formData, semester: parseInt(e.target.value) || 1 })}
                                         isRequired
                                         classNames={{
-                                            trigger: "bg-white border-slate-200 hover:border-blue-300",
-                                            label: "text-slate-600 font-medium text-sm",
+                                            trigger: "bg-content1 border-default-200 hover:border-blue-300",
+                                            label: "text-default-600 font-medium text-sm",
                                         }}
                                     >
                                         <SelectItem key="1">ภาคเรียนที่ 1</SelectItem>
@@ -1225,10 +1224,10 @@ export default function HomePage() {
                             </div>
 
                             {/* Co-Instructors Section */}
-                            <div className="bg-slate-50 rounded-xl p-5 space-y-5">
+                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:users-group-two-rounded-bold" className="text-lg text-blue-500" />
-                                    <span className="text-sm font-semibold text-slate-700">ผู้สอนร่วม</span>
+                                    <span className="text-sm font-semibold text-default-700">ผู้สอนร่วม</span>
                                 </div>
                                 <div className="py-3">
                                     <Select
@@ -1244,8 +1243,8 @@ export default function HomePage() {
                                             setFormData({ ...formData, instructor_ids: selectedIds });
                                         }}
                                         classNames={{
-                                            trigger: " bg-white border-slate-200 hover:border-blue-300",
-                                            label: "text-slate-600 font-medium text-sm",
+                                            trigger: "bg-content1 border-default-200 hover:border-blue-300",
+                                            label: "text-default-600 font-medium text-sm",
                                         }}
                                     >
                                         {instructors
@@ -1260,10 +1259,10 @@ export default function HomePage() {
                             </div>
 
                             {/* Attention Threshold Section */}
-                            <div className="bg-slate-50 rounded-xl p-5 space-y-5">
+                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:chart-bold" className="text-lg text-blue-500" />
-                                    <span className="text-sm font-semibold text-slate-700">เกณฑ์นักศึกษาที่นักศึกษาที่ควรได้รับการดูแลเพิ่มเติม</span>
+                                    <span className="text-sm font-semibold text-default-700">เกณฑ์นักศึกษาที่นักศึกษาที่ควรได้รับการดูแลเพิ่มเติม</span>
                                 </div>
                                 <div className="py-3">
                                     <Input
@@ -1280,21 +1279,21 @@ export default function HomePage() {
                                             const num = parseInt(value) || 0;
                                             setFormData({ ...formData, attention_threshold: Math.min(100, Math.max(0, num)) });
                                         }}
-                                        endContent={<span className="text-slate-400">%</span>}
+                                        endContent={<span className="text-default-400">%</span>}
                                         description="นักศึกษาที่มีคะแนนรวมต่ำกว่าเกณฑ์นี้จะแสดงในรายการ 'นักศึกษาที่ควรได้รับการดูแลเพิ่มเติม'"
                                         classNames={{
-                                            inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                            label: "text-slate-600 font-medium text-sm",
+                                            inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                            label: "text-default-600 font-medium text-sm",
                                         }}
                                     />
                                 </div>
                             </div>
 
                             {/* Description Section */}
-                            <div className="bg-slate-50 rounded-xl p-5 space-y-5">
+                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:notes-bold" className="text-lg text-blue-500" />
-                                    <span className="text-sm font-semibold text-slate-700">รายละเอียดเพิ่มเติม</span>
+                                    <span className="text-sm font-semibold text-default-700">รายละเอียดเพิ่มเติม</span>
                                 </div>
                                 <div className="py-3">
                                     <Textarea
@@ -1306,15 +1305,15 @@ export default function HomePage() {
                                         onValueChange={(value) => setFormData({ ...formData, description: value })}
                                         minRows={3}
                                         classNames={{
-                                            inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                            label: "text-slate-600 font-medium text-sm",
+                                            inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                            label: "text-default-600 font-medium text-sm",
                                         }}
                                     />
                                 </div>
                             </div>
                         </div>
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button
                             variant="light"
                             color="default"
@@ -1357,12 +1356,12 @@ export default function HomePage() {
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
                         <div className="flex items-center gap-3 sm:gap-4">
-                            <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                            <div className="p-2 sm:p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:pen-new-square-bold" className="text-xl sm:text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-lg sm:text-xl font-bold text-slate-800">แก้ไขรายวิชา</h3>
-                                <p className="text-xs sm:text-sm text-slate-500 font-normal mt-1">
+                                <h3 className="text-lg font-bold text-foreground sm:text-xl">แก้ไขรายวิชา</h3>
+                                <p className="mt-1 text-xs font-normal text-default-500 sm:text-sm">
                                     แก้ไขข้อมูลรายวิชา {selectedCourse?.code}
                                 </p>
                             </div>
@@ -1371,10 +1370,10 @@ export default function HomePage() {
                     <ModalBody className="px-4 sm:px-6 py-4 sm:py-6">
                         <div className="space-y-5">
                             {/* Course Image Section */}
-                            <div className="bg-slate-50 rounded-xl p-5 space-y-5">
+                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:gallery-bold" className="text-lg text-amber-500" />
-                                    <span className="text-sm font-semibold text-slate-700">รูปปกรายวิชา</span>
+                                    <span className="text-sm font-semibold text-default-700">รูปปกรายวิชา</span>
                                 </div>
                                 <div className="py-3">
                                     {imagePreview ? (
@@ -1382,7 +1381,7 @@ export default function HomePage() {
                                             <img
                                                 src={imagePreview}
                                                 alt="Course preview"
-                                                className="w-full h-48 object-cover rounded-xl border border-slate-200"
+                                                className="h-48 w-full rounded-xl border border-default-200 object-cover"
                                             />
                                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-3">
                                                 <label className="cursor-pointer">
@@ -1419,10 +1418,10 @@ export default function HomePage() {
                                                 onChange={handleImageUpload}
                                                 className="hidden"
                                             />
-                                            <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-amber-400 hover:bg-amber-50/50 transition-colors">
+                                            <div className="rounded-xl border-2 border-dashed border-default-300 p-8 text-center transition-colors hover:border-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-500/10">
                                                 <Icon icon="solar:cloud-upload-bold-duotone" className="text-5xl text-amber-400 mx-auto mb-3" />
-                                                <p className="text-slate-600 font-medium">คลิกเพื่ออัปโหลดรูปปกรายวิชา</p>
-                                                <p className="text-slate-400 text-sm mt-1">รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 2MB</p>
+                                                <p className="font-medium text-default-600">คลิกเพื่ออัปโหลดรูปปกรายวิชา</p>
+                                                <p className="mt-1 text-sm text-default-400">รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 2MB</p>
                                             </div>
                                         </label>
                                     )}
@@ -1430,10 +1429,10 @@ export default function HomePage() {
                             </div>
 
                             {/* Course Info Section */}
-                            <div className="bg-slate-50 rounded-xl p-5 space-y-5">
+                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:document-text-bold" className="text-lg text-amber-500" />
-                                    <span className="text-sm font-semibold text-slate-700">ข้อมูลรายวิชา</span>
+                                    <span className="text-sm font-semibold text-default-700">ข้อมูลรายวิชา</span>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 py-3">
                                     <div className="md:col-span-2">
@@ -1448,8 +1447,8 @@ export default function HomePage() {
                                             isRequired
                                             startContent={<Icon icon="solar:hashtag-linear" className="text-amber-400 text-xl" />}
                                             classNames={{
-                                                inputWrapper: "h-12 bg-white border-slate-200 hover:border-amber-300 focus-within:!border-amber-400",
-                                                label: "text-slate-600 font-medium text-sm",
+                                                inputWrapper: "h-12 bg-content1 border-default-200 hover:border-amber-300 focus-within:!border-amber-400",
+                                                label: "text-default-600 font-medium text-sm",
                                             }}
                                         />
                                     </div>
@@ -1465,8 +1464,8 @@ export default function HomePage() {
                                             isRequired
                                             startContent={<Icon icon="solar:book-linear" className="text-amber-400 text-xl" />}
                                             classNames={{
-                                                inputWrapper: "h-12 bg-white border-slate-200 hover:border-amber-300 focus-within:!border-amber-400",
-                                                label: "text-slate-600 font-medium text-sm",
+                                                inputWrapper: "h-12 bg-content1 border-default-200 hover:border-amber-300 focus-within:!border-amber-400",
+                                                label: "text-default-600 font-medium text-sm",
                                             }}
                                         />
                                     </div>
@@ -1482,8 +1481,8 @@ export default function HomePage() {
                                         isRequired
                                         startContent={<Icon icon="solar:calendar-linear" className="text-amber-400 text-xl" />}
                                         classNames={{
-                                            inputWrapper: "h-12 bg-white border-slate-200 hover:border-amber-300 focus-within:!border-amber-400",
-                                            label: "text-slate-600 font-medium text-sm",
+                                            inputWrapper: "h-12 bg-content1 border-default-200 hover:border-amber-300 focus-within:!border-amber-400",
+                                            label: "text-default-600 font-medium text-sm",
                                         }}
                                     />
                                     <Select
@@ -1496,8 +1495,8 @@ export default function HomePage() {
                                         onChange={(e) => setFormData({ ...formData, semester: parseInt(e.target.value) || 1 })}
                                         isRequired
                                         classNames={{
-                                            trigger: "h-12 bg-white border-slate-200 hover:border-amber-300",
-                                            label: "text-slate-600 font-medium text-sm",
+                                            trigger: "h-12 bg-content1 border-default-200 hover:border-amber-300",
+                                            label: "text-default-600 font-medium text-sm",
                                         }}
                                     >
                                         <SelectItem key="1">ภาคเรียนที่ 1</SelectItem>
@@ -1508,10 +1507,10 @@ export default function HomePage() {
                             </div>
 
                             {/* Co-Instructors Section */}
-                            <div className="bg-slate-50 rounded-xl p-5 space-y-5">
+                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:users-group-two-rounded-bold" className="text-lg text-amber-500" />
-                                    <span className="text-sm font-semibold text-slate-700">ผู้สอนร่วม (ไม่รวมตัวคุณ)</span>
+                                    <span className="text-sm font-semibold text-default-700">ผู้สอนร่วม (ไม่รวมตัวคุณ)</span>
                                 </div>
                                 <div className="py-3">
                                     <Select
@@ -1526,8 +1525,8 @@ export default function HomePage() {
                                             setFormData({ ...formData, instructor_ids: selectedIds });
                                         }}
                                         classNames={{
-                                            trigger: "min-h-12 bg-white border-slate-200 hover:border-amber-300",
-                                            label: "text-slate-600 font-medium text-sm",
+                                            trigger: "min-h-12 bg-content1 border-default-200 hover:border-amber-300",
+                                            label: "text-default-600 font-medium text-sm",
                                         }}
                                     >
                                         {instructors
@@ -1538,17 +1537,17 @@ export default function HomePage() {
                                                 </SelectItem>
                                             ))}
                                     </Select>
-                                    <p className="text-xs text-slate-400 mt-2">
+                                    <p className="mt-2 text-xs text-default-400">
                                         คุณจะเป็นผู้สอนหลักโดยอัตโนมัติ สามารถเลือกผู้สอนร่วมเพิ่มเติมได้
                                     </p>
                                 </div>
                             </div>
 
                             {/* Attention Threshold Section */}
-                            <div className="bg-slate-50 rounded-xl p-5 space-y-5">
+                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:chart-bold" className="text-lg text-amber-500" />
-                                    <span className="text-sm font-semibold text-slate-700">เกณฑ์นักศึกษาที่นักศึกษาที่ควรได้รับการดูแลเพิ่มเติม</span>
+                                    <span className="text-sm font-semibold text-default-700">เกณฑ์นักศึกษาที่นักศึกษาที่ควรได้รับการดูแลเพิ่มเติม</span>
                                 </div>
                                 <div className="py-3">
                                     <Input
@@ -1565,21 +1564,21 @@ export default function HomePage() {
                                             const num = parseInt(value) || 0;
                                             setFormData({ ...formData, attention_threshold: Math.min(100, Math.max(0, num)) });
                                         }}
-                                        endContent={<span className="text-slate-400">%</span>}
+                                        endContent={<span className="text-default-400">%</span>}
                                         description="นักศึกษาที่มีคะแนนรวมต่ำกว่าเกณฑ์นี้จะแสดงในรายการ 'นักศึกษาที่ควรได้รับการดูแลเพิ่มเติม'"
                                         classNames={{
-                                            inputWrapper: "h-12 bg-white border-slate-200 hover:border-amber-300 focus-within:!border-amber-400",
-                                            label: "text-slate-600 font-medium text-sm",
+                                            inputWrapper: "h-12 bg-content1 border-default-200 hover:border-amber-300 focus-within:!border-amber-400",
+                                            label: "text-default-600 font-medium text-sm",
                                         }}
                                     />
                                 </div>
                             </div>
 
                             {/* Description Section */}
-                            <div className="bg-slate-50 rounded-xl p-5 space-y-5">
+                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:notes-bold" className="text-lg text-amber-500" />
-                                    <span className="text-sm font-semibold text-slate-700">รายละเอียดเพิ่มเติม</span>
+                                    <span className="text-sm font-semibold text-default-700">รายละเอียดเพิ่มเติม</span>
                                 </div>
                                 <div className="py-3">
                                     <Textarea
@@ -1591,15 +1590,15 @@ export default function HomePage() {
                                         onValueChange={(value) => setFormData({ ...formData, description: value })}
                                         minRows={3}
                                         classNames={{
-                                            inputWrapper: "bg-white border-slate-200 hover:border-amber-300 focus-within:!border-amber-400",
-                                            label: "text-slate-600 font-medium text-sm",
+                                            inputWrapper: "bg-content1 border-default-200 hover:border-amber-300 focus-within:!border-amber-400",
+                                            label: "text-default-600 font-medium text-sm",
                                         }}
                                     />
                                 </div>
                             </div>
                         </div>
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button
                             variant="light"
                             color="default"
@@ -1637,14 +1636,14 @@ export default function HomePage() {
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 pb-2">
                         <div className="flex items-center gap-3">
-                            <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 shadow-lg shadow-blue-500/30">
+                            <div className="p-2.5 rounded-xl bg-linear-to-br from-blue-400 to-indigo-500 shadow-lg shadow-blue-500/30">
                                 <Icon
                                     icon={courseToToggle?.is_active ? "solar:archive-bold" : "solar:eye-bold"}
                                     className="text-xl text-white"
                                 />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-slate-800">
+                                <h3 className="text-lg font-bold text-foreground">
                                     {courseToToggle?.is_active ? "ปิดใช้งานรายวิชา" : "เปิดใช้งานรายวิชา"}
                                 </h3>
                             </div>
@@ -1657,48 +1656,48 @@ export default function HomePage() {
                                 <div className="space-y-3">
                                     <div className="flex items-start gap-3">
                                         <Icon icon="solar:square-academic-cap-bold" className="text-xl text-blue-500 mt-0.5" />
-                                        <p className="text-slate-600 text-sm">
+                                        <p className="text-sm text-default-600">
                                             อาจารย์หรือผู้ช่วยสอนจะแก้ไขชั้นเรียนที่ปิดใช้งานไม่ได้ เว้นแต่ชั้นเรียนจะได้รับการกู้คืน
                                         </p>
                                     </div>
                                     <div className="flex items-start gap-3">
                                         <Icon icon="solar:eye-bold" className="text-xl text-blue-500 mt-0.5" />
-                                        <p className="text-slate-600 text-sm">
+                                        <p className="text-sm text-default-600">
                                             อาจารย์ยังคงดูตัวอย่างและส่งออกรายงานได้
                                         </p>
                                     </div>
                                     <div className="flex items-start gap-3">
                                         <Icon icon="solar:eye-closed-linear" className="text-xl text-blue-500 mt-0.5" />
-                                        <p className="text-slate-600 text-sm">
+                                        <p className="text-sm text-default-600">
                                             นักศึกษาจะไม่สามารถค้นหาของนักศึกษาในคะแนนของรายวิชาที่ปิดใช้งานได้
                                         </p>
                                     </div>
                                 </div>
 
                                 {/* Course info card */}
-                                <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                                <div className="rounded-lg border border-default-200 bg-content2 p-4">
                                     <div className="flex items-center gap-3">
                                         {/* <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
                                             {courseToToggle?.semester}
                                         </div> */}
                                         <div>
-                                            <p className="font-semibold text-slate-800">
+                                            <p className="font-semibold text-foreground">
                                                 {courseToToggle?.year}/{courseToToggle?.code} {courseToToggle?.name}
                                             </p>
-                                            <p className="text-sm text-slate-500">
+                                            <p className="text-sm text-default-500">
                                                 {courseToToggle?.sections?.length ?? 0} Section • {courseToToggle?.instructor?.full_name || 'ผู้สอน'}
                                             </p>
                                         </div>
                                     </div>
                                 </div>
 
-                                <p className="text-slate-500 text-sm">
+                                <p className="text-sm text-default-500">
                                     ระบบจะย้ายชั้นเรียนต่อไปนี้ไปยังชั้นเรียนที่ปิดใช้งาน
                                 </p>
                             </div>
                         ) : (
                             <div>
-                                <p className="text-slate-600">
+                                <p className="text-default-600">
                                     คุณต้องการเปิดใช้งานรายวิชา{" "}
                                     <span className="font-semibold">{courseToToggle?.code} - {courseToToggle?.name}</span>{" "}
                                     หรือไม่?
@@ -1744,25 +1743,25 @@ export default function HomePage() {
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1">
                         <div className="flex items-center gap-3">
-                            <div className="p-2.5 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                            <div className="p-2.5 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:danger-triangle-bold" className="text-xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-slate-800">ไม่สามารถเปิดใช้งานได้</h3>
+                                <h3 className="text-lg font-bold text-foreground">ไม่สามารถเปิดใช้งานได้</h3>
                             </div>
                         </div>
                     </ModalHeader>
                     <ModalBody>
-                        <p className="text-slate-600">
+                        <p className="text-default-600">
                             มีรายวิชาที่ใช้รหัสวิชา ปีการศึกษา และภาคเรียนเดียวกันที่เปิดใช้งานอยู่แล้ว:
                         </p>
                         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-3">
-                            <p className="font-semibold text-slate-800">{duplicateCourse?.code} - {duplicateCourse?.name}</p>
-                            <p className="text-sm text-slate-600 mt-1">
+                            <p className="font-semibold text-foreground">{duplicateCourse?.code} - {duplicateCourse?.name}</p>
+                            <p className="mt-1 text-sm text-default-600">
                                 ปีการศึกษา {duplicateCourse?.year} / ภาคเรียนที่ {duplicateCourse?.semester === 3 ? "ฤดูร้อน" : duplicateCourse?.semester}
                             </p>
                         </div>
-                        <p className="text-sm text-slate-500 mt-3">
+                        <p className="mt-3 text-sm text-default-500">
                             หากต้องการเปิดใช้งานรายวิชานี้ กรุณาปิดใช้งานรายวิชาที่ซ้ำกันก่อน
                         </p>
                     </ModalBody>

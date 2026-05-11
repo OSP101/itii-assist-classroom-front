@@ -63,7 +63,7 @@ function PersonalInfoSection({
               <Avatar
                 name={user.full_name || user.username}
                 src={user.avatar || undefined}
-                className="w-28 h-28 text-3xl bg-gradient-to-br from-blue-400 to-indigo-500 text-white"
+                className="w-28 h-28 text-3xl bg-linear-to-br from-blue-400 to-indigo-500 text-white"
               />
               {isUploadingAvatar && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
@@ -178,7 +178,7 @@ function PersonalInfoSection({
               color="primary"
               onPress={handleUpdateProfile}
               isLoading={isSaving}
-              className="bg-gradient-to-br from-blue-400 to-indigo-500"
+              className="bg-linear-to-br from-blue-400 to-indigo-500"
               startContent={!isSaving && <Icon icon="solar:check-circle-linear" />}
             >
               บันทึกการเปลี่ยนแปลง

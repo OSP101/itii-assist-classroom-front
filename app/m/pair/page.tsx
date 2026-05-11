@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
@@ -44,8 +44,7 @@ export default function AttendancePairMobilePage() {
     const [errorMessage, setErrorMessage] = useState("");
     const [isSessionsLoading, setIsSessionsLoading] = useState(false);
     const [isClaiming, setIsClaiming] = useState(false);
-
-    const user = useMemo(() => authService.getStoredUser(), []);
+    const [user, setUser] = useState<ReturnType<typeof authService.getStoredUser>>(null);
 
     const loadSessions = useCallback(async (courseId: string) => {
         if (!courseId) {
@@ -91,6 +90,8 @@ export default function AttendancePairMobilePage() {
             setIsBootLoading(false);
             return;
         }
+
+        setUser(authService.getStoredUser());
 
         try {
             const [pairingData, courseResponse] = await Promise.all([
@@ -220,7 +221,7 @@ export default function AttendancePairMobilePage() {
         <div className="min-h-screen bg-slate-50">
 
             {/* ── Top hero strip ── */}
-            <div className="bg-gradient-to-br from-sky-600 to-indigo-700 px-5 pb-8 pt-10 text-white">
+            <div className="bg-linear-to-br from-sky-600 to-indigo-700 px-5 pb-8 pt-10 text-white">
                 <div className="flex items-center gap-3 mb-4">
                     <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15">
                         <Icon icon="solar:monitor-smartphone-bold-duotone" className="text-2xl text-white" />

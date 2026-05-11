@@ -16,14 +16,13 @@ import {
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { IoSchool } from "react-icons/io5";
-import { io, Socket } from "@/services/realtime-socket";
+import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket";
 import QRCode from "react-qr-code";
 
 import { API_BASE_URL } from "@/config/api";
 import { Divider } from "@heroui/divider";
 import { Skeleton } from "@heroui/skeleton";
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
 const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
 
 interface DeskBooking {
@@ -131,12 +130,9 @@ export default function ProjectorViewPage() {
 
     // Socket connection for real-time updates
     useEffect(() => {
-        const socket = io(SOCKET_URL, {
-            transports: ["websocket"],
-        });
+        const socket = io(getRealtimeSocketBaseUrl());
 
         socket.on("connect", () => {
-            console.log("Socket connected");
             socket.emit("join-queue", sessionId);
         });
 
@@ -394,7 +390,7 @@ export default function ProjectorViewPage() {
         if (desk.status.grading_status === "completed") {
             return "bg-emerald-500"; // ตรวจเสร็จแล้ว
         }
-        return "bg-slate-200"; // ยังไม่ได้ทำอะไร - เปลี่ยนเป็นสีอ่อน
+        return "bg-content3"; // ยังไม่ได้ทำอะไร
     };
 
     // Get desk border based on type
@@ -405,7 +401,7 @@ export default function ProjectorViewPage() {
         if (desk.type === "computer") {
             return "border-2 border-cyan-400";
         }
-        return "border border-slate-500";
+        return "border border-default-400";
     };
 
     // Get booking URL for QR code
@@ -415,7 +411,7 @@ export default function ProjectorViewPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-slate-100 p-4 flex flex-col gap-4">
+            <div className="flex min-h-screen flex-col gap-4 bg-background p-4">
                 <div className="flex items-center justify-between">
                     <div className="space-y-2">
                         <Skeleton className="w-72 h-8 rounded-lg" />
@@ -428,10 +424,10 @@ export default function ProjectorViewPage() {
                 </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-4 flex-1 min-h-0">
-                    <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4">
+                    <div className="rounded-xl border border-default-200 bg-content1 p-4 shadow-sm">
                         <Skeleton className="w-full h-[62vh] rounded-lg" />
                     </div>
-                    <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 space-y-3">
+                    <div className="space-y-3 rounded-xl border border-default-200 bg-content1 p-4 shadow-sm">
                         <Skeleton className="w-40 h-6 rounded-lg" />
                         <Skeleton className="w-full h-48 rounded-lg" />
                         <Divider />
@@ -446,11 +442,11 @@ export default function ProjectorViewPage() {
 
     if (error || !data) {
         return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+            <div className="flex min-h-screen items-center justify-center bg-background">
                 <div className="text-center">
                     <Icon icon="solar:danger-triangle-bold" className="text-6xl text-red-400 mb-4" />
-                    <h2 className="text-xl font-bold text-slate-800 mb-2">เกิดข้อผิดพลาด</h2>
-                    <p className="text-slate-500 mb-4">{error || "ไม่สามารถโหลดข้อมูลได้"}</p>
+                    <h2 className="mb-2 text-xl font-bold text-foreground">เกิดข้อผิดพลาด</h2>
+                    <p className="mb-4 text-default-500">{error || "ไม่สามารถโหลดข้อมูลได้"}</p>
                     <Button color="primary" onPress={() => fetchData()}>
                         ลองใหม่
                     </Button>
@@ -473,13 +469,13 @@ export default function ProjectorViewPage() {
     const nextCutoffEnabled = !isCutoffEnabled;
 
     return (
-        <div ref={containerRef} className="min-h-screen bg-slate-100 p-4 flex flex-col">
+        <div ref={containerRef} className="flex min-h-screen flex-col bg-background p-4">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-800">{data.session.title}</h1>
-                        <p className="text-slate-500">
+                        <h1 className="text-2xl font-bold text-foreground">{data.session.title}</h1>
+                        <p className="text-default-500">
                             {data.classroom.name} • {data.classroom.building}
                         </p>
                     </div>
@@ -548,22 +544,22 @@ export default function ProjectorViewPage() {
 
 
                     {/* Zoom Controls */}
-                    <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-slate-200 shadow-sm">
+                    <div className="flex items-center gap-2 rounded-xl border border-default-200 bg-content1 px-3 py-2 shadow-sm">
                         <Button
                             isIconOnly
                             size="sm"
                             variant="flat"
-                            className="bg-slate-100 text-slate-700 text-2xl"
+                            className="bg-content2 text-2xl text-default-700"
                             onPress={() => setZoom((prev) => Math.max(prev - 0.05, 0.3))}
                         >
                             {/* <Icon icon="solar:minus-bold" /> */} -
                         </Button>
-                        <span className="text-slate-700 text-sm w-12 text-center">{Math.round(zoom * 100)}%</span>
+                        <span className="w-12 text-center text-sm text-default-700">{Math.round(zoom * 100)}%</span>
                         <Button
                             isIconOnly
                             size="sm"
                             variant="flat"
-                            className="bg-slate-100 text-slate-700 text-2xl"
+                            className="bg-content2 text-2xl text-default-700"
                             onPress={() => setZoom((prev) => Math.min(prev + 0.05, 2))}
                         >
                             {/* <Icon icon="solar:add-bold" /> */} +
@@ -573,7 +569,7 @@ export default function ProjectorViewPage() {
 
 
                     {/* Toggle Queue Status */}
-                    <div className="flex items-center gap-2 bg-white rounded-xl px-4 py-2 border border-slate-200 shadow-sm">
+                    <div className="flex items-center gap-2 rounded-xl border border-default-200 bg-content1 px-4 py-2 shadow-sm">
                         <Switch
                             isSelected={!isPaused && !isClosed}
                             onValueChange={handleToggleStatus}
@@ -599,7 +595,7 @@ export default function ProjectorViewPage() {
                         variant="flat"
                         className={`border shadow-sm ${isCutoffEnabled
                             ? 'bg-rose-50 border-rose-200 text-rose-700'
-                            : 'bg-white border-slate-200 text-slate-700'}`}
+                            : 'bg-content1 border-default-200 text-default-700'}`}
                         isLoading={isTogglingCutoff}
                         isDisabled={isClosed || isTogglingCutoff}
                         onPress={() => setIsCutoffConfirmOpen(true)}
@@ -613,7 +609,7 @@ export default function ProjectorViewPage() {
                         isIconOnly
                         size="lg"
                         variant="flat"
-                        className="bg-white text-slate-700 border border-slate-200 shadow-sm"
+                        className="border border-default-200 bg-content1 text-default-700 shadow-sm"
                         onPress={() => setSidebarPosition((prev) => prev === 'right' ? 'bottom' : 'right')}
                         title={sidebarPosition === 'right' ? 'ย้ายแถบข้อมูลไปด้านล่าง' : 'ย้ายแถบข้อมูลไปด้านขวา'}
                     >
@@ -625,7 +621,7 @@ export default function ProjectorViewPage() {
                         isIconOnly
                         size="lg"
                         variant="flat"
-                        className="bg-white text-slate-700 border border-slate-200 shadow-sm"
+                        className="border border-default-200 bg-content1 text-default-700 shadow-sm"
                         onPress={toggleFullscreen}
                     >
                         <Icon icon={isFullscreen ? "solar:quit-full-screen-bold" : "solar:full-screen-bold"} className="text-xl" />
@@ -636,7 +632,7 @@ export default function ProjectorViewPage() {
             {/* Main Content */}
             <div className={`flex-1 flex gap-4 ${sidebarPosition === 'bottom' ? 'flex-col' : 'flex-row'}`}>
                 {/* Room Layout */}
-                <div className="flex-1 bg-white rounded-2xl p-4 overflow-auto border border-slate-200 shadow-sm">
+                <div className="flex-1 overflow-auto rounded-2xl border border-default-200 bg-content1 p-4 shadow-sm">
                     <div
                         className="relative"
                         style={{
@@ -670,7 +666,7 @@ export default function ProjectorViewPage() {
                                     title={isTeacher ? `โต๊ะอาจารย์ ${desk.number}` : `โต๊ะ ${desk.number}${desk.label ? ` (${desk.label})` : ""}${hasActiveBooking ? ' - คลิกเพื่อจัดการ' : ''}`}
                                     onClick={() => handleDeskClick(desk)}
                                 >
-                                    <span className={`font-bold ${isTeacher ? "text-sm text-black" : "text-lg"} ${desk.status.grading_status === "not_started" && desk.status.help_status === "none" ? "text-slate-700" : "text-white"}`}>
+                                    <span className={`font-bold ${isTeacher ? "text-sm text-foreground" : "text-lg"} ${desk.status.grading_status === "not_started" && desk.status.help_status === "none" ? "text-default-700" : "text-white"}`}>
                                         {isTeacher ? `อาจารย์ ${desk.number}` : desk.number}
                                     </span>
 
@@ -696,7 +692,7 @@ export default function ProjectorViewPage() {
                 {/* Sidebar - QR Code & Legend */}
                 {sidebarPosition === 'bottom' ? (
                     /* ── Bottom layout: compact single-row strip ── */
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 py-5 flex items-center gap-6">
+                    <div className="flex items-center gap-6 rounded-2xl border border-default-200 bg-content1 px-5 py-5 shadow-sm">
                         {/* QR / Status section */}
                         {isClosed ? (
                             <div className="flex items-center gap-3 text-rose-600 shrink-0">
@@ -718,61 +714,61 @@ export default function ProjectorViewPage() {
                             <div className="flex items-center gap-4 shrink-0">
                                 <QRCode value={getBookingUrl()} size={200} bgColor="#ffffff" fgColor="#000000" level="L" />
                                 <div className="bg-blue-100 rounded-xl px-4 py-2">
-                                    <span className="text-sm text-slate-600">PIN Code</span>
+                                    <span className="text-sm text-default-600">PIN Code</span>
                                     <p className="text-4xl font-mono font-bold text-blue-700 text-center">{data.session.pin_code}</p>
 
                                     <Divider className="my-3" />
-                                    <p className="font-mono text-slate-800">{`itii.osp101.dev/queue/book`}</p>
+                                    <p className="font-mono text-foreground">{`itii.osp101.dev/queue/book`}</p>
                                 </div>
                             </div>
                         )}
 
                         {/* Divider */}
-                        <div className="w-px h-12 bg-slate-200 shrink-0" />
+                        <div className="h-12 w-px shrink-0 bg-divider" />
 
                         {/* Legend - compact inline */}
                         <div className="flex items-center gap-4 flex-wrap flex-1 min-w-0">
                             <div className="flex items-center gap-1.5">
-                                <div className="w-8 h-8 rounded bg-slate-200 border border-slate-300 shrink-0" />
-                                <span className="text-slate-500 text-md whitespace-nowrap">ยังไม่ได้ตรวจ</span>
+                                <div className="h-8 w-8 shrink-0 rounded border border-default-300 bg-content3" />
+                                <span className="text-md whitespace-nowrap text-default-500">ยังไม่ได้ตรวจ</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <div className="w-8 h-8 rounded bg-blue-300 border border-blue-400 shrink-0" />
-                                <span className="text-slate-500 text-md whitespace-nowrap">รอตรวจ</span>
+                                <span className="text-md whitespace-nowrap text-default-500">รอตรวจ</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <div className="w-8 h-8 rounded bg-blue-500 animate-pulse border border-blue-600 shrink-0" />
-                                <span className="text-slate-500 text-md whitespace-nowrap">กำลังตรวจ</span>
+                                <span className="text-md whitespace-nowrap text-default-500">กำลังตรวจ</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <div className="w-8 h-8 rounded bg-emerald-500 border border-emerald-600 shrink-0" />
-                                <span className="text-slate-500 text-md whitespace-nowrap">ตรวจเสร็จ</span>
+                                <span className="text-md whitespace-nowrap text-default-500">ตรวจเสร็จ</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <div className="w-8 h-8 rounded bg-amber-300 border border-amber-400 shrink-0" />
-                                <span className="text-slate-500 text-md whitespace-nowrap">รอช่วยเหลือ</span>
+                                <span className="text-md whitespace-nowrap text-default-500">รอช่วยเหลือ</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <div className="w-8 h-8 rounded bg-amber-500 animate-pulse border border-amber-600 shrink-0" />
-                                <span className="text-slate-500 text-md whitespace-nowrap">กำลังช่วยเหลือ</span>
+                                <span className="text-md whitespace-nowrap text-default-500">กำลังช่วยเหลือ</span>
                             </div>
 
                             {/* Desk types inline */}
-                            <div className="w-px h-12 bg-slate-200 shrink-0" />
+                            <div className="h-12 w-px shrink-0 bg-divider" />
                             <div className="flex items-center gap-1.5">
-                                <div className="w-8 h-8 rounded bg-slate-200 border-2 border-cyan-400 shrink-0" />
-                                <span className="text-slate-500 text-md whitespace-nowrap">คอมฯ</span>
+                                <div className="h-8 w-8 shrink-0 rounded border-2 border-cyan-400 bg-content3" />
+                                <span className="text-md whitespace-nowrap text-default-500">คอมฯ</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <div className="w-8 h-8 rounded bg-slate-200 border-[3px] border-purple-400 shrink-0" />
-                                <span className="text-slate-500 text-md whitespace-nowrap">โต๊ะอาจารย์</span>
+                                <div className="h-8 w-8 shrink-0 rounded border-[3px] border-purple-400 bg-content3" />
+                                <span className="text-md whitespace-nowrap text-default-500">โต๊ะอาจารย์</span>
                             </div>
 
-                            <div className="w-px h-12 bg-slate-200 shrink-0" />
+                            <div className="h-12 w-px shrink-0 bg-divider" />
 
-                            <div className="bg-white rounded-xl max-w-full px-4 py-2 border border-slate-200 shadow-sm flex items-center gap-2 justify-center">
+                            <div className="flex max-w-full items-center justify-center gap-2 rounded-xl border border-default-200 bg-content1 px-4 py-2 shadow-sm">
                                 {/* <Icon icon="solar:clock-circle-bold" className="text-slate-400 text-lg" /> */}
-                                <span className="font-mono text-2xl font-semibold text-slate-700 tabular-nums">
+                                <span className="font-mono text-2xl font-semibold text-default-700 tabular-nums">
                                     {currentTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
                                 </span>
                             </div>
@@ -800,7 +796,7 @@ export default function ProjectorViewPage() {
                                 </p>
                             </div>
                         ) : (
-                            <div className="bg-white rounded-2xl p-6 text-center">
+                            <div className="rounded-2xl border border-default-200 bg-content1 p-6 text-center shadow-sm">
                                 <div className="mb-3">
                                     <QRCode
                                         value={getBookingUrl()}
@@ -810,68 +806,68 @@ export default function ProjectorViewPage() {
                                     />
                                 </div>
                                 <div className="bg-blue-100 rounded-xl px-4 py-2">
-                                    <span className="text-sm text-slate-600">PIN Code</span>
+                                    <span className="text-sm text-default-600">PIN Code</span>
 
                                     <p className="text-4xl font-mono font-bold text-blue-700">{data.session.pin_code}</p>
                                 </div>
                                 <div>
                                     <Divider className="my-3" />
-                                    <p className="font-mono text-slate-800">{`${process.env.NEXT_PUBLIC_FRONTEND_URL}/queue/book`}</p>
+                                    <p className="font-mono text-foreground">{`${process.env.NEXT_PUBLIC_FRONTEND_URL}/queue/book`}</p>
                                 </div>
                             </div>
                         )}
 
                         {/* Legend */}
-                        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-                            <h3 className="text-slate-800 font-semibold mb-3">สัญลักษณ์</h3>
+                        <div className="rounded-2xl border border-default-200 bg-content1 p-4 shadow-sm">
+                            <h3 className="mb-3 font-semibold text-foreground">สัญลักษณ์</h3>
                             <div className="space-y-2 grid grid-cols-2">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded bg-slate-200 border border-slate-300" />
-                                    <span className="text-slate-600 text-sm">ยังไม่ได้ตรวจ</span>
+                                    <div className="h-8 w-8 rounded border border-default-300 bg-content3" />
+                                    <span className="text-sm text-default-600">ยังไม่ได้ตรวจ</span>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded bg-emerald-500 border border-emerald-600" />
-                                    <span className="text-slate-600 text-sm">ตรวจเสร็จแล้ว</span>
+                                    <span className="text-sm text-default-600">ตรวจเสร็จแล้ว</span>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded bg-blue-300 border border-blue-400" />
-                                    <span className="text-slate-600 text-sm">รอตรวจงาน</span>
+                                    <span className="text-sm text-default-600">รอตรวจงาน</span>
                                 </div>
 
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded bg-amber-300 border border-amber-400" />
-                                    <span className="text-slate-600 text-sm">รอช่วยเหลือ</span>
+                                    <span className="text-sm text-default-600">รอช่วยเหลือ</span>
                                 </div>
 
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded bg-blue-500 animate-pulse border border-blue-600" />
-                                    <span className="text-slate-600 text-sm">กำลังตรวจ</span>
+                                    <span className="text-sm text-default-600">กำลังตรวจ</span>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded bg-amber-500 animate-pulse border border-amber-600" />
-                                    <span className="text-slate-600 text-sm">กำลังช่วยเหลือ</span>
+                                    <span className="text-sm text-default-600">กำลังช่วยเหลือ</span>
                                 </div>
                             </div>
 
                             {/* Desk types */}
-                            <div className="mt-4 pt-4 border-t border-slate-200">
-                                <h4 className="text-slate-500 text-sm mb-2">ประเภทโต๊ะ</h4>
+                            <div className="mt-4 border-t border-divider pt-4">
+                                <h4 className="mb-2 text-sm text-default-500">ประเภทโต๊ะ</h4>
                                 <div className="space-y-2 grid grid-cols-2">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded bg-slate-200 border-2 border-cyan-400" />
-                                        <span className="text-slate-600 text-sm">คอมพิวเตอร์</span>
+                                        <div className="h-8 w-8 rounded border-2 border-cyan-400 bg-content3" />
+                                        <span className="text-sm text-default-600">คอมพิวเตอร์</span>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded bg-slate-200 border-4 border-purple-400" />
-                                        <span className="text-slate-600 text-sm">โต๊ะอาจารย์</span>
+                                        <div className="h-8 w-8 rounded border-4 border-purple-400 bg-content3" />
+                                        <span className="text-sm text-default-600">โต๊ะอาจารย์</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         {/* Clock */}
-                        <div className="bg-white rounded-xl px-4 py-2 border border-slate-200 shadow-sm flex items-center gap-2 justify-center">
+                        <div className="flex items-center justify-center gap-2 rounded-xl border border-default-200 bg-content1 px-4 py-2 shadow-sm">
                             {/* <Icon icon="solar:clock-circle-bold" className="text-slate-400 text-lg" /> */}
-                            <span className="font-mono text-2xl font-semibold text-slate-700 tabular-nums">
+                            <span className="font-mono text-2xl font-semibold text-default-700 tabular-nums">
                                 {currentTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
                             </span>
                         </div>
@@ -893,7 +889,7 @@ export default function ProjectorViewPage() {
             <Modal isOpen={isDeskModalOpen} onClose={() => setIsDeskModalOpen(false)}>
                 <ModalContent>
                     <ModalHeader className="flex items-center gap-2">
-                        <div className="p-2 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
+                        <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
                             <Icon icon="solar:square-bold" className="text-xl text-white" />
                         </div>
                         <span>โต๊ะ {selectedDesk?.number}</span>
@@ -901,15 +897,15 @@ export default function ProjectorViewPage() {
                     <ModalBody>
                         {selectedDesk?.booking && (
                             <div className="space-y-4">
-                                <div className="bg-slate-50 rounded-xl p-4">
+                                <div className="rounded-xl bg-content2 p-4">
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="text-slate-600 text-sm">คิวที่</span>
+                                        <span className="text-sm text-default-600">คิวที่</span>
                                         <span className="text-2xl font-bold text-blue-600">
                                             {selectedDesk.booking.queue_number}
                                         </span>
                                     </div>
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="text-slate-600 text-sm">ประเภท</span>
+                                        <span className="text-sm text-default-600">ประเภท</span>
                                         <Chip
                                             size="sm"
                                             color={selectedDesk.booking.booking_type === 'grading' ? 'primary' : 'warning'}
@@ -919,13 +915,13 @@ export default function ProjectorViewPage() {
                                         </Chip>
                                     </div>
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="text-slate-600 text-sm">สถานะ</span>
-                                        <span className="text-slate-800 font-medium">{selectedDesk.booking.status}</span>
+                                        <span className="text-sm text-default-600">สถานะ</span>
+                                        <span className="font-medium text-foreground">{selectedDesk.booking.status}</span>
                                     </div>
                                     {selectedDesk.booking.student_name && (
                                         <div className="flex items-center justify-between">
-                                            <span className="text-slate-600 text-sm">นักศึกษา</span>
-                                            <span className="text-slate-800">{selectedDesk.booking.student_name}</span>
+                                            <span className="text-sm text-default-600">นักศึกษา</span>
+                                            <span className="text-foreground">{selectedDesk.booking.student_name}</span>
                                         </div>
                                     )}
                                 </div>
@@ -962,13 +958,13 @@ export default function ProjectorViewPage() {
             <Modal isOpen={isCutoffConfirmOpen} onClose={() => setIsCutoffConfirmOpen(false)}>
                 <ModalContent>
                     <ModalHeader className="flex items-center gap-2">
-                        <div className="p-2 bg-gradient-to-br from-rose-400 to-pink-500 rounded-lg shadow-lg shadow-rose-500/30">
+                        <div className="p-2 bg-linear-to-br from-rose-400 to-pink-500 rounded-lg shadow-lg shadow-rose-500/30">
                             <Icon icon="solar:danger-triangle-bold" className="text-xl text-white" />
                         </div>
                         <span>{nextCutoffEnabled ? "ยืนยันเปิด Cutoff" : "ยืนยันปิด Cutoff"}</span>
                     </ModalHeader>
                     <ModalBody>
-                        <div className="space-y-3 text-sm text-slate-700">
+                        <div className="space-y-3 text-sm text-default-700">
                             <p>
                                 {nextCutoffEnabled
                                     ? "หลังจากนี้การจองใหม่ทั้งหมดจะถูกติดป้ายว่า Late Booking"

@@ -218,7 +218,6 @@ export function useAssignmentsTab({
             emitDataUpdate("assignment", "delete", deleteTarget.id, { courseId });
             
             // Callback to refresh overview data
-            console.log("📊 Calling onAssignmentChanged callback");
             onAssignmentChanged?.();
             
             closeDeleteModal();

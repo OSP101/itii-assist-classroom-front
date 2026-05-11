@@ -738,8 +738,6 @@ class CourseService {
     if (params?.sortBy) queryParams.sortBy = params.sortBy;
     if (params?.sortOrder) queryParams.sortOrder = params.sortOrder;
 
-    console.log('getMyCourses queryParams:', queryParams);
-
     return apiService.get<CourseListResponse>(API_ENDPOINTS.COURSES.MY_COURSES, { params: queryParams });
   }
 

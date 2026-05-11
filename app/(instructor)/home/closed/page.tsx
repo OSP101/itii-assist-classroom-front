@@ -127,7 +127,6 @@ export default function ClosedCoursesPage() {
     // Handle real-time course updates from other clients
     useEffect(() => {
         const unsubscribe = onCourseUpdate((data) => {
-            console.log("📥 Received course update:", data);
             fetchCourses(true);
             fetchStats();
 
@@ -345,12 +344,12 @@ export default function ClosedCoursesPage() {
                 <div className="flex items-center gap-3">
                     <div>
                         <div className="flex items-center gap-2">
-                            <h1 className="text-2xl font-bold text-slate-900">วิชาที่ปิดใช้งาน</h1>
-                            <Chip size="sm" variant="flat" className="bg-slate-200 text-slate-600">
+                            <h1 className="text-2xl font-bold text-foreground">วิชาที่ปิดใช้งาน</h1>
+                            <Chip size="sm" variant="flat" className="bg-content3 text-default-600">
                                 {filteredCourses.length}
                             </Chip>
                         </div>
-                        <p className="text-slate-500 mt-1">
+                        <p className="mt-1 text-default-500">
                             รายวิชาที่ปิดใช้งานแล้ว สามารถดูข้อมูลหรือเปิดใช้งานอีกครั้งได้
                         </p>
                     </div>
@@ -364,7 +363,7 @@ export default function ClosedCoursesPage() {
                         </div>
                     </Tooltip>
                     {isRefreshingCourses && (
-                        <Chip size="sm" variant="flat" className="bg-blue-50 text-blue-600">
+                        <Chip size="sm" variant="flat" color="primary">
                             กำลังอัปเดตข้อมูล
                         </Chip>
                     )}
@@ -377,8 +376,8 @@ export default function ClosedCoursesPage() {
                         onPress={() => router.push('/home')}
                     >
                         กลับไปวิชาที่เปิด
-                        <Skeleton isLoaded={Boolean(stats)} className="ml-1 w-7 h-5 rounded-full bg-blue-50">
-                            <Chip size="sm" className="ml-1 bg-blue-100 text-blue-600" variant="flat">
+                        <Skeleton isLoaded={Boolean(stats)} className="ml-1 h-5 w-7 rounded-full bg-primary/10">
+                            <Chip size="sm" className="ml-1" color="primary" variant="flat">
                                 {stats?.byStatus?.active ?? 0}
                             </Chip>
                         </Skeleton>
@@ -388,7 +387,7 @@ export default function ClosedCoursesPage() {
 
 
             {/* Filters */}
-            <Card className="border border-slate-200 shadow-sm">
+            <Card className="border border-default-200 shadow-sm">
                 <CardBody className="p-4">
                     <div className="flex flex-col md:flex-row gap-4">
                         {/* Search */}
@@ -398,40 +397,40 @@ export default function ClosedCoursesPage() {
                                 placeholder="ค้นหารายวิชา..."
                                 value={search}
                                 onValueChange={setSearch}
-                                startContent={<Icon icon="solar:magnifer-linear" className="text-slate-400" />}
+                                startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
                                 isClearable
                                 onClear={() => setSearch("")}
                                 variant="bordered"
                                 classNames={{
-                                    inputWrapper: "border-slate-200 hover:border-slate-300 focus-within:!border-slate-400",
-                                    label: "text-slate-400 text-sm",
+                                    inputWrapper: "border-default-200 hover:border-default-300 focus-within:!border-default-400",
+                                    label: "text-default-400 text-sm",
                                 }}
                             />
 
-                            <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
+                            <div className="flex items-center overflow-hidden rounded-lg border border-default-200 bg-content1">
                                 <Tooltip content="แบบการ์ด">
                                     <Button
                                         aria-label="แสดงแบบการ์ด"
                                         isIconOnly
                                         size="md"
                                         variant="light"
-                                        className={`rounded-none ${viewMode === "grid" ? "bg-slate-100" : ""}`}
+                                        className={`rounded-none ${viewMode === "grid" ? "bg-content3" : ""}`}
                                         onPress={() => setViewMode("grid")}
                                     >
-                                        <Icon icon="solar:widget-bold" className={`text-lg ${viewMode === "grid" ? "text-blue-600" : "text-slate-400"}`} />
+                                        <Icon icon="solar:widget-bold" className={`text-lg ${viewMode === "grid" ? "text-blue-600" : "text-default-400"}`} />
                                     </Button>
                                 </Tooltip>
-                                <div className="w-px h-5 bg-slate-200" />
+                                <div className="h-5 w-px bg-divider" />
                                 <Tooltip content="แบบรายการ">
                                     <Button
                                         aria-label="แสดงแบบรายการ"
                                         isIconOnly
                                         size="md"
                                         variant="light"
-                                        className={`rounded-none ${viewMode === "list" ? "bg-slate-100" : ""}`}
+                                        className={`rounded-none ${viewMode === "list" ? "bg-content3" : ""}`}
                                         onPress={() => setViewMode("list")}
                                     >
-                                        <Icon icon="solar:list-bold" className={`text-lg ${viewMode === "list" ? "text-blue-600" : "text-slate-400"}`} />
+                                        <Icon icon="solar:list-bold" className={`text-lg ${viewMode === "list" ? "text-blue-600" : "text-default-400"}`} />
                                     </Button>
                                 </Tooltip>
                             </div>
@@ -488,17 +487,17 @@ export default function ClosedCoursesPage() {
             {isInitialCoursesLoading ? (
                 <CourseListSkeleton viewMode={viewMode} tone="closed" />
             ) : paginatedCourses.length === 0 ? (
-                <Card className="border border-slate-200 shadow-sm">
+                <Card className="border border-default-200 shadow-sm">
                     <CardBody className="py-16 text-center">
                         <div className="flex flex-col items-center gap-4">
-                            <div className="p-4 bg-slate-100 rounded-full">
-                                <Icon icon="solar:archive-bold-duotone" className="text-5xl text-slate-400" />
+                            <div className="rounded-full bg-content3 p-4">
+                                <Icon icon="solar:archive-bold-duotone" className="text-5xl text-default-400" />
                             </div>
                             <div>
-                                <p className="text-lg font-medium text-slate-700">
+                                <p className="text-lg font-medium text-default-700">
                                     {hasActiveFilters ? "ไม่พบรายวิชาที่ค้นหา" : "ไม่มีวิชาที่ปิดใช้งาน"}
                                 </p>
-                                <p className="text-slate-500 mt-1">
+                                <p className="mt-1 text-default-500">
                                     {hasActiveFilters
                                         ? "ลองค้นหาด้วยคำค้นหาอื่น หรือล้างตัวกรอง"
                                         : "ยังไม่มีรายวิชาที่ปิดใช้งานในขณะนี้"}
@@ -527,7 +526,7 @@ export default function ClosedCoursesPage() {
                                 as="div"
                                 isPressable
                                 onPress={() => handleCourseClick(course.id)}
-                                className="border border-slate-200 shadow-sm hover:shadow-md transition-shadow opacity-80 hover:opacity-100"
+                                className="border border-default-200 shadow-sm opacity-80 transition-shadow hover:opacity-100 hover:shadow-md"
                             >
                                 {/* Course Image/Banner */}
                                 <div className="h-32 relative overflow-hidden">
@@ -540,7 +539,7 @@ export default function ClosedCoursesPage() {
                                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                                         />
                                     ) : (
-                                        <div className="w-full h-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center">
+                                                <div className="w-full h-full bg-linear-to-br from-slate-400 to-slate-500 flex items-center justify-center">
                                             <IoSchool className="text-white/20 text-7xl" />
                                         </div>
                                     )}
@@ -557,10 +556,10 @@ export default function ClosedCoursesPage() {
                                     <div className="space-y-2">
                                         <div className="flex items-start justify-between gap-2">
                                             <div className="flex-1 min-w-0">
-                                                <h3 className="font-semibold text-slate-700 truncate">
+                                                <h3 className="truncate font-semibold text-foreground">
                                                     {course.code}
                                                 </h3>
-                                                <p className="text-sm text-slate-500 line-clamp-1">
+                                                <p className="line-clamp-1 text-sm text-default-500">
                                                     {course.name}
                                                 </p>
                                             </div>
@@ -577,7 +576,7 @@ export default function ClosedCoursesPage() {
                                                             onClick={(event) => event.stopPropagation()}
                                                             onKeyDown={(event) => event.stopPropagation()}
                                                         >
-                                                            <Icon icon="solar:menu-dots-bold" className="text-lg text-slate-500" />
+                                                                <Icon icon="solar:menu-dots-bold" className="text-lg text-default-500" />
                                                         </Button>
                                                     </DropdownTrigger>
                                                     <DropdownMenu
@@ -611,18 +610,18 @@ export default function ClosedCoursesPage() {
                                         </div>
 
                                         <div className="flex items-center gap-2 flex-wrap">
-                                            <Chip size="sm" variant="flat" className="bg-slate-100 text-slate-600">
+                                            <Chip size="sm" variant="flat" className="bg-content3 text-default-600">
                                                 {course.year}/{course.semester}
                                             </Chip>
-                                            <Chip size="sm" variant="flat" className="bg-slate-100 text-slate-600">
+                                            <Chip size="sm" variant="flat" className="bg-content3 text-default-600">
                                                 {getSemesterText(course.semester)}
                                             </Chip>
                                         </div>
                                     </div>
                                 </CardBody>
 
-                                <CardFooter className="border-t border-slate-100 px-4 py-3">
-                                    <div className="flex items-center justify-between w-full text-sm text-slate-500">
+                                <CardFooter className="border-t border-divider px-4 py-3">
+                                    <div className="flex w-full items-center justify-between text-sm text-default-500">
                                         <div className="flex items-center gap-1">
                                             <IoPeople className="text-lg" />
                                             <span>{course.taCount ?? 0} TA</span>
@@ -664,7 +663,7 @@ export default function ClosedCoursesPage() {
                                 as="div"
                                 isPressable
                                 onPress={() => handleCourseClick(course.id)}
-                                className="border border-slate-200 shadow-sm hover:shadow-md transition-shadow w-full opacity-80 hover:opacity-100"
+                                className="w-full border border-default-200 shadow-sm opacity-80 transition-shadow hover:opacity-100 hover:shadow-md"
                             >
                                 <CardBody className="p-3 sm:p-4">
                                     <div className="flex items-center gap-3 sm:gap-4">
@@ -678,7 +677,7 @@ export default function ClosedCoursesPage() {
                                                     className="object-cover grayscale"
                                                 />
                                             ) : (
-                                                <div className="w-full h-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center">
+                                                <div className="w-full h-full bg-linear-to-br from-slate-400 to-slate-500 flex items-center justify-center">
                                                     <IoSchool className="text-white/30 text-2xl sm:text-3xl" />
                                                 </div>
                                             )}
@@ -689,18 +688,18 @@ export default function ClosedCoursesPage() {
                                             <div className="flex items-start justify-between gap-2">
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2">
-                                                        <h3 className="font-semibold text-slate-700 truncate">
+                                                        <h3 className="truncate font-semibold text-foreground">
                                                             {course.code} - {course.name}
                                                         </h3>
-                                                        <Chip size="sm" color="default" variant="flat" className="bg-slate-200 text-slate-600 shrink-0">
+                                                        <Chip size="sm" color="default" variant="flat" className="shrink-0 bg-content3 text-default-600">
                                                             ปิดใช้งาน
                                                         </Chip>
                                                     </div>
                                                     <div className="flex items-center gap-2 flex-wrap mt-1">
-                                                        <Chip size="sm" variant="flat" className="bg-slate-100 text-slate-600">
+                                                        <Chip size="sm" variant="flat" className="bg-content3 text-default-600">
                                                             {course.year}/{course.semester}
                                                         </Chip>
-                                                        <span className="text-sm text-slate-500">
+                                                        <span className="text-sm text-default-500">
                                                             {getSemesterText(course.semester)}
                                                         </span>
                                                     </div>
@@ -718,7 +717,7 @@ export default function ClosedCoursesPage() {
                                                                 onClick={(event) => event.stopPropagation()}
                                                                 onKeyDown={(event) => event.stopPropagation()}
                                                             >
-                                                                <Icon icon="solar:menu-dots-bold" className="text-lg text-slate-500" />
+                                                                <Icon icon="solar:menu-dots-bold" className="text-lg text-default-500" />
                                                             </Button>
                                                         </DropdownTrigger>
                                                         <DropdownMenu
@@ -751,7 +750,7 @@ export default function ClosedCoursesPage() {
                                                 )}
                                             </div>
                                             {/* Stats - Desktop Only */}
-                                            <div className="hidden sm:flex items-center gap-4 mt-2 text-sm text-slate-500">
+                                            <div className="mt-2 hidden items-center gap-4 text-sm text-default-500 sm:flex">
                                                 <div className="flex items-center gap-1">
                                                     <IoPeople className="text-lg" />
                                                     <span>{course.taCount ?? 0} TA</span>
@@ -799,16 +798,16 @@ export default function ClosedCoursesPage() {
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1">
                         <div className="flex items-center gap-3">
-                            <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 shadow-lg shadow-blue-500/30">
+                            <div className="p-2.5 rounded-xl bg-linear-to-br from-blue-400 to-indigo-500 shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:refresh-bold" className="text-xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-slate-800">เปิดใช้งานรายวิชาอีกครั้ง</h3>
+                                <h3 className="text-lg font-bold text-foreground">เปิดใช้งานรายวิชาอีกครั้ง</h3>
                             </div>
                         </div>
                     </ModalHeader>
                     <ModalBody>
-                        <p className="text-slate-600">
+                        <p className="text-default-600">
                             คุณต้องการเปิดใช้งานรายวิชา{" "}
                             <span className="font-semibold">{selectedCourse?.code} - {selectedCourse?.name}</span>{" "}
                             อีกครั้งหรือไม่?
@@ -852,23 +851,23 @@ export default function ClosedCoursesPage() {
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1">
                         <div className="flex items-center gap-3">
-                            <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 shadow-lg shadow-blue-500/30">
+                            <div className="p-2.5 rounded-xl bg-linear-to-br from-blue-400 to-indigo-500 shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:trash-bin-trash-bold" className="text-xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-slate-800">ลบรายวิชาถาวร</h3>
+                                <h3 className="text-lg font-bold text-foreground">ลบรายวิชาถาวร</h3>
                             </div>
                         </div>
                     </ModalHeader>
                     <ModalBody>
                         <div className="space-y-4">
-                            <p className="text-slate-600">
+                            <p className="text-default-600">
                                 คุณกำลังจะลบรายวิชา{" "}
                                 <span className="font-semibold">{selectedCourse?.code} - {selectedCourse?.name}</span>{" "}
                                 ออกจากระบบอย่างถาวร
                             </p>
 
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <div className="rounded-lg border border-danger-200 bg-danger-50/70 p-4 dark:border-danger/25 dark:bg-danger/10">
                                 <div className="flex items-start gap-3">
                                     <Icon icon="solar:danger-triangle-bold" className="text-xl text-red-600 mt-0.5" />
                                     <div className="text-sm text-red-700">
@@ -888,7 +887,7 @@ export default function ClosedCoursesPage() {
                                 onValueChange={setDeleteConfirmChecked}
                                 color="danger"
                                 classNames={{
-                                    label: "text-sm text-slate-600"
+                                    label: "text-sm text-default-600"
                                 }}
                             >
                                 ฉันเข้าใจและต้องการลบรายวิชานี้ออกจากระบบถาวร
@@ -932,25 +931,25 @@ export default function ClosedCoursesPage() {
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1">
                         <div className="flex items-center gap-3">
-                            <div className="p-2.5 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                            <div className="p-2.5 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:danger-triangle-bold" className="text-xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-slate-800">ไม่สามารถเปิดใช้งานได้</h3>
+                                <h3 className="text-lg font-bold text-foreground">ไม่สามารถเปิดใช้งานได้</h3>
                             </div>
                         </div>
                     </ModalHeader>
                     <ModalBody>
-                        <p className="text-slate-600">
+                        <p className="text-default-600">
                             มีรายวิชาที่ใช้รหัสวิชา ปีการศึกษา และภาคเรียนเดียวกันที่เปิดใช้งานอยู่แล้ว:
                         </p>
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-3">
-                            <p className="font-semibold text-slate-800">{duplicateCourse?.code} - {duplicateCourse?.name}</p>
-                            <p className="text-sm text-slate-600 mt-1">
+                        <div className="mt-3 rounded-lg border border-warning-200 bg-warning-50/70 p-4 dark:border-warning/25 dark:bg-warning/10">
+                            <p className="font-semibold text-foreground">{duplicateCourse?.code} - {duplicateCourse?.name}</p>
+                            <p className="mt-1 text-sm text-default-600">
                                 ปีการศึกษา {duplicateCourse?.year} / ภาคเรียนที่ {duplicateCourse?.semester === 3 ? "ฤดูร้อน" : duplicateCourse?.semester}
                             </p>
                         </div>
-                        <p className="text-sm text-slate-500 mt-3">
+                        <p className="mt-3 text-sm text-default-500">
                             หากต้องการเปิดใช้งานรายวิชานี้ กรุณาปิดใช้งานรายวิชาที่ซ้ำกันก่อน
                         </p>
                     </ModalBody>

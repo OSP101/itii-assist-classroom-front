@@ -12,6 +12,7 @@ export const API_ENDPOINTS = {
   ME: '/auth/me',
   CHANGE_PASSWORD: '/auth/change-password',
   UPDATE_PROFILE: '/auth/profile',
+  UPDATE_PREFERENCES: '/auth/preferences',
   GOOGLE_AUTH: '/auth/google',
   SESSIONS: '/auth/sessions',
   REVOKE_SESSION: (sessionId: number) => `/auth/sessions/${sessionId}`,

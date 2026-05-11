@@ -19,7 +19,7 @@ import {
 } from "@heroui/modal";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
-import { io, Socket } from "@/services/realtime-socket";
+import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket";
 import queueService, {
     type QueueSession,
     type QueueWorker,
@@ -29,8 +29,6 @@ import { authService } from "@/services/auth.service";
 import scoreService from "@/services/score.service";
 import { useNotification } from "@/contexts/NotificationContext";
 import { API_BASE_URL } from "@/config/api";
-
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
 
 
 interface MiniDeskInfo {
@@ -278,6 +276,7 @@ export default function WorkerDashboardPage() {
 
     // Socket
     const socketRef = useRef<Socket | null>(null);
+    const hasWarnedAboutConnectError = useRef(false);
 
     // Notification (FCM)
     const { 
@@ -346,12 +345,10 @@ export default function WorkerDashboardPage() {
             // This handles reconnection after page refresh
             try {
                 const result = await queueService.getWorkerCurrentBooking(courseId, sessionId);
-                console.log("getWorkerCurrentBooking result:", result);
                 
                 const { worker, currentBooking } = result;
                 
                 if (currentBooking) {
-                    console.log("Found pending booking:", currentBooking);
                     // Has pending booking - restore state
                     setCurrentBooking(currentBooking);
                     setIsWorkerOnline(true);
@@ -371,7 +368,6 @@ export default function WorkerDashboardPage() {
                 shouldShowTimeoutProgress: true,
                     });
                 } else if (currentUser && data.workers) {
-                    console.log("No pending booking, checking worker list");
                     // No pending booking - check if user is a worker
                     const myWorker = data.workers.find((w) => w.user_id === currentUser.id);
                     if (myWorker && myWorker.status !== "offline") {
@@ -444,16 +440,13 @@ export default function WorkerDashboardPage() {
         if (!force && (currentBooking || skipPollingRef.current)) return;
         
         try {
-            console.log("Polling for new booking...");
             const result = await queueService.getWorkerCurrentBooking(courseId, sessionId);
             if (result.currentBooking) {
                 // Double check - don't accept if paused
                 if (isPausedRef.current) {
-                    console.log("Polling found booking but worker is paused, ignoring");
                     return;
                 }
                 
-                console.log("Polling found new booking:", result.currentBooking);
                 setCurrentBooking(result.currentBooking);
                 skipPollingRef.current = true;
                 addToast({
@@ -473,34 +466,27 @@ export default function WorkerDashboardPage() {
     useEffect(() => {
         if (!currentUser || !isWorkerOnline) return;
 
-        const socket = io(SOCKET_URL, {
-            transports: ["websocket"],
-        });
+        const socket = io(getRealtimeSocketBaseUrl());
 
         socket.on("connect", () => {
-            console.log("Socket connected for worker, socketId:", socket.id, "userId:", currentUser.id);
+            hasWarnedAboutConnectError.current = false;
             // Join queue and worker rooms
             socket.emit("join-queue", sessionId);
             socket.emit("join-worker", String(currentUser.id));
-            console.log("Joined rooms: queue-" + sessionId + ", worker-" + String(currentUser.id));
-        });
-
-        socket.on("disconnect", () => {
-            console.log("Socket disconnected for worker");
         });
 
         socket.on("connect_error", (err) => {
-            console.error("Socket connection error:", err);
+            if (!hasWarnedAboutConnectError.current) {
+                const message = err instanceof Error ? err.message : "WebSocket connection error";
+                console.warn("Worker socket unavailable:", message);
+                hasWarnedAboutConnectError.current = true;
+            }
         });
 
         // Listen for task assignment
         socket.on("new-task", (data: { booking: QueueBooking }) => {
-            console.log("=== RECEIVED new-task event ===");
-            console.log("Data:", JSON.stringify(data, null, 2));
-            
             // Ignore if paused - we shouldn't receive this but just in case
             if (isPausedRef.current) {
-                console.log("Ignoring new-task because worker is paused");
                 return;
             }
             
@@ -901,12 +887,12 @@ export default function WorkerDashboardPage() {
 
     if (!session && !isLoading) {
         return (
-            <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-                <Card className="max-w-md">
+            <div className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
+                <Card className="max-w-md border border-default-200 shadow-sm">
                     <CardBody className="p-8 text-center">
-                        <Icon icon="solar:clipboard-remove-bold" className="text-6xl text-slate-300 mx-auto mb-4" />
-                        <h2 className="text-xl font-bold text-slate-700 mb-2">ไม่พบ Session</h2>
-                        <p className="text-slate-500 mb-4">Session นี้อาจถูกลบหรือไม่มีอยู่ในระบบ</p>
+                        <Icon icon="solar:clipboard-remove-bold" className="mx-auto mb-4 text-6xl text-default-300" />
+                        <h2 className="mb-2 text-xl font-bold text-default-700">ไม่พบ Session</h2>
+                        <p className="mb-4 text-default-500">Session นี้อาจถูกลบหรือไม่มีอยู่ในระบบ</p>
                         <Button color="primary" onPress={() => router.back()}>
                             กลับ
                         </Button>
@@ -918,7 +904,7 @@ export default function WorkerDashboardPage() {
 
     if (!session) {
         return (
-            <div className="bg-slate-100 p-8 flex items-center justify-center">
+            <div className="flex items-center justify-center bg-background p-8 text-foreground">
                 <Spinner size="lg" color="primary" />
             </div>
         );
@@ -926,12 +912,12 @@ export default function WorkerDashboardPage() {
 
     if (session.status === "draft") {
         return (
-            <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-                <Card className="max-w-md">
+            <div className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
+                <Card className="max-w-md border border-default-200 shadow-sm">
                     <CardBody className="p-8 text-center">
-                        <Icon icon="solar:document-bold" className="text-6xl text-slate-300 mx-auto mb-4" />
-                        <h2 className="text-xl font-bold text-slate-700 mb-2">Session ยังไม่เปิดใช้งาน</h2>
-                        <p className="text-slate-500 mb-4">Session นี้ยังเป็นแบบร่าง กรุณาเปิดใช้งานก่อน</p>
+                        <Icon icon="solar:document-bold" className="mx-auto mb-4 text-6xl text-default-300" />
+                        <h2 className="mb-2 text-xl font-bold text-default-700">Session ยังไม่เปิดใช้งาน</h2>
+                        <p className="mb-4 text-default-500">Session นี้ยังเป็นแบบร่าง กรุณาเปิดใช้งานก่อน</p>
                         <Button color="primary" onPress={() => router.back()}>
                             กลับ
                         </Button>
@@ -942,7 +928,7 @@ export default function WorkerDashboardPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-4 md:p-6">
+        <div className="min-h-screen bg-background p-4 text-foreground md:p-6">
             <div className="max-w-4xl mx-auto space-y-6">
                 {/* Session paused/closed banner */}
                 {session.status === "paused" && (
@@ -982,8 +968,8 @@ export default function WorkerDashboardPage() {
                         >
                             กลับ
                         </Button> */}
-                        <h1 className="text-xl font-bold text-slate-800">{session.title}</h1>
-                        <p className="text-slate-500 text-sm">
+                        <h1 className="text-xl font-bold text-foreground">{session.title}</h1>
+                        <p className="text-sm text-default-500">
                             ห้อง {session.classroom?.name} • PIN: <span className="font-mono font-bold text-blue-600">{session.pin_code}</span>
                         </p>
                     </div>
@@ -1003,15 +989,15 @@ export default function WorkerDashboardPage() {
 
                 {/* Worker Settings Card */}
                 {!isWorkerOnline ? (
-                    <Card className="shadow-lg border-0">
-                        <CardHeader className="px-6 py-4 border-b border-slate-100">
+                    <Card className="border border-default-200 bg-content1 shadow-lg">
+                        <CardHeader className="border-b border-divider px-6 py-4">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 rounded-xl bg-blue-100">
                                     <Icon icon="solar:user-check-bold" className="text-blue-600 text-xl" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-slate-800">ตั้งค่าการรับงาน</h2>
-                                    <p className="text-sm text-slate-500">เลือกประเภทงานที่ต้องการรับ</p>
+                                    <h2 className="text-lg font-semibold text-foreground">ตั้งค่าการรับงาน</h2>
+                                    <p className="text-sm text-default-500">เลือกประเภทงานที่ต้องการรับ</p>
                                 </div>
                             </div>
                         </CardHeader>
@@ -1024,7 +1010,7 @@ export default function WorkerDashboardPage() {
                                             setWorkerPreferences({ ...workerPreferences, accept_grading: value })
                                         }
                                         classNames={{
-                                            label: "text-slate-700",
+                                            label: "text-default-700",
                                         }}
                                     >
                                         <div className="flex items-center gap-2">
@@ -1038,7 +1024,7 @@ export default function WorkerDashboardPage() {
                                             setWorkerPreferences({ ...workerPreferences, accept_help: value })
                                         }
                                         classNames={{
-                                            label: "text-slate-700",
+                                            label: "text-default-700",
                                         }}
                                     >
                                         <div className="flex items-center gap-2">
@@ -1093,21 +1079,21 @@ export default function WorkerDashboardPage() {
                 ) : (
                     <>
                         {/* Current Task Card */}
-                        <Card className="shadow-lg border-0">
-                            <CardHeader className="px-4 py-2 border-b border-slate-100">
+                        <Card className="border border-default-200 bg-content1 shadow-lg">
+                            <CardHeader className="border-b border-divider px-4 py-2">
                                 <div className="flex items-center justify-between w-full">
                                     <div className="flex items-center gap-3">
-                                        <div className={`p-2 rounded-xl ${currentBooking ? "bg-emerald-100" : "bg-slate-100"}`}>
+                                        <div className={`rounded-xl p-2 ${currentBooking ? "bg-emerald-100" : "bg-content3"}`}>
                                             <Icon 
                                                 icon={currentBooking ? "solar:clipboard-check-bold" : "solar:hourglass-bold"} 
-                                                className={`text-xl ${currentBooking ? "text-emerald-600" : "text-slate-400"}`} 
+                                                className={`text-xl ${currentBooking ? "text-emerald-600" : "text-default-400"}`} 
                                             />
                                         </div>
                                         <div>
-                                            <h2 className="text-lg font-semibold text-slate-800">
+                                            <h2 className="text-lg font-semibold text-foreground">
                                                 {currentBooking ? "งานปัจจุบัน" : "รอรับงาน"}
                                             </h2>
-                                            <p className="text-sm text-slate-500">
+                                            <p className="text-sm text-default-500">
                                                 {currentBooking 
                                                     ? `โต๊ะ ${currentBooking.desk_number}`
                                                     : "ระบบจะยิงงานมาให้อัตโนมัติ"}
@@ -1142,7 +1128,7 @@ export default function WorkerDashboardPage() {
                                 {currentBooking ? (
                                     <div className="space-y-6">
                                         {/* Booking Info */}
-                                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-4">
+                                        <div className="rounded-2xl bg-primary/5 p-4">
                                             <div className="flex items-center justify-between mb-4">
                                                 <Chip
                                                     size="sm"
@@ -1159,7 +1145,7 @@ export default function WorkerDashboardPage() {
                                                 >
                                                     {currentBooking.booking_type === "grading" ? "ตรวจงาน" : "ช่วยเหลือ"}
                                                 </Chip>
-                                                <span className="text-sm text-slate-500">
+                                                <span className="text-sm text-default-500">
                                                     คิวที่ {currentBooking.queue_number}
                                                 </span>
                                             </div>
@@ -1184,19 +1170,19 @@ export default function WorkerDashboardPage() {
                                             )}
 
                                             <div className="mb-5 flex items-center justify-center gap-3">
-                                                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white shadow-lg">
+                                                <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-content1 shadow-lg ring-1 ring-default-200">
                                                     <span className="text-3xl font-bold text-blue-600">
                                                         {currentBooking.desk_number}
                                                     </span>
                                                 </div>
                                                 <div>
-                                                <p className="text-md font-semibold text-slate-800">
+                                                <p className="text-md font-semibold text-foreground">
                                                     โต๊ะ {currentBooking.desk_number}
                                                 </p>
                                                 {currentBooking.zone && (
                                                     // <div className="inline-flex items-center gap-1.5 mt-1 px-3 py-1 rounded-full bg-indigo-100 text-indigo-700">
                                                     //     <Icon icon="solar:map-point-bold" className="text-base" />
-                                                        <span className="text-sm text-slate-500">{currentBooking.zone.name}</span>
+                                                        <span className="text-sm text-default-500">{currentBooking.zone.name}</span>
                                                     // </div>
                                                 )}
                                                 </div>
@@ -1204,7 +1190,7 @@ export default function WorkerDashboardPage() {
 
                                             {/* ─── Mini Room Map + Direction Guide ─── */}
                                             {deskLayout.length > 0 && (
-                                                <div className="rounded-xl overflow-hidden border border-white/60 bg-white/50 mb-4">
+                                                <div className="mb-4 overflow-hidden rounded-xl border border-default-200 bg-content1/70">
                                                     {/* Direction banner – only show when we know previous desk */}
                                                     {directionGuide && (
                                                         <div className="flex items-center gap-2 px-3 py-2 bg-indigo-500 text-white text-xs text-center font-normal">
@@ -1226,7 +1212,7 @@ export default function WorkerDashboardPage() {
                                                         />
                                                     </div>
                                                     {/* Legend */}
-                                                    <div className="flex items-center gap-4 px-3 pb-2 text-xs text-slate-500">
+                                                    <div className="flex items-center gap-4 px-3 pb-2 text-xs text-default-500">
                                                         <span className="flex items-center gap-1">
                                                             <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-400" />
                                                             โต๊ะนี้
@@ -1250,18 +1236,18 @@ export default function WorkerDashboardPage() {
                                             )}
 
 
-                                            <div className="bg-white rounded-xl p-3 space-y-2">
+                                            <div className="space-y-2 rounded-xl border border-default-200 bg-content1 p-3">
                                                 <div className="flex items-center gap-3">
                                                     <Avatar
                                                         name={currentBooking.student?.full_name || "Student"}
                                                         size="sm"
-                                                        className="bg-gradient-to-br from-blue-400 to-indigo-500"
+                                                        className="bg-linear-to-br from-blue-400 to-indigo-500"
                                                     />
                                                     <div>
-                                                        <p className="font-medium text-slate-800">
+                                                        <p className="font-medium text-foreground">
                                                             {currentBooking.student?.full_name || "-"}
                                                         </p>
-                                                        <p className="text-sm text-slate-500">
+                                                        <p className="text-sm text-default-500">
                                                             {currentBooking.student?.student_id || "-"}
                                                         </p>
                                                     </div>
@@ -1302,13 +1288,13 @@ export default function WorkerDashboardPage() {
                                     </div>
                                 ) : (
                                     <div className="text-center py-12">
-                                        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-slate-100 mb-4">
+                                        <div className="mb-4 inline-flex h-20 w-20 items-center justify-center rounded-full bg-content3">
                                             <Spinner size="lg" color="primary" />
                                         </div>
-                                        <p className="text-lg font-medium text-slate-600 mb-1">
+                                        <p className="mb-1 text-lg font-medium text-default-600">
                                             กำลังรอรับงาน...
                                         </p>
-                                        <p className="text-sm text-slate-400">
+                                        <p className="text-sm text-default-400">
                                             เมื่อมีนักศึกษาจองคิว ระบบจะยิงงานมาให้อัตโนมัติ
                                         </p>
                                     </div>
@@ -1317,10 +1303,10 @@ export default function WorkerDashboardPage() {
                         </Card>
 
                         {/* Worker Preferences Card */}
-                        <Card className="shadow-md border-0">
+                        <Card className="border border-default-200 bg-content1 shadow-md">
                             <CardBody className="p-4">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm text-slate-600">ประเภทงานที่รับ:</span>
+                                    <span className="text-sm text-default-600">ประเภทงานที่รับ:</span>
                                     <div className="flex gap-2">
                                         {workerPreferences.accept_grading && (
                                             <Chip size="sm" color="success" variant="flat" startContent={<Icon icon="solar:clipboard-check-bold" className="mr-1" />}>
@@ -1364,7 +1350,7 @@ export default function WorkerDashboardPage() {
                                     {hasSubItems ? (
                                         <div className="space-y-4">
                                             <div className="flex items-center justify-between">
-                                                <label className="text-sm font-medium text-slate-700">
+                                                <label className="text-sm font-medium text-default-700">
                                                     กรอกคะแนนรายข้อ
                                                 </label>
                                                 <Chip size="sm" color={totalScoredItemsCount === subItems.length ? "success" : "primary"} variant="flat">
@@ -1377,7 +1363,7 @@ export default function WorkerDashboardPage() {
                                                     <Spinner size="lg" />
                                                 </div>
                                             ) : (
-                                                <div className="space-y-3 bg-slate-50 p-4 rounded-xl">
+                                                <div className="space-y-3 rounded-xl bg-content2/70 p-4">
                                                     {subItems.map((item, index) => {
                                                         const existingScore = existingSubItemScores.find(
                                                             s => s.sub_item_id === item.id
@@ -1393,7 +1379,7 @@ export default function WorkerDashboardPage() {
                                                                 className={`flex items-center gap-3 p-3 rounded-lg border ${
                                                                     isLocked 
                                                                         ? 'bg-amber-50 border-amber-200' 
-                                                                        : 'bg-white border-slate-200'
+                                                                        : 'bg-content1 border-default-200'
                                                                 }`}
                                                             >
                                                                 <span className={`w-8 h-8 flex items-center justify-center text-sm font-bold rounded-full shrink-0 ${
@@ -1404,7 +1390,7 @@ export default function WorkerDashboardPage() {
                                                                     {index + 1}
                                                                 </span>
                                                                 <div className="flex-1 min-w-0">
-                                                                    <p className="text-sm font-medium text-slate-700 truncate">{item.name}</p>
+                                                                    <p className="truncate text-sm font-medium text-default-700">{item.name}</p>
                                                                     {isLocked && existingScore?.graded_by && (
                                                                         <p className="text-xs text-amber-600 mt-0.5">
                                                                             ลงโดย {existingScore.graded_by.display_name}
@@ -1418,7 +1404,7 @@ export default function WorkerDashboardPage() {
                                                                                 <Icon icon="solar:lock-bold" className="text-amber-600" />
                                                                                 <span className="font-bold text-amber-700">{existingScore?.score}</span>
                                                                             </div>
-                                                                            <span className="text-sm text-slate-500">/ {item.max_score}</span>
+                                                                            <span className="text-sm text-default-500">/ {item.max_score}</span>
                                                                         </>
                                                                     ) : (
                                                                         <>
@@ -1441,13 +1427,13 @@ export default function WorkerDashboardPage() {
                                                                                     classNames={{
                                                                                         base: "w-20",
                                                                                         input: "text-center font-semibold",
-                                                                                        inputWrapper: "bg-white border-slate-200",
+                                                                                        inputWrapper: "bg-content1 border-default-200",
                                                                                     }}
                                                                                     variant="bordered"
                                                                                     min={0}
                                                                                     max={item.max_score}
                                                                                 />
-                                                                                <span className="text-sm text-slate-500">/ {item.max_score}</span>
+                                                                                <span className="text-sm text-default-500">/ {item.max_score}</span>
                                                                             </div>
                                                                             {/* Quick score buttons */}
                                                                             <div className="flex justify-end gap-1">
@@ -1461,9 +1447,9 @@ export default function WorkerDashboardPage() {
                                                                                             size="sm"
                                                                                             variant={currentScore === score.toString() ? "solid" : "flat"}
                                                                                             color={currentScore === score.toString() ? "primary" : "default"}
-                                                                                            className={`min-w-[2.5rem] h-7 text-xs ${currentScore === score.toString() 
+                                                                                            className={`min-w-10 h-7 text-xs ${currentScore === score.toString() 
                                                                                                 ? "bg-blue-500 text-white font-semibold" 
-                                                                                                : "bg-slate-100 font-medium"
+                                                                                                : "bg-content3 text-default-700 font-medium"
                                                                                             }`}
                                                                                             onPress={() => {
                                                                                                 setCompleteForm(prev => ({
@@ -1502,13 +1488,13 @@ export default function WorkerDashboardPage() {
                                         </div>
                                     ) : (
                                         /* Single score - no sub-items */
-                                        <div className="bg-slate-50 p-4 rounded-xl space-y-3">
-                                            <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-slate-200">
+                                        <div className="space-y-3 rounded-xl bg-content2/70 p-4">
+                                            <div className="flex items-center gap-3 rounded-lg border border-default-200 bg-content1 p-3">
                                                 <div className="p-2 bg-amber-100 rounded-lg shrink-0">
                                                     <Icon icon="solar:medal-star-bold" className="text-xl text-amber-600" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-slate-700">คะแนนรวม</p>
+                                                    <p className="text-sm font-medium text-default-700">คะแนนรวม</p>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <Input
@@ -1523,10 +1509,10 @@ export default function WorkerDashboardPage() {
                                                         variant="bordered"
                                                         classNames={{
                                                             input: "text-center font-semibold",
-                                                            inputWrapper: "bg-white border-slate-200",
+                                                            inputWrapper: "bg-content1 border-default-200",
                                                         }}
                                                     />
-                                                    <span className="text-sm text-slate-500">/ {maxScore}</span>
+                                                    <span className="text-sm text-default-500">/ {maxScore}</span>
                                                 </div>
                                             </div>
                                             {/* Quick score buttons */}
@@ -1542,8 +1528,8 @@ export default function WorkerDashboardPage() {
                                                             variant={completeForm.score === score.toString() ? "solid" : "flat"}
                                                             color={completeForm.score === score.toString() ? "primary" : "default"}
                                                             className={completeForm.score === score.toString() 
-                                                                ? "bg-blue-500 text-white font-semibold min-w-[3rem]" 
-                                                                : "bg-white border border-slate-200 font-medium min-w-[3rem]"
+                                                                ? "bg-blue-500 text-white font-semibold min-w-12" 
+                                                                : "bg-content1 border border-default-200 text-default-700 font-medium min-w-12"
                                                             }
                                                             onPress={() => setCompleteForm({ ...completeForm, score: score.toString() })}
                                                         >
@@ -1600,7 +1586,7 @@ export default function WorkerDashboardPage() {
                         </div>
                     </ModalHeader>
                     <ModalBody>
-                        <p className="text-slate-600 mb-4">
+                        <p className="mb-4 text-default-600">
                             คุณแน่ใจหรือไม่ที่จะข้ามคิวนี้? (เช่น นักศึกษาไม่อยู่ที่โต๊ะ)
                         </p>
                         <Input

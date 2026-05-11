@@ -10,6 +10,7 @@ import { Icon } from "@iconify/react";
 import { userService, studentService, courseService } from "@/services";
 import classroomService from "@/services/classroom.service";
 import { getLogStats } from "@/services/systemLog.service";
+import { useI18n } from "@/hooks/useI18n";
 
 // Types
 interface SystemMetrics {
@@ -52,20 +53,30 @@ interface LogStats {
 }
 
 // Helper functions
-function formatUptime(seconds: number): string {
+function formatUptime(seconds: number, translate: (key: string, values?: Record<string, string | number>) => string): string {
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  if (days > 0) return `${days} วัน ${hours} ชม.`;
-  if (hours > 0) return `${hours} ชม. ${minutes} นาที`;
-  return `${minutes} นาที`;
+  if (days > 0) return translate("uptimeDaysHours", { days, hours });
+  if (hours > 0) return translate("uptimeHoursMinutes", { hours, minutes });
+  return translate("uptimeMinutes", { minutes });
 }
 
-function getGreeting(): string {
+function getGreeting(translate: (key: string) => string): string {
   const hour = new Date().getHours();
-  if (hour < 12) return "สวัสดีตอนเช้า";
-  if (hour < 17) return "สวัสดีตอนบ่าย";
-  return "สวัสดีตอนเย็น";
+  if (hour < 12) return translate("greetingMorning");
+  if (hour < 17) return translate("greetingAfternoon");
+  return translate("greetingEvening");
+}
+
+function getLogTypeLabel(logType: string, translate: (key: string) => string): string {
+  const labels: Record<string, string> = {
+    error: translate("logTypeError"),
+    security: translate("logTypeSecurity"),
+    auth: translate("logTypeAuth"),
+  };
+
+  return labels[logType] || logType;
 }
 
 // Skeleton Components
@@ -180,6 +191,8 @@ function LogsSkeleton() {
 
 // Main Page Component
 export default function AdminDashboardPage() {
+  const t = useI18n();
+
   // State for all data
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [studentStats, setStudentStats] = useState<StudentStats | null>(null);
@@ -327,7 +340,7 @@ export default function AdminDashboardPage() {
     <div className="space-y-4 sm:space-y-6">
       {/* Welcome Banner */}
       {loadingUser ? (
-        <div className="bg-gradient-to-r from-blue-400 to-indigo-500 rounded-xl sm:rounded-2xl p-4 sm:p-6">
+        <div className="bg-linear-to-r from-blue-400 to-indigo-500 rounded-xl sm:rounded-2xl p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="space-y-2">
               <Skeleton className="w-48 sm:w-64 h-6 sm:h-8 rounded-lg bg-white/20" />
@@ -339,11 +352,11 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       ) : (
-        <div className="bg-gradient-to-r from-blue-400 to-indigo-500 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white">
+        <div className="bg-linear-to-r from-blue-400 to-indigo-500 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h2 className="text-lg sm:text-2xl font-bold mb-1">{getGreeting()}, {currentUser?.full_name || "Admin"} 👋</h2>
-              <p className="text-blue-100 text-sm sm:text-base">ยินดีต้อนรับสู่ระบบจัดการ ITII Assist Classroom</p>
+              <h2 className="text-lg sm:text-2xl font-bold mb-1">{getGreeting(t)}, {currentUser?.full_name || t("roleAdmin")} 👋</h2>
+              <p className="text-blue-100 text-sm sm:text-base">{t("adminDashboardWelcomeMessage")}</p>
             </div>
           </div>
         </div>
@@ -357,11 +370,11 @@ export default function AdminDashboardPage() {
             <Card className="border border-default-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer h-full">
               <CardBody className="p-3 sm:p-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 sm:p-2.5 bg-blue-100 rounded-xl flex-shrink-0">
+                  <div className="p-2 sm:p-2.5 bg-blue-100 rounded-xl shrink-0">
                     <Icon icon="solar:users-group-rounded-bold" className="text-xl sm:text-2xl text-blue-600" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs sm:text-sm text-default-500">ผู้ใช้งาน</p>
+                    <p className="text-xs sm:text-sm text-default-500">{t("users")}</p>
                     <p className="text-xl sm:text-2xl font-bold text-default-900">{userStats?.total || 0}</p>
                   </div>
                 </div>
@@ -376,11 +389,11 @@ export default function AdminDashboardPage() {
             <Card className="border border-default-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer h-full">
               <CardBody className="p-3 sm:p-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 sm:p-2.5 bg-green-100 rounded-xl flex-shrink-0">
+                  <div className="p-2 sm:p-2.5 bg-green-100 rounded-xl shrink-0">
                     <Icon icon="solar:square-academic-cap-bold" className="text-xl sm:text-2xl text-green-600" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs sm:text-sm text-default-500">นักศึกษา</p>
+                    <p className="text-xs sm:text-sm text-default-500">{t("students")}</p>
                     <p className="text-xl sm:text-2xl font-bold text-default-900">{studentStats?.total || 0}</p>
                   </div>
                 </div>
@@ -395,11 +408,11 @@ export default function AdminDashboardPage() {
             <Card className="border border-default-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer h-full">
               <CardBody className="p-3 sm:p-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 sm:p-2.5 bg-purple-100 rounded-xl flex-shrink-0">
+                  <div className="p-2 sm:p-2.5 bg-purple-100 rounded-xl shrink-0">
                     <Icon icon="solar:book-bookmark-bold" className="text-xl sm:text-2xl text-purple-600" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs sm:text-sm text-default-500">รายวิชา</p>
+                    <p className="text-xs sm:text-sm text-default-500">{t("courses")}</p>
                     <p className="text-xl sm:text-2xl font-bold text-default-900">{courseStats?.total || 0}</p>
                   </div>
                 </div>
@@ -414,11 +427,11 @@ export default function AdminDashboardPage() {
             <Card className="border border-default-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer h-full">
               <CardBody className="p-3 sm:p-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 sm:p-2.5 bg-amber-100 rounded-xl flex-shrink-0">
+                  <div className="p-2 sm:p-2.5 bg-amber-100 rounded-xl shrink-0">
                     <Icon icon="solar:buildings-3-bold" className="text-xl sm:text-2xl text-amber-600" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs sm:text-sm text-default-500">ห้องเรียน</p>
+                    <p className="text-xs sm:text-sm text-default-500">{t("classrooms")}</p>
                     <p className="text-xl sm:text-2xl font-bold text-default-900">{classroomStats?.totalClassrooms || 0}</p>
                   </div>
                 </div>
@@ -438,7 +451,7 @@ export default function AdminDashboardPage() {
               <CardHeader className="px-3 sm:px-4 py-2 sm:py-3 border-b border-default-100">
                 <div className="flex items-center gap-2">
                   <Icon icon="solar:users-group-rounded-bold" className="text-lg text-blue-500" />
-                  <h3 className="font-semibold text-default-800 text-sm sm:text-base">ผู้ใช้งานตามบทบาท</h3>
+                  <h3 className="font-semibold text-default-800 text-sm sm:text-base">{t("usersByRole")}</h3>
                 </div>
               </CardHeader>
               <CardBody className="p-3 sm:p-4">
@@ -446,17 +459,17 @@ export default function AdminDashboardPage() {
                   <div className="text-center p-2 sm:p-4 bg-red-50 rounded-xl">
                     <Icon icon="solar:shield-user-bold" className="text-2xl sm:text-3xl text-red-500 mx-auto mb-1 sm:mb-2" />
                     <p className="text-lg sm:text-2xl font-bold text-default-900">{userStats?.byRole?.admin || 0}</p>
-                    <p className="text-xs sm:text-sm text-default-500">Admin</p>
+                    <p className="text-xs sm:text-sm text-default-500">{t("roleAdmin")}</p>
                   </div>
                   <div className="text-center p-2 sm:p-4 bg-purple-50 rounded-xl">
                     <Icon icon="solar:user-check-bold" className="text-2xl sm:text-3xl text-purple-500 mx-auto mb-1 sm:mb-2" />
                     <p className="text-lg sm:text-2xl font-bold text-default-900">{userStats?.byRole?.instructor || 0}</p>
-                    <p className="text-xs sm:text-sm text-default-500">อาจารย์</p>
+                    <p className="text-xs sm:text-sm text-default-500">{t("roleInstructor")}</p>
                   </div>
                   <div className="text-center p-2 sm:p-4 bg-green-50 rounded-xl">
                     <Icon icon="solar:user-hand-up-bold" className="text-2xl sm:text-3xl text-green-500 mx-auto mb-1 sm:mb-2" />
                     <p className="text-lg sm:text-2xl font-bold text-default-900">{userStats?.byRole?.ta || 0}</p>
-                    <p className="text-xs sm:text-sm text-default-500">TA</p>
+                    <p className="text-xs sm:text-sm text-default-500">{t("roleTa")}</p>
                   </div>
                 </div>
               </CardBody>
@@ -469,26 +482,26 @@ export default function AdminDashboardPage() {
               <CardHeader className="px-3 sm:px-4 py-2 sm:py-3 border-b border-default-100">
                 <div className="flex items-center gap-2">
                   <Icon icon="solar:display-bold" className="text-lg text-orange-500" />
-                  <h3 className="font-semibold text-default-800 text-sm sm:text-base">รายละเอียดห้องเรียน</h3>
+                  <h3 className="font-semibold text-default-800 text-sm sm:text-base">{t("classroomDetails")}</h3>
                 </div>
               </CardHeader>
               <CardBody className="p-3 sm:p-4">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
                   <div className="p-2 sm:p-3 bg-default-50 rounded-lg text-center">
                     <p className="text-lg sm:text-xl font-bold text-default-900">{classroomStats?.totalDesks || 0}</p>
-                    <p className="text-xs text-default-500">โต๊ะทั้งหมด</p>
+                    <p className="text-xs text-default-500">{t("totalDesks")}</p>
                   </div>
                   <div className="p-2 sm:p-3 bg-blue-50 rounded-lg text-center">
                     <p className="text-lg sm:text-xl font-bold text-blue-600">{classroomStats?.computerDesks || 0}</p>
-                    <p className="text-xs text-default-500">คอมพิวเตอร์</p>
+                    <p className="text-xs text-default-500">{t("computerDesks")}</p>
                   </div>
                   <div className="p-2 sm:p-3 bg-green-50 rounded-lg text-center">
                     <p className="text-lg sm:text-xl font-bold text-green-600">{classroomStats?.enabledDesks || 0}</p>
-                    <p className="text-xs text-default-500">ใช้งานได้</p>
+                    <p className="text-xs text-default-500">{t("enabledDesks")}</p>
                   </div>
                   <div className="p-2 sm:p-3 bg-red-50 rounded-lg text-center">
                     <p className="text-lg sm:text-xl font-bold text-red-600">{(classroomStats?.totalDesks || 0) - (classroomStats?.enabledDesks || 0)}</p>
-                    <p className="text-xs text-default-500">ปิดใช้งาน</p>
+                    <p className="text-xs text-default-500">{t("disabledDesks")}</p>
                   </div>
                 </div>
               </CardBody>
@@ -500,7 +513,7 @@ export default function AdminDashboardPage() {
             <CardHeader className="px-3 sm:px-4 py-2 sm:py-3 border-b border-default-100">
               <div className="flex items-center gap-2">
                 <Icon icon="solar:widget-5-bold" className="text-lg text-blue-500" />
-                <h3 className="font-semibold text-default-800 text-sm sm:text-base">เมนูลัด</h3>
+                <h3 className="font-semibold text-default-800 text-sm sm:text-base">{t("quickActions")}</h3>
               </div>
             </CardHeader>
             <CardBody className="p-3 sm:p-4">
@@ -510,28 +523,28 @@ export default function AdminDashboardPage() {
                   className="flex flex-col items-center justify-center gap-1 sm:gap-2 p-2 sm:p-4 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors"
                 >
                   <Icon icon="solar:user-plus-linear" className="text-xl sm:text-2xl text-blue-600" />
-                  <span className="text-[10px] sm:text-xs text-default-700 text-center">ผู้ใช้</span>
+                  <span className="text-[10px] sm:text-xs text-default-700 text-center">{t("users")}</span>
                 </Link>
                 <Link
                   href="/admin/students"
                   className="flex flex-col items-center justify-center gap-1 sm:gap-2 p-2 sm:p-4 rounded-xl bg-green-50 hover:bg-green-100 transition-colors"
                 >
                   <Icon icon="solar:upload-linear" className="text-xl sm:text-2xl text-green-600" />
-                  <span className="text-[10px] sm:text-xs text-default-700 text-center">นำเข้า</span>
+                  <span className="text-[10px] sm:text-xs text-default-700 text-center">{t("importData")}</span>
                 </Link>
                 <Link
                   href="/admin/courses"
                   className="flex flex-col items-center justify-center gap-1 sm:gap-2 p-2 sm:p-4 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors"
                 >
                   <Icon icon="solar:book-2-linear" className="text-xl sm:text-2xl text-purple-600" />
-                  <span className="text-[10px] sm:text-xs text-default-700 text-center">รายวิชา</span>
+                  <span className="text-[10px] sm:text-xs text-default-700 text-center">{t("courses")}</span>
                 </Link>
                 <Link
                   href="/admin/logs"
-                  className="flex flex-col items-center justify-center gap-1 sm:gap-2 p-2 sm:p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors"
+                  className="flex flex-col items-center justify-center gap-1 rounded-xl bg-content2 p-2 transition-colors hover:bg-content3 sm:gap-2 sm:p-4"
                 >
-                  <Icon icon="solar:document-text-linear" className="text-xl sm:text-2xl text-slate-600" />
-                  <span className="text-[10px] sm:text-xs text-default-700 text-center">Logs</span>
+                  <Icon icon="solar:document-text-linear" className="text-xl text-default-600 sm:text-2xl" />
+                  <span className="text-[10px] sm:text-xs text-default-700 text-center">{t("systemLogs")}</span>
                 </Link>
               </div>
             </CardBody>
@@ -547,9 +560,9 @@ export default function AdminDashboardPage() {
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-2">
                     <Icon icon="solar:server-bold" className="text-lg text-blue-500" />
-                    <h3 className="font-semibold text-default-800">สถานะเซิร์ฟเวอร์</h3>
+                    <h3 className="font-semibold text-default-800">{t("serverStatus")}</h3>
                   </div>
-                  <Button isIconOnly size="sm" variant="light" aria-label="รีเฟรชสถานะเซิร์ฟเวอร์" onPress={fetchSystemMetrics}>
+                  <Button isIconOnly size="sm" variant="light" aria-label={t("refreshServerStatus")} onPress={fetchSystemMetrics}>
                     <Icon icon="solar:refresh-linear" className="text-lg" />
                   </Button>
                 </div>
@@ -559,12 +572,12 @@ export default function AdminDashboardPage() {
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
                       <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                      <span className="text-sm font-medium text-green-700">ระบบทำงานปกติ</span>
+                      <span className="text-sm font-medium text-green-700">{t("systemHealthy")}</span>
                     </div>
 
                     <div>
                       <div className="flex justify-between text-sm mb-1.5">
-                        <span className="text-default-600">CPU</span>
+                        <span className="text-default-600">{t("cpuLabel")}</span>
                         <span className="font-medium text-default-800">{systemMetrics.cpu?.usage?.toFixed(1)}%</span>
                       </div>
                       <div className="w-full bg-default-200 rounded-full h-2">
@@ -577,7 +590,7 @@ export default function AdminDashboardPage() {
 
                     <div>
                       <div className="flex justify-between text-sm mb-1.5">
-                        <span className="text-default-600">Memory</span>
+                        <span className="text-default-600">{t("memoryLabel")}</span>
                         <span className="font-medium text-default-800">{systemMetrics.memory?.usagePercent?.toFixed(1)}%</span>
                       </div>
                       <div className="w-full bg-default-200 rounded-full h-2">
@@ -595,17 +608,17 @@ export default function AdminDashboardPage() {
 
                     <div className="pt-3 border-t border-default-100 space-y-2">
                       <div className="flex justify-between text-xs">
-                        <span className="text-default-500">Uptime</span>
-                        <span className="text-default-700 font-medium">{formatUptime(systemMetrics.system?.uptime || 0)}</span>
+                        <span className="text-default-500">{t("uptimeLabel")}</span>
+                        <span className="text-default-700 font-medium">{formatUptime(systemMetrics.system?.uptime || 0, t)}</span>
                       </div>
                       <div className="flex justify-between text-xs">
-                        <span className="text-default-500">Platform</span>
+                        <span className="text-default-500">{t("platformLabel")}</span>
                         <span className="text-default-700 font-medium">{systemMetrics.system?.platform}</span>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-4 text-default-400">ไม่สามารถโหลดข้อมูลได้</div>
+                  <div className="text-center py-4 text-default-400">{t("unableToLoadData")}</div>
                 )}
               </CardBody>
             </Card>
@@ -617,12 +630,12 @@ export default function AdminDashboardPage() {
               <CardHeader className="px-4 py-3 border-b border-default-100">
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-2">
-                    <Icon icon="solar:document-text-bold" className="text-lg text-slate-500" />
-                    <h3 className="font-semibold text-default-800">System Logs (24 ชม.)</h3>
+                    <Icon icon="solar:document-text-bold" className="text-lg text-default-500" />
+                    <h3 className="font-semibold text-default-800">{t("systemLogsLast24Hours")}</h3>
                   </div>
                   <Link href="/admin/logs">
                     <Button size="sm" variant="light" color="primary">
-                      ดูทั้งหมด
+                      {t("viewAll")}
                     </Button>
                   </Link>
                 </div>
@@ -631,12 +644,12 @@ export default function AdminDashboardPage() {
                 {logStats ? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-2 bg-default-50 rounded-lg">
-                      <span className="text-sm text-default-600">ทั้งหมด</span>
+                      <span className="text-sm text-default-600">{t("totalLabel")}</span>
                       <Chip size="sm" variant="flat">{logStats.total?.toLocaleString() || 0}</Chip>
                     </div>
                     {logStats.byType?.map((item) => (
                       <div key={item.log_type} className="flex items-center justify-between p-2">
-                        <span className="text-sm text-default-600 capitalize">{item.log_type}</span>
+                        <span className="text-sm text-default-600 capitalize">{getLogTypeLabel(item.log_type, t)}</span>
                         <Chip
                           size="sm"
                           variant="flat"
@@ -653,7 +666,7 @@ export default function AdminDashboardPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-4 text-default-400">ไม่สามารถโหลดข้อมูลได้</div>
+                  <div className="text-center py-4 text-default-400">{t("unableToLoadData")}</div>
                 )}
               </CardBody>
             </Card>

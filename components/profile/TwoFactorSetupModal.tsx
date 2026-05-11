@@ -303,7 +303,7 @@ function TwoFactorSetupModal({
                 <Button variant="light" onPress={onClose}>
                     ยกเลิก
                 </Button>
-                <Button color="primary" onPress={handleStartSetup} isLoading={isLoading} className="bg-gradient-to-br from-blue-400 to-indigo-500">
+                <Button color="primary" onPress={handleStartSetup} isLoading={isLoading} className="bg-linear-to-br from-blue-400 to-indigo-500">
                     ดำเนินการต่อ
                 </Button>
             </ModalFooter>
@@ -402,7 +402,7 @@ function TwoFactorSetupModal({
                     onPress={() => handleVerify()}
                     isLoading={isLoading}
                     isDisabled={verificationCode.length !== 6}
-                    className="bg-gradient-to-br from-blue-400 to-indigo-500"
+                    className="bg-linear-to-br from-blue-400 to-indigo-500"
                 >
                     ยืนยัน
                 </Button>
@@ -466,7 +466,7 @@ function TwoFactorSetupModal({
                     onPress={() => handleVerify()}
                     isLoading={isLoading}
                     isDisabled={verificationCode.length !== 6}
-                    className="bg-gradient-to-br from-blue-400 to-indigo-500"
+                    className="bg-linear-to-br from-blue-400 to-indigo-500"
                 >
                     ยืนยัน
                 </Button>
@@ -489,7 +489,7 @@ function TwoFactorSetupModal({
 
                 <div className="bg-warning-50 border border-warning-200 rounded-lg p-4 mb-4">
                     <div className="flex gap-3">
-                        <Icon icon="solar:danger-triangle-bold" className="text-xl text-warning flex-shrink-0 mt-0.5" />
+                        <Icon icon="solar:danger-triangle-bold" className="text-xl text-warning shrink-0 mt-0.5" />
                         <p className="text-sm text-warning-800">
                             <strong>สำคัญ:</strong> นี่คือครั้งเดียวที่คุณจะเห็นรหัสเหล่านี้ กรุณาบันทึกไว้ก่อนปิด
                         </p>
@@ -554,7 +554,7 @@ function TwoFactorSetupModal({
         >
             <ModalContent>
                 <ModalHeader className="flex items-center gap-3 border-b border-default-200">
-                    <div className="p-2 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
+                    <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
                         <Icon icon="solar:shield-check-bold" className="text-xl text-white" />
                     </div>
                     <div>

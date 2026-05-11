@@ -11,6 +11,9 @@ import { Icon } from "@iconify/react";
 import { authService } from "@/services/auth.service";
 import { courseService, Course } from "@/services/course.service";
 import { useNotification } from "@/contexts/NotificationContext";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import { useSettingsMenuItems } from "@/components/SettingsPanel";
+import { useI18n } from "@/hooks/useI18n";
 import Link from "next/link";
 import { IoSchool } from "react-icons/io5";
 import { AppFooter } from "@/components/Footer";
@@ -58,7 +61,9 @@ export default function InstructorLayout({
 }) {
     const router = useRouter();
     const pathname = usePathname();
-    const [user, setUser] = useState<User | null>(() => authService.getStoredUser() as User | null);
+    const { language } = useGlobalSettings();
+    const t = useI18n();
+    const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [courseInfo, setCourseInfo] = useState<CourseInfo | null>(null);
     const [activeCourses, setActiveCourses] = useState<Course[]>([]);
@@ -67,6 +72,16 @@ export default function InstructorLayout({
     const [isNotifOpen, setIsNotifOpen] = useState(false);
     const [notifTab, setNotifTab] = useState<"all" | "unread">("all");
     const [notifShowAll, setNotifShowAll] = useState(false);
+    const [isBreadcrumbUserMenuOpen, setIsBreadcrumbUserMenuOpen] = useState(false);
+    const [isAvatarUserMenuOpen, setIsAvatarUserMenuOpen] = useState(false);
+    const [breadcrumbThemeMenuItem, breadcrumbLanguageMenuItem, breadcrumbFontSizeMenuItem] = useSettingsMenuItems({
+        menuFlyoutSide: "right",
+        onOptionSelect: () => setIsBreadcrumbUserMenuOpen(false),
+    });
+    const [avatarThemeMenuItem, avatarLanguageMenuItem, avatarFontSizeMenuItem] = useSettingsMenuItems({
+        menuFlyoutSide: "left",
+        onOptionSelect: () => setIsAvatarUserMenuOpen(false),
+    });
     const {
         notifications,
         unreadCount,
@@ -78,19 +93,32 @@ export default function InstructorLayout({
 
     const formatRelativeTime = (isoDate: string) => {
         const ts = new Date(isoDate).getTime();
-        if (!ts) return "เมื่อสักครู่";
+        if (!ts) return t("justNow");
         const diffMs = Date.now() - ts;
         const diffMin = Math.floor(diffMs / 60000);
-        if (diffMin < 1) return "เมื่อสักครู่";
-        if (diffMin < 60) return `${diffMin} นาทีที่แล้ว`;
+        if (diffMin < 1) return t("justNow");
+        if (diffMin < 60) {
+            if (language === "th") {
+                return `${diffMin} ${t("minutesAgo")}`;
+            }
+            return `${diffMin} ${diffMin === 1 ? t("minuteAgo") : t("minutesAgo")}`;
+        }
         const diffHour = Math.floor(diffMin / 60);
-        if (diffHour < 24) return `${diffHour} ชั่วโมงที่แล้ว`;
+        if (diffHour < 24) {
+            if (language === "th") {
+                return `${diffHour} ${t("hoursAgo")}`;
+            }
+            return `${diffHour} ${diffHour === 1 ? t("hourAgo") : t("hoursAgo")}`;
+        }
         const diffDay = Math.floor(diffHour / 24);
-        return `${diffDay} วันที่แล้ว`;
+        if (language === "th") {
+            return `${diffDay} ${t("daysAgo")}`;
+        }
+        return `${diffDay} ${diffDay === 1 ? t("dayAgo") : t("daysAgo")}`;
     };
 
     const getCourseLabel = (courseId?: string) => {
-        if (!courseId) return "ไม่ระบุวิชา";
+        if (!courseId) return t("courseUnspecified");
         const fromList = activeCourses.find((c) => String(c.id) === String(courseId));
         if (fromList) {
             return `${fromList.code} - ${fromList.name}`;
@@ -98,27 +126,27 @@ export default function InstructorLayout({
         if (courseInfo && String(courseInfo.id) === String(courseId)) {
             return `${courseInfo.code} - ${courseInfo.name}`;
         }
-        return `วิชา ${courseId}`;
+        return `${t("courseLabel")} ${courseId}`;
     };
 
     const getActionLabel = (type?: string) => {
         const mapping: Record<string, string> = {
-            assignment_created: "สร้างงาน",
-            assignment_updated: "แก้ไขงาน",
-            attendance_created: "สร้างเช็คชื่อ",
-            attendance_started: "เปิดเช็คชื่อ",
-            attendance_opened: "เปิดเช็คชื่อ",
-            attendance_closed: "ปิดเช็คชื่อ",
-            queue_created: "สร้างคิว",
-            queue_updated: "แก้ไขคิว",
-            queue_opened: "เปิดคิว",
-            queue_closed: "ปิดคิว",
-            score_edit_request: "ส่งคำขอแก้ไขคะแนน",
-            score_edit_approved: "อนุมัติคำขอคะแนน",
-            score_edit_rejected: "ปฏิเสธคำขอคะแนน",
-            admin_message: "ประกาศระบบ",
+            assignment_created: "assignmentCreated",
+            assignment_updated: "assignmentUpdated",
+            attendance_created: "attendanceCreated",
+            attendance_started: "attendanceOpened",
+            attendance_opened: "attendanceOpened",
+            attendance_closed: "attendanceClosed",
+            queue_created: "queueCreated",
+            queue_updated: "queueUpdated",
+            queue_opened: "queueOpened",
+            queue_closed: "queueClosed",
+            score_edit_request: "scoreEditRequest",
+            score_edit_approved: "scoreEditApproved",
+            score_edit_rejected: "scoreEditRejected",
+            admin_message: "systemAnnouncement",
         };
-        return mapping[String(type || "")] || "อัปเดตข้อมูล";
+        return t(mapping[String(type || "")] || "genericUpdate");
     };
 
     const getEntityName = (notification: any) => {
@@ -132,7 +160,7 @@ export default function InstructorLayout({
             const tail = parts.slice(1).join(":").trim();
             if (tail) return tail;
         }
-        return title || "(ไม่ระบุชื่อรายการ)";
+        return title || t("unnamedItem");
     };
 
     const resolveNotificationLink = (notification: any): string | null => {
@@ -304,11 +332,11 @@ export default function InstructorLayout({
     const getRoleLabel = (role: string) => {
         switch (role) {
             case "admin":
-                return "ผู้ดูแลระบบ";
+                return t("roleAdmin");
             case "instructor":
-                return "อาจารย์";
+                return t("roleInstructor");
             case "ta":
-                return "ผู้ช่วยสอน";
+                return t("roleTa");
             default:
                 return role;
         }
@@ -331,16 +359,30 @@ export default function InstructorLayout({
     const isHomePage = pathname === "/home/closed" || pathname === "/home";
     const isClassroomPage = pathname.includes("/classroom/");
 
+    if (isLoading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-15 h-15 bg-linear-to-br from-blue-400 to-indigo-500 rounded flex items-center justify-center text-white text-4xl">
+                        <IoSchool />
+                    </div>
+                    <p className="text-xl text-default-700">{t("loadingUser")}</p>
+                    <Skeleton className="h-2 w-40 rounded-full bg-default-200" />
+                </div>
+            </div>
+        );
+    }
+
     // Don't render content if user is not authenticated (will be redirected by useEffect)
     if (!user && !isLoading) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100">
+            <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
                 <div className="flex flex-col items-center gap-4">
-                    <div className="w-15 h-15 bg-gradient-to-br from-blue-400 to-indigo-500 rounded flex items-center justify-center text-white text-4xl">
+                    <div className="w-15 h-15 bg-linear-to-br from-blue-400 to-indigo-500 rounded flex items-center justify-center text-white text-4xl">
                         <IoSchool />
                     </div>
-                    <p className="text-xl text-slate-700">กำลังนำไปยังหน้าเข้าสู่ระบบ...</p>
-                        <Skeleton className="h-2 w-40 rounded-full bg-blue-100" />
+                    <p className="text-xl text-default-700">{t("redirectingToLogin")}</p>
+                        <Skeleton className="h-2 w-40 rounded-full bg-default-200" />
                 </div>
             </div>
         );
@@ -354,42 +396,42 @@ export default function InstructorLayout({
             setCourseInfo,
             refreshCourses: fetchActiveCourses
         }}>
-            <div className="min-h-screen bg-slate-50 flex flex-col">
+            <div data-auth-shell="true" className="flex min-h-screen flex-col bg-background text-foreground">
                 {/* Top Navigation Bar - Shared Header */}
-                <header className="sticky top-0 z-50 bg-white border-b border-slate-200">
+                <header className="sticky top-0 z-50 border-b border-divider bg-content1">
                     <div className="flex items-center justify-between h-12 px-4">
                         {/* Left: Breadcrumb Navigation */}
                         <div className="flex min-w-0 items-center gap-1 text-sm overflow-x-auto">
                             {/* Home Icon */}
                             <Link
                                 href={getBackPath()}
-                                className="relative z-30 shrink-0 flex items-center gap-2 px-2 py-1 rounded-md hover:bg-slate-100 transition-colors text-slate-600 hover:text-slate-900"
+                                className="relative z-30 flex shrink-0 items-center gap-2 rounded-md px-2 py-1 text-default-600 transition-colors hover:bg-content2 hover:text-foreground"
                             >
-                                <div className="w-6 h-6 bg-gradient-to-br from-blue-400 to-indigo-500 rounded flex items-center justify-center text-white text-xs">
+                                <div className="w-6 h-6 bg-linear-to-br from-blue-400 to-indigo-500 rounded flex items-center justify-center text-white text-xs">
                                     <IoSchool />
                                 </div>
                             </Link>
 
                             {/* Separator */}
-                            <Icon icon="solar:alt-arrow-right-linear" className="text-slate-400 text-lg flex-shrink-0" />
+                            <Icon icon="solar:alt-arrow-right-linear" className="shrink-0 text-lg text-default-400" />
 
                             {/* เมนูบาร์ ผู้ใช้ */}
-                            <Dropdown>
+                            <Dropdown isOpen={isBreadcrumbUserMenuOpen} onOpenChange={setIsBreadcrumbUserMenuOpen}>
                                 <DropdownTrigger>
-                                    <button type="button" className="relative z-10 shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-slate-100 transition-colors text-slate-700">
+                                    <button type="button" className="relative z-10 flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-default-700 transition-colors hover:bg-content2">
                                         <Skeleton isLoaded={Boolean(user)} className="rounded-md">
-                                            <span className="font-medium max-w-[150px] truncate">{user?.full_name || "กำลังโหลดผู้ใช้"}</span>
+                                            <span className="font-medium max-w-37.5 truncate">{user?.full_name || t("loadingUser")}</span>
                                         </Skeleton>
                                         <Skeleton isLoaded={Boolean(user)} className="rounded-full">
-                                            <Chip size="sm" variant="flat" className="bg-emerald-50 text-emerald-600 h-5 text-[10px]">
+                                            <Chip size="sm" variant="flat" color="success" className="h-5 text-[10px]">
                                                 {getRoleLabel(user?.role || "")}
                                             </Chip>
                                         </Skeleton>
-                                        <Icon icon="solar:alt-arrow-down-linear" className="text-slate-400 text-sm" />
+                                        <Icon icon="solar:alt-arrow-down-linear" className="text-sm text-default-400" />
                                     </button>
                                 </DropdownTrigger>
-                                <DropdownMenu aria-label="User actions" className="max-h-80 overflow-y-auto">
-                                    <DropdownSection title="รายวิชาที่กำลังสอน" showDivider>
+                                <DropdownMenu aria-label={t("userMenu")} className="max-h-80 overflow-visible">
+                                    <DropdownSection title={t("activeCourses")} showDivider>
                                         {isCoursesLoading ? (
                                             [0, 1, 2].map((item) => (
                                                 <DropdownItem key={`course-skeleton-${item}`} isReadOnly textValue="Loading course">
@@ -409,14 +451,14 @@ export default function InstructorLayout({
                                                     startContent={<Icon icon="solar:book-2-linear" className={course.id === courseId ? "text-primary" : "text-blue-500"} />}
                                                     description={`${course.year}/${course.semester}`}
                                                     onPress={() => router.push(`/classroom/${course.id}`)}
-                                                    className={course.id === courseId ? "bg-primary-50" : ""}
+                                                    className={course.id === courseId ? "bg-primary/10" : ""}
                                                 >
                                                     {course.code} - {course.name}
                                                 </DropdownItem>
                                             ))
                                         ) : (
-                                            <DropdownItem key="no-courses" isReadOnly className="text-slate-400">
-                                                ไม่มีรายวิชาที่เปิดใช้งาน
+                                            <DropdownItem key="no-courses" isReadOnly className="text-default-400">
+                                                {t("noActiveCourses")}
                                             </DropdownItem>
                                         )}
                                     </DropdownSection>
@@ -426,34 +468,37 @@ export default function InstructorLayout({
                                             startContent={<Icon icon="solar:widget-2-linear" />}
                                             onPress={() => router.push(getBackPath())}
                                         >
-                                            {user?.role === "admin" ? "ไปหน้าจัดการรายวิชา" : "ดูรายวิชาทั้งหมด"}
+                                            {user?.role === "admin" ? t("goToCourseManagement") : t("viewAllCourses")}
                                         </DropdownItem>
                                         <DropdownItem
                                             key="profile"
                                             startContent={<Icon icon="solar:user-linear" />}
                                             onPress={() => router.push("/profile?tab=personal")}
                                         >
-                                            ตั้งค่าโปรไฟล์
-                                        </DropdownItem>
-                                        <DropdownItem
-                                            key="logout"
-                                            color="danger"
-                                            startContent={<Icon icon="solar:logout-2-linear" />}
-                                            onPress={handleLogout}
-                                        >
-                                            ออกจากระบบ
+                                            {t("profileSettings")}
                                         </DropdownItem>
                                     </DropdownSection>
+                                    {breadcrumbThemeMenuItem}
+                                    {breadcrumbLanguageMenuItem}
+                                    {breadcrumbFontSizeMenuItem}
+                                    <DropdownItem
+                                        key="logout"
+                                        color="danger"
+                                        startContent={<Icon icon="solar:logout-2-linear" />}
+                                        onPress={handleLogout}
+                                    >
+                                        {t("logout")}
+                                    </DropdownItem>
                                 </DropdownMenu>
                             </Dropdown>
 
                             {/* Separator */}
-                            <Icon icon="solar:alt-arrow-right-linear" className="text-slate-400 text-lg flex-shrink-0" />
+                            <Icon icon="solar:alt-arrow-right-linear" className="shrink-0 text-lg text-default-400" />
 
                             {/* Current Page / Course Info */}
                             {isHomePage && (
-                                <div className="flex items-center gap-1.5 px-2 py-1 text-slate-700">
-                                    <span className="font-medium">รายวิชาของฉัน</span>
+                                <div className="flex items-center gap-1.5 px-2 py-1 text-default-700">
+                                    <span className="font-medium">{t("myCourses")}</span>
                                 </div>
                             )}
 
@@ -461,15 +506,15 @@ export default function InstructorLayout({
                                 <div className="flex items-center gap-2 px-2 py-1">
                                     <Skeleton className="w-16 h-5 rounded-lg" />
                                     <Skeleton className="hidden sm:block w-36 h-5 rounded-lg" />
-                                    <Skeleton className="w-16 h-5 rounded-full bg-blue-50" />
+                                    <Skeleton className="h-5 w-16 rounded-full bg-primary/10" />
                                 </div>
                             )}
 
                             {isClassroomPage && !isCourseInfoLoading && courseInfo && (
-                                <div className="flex items-center gap-1.5 px-2 py-1 text-slate-700">
+                                <div className="flex items-center gap-1.5 px-2 py-1 text-default-700">
                                     <span className="font-medium">{courseInfo.code}</span>
-                                    <span className="max-w-[200px] truncate">{courseInfo.name}</span>
-                                    <Chip size="sm" variant="flat" className="bg-blue-50 text-blue-600 h-5 text-[10px]">
+                                    <span className="max-w-50 truncate">{courseInfo.name}</span>
+                                    <Chip size="sm" variant="flat" color="primary" className="h-5 text-[10px]">
                                         {courseInfo.year}/{courseInfo.semester}
                                     </Chip>
                                 </div>
@@ -477,7 +522,7 @@ export default function InstructorLayout({
                         </div>
 
                         {/* Right: User Avatar */}
-                        <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="flex items-center gap-2 shrink-0">
                             <Popover
                                 isOpen={isNotifOpen}
                                 onOpenChange={(isOpen) => {
@@ -492,10 +537,10 @@ export default function InstructorLayout({
                                 <PopoverTrigger>
                                     <button
                                         type="button"
-                                        className="relative p-1.5 rounded-full hover:bg-slate-100 transition-colors"
-                                        aria-label="Notifications"
+                                        className="relative rounded-full p-1.5 transition-colors hover:bg-content2"
+                                        aria-label={t("notifications")}
                                     >
-                                        <Icon icon="solar:bell-linear" className="text-xl text-slate-600" />
+                                        <Icon icon="solar:bell-linear" className="text-xl text-default-600" />
                                         {unreadCount > 0 && (
                                             <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center leading-none">
                                                 {unreadCount > 99 ? "99+" : unreadCount}
@@ -503,7 +548,7 @@ export default function InstructorLayout({
                                         )}
                                     </button>
                                 </PopoverTrigger>
-                                <PopoverContent className="p-0 overflow-hidden">
+                                <PopoverContent className="overflow-hidden border border-default-200 bg-content1 p-0 shadow-xl shadow-black/10">
                                     {(() => {
                                         const filtered = notifTab === "unread"
                                             ? notifications.filter((n) => !n.is_read)
@@ -528,9 +573,9 @@ export default function InstructorLayout({
                                                         router.push(targetLink);
                                                     }
                                                 }}
-                                                className={`w-full text-left px-3 py-2.5 transition-all hover:bg-slate-100 flex items-start gap-3 ${notification.is_read ? "bg-white" : "bg-blue-100/70 border-l-4 border-blue-500"}`}
+                                                className={`flex w-full items-start gap-3 px-3 py-2.5 text-left transition-all ${notification.is_read ? "bg-content1 hover:bg-content2" : "border-l-4 border-primary bg-primary/10 hover:bg-primary/15"}`}
                                             >
-                                                <div className="flex-shrink-0 w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center mt-0.5">
+                                                <div className="shrink-0 w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center mt-0.5">
                                                     <Icon
                                                         icon={
                                                             notification.type === "assignment_created" ? "solar:document-add-bold" :
@@ -541,56 +586,56 @@ export default function InstructorLayout({
                                                             notification.type === "score_edit_rejected" ? "solar:close-circle-bold" :
                                                             "solar:bell-bing-bold"
                                                         }
-                                                        className={`text-base ${notification.is_read ? "text-slate-400" : "text-blue-500"}`}
+                                                        className={`text-base ${notification.is_read ? "text-default-400" : "text-primary-500"}`}
                                                     />
                                                 </div>
                                                 <div className={`flex-1 min-w-0 ${notification.is_read ? "opacity-80" : "opacity-100"}`}>
-                                                    <p className={`text-xs leading-snug truncate ${notification.is_read ? "text-slate-500" : "text-blue-700 font-medium"}`}>
-                                                        วิชา: {getCourseLabel(notification.course_id)}
+                                                    <p className={`text-xs leading-snug truncate ${notification.is_read ? "text-default-500" : "text-primary-600 font-medium"}`}>
+                                                        {t("courseLabel")}: {getCourseLabel(notification.course_id)}
                                                     </p>
-                                                    <p className={`text-sm leading-snug mt-0.5 line-clamp-2 ${notification.is_read ? "text-slate-600 font-normal" : "text-slate-800 font-medium"}`}>
+                                                    <p className={`mt-0.5 line-clamp-2 text-sm leading-snug ${notification.is_read ? "text-default-600 font-normal" : "text-foreground font-medium"}`}>
                                                         {getActionLabel(notification.type)}: {getEntityName(notification)}
                                                     </p>
-                                                    <p className="text-xs leading-snug text-slate-500 line-clamp-2 mt-0.5">
-                                                        {notification.message || "มีการอัปเดตในรายวิชา"}
+                                                    <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-default-500">
+                                                        {notification.message || t("updatedInCourse")}
                                                     </p>
-                                                    <p className={`text-[11px] mt-0.5 ${notification.is_read ? "text-slate-400" : "text-blue-500 font-medium"}`}>
+                                                    <p className={`mt-0.5 text-[11px] ${notification.is_read ? "text-default-400" : "text-primary-500 font-medium"}`}>
                                                         {formatRelativeTime(notification.created_at)}
                                                     </p>
                                                 </div>
                                                 {!notification.is_read && (
-                                                    <div className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-blue-500 mt-2" />
+                                                    <div className="shrink-0 w-2.5 h-2.5 rounded-full bg-blue-500 mt-2" />
                                                 )}
                                             </button>
                                         );
 
                                         return (
-                                            <div className="w-[360px]">
+                                            <div className="w-90">
                                                 {/* Header */}
                                                 <div className="px-4 pt-3 pb-2">
                                                     <div className="flex items-center justify-between mb-2">
-                                                        <p className="text-lg font-bold text-slate-900">การแจ้งเตือน</p>
+                                                        <p className="text-lg font-bold text-foreground">{t("notifications")}</p>
                                                         <div className="flex items-center gap-3">
                                                             <button
                                                                 type="button"
                                                                 onClick={markAllNotificationsRead}
                                                                 className="text-[11px] text-blue-500 hover:text-blue-700 font-medium"
                                                             >
-                                                                อ่านทั้งหมด
+                                                                {t("markAllRead")}
                                                             </button>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setNotifTab("unread")}
                                                                 className="text-[11px] text-blue-500 hover:text-blue-700 font-medium"
                                                             >
-                                                                ยังไม่ได้อ่าน {unreadCount > 0 ? `(${unreadCount})` : ""}
+                                                                {t("unread")} {unreadCount > 0 ? `(${unreadCount})` : ""}
                                                             </button>
                                                             <button
                                                                 type="button"
                                                                 onClick={clearReadNotifications}
-                                                                className="text-[11px] text-slate-500 hover:text-slate-700 font-medium"
+                                                                className="text-[11px] font-medium text-default-500 hover:text-foreground"
                                                             >
-                                                                ลบที่อ่านแล้ว
+                                                                {t("clearRead")}
                                                             </button>
                                                         </div>
                                                     </div>
@@ -599,40 +644,40 @@ export default function InstructorLayout({
                                                         <button
                                                             type="button"
                                                             onClick={() => { setNotifTab("all"); setNotifShowAll(false); }}
-                                                            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${notifTab === "all" ? "bg-blue-100 text-blue-700" : "text-slate-600 hover:bg-slate-100"}`}
+                                                            className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${notifTab === "all" ? "bg-primary/10 text-primary-600" : "text-default-600 hover:bg-content2"}`}
                                                         >
-                                                            ทั้งหมด
+                                                            {t("all")}
                                                         </button>
                                                         <button
                                                             type="button"
                                                             onClick={() => { setNotifTab("unread"); setNotifShowAll(false); }}
-                                                            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${notifTab === "unread" ? "bg-blue-100 text-blue-700" : "text-slate-600 hover:bg-slate-100"}`}
+                                                            className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${notifTab === "unread" ? "bg-primary/10 text-primary-600" : "text-default-600 hover:bg-content2"}`}
                                                         >
-                                                            ยังไม่ได้อ่าน
+                                                            {t("unread")}
                                                         </button>
                                                     </div>
                                                 </div>
 
                                                 {/* List */}
-                                                <div className="max-h-[440px] overflow-y-auto">
+                                                <div className="max-h-110 overflow-y-auto">
                                                     {isInboxLoading && (
-                                                        <div className="py-6 text-center text-sm text-slate-500">กำลังโหลด...</div>
+                                                        <div className="py-6 text-center text-sm text-default-500">{t("loading")}</div>
                                                     )}
                                                     {!isInboxLoading && filtered.length === 0 && (
-                                                        <div className="py-8 text-center text-sm text-slate-400">
-                                                            <Icon icon="solar:bell-off-linear" className="text-3xl mx-auto mb-2 text-slate-300" />
-                                                            {notifTab === "unread" ? "ไม่มีการแจ้งเตือนที่ยังไม่ได้อ่าน" : "ยังไม่มีการแจ้งเตือน"}
+                                                        <div className="py-8 text-center text-sm text-default-400">
+                                                            <Icon icon="solar:bell-off-linear" className="mx-auto mb-2 text-3xl text-default-300" />
+                                                            {notifTab === "unread" ? t("noUnreadNotifications") : t("noNotifications")}
                                                         </div>
                                                     )}
                                                     {!isInboxLoading && visibleUnread.length > 0 && (
                                                         <>
-                                                            <p className="px-4 py-1.5 text-[11px] font-bold text-blue-600 uppercase tracking-wide">ยังไม่ได้อ่าน</p>
+                                                            <p className="px-4 py-1.5 text-[11px] font-bold text-blue-600 uppercase tracking-wide">{t("unread")}</p>
                                                             {visibleUnread.map((n) => <NotifItem key={n.id} notification={n} />)}
                                                         </>
                                                     )}
                                                     {!isInboxLoading && visibleRead.length > 0 && (
                                                         <>
-                                                            <p className="px-4 py-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wide">อ่านแล้ว</p>
+                                                            <p className="px-4 py-1.5 text-[11px] font-bold uppercase tracking-wide text-default-500">{t("read")}</p>
                                                             {visibleRead.map((n) => <NotifItem key={n.id} notification={n} />)}
                                                         </>
                                                     )}
@@ -640,9 +685,9 @@ export default function InstructorLayout({
                                                         <button
                                                             type="button"
                                                             onClick={() => setNotifShowAll(true)}
-                                                            className="w-full py-2.5 text-sm font-medium text-blue-600 hover:bg-slate-50 transition-colors border-t border-slate-100"
+                                                            className="w-full border-t border-divider py-2.5 text-sm font-medium text-blue-600 transition-colors hover:bg-content2"
                                                         >
-                                                            ดูการแจ้งเตือนก่อนหน้า
+                                                            {t("earlierNotifications")}
                                                         </button>
                                                     )}
                                                 </div>
@@ -652,18 +697,18 @@ export default function InstructorLayout({
                                 </PopoverContent>
                             </Popover>
 
-                            <Dropdown placement="bottom-end">
+                            <Dropdown placement="bottom-end" isOpen={isAvatarUserMenuOpen} onOpenChange={setIsAvatarUserMenuOpen}>
                                 <DropdownTrigger>
                                     <button type="button" className="p-0.5 rounded-full hover:ring-2 hover:ring-blue-200 transition-all">
                                         <Avatar
                                             name={user?.full_name}
                                             size="md"
                                             src={user?.avatar || undefined}
-                                            className="w-7 h-7 bg-gradient-to-br from-blue-400 to-indigo-500"
+                                            className="w-7 h-7 bg-linear-to-br from-blue-400 to-indigo-500"
                                         />
                                     </button>
                                 </DropdownTrigger>
-                                <DropdownMenu aria-label="User menu">
+                                <DropdownMenu aria-label={t("userMenu")} className="max-h-[75vh] overflow-visible">
                                     <DropdownItem
                                         key="profile-info"
                                         className="h-14 gap-2"
@@ -671,8 +716,8 @@ export default function InstructorLayout({
                                     >
                                         <div className="flex items-center gap-3">
                                             <div>
-                                                <p className="font-medium text-slate-800">{user?.full_name}</p>
-                                                <p className="text-xs text-slate-500">{user?.email}</p>
+                                                <p className="font-medium text-foreground">{user?.full_name}</p>
+                                                <p className="text-xs text-default-500">{user?.email}</p>
                                             </div>
                                         </div>
                                     </DropdownItem>
@@ -681,15 +726,18 @@ export default function InstructorLayout({
                                         startContent={<Icon icon="solar:settings-linear" className="text-lg" />}
                                         onPress={() => router.push("/profile?tab=personal")}
                                     >
-                                        ตั้งค่าโปรไฟล์
+                                        {t("profileSettings")}
                                     </DropdownItem>
+                                    {avatarThemeMenuItem}
+                                    {avatarLanguageMenuItem}
+                                    {avatarFontSizeMenuItem}
                                     <DropdownItem
                                         key="logout"
                                         color="danger"
                                         startContent={<Icon icon="solar:logout-2-linear" className="text-lg" />}
                                         onPress={handleLogout}
                                     >
-                                        ออกจากระบบ
+                                        {t("logout")}
                                     </DropdownItem>
                                 </DropdownMenu>
                             </Dropdown>

@@ -208,9 +208,9 @@ export default function AttendanceSummaryPage() {
 
     if (!session && !isLoading) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100">
-                <Icon icon="solar:clipboard-remove-bold-duotone" className="text-6xl text-slate-300 mb-4" />
-                <h2 className="text-xl font-semibold text-slate-700">ไม่พบรอบการเช็คชื่อ</h2>
+            <div className="flex min-h-screen flex-col items-center justify-center bg-background text-foreground">
+                <Icon icon="solar:clipboard-remove-bold-duotone" className="mb-4 text-6xl text-default-300" />
+                <h2 className="text-xl font-semibold text-default-700">ไม่พบรอบการเช็คชื่อ</h2>
                 <Button
                     color="primary"
                     variant="light"
@@ -228,7 +228,7 @@ export default function AttendanceSummaryPage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-100 p-4 lg:p-6">
+        <div className="min-h-screen bg-background p-4 text-foreground lg:p-6">
             {/* Header */}
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-3">
@@ -240,12 +240,12 @@ export default function AttendanceSummaryPage() {
                         <Icon icon="solar:arrow-left-linear" className="text-xl" />
                     </Button> */}
                     <div>
-                        <h1 className="text-xl font-bold text-slate-800">{session.title}</h1>
+                        <h1 className="text-xl font-bold text-foreground">{session.title}</h1>
                         <div className="flex items-center gap-2 mt-1">
                             <Chip size="sm" color="default" variant="flat">
                                 ปิดแล้ว
                             </Chip>
-                            <span className="text-sm text-slate-500">
+                            <span className="text-sm text-default-500">
                                 {formatDate(session.start_time)}
                             </span>
                             {session.section && (
@@ -269,66 +269,66 @@ export default function AttendanceSummaryPage() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-                <Card className="shadow-sm border border-slate-200">
+                <Card className="border border-default-200 shadow-sm">
                     <CardBody className="p-4">
                         <div className="flex items-center gap-3">
                             <div className="p-2.5 bg-blue-100 rounded-xl">
                                 <Icon icon="solar:users-group-rounded-bold" className="text-2xl text-blue-600" />
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500">ทั้งหมด</p>
-                                <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
+                                <p className="text-xs text-default-500">ทั้งหมด</p>
+                                <p className="text-2xl font-bold text-foreground">{stats.total}</p>
                             </div>
                         </div>
                     </CardBody>
                 </Card>
-                <Card className="shadow-sm border border-slate-200">
+                <Card className="border border-default-200 shadow-sm">
                     <CardBody className="p-4">
                         <div className="flex items-center gap-3">
                             <div className="p-2.5 bg-emerald-100 rounded-xl">
                                 <Icon icon="solar:check-circle-bold" className="text-2xl text-emerald-600" />
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500">มา</p>
+                                <p className="text-xs text-default-500">มา</p>
                                 <p className="text-2xl font-bold text-emerald-600">{stats.present}</p>
                             </div>
                         </div>
                     </CardBody>
                 </Card>
-                <Card className="shadow-sm border border-slate-200">
+                <Card className="border border-default-200 shadow-sm">
                     <CardBody className="p-4">
                         <div className="flex items-center gap-3">
                             <div className="p-2.5 bg-amber-100 rounded-xl">
                                 <Icon icon="solar:clock-circle-bold" className="text-2xl text-amber-600" />
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500">สาย</p>
+                                <p className="text-xs text-default-500">สาย</p>
                                 <p className="text-2xl font-bold text-amber-600">{stats.late}</p>
                             </div>
                         </div>
                     </CardBody>
                 </Card>
-                <Card className="shadow-sm border border-slate-200">
+                <Card className="border border-default-200 shadow-sm">
                     <CardBody className="p-4">
                         <div className="flex items-center gap-3">
-                            <div className="p-2.5 bg-slate-100 rounded-xl">
-                                <Icon icon="solar:document-bold" className="text-2xl text-slate-600" />
+                            <div className="rounded-xl bg-content3 p-2.5">
+                                <Icon icon="solar:document-bold" className="text-2xl text-default-600" />
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500">ลา</p>
-                                <p className="text-2xl font-bold text-slate-600">{stats.leave}</p>
+                                <p className="text-xs text-default-500">ลา</p>
+                                <p className="text-2xl font-bold text-default-600">{stats.leave}</p>
                             </div>
                         </div>
                     </CardBody>
                 </Card>
-                <Card className="shadow-sm border border-slate-200">
+                <Card className="border border-default-200 shadow-sm">
                     <CardBody className="p-4">
                         <div className="flex items-center gap-3">
                             <div className="p-2.5 bg-red-100 rounded-xl">
                                 <Icon icon="solar:close-circle-bold" className="text-2xl text-red-600" />
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500">ขาด</p>
+                                <p className="text-xs text-default-500">ขาด</p>
                                 <p className="text-2xl font-bold text-red-600">{stats.absent}</p>
                             </div>
                         </div>
@@ -337,10 +337,10 @@ export default function AttendanceSummaryPage() {
             </div>
 
             {/* Attendance Rate Card */}
-            <Card className="shadow-sm border border-slate-200 mb-6">
+            <Card className="mb-6 border border-default-200 shadow-sm">
                 <CardBody className="p-4">
                     <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-sm font-semibold text-slate-700">อัตราการเข้าเรียน</h3>
+                        <h3 className="text-sm font-semibold text-default-700">อัตราการเข้าเรียน</h3>
                         <span className="text-2xl font-bold text-blue-600">{attendanceRate.toFixed(1)}%</span>
                     </div>
                     <Progress
@@ -352,15 +352,15 @@ export default function AttendanceSummaryPage() {
             </Card>
 
             {/* Filters & Table */}
-            <Card className="shadow-sm border border-slate-200">
+            <Card className="border border-default-200 shadow-sm">
                 <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <h3 className="text-lg font-semibold text-slate-800">รายชื่อนักศึกษา</h3>
+                    <h3 className="text-lg font-semibold text-foreground">รายชื่อนักศึกษา</h3>
                     <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                         <Input
                             placeholder="ค้นหา..."
                             value={searchQuery}
                             onValueChange={setSearchQuery}
-                            startContent={<Icon icon="solar:magnifer-linear" className="text-slate-400" />}
+                            startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
                             className="w-full sm:w-48"
                             size="sm"
                             isClearable
@@ -386,7 +386,7 @@ export default function AttendanceSummaryPage() {
                             aria-label="Student attendance table"
                             removeWrapper
                             classNames={{
-                                th: "bg-slate-50 text-slate-600 font-semibold text-sm",
+                                th: "bg-content2 text-default-600 font-semibold text-sm",
                                 td: "py-3",
                             }}
                         >
@@ -403,9 +403,9 @@ export default function AttendanceSummaryPage() {
                                     <div className="py-10 text-center">
                                         <Icon
                                             icon="solar:users-group-rounded-linear"
-                                            className="text-5xl text-slate-300 mx-auto mb-3"
+                                            className="mx-auto mb-3 text-5xl text-default-300"
                                         />
-                                        <p className="text-slate-400">ไม่พบรายการที่ตรงกับการค้นหา</p>
+                                        <p className="text-default-400">ไม่พบรายการที่ตรงกับการค้นหา</p>
                                     </div>
                                 }
                             >
@@ -418,15 +418,15 @@ export default function AttendanceSummaryPage() {
                                                     size="sm"
                                                     className={
                                                         record.status === "present" || record.status === "late"
-                                                            ? "bg-gradient-to-br from-emerald-500 to-teal-500"
-                                                            : "bg-slate-300"
+                                                            ? "bg-linear-to-br from-emerald-500 to-teal-500"
+                                                            : "bg-content4"
                                                     }
                                                 />
                                                 <div>
-                                                    <p className="font-medium text-slate-800">
+                                                    <p className="font-medium text-foreground">
                                                         {record.student?.full_name || "-"}
                                                     </p>
-                                                    <p className="text-sm text-slate-500">
+                                                    <p className="text-sm text-default-500">
                                                         {record.student?.student_id || "-"}
                                                     </p>
                                                 </div>
@@ -436,8 +436,8 @@ export default function AttendanceSummaryPage() {
                                             <span
                                                 className={
                                                     record.check_in_time
-                                                        ? "text-slate-700 font-mono"
-                                                        : "text-slate-400"
+                                                        ? "font-mono text-default-700"
+                                                        : "text-default-400"
                                                 }
                                             >
                                                 {formatTime(record.check_in_time)}
@@ -477,12 +477,12 @@ export default function AttendanceSummaryPage() {
                                                     </Tooltip>
                                                 )}
                                                 {!record.pin_verified && !record.location_verified && (
-                                                    <span className="text-slate-400">-</span>
+                                                    <span className="text-default-400">-</span>
                                                 )}
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <span className="text-sm text-slate-500">
+                                            <span className="text-sm text-default-500">
                                                 {record.note || "-"}
                                             </span>
                                         </TableCell>
@@ -499,7 +499,7 @@ export default function AttendanceSummaryPage() {
                                                         setIsStatusModalOpen(true);
                                                     }}
                                                 >
-                                                    <Icon icon="solar:pen-bold" className="text-lg text-slate-400" />
+                                                    <Icon icon="solar:pen-bold" className="text-lg text-default-400" />
                                                 </Button>
                                             </Tooltip>
                                         </TableCell>
@@ -518,16 +518,16 @@ export default function AttendanceSummaryPage() {
                     <ModalBody>
                         {selectedRecord && (
                             <div className="space-y-4">
-                                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                                <div className="flex items-center gap-3 rounded-xl bg-content2/80 p-3">
                                     <Avatar
                                         name={selectedRecord.student?.full_name || "?"}
                                         size="sm"
                                     />
                                     <div>
-                                        <p className="font-medium text-slate-800">
+                                        <p className="font-medium text-foreground">
                                             {selectedRecord.student?.full_name}
                                         </p>
-                                        <p className="text-sm text-slate-500">
+                                        <p className="text-sm text-default-500">
                                             {selectedRecord.student?.student_id}
                                         </p>
                                     </div>
@@ -559,7 +559,7 @@ export default function AttendanceSummaryPage() {
                                     <SelectItem
                                         key="leave"
                                         startContent={
-                                            <Icon icon="solar:document-bold" className="text-slate-500" />
+                                            <Icon icon="solar:document-bold" className="text-default-500" />
                                         }
                                     >
                                         ลา

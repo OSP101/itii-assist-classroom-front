@@ -193,12 +193,12 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
             <ModalContent>
                 <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                        <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
                             <Icon icon="solar:star-bold" className="text-2xl text-white" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-slate-800">คะแนนพิเศษ</h3>
-                            <p className="text-sm text-slate-500 font-normal mt-1">
+                            <h3 className="text-xl font-bold text-foreground">คะแนนพิเศษ</h3>
+                            <p className="mt-1 text-sm font-normal text-default-500">
                                 ให้คะแนนจากการถามตอบในห้องเรียน
                             </p>
                         </div>
@@ -219,7 +219,7 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
                                 tabList: "gap-6",
                                 cursor: "bg-blue-500",
                                 tab: "px-0 h-10",
-                                tabContent: "group-data-[selected=true]:text-blue-600 text-slate-500 font-medium",
+                                tabContent: "group-data-[selected=true]:text-blue-600 text-default-500 font-medium",
                             }}
                         >
                             {/* Give Score Tab */}
@@ -235,7 +235,7 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
                                 <div className="space-y-4 mt-4">
                                     {/* Autocomplete Search - Same pattern as ScoreModal */}
                                     <div>
-                                        <label className="text-slate-600 font-medium text-sm mb-2 block">ค้นหานักศึกษา</label>
+                                        <label className="mb-2 block text-sm font-medium text-default-600">ค้นหานักศึกษา</label>
                                         <Autocomplete
                                             placeholder="พิมพ์รหัสหรือชื่อนักศึกษา..."
                                             inputValue={searchQuery}
@@ -247,7 +247,7 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
                                             variant="bordered"
                                             inputProps={{
                                                 classNames: {
-                                                    inputWrapper: "border-amber-200 hover:border-amber-300 focus-within:!border-amber-400",
+                                                    inputWrapper: "bg-content1 border-amber-200 hover:border-amber-300 focus-within:!border-amber-400",
                                                 },
                                             }}
                                             classNames={{
@@ -265,11 +265,11 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
                                                         <Avatar
                                                             name={student.full_name}
                                                             size="sm"
-                                                            className="bg-gradient-to-br from-amber-400 to-orange-500 text-white shrink-0"
+                                                            className="bg-linear-to-br from-amber-400 to-orange-500 text-white shrink-0"
                                                         />
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="font-medium text-slate-800">{student.full_name}</p>
-                                                            <p className="text-xs text-slate-500">
+                                                            <p className="font-medium text-foreground">{student.full_name}</p>
+                                                            <p className="text-xs text-default-500">
                                                                 <span className="font-mono">{student.student_id}</span>
                                                                 <span className="mx-1">•</span>
                                                                 <span>Sec {student.section_no}</span>
@@ -293,7 +293,7 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
                                                 </AutocompleteItem>
                                             ))}
                                         </Autocomplete>
-                                        <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                                        <p className="mt-2 flex items-center gap-1 text-xs text-default-400">
                                             <Icon icon="solar:info-circle-linear" />
                                             เลือกนักศึกษาเพื่อให้ +1 คะแนนทันที
                                         </p>
@@ -302,11 +302,11 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
                                     {/* Recent Bonuses */}
                                     {recentBonuses.length > 0 && (
                                         <div className="space-y-2">
-                                            <p className="text-sm font-medium text-slate-600 flex items-center gap-2">
+                                            <p className="flex items-center gap-2 text-sm font-medium text-default-600">
                                                 <Icon icon="solar:clock-circle-bold" className="text-amber-500" />
                                                 เพิ่งให้คะแนน ({recentBonuses.length})
                                             </p>
-                                            <div className="space-y-2 max-h-[280px] overflow-y-auto pr-2">
+                                            <div className="max-h-70 space-y-2 overflow-y-auto pr-2">
                                                 {recentBonuses.map((item, index) => (
                                                     <Card
                                                         key={`${item.student.id}-${index}`}
@@ -317,13 +317,13 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
                                                                 <Avatar
                                                                     name={item.student.full_name}
                                                                     size="md"
-                                                                    className="bg-gradient-to-br from-blue-400 to-indigo-500 text-white shrink-0"
+                                                                    className="bg-linear-to-br from-blue-400 to-indigo-500 text-white shrink-0"
                                                                 />
                                                                 <div className="flex-1 min-w-0">
-                                                                    <p className="font-semibold text-slate-800 truncate">
+                                                                    <p className="truncate font-semibold text-foreground">
                                                                         {item.student.full_name}
                                                                     </p>
-                                                                    <div className="flex items-center gap-2 text-sm text-slate-500">
+                                                                    <div className="flex items-center gap-2 text-sm text-default-500">
                                                                         <span className="font-mono">{item.student.student_id}</span>
                                                                         <span>•</span>
                                                                         <span>Sec {item.student.section_no}</span>
@@ -371,12 +371,12 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
 
                                     {/* Empty state when no recent */}
                                     {recentBonuses.length === 0 && (
-                                        <div className="text-center py-8 text-slate-500">
+                                        <div className="py-8 text-center text-default-500">
                                             <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-amber-50 flex items-center justify-center">
                                                 <Icon icon="solar:star-shine-bold-duotone" className="text-5xl text-amber-400" />
                                             </div>
-                                            <p className="font-medium text-slate-600">พร้อมให้คะแนนพิเศษ</p>
-                                            <p className="text-sm text-slate-400 mt-1">ค้นหาและเลือกนักศึกษาด้านบน</p>
+                                            <p className="font-medium text-default-600">พร้อมให้คะแนนพิเศษ</p>
+                                            <p className="mt-1 text-sm text-default-400">ค้นหาและเลือกนักศึกษาด้านบน</p>
                                         </div>
                                     )}
                                 </div>
@@ -399,11 +399,11 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
                             >
                                 <div className="space-y-4 mt-4">
                                     {bonusHistory.length > 0 ? (
-                                        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                                        <div className="max-h-100 space-y-3 overflow-y-auto pr-2">
                                             {bonusHistory.map((data) => (
                                                 <Card
                                                     key={data.student.id}
-                                                    className="border border-slate-200 shadow-sm"
+                                                    className="border border-default-200 bg-content1 shadow-sm"
                                                 >
                                                     <CardBody className="p-4">
                                                         {/* Student Header */}
@@ -412,13 +412,13 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
                                                                 <Avatar
                                                                     name={data.student.full_name}
                                                                     size="md"
-                                                                    className="bg-gradient-to-br from-blue-400 to-indigo-500 text-white"
+                                                                    className="bg-linear-to-br from-blue-400 to-indigo-500 text-white"
                                                                 />
                                                                 <div>
-                                                                    <p className="font-semibold text-slate-800">
+                                                                    <p className="font-semibold text-foreground">
                                                                         {data.student.full_name}
                                                                     </p>
-                                                                    <p className="text-sm text-slate-500 font-mono">
+                                                                    <p className="font-mono text-sm text-default-500">
                                                                         {data.student.student_id}
                                                                     </p>
                                                                 </div>
@@ -438,16 +438,16 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
                                                             {data.records.slice(0, 5).map((record) => (
                                                                 <div
                                                                     key={record.id}
-                                                                    className="flex items-center justify-between text-sm bg-slate-50 rounded-lg px-3 py-2"
+                                                                    className="flex items-center justify-between rounded-lg bg-content2 px-3 py-2 text-sm"
                                                                 >
                                                                     <div className="flex items-center gap-2">
                                                                         <Chip size="sm" color="success" variant="flat">
                                                                             +{record.score}
                                                                         </Chip>
-                                                                        <span className="text-slate-600">{record.reason}</span>
+                                                                        <span className="text-default-600">{record.reason}</span>
                                                                     </div>
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="text-slate-400 text-xs">
+                                                                        <span className="text-xs text-default-400">
                                                                             {new Date(record.given_at).toLocaleString("th-TH", {
                                                                                 day: "numeric",
                                                                                 month: "short",
@@ -470,7 +470,7 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
                                                                 </div>
                                                             ))}
                                                             {data.records.length > 5 && (
-                                                                <p className="text-xs text-slate-400 text-center pt-1">
+                                                                <p className="pt-1 text-center text-xs text-default-400">
                                                                     และอีก {data.records.length - 5} รายการ
                                                                 </p>
                                                             )}
@@ -480,8 +480,8 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="text-center py-12 text-slate-500">
-                                            <Icon icon="solar:star-fall-bold-duotone" className="text-5xl mx-auto mb-3 text-slate-300" />
+                                        <div className="py-12 text-center text-default-500">
+                                            <Icon icon="solar:star-fall-bold-duotone" className="mx-auto mb-3 text-5xl text-default-300" />
                                             <p>ยังไม่มีประวัติการให้คะแนนพิเศษ</p>
                                         </div>
                                     )}
@@ -491,7 +491,7 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
                     )}
                 </ModalBody>
 
-                <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                <ModalFooter className="border-t border-divider px-6 py-4">
                     <Button variant="light" onPress={onClose}>
                         ปิด
                     </Button>

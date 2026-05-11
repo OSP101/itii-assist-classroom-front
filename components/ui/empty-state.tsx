@@ -19,6 +19,7 @@
 
 import React from "react";
 import { Button } from "@heroui/button";
+import { useI18n } from "@/hooks/useI18n";
 
 export type EmptyStateVariant =
   | "no-data"
@@ -46,41 +47,44 @@ type EmptyStateProps = {
   className?: string;
 };
 
-const variantDefaults: Record<EmptyStateVariant, { title: string; description: string; emoji: string }> = {
+const variantDefaults: Record<
+  EmptyStateVariant,
+  { titleKey: string; descriptionKey: string; emoji: string }
+> = {
   "no-data": {
     emoji: "📂",
-    title: "ยังไม่มีข้อมูล",
-    description: "ยังไม่มีรายการใดๆ ในขณะนี้",
+    titleKey: "noDataYet",
+    descriptionKey: "noItemsAtTheMoment",
   },
   "no-result": {
     emoji: "🔍",
-    title: "ไม่พบผลลัพธ์",
-    description: "ลองปรับเงื่อนไขการค้นหาหรือล้างตัวกรอง",
+    titleKey: "noResultsFound",
+    descriptionKey: "adjustSearchOrClearFilters",
   },
   "no-permission": {
     emoji: "🔒",
-    title: "ไม่มีสิทธิ์เข้าถึง",
-    description: "คุณไม่มีสิทธิ์ดูข้อมูลนี้ หากคิดว่าเป็นข้อผิดพลาด กรุณาติดต่อผู้ดูแลระบบ",
+    titleKey: "accessDenied",
+    descriptionKey: "youDoNotHavePermissionToViewThisData",
   },
   "first-time": {
     emoji: "✨",
-    title: "เริ่มต้นกันเลย",
-    description: "ยังไม่มีข้อมูล สร้างรายการแรกเพื่อเริ่มใช้งาน",
+    titleKey: "letsGetStarted",
+    descriptionKey: "noDataCreateFirstItem",
   },
   "not-configured": {
     emoji: "⚙️",
-    title: "ยังไม่ได้ตั้งค่า",
-    description: "ฟีเจอร์นี้ยังไม่ได้รับการตั้งค่า กรุณาตั้งค่าก่อนใช้งาน",
+    titleKey: "systemSettings",
+    descriptionKey: "featureNotConfigured",
   },
   archived: {
     emoji: "📦",
-    title: "เก็บถาวรแล้ว",
-    description: "รายการนี้ถูกเก็บถาวรและไม่สามารถแก้ไขได้",
+    titleKey: "archived",
+    descriptionKey: "itemArchivedCannotEdit",
   },
   error: {
     emoji: "⚠️",
-    title: "เกิดข้อผิดพลาด",
-    description: "ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง",
+    titleKey: "somethingWentWrong",
+    descriptionKey: "pleaseTryAgain",
   },
 };
 
@@ -93,9 +97,10 @@ export function EmptyState({
   icon,
   className,
 }: EmptyStateProps) {
+  const t = useI18n();
   const defaults = variantDefaults[variant];
-  const displayTitle = title ?? defaults.title;
-  const displayDesc = description ?? defaults.description;
+  const displayTitle = title ?? t(defaults.titleKey);
+  const displayDesc = description ?? t(defaults.descriptionKey);
 
   return (
     <div

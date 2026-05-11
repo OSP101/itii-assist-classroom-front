@@ -34,3 +34,15 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Status Provider Configuration
+
+The public `/status` route stays as the branded overview page for ITII Assist Classroom. To hand off live incident updates to an external provider such as Atlassian Statuspage or OpenStatus, set these optional variables before building the app:
+
+```bash
+NEXT_PUBLIC_STATUS_PAGE_URL=https://status.example.com
+NEXT_PUBLIC_STATUS_PROVIDER_NAME=OpenStatus
+NEXT_PUBLIC_STATUS_SUBSCRIBE_URL=https://status.example.com
+```
+
+If `NEXT_PUBLIC_STATUS_PAGE_URL` is omitted, all status links fall back to the internal `/status` page.

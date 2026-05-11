@@ -17,7 +17,7 @@ import attendanceDisplayService, {
     AttendanceDisplayBootstrap,
 } from "@/services/attendance-display.service";
 import { type AttendanceRecord } from "@/services/attendance.service";
-import { io, type Socket } from "@/services/realtime-socket";
+import { getRealtimeSocketBaseUrl, io, type Socket } from "@/services/realtime-socket";
 
 type DisplayState = "loading" | "pairing" | "active" | "error";
 
@@ -78,9 +78,7 @@ export default function AttendanceDisplayPage() {
 
     const pairUrl = bootstrap ? `${origin}/m/pair?t=${encodeURIComponent(bootstrap.pairing_token)}` : "";
     const checkInUrl = current ? `${origin}/check-in/${current.attendance_session_id}` : "";
-    const socketUrl = typeof window !== "undefined"
-        ? (process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL || window.location.origin)
-        : "";
+    const socketUrl = getRealtimeSocketBaseUrl();
 
     const stats = useMemo(() => ({
         total: records.length,
@@ -201,8 +199,6 @@ export default function AttendanceDisplayPage() {
                 }
 
                 activeSocket = io(socketUrl, {
-                    path: "/socket.io",
-                    transports: ["websocket", "polling"],
                     reconnection: true,
                     reconnectionAttempts: 5,
                     reconnectionDelay: 1000,

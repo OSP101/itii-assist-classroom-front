@@ -59,15 +59,15 @@ export default function AttendanceTab({
 
             {/* Pending update toast — portaled to body to escape stacking contexts */}
             {hook.pendingAttendanceUpdate && createPortal(
-                <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-[9999] sm:max-w-sm sm:w-full animate-toast-slide-up">
-                    <div className="bg-white/95 backdrop-blur-md border border-blue-200 rounded-2xl shadow-2xl overflow-hidden">
+                <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-9999 sm:max-w-sm sm:w-full animate-toast-slide-up">
+                    <div className="overflow-hidden rounded-2xl border border-default-200 bg-content1/95 shadow-2xl backdrop-blur-md">
                         <div className="flex items-center gap-3 p-4">
-                            <div className="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                            <div className="shrink-0 w-10 h-10 rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:bell-bing-bold" className="text-xl text-white animate-bounce" />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold text-slate-800">มีรอบเช็คชื่อใหม่</p>
-                                <p className="text-xs text-slate-500 mt-0.5">มีการเพิ่มหรือแก้ไขรอบเช็คชื่อในชั้นเรียนนี้</p>
+                                <p className="text-sm font-bold text-foreground">มีรอบเช็คชื่อใหม่</p>
+                                <p className="mt-0.5 text-xs text-default-500">มีการเพิ่มหรือแก้ไขรอบเช็คชื่อในชั้นเรียนนี้</p>
                             </div>
                             <Button
                                 size="sm"

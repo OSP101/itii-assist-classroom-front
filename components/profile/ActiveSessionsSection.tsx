@@ -80,7 +80,7 @@ function ActiveSessionsSection({
                   key={session.id}
                   className="flex items-start gap-4 px-6 py-4 hover:bg-default-50 transition-colors"
                 >
-                  <div className="p-2.5 bg-default-100 rounded-lg flex-shrink-0">
+                  <div className="p-2.5 bg-default-100 rounded-lg shrink-0">
                     <Icon icon={getDeviceIcon(session.device, session.os)} className="text-xl text-default-600" />
                   </div>
                   <div className="flex-1 min-w-0">

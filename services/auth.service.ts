@@ -1,9 +1,19 @@
 import apiService from './api.service';
 import { API_ENDPOINTS } from '@/config/api';
+import { clearAppearanceHintCookieString } from '@/lib/appearance-hint';
+
+export const AUTH_USER_UPDATED_EVENT = 'auth:user-updated';
+const PENDING_PREFERENCES_STORAGE_KEY = 'auth:pending-preferences';
 
 let authChannel: BroadcastChannel | null = null;
 if (typeof window !== 'undefined') {
   authChannel = new BroadcastChannel('auth-sync');
+}
+
+export interface UserPreferences {
+  theme: 'system' | 'light' | 'dark';
+  fontSize: 'sm' | 'md' | 'lg';
+  language: 'th' | 'en';
 }
 
 export interface User {
@@ -13,6 +23,7 @@ export interface User {
   full_name: string;
   role: 'admin' | 'instructor' | 'ta';
   avatar: string | null;
+  preferences?: UserPreferences;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -62,7 +73,132 @@ interface TwoFactorResult {
   email: string | null;
 }
 
+interface PendingPreferencesCache {
+  userId: number;
+  preferences: Partial<UserPreferences>;
+}
+
 class AuthService {
+  private getRawStoredUser(): User | null {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(userStr);
+    } catch {
+      return null;
+    }
+  }
+
+  private getPendingPreferencesCache(): PendingPreferencesCache | null {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
+    const pendingStr = localStorage.getItem(PENDING_PREFERENCES_STORAGE_KEY);
+    if (!pendingStr) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(pendingStr) as PendingPreferencesCache;
+    } catch {
+      return null;
+    }
+  }
+
+  private withStoredPreferences(user: User): User {
+    if (user.preferences) {
+      return user;
+    }
+
+    const storedUser = this.getRawStoredUser();
+    if (storedUser?.preferences) {
+      return { ...user, preferences: storedUser.preferences };
+    }
+
+    return user;
+  }
+
+  private persistUser(user: User | null): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (!user) {
+      localStorage.removeItem(PENDING_PREFERENCES_STORAGE_KEY);
+      document.cookie = clearAppearanceHintCookieString();
+      localStorage.removeItem('user');
+      window.dispatchEvent(new CustomEvent(AUTH_USER_UPDATED_EVENT, { detail: null }));
+      return;
+    }
+
+    const persistedUser = this.withStoredPreferences(user);
+    localStorage.setItem('user', JSON.stringify(persistedUser));
+    window.dispatchEvent(new CustomEvent(AUTH_USER_UPDATED_EVENT, { detail: persistedUser }));
+  }
+
+  getPendingPreferences(userId?: number | null): Partial<UserPreferences> | null {
+    const pendingCache = this.getPendingPreferencesCache();
+    if (!pendingCache) {
+      return null;
+    }
+
+    const effectiveUserId = userId ?? this.getRawStoredUser()?.id;
+    if (!effectiveUserId || pendingCache.userId !== effectiveUserId) {
+      return null;
+    }
+
+    return pendingCache.preferences ?? null;
+  }
+
+  cachePendingPreferences(preferences: Partial<UserPreferences>): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const storedUser = this.getRawStoredUser();
+    if (!storedUser) {
+      return;
+    }
+
+    const existingPendingPreferences = this.getPendingPreferences(storedUser.id) ?? {};
+
+    localStorage.setItem(
+      PENDING_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        userId: storedUser.id,
+        preferences: {
+          ...existingPendingPreferences,
+          ...preferences,
+        },
+      }),
+    );
+  }
+
+  clearPendingPreferences(userId?: number | null): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const pendingCache = this.getPendingPreferencesCache();
+    if (!pendingCache) {
+      return;
+    }
+
+    if (userId && pendingCache.userId !== userId) {
+      return;
+    }
+
+    localStorage.removeItem(PENDING_PREFERENCES_STORAGE_KEY);
+  }
+
    // Login with username and password
   async login(credentials: LoginCredentials): Promise<{ 
     success: boolean; 
@@ -95,9 +231,9 @@ class AuthService {
       apiService.setAuthTokens(accessToken, refreshToken);
       
       // Store user info
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('user', JSON.stringify(user));
-      }
+      this.clearPendingPreferences(user.id);
+      this.persistUser(user);
+      authChannel?.postMessage({ type: 'login' });
 
       return { success: true, user, mustChangePassword };
     }
@@ -134,11 +270,9 @@ class AuthService {
       console.error('Logout error:', error);
     } finally {
       apiService.clearAuthTokens();
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('user');
-        // Broadcast logout to other tabs
-        authChannel?.postMessage({ type: 'logout' });
-      }
+      this.persistUser(null);
+      // Broadcast logout to other tabs
+      authChannel?.postMessage({ type: 'logout' });
     }
   }
 
@@ -168,10 +302,8 @@ class AuthService {
     const response = await apiService.get<{ user: User }>(API_ENDPOINTS.ME);
 
     if (response.success && response.data) {
-      const user = response.data.user;
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('user', JSON.stringify(user));
-      }
+      const user = this.withStoredPreferences(response.data.user);
+      this.persistUser(user);
       return user;
     }
 
@@ -182,17 +314,7 @@ class AuthService {
    * Get stored user from localStorage
    */
   getStoredUser(): User | null {
-    if (typeof window !== 'undefined') {
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        try {
-          return JSON.parse(userStr);
-        } catch {
-          return null;
-        }
-      }
-    }
-    return null;
+    return this.getRawStoredUser();
   }
 
   /**
@@ -231,14 +353,15 @@ class AuthService {
 
    // Update user profile (requires password confirmation)
   async updateProfile(data: { full_name?: string; email?: string; current_password: string }): Promise<{ success: boolean; user?: User; error?: string }> {
-    const response = await apiService.put<{ user: User }>(API_ENDPOINTS.UPDATE_PROFILE, data);
+    const response = await apiService.put<{ user: User }>(API_ENDPOINTS.UPDATE_PROFILE, {
+      fullName: data.full_name,
+      email: data.email,
+      currentPassword: data.current_password,
+    });
 
     if (response.success && response.data) {
       const user = response.data.user;
-      // Update stored user
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('user', JSON.stringify(user));
-      }
+      this.persistUser(user);
       return { success: true, user };
     }
 
@@ -248,6 +371,35 @@ class AuthService {
       (typeof err === 'object' && err !== null && 'message' in err ? (err as { message: string }).message : null) || 
       (typeof err === 'string' ? err : null) || 
       'อัปเดตโปรไฟล์ไม่สำเร็จ';
+
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+
+  async updatePreferences(data: Partial<UserPreferences>): Promise<{ success: boolean; preferences?: UserPreferences; user?: User; error?: string }> {
+    const response = await apiService.put<{ preferences: UserPreferences; user: User }>(API_ENDPOINTS.UPDATE_PREFERENCES, data);
+
+    if (response.success && response.data) {
+      this.clearPendingPreferences(response.data.user.id);
+      const user = this.withStoredPreferences({
+        ...response.data.user,
+        preferences: response.data.preferences ?? response.data.user.preferences,
+      });
+      this.persistUser(user);
+      return {
+        success: true,
+        preferences: response.data.preferences,
+        user,
+      };
+    }
+
+    const err = response.error as unknown;
+    const errorMessage = response.message ||
+      (typeof err === 'object' && err !== null && 'message' in err ? (err as { message: string }).message : null) ||
+      (typeof err === 'string' ? err : null) ||
+      'บันทึกการตั้งค่าไม่สำเร็จ';
 
     return {
       success: false,
@@ -279,6 +431,8 @@ class AuthService {
   clearTokens(): void {
     apiService.clearAuthTokens();
     if (typeof window !== 'undefined') {
+      document.cookie = clearAppearanceHintCookieString();
+      localStorage.removeItem(PENDING_PREFERENCES_STORAGE_KEY);
       localStorage.removeItem('user');
     }
   }
@@ -291,10 +445,7 @@ class AuthService {
 
     if (response.success && response.data) {
       const user = response.data.user;
-      // Store user info
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('user', JSON.stringify(user));
-      }
+      this.persistUser(user);
       return { success: true, user };
     }
 
@@ -399,8 +550,7 @@ class AuthService {
       // Update stored user with new avatar
       const storedUser = this.getStoredUser();
       if (storedUser) {
-        storedUser.avatar = response.data.avatar;
-        localStorage.setItem('user', JSON.stringify(storedUser));
+        this.persistUser({ ...storedUser, avatar: response.data.avatar });
       }
       return { success: true, avatar: response.data.avatar };
     }
@@ -421,8 +571,7 @@ class AuthService {
       // Update stored user
       const storedUser = this.getStoredUser();
       if (storedUser) {
-        storedUser.avatar = null;
-        localStorage.setItem('user', JSON.stringify(storedUser));
+        this.persistUser({ ...storedUser, avatar: null });
       }
       return { success: true };
     }

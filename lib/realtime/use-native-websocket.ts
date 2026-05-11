@@ -7,7 +7,7 @@
  * Usage:
  * ```tsx
  * const { data, status } = useNativeWebSocket<QueueState>({
- *   url: `${WS_BASE_URL}/ws?type=queue&sessionId=${sessionId}`,
+ *   url: getRealtimeWebSocketUrl(`/ws?type=queue&sessionId=${sessionId}`),
  *   initialData: props.initialSnapshot,
  *   onMessage: (prev, msg) => applyQueueEvent(prev, msg),
  * });

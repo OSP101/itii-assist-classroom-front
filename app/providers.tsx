@@ -1,20 +1,17 @@
 "use client";
 
-import type { ThemeProviderProps } from "next-themes";
-
 import * as React from "react";
 import { HeroUIProvider } from "@heroui/system";
 import { ToastProvider } from "@heroui/toast";
 import { useRouter, usePathname } from "next/navigation";
-import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { SocketProvider } from "@/contexts/SocketContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { GlobalSettingsProvider } from "@/contexts/GlobalSettingsContext";
 import { authService } from "@/services/auth.service";
 import { IconifyPreload } from "@/components/IconifyPreload";
 
 export interface ProvidersProps {
   children: React.ReactNode;
-  themeProps?: ThemeProviderProps;
 }
 
 declare module "@react-types/shared" {
@@ -26,14 +23,12 @@ declare module "@react-types/shared" {
 }
 
 function useAuthSync() {
-  const router = useRouter();
   const pathname = usePathname();
 
   React.useEffect(() => {
     // Subscribe to auth changes from other tabs
     const unsubscribe = authService.onAuthChange((event) => {
       if (event.type === 'logout') {
-        console.log('📢 Logout detected from another tab');
         // Don't redirect if already on login page
         if (!pathname?.startsWith('/login')) {
           // Force redirect to login
@@ -43,7 +38,7 @@ function useAuthSync() {
     });
 
     return unsubscribe;
-  }, [pathname, router]);
+  }, [pathname]);
 }
 
 // Wrapper component to use the auth sync hook
@@ -52,13 +47,13 @@ function AuthSyncProvider({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-export function Providers({ children, themeProps }: ProvidersProps) {
+export function Providers({ children }: ProvidersProps) {
   const router = useRouter();
 
   return (
     <HeroUIProvider navigate={router.push}>
       <IconifyPreload />
-      <NextThemesProvider {...themeProps}>
+      <GlobalSettingsProvider>
         <SocketProvider>
           <NotificationProvider>
             <AuthSyncProvider>
@@ -66,8 +61,8 @@ export function Providers({ children, themeProps }: ProvidersProps) {
             </AuthSyncProvider>
           </NotificationProvider>
         </SocketProvider>
-        <ToastProvider placement="top-right" toastProps={{timeout: 3000, shouldShowTimeoutProgress: true}} />
-      </NextThemesProvider>
+        <ToastProvider placement="top-right" toastProps={{ timeout: 3000, shouldShowTimeoutProgress: true }} />
+      </GlobalSettingsProvider>
     </HeroUIProvider>
   );
 }

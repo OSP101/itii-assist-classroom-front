@@ -2,34 +2,41 @@
 
 import { memo } from "react";
 import { Icon } from "@iconify/react";
+import { useI18n } from "@/hooks/useI18n";
 
-export type MenuKey = "personal" | "authentication" | "sessions";
+export type MenuKey = "personal" | "authentication" | "sessions" | "preferences";
 
 export interface MenuItem {
   key: MenuKey;
-  label: string;
+  labelKey: string;
   icon: string;
-  description: string;
+  descriptionKey: string;
 }
 
 export const MENU_ITEMS: MenuItem[] = [
   {
     key: "personal",
-    label: "ข้อมูลส่วนตัว",
+    labelKey: "personalInfo",
     icon: "solar:user-bold",
-    description: "จัดการข้อมูลส่วนตัวและรูปโปรไฟล์",
+    descriptionKey: "managePersonalInfoAndAvatar",
   },
   {
     key: "authentication",
-    label: "การยืนยันตัวตน",
+    labelKey: "authentication",
     icon: "solar:shield-keyhole-bold",
-    description: "รหัสผ่านและการตั้งค่าความปลอดภัย",
+    descriptionKey: "passwordAndSecuritySettings",
   },
   {
     key: "sessions",
-    label: "อุปกรณ์ที่เข้าสู่ระบบ",
+    labelKey: "signedInDevices",
     icon: "solar:devices-bold",
-    description: "จัดการอุปกรณ์ที่เชื่อมต่อ",
+    descriptionKey: "manageConnectedDevices",
+  },
+  {
+    key: "preferences",
+    labelKey: "appearanceAndLanguage",
+    icon: "solar:settings-bold",
+    descriptionKey: "themeLanguageFontForThisAccount",
   },
 ];
 
@@ -46,6 +53,8 @@ function ProfileSidebar({
   setIsMobileMenuOpen, 
   isMobile = false 
 }: ProfileSidebarProps) {
+  const t = useI18n();
+
   return (
     <div className={`space-y-1 ${isMobile ? '' : 'sticky top-4'}`}>
       {MENU_ITEMS.map((item) => (
@@ -61,19 +70,19 @@ function ProfileSidebar({
               : 'hover:bg-default-100 text-default-700'
           }`}
         >
-          <Icon icon={item.icon} className="text-xl flex-shrink-0" />
+          <Icon icon={item.icon} className="text-xl shrink-0" />
           <div className="flex-1 min-w-0">
             <p className={`font-medium truncate ${activeMenu === item.key ? 'text-white' : ''}`}>
-              {item.label}
+              {t(item.labelKey)}
             </p>
             {!isMobile && (
               <p className={`text-xs truncate ${activeMenu === item.key ? 'text-white/70' : 'text-default-400'}`}>
-                {item.description}
+                {t(item.descriptionKey)}
               </p>
             )}
           </div>
           {activeMenu === item.key && (
-            <Icon icon="solar:alt-arrow-right-bold" className="text-lg flex-shrink-0" />
+            <Icon icon="solar:alt-arrow-right-bold" className="text-lg shrink-0" />
           )}
         </button>
       ))}

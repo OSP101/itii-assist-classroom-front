@@ -74,7 +74,7 @@ function getConfidenceChip(level: string) {
   const map: Record<string, { label: string; className: string }> = {
     high: { label: "สูง", className: "bg-emerald-50 text-emerald-600" },
     medium: { label: "ปานกลาง", className: "bg-amber-50 text-amber-600" },
-    low: { label: "ต่ำ", className: "bg-slate-100 text-slate-500" },
+    low: { label: "ต่ำ", className: "bg-content3 text-default-500" },
   };
   return map[level] || map.low;
 }
@@ -90,8 +90,8 @@ function AnomalyFlagsCard({ anomalies }: { anomalies: AnomalyFlag[] }) {
             <Icon icon="solar:danger-triangle-bold" className="text-lg text-amber-600" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-slate-800">ข้อสังเกต</h3>
-            <p className="text-xs text-slate-500">{anomalies.length} รายการ</p>
+            <h3 className="text-base font-semibold text-foreground">ข้อสังเกต</h3>
+            <p className="text-xs text-default-500">{anomalies.length} รายการ</p>
           </div>
         </div>
         <div className="space-y-2">
@@ -105,9 +105,9 @@ function AnomalyFlagsCard({ anomalies }: { anomalies: AnomalyFlag[] }) {
               <Icon
                 icon={a.severity === "danger" ? "solar:close-circle-bold" : "solar:info-circle-bold"}
                 width={16}
-                className={`mt-0.5 flex-shrink-0 ${a.severity === "danger" ? "text-rose-500" : "text-amber-500"}`}
+                className={`mt-0.5 shrink-0 ${a.severity === "danger" ? "text-rose-500" : "text-amber-500"}`}
               />
-              <span className="text-sm text-slate-600">{a.message}</span>
+              <span className="text-sm text-default-600">{a.message}</span>
             </div>
           ))}
         </div>
@@ -130,7 +130,7 @@ function KPIBreakdownCard({ kpi, confidenceLevel }: { kpi: KPIBreakdown; confide
   const confidenceInfo = getConfidenceChip(confidenceLevel || 'low');
 
   return (
-    <Card className="shadow-sm border border-slate-200">
+    <Card className="border border-default-200 shadow-sm">
       <CardBody className="p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -138,8 +138,8 @@ function KPIBreakdownCard({ kpi, confidenceLevel }: { kpi: KPIBreakdown; confide
               <Icon icon="solar:graph-up-bold" className="text-lg text-indigo-600" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-slate-800">KPI Breakdown</h3>
-              <p className="text-xs text-slate-500">รายละเอียดแต่ละมิติ</p>
+              <h3 className="text-base font-semibold text-foreground">KPI Breakdown</h3>
+              <p className="text-xs text-default-500">รายละเอียดแต่ละมิติ</p>
             </div>
           </div>
           <Tooltip content="ระดับความน่าเชื่อถือขึ้นอยู่กับจำนวนข้อมูลที่มี">
@@ -150,21 +150,21 @@ function KPIBreakdownCard({ kpi, confidenceLevel }: { kpi: KPIBreakdown; confide
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {items.map((item) => (
-            <div key={item.key} className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+            <div key={item.key} className="rounded-lg border border-default-200 bg-content2 p-3">
               <div className="flex items-center gap-2 mb-2">
                 <div className={`p-1.5 ${item.bg} rounded-lg`}>
                   <Icon icon={item.icon} className={`text-sm ${item.color}`} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-slate-500 truncate">{item.label}</p>
-                  <p className="text-[10px] text-slate-400">น้ำหนัก {(item.weight * 100).toFixed(0)}%</p>
+                  <p className="truncate text-xs text-default-500">{item.label}</p>
+                  <p className="text-[10px] text-default-400">น้ำหนัก {(item.weight * 100).toFixed(0)}%</p>
                 </div>
                 <span className={`text-lg font-bold ${getScoreColor(item.score)}`}>
                   {item.score}
                 </span>
               </div>
               {/* Mini bar */}
-              <div className="w-full bg-slate-200 rounded-full h-1.5">
+              <div className="h-1.5 w-full rounded-full bg-content3">
                 <div
                   className={`h-1.5 rounded-full transition-all duration-500 ${
                     item.score >= 80
@@ -194,7 +194,7 @@ function StatsCardSkeleton() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
       {[1, 2, 3].map((i) => (
-        <Card key={i} className="shadow-sm border border-slate-200">
+        <Card key={i} className="border border-default-200 shadow-sm">
           <CardBody className="p-4">
             <div className="flex items-center gap-3">
               <Skeleton className="w-12 h-12 rounded-xl" />
@@ -212,7 +212,7 @@ function StatsCardSkeleton() {
 
 function TATableSkeleton() {
   return (
-    <Card className="shadow-sm border border-slate-200">
+    <Card className="border border-default-200 shadow-sm">
       <CardBody className="p-2">
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
@@ -284,8 +284,8 @@ function SuspiciousAlert({
             <Icon icon="solar:danger-triangle-bold" className="text-xl text-amber-600" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-slate-800">สิ่งที่ควรตรวจสอบ</h3>
-            <p className="text-xs text-slate-500">{alerts.length} รายการที่ตรวจพบ</p>
+            <h3 className="text-base font-semibold text-foreground">สิ่งที่ควรตรวจสอบ</h3>
+            <p className="text-xs text-default-500">{alerts.length} รายการที่ตรวจพบ</p>
           </div>
         </div>
         <div className="space-y-2">
@@ -299,11 +299,11 @@ function SuspiciousAlert({
               <Icon
                 icon={alert.severity === "danger" ? "solar:close-circle-bold" : "solar:info-circle-bold"}
                 width={16}
-                className={`mt-0.5 flex-shrink-0 ${alert.severity === "danger" ? "text-rose-500" : "text-amber-500"}`}
+                className={`mt-0.5 shrink-0 ${alert.severity === "danger" ? "text-rose-500" : "text-amber-500"}`}
               />
               <div>
-                <span className="text-sm font-medium text-slate-800">{alert.taName}: </span>
-                <span className="text-sm text-slate-600">{alert.message}</span>
+                <span className="text-sm font-medium text-foreground">{alert.taName}: </span>
+                <span className="text-sm text-default-600">{alert.message}</span>
               </div>
             </div>
           ))}
@@ -363,7 +363,7 @@ function TADetailView({
           variant="flat"
           onPress={onClose}
           startContent={<Icon icon="solar:arrow-left-linear" width={16} />}
-          className="bg-slate-100 text-slate-600 hover:bg-slate-200"
+          className="bg-content2 text-default-600 hover:bg-content3"
           isIconOnly
         >
         </Button>
@@ -372,11 +372,11 @@ function TADetailView({
             name={ta.fullName}
             size="md"
             src={ta.avatar || undefined}
-            className="bg-gradient-to-br from-indigo-500 to-blue-500"
+            className="bg-linear-to-br from-indigo-500 to-blue-500"
           />
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-semibold text-slate-800">{ta.fullName}</h3>
+              <h3 className="text-base font-semibold text-foreground">{ta.fullName}</h3>
               {/* {ta.performanceScore != null && (
                 <Chip
                   size="sm"
@@ -387,7 +387,7 @@ function TADetailView({
                 </Chip>
               )} */}
             </div>
-            <p className="text-xs text-slate-500">{ta.email}</p>
+            <p className="text-xs text-default-500">{ta.email}</p>
           </div>
         </div>
        
@@ -404,17 +404,17 @@ function TADetailView({
       )} */}
 
       {/* Per-Assignment Stats Table */}
-      <Card className="shadow-sm border border-slate-200">
+      <Card className="border border-default-200 shadow-sm">
         <CardBody className="p-2">
           <div className="px-3 py-2">
-            <h3 className="text-base font-semibold text-slate-800">สถิติตามงาน</h3>
+            <h3 className="text-base font-semibold text-foreground">สถิติตามงาน</h3>
           </div>
           <div className="overflow-x-auto">
             <Table
               aria-label="TA per-assignment stats"
               removeWrapper
               classNames={{
-                th: "bg-slate-50 text-slate-600 font-semibold text-sm",
+                th: "bg-content2 text-default-600 font-semibold text-sm",
                 td: "py-3",
               }}
             >
@@ -430,18 +430,18 @@ function TADetailView({
               <TableBody
                 emptyContent={
                   <div className="py-10 text-center">
-                    <Icon icon="solar:clipboard-list-linear" className="text-5xl text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-400">TA ยังไม่มีการตรวจงาน</p>
+                    <Icon icon="solar:clipboard-list-linear" className="mx-auto mb-3 text-5xl text-default-300" />
+                    <p className="text-default-400">TA ยังไม่มีการตรวจงาน</p>
                   </div>
                 }
               >
                 {ta.perAssignment.map((a) => (
                   <TableRow key={a.assignmentId}>
                     <TableCell>
-                      <span className="text-sm font-medium text-slate-800">{a.assignmentName}</span>
+                      <span className="text-sm font-medium text-foreground">{a.assignmentName}</span>
                     </TableCell>
                     <TableCell>
-                      <Chip size="sm" variant="flat" className="bg-slate-100 text-slate-600">
+                      <Chip size="sm" variant="flat" className="bg-content3 text-default-600">
                         {a.maxScore}
                       </Chip>
                     </TableCell>
@@ -465,7 +465,7 @@ function TADetailView({
                     </TableCell>
                     <TableCell>
                       {a.scoreDistribution.length > 0 ? (
-                        <div className="flex items-end gap-0.5 h-6 min-w-[60px] justify-center">
+                        <div className="flex items-end gap-0.5 h-6 min-w-15 justify-center">
                           {a.scoreDistribution.map((bucket, idx) => {
                             const maxCount = Math.max(...a.scoreDistribution.map((b) => b.count));
                             const height = maxCount > 0 ? (bucket.count / maxCount) * 100 : 0;
@@ -480,7 +480,7 @@ function TADetailView({
                           })}
                         </div>
                       ) : (
-                        <span className="text-slate-300">-</span>
+                        <span className="text-default-300">-</span>
                       )}
                     </TableCell>
                   </TableRow>
@@ -566,17 +566,17 @@ function TADetailView({
       )} */}
 
       {/* Score History Table */}
-      <Card className="shadow-sm border border-slate-200">
+      <Card className="border border-default-200 shadow-sm">
         <CardBody className="p-2">
           <div className="flex items-center justify-between px-3 py-2">
-            <h3 className="text-base font-semibold text-slate-800">ประวัติการตรวจ</h3>
+            <h3 className="text-base font-semibold text-foreground">ประวัติการตรวจ</h3>
             <Dropdown>
               <DropdownTrigger>
                 <Button
                   variant="bordered"
                   size="sm"
-                  className="min-w-28 justify-between border-slate-200"
-                  endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-slate-400 text-sm" />}
+                  className="min-w-28 justify-between border-default-200 bg-content1"
+                  endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-default-400 text-sm" />}
                 >
                   {filterAssignment
                     ? allAssignments.find((a) => String(a.assignmentId) === filterAssignment)?.assignmentName || "งาน"
@@ -616,7 +616,7 @@ function TADetailView({
                   bottomContent={
                     detail && detail.pagination.totalPages > 1 ? (
                       <div className="flex flex-col gap-2 px-1 py-2 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-default-400">
                           หน้า {page} จาก {detail.pagination.totalPages}
                         </p>
                         <Pagination
@@ -635,9 +635,9 @@ function TADetailView({
                   }
                   bottomContentPlacement="outside"
                   classNames={{
-                    th: "bg-slate-50 text-slate-600 font-semibold text-sm",
+                    th: "bg-content2 text-default-600 font-semibold text-sm",
                     td: "py-3",
-                    tr: "hover:bg-slate-50/70",
+                    tr: "hover:bg-content2/70",
                   }}
                 >
                   <TableHeader>
@@ -650,37 +650,37 @@ function TADetailView({
                   <TableBody
                     emptyContent={
                       <div className="py-10 text-center">
-                        <Icon icon="solar:clipboard-list-linear" className="text-5xl text-slate-300 mx-auto mb-3" />
-                        <p className="text-slate-400">ไม่พบประวัติการตรวจ</p>
+                        <Icon icon="solar:clipboard-list-linear" className="mx-auto mb-3 text-5xl text-default-300" />
+                        <p className="text-default-400">ไม่พบประวัติการตรวจ</p>
                       </div>
                     }
                   >
                     {(detail?.scores || []).map((score: TADetailScore) => (
                       <TableRow key={score.id}>
                         <TableCell>
-                          <span className="text-sm font-medium text-slate-800">
+                          <span className="text-sm font-medium text-foreground">
                             {score.assignment?.name || "-"}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm text-slate-500">{score.subItem?.name || "-"}</span>
+                          <span className="text-sm text-default-500">{score.subItem?.name || "-"}</span>
                         </TableCell>
                         <TableCell>
                           <div>
-                            <p className="text-sm text-slate-800">{score.student?.full_name || "-"}</p>
-                            <p className="text-xs text-slate-400">{score.student?.student_id}</p>
+                            <p className="text-sm text-foreground">{score.student?.full_name || "-"}</p>
+                            <p className="text-xs text-default-400">{score.student?.student_id}</p>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="text-right">
-                            <span className="text-sm font-semibold text-slate-800">{score.score}</span>
-                            <span className="text-xs text-slate-400">
+                            <span className="text-sm font-semibold text-foreground">{score.score}</span>
+                            <span className="text-xs text-default-400">
                               /{score.subItem?.max_score || score.assignment?.max_score || "-"}
                             </span>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm text-slate-500 whitespace-nowrap">
+                          <span className="whitespace-nowrap text-sm text-default-500">
                             {formatDateTime(score.graded_at)}
                           </span>
                         </TableCell>
@@ -832,8 +832,8 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-slate-800">สถิติการทำงานของ TA</h2>
-          <p className="text-sm text-slate-500">ดูภาพรวมการตรวจงานและให้คะแนนของผู้ช่วยสอน</p>
+          <h2 className="text-lg font-semibold text-foreground">สถิติการทำงานของ TA</h2>
+          <p className="text-sm text-default-500">ดูภาพรวมการตรวจงานและให้คะแนนของผู้ช่วยสอน</p>
         </div>
         <Button
           size="sm"
@@ -841,7 +841,7 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
           startContent={<Icon icon="solar:refresh-bold" width={16} />}
           onPress={fetchData}
           isDisabled={loading}
-          className="bg-slate-100 text-slate-600 hover:bg-slate-200"
+          className="bg-content2 text-default-600 hover:bg-content3"
         >
           รีเฟรช
         </Button>
@@ -854,13 +854,13 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
           <TATableSkeleton />
         </>
       ) : !data ? (
-        <Card className="shadow-sm border border-dashed border-slate-300 bg-slate-50/50">
+        <Card className="border border-dashed border-default-300 bg-content2/50 shadow-sm">
           <CardBody className="text-center py-16">
-            <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
+            <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-linear-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
               <Icon icon="solar:chart-2-bold-duotone" className="text-5xl text-blue-500" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">ไม่สามารถโหลดข้อมูลได้</h3>
-            <p className="text-slate-500 mb-6 max-w-md mx-auto">
+            <h3 className="mb-2 text-lg font-semibold text-default-700">ไม่สามารถโหลดข้อมูลได้</h3>
+            <p className="mx-auto mb-6 max-w-md text-default-500">
               กรุณาลองรีเฟรชอีกครั้ง
             </p>
             <Button
@@ -1002,18 +1002,18 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
           )} */}
 
           {/* Section 4: Per-TA Comparison Table */}
-          <Card className="shadow-sm border border-slate-200">
+          <Card className="border border-default-200 bg-content1 shadow-sm">
             <CardBody className="p-2">
               <div className="flex items-center justify-between px-3 py-2">
-                <h3 className="text-base font-semibold text-slate-800">สถิติรายบุคคล</h3>
+                <h3 className="text-base font-semibold text-foreground">สถิติรายบุคคล</h3>
                 <Dropdown>
                   <DropdownTrigger>
                     <Button
                       size="sm"
                       variant="flat"
-                      className="bg-slate-100 text-slate-600 min-w-[100px] justify-between"
+                      className="min-w-25 justify-between bg-content3 text-default-600"
                       startContent={<Icon icon="solar:sort-linear" width={14} />}
-                      endContent={<Icon icon={sortDir === 'desc' ? "solar:alt-arrow-down-linear" : "solar:alt-arrow-up-linear"} width={12} className="text-slate-400" />}
+                      endContent={<Icon icon={sortDir === 'desc' ? "solar:alt-arrow-down-linear" : "solar:alt-arrow-up-linear"} width={12} className="text-default-400" />}
                     >
                       {sortField === 'score' ? 'คะแนน' : sortField === 'workload' ? 'ปริมาณงาน' : 'ชื่อ'}
                     </Button>
@@ -1038,13 +1038,13 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                 </Dropdown>
               </div>
               {data.taStats.length === 0 ? (
-                <Card className="shadow-none border border-dashed border-slate-300 bg-slate-50/50 m-2">
+                <Card className="m-2 border border-dashed border-default-300 bg-content2/50 shadow-none">
                   <CardBody className="text-center py-12">
-                    <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
+                    <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-linear-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
                       <Icon icon="solar:users-group-rounded-bold-duotone" className="text-4xl text-blue-500" />
                     </div>
-                    <h3 className="text-base font-semibold text-slate-700 mb-1">ยังไม่มี TA</h3>
-                    <p className="text-slate-500 text-sm">เพิ่มผู้ช่วยสอนในหน้าบุคลากรก่อน</p>
+                    <h3 className="mb-1 text-base font-semibold text-default-700">ยังไม่มี TA</h3>
+                    <p className="text-sm text-default-500">เพิ่มผู้ช่วยสอนในหน้าบุคลากรก่อน</p>
                   </CardBody>
                 </Card>
               ) : (
@@ -1053,7 +1053,7 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                     aria-label="TA stats overview"
                     removeWrapper
                     classNames={{
-                      th: "bg-slate-50 text-slate-600 font-semibold text-sm",
+                      th: "bg-content2 text-default-600 font-semibold text-sm",
                       td: "py-3",
                     }}
                   >
@@ -1075,11 +1075,11 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                                 name={ta.fullName}
                                 size="sm"
                                 src={ta.avatar || undefined}
-                                className="bg-gradient-to-br from-blue-500 to-indigo-500 text-white"
+                                className="bg-linear-to-br from-blue-500 to-indigo-500 text-white"
                               />
                               <div>
-                                <p className="font-medium text-slate-800">{ta.fullName}</p>
-                                <p className="text-xs text-slate-400">{ta.email}</p>
+                                <p className="font-medium text-foreground">{ta.fullName}</p>
+                                <p className="text-xs text-default-400">{ta.email}</p>
                               </div>
                             </div>
                           </TableCell>
@@ -1133,7 +1133,7 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                               <span className="text-sm font-bold text-blue-600">{ta.totalScoresGraded}</span>
                               {analytics && analytics.expectedShare > 0 && (
                                 <Tooltip content={`${Math.round(ta.totalScoresGraded / analytics.expectedShare * 100)}% ของส่วนแบ่งที่คาดหวัง`}>
-                                  <div className="w-10 bg-slate-200 rounded-full h-1 cursor-help">
+                                  <div className="h-1 w-10 cursor-help rounded-full bg-content3">
                                     <div
                                       className={`h-1 rounded-full ${ta.totalScoresGraded / analytics.expectedShare >= 0.7 ? 'bg-blue-500' : 'bg-amber-500'}`}
                                       style={{ width: `${Math.min(ta.totalScoresGraded / analytics.expectedShare * 100, 100)}%` }}
@@ -1185,15 +1185,15 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
           </Card>
 
           {/* Overall Assignment Comparison */}
-          <Card className="shadow-sm border border-slate-200">
+          <Card className="border border-default-200 bg-content1 shadow-sm">
             <CardBody className="p-2">
               <div className="px-3 py-2">
-                <h3 className="text-base font-semibold text-slate-800">เปรียบเทียบ TA ตามงาน</h3>
+                <h3 className="text-base font-semibold text-foreground">เปรียบเทียบ TA ตามงาน</h3>
               </div>
               {data.assignments.filter((a) => a.totalGraded > 0).length === 0 ? (
                 <div className="text-center py-12 px-3">
-                  <Icon icon="solar:chart-2-linear" className="text-5xl text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-400">ยังไม่มีข้อมูลคะแนน</p>
+                  <Icon icon="solar:chart-2-linear" className="mx-auto mb-3 text-5xl text-default-300" />
+                  <p className="text-default-400">ยังไม่มีข้อมูลคะแนน</p>
                 </div>
               ) : (
                 <div className="space-y-3 px-3 pb-3">
@@ -1210,9 +1210,9 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                       if (tasForAssignment.length === 0) return null;
 
                       return (
-                        <div key={assignment.assignmentId} className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                        <div key={assignment.assignmentId} className="rounded-lg border border-default-200 bg-content2 p-3">
                           <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-medium text-sm text-slate-800">{assignment.assignmentName}</h4>
+                            <h4 className="text-sm font-medium text-foreground">{assignment.assignmentName}</h4>
                             <Chip size="sm" variant="flat" className="bg-blue-50 text-blue-600">
                               ค่าเฉลี่ยรวม: {assignment.avgScore ?? "-"} / {assignment.maxScore}
                             </Chip>
@@ -1221,11 +1221,11 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                             {tasForAssignment.map((ta_a) => (
                               <div
                                 key={ta_a.taName}
-                                className="flex items-center justify-between bg-white rounded-md px-3 py-2 border border-slate-100"
+                                className="flex items-center justify-between rounded-md border border-default-200 bg-content1 px-3 py-2"
                               >
-                                <span className="text-sm text-slate-700">{ta_a.taName}</span>
+                                <span className="text-sm text-default-700">{ta_a.taName}</span>
                                 <div className="flex items-center gap-1.5">
-                                  <span className="text-xs text-slate-400">{ta_a.totalGraded} รายการ</span>
+                                  <span className="text-xs text-default-400">{ta_a.totalGraded} รายการ</span>
                                   <Chip
                                     size="sm"
                                     variant="flat"
@@ -1234,7 +1234,7 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                                         ? Math.abs(ta_a.avgScore - assignment.avgScore) > assignment.maxScore * 0.2
                                           ? "bg-amber-50 text-amber-600"
                                           : "bg-emerald-50 text-emerald-600"
-                                        : "bg-slate-100 text-slate-600"
+                                        : "bg-content3 text-default-600"
                                     }
                                   >
                                     {ta_a.avgScore ?? "-"}

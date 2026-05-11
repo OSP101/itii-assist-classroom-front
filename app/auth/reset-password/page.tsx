@@ -11,6 +11,10 @@ import { Icon } from "@iconify/react";
 import { addToast } from "@heroui/toast";
 import { authService } from "@/services";
 
+const AUTH_PAGE_SHELL = "flex min-h-screen flex-col bg-background p-3 text-foreground sm:p-4";
+const AUTH_PAGE_CARD = "w-full max-w-md overflow-hidden border border-default-200 bg-content1 shadow-2xl shadow-slate-200/40 dark:shadow-zinc-950/50";
+const AUTH_PAGE_FOOTER = "mt-2 px-4 pb-2 text-center text-xs font-light text-slate-400 sm:text-sm";
+
 function ResetPasswordContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -122,9 +126,9 @@ function ResetPasswordContent() {
     // Loading state
     if (isValidating) {
         return (
-            <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 p-3 sm:p-4">
+            <div data-auth-shell="true" className={AUTH_PAGE_SHELL}>
                 <div className="flex-1 flex items-center justify-center">
-                    <Card className="w-full max-w-md overflow-hidden shadow-2xl border border-blue-100">
+                    <Card className={AUTH_PAGE_CARD}>
                         <CardBody className="p-8 flex flex-col items-center justify-center gap-4">
                             <Spinner size="lg" color="primary" />
                             <p className="text-slate-500">กำลังตรวจสอบลิงก์...</p>
@@ -138,9 +142,9 @@ function ResetPasswordContent() {
     // Invalid or expired token
     if (!isValidToken) {
         return (
-            <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 p-3 sm:p-4">
+            <div data-auth-shell="true" className={AUTH_PAGE_SHELL}>
                 <div className="flex-1 flex items-center justify-center">
-                    <Card className="w-full max-w-md overflow-hidden shadow-2xl border border-red-200">
+                    <Card className={AUTH_PAGE_CARD}>
                         <CardBody className="p-8">
                             <div className="flex flex-col items-center text-center gap-4">
                                 <div className="p-4 bg-red-100 rounded-full">
@@ -166,7 +170,7 @@ function ResetPasswordContent() {
                         </CardBody>
                     </Card>
                 </div>
-                <div className="mt-2 pb-2 text-center text-slate-400 text-xs sm:text-sm px-4 font-light">
+                <div className={AUTH_PAGE_FOOTER}>
                     © 2025 ITII Assist classroom. All Rights Reserved.
                 </div>
             </div>
@@ -176,9 +180,9 @@ function ResetPasswordContent() {
     // Success state
     if (resetSuccess) {
         return (
-            <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 p-3 sm:p-4">
+            <div data-auth-shell="true" className={AUTH_PAGE_SHELL}>
                 <div className="flex-1 flex items-center justify-center">
-                    <Card className="w-full max-w-md overflow-hidden shadow-2xl border border-green-200">
+                    <Card className={AUTH_PAGE_CARD}>
                         <CardBody className="p-8">
                             <div className="flex flex-col items-center text-center gap-4">
                                 <div className="p-4 bg-green-100 rounded-full">
@@ -204,7 +208,7 @@ function ResetPasswordContent() {
                         </CardBody>
                     </Card>
                 </div>
-                <div className="mt-2 pb-2 text-center text-slate-400 text-xs sm:text-sm px-4 font-light">
+                <div className={AUTH_PAGE_FOOTER}>
                     © 2025 ITII Assist classroom. All Rights Reserved.
                 </div>
             </div>
@@ -213,13 +217,13 @@ function ResetPasswordContent() {
 
     // Reset password form
     return (
-        <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 p-3 sm:p-4">
+        <div data-auth-shell="true" className={AUTH_PAGE_SHELL}>
             <div className="flex-1 flex items-center justify-center">
-                <Card className="w-full max-w-md overflow-hidden shadow-2xl border border-blue-100">
+                <Card className={AUTH_PAGE_CARD}>
                     <CardBody className="p-6 sm:p-8">
                         {/* Header */}
                         <div className="flex flex-col items-center text-center gap-4 mb-6">
-                            <div className="p-4 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl shadow-lg shadow-amber-500/30">
+                            <div className="p-4 bg-linear-to-br from-amber-500 to-orange-600 rounded-2xl shadow-lg shadow-amber-500/30">
                                 <Icon icon="solar:key-bold" className="text-3xl text-white" />
                             </div>
                             <div>
@@ -360,7 +364,7 @@ function ResetPasswordContent() {
                     </CardBody>
                 </Card>
             </div>
-            <div className="mt-2 pb-2 text-center text-slate-400 text-xs sm:text-sm px-4 font-light">
+            <div className={AUTH_PAGE_FOOTER}>
                 © 2025 ITII Assist classroom. All Rights Reserved.
             </div>
         </div>
@@ -371,9 +375,9 @@ function ResetPasswordContent() {
 export default function ResetPasswordPage() {
     return (
         <Suspense fallback={
-            <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 p-3 sm:p-4">
+            <div data-auth-shell="true" className={AUTH_PAGE_SHELL}>
                 <div className="flex-1 flex items-center justify-center">
-                    <Card className="w-full max-w-md overflow-hidden shadow-2xl border border-blue-100">
+                    <Card className={AUTH_PAGE_CARD}>
                         <CardBody className="p-8 flex flex-col items-center justify-center gap-4">
                             <Spinner size="lg" color="primary" />
                             <p className="text-slate-500">กำลังโหลด...</p>

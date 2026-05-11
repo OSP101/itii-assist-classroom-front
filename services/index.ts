@@ -8,7 +8,7 @@ export { courseService } from './course.service';
 export { default as assignmentService } from './assignment.service';
 export { default as scoreService } from './score.service';
 export { default as examScoreService } from './examScore.service';
-export type { User, LoginCredentials, LoginResponse, AuthState, Session } from './auth.service';
+export type { User, UserPreferences, LoginCredentials, LoginResponse, AuthState, Session } from './auth.service';
 export type { TwoFactorLoginData } from './twoFactor.service';
 export type { 
   User as UserModel, 

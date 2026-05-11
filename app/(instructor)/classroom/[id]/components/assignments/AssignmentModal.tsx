@@ -247,14 +247,14 @@ function AssignmentModalComponent({
             <ModalContent>
                 <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg">
+                        <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg">
                             <Icon icon="solar:clipboard-list-bold" className="text-2xl text-white" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-slate-800">
+                            <h3 className="text-xl font-bold text-foreground">
                                 {editingAssignment ? "แก้ไขงาน" : "สร้างงานใหม่"}
                             </h3>
-                            <p className="text-sm text-slate-500 font-normal mt-1">
+                            <p className="mt-1 text-sm font-normal text-default-500">
                                 กำหนดหัวข้องานสำหรับการลงคะแนน
                             </p>
                         </div>
@@ -274,74 +274,74 @@ function AssignmentModalComponent({
                             onValueChange={(val) => setFormData(prev => ({ ...prev, name: val }))}
                             isRequired
                             classNames={{
-                                inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                label: "text-slate-600 font-medium text-sm",
+                                inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                label: "text-sm font-medium text-default-600",
                             }}
                         />
 
                         {/* Assignment Type */}
                         <div>
-                            <label className="text-slate-600 font-medium text-sm mb-2 block">ประเภทงาน</label>
+                            <label className="mb-2 block text-sm font-medium text-default-600">ประเภทงาน</label>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                 <button
                                     type="button"
                                     onClick={() => setFormData(prev => ({ ...prev, assignment_type: "individual", week_number: undefined }))}
                                     className={`p-4 rounded-xl border-2 transition-all ${formData.assignment_type === "individual"
                                             ? "border-indigo-500 bg-indigo-50"
-                                            : "border-slate-200 hover:border-slate-300"
+                                            : "border-default-200 hover:border-default-300"
                                         } ${editingAssignment ? "opacity-60 cursor-not-allowed" : ""}`}
                                     disabled={!!editingAssignment}
                                 >
-                                    <Icon icon="solar:monitor-bold" className={`text-3xl mx-auto mb-2 ${formData.assignment_type === "individual" ? "text-indigo-500" : "text-slate-400"
+                                    <Icon icon="solar:monitor-bold" className={`text-3xl mx-auto mb-2 ${formData.assignment_type === "individual" ? "text-indigo-500" : "text-default-400"
                                         }`} />
-                                    <p className={`font-semibold text-sm ${formData.assignment_type === "individual" ? "text-indigo-600" : "text-slate-600"
+                                    <p className={`font-semibold text-sm ${formData.assignment_type === "individual" ? "text-indigo-600" : "text-default-600"
                                         }`}>Laboratory</p>
-                                    <p className="text-xs text-slate-500 mt-1">งานในคาบ</p>
+                                    <p className="mt-1 text-xs text-default-500">งานในคาบ</p>
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setFormData(prev => ({ ...prev, assignment_type: "assignment", week_number: undefined }))}
                                     className={`p-4 rounded-xl border-2 transition-all ${formData.assignment_type === "assignment"
                                             ? "border-amber-500 bg-amber-50"
-                                            : "border-slate-200 hover:border-slate-300"
+                                            : "border-default-200 hover:border-default-300"
                                         } ${editingAssignment ? "opacity-60 cursor-not-allowed" : ""}`}
                                     disabled={!!editingAssignment}
                                 >
-                                    <Icon icon="solar:document-text-bold" className={`text-3xl mx-auto mb-2 ${formData.assignment_type === "assignment" ? "text-amber-500" : "text-slate-400"
+                                    <Icon icon="solar:document-text-bold" className={`text-3xl mx-auto mb-2 ${formData.assignment_type === "assignment" ? "text-amber-500" : "text-default-400"
                                         }`} />
-                                    <p className={`font-semibold text-sm ${formData.assignment_type === "assignment" ? "text-amber-600" : "text-slate-600"
+                                    <p className={`font-semibold text-sm ${formData.assignment_type === "assignment" ? "text-amber-600" : "text-default-600"
                                         }`}>Assignment</p>
-                                    <p className="text-xs text-slate-500 mt-1">การบ้าน</p>
+                                    <p className="mt-1 text-xs text-default-500">การบ้าน</p>
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setFormData(prev => ({ ...prev, assignment_type: "permanent_group", week_number: undefined }))}
                                     className={`p-4 rounded-xl border-2 transition-all ${formData.assignment_type === "permanent_group"
                                             ? "border-purple-500 bg-purple-50"
-                                            : "border-slate-200 hover:border-slate-300"
+                                            : "border-default-200 hover:border-default-300"
                                         } ${editingAssignment ? "opacity-60 cursor-not-allowed" : ""}`}
                                     disabled={!!editingAssignment}
                                 >
-                                    <Icon icon="solar:users-group-rounded-bold" className={`text-3xl mx-auto mb-2 ${formData.assignment_type === "permanent_group" ? "text-purple-500" : "text-slate-400"
+                                    <Icon icon="solar:users-group-rounded-bold" className={`text-3xl mx-auto mb-2 ${formData.assignment_type === "permanent_group" ? "text-purple-500" : "text-default-400"
                                         }`} />
-                                    <p className={`font-semibold text-sm ${formData.assignment_type === "permanent_group" ? "text-purple-600" : "text-slate-600"
+                                    <p className={`font-semibold text-sm ${formData.assignment_type === "permanent_group" ? "text-purple-600" : "text-default-600"
                                         }`}>กลุ่มโปรเจกต์</p>
-                                    <p className="text-xs text-slate-500 mt-1">งานกลุ่ม</p>
+                                    <p className="mt-1 text-xs text-default-500">งานกลุ่ม</p>
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setFormData(prev => ({ ...prev, assignment_type: "weekly_group", week_number: prev.week_number || 1 }))}
                                     className={`p-4 rounded-xl border-2 transition-all ${formData.assignment_type === "weekly_group"
                                             ? "border-emerald-500 bg-emerald-50"
-                                            : "border-slate-200 hover:border-slate-300"
+                                            : "border-default-200 hover:border-default-300"
                                         } ${editingAssignment ? "opacity-60 cursor-not-allowed" : ""}`}
                                     disabled={!!editingAssignment}
                                 >
-                                    <Icon icon="solar:calendar-bold" className={`text-3xl mx-auto mb-2 ${formData.assignment_type === "weekly_group" ? "text-emerald-500" : "text-slate-400"
+                                    <Icon icon="solar:calendar-bold" className={`text-3xl mx-auto mb-2 ${formData.assignment_type === "weekly_group" ? "text-emerald-500" : "text-default-400"
                                         }`} />
-                                    <p className={`font-semibold text-sm ${formData.assignment_type === "weekly_group" ? "text-emerald-600" : "text-slate-600"
+                                    <p className={`font-semibold text-sm ${formData.assignment_type === "weekly_group" ? "text-emerald-600" : "text-default-600"
                                         }`}>กลุ่มสัปดาห์</p>
-                                    <p className="text-xs text-slate-500 mt-1">กลุ่มรายสัปดาห์</p>
+                                    <p className="mt-1 text-xs text-default-500">กลุ่มรายสัปดาห์</p>
                                 </button>
                             </div>
                         </div>
@@ -349,7 +349,7 @@ function AssignmentModalComponent({
                         {/* Week Number - Only show for weekly group */}
                         {formData.assignment_type === "weekly_group" && (
                             <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200">
-                                <label className="text-slate-600 font-medium text-sm mb-2 block">สัปดาห์ที่</label>
+                                <label className="mb-2 block text-sm font-medium text-default-600">สัปดาห์ที่</label>
                                 {Object.keys(weeklyTeams).length > 0 ? (
                                     <Select
                                         placeholder="เลือกสัปดาห์"
@@ -363,8 +363,8 @@ function AssignmentModalComponent({
                                         }}
                                         variant="bordered"
                                         classNames={{
-                                            trigger: "bg-white border-slate-200",
-                                            value: "text-slate-800",
+                                            trigger: "bg-content1 border-default-200",
+                                            value: "text-foreground",
                                         }}
                                     >
                                         {Object.keys(weeklyTeams)
@@ -374,7 +374,7 @@ function AssignmentModalComponent({
                                                 <SelectItem key={weekNum.toString()} textValue={`สัปดาห์ที่ ${weekNum}`}>
                                                     <div className="flex items-center justify-between w-full">
                                                         <span>สัปดาห์ที่ {weekNum}</span>
-                                                        <span className="text-xs text-slate-500">
+                                                        <span className="text-xs text-default-500">
                                                             ({weeklyTeams[weekNum]?.length || 0} กลุ่ม)
                                                         </span>
                                                     </div>
@@ -392,15 +392,15 @@ function AssignmentModalComponent({
                         )}
 
                         {/* Link to Attendance Session - Multi-select */}
-                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <div className="rounded-xl border border-default-200 bg-content2/80 p-4">
                             <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-blue-100 rounded-lg">
                                         <Icon icon="solar:clipboard-check-bold" className="text-lg text-blue-600" />
                                     </div>
                                     <div>
-                                        <span className="font-semibold text-slate-700">ลิงก์กับการเช็คชื่อ</span>
-                                        <p className="text-xs text-slate-500">สามารถเลือกหลายรอบเช็คชื่อได้</p>
+                                        <span className="font-semibold text-default-700">ลิงก์กับการเช็คชื่อ</span>
+                                        <p className="text-xs text-default-500">สามารถเลือกหลายรอบเช็คชื่อได้</p>
                                     </div>
                                 </div>
                                 <Button
@@ -430,7 +430,7 @@ function AssignmentModalComponent({
                             </div>
                             
                             {isLoadingSessions ? (
-                                <div className="p-4 text-center text-slate-500">
+                                <div className="p-4 text-center text-default-500">
                                     <Icon icon="svg-spinners:3-dots-fade" className="text-2xl" />
                                 </div>
                             ) : attendanceSessions.length > 0 ? (
@@ -449,8 +449,8 @@ function AssignmentModalComponent({
                                     }}
                                     variant="bordered"
                                     classNames={{
-                                        trigger: "bg-white border-slate-200",
-                                        value: "text-slate-800",
+                                        trigger: "bg-content1 border-default-200",
+                                        value: "text-foreground",
                                     }}
                                 >
                                     {attendanceSessions.map((session) => (
@@ -458,7 +458,7 @@ function AssignmentModalComponent({
                                             <div className="flex items-center gap-3">
                                                 <div>
                                                     <span className="font-medium">{session.title}</span>
-                                                    <span className="text-xs text-slate-500 ml-2">
+                                                    <span className="ml-2 text-xs text-default-500">
                                                         {new Date(session.start_time).toLocaleDateString("th-TH", { 
                                                             day: "numeric", 
                                                             month: "short",
@@ -471,16 +471,16 @@ function AssignmentModalComponent({
                                     ))}
                                 </Select>
                             ) : (
-                                <div className="p-3 bg-slate-100 rounded-lg text-center">
-                                    <Icon icon="solar:clipboard-list-linear" className="text-slate-400 text-xl mb-1" />
-                                    <p className="text-sm text-slate-500">ยังไม่มีรอบเช็คชื่อ</p>
+                                <div className="rounded-lg bg-content3 p-3 text-center">
+                                    <Icon icon="solar:clipboard-list-linear" className="mb-1 text-xl text-default-400" />
+                                    <p className="text-sm text-default-500">ยังไม่มีรอบเช็คชื่อ</p>
                                 </div>
                             )}
                             
                             {/* Attendance Condition (AND/OR) - Only show when multiple sessions selected */}
                             {formData.linked_attendance_session_ids.length > 1 && (
-                                <div className="mt-4 p-3 bg-white rounded-lg border border-slate-200">
-                                    <label className="text-slate-600 font-medium text-sm mb-3 block">
+                                <div className="mt-4 rounded-lg border border-default-200 bg-content1 p-3">
+                                    <label className="mb-3 block text-sm font-medium text-default-600">
                                         เงื่อนไขการเช็คชื่อ
                                     </label>
                                     <div className="grid grid-cols-2 gap-3">
@@ -490,19 +490,19 @@ function AssignmentModalComponent({
                                             className={`p-3 rounded-lg border-2 transition-all text-left ${
                                                 formData.attendance_condition === "or"
                                                     ? "border-blue-500 bg-blue-50"
-                                                    : "border-slate-200 hover:border-slate-300"
+                                                    : "border-default-200 hover:border-default-300"
                                             }`}
                                         >
                                             <div className="flex items-center gap-2 mb-1">
                                                 <Icon 
                                                     icon="solar:alt-arrow-right-bold" 
-                                                    className={formData.attendance_condition === "or" ? "text-blue-600" : "text-slate-400"} 
+                                                    className={formData.attendance_condition === "or" ? "text-blue-600" : "text-default-400"} 
                                                 />
-                                                <span className={`font-semibold ${formData.attendance_condition === "or" ? "text-blue-700" : "text-slate-600"}`}>
+                                                <span className={`font-semibold ${formData.attendance_condition === "or" ? "text-blue-700" : "text-default-600"}`}>
                                                     อย่างน้อย 1 รอบ
                                                 </span>
                                             </div>
-                                            <p className="text-xs text-slate-500">มาเรียนอย่างน้อย 1 รอบถึงจะลงคะแนนได้</p>
+                                            <p className="text-xs text-default-500">มาเรียนอย่างน้อย 1 รอบถึงจะลงคะแนนได้</p>
                                         </button>
                                         <button
                                             type="button"
@@ -510,19 +510,19 @@ function AssignmentModalComponent({
                                             className={`p-3 rounded-lg border-2 transition-all text-left ${
                                                 formData.attendance_condition === "and"
                                                     ? "border-amber-500 bg-amber-50"
-                                                    : "border-slate-200 hover:border-slate-300"
+                                                    : "border-default-200 hover:border-default-300"
                                             }`}
                                         >
                                             <div className="flex items-center gap-2 mb-1">
                                                 <Icon 
                                                     icon="solar:check-circle-bold" 
-                                                    className={formData.attendance_condition === "and" ? "text-amber-600" : "text-slate-400"} 
+                                                    className={formData.attendance_condition === "and" ? "text-amber-600" : "text-default-400"} 
                                                 />
-                                                <span className={`font-semibold ${formData.attendance_condition === "and" ? "text-amber-700" : "text-slate-600"}`}>
+                                                <span className={`font-semibold ${formData.attendance_condition === "and" ? "text-amber-700" : "text-default-600"}`}>
                                                     ทุกรอบ
                                                 </span>
                                             </div>
-                                            <p className="text-xs text-slate-500">ต้องมาเรียนครบทุกรอบถึงจะลงคะแนนได้</p>
+                                            <p className="text-xs text-default-500">ต้องมาเรียนครบทุกรอบถึงจะลงคะแนนได้</p>
                                         </button>
                                     </div>
                                 </div>
@@ -549,7 +549,7 @@ function AssignmentModalComponent({
 
                         {/* Has Sub Items Toggle */}
                         <div>
-                            <label className="text-slate-600 font-medium text-sm mb-2 block">รูปแบบคะแนน</label>
+                            <label className="mb-2 block text-sm font-medium text-default-600">รูปแบบคะแนน</label>
                             <div className="grid grid-cols-2 gap-3">
                                 <button
                                     type="button"
@@ -561,14 +561,14 @@ function AssignmentModalComponent({
                                     }))}
                                     className={`p-4 rounded-xl border-2 transition-all ${!formData.hasSubItems
                                             ? "border-blue-500 bg-blue-50"
-                                            : "border-slate-200 hover:border-slate-300"
+                                            : "border-default-200 hover:border-default-300"
                                         } ${editingAssignment ? "opacity-60 cursor-not-allowed" : ""}`}
                                 >
-                                    <Icon icon="solar:document-bold" className={`text-3xl mx-auto mb-2 ${!formData.hasSubItems ? "text-blue-500" : "text-slate-400"
+                                    <Icon icon="solar:document-bold" className={`text-3xl mx-auto mb-2 ${!formData.hasSubItems ? "text-blue-500" : "text-default-400"
                                         }`} />
-                                    <p className={`font-semibold ${!formData.hasSubItems ? "text-blue-600" : "text-slate-600"
+                                    <p className={`font-semibold ${!formData.hasSubItems ? "text-blue-600" : "text-default-600"
                                         }`}>คะแนนเดียว</p>
-                                    <p className="text-xs text-slate-500 mt-1">ให้คะแนนรวมทั้งงาน</p>
+                                    <p className="mt-1 text-xs text-default-500">ให้คะแนนรวมทั้งงาน</p>
                                 </button>
                                 <button
                                     type="button"
@@ -582,14 +582,14 @@ function AssignmentModalComponent({
                                     }))}
                                     className={`p-4 rounded-xl border-2 transition-all ${formData.hasSubItems
                                             ? "border-amber-500 bg-amber-50"
-                                            : "border-slate-200 hover:border-slate-300"
+                                            : "border-default-200 hover:border-default-300"
                                         } ${editingAssignment ? "opacity-60 cursor-not-allowed" : ""}`}
                                 >
-                                    <Icon icon="solar:checklist-bold" className={`text-3xl mx-auto mb-2 ${formData.hasSubItems ? "text-amber-500" : "text-slate-400"
+                                    <Icon icon="solar:checklist-bold" className={`text-3xl mx-auto mb-2 ${formData.hasSubItems ? "text-amber-500" : "text-default-400"
                                         }`} />
-                                    <p className={`font-semibold ${formData.hasSubItems ? "text-amber-600" : "text-slate-600"
+                                    <p className={`font-semibold ${formData.hasSubItems ? "text-amber-600" : "text-default-600"
                                         }`}>มีข้อย่อย</p>
-                                    <p className="text-xs text-slate-500 mt-1">แบ่งเป็นหลายข้อย่อย</p>
+                                    <p className="mt-1 text-xs text-default-500">แบ่งเป็นหลายข้อย่อย</p>
                                 </button>
                             </div>
                         </div>
@@ -608,11 +608,11 @@ function AssignmentModalComponent({
                                 value={formData.maxScore.toString()}
                                 onValueChange={(val) => setFormData(prev => ({ ...prev, maxScore: parseFloat(val) || 0 }))}
                                 isRequired
-                                endContent={<span className="text-slate-400 text-sm">คะแนน</span>}
+                                endContent={<span className="text-sm text-default-400">คะแนน</span>}
                                 className="pt-6"
                                 classNames={{
-                                    inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                    label: "text-slate-600 font-medium text-sm",
+                                    inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                    label: "text-sm font-medium text-default-600",
                                 }}
                             />
                         )}
@@ -621,7 +621,7 @@ function AssignmentModalComponent({
                         {formData.hasSubItems && (
                             <div>
                                 <div className="flex items-center justify-between mb-3">
-                                    <label className="text-slate-600 font-medium text-sm">
+                                    <label className="text-sm font-medium text-default-600">
                                         ข้อย่อย ({formData.subItems.length} ข้อ)
                                     </label>
                                     <div className="flex items-center gap-2">
@@ -654,9 +654,9 @@ function AssignmentModalComponent({
                                     {formData.subItems.map((subItem, idx) => (
                                         <div
                                             key={subItem.id || idx}
-                                            className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl"
+                                            className="flex items-center gap-3 rounded-xl bg-content2/80 p-3"
                                         >
-                                            <span className="w-8 h-8 flex items-center justify-center bg-blue-100 text-blue-600 text-sm font-bold rounded-full flex-shrink-0">
+                                            <span className="w-8 h-8 flex items-center justify-center bg-blue-100 text-blue-600 text-sm font-bold rounded-full shrink-0">
                                                 {idx + 1}
                                             </span>
                                             <Input
@@ -673,7 +673,7 @@ function AssignmentModalComponent({
                                                     }));
                                                 }}
                                                 classNames={{
-                                                    inputWrapper: "h-10 bg-white border-slate-200",
+                                                    inputWrapper: "h-10 bg-content1 border-default-200",
                                                 }}
                                             />
                                             <Input
@@ -693,9 +693,9 @@ function AssignmentModalComponent({
                                                     }));
                                                 }}
                                                 className="w-36"
-                                                endContent={<span className="text-slate-400 text-xs">คะแนน</span>}
+                                                endContent={<span className="text-xs text-default-400">คะแนน</span>}
                                                 classNames={{
-                                                    inputWrapper: "h-10 bg-white border-slate-200",
+                                                    inputWrapper: "h-10 bg-content1 border-default-200",
                                                 }}
                                             />
                                             <Button
@@ -730,13 +730,13 @@ function AssignmentModalComponent({
                             onValueChange={(val) => setFormData(prev => ({ ...prev, description: val }))}
                             className="pt-4"
                             classNames={{
-                                inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                label: "text-slate-600 font-medium text-sm",
+                                inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                label: "text-sm font-medium text-default-600",
                             }}
                         />
 
                         {/* Score Visibility Toggle */}
-                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <div className="rounded-xl border border-default-200 bg-content2/80 p-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className={`p-2 rounded-lg ${formData.isScoreVisible ? 'bg-green-100' : 'bg-amber-100'}`}>
@@ -746,8 +746,8 @@ function AssignmentModalComponent({
                                         />
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-slate-700">การแสดงคะแนนต่อนักศึกษา</p>
-                                        <p className="text-xs text-slate-500">
+                                        <p className="text-sm font-medium text-default-700">การแสดงคะแนนต่อนักศึกษา</p>
+                                        <p className="text-xs text-default-500">
                                             {formData.isScoreVisible 
                                                 ? "นักศึกษาสามารถดูคะแนนงานนี้ได้" 
                                                 : "ซ่อนคะแนน - นักศึกษาจะไม่เห็นคะแนนงานนี้"
@@ -773,7 +773,7 @@ function AssignmentModalComponent({
                             {!formData.isScoreVisible && (
                                 <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
                                     <p className="text-xs text-amber-700 flex items-start gap-2">
-                                        <Icon icon="solar:info-circle-bold" className="mt-0.5 flex-shrink-0" />
+                                        <Icon icon="solar:info-circle-bold" className="mt-0.5 shrink-0" />
                                         <span>
                                             คะแนนงานนี้จะไม่แสดงในหน้าค้นหาคะแนนของนักศึกษา แต่ยังสามารถลงคะแนนและ Export Excel ได้ตามปกติ
                                         </span>
@@ -785,15 +785,15 @@ function AssignmentModalComponent({
                         <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-200">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className={`p-2 rounded-lg ${formData.isDraft ? "bg-yellow-200" : "bg-slate-100"}`}>
+                                    <div className={`p-2 rounded-lg ${formData.isDraft ? "bg-yellow-200" : "bg-content3"}`}>
                                         <Icon
                                             icon={formData.isDraft ? "solar:pen-new-square-bold" : "solar:global-bold"}
-                                            className={`text-lg ${formData.isDraft ? "text-yellow-700" : "text-slate-500"}`}
+                                            className={`text-lg ${formData.isDraft ? "text-yellow-700" : "text-default-500"}`}
                                         />
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-slate-700">โหมดฉบับร่าง</p>
-                                        <p className="text-xs text-slate-500">
+                                        <p className="text-sm font-medium text-default-700">โหมดฉบับร่าง</p>
+                                        <p className="text-xs text-default-500">
                                             {formData.isDraft
                                                 ? "งานนี้เป็นฉบับร่าง — นักศึกษายังไม่เห็น"
                                                 : "เผยแพร่ทันที — นักศึกษาเห็นได้เลย"}
@@ -817,13 +817,13 @@ function AssignmentModalComponent({
                                         value={formData.publishAt}
                                         onValueChange={(val) => setFormData(prev => ({ ...prev, publishAt: val }))}
                                         classNames={{
-                                            inputWrapper: "bg-white border-yellow-300 hover:border-yellow-400 focus-within:!border-yellow-500",
-                                            label: "text-slate-600 font-medium text-sm",
+                                            inputWrapper: "bg-content1 border-yellow-300 hover:border-yellow-400 focus-within:!border-yellow-500",
+                                            label: "text-sm font-medium text-default-600",
                                         }}
                                     />
                                     <div className="p-3 bg-yellow-100 rounded-lg border border-yellow-300">
                                         <p className="text-xs text-yellow-800 flex items-start gap-2">
-                                            <Icon icon="solar:info-circle-bold" className="mt-0.5 flex-shrink-0 text-yellow-600" />
+                                            <Icon icon="solar:info-circle-bold" className="mt-0.5 shrink-0 text-yellow-600" />
                                             <span>
                                                 {formData.publishAt
                                                     ? `งานนี้จะเผยแพร่อัตโนมัติในวันที่ ${new Date(formData.publishAt).toLocaleDateString("th-TH", { dateStyle: "long" })} เวลา ${new Date(formData.publishAt).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })} น.`
@@ -837,9 +837,9 @@ function AssignmentModalComponent({
                     </div>
                 </ModalBody>
 
-                <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                <ModalFooter className="border-t border-divider px-6 py-4">
                     <div className="flex items-center justify-between w-full">
-                        <div className="text-sm text-slate-500">
+                        <div className="text-sm text-default-500">
                             {formData.hasSubItems
                                 ? `คะแนนรวม: ${Number.isInteger(totalSubItemScore) ? totalSubItemScore : totalSubItemScore.toFixed(2)} คะแนน`
                                 : `คะแนนเต็ม: ${formData.maxScore} คะแนน`
@@ -856,7 +856,7 @@ function AssignmentModalComponent({
                                 color={formData.isDraft ? "warning" : "primary"}
                                 onPress={handleSubmit}
                                 isLoading={isSubmitting}
-                                className={formData.isDraft ? "bg-yellow-500 text-white" : "bg-blue-500"}
+                                className={formData.isDraft ? "bg-yellow-500 text-white" : "bg-blue-500 text-white"}
                                 startContent={!isSubmitting && <Icon icon={
                                     formData.isDraft
                                         ? "solar:pen-new-square-bold"

@@ -85,7 +85,7 @@ interface PeopleTabProps {
 
 function PeopleTableSkeleton() {
     return (
-        <Card className="shadow-sm border border-slate-200">
+        <Card className="border border-default-200 shadow-sm">
             <CardBody className="p-2">
                 <div className="space-y-3">
                     {[1, 2, 3].map((i) => (
@@ -382,8 +382,8 @@ export default function PeopleTab({
         <div className="space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-lg font-semibold text-slate-800">บุคลากรในรายวิชา</h2>
-                    <p className="text-sm text-slate-500">เพิ่มบุคลากรและกำหนดขอบเขตงานของแต่ละคนในรายวิชา</p>
+                    <h2 className="text-lg font-semibold text-foreground">บุคลากรในรายวิชา</h2>
+                    <p className="text-sm text-default-500">เพิ่มบุคลากรและกำหนดขอบเขตงานของแต่ละคนในรายวิชา</p>
                 </div>
 
                 {(canAddInstructor || canAddTA) && (
@@ -419,7 +419,7 @@ export default function PeopleTab({
                 <>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                         {[1, 2, 3].map((i) => (
-                            <Card key={i} className="shadow-sm border border-slate-200">
+                            <Card key={i} className="border border-default-200 shadow-sm">
                                 <CardBody className="p-4">
                                     <div className="flex items-center gap-3">
                                         <Skeleton className="w-12 h-12 rounded-xl" />
@@ -437,48 +437,48 @@ export default function PeopleTab({
             ) : (
                 <>
                     <div className="hidden md:grid grid-cols-2 md:grid-cols-3 gap-3">
-                        <Card className="shadow-sm border border-slate-200">
+                        <Card className="border border-default-200 shadow-sm">
                             <CardBody className="p-4">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2.5 bg-blue-100 rounded-xl">
                                         <Icon icon="solar:users-group-rounded-bold" className="text-2xl text-blue-600" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-slate-500">บุคลากรทั้งหมด</p>
-                                        <p className="text-2xl font-bold text-slate-800">{instructorsCount + (course.tas?.length || 0)}</p>
+                                        <p className="text-xs text-default-500">บุคลากรทั้งหมด</p>
+                                        <p className="text-2xl font-bold text-foreground">{instructorsCount + (course.tas?.length || 0)}</p>
                                     </div>
                                 </div>
                             </CardBody>
                         </Card>
-                        <Card className="shadow-sm border border-slate-200">
+                        <Card className="border border-default-200 shadow-sm">
                             <CardBody className="p-4">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2.5 bg-indigo-100 rounded-xl">
                                         <Icon icon="solar:user-circle-bold" className="text-2xl text-indigo-600" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-slate-500">อาจารย์ผู้สอน</p>
-                                        <p className="text-2xl font-bold text-slate-800">{instructorsCount}</p>
+                                        <p className="text-xs text-default-500">อาจารย์ผู้สอน</p>
+                                        <p className="text-2xl font-bold text-foreground">{instructorsCount}</p>
                                     </div>
                                 </div>
                             </CardBody>
                         </Card>
-                        <Card className="shadow-sm border border-slate-200">
+                        <Card className="border border-default-200 shadow-sm">
                             <CardBody className="p-4">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2.5 bg-emerald-100 rounded-xl">
                                         <Icon icon="solar:user-hands-bold" className="text-2xl text-emerald-600" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-slate-500">ผู้ช่วยสอน (TA)</p>
-                                        <p className="text-2xl font-bold text-slate-800">{course.tas?.length || 0}</p>
+                                        <p className="text-xs text-default-500">ผู้ช่วยสอน (TA)</p>
+                                        <p className="text-2xl font-bold text-foreground">{course.tas?.length || 0}</p>
                                     </div>
                                 </div>
                             </CardBody>
                         </Card>
                     </div>
 
-                    <Card className="shadow-sm border border-slate-200">
+                    <Card className="border border-default-200 shadow-sm">
                         <CardBody className="p-2">
                             <div className="overflow-x-auto">
                                 <Table
@@ -486,7 +486,7 @@ export default function PeopleTab({
                                     removeWrapper
                                     classNames={{
                                         base: "min-w-[860px]",
-                                        th: "bg-slate-50 text-slate-600 font-semibold text-sm whitespace-nowrap",
+                                        th: "bg-content2 text-default-600 font-semibold text-sm whitespace-nowrap",
                                         td: "py-3 align-top",
                                     }}
                                 >
@@ -499,8 +499,8 @@ export default function PeopleTab({
                                     </TableHeader>
                                     <TableBody emptyContent={
                                         <div className="py-10 text-center">
-                                            <Icon icon="solar:users-group-rounded-linear" className="text-5xl text-slate-300 mx-auto mb-3" />
-                                            <p className="text-slate-400">ยังไม่มีบุคลากรในรายวิชานี้</p>
+                                                <Icon icon="solar:users-group-rounded-linear" className="mx-auto mb-3 text-5xl text-default-300" />
+                                                <p className="text-default-400">ยังไม่มีบุคลากรในรายวิชานี้</p>
                                         </div>
                                     }>
                                         {paginatedPeople.map((person) => {
@@ -519,12 +519,12 @@ export default function PeopleTab({
                                                                 }
                                                             />
                                                             <div>
-                                                                <p className="font-medium text-slate-800">{person.full_name}</p>
+                                                                    <p className="font-medium text-foreground">{person.full_name}</p>
                                                             </div>
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <span className="text-slate-600">{person.email}</span>
+                                                            <span className="text-default-600">{person.email}</span>
                                                     </TableCell>
                                                     <TableCell>
                                                         <div className="flex items-center gap-2 flex-wrap">
@@ -555,17 +555,17 @@ export default function PeopleTab({
                                                         <div className="space-y-2">
                                                             <div className="flex flex-wrap gap-1.5">
                                                                 {summary.labels.map((label) => (
-                                                                    <Chip key={label} size="sm" variant="flat" className="bg-slate-100 text-slate-700">
+                                                                    <Chip key={label} size="sm" variant="flat" className="bg-content3 text-default-700">
                                                                         {label}
                                                                     </Chip>
                                                                 ))}
                                                                 {summary.remaining > 0 && (
-                                                                    <Chip size="sm" variant="flat" className="bg-slate-200 text-slate-700">
+                                                                    <Chip size="sm" variant="flat" className="bg-content4 text-default-700">
                                                                         +{summary.remaining}
                                                                     </Chip>
                                                                 )}
                                                             </div>
-                                                            <p className="text-xs text-slate-500">เปิดใช้งาน {summary.total} สิทธิ์</p>
+                                                            <p className="text-xs text-default-500">เปิดใช้งาน {summary.total} สิทธิ์</p>
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
@@ -594,7 +594,7 @@ export default function PeopleTab({
                                                                         </Tooltip>
                                                                     ) : (
                                                                         <Tooltip content={userRole === "ta" && person.personId === currentUserId ? "ผู้ช่วยสอนไม่สามารถแก้สิทธิ์ของตัวเองได้" : "บัญชีนี้ไม่มีสิทธิ์แก้ permission บุคลากร"}>
-                                                                            <span className="text-slate-300 p-2">
+                                                                            <span className="p-2 text-default-300">
                                                                                 <Icon icon="solar:lock-keyhole-bold" className="text-lg" />
                                                                             </span>
                                                                         </Tooltip>
@@ -616,7 +616,7 @@ export default function PeopleTab({
                                                                             </Tooltip>
                                                                         ) : (
                                                                             <Tooltip content={person.isPrimary ? "อาจารย์เจ้าของวิชาไม่สามารถลบออกได้" : "ไม่สามารถลบตัวเองออกได้"}>
-                                                                                <span className="text-slate-300 p-2">
+                                                                                <span className="p-2 text-default-300">
                                                                                     <Icon icon="solar:lock-keyhole-bold" className="text-lg" />
                                                                                 </span>
                                                                             </Tooltip>
@@ -645,7 +645,7 @@ export default function PeopleTab({
                                                                 </>
                                                             ) : (
                                                                 <Tooltip content="บัญชีนี้ไม่มีสิทธิ์จัดการบุคลากร">
-                                                                    <span className="text-slate-300 p-2">
+                                                                    <span className="p-2 text-default-300">
                                                                         <Icon icon="solar:lock-keyhole-bold" className="text-lg" />
                                                                     </span>
                                                                 </Tooltip>
@@ -660,7 +660,7 @@ export default function PeopleTab({
                             </div>
 
                             {totalPages > 1 && (
-                                <div className="flex justify-center py-4 border-t border-slate-100">
+                                <div className="flex justify-center border-t border-divider py-4">
                                     <Pagination
                                         total={totalPages}
                                         page={currentPage}
@@ -680,13 +680,13 @@ export default function PeopleTab({
                     </Card>
 
                     {instructorsCount === 0 && (!course.tas || course.tas.length === 0) && (
-                        <Card className="shadow-sm border border-dashed border-slate-300 bg-slate-50/50">
+                        <Card className="border border-dashed border-default-300 bg-content2/50 shadow-sm">
                             <CardBody className="text-center py-16">
                                 <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-linear-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
                                     <Icon icon="solar:users-group-rounded-bold-duotone" className="text-5xl text-blue-500" />
                                 </div>
-                                <h3 className="text-lg font-semibold text-slate-700 mb-2">ยังไม่มีบุคลากร</h3>
-                                <p className="text-slate-500 mb-6 max-w-md mx-auto">เพิ่มอาจารย์หรือผู้ช่วยสอนเพื่อช่วยจัดการรายวิชาและมอบหมายสิทธิ์ได้ตามงานที่ต้องรับผิดชอบ</p>
+                                <h3 className="mb-2 text-lg font-semibold text-default-700">ยังไม่มีบุคลากร</h3>
+                                <p className="mx-auto mb-6 max-w-md text-default-500">เพิ่มอาจารย์หรือผู้ช่วยสอนเพื่อช่วยจัดการรายวิชาและมอบหมายสิทธิ์ได้ตามงานที่ต้องรับผิดชอบ</p>
                                 {(canAddInstructor || canAddTA) && (
                                     <div className="flex gap-2 justify-center">
                                         {canAddInstructor && (
@@ -722,31 +722,31 @@ export default function PeopleTab({
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1">
                         <span>สิทธิ์ในรายวิชา</span>
-                        <span className="text-sm font-normal text-slate-500">{editingMember?.full_name}</span>
+                        <span className="text-sm font-normal text-default-500">{editingMember?.full_name}</span>
                     </ModalHeader>
                     <ModalBody>
                         {draftPermissions && editingMember && (
                             <div className="space-y-5">
-                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                <div className="rounded-xl border border-default-200 bg-content2 p-4">
                                     <div className="flex items-center justify-between gap-3 flex-wrap">
                                         <div>
-                                            <p className="text-sm font-medium text-slate-800">บทบาทปัจจุบัน</p>
-                                            <p className="text-sm text-slate-500">
+                                            <p className="text-sm font-medium text-foreground">บทบาทปัจจุบัน</p>
+                                            <p className="text-sm text-default-500">
                                                 {editingMember.type === "instructor" ? "อาจารย์ผู้สอน" : "ผู้ช่วยสอน"}
                                             </p>
                                         </div>
-                                        <Chip size="sm" variant="flat" className="bg-slate-200 text-slate-700">
+                                        <Chip size="sm" variant="flat" className="bg-content4 text-default-700">
                                             เปิดใช้งาน {summarizePermissions(draftPermissions).total} สิทธิ์
                                         </Chip>
                                     </div>
                                 </div>
 
-                                <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
+                                <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 dark:border-blue-700/30 dark:bg-blue-950/20">
                                     <div className="flex items-center gap-2 mb-3">
-                                        <Icon icon="solar:magic-stick-3-bold" className="text-blue-500" />
+                                        <Icon icon="solar:magic-stick-3-bold" className="text-blue-500 dark:text-blue-300" />
                                         <div>
-                                            <p className="text-sm font-medium text-slate-800">Preset สิทธิ์</p>
-                                            <p className="text-xs text-slate-500">เลือกชุดสิทธิ์เริ่มต้นแล้วค่อยปรับจุดย่อยต่อได้</p>
+                                            <p className="text-sm font-medium text-foreground">Preset สิทธิ์</p>
+                                            <p className="text-xs text-default-500">เลือกชุดสิทธิ์เริ่มต้นแล้วค่อยปรับจุดย่อยต่อได้</p>
                                         </div>
                                     </div>
                                     <div className="grid gap-2 md:grid-cols-3">
@@ -756,12 +756,12 @@ export default function PeopleTab({
                                                 <Button
                                                     key={preset.id}
                                                     variant="flat"
-                                                    className="h-auto justify-start border border-blue-100 bg-white px-4 py-3 text-left"
+                                                    className="h-auto justify-start border border-blue-100 bg-content1 px-4 py-3 text-left dark:border-blue-700/30"
                                                     onPress={() => applyPermissionPreset(preset.id)}
                                                 >
                                                     <div>
-                                                        <p className="font-medium text-slate-800">{preset.label}</p>
-                                                        <p className="whitespace-normal text-xs text-slate-500">{preset.description}</p>
+                                                        <p className="font-medium text-foreground">{preset.label}</p>
+                                                        <p className="whitespace-normal text-xs text-default-500">{preset.description}</p>
                                                     </div>
                                                 </Button>
                                             ))}
@@ -771,25 +771,25 @@ export default function PeopleTab({
                                 {PERMISSION_SECTIONS.map((section) => {
                                     const enabledCount = section.items.filter((item) => draftPermissions[item.key]).length;
                                     return (
-                                        <div key={section.title} className="rounded-xl border border-slate-200 overflow-hidden">
-                                            <div className="flex items-center justify-between gap-2 bg-slate-100 px-4 py-2.5 border-b border-slate-200">
-                                                <h4 className="font-semibold text-slate-700 text-sm">{section.title}</h4>
+                                        <div key={section.title} className="overflow-hidden rounded-xl border border-default-200">
+                                            <div className="flex items-center justify-between gap-2 border-b border-default-200 bg-content2 px-4 py-2.5">
+                                                <h4 className="text-sm font-semibold text-default-700">{section.title}</h4>
                                                 <Chip
                                                     size="sm"
                                                     variant="flat"
-                                                    className={enabledCount > 0 ? "bg-blue-100 text-blue-700" : "bg-slate-200 text-slate-500"}
+                                                    className={enabledCount > 0 ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-100" : "bg-content4 text-default-500"}
                                                 >
                                                     {enabledCount}/{section.items.length}
                                                 </Chip>
                                             </div>
-                                            <div className="divide-y divide-slate-100">
+                                            <div className="divide-y divide-divider">
                                                 {section.items.map((item) => {
                                                     const isChecked = draftPermissions[item.key];
                                                     return (
-                                                        <div key={item.key} className={`flex items-center justify-between gap-4 px-4 py-3 transition-colors ${isChecked ? "bg-blue-50/40" : "bg-white"}`}>
+                                                        <div key={item.key} className={`flex items-center justify-between gap-4 px-4 py-3 transition-colors ${isChecked ? "bg-blue-50/60 dark:bg-blue-950/35" : "bg-content1"}`}>
                                                             <div>
-                                                                <p className={`text-sm font-medium ${isChecked ? "text-blue-800" : "text-slate-700"}`}>{item.label}</p>
-                                                                <p className="text-xs text-slate-400 mt-0.5">{item.description}</p>
+                                                                <p className={`text-sm font-medium ${isChecked ? "text-blue-800 dark:text-blue-100" : "text-default-700"}`}>{item.label}</p>
+                                                                <p className={`mt-0.5 text-xs ${isChecked ? "text-blue-700/80 dark:text-blue-200/70" : "text-default-400"}`}>{item.description}</p>
                                                             </div>
                                                             <Switch
                                                                 size="sm"

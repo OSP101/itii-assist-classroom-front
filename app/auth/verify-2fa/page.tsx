@@ -11,11 +11,16 @@ import { Spinner } from "@heroui/spinner";
 import { Icon } from "@iconify/react";
 import { addToast } from "@heroui/toast";
 import { twoFactorService, TwoFactorLoginData } from "@/services/twoFactor.service";
+import { useI18n } from "@/hooks/useI18n";
 
 type InputMode = "otp" | "recovery";
 
+const AUTH_PAGE_SHELL = "flex min-h-screen flex-col bg-background p-3 text-foreground sm:p-4";
+const AUTH_PAGE_CARD = "w-full max-w-md border border-default-200 bg-content1 shadow-2xl shadow-slate-200/40 dark:shadow-zinc-950/50";
+
 export default function VerifyTwoFactorPage() {
   const router = useRouter();
+  const t = useI18n();
   const [isLoading, setIsLoading] = useState(true);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -44,22 +49,22 @@ export default function VerifyTwoFactorPage() {
         setCooldown(60); // 60 seconds cooldown
         if (isResend) {
           addToast({
-            title: "ส่งรหัสใหม่แล้ว",
-            description: "กรุณาตรวจสอบอีเมลของคุณ",
+            title: t("resendCodeSent"),
+            description: t("resendCodeSentDescription"),
             color: "success",
             timeout: 3000,
                 shouldShowTimeoutProgress: true,
           });
         }
       } else {
-        setError(result.error || "ไม่สามารถส่งรหัสได้ กรุณาลองใหม่");
+        setError(result.error || t("unableToSendCodeTryAgain"));
       }
     } catch {
-      setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
+      setError(t("pleaseTryAgain"));
     } finally {
       setIsSendingEmail(false);
     }
-  }, [isSendingEmail, cooldown]);
+  }, [cooldown, isSendingEmail, t]);
 
   // Load 2FA data from sessionStorage on mount
   useEffect(() => {
@@ -99,12 +104,12 @@ export default function VerifyTwoFactorPage() {
     const code = codeOverride || (inputMode === "otp" ? otpCode : recoveryCode);
 
     if (inputMode === "otp" && code.length !== 6) {
-      setError("กรุณากรอกรหัส 6 หลัก");
+      setError(t("enterSixDigitCode"));
       return;
     }
 
     if (inputMode === "recovery" && !code.trim()) {
-      setError("กรุณากรอกรหัสสำรอง");
+      setError(t("enterBackupCode"));
       return;
     }
 
@@ -139,8 +144,8 @@ export default function VerifyTwoFactorPage() {
         }
 
         addToast({
-          title: "เข้าสู่ระบบสำเร็จ",
-          description: `ยินดีต้อนรับ ${user.username}`,
+          title: t("signInSuccessful"),
+          description: t("welcomeUser", { username: user.username }),
           color: "success",
           timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -159,17 +164,17 @@ export default function VerifyTwoFactorPage() {
             router.push("/");
         }
       } else {
-        setError(result.error || "รหัสไม่ถูกต้อง กรุณาลองใหม่");
+        setError(result.error || t("invalidCodeTryAgain"));
         if (inputMode === "otp") {
           setOtpCode("");
         }
       }
     } catch {
-      setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
+      setError(t("pleaseTryAgain"));
     } finally {
       setIsVerifying(false);
     }
-  }, [twoFactorData, otpCode, recoveryCode, inputMode, router]);
+  }, [twoFactorData, otpCode, recoveryCode, inputMode, router, t]);
 
   const toggleInputMode = () => {
     setInputMode(inputMode === "otp" ? "recovery" : "otp");
@@ -186,12 +191,12 @@ export default function VerifyTwoFactorPage() {
   // Show loading spinner while checking session
   if (isLoading) {
     return (
-      <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 p-3 sm:p-4">
+      <div data-auth-shell="true" className={AUTH_PAGE_SHELL}>
         <div className="flex-1 flex items-center justify-center">
-          <Card className="w-full max-w-md shadow-2xl border border-blue-100">
+          <Card className={AUTH_PAGE_CARD}>
             <CardBody className="flex flex-col items-center py-12">
               <Spinner size="lg" color="primary" />
-              <p className="mt-4 text-slate-500">กำลังโหลด...</p>
+              <p className="mt-4 text-slate-500">{t("loading")}</p>
             </CardBody>
           </Card>
         </div>
@@ -200,9 +205,9 @@ export default function VerifyTwoFactorPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 p-3 sm:p-4">
+    <div data-auth-shell="true" className={AUTH_PAGE_SHELL}>
       <div className="flex-1 flex items-center justify-center">
-        <Card className="w-full max-w-md shadow-2xl border border-blue-100">
+        <Card className={AUTH_PAGE_CARD}>
           <CardBody className="p-6 sm:p-8">
             {/* Header */}
             <div className="text-center mb-8">
@@ -213,12 +218,12 @@ export default function VerifyTwoFactorPage() {
                 />
               </div>
               <h1 className="text-2xl font-bold text-slate-800">
-                ยืนยันตัวตนสองขั้นตอน
+                {t("twoFactorVerification")}
               </h1>
               <p className="text-slate-500 mt-2">
                 {twoFactorData?.twoFactorMethod === "totp"
-                  ? "กรอกรหัส 6 หลักจากแอป Authenticator ของคุณ"
-                  : "กรอกรหัส 6 หลักที่ส่งไปยังอีเมลของคุณ"}
+                  ? t("enterCodeFromAuthenticator")
+                  : t("enterCodeFromEmail")}
               </p>
             </div>
 
@@ -232,13 +237,13 @@ export default function VerifyTwoFactorPage() {
                       {isSendingEmail ? (
                         <div className="p-3 bg-primary-50 border border-primary-200 rounded-lg flex items-center justify-center gap-2">
                           <Spinner size="sm" color="primary" />
-                          <span className="text-sm text-primary">กำลังส่งรหัสไปยังอีเมล...</span>
+                          <span className="text-sm text-primary">{t("sendingCodeToEmail")}</span>
                         </div>
                       ) : emailSent ? (
                         <div className="p-3 bg-success-50 border border-success-200 rounded-lg">
                           <p className="text-sm text-success text-center flex items-center justify-center gap-2">
                             <Icon icon="solar:check-circle-bold" className="text-lg" />
-                            ส่งรหัสไปยังอีเมลของคุณแล้ว
+                            {t("codeSentToYourEmail")}
                           </p>
                         </div>
                       ) : null}
@@ -276,13 +281,13 @@ export default function VerifyTwoFactorPage() {
                       isDisabled={cooldown > 0}
                       startContent={cooldown === 0 ? <Icon icon="solar:refresh-bold" className="text-lg" /> : null}
                     >
-                      {cooldown > 0 ? `ส่งรหัสใหม่ได้ใน ${cooldown} วินาที` : "ส่งรหัสใหม่"}
+                      {cooldown > 0 ? t("resendCodeInSeconds", { seconds: cooldown }) : t("resendCode")}
                     </Button>
                   )}
                 </div>
               ) : (
                 <Input
-                  label="Recovery Code"
+                  label={t("recoveryCode")}
                   placeholder="XXXX-XXXX"
                   value={recoveryCode}
                   onValueChange={(v) => {
@@ -320,7 +325,7 @@ export default function VerifyTwoFactorPage() {
                 isDisabled={inputMode === "otp" ? otpCode.length !== 6 : !recoveryCode.trim()}
                 startContent={!isVerifying && <Icon icon="solar:shield-check-bold" className="text-lg" />}
               >
-                ยืนยัน
+                {t("verify")}
               </Button>
 
               {/* Toggle Mode Link */}
@@ -332,10 +337,10 @@ export default function VerifyTwoFactorPage() {
                   className="text-default-600 hover:text-primary"
                 >
                   {inputMode === "otp"
-                    ? "ใช้รหัสสำรอง (Recovery Code)"
+                    ? t("useRecoveryCode")
                     : twoFactorData?.twoFactorMethod === "totp"
-                      ? "ใช้รหัสจาก Authenticator App"
-                      : "ใช้รหัสจากอีเมล"}
+                      ? t("useAuthenticatorAppCode")
+                      : t("useEmailCode")}
                 </Link>
               </div>
 
@@ -347,7 +352,7 @@ export default function VerifyTwoFactorPage() {
                   onPress={handleBackToLogin}
                   startContent={<Icon icon="solar:arrow-left-linear" />}
                 >
-                  กลับไปหน้าเข้าสู่ระบบ
+                  {t("backToLogin")}
                 </Button>
               </div>
             </div>
@@ -358,7 +363,7 @@ export default function VerifyTwoFactorPage() {
       {/* Footer */}
       <div className="text-center py-4">
         <p className="text-xs text-slate-400">
-          ITII Assist Classroom - Two-Factor Authentication
+          ITII Assist Classroom - {t("twoFactorAuthentication")}
         </p>
       </div>
     </div>

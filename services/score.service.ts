@@ -199,9 +199,7 @@ const scoreService = {
         sub_item_id?: number;
         student_ids?: number[]; // Optional: for grading selected members only
     }): Promise<boolean> {
-        console.log('submitGroupScore called with:', data);
         const response = await api.post<unknown>('/scores/group', data);
-        console.log('submitGroupScore response:', response);
         return response.success;
     },
 
@@ -213,9 +211,7 @@ const scoreService = {
         if (query) {
             url += `&query=${encodeURIComponent(query)}`;
         }
-        console.log('[scoreService] searchStudents URL:', url);
         const response = await api.get<Student[]>(url);
-        console.log('[scoreService] searchStudents response:', response);
         return response.data || [];
     },
 

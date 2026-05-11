@@ -45,8 +45,8 @@ const categoryConfig: Record<string, { label: string; icon: string; bgClass: str
   assignment: { label: "งาน", icon: "solar:clipboard-list-bold", bgClass: "bg-emerald-100", iconClass: "text-emerald-600" },
   score: { label: "คะแนน", icon: "solar:chart-square-bold", bgClass: "bg-amber-100", iconClass: "text-amber-600" },
   attendance: { label: "เช็คชื่อ", icon: "solar:user-check-bold", bgClass: "bg-rose-100", iconClass: "text-rose-600" },
-  queue: { label: "คิว", icon: "solar:sort-by-time-bold", bgClass: "bg-slate-100", iconClass: "text-slate-600" },
-  general: { label: "ทั่วไป", icon: "solar:info-circle-bold", bgClass: "bg-slate-100", iconClass: "text-slate-600" },
+  queue: { label: "คิว", icon: "solar:sort-by-time-bold", bgClass: "bg-content3", iconClass: "text-default-600" },
+  general: { label: "ทั่วไป", icon: "solar:info-circle-bold", bgClass: "bg-content3", iconClass: "text-default-600" },
 };
 
 const categoryChipColor: Record<string, "primary" | "secondary" | "success" | "warning" | "danger" | "default"> = {
@@ -219,15 +219,15 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-slate-800">บันทึกกิจกรรม</h2>
-          <p className="text-sm text-slate-500">ติดตามการเปลี่ยนแปลงทั้งหมดภายในรายวิชา</p>
+          <h2 className="text-lg font-semibold text-foreground">บันทึกกิจกรรม</h2>
+          <p className="text-sm text-default-500">ติดตามการเปลี่ยนแปลงทั้งหมดภายในรายวิชา</p>
         </div>
         <Button
           size="sm"
           variant="flat"
           startContent={<Icon icon="solar:refresh-bold" width={16} />}
           onPress={() => { fetchLogs(1); fetchStats(); fetchFilters(); }}
-          className="bg-slate-100 text-slate-600 hover:bg-slate-200"
+          className="bg-content2 text-default-600 hover:bg-content3"
         >
           รีเฟรช
         </Button>
@@ -242,7 +242,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
           tabList: "gap-4 md:gap-6 flex-nowrap min-w-max",
           cursor: "bg-blue-500",
           tab: "px-0 h-10",
-          tabContent: "group-data-[selected=true]:text-blue-600 text-slate-500 font-medium text-sm",
+          tabContent: "group-data-[selected=true]:text-blue-600 text-default-500 font-medium text-sm",
         }}
       >
         <Tab
@@ -252,7 +252,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
               <Icon icon="solar:clock-circle-bold" className="text-base" />
               <span>ไทม์ไลน์กิจกรรม</span>
               {pagination.total > 0 && (
-                <Chip size="sm" variant="flat" className="bg-blue-100 text-blue-600 h-5 px-1.5 text-xs">
+                <Chip size="sm" variant="flat" color="primary" className="h-5 px-1.5 text-xs">
                   {pagination.total}
                 </Chip>
               )}
@@ -274,7 +274,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
       {activeSubTab === "timeline" && (
         <div className="space-y-4">
           {/* Filter Bar */}
-          <Card className="shadow-sm border border-slate-200">
+          <Card className="border border-default-200 shadow-sm">
             <CardBody className="py-3 px-4">
               <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
                 <div className="flex gap-2 items-center flex-1">
@@ -289,7 +289,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                     isClearable
                     onClear={() => setSearchText("")}
                     classNames={{
-                      inputWrapper: "border-blue-200 hover:border-blue-300 focus-within:!border-blue-400",
+                      inputWrapper: "bg-content1 border-default-200 hover:border-default-300 focus-within:!border-blue-400",
                     }}
                   />
                 </div>
@@ -301,8 +301,8 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                       <Button
                         variant="bordered"
                         size="md"
-                        className="min-w-28 justify-between border-slate-200"
-                        endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-slate-400 text-sm" />}
+                        className="min-w-28 justify-between border-default-200"
+                        endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-default-400 text-sm" />}
                       >
                         {category ? (categoryConfig[category]?.label || category) : "ทุกหมวดหมู่"}
                       </Button>
@@ -333,8 +333,8 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                       <Button
                         variant="bordered"
                         size="md"
-                        className="min-w-28 justify-between border-slate-200"
-                        endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-slate-400 text-sm" />}
+                        className="min-w-28 justify-between border-default-200"
+                        endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-default-400 text-sm" />}
                       >
                         {action ? (actionLabels[action] || action) : "ทุกการกระทำ"}
                       </Button>
@@ -361,8 +361,8 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                       <Button
                         variant="bordered"
                         size="md"
-                        className="min-w-28 justify-between border-slate-200"
-                        endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-slate-400 text-sm" />}
+                        className="min-w-28 justify-between border-default-200"
+                        endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-default-400 text-sm" />}
                       >
                         {actorId
                           ? (filters?.actors.find((a) => String(a.id) === actorId)?.fullName || "ผู้ดำเนินการ")
@@ -390,7 +390,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
           </Card>
 
           {/* Log Table */}
-          <Card className="shadow-sm border border-slate-200">
+          <Card className="border border-default-200 shadow-sm">
             <CardBody className="p-2">
               {loading ? (
                 <div className="flex items-center justify-center py-20">
@@ -398,8 +398,8 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                 </div>
               ) : logs.length === 0 ? (
                 <div className="text-center py-20">
-                  <Icon icon="solar:clipboard-list-linear" className="text-5xl text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-500">ยังไม่มีบันทึกกิจกรรม</p>
+                  <Icon icon="solar:clipboard-list-linear" className="mx-auto mb-3 text-5xl text-default-300" />
+                  <p className="text-default-500">ยังไม่มีบันทึกกิจกรรม</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -409,7 +409,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                   bottomContent={
                     pagination.totalPages > 1 ? (
                       <div className="flex flex-col gap-2 px-1 py-2 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-default-400">
                           หน้า {pagination.page} จาก {pagination.totalPages}
                         </p>
                         <Pagination
@@ -430,19 +430,19 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                   }
                   bottomContentPlacement="outside"
                   classNames={{
-                    base: "min-w-[900px]",
-                    th: "bg-slate-50 text-slate-600 font-semibold text-sm whitespace-nowrap",
+                    base: "min-w-225",
+                    th: "bg-content2 text-default-600 font-semibold text-sm whitespace-nowrap",
                     td: "py-3 whitespace-nowrap",
-                    tr: "hover:bg-slate-50/70",
+                    tr: "hover:bg-content2/70",
                   }}
                 >
                   <TableHeader>
-                    <TableColumn className="min-w-[160px]">ผู้ดำเนินการ</TableColumn>
-                    <TableColumn className="min-w-[140px]">การกระทำ</TableColumn>
-                    <TableColumn className="min-w-[100px]">หมวดหมู่</TableColumn>
-                    <TableColumn className="min-w-[150px]">เป้าหมาย</TableColumn>
-                    <TableColumn className="min-w-[140px]">รายละเอียด</TableColumn>
-                    <TableColumn className="min-w-[120px]">เวลา</TableColumn>
+                    <TableColumn className="min-w-40">ผู้ดำเนินการ</TableColumn>
+                    <TableColumn className="min-w-35">การกระทำ</TableColumn>
+                    <TableColumn className="min-w-25">หมวดหมู่</TableColumn>
+                    <TableColumn className="min-w-37.5">เป้าหมาย</TableColumn>
+                    <TableColumn className="min-w-35">รายละเอียด</TableColumn>
+                    <TableColumn className="min-w-30">เวลา</TableColumn>
                   </TableHeader>
                   <TableBody>
                     {logs.map((log) => {
@@ -458,13 +458,13 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                                 name={log.actor?.full_name || "Unknown"}
                                 size="sm"
                                 src={log.actor?.avatar || undefined}
-                                className={`flex-shrink-0 ${catConf.bgClass} `}
+                                className={`shrink-0 ${catConf.bgClass} `}
                               />
                               <div>
-                                <p className="text-sm font-medium text-slate-800">
+                                <p className="text-sm font-medium text-foreground">
                                   {log.actor?.full_name || "Unknown"}
                                 </p>
-                                <p className="text-xs text-slate-400">
+                                <p className="text-xs text-default-400">
                                   {log.actor?.role === "instructor" ? "อาจารย์" : log.actor?.role === "ta" ? "TA" : log.actor?.role || ""}
                                 </p>
                               </div>
@@ -478,30 +478,30 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                           <TableCell>
                             <div className="flex items-center gap-1.5">
                               <Icon icon={catConf.icon} width={14} className={catConf.iconClass} />
-                              <span className="text-sm text-slate-600">{catConf.label}</span>
+                              <span className="text-sm text-default-600">{catConf.label}</span>
                             </div>
                           </TableCell>
                           <TableCell>
                             {log.target_name ? (
                               <Tooltip content={log.target_name}>
-                                <span className="text-sm text-slate-700 max-w-[150px] truncate block">
+                                <span className="block max-w-37.5 truncate text-sm text-default-700">
                                   {log.target_name}
                                 </span>
                               </Tooltip>
                             ) : (
-                              <span className="text-slate-300">-</span>
+                              <span className="text-default-300">-</span>
                             )}
                           </TableCell>
                           <TableCell>
                             {detailText ? (
-                              <span className="text-xs text-slate-500">{detailText}</span>
+                              <span className="text-xs text-default-500">{detailText}</span>
                             ) : (
-                              <span className="text-slate-300">-</span>
+                              <span className="text-default-300">-</span>
                             )}
                           </TableCell>
                           <TableCell>
                             <Tooltip content={new Date(log.created_at).toLocaleString("th-TH")}>
-                              <span className="text-sm text-slate-500 whitespace-nowrap">
+                              <span className="whitespace-nowrap text-sm text-default-500">
                                 {formatDate(log.created_at)}
                               </span>
                             </Tooltip>
@@ -529,41 +529,41 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
             <>
               {/* Stats Cards - matching PeopleTab pattern */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <Card className="shadow-sm border border-slate-200">
+                <Card className="border border-default-200 shadow-sm">
                   <CardBody className="p-4">
                     <div className="flex items-center gap-3">
                       <div className="p-2.5 bg-blue-100 rounded-xl">
                         <Icon icon="solar:clipboard-list-bold" className="text-2xl text-blue-600" />
                       </div>
                       <div>
-                        <p className="text-xs text-slate-500">กิจกรรมทั้งหมด</p>
-                        <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
+                        <p className="text-xs text-default-500">กิจกรรมทั้งหมด</p>
+                        <p className="text-2xl font-bold text-foreground">{stats.total}</p>
                       </div>
                     </div>
                   </CardBody>
                 </Card>
-                <Card className="shadow-sm border border-slate-200">
+                <Card className="border border-default-200 shadow-sm">
                   <CardBody className="p-4">
                     <div className="flex items-center gap-3">
                       <div className="p-2.5 bg-emerald-100 rounded-xl">
                         <Icon icon="solar:widget-bold" className="text-2xl text-emerald-600" />
                       </div>
                       <div>
-                        <p className="text-xs text-slate-500">หมวดหมู่</p>
-                        <p className="text-2xl font-bold text-slate-800">{stats.categoryStats.length}</p>
+                        <p className="text-xs text-default-500">หมวดหมู่</p>
+                        <p className="text-2xl font-bold text-foreground">{stats.categoryStats.length}</p>
                       </div>
                     </div>
                   </CardBody>
                 </Card>
-                <Card className="shadow-sm border border-slate-200">
+                <Card className="border border-default-200 shadow-sm">
                   <CardBody className="p-4">
                     <div className="flex items-center gap-3">
                       <div className="p-2.5 bg-amber-100 rounded-xl">
                         <Icon icon="solar:users-group-rounded-bold" className="text-2xl text-amber-600" />
                       </div>
                       <div>
-                        <p className="text-xs text-slate-500">ผู้ดำเนินการ</p>
-                        <p className="text-2xl font-bold text-slate-800">{stats.actorStats.length}</p>
+                        <p className="text-xs text-default-500">ผู้ดำเนินการ</p>
+                        <p className="text-2xl font-bold text-foreground">{stats.actorStats.length}</p>
                       </div>
                     </div>
                   </CardBody>
@@ -571,16 +571,16 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
               </div>
 
               {/* Category Breakdown Table */}
-              <Card className="shadow-sm border border-slate-200">
+              <Card className="border border-default-200 shadow-sm">
                 <CardBody className="p-2">
                   <div className="px-3 py-2">
-                    <h3 className="text-base font-semibold text-slate-800">กิจกรรมตามหมวดหมู่ (30 วันล่าสุด)</h3>
+                    <h3 className="text-base font-semibold text-foreground">กิจกรรมตามหมวดหมู่ (30 วันล่าสุด)</h3>
                   </div>
                   <Table
                     aria-label="Category stats"
                     removeWrapper
                     classNames={{
-                      th: "bg-slate-50 text-slate-600 font-semibold text-sm",
+                      th: "bg-content2 text-default-600 font-semibold text-sm",
                       td: "py-3",
                     }}
                   >
@@ -594,6 +594,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                         const conf = categoryConfig[cat.category] || categoryConfig.general;
                         const maxCount = Math.max(...stats.categoryStats.map((c) => Number(c.count)));
                         const pct = maxCount > 0 ? (Number(cat.count) / maxCount) * 100 : 0;
+                        const progressClass = conf.bgClass.startsWith("bg-content") ? "bg-default-400" : conf.bgClass.replace("100", "400");
                         return (
                           <TableRow key={cat.category}>
                             <TableCell>
@@ -601,21 +602,21 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                                 <div className={`p-1.5 rounded-lg ${conf.bgClass}`}>
                                   <Icon icon={conf.icon} width={14} className={conf.iconClass} />
                                 </div>
-                                <span className="text-sm font-medium text-slate-700">{conf.label}</span>
+                                <span className="text-sm font-medium text-default-700">{conf.label}</span>
                               </div>
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-2 min-w-[120px]">
-                                <div className="flex-1 bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                              <div className="flex min-w-30 items-center gap-2">
+                                <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-content3">
                                   <div
-                                    className={`h-full rounded-full transition-all duration-500 ${conf.bgClass.replace("100", "400")}`}
+                                    className={`h-full rounded-full transition-all duration-500 ${progressClass}`}
                                     style={{ width: `${pct}%` }}
                                   />
                                 </div>
                               </div>
                             </TableCell>
                             <TableCell>
-                              <span className="text-sm font-semibold text-slate-800">{cat.count}</span>
+                              <span className="text-sm font-semibold text-foreground">{cat.count}</span>
                             </TableCell>
                           </TableRow>
                         );
@@ -626,16 +627,16 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
               </Card>
 
               {/* Top Actions Table */}
-              <Card className="shadow-sm border border-slate-200">
+              <Card className="border border-default-200 shadow-sm">
                 <CardBody className="p-2">
                   <div className="px-3 py-2">
-                    <h3 className="text-base font-semibold text-slate-800">การกระทำที่พบบ่อย (30 วันล่าสุด)</h3>
+                    <h3 className="text-base font-semibold text-foreground">การกระทำที่พบบ่อย (30 วันล่าสุด)</h3>
                   </div>
                   <Table
                     aria-label="Top actions"
                     removeWrapper
                     classNames={{
-                      th: "bg-slate-50 text-slate-600 font-semibold text-sm",
+                      th: "bg-content2 text-default-600 font-semibold text-sm",
                       td: "py-3",
                     }}
                   >
@@ -648,13 +649,13 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                       {stats.actionStats.slice(0, 10).map((a, idx) => (
                         <TableRow key={a.action}>
                           <TableCell>
-                            <span className="text-xs text-slate-400">{idx + 1}</span>
+                            <span className="text-xs text-default-400">{idx + 1}</span>
                           </TableCell>
                           <TableCell>
-                            <span className="text-sm text-slate-700">{actionLabels[a.action] || a.action}</span>
+                            <span className="text-sm text-default-700">{actionLabels[a.action] || a.action}</span>
                           </TableCell>
                           <TableCell>
-                            <Chip size="sm" variant="flat" className="bg-blue-50 text-blue-600">
+                            <Chip size="sm" variant="flat" color="primary">
                               {a.count} ครั้ง
                             </Chip>
                           </TableCell>
@@ -666,16 +667,16 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
               </Card>
 
               {/* Active Users Table */}
-              <Card className="shadow-sm border border-slate-200">
+              <Card className="border border-default-200 shadow-sm">
                 <CardBody className="p-2">
                   <div className="px-3 py-2">
-                    <h3 className="text-base font-semibold text-slate-800">ผู้ดำเนินการ (30 วันล่าสุด)</h3>
+                    <h3 className="text-base font-semibold text-foreground">ผู้ดำเนินการ (30 วันล่าสุด)</h3>
                   </div>
                   <Table
                     aria-label="Active users"
                     removeWrapper
                     classNames={{
-                      th: "bg-slate-50 text-slate-600 font-semibold text-sm",
+                      th: "bg-content2 text-default-600 font-semibold text-sm",
                       td: "py-3",
                     }}
                   >
@@ -693,9 +694,9 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                                 name={actor.fullName}
                                 size="sm"
                                 src={actor.avatar || undefined}
-                                className="bg-blue-100 flex-shrink-0"
+                                className="bg-blue-100 shrink-0"
                               />
-                              <span className="text-sm font-medium text-slate-800">{actor.fullName}</span>
+                              <span className="text-sm font-medium text-foreground">{actor.fullName}</span>
                             </div>
                           </TableCell>
                           <TableCell>
@@ -704,7 +705,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                             </Chip>
                           </TableCell>
                           <TableCell>
-                            <span className="text-sm font-semibold text-slate-800">{actor.count} ครั้ง</span>
+                            <span className="text-sm font-semibold text-foreground">{actor.count} ครั้ง</span>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -714,11 +715,11 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
               </Card>
             </>
           ) : (
-            <Card className="shadow-sm border border-slate-200">
+            <Card className="border border-default-200 shadow-sm">
               <CardBody className="py-16">
                 <div className="text-center">
-                  <Icon icon="solar:chart-2-linear" className="text-5xl text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-500">ไม่มีข้อมูลสถิติ</p>
+                  <Icon icon="solar:chart-2-linear" className="mx-auto mb-3 text-5xl text-default-300" />
+                  <p className="text-default-500">ไม่มีข้อมูลสถิติ</p>
                 </div>
               </CardBody>
             </Card>

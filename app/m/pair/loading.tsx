@@ -6,8 +6,8 @@ export default function Loading() {
             <div className="mx-auto max-w-4xl space-y-6">
                 <ProSkeleton variant="hero" className="h-36 rounded-[28px]" />
                 <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-                    <ProSkeleton variant="card" className="h-[260px] rounded-[28px]" />
-                    <ProSkeleton variant="card" className="h-[420px] rounded-[28px]" />
+                    <ProSkeleton variant="card" className="h-65 rounded-[28px]" />
+                    <ProSkeleton variant="card" className="h-105 rounded-[28px]" />
                 </div>
             </div>
         </div>

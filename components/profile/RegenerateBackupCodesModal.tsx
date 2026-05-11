@@ -115,7 +115,7 @@ ${backupCodes.map((code, i) => `${i + 1}. ${code}`).join("\n")}
       <ModalBody className="py-6">
         <div className="bg-danger-50 border border-danger-200 rounded-lg p-4 mb-4">
           <div className="flex gap-3">
-            <Icon icon="solar:danger-triangle-bold" className="text-xl text-danger flex-shrink-0 mt-0.5" />
+            <Icon icon="solar:danger-triangle-bold" className="text-xl text-danger shrink-0 mt-0.5" />
             <div>
               <p className="text-sm text-danger-800 font-medium">คำเตือน</p>
               <p className="text-sm text-danger-700 mt-1">
@@ -175,7 +175,7 @@ ${backupCodes.map((code, i) => `${i + 1}. ${code}`).join("\n")}
     <>
       <ModalBody className="py-6">
         <div className="text-center mb-6">
-          <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/30">
+          <div className="w-16 h-16 mx-auto mb-4 bg-linear-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/30">
             <Icon icon="solar:shield-keyhole-bold" className="text-3xl text-white" />
           </div>
           <h3 className="text-lg font-semibold text-default-900">รหัสสำรองใหม่</h3>
@@ -249,7 +249,7 @@ ${backupCodes.map((code, i) => `${i + 1}. ${code}`).join("\n")}
     >
       <ModalContent>
         <ModalHeader className="flex items-center gap-3 border-b border-default-200">
-          <div className="p-2 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
+          <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
             <Icon icon="solar:refresh-bold" className="text-xl text-white" />
           </div>
           <div>

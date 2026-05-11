@@ -236,7 +236,7 @@ function AssignmentModalComponent({
             <ModalContent>
                 <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg">
+                        <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg">
                             <Icon icon="solar:clipboard-list-bold" className="text-2xl text-white" />
                         </div>
                         <div>

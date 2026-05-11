@@ -3,7 +3,6 @@
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { useTheme } from "next-themes";
 import { Button } from "@heroui/button";
 import { Spinner } from "@heroui/spinner";
 import { Avatar } from "@heroui/avatar";
@@ -15,10 +14,12 @@ import { IoSchool } from "react-icons/io5";
 import { AdminProvider, useAdmin } from "@/contexts/AdminContext";
 import { AppFooter } from "@/components/Footer";
 import { NetworkMetricsPanel } from "@/components/dev/network-metrics-panel";
+import { useSettingsMenuItems } from "@/components/SettingsPanel";
+import { useI18n } from "@/hooks/useI18n";
 
 interface MenuItem {
     key: string;
-    label: string;
+    labelKey: string;
     icon: string;
     href: string;
 }
@@ -26,71 +27,72 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
     {
         key: "overview",
-        label: "ภาพรวม",
+        labelKey: "overview",
         icon: "solar:home-2-bold",
         href: "/admin/dashboard",
     },
     {
         key: "users",
-        label: "ผู้ใช้งาน",
+        labelKey: "users",
         icon: "solar:users-group-rounded-bold",
         href: "/admin/users",
     },
     {
         key: "students",
-        label: "นักศึกษา",
+        labelKey: "students",
         icon: "solar:square-academic-cap-bold",
         href: "/admin/students",
     },
     {
         key: "courses",
-        label: "รายวิชา",
+        labelKey: "courses",
         icon: "solar:book-bookmark-bold",
         href: "/admin/courses",
     },
     {
         key: "classrooms",
-        label: "ห้องเรียน",
+        labelKey: "classrooms",
         icon: "solar:display-bold",
         href: "/admin/classrooms",
     },
     {
         key: "feedback",
-        label: "Feedback",
+        labelKey: "feedback",
         icon: "solar:chat-round-dots-bold",
         href: "/admin/feedback",
     },
     {
         key: "logs",
-        label: "System Logs",
+        labelKey: "systemLogs",
         icon: "solar:document-text-bold",
         href: "/admin/logs",
     },
     {
         key: "monitoring",
-        label: "Monitoring",
+        labelKey: "monitoring",
         icon: "solar:monitor-smartphone-bold",
         href: "/admin/monitoring",
     }
 ];
 
 // Page titles mapping
-const pageTitles: Record<string, { title: string; subtitle?: string }> = {
-    '/admin/dashboard': { title: 'ภาพรวมระบบ', subtitle: 'Admin Dashboard' },
-    '/admin/users': { title: 'จัดการผู้ใช้งาน', subtitle: 'User Management' },
-    '/admin/students': { title: 'จัดการนักศึกษา', subtitle: 'Student Management' },
-    '/admin/courses': { title: 'จัดการรายวิชา', subtitle: 'Course Management' },
-    '/admin/classrooms': { title: 'จัดการห้องเรียน', subtitle: 'Classroom Management' },
-    '/admin/feedback': { title: 'จัดการ Feedback', subtitle: 'รายงานข้อผิดพลาดและข้อเสนอแนะ' },
-    '/admin/logs': { title: 'System Logs', subtitle: 'บันทึกการใช้งานระบบ' },
-    '/admin/monitoring': { title: 'System Monitoring', subtitle: 'Real-time Server & Website Health' },
-    '/admin/settings': { title: 'ตั้งค่าระบบ', subtitle: 'System Settings' },
-    '/admin/courses/': { title: 'จัดการรายวิชา', subtitle: 'Course Management' },
+const pageTitles: Record<string, { titleKey: string; subtitleKey?: string }> = {
+    "/admin/dashboard": { titleKey: "systemOverview", subtitleKey: "adminDashboard" },
+    "/admin/users": { titleKey: "manageUsers", subtitleKey: "userManagement" },
+    "/admin/students": { titleKey: "manageStudents", subtitleKey: "studentManagement" },
+    "/admin/courses": { titleKey: "manageCourses", subtitleKey: "courseManagement" },
+    "/admin/classrooms": { titleKey: "manageClassrooms", subtitleKey: "classroomManagement" },
+    "/admin/feedback": { titleKey: "manageFeedback", subtitleKey: "feedbackIssuesAndSuggestions" },
+    "/admin/logs": { titleKey: "systemLogs", subtitleKey: "systemActivityLogs" },
+    "/admin/monitoring": { titleKey: "systemMonitoring", subtitleKey: "realTimeServerAndWebsiteHealth" },
+    "/admin/settings": { titleKey: "systemSettings", subtitleKey: "systemSettings" },
+    "/admin/courses/": { titleKey: "manageCourses", subtitleKey: "courseManagement" },
 };
 
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
+    const t = useI18n();
     const {
         user,
         isLoading,
@@ -101,8 +103,30 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
     // Mobile sidebar state
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const [userThemeMenuItem, userLanguageMenuItem, userFontSizeMenuItem] = useSettingsMenuItems({
+        menuFlyoutSide: "left",
+        onOptionSelect: () => setIsUserMenuOpen(false),
+    });
 
-    const pageInfo = pageTitles[pathname] || { title: 'Admin Panel' };
+    const pageTitle = pageTitles[pathname];
+    const pageInfo = {
+        title: t(pageTitle?.titleKey || "adminPanel"),
+        subtitle: pageTitle?.subtitleKey ? t(pageTitle.subtitleKey) : undefined,
+    };
+
+    const getRoleLabel = (role?: string) => {
+        switch (role) {
+            case "admin":
+                return t("roleAdmin");
+            case "instructor":
+                return t("roleInstructor");
+            case "ta":
+                return t("roleTa");
+            default:
+                return role || "";
+        }
+    };
 
     // Close mobile sidebar when route changes
     useEffect(() => {
@@ -121,15 +145,29 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         };
     }, [isMobileSidebarOpen]);
 
+    if (isLoading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-15 h-15 bg-linear-to-br from-blue-400 to-indigo-500 rounded flex items-center justify-center text-white text-4xl">
+                        <IoSchool />
+                    </div>
+                    <p className="text-xl text-default-700">{t("loadingUser")}</p>
+                    <Spinner size="lg" color="primary" />
+                </div>
+            </div>
+        );
+    }
+
     // Don't render content if user is not authenticated (will be redirected by AdminContext)
     if (!user && !isLoading) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-slate-50">
+            <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
                 <div className="flex flex-col items-center gap-4">
-                    <div className="w-15 h-15 bg-gradient-to-br from-blue-400 to-indigo-500 rounded flex items-center justify-center text-white text-4xl">
+                    <div className="w-15 h-15 bg-linear-to-br from-blue-400 to-indigo-500 rounded flex items-center justify-center text-white text-4xl">
                         <IoSchool />
                     </div>
-                    <p className="text-xl text-slate-700">กำลังนำไปยังหน้าเข้าสู่ระบบ...</p>
+                    <p className="text-xl text-default-700">{t("redirectingToLogin")}</p>
                     <Spinner size="lg" color="primary" />
                 </div>
             </div>
@@ -137,7 +175,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <div className="flex min-h-screen bg-slate-50">
+        <div data-auth-shell="true" className="flex min-h-screen bg-background text-foreground">
             {/* Mobile Overlay */}
             {isMobileSidebarOpen && (
                 <div 
@@ -149,7 +187,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             {/* Sidebar - Desktop: fixed, Mobile: slide-in */}
             <aside
                 className={`
-                    fixed left-0 top-0 z-50 h-screen bg-white border-r border-slate-200 
+                    fixed left-0 top-0 z-50 h-screen border-r border-divider bg-content1 
                     transition-all duration-300 ease-in-out
                     ${sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'}
                     ${isMobileSidebarOpen ? 'translate-x-0 w-72' : '-translate-x-full lg:translate-x-0'}
@@ -158,19 +196,19 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 {/* Mobile Close Button */}
                 <button
                     onClick={() => setIsMobileSidebarOpen(false)}
-                    className="absolute top-4 right-4 p-2 rounded-lg hover:bg-slate-100 lg:hidden"
+                    className="absolute top-4 right-4 rounded-lg p-2 transition-colors hover:bg-default-100 lg:hidden"
                 >
-                    <Icon icon="solar:close-circle-linear" className="text-xl text-slate-500" />
+                    <Icon icon="solar:close-circle-linear" className="text-xl text-default-500" />
                 </button>
 
                 {/* Logo */}
-                <div className="flex items-center h-16 px-4 border-b border-slate-200">
+                <div className="flex items-center h-16 border-b border-divider px-4">
                     <Link href="/admin/dashboard" className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-500/30 flex-shrink-0">
+                        <div className="w-8 h-8 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-500/30 shrink-0">
                             <IoSchool />
                         </div>
                         {(!sidebarCollapsed || isMobileSidebarOpen) && (
-                            <span className="font-bold text-slate-800 text-md">ITII Assist Classroom</span>
+                            <span className="text-md font-bold text-foreground">ITII Assist Classroom</span>
                         )}
                     </Link>
                 </div>
@@ -178,34 +216,34 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 {/* Navigation */}
                 <nav className="p-3 space-y-1 overflow-y-auto h-[calc(100vh-8rem)]">
                     {menuItems.map((item) => (
-                        <Tooltip key={item.key} content={item.label} placement="right" isDisabled={!sidebarCollapsed || isMobileSidebarOpen}>
+                        <Tooltip key={item.key} content={t(item.labelKey)} placement="right" isDisabled={!sidebarCollapsed || isMobileSidebarOpen}>
                             <Link
                                 href={item.href || '#'}
                                 onClick={() => setIsMobileSidebarOpen(false)}
                                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${pathname === item.href
-                                    ? 'bg-blue-50 text-blue-600 font-medium'
-                                    : 'text-slate-600 hover:bg-slate-100'
+                                    ? 'bg-primary-50 font-medium text-primary-600 dark:bg-primary/15 dark:text-primary-400'
+                                    : 'text-default-600 hover:bg-default-100 hover:text-foreground'
                                     }`}
                             >
-                                <Icon icon={item.icon} className="text-lg flex-shrink-0" />
-                                {(!sidebarCollapsed || isMobileSidebarOpen) && <span>{item.label}</span>}
+                                <Icon icon={item.icon} className="text-lg shrink-0" />
+                                {(!sidebarCollapsed || isMobileSidebarOpen) && <span>{t(item.labelKey)}</span>}
                             </Link>
                         </Tooltip>
                     ))}
                 </nav>
 
                 {/* Sidebar Footer - Hide on mobile */}
-                <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-slate-200 bg-white hidden lg:block">
-                    <Tooltip content={sidebarCollapsed ? "ขยาย" : "ย่อ"} placement="right">
+                <div className="absolute bottom-0 left-0 right-0 hidden border-t border-divider bg-content1 p-3 lg:block">
+                    <Tooltip content={sidebarCollapsed ? t("expand") : t("collapse")} placement="right">
                         <button
                             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
+                            className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-default-500 transition-colors hover:bg-default-100 hover:text-foreground"
                         >
                             <Icon
                                 icon={sidebarCollapsed ? "solar:alt-arrow-right-linear" : "solar:alt-arrow-left-linear"}
                                 className="text-lg"
                             />
-                            {!sidebarCollapsed && <span className="text-sm">ย่อเมนู</span>}
+                            {!sidebarCollapsed && <span className="text-sm">{t("collapseMenu")}</span>}
                         </button>
                     </Tooltip>
                 </div>
@@ -214,36 +252,36 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             {/* Main Content - Responsive margin */}
             <div className={`flex-1 min-w-0 flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
                 {/* Header */}
-                <header className="sticky top-0 z-30 bg-white border-b border-slate-200 h-14 sm:h-16">
+                <header className="sticky top-0 z-30 h-14 border-b border-divider bg-content1/95 backdrop-blur sm:h-16">
                     <div className="flex items-center justify-between h-full px-4 sm:px-6">
                         <div className="flex items-center gap-3">
                             {/* Mobile Menu Button */}
                             <button
                                 onClick={() => setIsMobileSidebarOpen(true)}
-                                className="p-2 -ml-2 rounded-lg hover:bg-slate-100 lg:hidden"
+                                className="-ml-2 rounded-lg p-2 transition-colors hover:bg-default-100 lg:hidden"
                             >
-                                <Icon icon="solar:hamburger-menu-linear" className="text-xl text-slate-600" />
+                                <Icon icon="solar:hamburger-menu-linear" className="text-xl text-default-600" />
                             </button>
                             <div className="min-w-0">
-                                <h1 className="text-base sm:text-lg font-semibold text-slate-800 truncate">{pageInfo.title}</h1>
-                                {pageInfo.subtitle && <p className="text-xs text-slate-500 hidden sm:block">{pageInfo.subtitle}</p>}
+                                <h1 className="truncate text-base font-semibold text-foreground sm:text-lg">{pageInfo.title}</h1>
+                                {pageInfo.subtitle && <p className="hidden text-xs text-default-500 sm:block">{pageInfo.subtitle}</p>}
                             </div>
                         </div>
                         <div className="flex items-center gap-2 sm:gap-4">
                             {/* User Menu */}
-                            <Dropdown placement="bottom-end">
+                            <Dropdown placement="bottom-end" isOpen={isUserMenuOpen} onOpenChange={setIsUserMenuOpen}>
                                 <DropdownTrigger>
                                     <Avatar
                                         name={user?.full_name}
                                         size="md"
-                                        className="bg-gradient-to-br from-blue-400 to-indigo-500 text-white cursor-pointer"
+                                        className="bg-linear-to-br from-blue-400 to-indigo-500 text-white cursor-pointer"
                                     />
                                 </DropdownTrigger>
-                                <DropdownMenu aria-label="User menu">
-                                    <DropdownSection showDivider aria-label="Profile & Actions">
+                                <DropdownMenu aria-label={t("userMenu")} className="max-h-[75vh] overflow-visible"> 
+                                    <DropdownSection showDivider aria-label={t("profileAndActions")}>
                                         <DropdownItem key="profile-info" className="h-14 gap-2" textValue="Profile info">
                                             <div>
-                                                <p className="font-medium mr-1">{user?.full_name || undefined} <Chip color="primary" variant="bordered" size="sm">{user?.role}</Chip></p>
+                                                <p className="font-medium mr-1">{user?.full_name || undefined} <Chip color="primary" variant="bordered" size="sm">{getRoleLabel(user?.role)}</Chip></p>
                                                 <p className="font-light text-xs">{user?.email || undefined}</p>
                                             </div>
                                         </DropdownItem>
@@ -253,15 +291,18 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                                         startContent={<Icon icon="solar:user-linear" />}
                                         onPress={() => router.push("/admin/profile")}
                                     >
-                                        โปรไฟล์
+                                        {t("profile")}
                                     </DropdownItem>
+                                    {userThemeMenuItem}
+                                    {userLanguageMenuItem}
+                                    {userFontSizeMenuItem}
                                     <DropdownItem
                                         key="logout"
                                         color="danger"
                                         startContent={<Icon icon="solar:logout-2-linear" />}
                                         onPress={handleLogout}
                                     >
-                                        ออกจากระบบ
+                                        {t("logout")}
                                     </DropdownItem>
                                 </DropdownMenu>
                             </Dropdown>

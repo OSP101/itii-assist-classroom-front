@@ -11,6 +11,8 @@ import { authService, User, Session } from "@/services";
 import ChangePasswordModal from "./ChangePasswordModal";
 import ConfirmPasswordModal from "./ConfirmPasswordModal";
 import ProfileSidebar, { MenuKey, MENU_ITEMS } from "./ProfileSidebar";
+import { SettingsPanel } from "@/components/SettingsPanel";
+import { useI18n } from "@/hooks/useI18n";
 import { 
   PersonalInfoSkeleton, 
   AuthenticationSkeleton, 
@@ -31,14 +33,15 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
   const router = useRouter();
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const t = useI18n();
   
   // Get initial tab from URL or default to "personal"
   const tabFromUrl = searchParams.get("tab") as MenuKey | null;
-  const validTabs: MenuKey[] = ["personal", "authentication", "sessions"];
+  const validTabs: MenuKey[] = ["personal", "authentication", "sessions", "preferences"];
   const initialTab = tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : "personal";
   
-  // User state — seed from localStorage for instant render, then verify via API
-  const [user, setUser] = useState<User | null>(() => authService.getStoredUser());
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
   
   // Navigation state
   const [activeMenu, setActiveMenu] = useState<MenuKey>(initialTab);
@@ -65,18 +68,16 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
   const [showRevokeSessionModal, setShowRevokeSessionModal] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   
-  // Load user data — stored user shown immediately; API call updates in background
   useEffect(() => {
-    const stored = authService.getStoredUser();
-    if (stored) {
-      setFullName(stored.full_name || "");
-      setUsername(stored.username || "");
-      setEmail(stored.email || "");
-    }
+    let isMounted = true;
 
     const loadUser = async () => {
       try {
         const currentUser = await authService.getCurrentUser();
+        if (!isMounted) {
+          return;
+        }
+
         if (currentUser) {
           setUser(currentUser);
           setFullName(currentUser.full_name || "");
@@ -88,10 +89,18 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
       } catch (error) {
         console.error("Failed to load user:", error);
         router.push("/login");
+      } finally {
+        if (isMounted) {
+          setIsLoadingUser(false);
+        }
       }
     };
     
     loadUser();
+
+    return () => {
+      isMounted = false;
+    };
   }, [router]);
   
   // Load sessions when sessions tab is active
@@ -348,6 +357,14 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
     return config[role] || { color: "secondary" as const, label: role };
   }, []);
 
+  if (isLoadingUser) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <PersonalInfoSkeleton />
+      </div>
+    );
+  }
+
   if (!user) {
     return null;
   }
@@ -406,6 +423,12 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
           </Suspense>
         </div>
       )}
+
+      {visitedTabs.includes("preferences") && (
+        <div className={activeMenu === "preferences" ? "block" : "hidden"}>
+          <SettingsPanel />
+        </div>
+      )}
     </>
   );
 
@@ -415,13 +438,13 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex items-center gap-3">
           {onBack && (
-            <Button isIconOnly variant="light" aria-label="กลับ" onPress={onBack} size="sm">
+            <Button isIconOnly variant="light" aria-label={t("back")} onPress={onBack} size="sm">
               <Icon icon="solar:arrow-left-linear" className="text-xl" />
             </Button>
           )}
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-default-900">ตั้งค่าบัญชี</h1>
-            <p className="text-xs sm:text-sm text-default-500">จัดการข้อมูลส่วนตัวและความปลอดภัย</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-default-900">{t("accountSettings")}</h1>
+            <p className="text-xs sm:text-sm text-default-500">{t("manageProfileAndSecurity")}</p>
           </div>
         </div>
         
@@ -434,7 +457,7 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
                 size="sm"
                 variant={activeMenu === item.key ? "solid" : "flat"}
                 color={activeMenu === item.key ? (item.key === "authentication" ? "warning" : "primary") : "default"}
-                className={`flex-shrink-0 ${
+                className={`shrink-0 ${
                   activeMenu === item.key 
                     ? item.key === "authentication" 
                       ? "bg-warning-500 text-white shadow-md" 
@@ -444,7 +467,7 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
                 startContent={<Icon icon={item.icon} className="text-base" />}
                 onPress={() => handleTabChange(item.key as MenuKey)}
               >
-                {item.label}
+                {t(item.labelKey)}
               </Button>
             ))}
           </div>
@@ -454,7 +477,7 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
       {/* Main Layout */}
       <div className="flex gap-6">
         {/* Desktop Sidebar */}
-        <div className="hidden lg:block w-72 flex-shrink-0">
+        <div className="hidden lg:block w-72 shrink-0">
           <Card className="border border-default-200 shadow-sm p-4">
             <ProfileSidebar
               activeMenu={activeMenu}
@@ -473,7 +496,7 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
       <Modal isOpen={showRevokeAllModal} onClose={() => setShowRevokeAllModal(false)}>
         <ModalContent>
           <ModalHeader className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
+            <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
               <Icon icon="solar:logout-3-bold" className="text-xl text-white" />
             </div>
             <span>ยืนยันการออกจากระบบ</span>
@@ -487,7 +510,7 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
             <Button variant="light" onPress={() => setShowRevokeAllModal(false)}>
               ยกเลิก
             </Button>
-            <Button color="primary" onPress={handleRevokeAllSessions} isLoading={isRevokingAll} className="bg-gradient-to-r from-blue-400 to-indigo-500 text-white">
+            <Button color="primary" onPress={handleRevokeAllSessions} isLoading={isRevokingAll} className="bg-linear-to-r from-blue-400 to-indigo-500 text-white">
               ออกจากระบบทั้งหมด
             </Button>
           </ModalFooter>
@@ -506,7 +529,7 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
       >
         <ModalContent>
           <ModalHeader className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-red-500 to-red-500 rounded-lg shadow-lg shadow-rose-500/30">
+            <div className="p-2 bg-linear-to-br from-red-500 to-red-500 rounded-lg shadow-lg shadow-rose-500/30">
               <Icon icon="solar:logout-2-bold" className="text-xl text-white" />
             </div>
             <span>ยืนยันการออกจากระบบอุปกรณ์นี้</span>

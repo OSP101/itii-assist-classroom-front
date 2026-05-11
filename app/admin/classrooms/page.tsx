@@ -38,8 +38,8 @@ import { MetricCardSkeleton, TableRowsSkeleton } from "@/components/ui/resource-
 const CanvasEditor = dynamic(() => import("./CanvasEditor"), {
     ssr: false,
     loading: () => (
-        <div className="flex items-center justify-center h-full bg-slate-100 rounded-xl">
-            <div className="text-slate-400">กำลังโหลด...</div>
+        <div className="flex h-full items-center justify-center rounded-xl bg-content2 text-foreground">
+            <div className="text-default-400">กำลังโหลด...</div>
         </div>
     ),
 });
@@ -899,9 +899,9 @@ export default function ClassroomsPage() {
             case "name":
                 return (
                     <div>
-                        <p className="font-semibold text-slate-800">{classroom.name}</p>
+                        <p className="font-semibold text-foreground">{classroom.name}</p>
                         {classroom.description && (
-                            <p className="text-xs text-slate-400 mt-0.5 truncate max-w-[200px]">
+                            <p className="mt-0.5 max-w-50 truncate text-xs text-default-400">
                                 {classroom.description}
                             </p>
                         )}
@@ -931,10 +931,10 @@ export default function ClassroomsPage() {
             case "desks":
                 return (
                     <div className="flex flex-col gap-1">
-                        <span className="text-sm text-slate-700">
+                        <span className="text-sm text-default-700">
                             {classroom.desks.length} โต๊ะ
                         </span>
-                        <div className="flex gap-2 text-xs text-slate-500">
+                        <div className="flex gap-2 text-xs text-default-500">
                             <span className="flex items-center gap-1">
                                 <Icon icon="solar:monitor-linear" className="text-blue-500" />
                                 {classroom.desks.filter(d => d.type === "computer").length}
@@ -1066,7 +1066,7 @@ export default function ClassroomsPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
                 <div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-default-900">
+                    <h1 className="text-xl sm:text-2xl font-bold text-foreground">
                         จัดการห้องเรียน
                     </h1>
                     <p className="text-xs sm:text-sm text-default-500 mt-1">
@@ -1089,7 +1089,7 @@ export default function ClassroomsPage() {
                         color="primary"
                         startContent={<Icon icon="solar:add-circle-bold" className="text-lg sm:text-xl" />}
                         onPress={() => setShowCreateModal(true)}
-                        className="font-medium flex-1 sm:flex-none sm:px-6 bg-gradient-to-r from-blue-400 to-indigo-500 text-xs sm:text-sm"
+                        className="font-medium flex-1 sm:flex-none sm:px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-xs sm:text-sm"
                         size="md"
                     >
                         <span className="hidden sm:inline">สร้างห้องเรียนใหม่</span>
@@ -1109,47 +1109,47 @@ export default function ClassroomsPage() {
                     </>
                 ) : (
                     <>
-                <div className="bg-white rounded-xl p-3 sm:p-4 border border-default-200 shadow-sm">
+                <div className="rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:p-4">
                     <div className="flex items-center gap-3">
                         <div className="p-2 sm:p-2.5 bg-blue-100 rounded-xl">
                             <Icon icon="solar:buildings-3-bold" className="text-xl sm:text-2xl text-blue-600" />
                         </div>
                         <div className="min-w-0">
                             <p className="text-xs sm:text-sm text-default-500">ห้องเรียนทั้งหมด</p>
-                            <p className="text-xl sm:text-2xl font-bold text-default-900">{stats?.totalClassrooms ?? 0}</p>
+                            <p className="text-xl sm:text-2xl font-bold text-foreground">{stats?.totalClassrooms ?? 0}</p>
                         </div>
                     </div>
                 </div>
-                <div className="bg-white rounded-xl p-3 sm:p-4 border border-default-200 shadow-sm">
+                <div className="rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:p-4">
                     <div className="flex items-center gap-3">
                         <div className="p-2 sm:p-2.5 bg-green-100 rounded-xl">
                             <Icon icon="solar:chair-bold" className="text-xl sm:text-2xl text-green-600" />
                         </div>
                         <div className="min-w-0">
                             <p className="text-xs sm:text-sm text-default-500">โต๊ะทั้งหมด</p>
-                            <p className="text-xl sm:text-2xl font-bold text-default-900">{stats?.totalDesks ?? 0}</p>
+                            <p className="text-xl sm:text-2xl font-bold text-foreground">{stats?.totalDesks ?? 0}</p>
                         </div>
                     </div>
                 </div>
-                <div className="bg-white rounded-xl p-3 sm:p-4 border border-default-200 shadow-sm">
+                <div className="rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:p-4">
                     <div className="flex items-center gap-3">
                         <div className="p-2 sm:p-2.5 bg-purple-100 rounded-xl">
                             <Icon icon="solar:monitor-bold" className="text-xl sm:text-2xl text-purple-600" />
                         </div>
                         <div className="min-w-0">
                             <p className="text-xs sm:text-sm text-default-500">โต๊ะคอมพิวเตอร์</p>
-                            <p className="text-xl sm:text-2xl font-bold text-default-900">{stats?.computerDesks ?? 0}</p>
+                            <p className="text-xl sm:text-2xl font-bold text-foreground">{stats?.computerDesks ?? 0}</p>
                         </div>
                     </div>
                 </div>
-                <div className="bg-white rounded-xl p-3 sm:p-4 border border-default-200 shadow-sm">
+                <div className="rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:p-4">
                     <div className="flex items-center gap-3">
                         <div className="p-2 sm:p-2.5 bg-red-100 rounded-xl">
                             <Icon icon="solar:trash-bin-2-bold" className="text-xl sm:text-2xl text-red-600" />
                         </div>
                         <div className="min-w-0">
                             <p className="text-xs sm:text-sm text-default-500">ถังขยะ</p>
-                            <p className="text-xl sm:text-2xl font-bold text-default-900">{stats?.deletedClassrooms ?? 0}</p>
+                            <p className="text-xl sm:text-2xl font-bold text-foreground">{stats?.deletedClassrooms ?? 0}</p>
                         </div>
                     </div>
                 </div>
@@ -1158,7 +1158,7 @@ export default function ClassroomsPage() {
             </div>
 
             {/* Table Card with Filters */}
-            <div className="bg-white rounded-xl border border-default-200 shadow-sm overflow-hidden">
+            <div className="overflow-hidden rounded-xl border border-default-200 bg-content1 shadow-sm">
                 {/* Filters */}
                 <div className="p-3 sm:p-4">
                     <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pb-3 sm:pb-4">
@@ -1178,7 +1178,7 @@ export default function ClassroomsPage() {
                             className="flex-1"
                             size="md"
                             classNames={{
-                                inputWrapper: "bg-slate-50 border-slate-200 hover:border-slate-300",
+                                inputWrapper: "bg-content2 border-default-200 hover:border-default-300",
                             }}
                         />
                         <div className="flex gap-2 flex-wrap">
@@ -1189,10 +1189,10 @@ export default function ClassroomsPage() {
                                     const value = Array.from(keys)[0] as string;
                                     setFilter("floor", value);
                                 }}
-                                className="flex-1 min-w-[150px] sm:w-48"
+                                className="flex-1 min-w-37.5 sm:w-48"
                                 size="md"
                                 classNames={{
-                                    trigger: "bg-slate-50 border-slate-200 hover:border-slate-300",
+                                    trigger: "bg-content2 border-default-200 hover:border-default-300",
                                 }}
                             >
                                 {[
@@ -1207,12 +1207,12 @@ export default function ClassroomsPage() {
 
                     {/* Table with horizontal scroll */}
                     <div className="overflow-x-auto -mx-3 sm:-mx-4 px-3 sm:px-4">
-                      <div className="min-w-[600px]">
+                                            <div className="min-w-150">
                         <Table
                             aria-label="ตารางห้องเรียน"
                             removeWrapper
                             classNames={{
-                                th: "bg-slate-50 text-slate-600 font-semibold text-xs sm:text-sm",
+                                th: "bg-content2 text-default-600 font-semibold text-xs sm:text-sm",
                                 td: "py-2 sm:py-3",
                             }}
                         >
@@ -1239,9 +1239,9 @@ export default function ClassroomsPage() {
                                 <div className="py-10">
                                     <Icon
                                         icon="solar:buildings-3-linear"
-                                        className="text-5xl text-slate-300 mx-auto mb-4"
+                                        className="mx-auto mb-4 text-5xl text-default-300"
                                     />
-                                    <p className="text-slate-500">
+                                    <p className="text-default-500">
                                         {showDeletedOnly
                                             ? "ไม่มีห้องเรียนในถังขยะ"
                                             : "ยังไม่มีห้องเรียน"}
@@ -1281,17 +1281,17 @@ export default function ClassroomsPage() {
                 <ModalContent>
                     <ModalHeader>
                         <div className="flex items-center gap-2 sm:gap-3">
-                            <div className="p-1.5 sm:p-2 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                            <div className="p-1.5 sm:p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
                                 <Icon
                                     icon="solar:display-bold"
                                     className="text-xl sm:text-2xl text-white"
                                 />
                             </div>
                             <div>
-                                <h3 className="text-lg sm:text-xl font-bold text-slate-800">
+                                <h3 className="text-lg sm:text-xl font-bold text-foreground">
                                     สร้างห้องเรียนใหม่
                                 </h3>
-                                <p className="text-xs sm:text-sm text-slate-500 font-normal mt-1">
+                                <p className="mt-1 text-xs font-normal text-default-500 sm:text-sm">
                                     กรอกข้อมูลห้องเรียน แล้วจัดผังในขั้นตอนถัดไป
                                 </p>
                             </div>
@@ -1315,7 +1315,7 @@ export default function ClassroomsPage() {
                                 startContent={
                                     <Icon
                                         icon="solar:display-linear"
-                                        className="text-slate-400"
+                                        className="text-default-400"
                                     />
                                 }
                             />
@@ -1336,7 +1336,7 @@ export default function ClassroomsPage() {
                                     startContent={
                                         <Icon
                                             icon="solar:buildings-2-linear"
-                                            className="text-slate-400"
+                                            className="text-default-400"
                                         />
                                     }
                                 />
@@ -1356,7 +1356,7 @@ export default function ClassroomsPage() {
                                     startContent={
                                         <Icon
                                             icon="solar:stairs-linear"
-                                            className="text-slate-400"
+                                            className="text-default-400"
                                         />
                                     }
                                 />
@@ -1434,22 +1434,22 @@ export default function ClassroomsPage() {
                 scrollBehavior="inside"
             >
                 <ModalContent>
-                    <ModalHeader className="border-b border-slate-200 p-3 sm:p-4">
+                    <ModalHeader className="border-b border-divider p-3 sm:p-4">
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-2 sm:gap-4 pr-0 sm:pr-4">
                             <div className="flex items-center gap-2 sm:gap-3">
-                                <div className="p-1.5 sm:p-2 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg sm:rounded-xl shadow-lg shadow-blue-500/30">
+                                <div className="p-1.5 sm:p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg sm:rounded-xl shadow-lg shadow-blue-500/30">
                                     <Icon
                                         icon="solar:display-bold"
                                         className="text-lg sm:text-2xl text-white"
                                     />
                                 </div>
                                 <div>
-                                    <h3 className="text-base sm:text-xl font-bold text-slate-800">
+                                    <h3 className="text-base font-bold text-foreground sm:text-xl">
                                         <span className="hidden sm:inline">จัดผังห้อง: </span>
                                         <span className="sm:hidden">ผัง: </span>
                                         {editingClassroom?.name}
                                     </h3>
-                                    <p className="text-xs sm:text-sm text-slate-500 font-normal hidden sm:block">
+                                    <p className="hidden text-xs font-normal text-default-500 sm:block sm:text-sm">
                                         ลากโต๊ะเพื่อจัดตำแหน่ง •
                                         Ctrl+คลิก/ลากเลือกหลายโต๊ะ •
                                         Scroll เพื่อซูม
@@ -1482,14 +1482,14 @@ export default function ClassroomsPage() {
                                         <Icon icon="solar:undo-right-round-bold" className="text-lg" />
                                     </Button>
                                 </Tooltip>
-                                <div className="h-5 w-px bg-slate-300 mx-1" />
+                                <div className="mx-1 h-5 w-px bg-default-300" />
                                 {/* Zoom Controls */}
                                 <Tooltip content="ซูมออก">
                                     <Button isIconOnly size="sm" variant="flat" aria-label="ซูมออก" onPress={handleZoomOut} isDisabled={zoomLevel <= MIN_ZOOM}>
                                         <Icon icon="solar:minimize-bold" className="text-lg" />
                                     </Button>
                                 </Tooltip>
-                                <Chip size="sm" variant="flat" className="bg-slate-100 text-slate-700 min-w-[48px] text-center cursor-pointer" onClick={handleZoomReset}>
+                                <Chip size="sm" variant="flat" className="min-w-12 cursor-pointer bg-content2 text-default-700 text-center" onClick={handleZoomReset}>
                                     {Math.round(zoomLevel * 100)}%
                                 </Chip>
                                 <Tooltip content="ซูมเข้า">
@@ -1497,7 +1497,7 @@ export default function ClassroomsPage() {
                                         <Icon icon="solar:maximize-bold" className="text-lg" />
                                     </Button>
                                 </Tooltip>
-                                <div className="h-5 w-px bg-slate-300 mx-1" />
+                                <div className="mx-1 h-5 w-px bg-default-300" />
                                 <Chip
                                     variant="flat"
                                     className="bg-emerald-50 text-emerald-600"
@@ -1522,8 +1522,8 @@ export default function ClassroomsPage() {
                         {editingClassroom && (
                             <div className="flex flex-col lg:flex-row h-full">
                                 {/* Toolbar - Hidden on mobile, shown as floating buttons instead */}
-                                <div className="hidden lg:flex w-72 bg-slate-50 border-r border-slate-200 p-4 flex-col">
-                                    <h4 className="font-semibold text-slate-800 mb-3">
+                                <div className="hidden w-72 flex-col border-r border-divider bg-content2 p-4 lg:flex">
+                                    <h4 className="mb-3 font-semibold text-foreground">
                                         เพิ่มโต๊ะ
                                     </h4>
 
@@ -1539,7 +1539,7 @@ export default function ClassroomsPage() {
                                             value={String(bulkCount)}
                                             onValueChange={(val) => setBulkCount(Math.max(1, Math.min(50, parseInt(val) || 1)))}
                                             variant="bordered"
-                                            classNames={{ inputWrapper: "bg-white" }}
+                                            classNames={{ inputWrapper: "bg-content1 border-default-200" }}
                                         />
                                     </div>
 
@@ -1587,7 +1587,7 @@ export default function ClassroomsPage() {
 
                                     {/* Delete selected */}
                                     {selectedDeskIds.size > 0 && (
-                                        <div className="mt-4 pt-4 border-t border-slate-200">
+                                        <div className="mt-4 border-t border-divider pt-4">
                                             <Button
                                                 color="danger"
                                                 variant="flat"
@@ -1607,9 +1607,9 @@ export default function ClassroomsPage() {
                                     )}
 
                                     {/* Zone Management */}
-                                    <div className="mt-6 pt-6 border-t border-slate-200">
+                                    <div className="mt-6 border-t border-divider pt-6">
                                         <div className="flex items-center justify-between mb-3">
-                                            <h4 className="font-semibold text-slate-800">โซน</h4>
+                                            <h4 className="font-semibold text-foreground">โซน</h4>
                                             <Tooltip content="เพิ่มโซน">
                                                 <Button
                                                     isIconOnly
@@ -1628,16 +1628,16 @@ export default function ClassroomsPage() {
                                             </Tooltip>
                                         </div>
                                         {zones.length === 0 ? (
-                                            <p className="text-xs text-slate-400">ยังไม่มีโซน กดปุ่ม + เพื่อเพิ่ม</p>
+                                            <p className="text-xs text-default-400">ยังไม่มีโซน กดปุ่ม + เพื่อเพิ่ม</p>
                                         ) : (
                                             <div className="space-y-2">
                                                 {zones.map((zone) => (
-                                                    <div key={zone.id} className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200">
-                                                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: zone.color }} />
-                                                        <span className="text-xs text-slate-700 flex-1 truncate">{zone.name}</span>
+                                                    <div key={zone.id} className="flex items-center gap-2 rounded-lg border border-default-200 bg-content1 p-2">
+                                                        <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: zone.color }} />
+                                                        <span className="flex-1 truncate text-xs text-default-700">{zone.name}</span>
                                                         <Tooltip content="แก้ไข">
                                                             <Button isIconOnly size="sm" variant="light" aria-label="แก้ไขโซน" onPress={() => handleEditZone(zone)}>
-                                                                <Icon icon="solar:pen-linear" className="text-sm text-slate-400" />
+                                                                <Icon icon="solar:pen-linear" className="text-sm text-default-400" />
                                                             </Button>
                                                         </Tooltip>
                                                         <Tooltip content="ลบ">
@@ -1652,32 +1652,32 @@ export default function ClassroomsPage() {
                                     </div>
 
                                     {/* Legend */}
-                                    <div className="mt-6 pt-6 border-t border-slate-200">
-                                        <h4 className="font-semibold text-slate-800 mb-3">
+                                    <div className="mt-6 border-t border-divider pt-6">
+                                        <h4 className="mb-3 font-semibold text-foreground">
                                             สัญลักษณ์
                                         </h4>
                                         <div className="space-y-2">
                                             <div className="flex items-center gap-2">
                                                 <div className="w-6 h-6 bg-blue-500 rounded" />
-                                                <span className="text-sm text-slate-600">
+                                                <span className="text-sm text-default-600">
                                                     โต๊ะคอม
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <div className="w-6 h-6 bg-emerald-500 rounded" />
-                                                <span className="text-sm text-slate-600">
+                                                <span className="text-sm text-default-600">
                                                     โต๊ะเรียน
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <div className="w-6 h-6 bg-amber-500 rounded" />
-                                                <span className="text-sm text-slate-600">
+                                                <span className="text-sm text-default-600">
                                                     โต๊ะอาจารย์
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <div className="w-6 h-6 bg-slate-300 rounded" />
-                                                <span className="text-sm text-slate-600">
+                                                <div className="h-6 w-6 rounded bg-content4" />
+                                                <span className="text-sm text-default-600">
                                                     ปิดใช้งาน
                                                 </span>
                                             </div>
@@ -1712,7 +1712,7 @@ export default function ClassroomsPage() {
 
                                 {/* Canvas Area */}
                                 <div
-                                    className="flex-1 p-3 sm:p-6 bg-white relative"
+                                    className="relative flex-1 bg-content1 p-3 sm:p-6"
                                     ref={containerRef}
                                 >
                                     {/* Mobile Floating Add Buttons */}
@@ -1755,7 +1755,7 @@ export default function ClassroomsPage() {
                                         </Tooltip>
                                     </div>
                                     
-                                    <div className="bg-slate-100 rounded-xl border-2 border-dashed border-slate-300 overflow-auto">
+                                    <div className="overflow-auto rounded-xl border-2 border-dashed border-default-300 bg-content2">
                                         <CanvasEditor
                                             width={stageSize.width}
                                             height={stageSize.height}
@@ -1782,7 +1782,7 @@ export default function ClassroomsPage() {
                             </div>
                         )}
                     </ModalBody>
-                    <ModalFooter className="border-t border-slate-200 p-3 sm:p-4">
+                    <ModalFooter className="border-t border-divider p-3 sm:p-4">
                         <Button
                             variant="light"
                             onPress={() => {
@@ -1804,7 +1804,7 @@ export default function ClassroomsPage() {
                             onPress={handleSaveLayout}
                             startContent={!isSaving && <Icon icon="solar:diskette-bold" />}
                             isLoading={isSaving}
-                            className="bg-gradient-to-r from-blue-400 to-indigo-500"
+                            className="bg-linear-to-r from-blue-400 to-indigo-500"
                             size="sm"
                         >
                             บันทึกผัง
@@ -1829,7 +1829,7 @@ export default function ClassroomsPage() {
                 <ModalContent>
                     <ModalHeader>
                         <div className="flex items-center gap-2 sm:gap-3">
-                            <div className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 shadow-lg shadow-blue-500/30">
+                            <div className="p-1.5 sm:p-2 rounded-xl bg-linear-to-br from-blue-400 to-indigo-500 shadow-lg shadow-blue-500/30">
                                 <Icon
                                     icon={
                                         selectedDesk?.type === "computer"
@@ -1841,7 +1841,7 @@ export default function ClassroomsPage() {
                                     className="text-xl sm:text-2xl text-white"
                                 />
                             </div>
-                            <h3 className="text-lg sm:text-xl font-bold text-slate-800">
+                            <h3 className="text-lg sm:text-xl font-bold text-foreground">
                                 แก้ไขโต๊ะ #{selectedDesk?.number}
                             </h3>
                         </div>
@@ -1905,12 +1905,12 @@ export default function ClassroomsPage() {
                                     </SelectItem>
                                 </Select>
 
-                                <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
+                                <div className="flex items-center justify-between rounded-lg border border-default-200 p-4">
                                     <div>
-                                        <p className="font-semibold text-slate-800">
+                                        <p className="font-semibold text-foreground">
                                             สถานะการใช้งาน
                                         </p>
-                                        <p className="text-sm text-slate-500">
+                                        <p className="text-sm text-default-500">
                                             {selectedDesk.isEnabled
                                                 ? "โต๊ะนี้สามารถใช้งานได้"
                                                 : "โต๊ะนี้ถูกปิดใช้งาน"}
@@ -1969,12 +1969,12 @@ export default function ClassroomsPage() {
                 <ModalContent>
                     <ModalHeader>
                         <div className="flex items-center gap-2 sm:gap-3">
-                            <div className="p-1.5 sm:p-2 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                            <div className="p-1.5 sm:p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:pen-new-square-bold" className="text-xl sm:text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-lg sm:text-xl font-bold text-slate-800">แก้ไขข้อมูลห้องเรียน</h3>
-                                <p className="text-xs sm:text-sm text-slate-500 font-normal mt-1">แก้ไขชื่อ อาคาร ชั้น หรือรายละเอียดของห้องเรียน</p>
+                                <h3 className="text-lg sm:text-xl font-bold text-foreground">แก้ไขข้อมูลห้องเรียน</h3>
+                                <p className="mt-1 text-xs font-normal text-default-500 sm:text-sm">แก้ไขชื่อ อาคาร ชั้น หรือรายละเอียดของห้องเรียน</p>
                             </div>
                         </div>
                     </ModalHeader>
@@ -1988,7 +1988,7 @@ export default function ClassroomsPage() {
                                 value={editFormData.name}
                                 onValueChange={(val) => setEditFormData((prev) => ({ ...prev, name: val }))}
                                 isRequired
-                                startContent={<Icon icon="solar:display-linear" className="text-slate-400" />}
+                                startContent={<Icon icon="solar:display-linear" className="text-default-400" />}
                             />
                             <div className="grid grid-cols-2 gap-4">
                                 <Input
@@ -1999,7 +1999,7 @@ export default function ClassroomsPage() {
                                     value={editFormData.building}
                                     onValueChange={(val) => setEditFormData((prev) => ({ ...prev, building: val }))}
                                     isRequired
-                                    startContent={<Icon icon="solar:buildings-2-linear" className="text-slate-400" />}
+                                    startContent={<Icon icon="solar:buildings-2-linear" className="text-default-400" />}
                                 />
                                 <Input
                                     label="ชั้น"
@@ -2009,7 +2009,7 @@ export default function ClassroomsPage() {
                                     value={editFormData.floor}
                                     onValueChange={(val) => setEditFormData((prev) => ({ ...prev, floor: val }))}
                                     isRequired
-                                    startContent={<Icon icon="solar:stairs-linear" className="text-slate-400" />}
+                                    startContent={<Icon icon="solar:stairs-linear" className="text-default-400" />}
                                 />
                             </div>
                             <Textarea
@@ -2047,10 +2047,10 @@ export default function ClassroomsPage() {
                 <ModalContent>
                     <ModalHeader>
                         <div className="flex items-center gap-2">
-                            <div className="p-1.5 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                            <div className="p-1.5 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:widget-5-bold" className="text-xl text-white" />
                             </div>
-                            <h3 className="text-lg font-bold text-slate-800">
+                            <h3 className="text-lg font-bold text-foreground">
                                 {editingZone ? "แก้ไขโซน" : "เพิ่มโซนใหม่"}
                             </h3>
                         </div>
@@ -2065,7 +2065,7 @@ export default function ClassroomsPage() {
                                 value={zoneForm.name}
                                 onValueChange={(val) => setZoneForm((prev) => ({ ...prev, name: val }))}
                                 isRequired
-                                startContent={<Icon icon="solar:tag-linear" className="text-slate-400" />}
+                                startContent={<Icon icon="solar:tag-linear" className="text-default-400" />}
                             />
                             <Card className="bg-indigo-50 border-0">
                                 <CardBody className="p-3">
@@ -2109,7 +2109,7 @@ export default function ClassroomsPage() {
                                 <p>คุณต้องการลบห้องเรียน <strong>&quot;{deleteTarget?.name}&quot;</strong> ใช่หรือไม่?</p>
                                 <div className="bg-warning-50 dark:bg-warning-50/10 border border-warning-200 dark:border-warning-200/20 rounded-lg p-3">
                                     <div className="flex items-start gap-2">
-                                        <Icon icon="solar:info-circle-bold" className="text-warning text-lg mt-0.5 flex-shrink-0" />
+                                        <Icon icon="solar:info-circle-bold" className="text-warning text-lg mt-0.5 shrink-0" />
                                         <div className="text-sm text-warning-700 dark:text-warning-400">
                                             <p className="font-medium">ห้องเรียนจะถูกย้ายไปยังถังขยะ</p>
                                             <ul className="mt-1 list-disc list-inside space-y-0.5">
@@ -2125,7 +2125,7 @@ export default function ClassroomsPage() {
                                 <p>คุณต้องการลบห้องเรียน <strong>&quot;{deleteTarget?.name}&quot;</strong> ออกจากระบบถาวรใช่หรือไม่?</p>
                                 <div className="bg-danger-50 dark:bg-danger-50/10 border border-danger-200 dark:border-danger-200/20 rounded-lg p-3">
                                     <div className="flex items-start gap-2">
-                                        <Icon icon="solar:danger-triangle-bold" className="text-danger text-lg mt-0.5 flex-shrink-0" />
+                                        <Icon icon="solar:danger-triangle-bold" className="text-danger text-lg mt-0.5 shrink-0" />
                                         <div className="text-sm text-danger-700 dark:text-danger-400">
                                             <p className="font-medium">การดำเนินการนี้ไม่สามารถย้อนกลับได้</p>
                                             <ul className="mt-1 list-disc list-inside space-y-0.5">
@@ -2169,10 +2169,10 @@ export default function ClassroomsPage() {
                 <ModalContent>
                     <ModalHeader className="px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className={`p-3 rounded-xl shadow-lg bg-gradient-to-br ${toggleTarget?.isActive ? 'from-amber-400 to-orange-500 shadow-amber-500/30' : 'from-emerald-400 to-green-500 shadow-emerald-500/30'}`}>
+                            <div className={`p-3 rounded-xl shadow-lg bg-linear-to-br ${toggleTarget?.isActive ? 'from-amber-400 to-orange-500 shadow-amber-500/30' : 'from-emerald-400 to-green-500 shadow-emerald-500/30'}`}>
                                 <Icon icon={toggleTarget?.isActive ? "solar:eye-closed-bold" : "solar:eye-bold"} className="text-2xl text-white" />
                             </div>
-                            <h3 className="text-xl font-bold text-slate-800">
+                            <h3 className="text-xl font-bold text-foreground">
                                 {toggleTarget?.isActive ? 'ยืนยันการปิดใช้งาน' : 'ยืนยันการเปิดใช้งาน'}
                             </h3>
                         </div>
@@ -2180,12 +2180,12 @@ export default function ClassroomsPage() {
                     <ModalBody className="px-6 py-6">
                         <div className={`rounded-2xl p-6 border ${toggleTarget?.isActive ? 'bg-amber-50 border-amber-100' : 'bg-emerald-50 border-emerald-100'}`}>
                             <div className="flex items-center gap-4">
-                                <div className={`w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 ${toggleTarget?.isActive ? 'bg-amber-100' : 'bg-emerald-100'}`}>
+                                <div className={`w-14 h-14 rounded-full flex items-center justify-center shrink-0 ${toggleTarget?.isActive ? 'bg-amber-100' : 'bg-emerald-100'}`}>
                                     <Icon icon="solar:buildings-3-bold" className={`text-2xl ${toggleTarget?.isActive ? 'text-amber-600' : 'text-emerald-600'}`} />
                                 </div>
                                 <div>
-                                    <p className="font-semibold text-slate-800">{toggleTarget?.name}</p>
-                                    <p className="text-sm text-slate-500">อาคาร {toggleTarget?.building} ชั้น {toggleTarget?.floor}</p>
+                                    <p className="font-semibold text-foreground">{toggleTarget?.name}</p>
+                                    <p className="text-sm text-default-500">อาคาร {toggleTarget?.building} ชั้น {toggleTarget?.floor}</p>
                                 </div>
                             </div>
                             <p className={`mt-4 text-sm ${toggleTarget?.isActive ? 'text-amber-700' : 'text-emerald-700'}`}>
@@ -2195,7 +2195,7 @@ export default function ClassroomsPage() {
                             </p>
                         </div>
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100 gap-3">
+                    <ModalFooter className="gap-3 border-t border-divider px-6 py-4">
                         <Button
                             variant="flat"
                             color="default"
@@ -2212,7 +2212,7 @@ export default function ClassroomsPage() {
                             color={toggleTarget?.isActive ? 'warning' : 'success'}
                             onPress={confirmToggleStatus}
                             isLoading={isToggling}
-                            className={`font-medium px-6 ${toggleTarget?.isActive ? '' : 'bg-gradient-to-r from-emerald-400 to-green-500 text-white'}`}
+                            className={`font-medium px-6 ${toggleTarget?.isActive ? '' : 'bg-linear-to-r from-emerald-400 to-green-500 text-white'}`}
                             startContent={!isToggling && <Icon icon={toggleTarget?.isActive ? "solar:eye-closed-bold" : "solar:eye-bold"} className="text-lg" />}
                         >
                             {toggleTarget?.isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}

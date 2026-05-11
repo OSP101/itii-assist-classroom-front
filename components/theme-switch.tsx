@@ -3,11 +3,12 @@
 import { FC } from "react";
 import { VisuallyHidden } from "@react-aria/visually-hidden";
 import { SwitchProps, useSwitch } from "@heroui/switch";
-import { useTheme } from "next-themes";
 import { useIsSSR } from "@react-aria/ssr";
 import clsx from "clsx";
 
 import { SunFilledIcon, MoonFilledIcon } from "@/components/icons";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import { useI18n } from "@/hooks/useI18n";
 
 export interface ThemeSwitchProps {
   className?: string;
@@ -18,11 +19,12 @@ export const ThemeSwitch: FC<ThemeSwitchProps> = ({
   className,
   classNames,
 }) => {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useGlobalSettings();
   const isSSR = useIsSSR();
+  const t = useI18n();
 
   const onChange = () => {
-    theme === "light" ? setTheme("dark") : setTheme("light");
+    resolvedTheme === "light" ? setTheme("dark") : setTheme("light");
   };
 
   const {
@@ -33,8 +35,8 @@ export const ThemeSwitch: FC<ThemeSwitchProps> = ({
     getInputProps,
     getWrapperProps,
   } = useSwitch({
-    isSelected: theme === "light" || isSSR,
-    "aria-label": `Switch to ${theme === "light" || isSSR ? "dark" : "light"} mode`,
+    isSelected: resolvedTheme === "light" || isSSR,
+    "aria-label": resolvedTheme === "light" || isSSR ? t("switchToDarkMode") : t("switchToLightMode"),
     onChange,
   });
 
@@ -61,7 +63,7 @@ export const ThemeSwitch: FC<ThemeSwitchProps> = ({
               "rounded-lg",
               "flex items-center justify-center",
               "group-data-[selected=true]:bg-transparent",
-              "!text-default-500",
+              "text-default-500!",
               "pt-px",
               "px-0",
               "mx-0",

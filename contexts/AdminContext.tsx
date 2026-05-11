@@ -20,11 +20,8 @@ const AdminContext = createContext<AdminContextType | undefined>(undefined);
 export function AdminProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(() => {
-    const storedUser = authService.getStoredUser();
-    return storedUser?.role === "admin" ? storedUser : null;
-  });
-  const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
 
@@ -50,26 +47,51 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   // Auth check
   useEffect(() => {
-    if (!authService.isAuthenticated()) {
-      router.push('/login');
-      return;
-    }
+    let isMounted = true;
 
-    const storedUser = authService.getStoredUser();
-    if (!storedUser || storedUser.role !== 'admin') {
-      addToast({
-        title: "ไม่มีสิทธิ์เข้าถึง",
-        description: "คุณไม่มีสิทธิ์เข้าถึงหน้านี้",
-        color: "danger",
-        timeout: 3000,
-                shouldShowTimeoutProgress: true,
-      });
-      router.push('/login');
-      return;
-    }
+    const checkAuth = async () => {
+      if (!authService.isAuthenticated()) {
+        router.push('/login');
+        if (isMounted) {
+          setIsLoading(false);
+        }
+        return;
+      }
 
-    setUser(storedUser);
-    setIsLoading(false);
+      try {
+        const currentUser = await authService.getCurrentUser();
+        if (!isMounted) {
+          return;
+        }
+
+        if (!currentUser || currentUser.role !== 'admin') {
+          addToast({
+            title: "ไม่มีสิทธิ์เข้าถึง",
+            description: "คุณไม่มีสิทธิ์เข้าถึงหน้านี้",
+            color: "danger",
+            timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+          });
+          router.push('/login');
+          return;
+        }
+
+        setUser(currentUser);
+      } catch (error) {
+        console.error('Admin auth check failed:', error);
+        router.push('/login');
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    checkAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, [router]);
 
   const toggleMenu = (key: string) => {

@@ -59,7 +59,7 @@ export class Socket {
     private connect() {
         if (typeof window === "undefined") return;
 
-        const socketUrl = buildWebSocketUrl(this.url);
+        const socketUrl = buildWebSocketUrl(this.url, "/ws");
         this.ws = new WebSocket(socketUrl);
 
         this.ws.onopen = () => {
@@ -122,15 +122,40 @@ export function io(url?: string, options?: SocketOptions): Socket {
     return new Socket(url || window.location.origin, options);
 }
 
-function buildWebSocketUrl(inputUrl: string): string {
+export function getRealtimeSocketBaseUrl(): string {
+    if (process.env.NEXT_PUBLIC_SOCKET_URL) {
+        return process.env.NEXT_PUBLIC_SOCKET_URL;
+    }
+
+    if (process.env.NEXT_PUBLIC_API_URL) {
+        return process.env.NEXT_PUBLIC_API_URL;
+    }
+
+    if (typeof window !== "undefined") {
+        return window.location.origin;
+    }
+
+    return "http://localhost:3001";
+}
+
+export function getRealtimeWebSocketUrl(endpoint = "/ws"): string {
+    return buildWebSocketUrl(getRealtimeSocketBaseUrl(), endpoint);
+}
+
+function buildWebSocketUrl(inputUrl: string, endpoint: string): string {
     const base = new URL(inputUrl || window.location.origin, window.location.origin);
     if (base.pathname.endsWith("/api")) {
         base.pathname = base.pathname.slice(0, -4);
     }
     base.protocol = base.protocol === "https:" ? "wss:" : "ws:";
-    base.pathname = joinPath(base.pathname, "/ws");
-    base.search = "";
+    const [endpointPath, endpointQuery = ""] = endpoint.split("?");
+    base.pathname = joinPath(base.pathname, ensureLeadingSlash(endpointPath || "/ws"));
+    base.search = endpointQuery ? `?${endpointQuery}` : "";
     return base.toString();
+}
+
+function ensureLeadingSlash(path: string): string {
+    return path.startsWith("/") ? path : `/${path}`;
 }
 
 function joinPath(basePath: string, path: string): string {

@@ -408,7 +408,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
         <CardBody className="p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
             <div className="flex items-start gap-3 flex-1">
-              <div className="p-2 sm:p-2.5 bg-primary-100 rounded-lg flex-shrink-0">
+              <div className="p-2 sm:p-2.5 bg-primary-100 rounded-lg shrink-0">
                 <Icon icon="solar:lock-password-bold" className="text-lg sm:text-xl text-primary-600" />
               </div>
               <div className="flex-1 min-w-0">
@@ -420,7 +420,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
             </div>
             <Button 
               color="primary" 
-              className="bg-gradient-to-br from-blue-400 to-indigo-500 w-full sm:w-auto"
+              className="bg-linear-to-br from-blue-400 to-indigo-500 w-full sm:w-auto"
               size="sm"
               onPress={onOpenPasswordModal}
               startContent={<Icon icon="solar:key-linear" />}
@@ -443,7 +443,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
             <div className="space-y-3 sm:space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                 <div className="flex items-start gap-3 flex-1">
-                  <div className="p-2 sm:p-2.5 bg-success-100 rounded-lg flex-shrink-0">
+                  <div className="p-2 sm:p-2.5 bg-success-100 rounded-lg shrink-0">
                     <Icon icon="solar:shield-check-bold" className="text-lg sm:text-xl text-success-600" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -523,7 +523,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
 
               {/* Info about backup codes */}
               <div className="flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 bg-warning-50 border border-warning-200 rounded-lg">
-                <Icon icon="solar:info-circle-bold" className="text-base sm:text-lg text-warning-600 mt-0.5 flex-shrink-0" />
+                <Icon icon="solar:info-circle-bold" className="text-base sm:text-lg text-warning-600 mt-0.5 shrink-0" />
                 <div>
                   <p className="text-xs sm:text-sm text-warning-800">
                     หากสูญเสียการเข้าถึงอุปกรณ์ยืนยันตัวตน คุณสามารถใช้รหัสสำรองเข้าสู่ระบบได้
@@ -535,7 +535,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
             // 2FA Disabled State
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
               <div className="flex items-start gap-3 flex-1">
-                <div className="p-2 sm:p-2.5 bg-warning-100 rounded-lg flex-shrink-0">
+                <div className="p-2 sm:p-2.5 bg-warning-100 rounded-lg shrink-0">
                   <Icon icon="solar:shield-warning-bold" className="text-lg sm:text-xl text-warning-600" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -551,7 +551,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
               <Button 
                 color="primary" 
                 size="sm" 
-                className="bg-gradient-to-br from-blue-400 to-indigo-500 w-full sm:w-auto"
+                className="bg-linear-to-br from-blue-400 to-indigo-500 w-full sm:w-auto"
                 startContent={<Icon icon="solar:shield-plus-linear" />}
                 onPress={() => setShowSetupModal(true)}
               >
@@ -593,7 +593,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                   {index > 0 && <Divider />}
                   <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 hover:bg-default-50 transition-colors">
                     <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                      <div className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 bg-default-100`}>
+                      <div className={`p-1.5 sm:p-2 rounded-lg shrink-0 bg-default-100`}>
                         <Icon icon={provider.icon} className="text-lg sm:text-xl" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -664,7 +664,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                         size="sm" 
                         color="primary" 
                         variant="flat" 
-                        className="bg-gradient-to-br from-blue-400 to-indigo-500 text-white text-xs"
+                        className="bg-linear-to-br from-blue-400 to-indigo-500 text-white text-xs"
                         onPress={() => handleLink(provider.key)}
                         isLoading={linkingProvider === provider.key}
                         isDisabled={linkingProvider !== null && linkingProvider !== provider.key}
@@ -693,7 +693,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
       {/* Info about OAuth */}
       {linkedAccounts.length > 0 && (
         <div className="flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 bg-primary-50 border border-primary-200 rounded-lg">
-          <Icon icon="solar:info-circle-bold" className="text-base sm:text-lg text-primary-600 mt-0.5 flex-shrink-0" />
+          <Icon icon="solar:info-circle-bold" className="text-base sm:text-lg text-primary-600 mt-0.5 shrink-0" />
           <div>
             <p className="text-xs sm:text-sm text-primary-800">
               บัญชีที่เชื่อมต่อสามารถใช้เข้าสู่ระบบได้โดยไม่ต้องกรอกรหัสผ่าน
@@ -748,7 +748,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
               <>
                 <ModalHeader className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
-                    <div className="p-2 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
+                    <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
                       <Icon icon="solar:danger-triangle-bold" className="text-white text-xl" />
                     </div>
                     <span>ยกเลิกการเชื่อมต่อ {providerName}</span>
@@ -773,15 +773,15 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                       </p>
                       <ul className="text-sm text-default-600 space-y-1.5 ml-4">
                         <li className="flex items-start gap-2">
-                          <Icon icon="solar:close-circle-bold" className="text-danger mt-0.5 flex-shrink-0" />
+                          <Icon icon="solar:close-circle-bold" className="text-danger mt-0.5 shrink-0" />
                           <span>ไม่สามารถใช้ {providerName} เพื่อเข้าสู่ระบบได้</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <Icon icon="solar:close-circle-bold" className="text-danger mt-0.5 flex-shrink-0" />
+                          <Icon icon="solar:close-circle-bold" className="text-danger mt-0.5 shrink-0" />
                           <span>ต้องใช้รหัสผ่านหรือบัญชีอื่นที่เชื่อมต่อในการเข้าสู่ระบบ</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <Icon icon="solar:info-circle-bold" className="text-primary mt-0.5 flex-shrink-0" />
+                          <Icon icon="solar:info-circle-bold" className="text-primary mt-0.5 shrink-0" />
                           <span>สามารถเชื่อมต่อใหม่ได้ภายหลัง</span>
                         </li>
                       </ul>
@@ -789,7 +789,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
 
                     <div className="p-3 bg-warning-50 border border-warning-200 rounded-lg">
                       <div className="flex items-start gap-2">
-                        <Icon icon="solar:shield-warning-bold" className="text-warning-600 mt-0.5 flex-shrink-0" />
+                        <Icon icon="solar:shield-warning-bold" className="text-warning-600 mt-0.5 shrink-0" />
                         <p className="text-xs text-warning-700">
                           คุณแน่ใจหรือไม่ที่จะยกเลิกการเชื่อมต่อนี้? การดำเนินการนี้จะทำให้คุณไม่สามารถใช้บัญชี {providerName} เพื่อเข้าสู่ระบบได้อีก
                         </p>

@@ -19,7 +19,7 @@ import {
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { QRCodeSVG } from "qrcode.react";
-import { io, type Socket } from "@/services/realtime-socket";
+import { getRealtimeSocketBaseUrl, io, type Socket } from "@/services/realtime-socket";
 import attendanceDisplayService, {
     type AttendanceDisplayCurrent,
     AttendanceDisplayError,
@@ -86,9 +86,7 @@ export default function DisplayLivePage() {
     const [searchQuery, setSearchQuery] = useState("");
 
     const socketRef = useRef<Socket | null>(null);
-    const socketUrl = typeof window !== "undefined"
-        ? (process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL || window.location.origin)
-        : "";
+    const socketUrl = getRealtimeSocketBaseUrl();
 
     const session = current?.session ?? null;
 
@@ -200,8 +198,6 @@ export default function DisplayLivePage() {
                 if (disposed) return;
 
                 activeSocket = io(socketUrl, {
-                    path: "/socket.io",
-                    transports: ["websocket", "polling"],
                     reconnection: true,
                     reconnectionAttempts: 5,
                     reconnectionDelay: 1000,
@@ -636,7 +632,7 @@ export default function DisplayLivePage() {
                             />
                         </CardHeader>
                         <CardBody className="p-0">
-                            <div className="overflow-y-auto max-h-[400px] p-3">
+                            <div className="overflow-y-auto max-h-100 p-3">
                                 <Table
                                     aria-label="รายชื่อผู้เช็คชื่อ"
                                     removeWrapper
@@ -689,7 +685,7 @@ export default function DisplayLivePage() {
                                                             <Avatar
                                                                 name={record.student?.full_name || "?"}
                                                                 size="sm"
-                                                                className="bg-gradient-to-br from-blue-400 to-indigo-500"
+                                                                className="bg-linear-to-br from-blue-400 to-indigo-500"
                                                             />
                                                             <div>
                                                                 <p className="font-medium text-slate-800">

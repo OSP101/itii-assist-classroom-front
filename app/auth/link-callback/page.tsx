@@ -2,9 +2,13 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { Card, CardBody } from "@heroui/card";
 import { Spinner } from "@heroui/spinner";
 import { Icon } from "@iconify/react";
 import { authService } from "@/services";
+
+const AUTH_PAGE_SHELL = "flex min-h-screen items-center justify-center bg-background p-4 text-foreground";
+const AUTH_PAGE_CARD = "w-full max-w-md border border-default-200 bg-content1 shadow-2xl shadow-slate-200/40 dark:shadow-zinc-950/50";
 
 function LinkCallbackContent() {
   const searchParams = useSearchParams();
@@ -109,10 +113,14 @@ function LinkCallbackContent() {
 
 export default function AuthLinkCallbackPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white p-4">
-      <Suspense fallback={<Spinner size="lg" color="primary" />}>
-        <LinkCallbackContent />
-      </Suspense>
+    <div data-auth-shell="true" className={AUTH_PAGE_SHELL}>
+      <Card className={AUTH_PAGE_CARD}>
+        <CardBody className="p-8">
+          <Suspense fallback={<Spinner size="lg" color="primary" />}>
+            <LinkCallbackContent />
+          </Suspense>
+        </CardBody>
+      </Card>
     </div>
   );
 }

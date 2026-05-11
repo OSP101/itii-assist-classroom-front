@@ -449,58 +449,58 @@ export default function SystemLogsPage() {
       {/* Stats Cards */}
       {stats ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
-          <div className="bg-white rounded-xl p-3 sm:p-4 border border-default-200 shadow-sm">
+          <div className="rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:p-4">
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
                 <Icon icon="solar:list-bold" className="text-xl sm:text-2xl text-blue-600" />
               </div>
               <div className="min-w-0">
                 <p className="text-xs sm:text-sm text-default-500">ทั้งหมด</p>
-                <p className="text-lg sm:text-2xl font-bold text-default-900">{stats.total.toLocaleString()}</p>
+                <p className="text-lg sm:text-2xl font-bold text-foreground">{stats.total.toLocaleString()}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl p-3 sm:p-4 border border-default-200 shadow-sm">
+          <div className="rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:p-4">
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="p-1.5 sm:p-2 bg-cyan-100 rounded-lg">
                 <Icon icon="solar:login-2-bold" className="text-xl sm:text-2xl text-cyan-600" />
               </div>
               <div className="min-w-0">
                 <p className="text-xs sm:text-sm text-default-500">การเข้าถึง</p>
-                <p className="text-lg sm:text-2xl font-bold text-default-900">{getLogTypeCount("access").toLocaleString()}</p>
+                <p className="text-lg sm:text-2xl font-bold text-foreground">{getLogTypeCount("access").toLocaleString()}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl p-3 sm:p-4 border border-default-200 shadow-sm">
+          <div className="rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:p-4">
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="p-1.5 sm:p-2 bg-red-100 rounded-lg">
                 <Icon icon="solar:bug-bold" className="text-xl sm:text-2xl text-red-600" />
               </div>
               <div className="min-w-0">
                 <p className="text-xs sm:text-sm text-default-500">ผิดพลาด</p>
-                <p className="text-lg sm:text-2xl font-bold text-default-900">{getLogTypeCount("error").toLocaleString()}</p>
+                <p className="text-lg sm:text-2xl font-bold text-foreground">{getLogTypeCount("error").toLocaleString()}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl p-3 sm:p-4 border border-default-200 shadow-sm">
+          <div className="rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:p-4">
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="p-1.5 sm:p-2 bg-purple-100 rounded-lg">
                 <Icon icon="solar:key-bold" className="text-xl sm:text-2xl text-purple-600" />
               </div>
               <div className="min-w-0">
                 <p className="text-xs sm:text-sm text-default-500">ยืนยันตัว</p>
-                <p className="text-lg sm:text-2xl font-bold text-default-900">{getLogTypeCount("auth").toLocaleString()}</p>
+                <p className="text-lg sm:text-2xl font-bold text-foreground">{getLogTypeCount("auth").toLocaleString()}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl p-3 sm:p-4 border border-default-200 shadow-sm col-span-2 sm:col-span-1">
+          <div className="col-span-2 rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:col-span-1 sm:p-4">
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="p-1.5 sm:p-2 bg-amber-100 rounded-lg">
                 <Icon icon="solar:shield-bold" className="text-xl sm:text-2xl text-amber-600" />
               </div>
               <div className="min-w-0">
                 <p className="text-xs sm:text-sm text-default-500">ความปลอดภัย</p>
-                <p className="text-lg sm:text-2xl font-bold text-default-900">{getLogTypeCount("security").toLocaleString()}</p>
+                <p className="text-lg sm:text-2xl font-bold text-foreground">{getLogTypeCount("security").toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -516,7 +516,7 @@ export default function SystemLogsPage() {
       ) : null}
 
       {/* Table Card with Filters */}
-      <div className="bg-white rounded-xl border border-default-200 shadow-sm overflow-hidden">
+      <div className="overflow-hidden rounded-xl border border-default-200 bg-content1 shadow-sm">
         <div className="p-3 sm:p-4">
           {/* Filters */}
           <div className="flex flex-col gap-3 pb-3 sm:pb-4">
@@ -535,12 +535,12 @@ export default function SystemLogsPage() {
                 setSearch("");
               }}
               classNames={{
-                inputWrapper: "bg-slate-50 border-slate-200 hover:border-slate-300",
+                inputWrapper: "bg-content2 border-default-200 hover:border-default-300",
               }}
             />
             <div className="flex gap-2 flex-wrap">
               <Select
-                className="flex-1 min-w-[100px]"
+                className="flex-1 min-w-25"
                 placeholder="ประเภท"
                 selectedKeys={new Set([logTypeFilter])}
                 onSelectionChange={(keys) => {
@@ -550,7 +550,7 @@ export default function SystemLogsPage() {
                   }
                 }}
                 classNames={{
-                  trigger: "bg-slate-50 border-slate-200 hover:border-slate-300",
+                  trigger: "bg-content2 border-default-200 hover:border-default-300",
                 }}
               >
                 {logTypeOptions.map((option) => (
@@ -558,7 +558,7 @@ export default function SystemLogsPage() {
                 ))}
               </Select>
               <Select
-                className="flex-1 min-w-[90px]"
+                className="flex-1 min-w-22.5"
                 placeholder="ระดับ"
                 selectedKeys={new Set([severityFilter])}
                 onSelectionChange={(keys) => {
@@ -568,7 +568,7 @@ export default function SystemLogsPage() {
                   }
                 }}
                 classNames={{
-                  trigger: "bg-slate-50 border-slate-200 hover:border-slate-300",
+                  trigger: "bg-content2 border-default-200 hover:border-default-300",
                 }}
               >
                 {severityOptions.map((option) => (
@@ -576,7 +576,7 @@ export default function SystemLogsPage() {
                 ))}
               </Select>
               <Select
-                className="flex-1 min-w-[100px]"
+                className="flex-1 min-w-25"
                 placeholder="ช่วงเวลา"
                 selectedKeys={new Set([timeRange])}
                 onSelectionChange={(keys) => {
@@ -586,7 +586,7 @@ export default function SystemLogsPage() {
                   }
                 }}
                 classNames={{
-                  trigger: "bg-slate-50 border-slate-200 hover:border-slate-300",
+                  trigger: "bg-content2 border-default-200 hover:border-default-300",
                 }}
               >
                 {timeRangeOptions.map((option) => (
@@ -607,7 +607,7 @@ export default function SystemLogsPage() {
                 className="flex-1"
                 size="sm"
                 classNames={{
-                  inputWrapper: "bg-slate-50 border-slate-200 hover:border-slate-300",
+                  inputWrapper: "bg-content2 border-default-200 hover:border-default-300",
                 }}
               />
               <Input
@@ -618,7 +618,7 @@ export default function SystemLogsPage() {
                 className="flex-1"
                 size="sm"
                 classNames={{
-                  inputWrapper: "bg-slate-50 border-slate-200 hover:border-slate-300",
+                  inputWrapper: "bg-content2 border-default-200 hover:border-default-300",
                 }}
               />
             </div>
@@ -626,12 +626,12 @@ export default function SystemLogsPage() {
 
           {/* Table with horizontal scroll */}
           <div className="overflow-x-auto -mx-3 sm:-mx-4 px-3 sm:px-4">
-            <div className="min-w-[800px]">
+            <div className="min-w-200">
               <Table
                 aria-label="System logs table"
                 removeWrapper
                 classNames={{
-                  th: "bg-slate-50 text-slate-600 font-semibold text-xs sm:text-sm",
+                  th: "bg-content2 text-default-600 font-semibold text-xs sm:text-sm",
                   td: "py-2 sm:py-3 text-sm",
                 }}
               >
@@ -687,8 +687,8 @@ export default function SystemLogsPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-3 sm:px-4 py-3 border-t border-slate-100">
-            <span className="text-xs sm:text-sm text-slate-500 order-2 sm:order-1">
+          <div className="flex flex-col items-center justify-between gap-3 border-t border-divider px-3 py-3 sm:flex-row sm:px-4">
+            <span className="order-2 text-xs text-default-500 sm:order-1 sm:text-sm">
               แสดง {((page - 1) * limit) + 1} - {Math.min(page * limit, totalItems)} จาก {totalItems.toLocaleString()} รายการ
             </span>
             <Pagination

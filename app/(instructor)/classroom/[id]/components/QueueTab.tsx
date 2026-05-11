@@ -66,7 +66,7 @@ interface QueueTabProps {
 // Loading Skeleton
 function QueueTableSkeleton() {
     return (
-        <Card className="shadow-sm border border-slate-200">
+        <Card className="border border-default-200 bg-content1 shadow-sm">
             <CardBody className="p-2">
                 <div className="space-y-3">
                     {[1, 2, 3, 4].map((i) => (
@@ -352,7 +352,6 @@ export default function QueueTab({
 
     // Handle create session
     const handleCreateSession = async () => {
-        console.log("formData:", formData);
         if (!formData.title.trim()) {
             addToast({
                 title: "กรุณากรอกข้อมูล",
@@ -619,8 +618,8 @@ export default function QueueTab({
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-lg font-semibold text-slate-800">จองคิวตรวจงาน</h2>
-                    <p className="text-sm text-slate-500">จัดการคิวตรวจงานและติดตามความคืบหน้า</p>
+                    <h2 className="text-lg font-semibold text-foreground">จองคิวตรวจงาน</h2>
+                    <p className="text-sm text-default-500">จัดการคิวตรวจงานและติดตามความคืบหน้า</p>
                 </div>
                 {canCreateQueueSessions && (
                     <Button
@@ -641,7 +640,7 @@ export default function QueueTab({
                     {/* Stats Skeleton */}
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                         {[1, 2, 3, 4, 5].map((i) => (
-                            <Card key={i} className="shadow-sm border border-slate-200">
+                            <Card key={i} className="border border-default-200 bg-content1 shadow-sm">
                                 <CardBody className="p-4">
                                     <div className="flex items-center gap-3">
                                         <Skeleton className="w-12 h-12 rounded-xl" />
@@ -660,67 +659,67 @@ export default function QueueTab({
                 <>
                     {/* Stats Cards - Hidden on mobile */}
                     <div className="hidden md:grid grid-cols-5 gap-3">
-                        <Card className="shadow-sm border border-slate-200">
+                        <Card className="border border-default-200 bg-content1 shadow-sm">
                             <CardBody className="p-4">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2.5 bg-blue-100 rounded-xl">
                                         <Icon icon="solar:clipboard-list-bold" className="text-2xl text-blue-600" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-slate-500">ทั้งหมด</p>
-                                        <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
+                                        <p className="text-xs text-default-500">ทั้งหมด</p>
+                                        <p className="text-2xl font-bold text-foreground">{stats.total}</p>
                                     </div>
                                 </div>
                             </CardBody>
                         </Card>
-                        <Card className="shadow-sm border border-slate-200">
+                        <Card className="border border-default-200 bg-content1 shadow-sm">
                             <CardBody className="p-4">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2.5 bg-emerald-100 rounded-xl">
                                         <Icon icon="solar:play-circle-bold" className="text-2xl text-emerald-600" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-slate-500">กำลังเปิด</p>
-                                        <p className="text-2xl font-bold text-slate-800">{stats.active}</p>
+                                        <p className="text-xs text-default-500">กำลังเปิด</p>
+                                        <p className="text-2xl font-bold text-foreground">{stats.active}</p>
                                     </div>
                                 </div>
                             </CardBody>
                         </Card>
-                        <Card className="shadow-sm border border-slate-200">
+                        <Card className="border border-default-200 bg-content1 shadow-sm">
                             <CardBody className="p-4">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2.5 bg-amber-100 rounded-xl">
                                         <Icon icon="solar:pause-circle-bold" className="text-2xl text-amber-600" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-slate-500">หยุดชั่วคราว</p>
-                                        <p className="text-2xl font-bold text-slate-800">{stats.paused}</p>
+                                        <p className="text-xs text-default-500">หยุดชั่วคราว</p>
+                                        <p className="text-2xl font-bold text-foreground">{stats.paused}</p>
                                     </div>
                                 </div>
                             </CardBody>
                         </Card>
-                        <Card className="shadow-sm border border-slate-200">
+                        <Card className="border border-default-200 bg-content1 shadow-sm">
                             <CardBody className="p-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2.5 bg-slate-100 rounded-xl">
-                                        <Icon icon="solar:document-bold" className="text-2xl text-slate-600" />
+                                    <div className="rounded-xl bg-content3 p-2.5">
+                                        <Icon icon="solar:document-bold" className="text-2xl text-default-600" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-slate-500">ฉบับร่าง</p>
-                                        <p className="text-2xl font-bold text-slate-800">{stats.draft}</p>
+                                        <p className="text-xs text-default-500">ฉบับร่าง</p>
+                                        <p className="text-2xl font-bold text-foreground">{stats.draft}</p>
                                     </div>
                                 </div>
                             </CardBody>
                         </Card>
-                        <Card className="shadow-sm border border-slate-200">
+                        <Card className="border border-default-200 bg-content1 shadow-sm">
                             <CardBody className="p-4">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2.5 bg-red-100 rounded-xl">
                                         <Icon icon="solar:stop-circle-bold" className="text-2xl text-red-600" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-slate-500">ปิดแล้ว</p>
-                                        <p className="text-2xl font-bold text-slate-800">{stats.closed}</p>
+                                        <p className="text-xs text-default-500">ปิดแล้ว</p>
+                                        <p className="text-2xl font-bold text-foreground">{stats.closed}</p>
                                     </div>
                                 </div>
                             </CardBody>
@@ -728,14 +727,14 @@ export default function QueueTab({
                     </div>
 
                     {/* Filters */}
-                    <Card className="shadow-sm border border-slate-200">
+                    <Card className="border border-default-200 bg-content1 shadow-sm">
                         <CardBody className="p-4">
                             <div className="flex flex-col sm:flex-row gap-3">
                                 <Input
                                     placeholder="ค้นหาชื่อการจองคิว..."
                                     value={searchQuery}
                                     onValueChange={setSearchQuery}
-                                    startContent={<Icon icon="solar:magnifer-linear" className="text-slate-400" />}
+                                    startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
                                     className="flex-1"
                                     size="md"
                                 />
@@ -759,16 +758,16 @@ export default function QueueTab({
 
 
                     {sessions.length === 0 ? (
-                        <Card className="shadow-sm border border-dashed border-slate-300 bg-slate-50/50">
+                        <Card className="border border-dashed border-default-300 bg-content2/50 shadow-sm">
                             <CardBody className="text-center py-16">
-                                <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
+                                <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-linear-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
                                     <Icon
                                         icon="solar:clipboard-check-bold-duotone"
                                         className="text-5xl text-blue-500"
                                     />
                                 </div>
-                                <h3 className="text-lg font-semibold text-slate-700 mb-2">ยังไม่มีการจองคิว</h3>
-                                <p className="text-slate-500 mb-6 max-w-md mx-auto">
+                                <h3 className="mb-2 text-lg font-semibold text-default-700">ยังไม่มีการจองคิว</h3>
+                                <p className="mx-auto mb-6 max-w-md text-default-500">
                                     สร้างการจองคิวเพื่อให้นักศึกษาสามารถจองคิวตรวจงานได้
                                 </p>
                                 {canCreateQueueSessions && (
@@ -787,7 +786,7 @@ export default function QueueTab({
                     ) : (
                         <>
                             {/* Sessions Table */}
-                            <Card className="shadow-sm border border-slate-200">
+                            <Card className="border border-default-200 bg-content1 shadow-sm">
                                 <CardBody className="p-2">
                                     <div className="overflow-x-auto">
                                         <Table
@@ -795,26 +794,26 @@ export default function QueueTab({
                                             removeWrapper
                                             classNames={{
                                                 base: "min-w-[850px]",
-                                                th: "bg-slate-50 text-slate-600 font-semibold text-sm whitespace-nowrap",
+                                                th: "bg-content2 text-default-600 font-semibold text-sm whitespace-nowrap",
                                                 td: "py-3 whitespace-nowrap",
                                             }}
                                         >
                                             <TableHeader>
-                                                <TableColumn className="min-w-[180px]">การจองคิว</TableColumn>
-                                                <TableColumn className="min-w-[100px]">ห้อง</TableColumn>
-                                                <TableColumn className="min-w-[140px]">หัวข้อลงคะแนน</TableColumn>
-                                                <TableColumn className="min-w-[100px]">สถานะ</TableColumn>
-                                                <TableColumn className="min-w-[120px]">คิวรอ/เสร็จ</TableColumn>
-                                                <TableColumn align="center" className="min-w-[160px]">จัดการ</TableColumn>
+                                                <TableColumn className="min-w-45">การจองคิว</TableColumn>
+                                                <TableColumn className="min-w-25">ห้อง</TableColumn>
+                                                <TableColumn className="min-w-35">หัวข้อลงคะแนน</TableColumn>
+                                                <TableColumn className="min-w-25">สถานะ</TableColumn>
+                                                <TableColumn className="min-w-30">คิวรอ/เสร็จ</TableColumn>
+                                                <TableColumn align="center" className="min-w-40">จัดการ</TableColumn>
                                             </TableHeader>
                                             <TableBody
                                                 emptyContent={
                                                     <div className="py-10 text-center">
                                                         <Icon
                                                             icon="solar:clipboard-list-linear"
-                                                            className="text-5xl text-slate-300 mx-auto mb-3"
+                                                            className="mx-auto mb-3 text-5xl text-default-300"
                                                         />
-                                                        <p className="text-slate-400">ยังไม่มีการจองคิว</p>
+                                                        <p className="text-default-400">ยังไม่มีการจองคิว</p>
                                                         {canCreateQueueSessions && (
                                                             <Button
                                                                 color="primary"
@@ -834,20 +833,20 @@ export default function QueueTab({
                                                     <TableRow key={session.id}>
                                                         <TableCell>
                                                             <div>
-                                                                <p className="font-medium text-slate-800">{session.title}</p>
-                                                                <p className="text-xs text-slate-500">
+                                                                <p className="font-medium text-foreground">{session.title}</p>
+                                                                <p className="text-xs text-default-500">
                                                                     PIN: <span className="font-mono font-bold text-blue-600">{session.pin_code}</span>
                                                                     {session.created_at && ` • ${formatDate(session.created_at)}`}
                                                                 </p>
                                                             </div>
                                                         </TableCell>
                                                         <TableCell>
-                                                            <span className="text-slate-800 text-sm">
+                                                            <span className="text-sm text-default-700">
                                                                 {session.classroom?.name || '-'}
                                                             </span>
                                                         </TableCell>
                                                         <TableCell>
-                                                            <span className="text-slate-800 text-sm">
+                                                            <span className="text-sm text-default-700">
                                                                 {session.linkedAssignment?.name || '-'}
                                                             </span>
                                                         </TableCell>
@@ -1067,7 +1066,7 @@ export default function QueueTab({
                                                                 })()}
                                                                 {session.status === 'closed' && (
                                                                     <>
-                                                                        <Chip size="sm" variant="flat" className="text-slate-400">ปิดแล้ว</Chip>
+                                                                        <Chip size="sm" variant="flat" className="bg-content3 text-default-500">ปิดแล้ว</Chip>
                                                                         {canDeleteQueueSessions && (
                                                                             <Tooltip content="ลบ" color="danger">
                                                                                 <Button
@@ -1097,7 +1096,7 @@ export default function QueueTab({
 
                                     {/* Pagination */}
                                     {totalPages > 1 && (
-                                        <div className="flex justify-center py-4 border-t border-slate-100">
+                                        <div className="flex justify-center border-t border-divider py-4">
                                             <Pagination
                                                 total={totalPages}
                                                 page={currentPage}
@@ -1132,12 +1131,12 @@ export default function QueueTab({
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg">
+                            <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg">
                                 <Icon icon="solar:clipboard-list-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">สร้างการจองคิว</h3>
-                                <p className="text-sm text-slate-500 font-normal mt-1">
+                                <h3 className="text-xl font-bold text-foreground">สร้างการจองคิว</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">
                                     กำหนดรายละเอียดการจองคิวตรวจงาน
                                 </p>
                             </div>
@@ -1155,8 +1154,8 @@ export default function QueueTab({
                                 variant="bordered"
                                 size="md"
                                 classNames={{
-                                    inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                    label: "text-slate-600 font-medium text-sm",
+                                    inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                    label: "text-default-600 font-medium text-sm",
                                 }}
                             />
 
@@ -1184,8 +1183,8 @@ export default function QueueTab({
                                 size="md"
                                 className="py-3"
                                 classNames={{
-                                    trigger: "bg-white border-slate-200",
-                                    label: "text-slate-600 font-medium text-sm",
+                                    trigger: "bg-content1 border-default-200",
+                                    label: "text-default-600 font-medium text-sm",
                                 }}
                             >
                                 {classrooms.map((room) => (
@@ -1208,21 +1207,21 @@ export default function QueueTab({
                                 variant="bordered"
                                 size="md"
                                 classNames={{
-                                    inputWrapper: "bg-white border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                    label: "text-slate-600 font-medium text-sm",
+                                    inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                    label: "text-default-600 font-medium text-sm",
                                 }}
                             />
 
                             {/* ลิงก์กับหัวข้องาน */}
-                            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                            <div className="rounded-xl border border-default-200 bg-content2 p-4">
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 bg-amber-100 rounded-lg">
                                             <Icon icon="solar:document-bold" className="text-lg text-amber-600" />
                                         </div>
                                         <div>
-                                            <span className="font-semibold text-slate-700">ลิงก์กับหัวข้องาน</span>
-                                            <p className="text-xs text-slate-500">เชื่อมโยงกับ Assignment เพื่อลงคะแนนอัตโนมัติ</p>
+                                            <span className="font-semibold text-default-700">ลิงก์กับหัวข้องาน</span>
+                                            <p className="text-xs text-default-500">เชื่อมโยงกับ Assignment เพื่อลงคะแนนอัตโนมัติ</p>
                                         </div>
                                     </div>
                                     <Button
@@ -1259,8 +1258,8 @@ export default function QueueTab({
                                         }}
                                         variant="bordered"
                                         classNames={{
-                                            trigger: "bg-white border-slate-200",
-                                            value: "text-slate-800",
+                                            trigger: "bg-content1 border-default-200",
+                                            value: "text-default-700",
                                         }}
                                     >
                                         {assignments.map((assignment) => (
@@ -1272,7 +1271,7 @@ export default function QueueTab({
                                                     /> */}
                                                     <div>
                                                         <span className="font-medium">{assignment.name}</span>
-                                                        <span className="text-xs text-slate-500 ml-2">
+                                                        <span className="ml-2 text-xs text-default-500">
                                                             ({assignment.max_score} คะแนน)
                                                         </span>
                                                     </div>
@@ -1281,9 +1280,9 @@ export default function QueueTab({
                                         ))}
                                     </Select>
                                 ) : (
-                                    <div className="p-3 bg-slate-100 rounded-lg text-center">
-                                        <Icon icon="solar:document-linear" className="text-slate-400 text-xl mb-1" />
-                                        <p className="text-sm text-slate-500">ยังไม่มีหัวข้องาน</p>
+                                    <div className="rounded-lg bg-content3 p-3 text-center">
+                                        <Icon icon="solar:document-linear" className="mb-1 text-xl text-default-400" />
+                                        <p className="text-sm text-default-500">ยังไม่มีหัวข้องาน</p>
                                     </div>
                                 )}
 
@@ -1300,15 +1299,15 @@ export default function QueueTab({
                             </div>
 
                             {/* ลิงก์กับการเช็คชื่อ */}
-                            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                            <div className="rounded-xl border border-default-200 bg-content2 p-4">
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 bg-blue-100 rounded-lg">
                                             <Icon icon="solar:clipboard-check-bold" className="text-lg text-blue-600" />
                                         </div>
                                         <div>
-                                            <span className="font-semibold text-slate-700">ลิงก์กับการเช็คชื่อ</span>
-                                            <p className="text-xs text-slate-500">ถ้านักศึกษาขาดเรียน จะไม่อนุญาตให้จองคิว</p>
+                                            <span className="font-semibold text-default-700">ลิงก์กับการเช็คชื่อ</span>
+                                            <p className="text-xs text-default-500">ถ้านักศึกษาขาดเรียน จะไม่อนุญาตให้จองคิว</p>
                                         </div>
                                     </div>
                                     <Button
@@ -1346,8 +1345,8 @@ export default function QueueTab({
                                         }}
                                         variant="bordered"
                                         classNames={{
-                                            trigger: "bg-white border-slate-200",
-                                            value: "text-slate-800",
+                                            trigger: "bg-content1 border-default-200",
+                                            value: "text-default-700",
                                         }}
                                     >
                                         {attendanceSessions.map((session) => (
@@ -1361,7 +1360,7 @@ export default function QueueTab({
                                                     /> */}
                                                     <div>
                                                         <span className="font-medium">{session.title}</span>
-                                                        <span className="text-xs text-slate-500 ml-2">
+                                                        <span className="ml-2 text-xs text-default-500">
                                                             {new Date(session.start_time).toLocaleDateString("th-TH", {
                                                                 day: "numeric",
                                                                 month: "short",
@@ -1374,9 +1373,9 @@ export default function QueueTab({
                                         ))}
                                     </Select>
                                 ) : (
-                                    <div className="p-3 bg-slate-100 rounded-lg text-center">
-                                        <Icon icon="solar:clipboard-list-linear" className="text-slate-400 text-xl mb-1" />
-                                        <p className="text-sm text-slate-500">ยังไม่มีรอบเช็คชื่อ</p>
+                                    <div className="rounded-lg bg-content3 p-3 text-center">
+                                        <Icon icon="solar:clipboard-list-linear" className="mb-1 text-xl text-default-400" />
+                                        <p className="text-sm text-default-500">ยังไม่มีรอบเช็คชื่อ</p>
                                     </div>
                                 )}
 
@@ -1393,7 +1392,7 @@ export default function QueueTab({
                             </div>
                         </div>
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button
                             variant="light"
                             onPress={() => {
@@ -1430,12 +1429,12 @@ export default function QueueTab({
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                            <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:pen-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">แก้ไขการจองคิว</h3>
-                                <p className="text-sm text-slate-500 font-normal mt-1">
+                                <h3 className="text-xl font-bold text-foreground">แก้ไขการจองคิว</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">
                                     แก้ไขข้อมูลการจองคิวตรวจงาน
                                 </p>
                             </div>
@@ -1453,8 +1452,8 @@ export default function QueueTab({
                                 variant="bordered"
                                 size="md"
                                 classNames={{
-                                    inputWrapper: "bg-white border-slate-200 hover:border-amber-300 focus-within:!border-amber-400",
-                                    label: "text-slate-600 font-medium text-sm",
+                                    inputWrapper: "bg-content1 border-default-200 hover:border-amber-300 focus-within:!border-amber-400",
+                                    label: "text-default-600 font-medium text-sm",
                                 }}
                             />
                             <Input
@@ -1466,8 +1465,8 @@ export default function QueueTab({
                                 variant="bordered"
                                 size="md"
                                 classNames={{
-                                    inputWrapper: "bg-white border-slate-200 hover:border-amber-300 focus-within:!border-amber-400",
-                                    label: "text-slate-600 font-medium text-sm",
+                                    inputWrapper: "bg-content1 border-default-200 hover:border-amber-300 focus-within:!border-amber-400",
+                                    label: "text-default-600 font-medium text-sm",
                                 }}
                             />
 
@@ -1505,7 +1504,7 @@ export default function QueueTab({
                                                         cutoff_at: localDateTimeInputToIso(event.target.value),
                                                     }))
                                                 }
-                                                className="w-full h-11 px-3 rounded-xl border border-rose-200 bg-white text-slate-800 outline-none transition-colors hover:border-rose-300 focus:border-rose-400"
+                                                className="h-11 w-full rounded-xl border border-rose-200 bg-content1 px-3 text-foreground outline-none transition-colors hover:border-rose-300 focus:border-rose-400"
                                             />
                                         </div>
                                         <div>
@@ -1520,7 +1519,7 @@ export default function QueueTab({
                                                         cutoff_note: event.target.value,
                                                     }))
                                                 }
-                                                className="w-full h-11 px-3 rounded-xl border border-rose-200 bg-white text-slate-800 placeholder:text-slate-400 outline-none transition-colors hover:border-rose-300 focus:border-rose-400"
+                                                className="h-11 w-full rounded-xl border border-rose-200 bg-content1 px-3 text-foreground placeholder:text-default-400 outline-none transition-colors hover:border-rose-300 focus:border-rose-400"
                                             />
                                         </div>
                                     </div>
@@ -1528,15 +1527,15 @@ export default function QueueTab({
                             </div>
 
                             {/* ลิงก์กับหัวข้องาน */}
-                            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                            <div className="rounded-xl border border-default-200 bg-content2 p-4">
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 bg-amber-100 rounded-lg">
                                             <Icon icon="solar:document-bold" className="text-lg text-amber-600" />
                                         </div>
                                         <div>
-                                            <span className="font-semibold text-slate-700">ลิงก์กับหัวข้องาน</span>
-                                            <p className="text-xs text-slate-500">เชื่อมโยงกับ Assignment เพื่อลงคะแนนอัตโนมัติ</p>
+                                            <span className="font-semibold text-default-700">ลิงก์กับหัวข้องาน</span>
+                                            <p className="text-xs text-default-500">เชื่อมโยงกับ Assignment เพื่อลงคะแนนอัตโนมัติ</p>
                                         </div>
                                     </div>
                                     <Button
@@ -1573,8 +1572,8 @@ export default function QueueTab({
                                         }}
                                         variant="bordered"
                                         classNames={{
-                                            trigger: "bg-white border-slate-200",
-                                            value: "text-slate-800",
+                                            trigger: "bg-content1 border-default-200",
+                                            value: "text-default-700",
                                         }}
                                     >
                                         {assignments.map((assignment) => (
@@ -1586,7 +1585,7 @@ export default function QueueTab({
                                                     />
                                                     <div>
                                                         <span className="font-medium">{assignment.name}</span>
-                                                        <span className="text-xs text-slate-500 ml-2">
+                                                        <span className="ml-2 text-xs text-default-500">
                                                             ({assignment.max_score} คะแนน)
                                                         </span>
                                                     </div>
@@ -1595,9 +1594,9 @@ export default function QueueTab({
                                         ))}
                                     </Select>
                                 ) : (
-                                    <div className="p-3 bg-slate-100 rounded-lg text-center">
-                                        <Icon icon="solar:document-linear" className="text-slate-400 text-xl mb-1" />
-                                        <p className="text-sm text-slate-500">ยังไม่มีหัวข้องาน</p>
+                                    <div className="rounded-lg bg-content3 p-3 text-center">
+                                        <Icon icon="solar:document-linear" className="mb-1 text-xl text-default-400" />
+                                        <p className="text-sm text-default-500">ยังไม่มีหัวข้องาน</p>
                                     </div>
                                 )}
 
@@ -1614,15 +1613,15 @@ export default function QueueTab({
                             </div>
 
                             {/* ลิงก์กับการเช็คชื่อ */}
-                            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                            <div className="rounded-xl border border-default-200 bg-content2 p-4">
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 bg-blue-100 rounded-lg">
                                             <Icon icon="solar:clipboard-check-bold" className="text-lg text-blue-600" />
                                         </div>
                                         <div>
-                                            <span className="font-semibold text-slate-700">ลิงก์กับการเช็คชื่อ</span>
-                                            <p className="text-xs text-slate-500">ถ้านักศึกษาขาดเรียน จะไม่อนุญาตให้จองคิว</p>
+                                            <span className="font-semibold text-default-700">ลิงก์กับการเช็คชื่อ</span>
+                                            <p className="text-xs text-default-500">ถ้านักศึกษาขาดเรียน จะไม่อนุญาตให้จองคิว</p>
                                         </div>
                                     </div>
                                     <Button
@@ -1660,8 +1659,8 @@ export default function QueueTab({
                                         }}
                                         variant="bordered"
                                         classNames={{
-                                            trigger: "bg-white border-slate-200",
-                                            value: "text-slate-800",
+                                            trigger: "bg-content1 border-default-200",
+                                            value: "text-default-700",
                                         }}
                                     >
                                         {attendanceSessions.map((session) => (
@@ -1675,7 +1674,7 @@ export default function QueueTab({
                                                     />
                                                     <div>
                                                         <span className="font-medium">{session.title}</span>
-                                                        <span className="text-xs text-slate-500 ml-2">
+                                                        <span className="ml-2 text-xs text-default-500">
                                                             {new Date(session.start_time).toLocaleDateString("th-TH", {
                                                                 day: "numeric",
                                                                 month: "short",
@@ -1688,9 +1687,9 @@ export default function QueueTab({
                                         ))}
                                     </Select>
                                 ) : (
-                                    <div className="p-3 bg-slate-100 rounded-lg text-center">
-                                        <Icon icon="solar:clipboard-list-linear" className="text-slate-400 text-xl mb-1" />
-                                        <p className="text-sm text-slate-500">ยังไม่มีรอบเช็คชื่อ</p>
+                                    <div className="rounded-lg bg-content3 p-3 text-center">
+                                        <Icon icon="solar:clipboard-list-linear" className="mb-1 text-xl text-default-400" />
+                                        <p className="text-sm text-default-500">ยังไม่มีรอบเช็คชื่อ</p>
                                     </div>
                                 )}
 
@@ -1707,7 +1706,7 @@ export default function QueueTab({
                             </div>
                         </div>
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button
                             variant="light"
                             onPress={() => {
@@ -1733,14 +1732,14 @@ export default function QueueTab({
             <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)}>
                 <ModalContent>
                     <ModalHeader className="flex items-center gap-3">
-                        <div className="p-2 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
+                        <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
                             <Icon icon="solar:trash-bin-trash-bold" className="text-xl text-white" />
                         </div>
-                        <span className="text-lg font-bold text-slate-800">ยืนยันการลบ</span>
+                        <span className="text-lg font-bold text-foreground">ยืนยันการลบ</span>
                     </ModalHeader>
                     <ModalBody>
                         <p>คุณต้องการลบการจองคิว <span className="font-semibold">{deleteTarget?.title}</span> ใช่หรือไม่?</p>
-                        <p className="text-sm text-slate-500">การดำเนินการนี้ไม่สามารถย้อนกลับได้</p>
+                        <p className="text-sm text-default-500">การดำเนินการนี้ไม่สามารถย้อนกลับได้</p>
                     </ModalBody>
                     <ModalFooter>
                         <Button variant="light" onPress={() => setIsDeleteModalOpen(false)}>
@@ -1757,7 +1756,7 @@ export default function QueueTab({
             <Modal isOpen={isStartModalOpen} onClose={() => setIsStartModalOpen(false)}>
                 <ModalContent>
                     <ModalHeader className="flex items-center gap-2">
-                        <div className="p-2 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
+                        <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
                             <Icon icon="solar:play-circle-bold" className="text-xl text-white" />
                         </div>
                         <span>ยืนยันเริ่มการจองคิว</span>
@@ -1799,7 +1798,7 @@ export default function QueueTab({
             <Modal isOpen={isPauseModalOpen} onClose={() => setIsPauseModalOpen(false)}>
                 <ModalContent>
                     <ModalHeader className="flex items-center gap-2">
-                        <div className="p-2 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
+                        <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
                             <Icon 
                                 icon={pauseAction === 'paused' ? "solar:pause-circle-bold" : "solar:play-circle-bold"} 
                                 className="text-xl text-white" 
@@ -1860,15 +1859,15 @@ export default function QueueTab({
             </Modal>
         </div>
         {pendingQueueUpdate && createPortal(
-            <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-[9999] sm:max-w-sm sm:w-full animate-toast-slide-up">
-                <div className="bg-white/95 backdrop-blur-md border border-blue-200 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-9999 sm:max-w-sm sm:w-full animate-toast-slide-up">
+                <div className="overflow-hidden rounded-2xl border border-blue-200 bg-content1/95 shadow-2xl backdrop-blur-md">
                     <div className="flex items-center gap-3 p-4">
-                        <div className="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                        <div className="shrink-0 w-10 h-10 rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
                             <Icon icon="solar:bell-bing-bold" className="text-xl text-white animate-bounce" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-slate-800">มีคิวอัปเดตใหม่</p>
-                            <p className="text-xs text-slate-500 mt-0.5">มีการเปลี่ยนแปลงข้อมูลคิวในชั้นเรียนนี้</p>
+                            <p className="text-sm font-bold text-foreground">มีคิวอัปเดตใหม่</p>
+                            <p className="mt-0.5 text-xs text-default-500">มีการเปลี่ยนแปลงข้อมูลคิวในชั้นเรียนนี้</p>
                         </div>
                         <Button
                             size="sm"

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from "react";
-import { io, Socket } from "@/services/realtime-socket";
+import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket";
 
 // Resource types that can be synced
 export type ResourceType = 
@@ -83,7 +83,6 @@ export const useRealtimeSync = (
         
         const unsubscribe = onDataUpdate((data) => {
             if (resourceList.includes(data.resource)) {
-                console.log(`📥 ${data.resource} updated:`, data);
                 onUpdateRef.current();
             }
         });
@@ -101,7 +100,6 @@ interface SocketProviderProps {
     children: React.ReactNode;
 }
 
-// Get socket URL from environment or derive from API URL
 const getStoredUserId = (): number | null => {
     if (typeof window === "undefined") {
         return null;
@@ -125,38 +123,17 @@ const getEventActorId = (eventData: any): number | null => {
     return Number.isFinite(actorId) && actorId > 0 ? actorId : null;
 };
 
-const getSocketUrl = (): string => {
-    // Priority 1: Use explicit Socket URL from env
-    if (process.env.NEXT_PUBLIC_SOCKET_URL) {
-        return process.env.NEXT_PUBLIC_SOCKET_URL;
-    }
-    
-    // Priority 2: For production with Nginx proxy - use same origin
-    if (typeof window !== 'undefined') {
-        const hostname = window.location.hostname;
-        // Production: use same origin (Nginx will proxy /socket.io to backend)
-        if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-            return window.location.origin;
-        }
-    }
-    
-    // Priority 3: Development - connect directly to backend port
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-    // Extract base URL without /api
-    return apiUrl.replace('/api', '');
-};
-
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     const [socket, setSocket] = useState<Socket | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const dataUpdateCallbacks = useRef<Set<(data: DataUpdateEvent) => void>>(new Set());
     const resourceCallbacks = useRef<Map<ResourceType, Set<(data: DataUpdateEvent) => void>>>(new Map());
     const notificationCallbacks = useRef<Set<(data: any) => void>>(new Set());
+    const hasWarnedAboutConnectError = useRef(false);
 
     // Initialize socket connection
     useEffect(() => {
-        const socketUrl = getSocketUrl();
-        console.log("🔌 Connecting to realtime WebSocket at:", socketUrl);
+        const socketUrl = getRealtimeSocketBaseUrl();
         
         const socketInstance = io(socketUrl, {
             reconnection: true,
@@ -167,19 +144,21 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         });
 
         socketInstance.on("connect", () => {
-            console.log("✅ Realtime socket connected:", socketInstance.id);
             setIsConnected(true);
+            hasWarnedAboutConnectError.current = false;
             // Auto-join global updates room
             socketInstance.emit("join-global-updates");
         });
 
-        socketInstance.on("disconnect", (reason) => {
-            console.warn("⚠️ Socket disconnected:", reason);
+        socketInstance.on("disconnect", () => {
             setIsConnected(false);
         });
 
         socketInstance.on("connect_error", (error) => {
-            console.error("❌ Socket connection error:", error.message);
+            if (!hasWarnedAboutConnectError.current) {
+                console.warn("⚠️ Realtime socket unavailable:", socketUrl, error.message);
+                hasWarnedAboutConnectError.current = true;
+            }
             setIsConnected(false);
         });
 
@@ -190,7 +169,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
             if (myId !== null && actorId !== null && myId === actorId) {
                 return; // skip self-events
             }
-            console.log("📢 Data update received:", data);
             // Notify all general callbacks
             dataUpdateCallbacks.current.forEach(callback => callback(data));
             // Notify resource-specific callbacks
@@ -232,7 +210,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     const subscribeToUpdates = useCallback(() => {
         if (socket) {
             socket.emit("join-global-updates");
-            console.log("📌 Subscribed to global updates");
         }
     }, [socket]);
 
@@ -240,7 +217,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     const unsubscribeFromUpdates = useCallback(() => {
         if (socket) {
             socket.emit("leave-global-updates");
-            console.log("📌 Unsubscribed from global updates");
         }
     }, [socket]);
 
@@ -271,7 +247,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
                 timestamp: Date.now(),
             };
             socket.emit("data-change", event);
-            console.log("📤 Data update emitted:", event);
         }
     }, [socket]);
 

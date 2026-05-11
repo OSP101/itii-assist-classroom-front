@@ -13,8 +13,13 @@ import { Tooltip } from "@heroui/tooltip";
 import { Icon } from "@iconify/react";
 import { addToast } from "@heroui/toast";
 import { studentService, StudentScoreLookupResponse, CourseScoreData, AssignmentScore, ExamScoreData } from "@/services/student.service";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import { useI18n } from "@/hooks/useI18n";
 
 export default function MyScorePage() {
+    const { language } = useGlobalSettings();
+    const t = useI18n();
+    const locale = language === "en" ? "en-US" : "th-TH";
     const [studentId, setStudentId] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [data, setData] = useState<StudentScoreLookupResponse | null>(null);
@@ -69,8 +74,8 @@ export default function MyScorePage() {
     const handleSearch = async () => {
         if (!studentId.trim()) {
             addToast({
-                title: "กรุณากรอกรหัสนักศึกษา",
-                description: "กรุณากรอกรหัสนักศึกษาเพื่อค้นหาคะแนน",
+                title: t("pleaseEnterStudentId"),
+                description: t("enterStudentIdToSearchScores"),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -90,8 +95,8 @@ export default function MyScorePage() {
                 setData(response.data);
                 saveToHistory(studentId.trim(), response.data.student.full_name);
                 addToast({
-                    title: "ค้นหาสำเร็จ",
-                    description: `พบข้อมูลของ ${response.data.student.full_name}`,
+                    title: t("searchSuccessful"),
+                    description: t("foundDataOfStudent", { name: response.data.student.full_name }),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -99,8 +104,8 @@ export default function MyScorePage() {
             } else {
                 setData(null);
                 addToast({
-                    title: "ไม่พบข้อมูล",
-                    description: "ไม่พบข้อมูลนักศึกษาในระบบ",
+                    title: t("studentNotFound"),
+                    description: t("studentNotFoundInSystem"),
                     color: "danger",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -108,9 +113,9 @@ export default function MyScorePage() {
             }
         } catch (error: unknown) {
             setData(null);
-            const errorMessage = error instanceof Error ? error.message : "ไม่พบข้อมูลนักศึกษาในระบบ";
+            const errorMessage = error instanceof Error ? error.message : t("studentNotFoundInSystem");
             addToast({
-                title: "เกิดข้อผิดพลาด",
+                title: t("somethingWentWrong"),
                 description: errorMessage,
                 color: "danger",
                 timeout: 3000,
@@ -129,17 +134,17 @@ export default function MyScorePage() {
 
     const getAttendanceConfig = (status: string) => {
         const config: Record<string, { color: "success" | "warning" | "secondary" | "danger"; label: string; icon: string; bg: string }> = {
-            present: { color: "success", label: "มาเรียน", icon: "solar:check-circle-bold", bg: "bg-green-50 border-green-200" },
-            late: { color: "warning", label: "สาย", icon: "solar:clock-circle-bold", bg: "bg-amber-50 border-amber-200" },
-            leave: { color: "secondary", label: "ลา", icon: "solar:document-text-bold", bg: "bg-gray-50 border-gray-200" },
-            absent: { color: "danger", label: "ขาด", icon: "solar:close-circle-bold", bg: "bg-red-50 border-red-200" },
+            present: { color: "success", label: t("attendanceStatusPresent"), icon: "solar:check-circle-bold", bg: "bg-green-50 border-green-200" },
+            late: { color: "warning", label: t("attendanceStatusLate"), icon: "solar:clock-circle-bold", bg: "bg-amber-50 border-amber-200" },
+            leave: { color: "secondary", label: t("attendanceStatusLeave"), icon: "solar:document-text-bold", bg: "bg-gray-50 border-gray-200" },
+            absent: { color: "danger", label: t("attendanceStatusAbsent"), icon: "solar:close-circle-bold", bg: "bg-red-50 border-red-200" },
         };
         return config[status] || { color: "secondary" as const, label: status, icon: "solar:question-circle-bold", bg: "bg-gray-50" };
     };
 
     const formatDate = (dateString: string | null) => {
         if (!dateString) return "-";
-        return new Date(dateString).toLocaleString("th-TH", {
+        return new Date(dateString).toLocaleString(locale, {
             day: "numeric",
             month: "short",
             year: "numeric",
@@ -150,7 +155,7 @@ export default function MyScorePage() {
 
     const formatShortDate = (dateString: string | null) => {
         if (!dateString) return "-";
-        return new Date(dateString).toLocaleString("th-TH", {
+        return new Date(dateString).toLocaleString(locale, {
             day: "numeric",
             month: "short",
         });
@@ -215,7 +220,7 @@ export default function MyScorePage() {
                                         color="secondary"
                                         startContent={<Icon icon="solar:users-group-rounded-bold" className="text-xs" />}
                                     >
-                                        กลุ่ม
+                                        {t("groupWork")}
                                     </Chip>
                                 )}
                             </div>
@@ -226,7 +231,7 @@ export default function MyScorePage() {
                                 </p>
                             )}
                         </div>
-                        <div className="text-right flex-shrink-0">
+                        <div className="text-right shrink-0">
                             <div className={`text-2xl font-bold ${hasSubItems 
                                 ? getScoreColor(calculatedScore, gradedMaxScore, someSubItemsGraded)
                                 : getScoreColor(assignment.score, assignment.max_score, assignment.status === "graded")
@@ -241,7 +246,7 @@ export default function MyScorePage() {
                             </div>
                             {hasSubItems && !allSubItemsGraded && someSubItemsGraded && (
                                 <p className="text-[10px] text-amber-500">
-                                    ตรวจแล้ว {assignment.sub_items.filter(s => s.score !== null).length}/{assignment.sub_items.length} ข้อ
+                                    {t("reviewedCountOfTotal", { reviewed: assignment.sub_items.filter(s => s.score !== null).length, total: assignment.sub_items.length })}
                                 </p>
                             )}
                         </div>
@@ -253,7 +258,7 @@ export default function MyScorePage() {
                     <div className="px-4 py-3 bg-linear-to-r from-blue-50/50 to-indigo-50/50">
                         <p className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
                             <Icon icon="solar:list-check-linear" />
-                            รายละเอียดคะแนน
+                            {t("scoreDetails")}
                         </p>
                         <div className="space-y-2">
                             {assignment.sub_items.map((subItem) => {
@@ -267,7 +272,7 @@ export default function MyScorePage() {
                                                 {subItemGraded ? subItem.score : 0}/{subItem.max_score}
                                             </span>
                                             {subItemGraded ? (
-                                                <Tooltip content={subItem.grader ? `ตรวจโดย ${subItem.grader}` : "ตรวจแล้ว"}>
+                                                <Tooltip content={subItem.grader ? t("reviewedByName", { name: subItem.grader }) : t("reviewed")}>
                                                     <span className="text-[10px] text-green-600 flex items-center gap-0.5 cursor-help whitespace-nowrap">
                                                         <Icon icon="solar:check-circle-bold" className="text-xs" />
                                                         {formatShortDate(subItem.graded_at)}
@@ -276,7 +281,7 @@ export default function MyScorePage() {
                                             ) : (
                                                 <span className="text-[10px] text-amber-500 flex items-center gap-0.5 whitespace-nowrap">
                                                     <Icon icon="solar:clock-circle-bold" className="text-xs" />
-                                                    รอตรวจ
+                                                    {t("pendingReview")}
                                                 </span>
                                             )}
                                         </div>
@@ -293,12 +298,12 @@ export default function MyScorePage() {
                         {assignment.status === "graded" ? (
                             <span className="flex items-center gap-1 text-green-600">
                                 <Icon icon="solar:check-circle-bold" />
-                                ตรวจแล้ว
+                                {t("reviewed")}
                             </span>
                         ) : (
                             <span className="flex items-center gap-1 text-amber-500">
                                 <Icon icon="solar:clock-circle-bold" />
-                                รอตรวจ
+                                {t("pendingReview")}
                             </span>
                         )}
                     </div>
@@ -324,7 +329,7 @@ export default function MyScorePage() {
                 {assignment.comment && (
                     <div className="px-4 py-2 bg-amber-50 border-t border-amber-100">
                         <p className="text-xs text-amber-700 flex items-start gap-1">
-                            <Icon icon="solar:chat-square-text-linear" className="mt-0.5 flex-shrink-0" />
+                            <Icon icon="solar:chat-square-text-linear" className="mt-0.5 shrink-0" />
                             <span className="italic">&quot;{assignment.comment}&quot;</span>
                         </p>
                     </div>
@@ -397,7 +402,7 @@ export default function MyScorePage() {
                     indicator: "text-gray-400 data-[open=true]:text-blue-500 text-lg",
                 }}
                 startContent={
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
+                    <div className="w-12 h-12 rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
                         <Icon icon="solar:book-2-bold" className="text-white text-xl" />
                     </div>
                 }
@@ -431,7 +436,7 @@ export default function MyScorePage() {
 
                 <div className="bg-white">
                     <Tabs
-                        aria-label="Course tabs"
+                        aria-label={t("courseTabs")}
                         color="primary"
                         variant="underlined"
                         classNames={{
@@ -449,7 +454,7 @@ export default function MyScorePage() {
                                 title={
                                     <div className="flex items-center gap-2">
                                         <Icon icon="solar:monitor-bold" className="text-lg text-indigo-500" />
-                                        <span>Laboratory</span>
+                                        <span>{t("laboratory")}</span>
                                         <Chip size="sm" variant="flat" className="bg-indigo-100 text-indigo-600">{sortedLabAssignments.length}</Chip>
                                     </div>
                                 }
@@ -463,7 +468,7 @@ export default function MyScorePage() {
                                                     <Icon icon="solar:monitor-bold" className="text-white text-lg" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-medium text-gray-600">คะแนน Laboratory</p>
+                                                    <p className="text-sm font-medium text-gray-600">{t("labScore")}</p>
                                                     <p className="text-2xl font-bold text-indigo-600">
                                                         {labScore.toFixed(1)} <span className="text-sm text-gray-400">/ {labMaxScore}</span>
                                                     </p>
@@ -474,7 +479,7 @@ export default function MyScorePage() {
                                                     {labMaxScore > 0 ? ((labScore / labMaxScore) * 100).toFixed(0) : 0}%
                                                 </p>
                                                 <p className="text-xs text-gray-500">
-                                                    ตรวจแล้ว {labAssignments.filter(a => a.status === "graded").length}/{labAssignments.length}
+                                                    {t("reviewedCountOfTotal", { reviewed: labAssignments.filter(a => a.status === "graded").length, total: labAssignments.length })}
                                                 </p>
                                             </div>
                                         </div>
@@ -500,7 +505,7 @@ export default function MyScorePage() {
                                 title={
                                     <div className="flex items-center gap-2">
                                         <Icon icon="solar:document-text-bold" className="text-lg text-amber-500" />
-                                        <span>Assignment</span>
+                                        <span>{t("assignment")}</span>
                                         <Chip size="sm" variant="flat" className="bg-amber-100 text-amber-600">{sortedHomeworkAssignments.length}</Chip>
                                     </div>
                                 }
@@ -514,7 +519,7 @@ export default function MyScorePage() {
                                                     <Icon icon="solar:document-text-bold" className="text-white text-lg" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-medium text-gray-600">คะแนน Assignment</p>
+                                                    <p className="text-sm font-medium text-gray-600">{t("assignmentScore")}</p>
                                                     <p className="text-2xl font-bold text-amber-600">
                                                         {homeworkScore.toFixed(1)} <span className="text-sm text-gray-400">/ {homeworkMaxScore}</span>
                                                     </p>
@@ -525,7 +530,7 @@ export default function MyScorePage() {
                                                     {homeworkMaxScore > 0 ? ((homeworkScore / homeworkMaxScore) * 100).toFixed(0) : 0}%
                                                 </p>
                                                 <p className="text-xs text-gray-500">
-                                                    ตรวจแล้ว {homeworkAssignments.filter(a => a.status === "graded").length}/{homeworkAssignments.length}
+                                                    {t("reviewedCountOfTotal", { reviewed: homeworkAssignments.filter(a => a.status === "graded").length, total: homeworkAssignments.length })}
                                                 </p>
                                             </div>
                                         </div>
@@ -552,7 +557,7 @@ export default function MyScorePage() {
                                 title={
                                     <div className="flex items-center gap-2">
                                         <Icon icon="solar:users-group-rounded-bold" className="text-lg text-emerald-500" />
-                                        <span>งานกลุ่ม</span>
+                                        <span>{t("groupWorkAssignments")}</span>
                                         <Chip size="sm" variant="flat" className="bg-emerald-100 text-emerald-600">{sortedGroupAssignments.length}</Chip>
                                     </div>
                                 }
@@ -566,7 +571,7 @@ export default function MyScorePage() {
                                                     <Icon icon="solar:users-group-rounded-bold" className="text-white text-lg" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-medium text-gray-600">คะแนนงานกลุ่ม</p>
+                                                    <p className="text-sm font-medium text-gray-600">{t("groupScore")}</p>
                                                     <p className="text-2xl font-bold text-emerald-600">
                                                         {groupScore.toFixed(1)} <span className="text-sm text-gray-400">/ {groupMaxScore}</span>
                                                     </p>
@@ -577,7 +582,7 @@ export default function MyScorePage() {
                                                     {groupMaxScore > 0 ? ((groupScore / groupMaxScore) * 100).toFixed(0) : 0}%
                                                 </p>
                                                 <p className="text-xs text-gray-500">
-                                                    ตรวจแล้ว {groupAssignments.filter(a => a.status === "graded").length}/{groupAssignments.length}
+                                                    {t("reviewedCountOfTotal", { reviewed: groupAssignments.filter(a => a.status === "graded").length, total: groupAssignments.length })}
                                                 </p>
                                             </div>
                                         </div>
@@ -603,7 +608,7 @@ export default function MyScorePage() {
                                 title={
                                     <div className="flex items-center gap-2">
                                         <Icon icon="solar:calendar-mark-linear" className="text-lg text-sky-500" />
-                                        <span>เช็คชื่อ</span>
+                                        <span>{t("attendanceTab")}</span>
                                         <Chip size="sm" variant="flat" className="bg-sky-100 text-sky-600">{sortedAttendance.length}</Chip>
                                     </div>
                                 }
@@ -617,9 +622,9 @@ export default function MyScorePage() {
                                                     <Icon icon="solar:calendar-mark-bold" className="text-white text-lg" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-medium text-gray-600">สถิติการเข้าเรียน</p>
+                                                    <p className="text-sm font-medium text-gray-600">{t("attendanceStatistics")}</p>
                                                     <p className="text-2xl font-bold text-sky-600">
-                                                        {attendance.summary.present + attendance.summary.late} <span className="text-sm text-gray-400">/ {sortedAttendance.length} ครั้ง</span>
+                                                        {t("attendanceSessionsSummary", { attended: attendance.summary.present + attendance.summary.late, total: sortedAttendance.length })}
                                                     </p>
                                                 </div>
                                             </div>
@@ -629,7 +634,7 @@ export default function MyScorePage() {
                                                         ? (((attendance.summary.present + attendance.summary.late) / sortedAttendance.length) * 100).toFixed(0) 
                                                         : 0}%
                                                 </p>
-                                                <p className="text-xs text-gray-500">อัตราการเข้าเรียน</p>
+                                                <p className="text-xs text-gray-500">{t("attendanceRate")}</p>
                                             </div>
                                         </div>
                                         {/* Progress Bar */}
@@ -644,10 +649,10 @@ export default function MyScorePage() {
                                     {/* Attendance Stats Grid */}
                                     <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-4">
                                         {[
-                                            { key: "present", label: "มาเรียน", color: "bg-green-500", icon: "solar:check-circle-bold" },
-                                            { key: "late", label: "สาย", color: "bg-amber-500", icon: "solar:clock-circle-bold" },
-                                            { key: "leave", label: "ลา", color: "bg-gray-400", icon: "solar:document-text-bold" },
-                                            { key: "absent", label: "ขาด", color: "bg-red-500", icon: "solar:close-circle-bold" },
+                                            { key: "present", label: t("attendanceStatusPresent"), color: "bg-green-500", icon: "solar:check-circle-bold" },
+                                            { key: "late", label: t("attendanceStatusLate"), color: "bg-amber-500", icon: "solar:clock-circle-bold" },
+                                            { key: "leave", label: t("attendanceStatusLeave"), color: "bg-gray-400", icon: "solar:document-text-bold" },
+                                            { key: "absent", label: t("attendanceStatusAbsent"), color: "bg-red-500", icon: "solar:close-circle-bold" },
                                         ].map((item) => (
                                             <div
                                                 key={item.key}
@@ -705,7 +710,7 @@ export default function MyScorePage() {
                                 title={
                                     <div className="flex items-center gap-2">
                                         <Icon icon="solar:star-bold" className="text-lg text-amber-500" />
-                                        <span>พิเศษ</span>
+                                        <span>{t("bonus")}</span>
                                         {bonusScore && bonusScore.total > 0 && (
                                             <Chip size="sm" variant="flat" className="bg-amber-100 text-amber-600">+{bonusScore.total}</Chip>
                                         )}
@@ -715,13 +720,13 @@ export default function MyScorePage() {
                                 <div className="p-4 sm:p-5">
                                     {/* Bonus Score Summary */}
                                     <div className="flex items-center justify-center gap-4 mb-6 p-4 bg-linear-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-200">
-                                        <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                                        <div className="w-16 h-16 bg-linear-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
                                             <Icon icon="solar:star-bold" className="text-3xl text-white" />
                                         </div>
                                         <div>
-                                            <p className="text-sm text-amber-700">คะแนนพิเศษรวม</p>
+                                            <p className="text-sm text-amber-700">{t("bonusTotalScore")}</p>
                                             <p className="text-4xl font-bold text-amber-600">+{bonusScore?.total || 0}</p>
-                                            <p className="text-xs text-amber-500">คะแนน</p>
+                                            <p className="text-xs text-amber-500">{t("scoreUnit")}</p>
                                         </div>
                                     </div>
 
@@ -730,7 +735,7 @@ export default function MyScorePage() {
                                         <div className="space-y-2">
                                             <p className="text-sm font-medium text-gray-600 mb-3 flex items-center gap-2">
                                                 <Icon icon="solar:history-linear" />
-                                                ประวัติการได้รับคะแนน ({sortedBonusRecords.length} รายการ)
+                                                {t("bonusHistoryWithCount", { count: sortedBonusRecords.length })}
                                             </p>
                                             {sortedBonusRecords.map((record, idx) => (
                                                 <div
@@ -774,7 +779,7 @@ export default function MyScorePage() {
                                 title={
                                     <div className="flex items-center gap-2">
                                         <Icon icon="solar:diploma-bold" className="text-lg text-purple-500" />
-                                        <span>คะแนนสอบ</span>
+                                        <span>{t("examScores")}</span>
                                         <Chip size="sm" variant="flat" className="bg-purple-100 text-purple-600">
                                             {courseData.examScores.length}
                                         </Chip>
@@ -787,7 +792,7 @@ export default function MyScorePage() {
                                         <div>
                                             <div className="flex items-center gap-2 mb-3">
                                                 <Icon icon="solar:notebook-bold" className="text-blue-500" />
-                                                <h4 className="font-medium text-gray-700">สอบกลางภาค</h4>
+                                                <h4 className="font-medium text-gray-700">{t("midtermExam")}</h4>
                                             </div>
                                             
                                             {/* Midterm Statistics */}
@@ -844,7 +849,7 @@ export default function MyScorePage() {
                                                                     className={exam.component === 'lab' ? 'text-emerald-500' : 'text-blue-500'} 
                                                                 />
                                                                 <span className="font-medium text-gray-700">
-                                                                    {exam.component === 'lab' ? 'ปฏิบัติการ' : 'บรรยาย'}
+                                                                    {exam.component === 'lab' ? t("practicalComponent") : t("lectureComponent")}
                                                                 </span>
                                                             </div>
                                                             <Chip 
@@ -852,7 +857,7 @@ export default function MyScorePage() {
                                                                 color={exam.score !== null ? "success" : "default"} 
                                                                 variant="flat"
                                                             >
-                                                                {exam.score !== null ? "ตรวจแล้ว" : "รอตรวจ"}
+                                                                {exam.score !== null ? t("reviewed") : t("pendingReview")}
                                                             </Chip>
                                                         </div>
                                                         <div className="text-center py-3">
@@ -875,7 +880,7 @@ export default function MyScorePage() {
                                                         </div>
                                                         {exam.grader && (
                                                             <p className="text-xs text-gray-500 text-center">
-                                                                ตรวจโดย {exam.grader}
+                                                                {t("reviewedByName", { name: exam.grader })}
                                                             </p>
                                                         )}
                                                     </div>
@@ -889,7 +894,7 @@ export default function MyScorePage() {
                                         <div>
                                             <div className="flex items-center gap-2 mb-3">
                                                 <Icon icon="solar:diploma-bold" className="text-indigo-500" />
-                                                <h4 className="font-medium text-gray-700">สอบปลายภาค</h4>
+                                                <h4 className="font-medium text-gray-700">{t("finalExam")}</h4>
                                             </div>
                                             
                                             {/* Final Statistics */}
@@ -946,7 +951,7 @@ export default function MyScorePage() {
                                                                     className={exam.component === 'lab' ? 'text-emerald-500' : 'text-indigo-500'} 
                                                                 />
                                                                 <span className="font-medium text-gray-700">
-                                                                    {exam.component === 'lab' ? 'ปฏิบัติการ' : 'บรรยาย'}
+                                                                    {exam.component === 'lab' ? t("practicalComponent") : t("lectureComponent")}
                                                                 </span>
                                                             </div>
                                                             <Chip 
@@ -954,7 +959,7 @@ export default function MyScorePage() {
                                                                 color={exam.score !== null ? "success" : "default"} 
                                                                 variant="flat"
                                                             >
-                                                                {exam.score !== null ? "ตรวจแล้ว" : "รอตรวจ"}
+                                                                {exam.score !== null ? t("reviewed") : t("pendingReview")}
                                                             </Chip>
                                                         </div>
                                                         <div className="text-center py-3">
@@ -977,7 +982,7 @@ export default function MyScorePage() {
                                                         </div>
                                                         {exam.grader && (
                                                             <p className="text-xs text-gray-500 text-center">
-                                                                ตรวจโดย {exam.grader}
+                                                                {t("reviewedByName", { name: exam.grader })}
                                                             </p>
                                                         )}
                                                     </div>
@@ -995,9 +1000,9 @@ export default function MyScorePage() {
     };
 
     return (
-        <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        <div className="flex flex-col min-h-screen bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50">
             {/* Header */}
-            <div className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white overflow-hidden">
+            <div className="relative bg-linear-to-br from-blue-600 via-blue-700 to-indigo-800 text-white overflow-hidden">
                 {/* Background Pattern */}
                 <div className="absolute inset-0 opacity-10">
                     <div className="absolute top-60 left-90 w-35 h-35 bg-white rounded-full -translate-x-1/2 -translate-y-1/2" />
@@ -1011,9 +1016,9 @@ export default function MyScorePage() {
                             <Icon icon="solar:graduation-cap-bold" className="text-lg" />
                             <span className="text-sm font-medium">ITII Assist Classroom</span>
                         </div>
-                        <h1 className="text-3xl sm:text-4xl font-bold mb-3">ค้นหาคะแนนรายบุคคล</h1>
+                        <h1 className="text-3xl sm:text-4xl font-bold mb-3">{t("individualScoreLookup")}</h1>
                         <p className="text-blue-100 text-sm sm:text-base max-w-md mx-auto">
-                            ตรวจสอบคะแนนเก็บและความคืบหน้าการเรียนของคุณได้ทันที
+                            {t("checkScoresAndProgressInstantly")}
                         </p>
                     </div>
                 </div>
@@ -1025,7 +1030,7 @@ export default function MyScorePage() {
                     <CardBody className="p-4 sm:p-6">
                         <div className="flex flex-col sm:flex-row gap-3">
                             <Input
-                                placeholder="กรอกรหัสนักศึกษา เช่น 660705010-1"
+                                placeholder={t("enterStudentIdPlaceholder")}
                                 value={studentId}
                                 onChange={(e) => setStudentId(e.target.value)}
                                 onKeyPress={handleKeyPress}
@@ -1047,9 +1052,9 @@ export default function MyScorePage() {
                                 onPress={handleSearch}
                                 isLoading={isLoading}
                                 isDisabled={cooldown > 0 && !isLoading}
-                                className="bg-linear-to-r from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30 h-14 min-w-[140px] text-base font-medium"
+                                className="bg-linear-to-r from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30 h-14 min-w-35 text-base font-medium"
                             >
-                                {cooldown > 0 && !isLoading ? `รอ ${cooldown} วินาที` : "ค้นหาคะแนน"}
+                                {cooldown > 0 && !isLoading ? t("waitSeconds", { seconds: cooldown }) : t("searchScores")}
                             </Button>
                         </div>
                     </CardBody>
@@ -1063,7 +1068,7 @@ export default function MyScorePage() {
                         <div className="relative">
                             <Spinner size="lg" color="primary" />
                         </div>
-                        <p className="text-gray-500 mt-4 animate-pulse">กำลังค้นหาข้อมูล...</p>
+                        <p className="text-gray-500 mt-4 animate-pulse">{t("searchingData")}</p>
                     </div>
                 ) : data ? (
                     <>
@@ -1072,7 +1077,7 @@ export default function MyScorePage() {
                             <CardBody className="p-0">
                                 <div className="bg-linear-to-r from-slate-700 to-slate-800 p-5 sm:p-6">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-lg">
+                                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-linear-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-lg">
                                             <Icon icon="solar:user-bold" className="text-white text-3xl sm:text-4xl" />
                                         </div>
                                         <div className="text-white">
@@ -1132,8 +1137,8 @@ export default function MyScorePage() {
                                     <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                         <Icon icon="solar:notebook-linear" className="text-4xl text-gray-400" />
                                     </div>
-                                    <p className="text-gray-600 font-medium mb-1">ไม่พบรายวิชา</p>
-                                    <p className="text-gray-400 text-sm">นักศึกษายังไม่ได้ลงทะเบียนรายวิชาใดๆ</p>
+                                    <p className="text-gray-600 font-medium mb-1">{t("noCoursesFound")}</p>
+                                    <p className="text-gray-400 text-sm">{t("studentHasNoCourses")}</p>
                                 </CardBody>
                             </Card>
                         )}
@@ -1144,8 +1149,8 @@ export default function MyScorePage() {
                             <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Icon icon="solar:user-cross-bold" className="text-5xl text-red-400" />
                             </div>
-                            <p className="text-gray-700 font-semibold text-lg mb-2">ไม่พบข้อมูลนักศึกษา</p>
-                            <p className="text-gray-400 text-sm">กรุณาตรวจสอบรหัสนักศึกษาและลองใหม่อีกครั้ง</p>
+                            <p className="text-gray-700 font-semibold text-lg mb-2">{t("studentNotFound")}</p>
+                            <p className="text-gray-400 text-sm">{t("pleaseCheckStudentIdAndTryAgain")}</p>
                         </CardBody>
                     </Card>
                 ) : (
@@ -1154,8 +1159,8 @@ export default function MyScorePage() {
                             <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Icon icon="solar:magnifer-bold" className="text-5xl text-blue-400" />
                             </div>
-                            <p className="text-gray-700 font-semibold text-lg mb-2">เริ่มต้นค้นหาคะแนน</p>
-                            <p className="text-gray-400 text-sm">กรอกรหัสนักศึกษาด้านบนเพื่อดูคะแนนและการเช็คชื่อ</p>
+                            <p className="text-gray-700 font-semibold text-lg mb-2">{t("startScoreSearch")}</p>
+                            <p className="text-gray-400 text-sm">{t("enterStudentIdAbove")}</p>
                         </CardBody>
                     </Card>
                 )}
@@ -1163,7 +1168,7 @@ export default function MyScorePage() {
 
             {/* Footer */}
             <div className="mt-auto py-4 text-center text-slate-400 text-xs sm:text-sm px-4 font-light bg-white/50">
-                © 2025 ITII Assist Classroom. All Rights Reserved. Made with ❤️ by{" "}
+                © 2025 ITII Assist Classroom. {t("allRightsReserved")} {t("madeWithLoveBy")}{" "}
                 <Link href="https://github.com/OSP101" target="_blank" className="text-blue-500 hover:text-blue-600">
                     OSP101
                 </Link>

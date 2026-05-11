@@ -155,8 +155,8 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-lg font-semibold text-slate-800">คะแนนในชั้นเรียน</h2>
-                    <p className="text-sm text-slate-500">ดูภาพรวมคะแนนทั้งหมดของนักศึกษา</p>
+                    <h2 className="text-lg font-semibold text-foreground">คะแนนในชั้นเรียน</h2>
+                    <p className="text-sm text-default-500">ดูภาพรวมคะแนนทั้งหมดของนักศึกษา</p>
                 </div>
                 <Link isExternal showAnchorIcon className="text-blue-600 hover:underline" href="/myscore">
                     เช็คคะแนนรายบุคคล
@@ -172,7 +172,7 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                     tabList: "gap-4 md:gap-6 flex-nowrap min-w-max",
                     cursor: "bg-blue-500",
                     tab: "px-0 h-10",
-                    tabContent: "group-data-[selected=true]:text-blue-600 text-slate-500 font-medium text-sm",
+                    tabContent: "group-data-[selected=true]:text-blue-600 text-default-500 font-medium text-sm",
                 }}
             >
                 <Tab
@@ -244,8 +244,8 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                     <Button
                                         variant="bordered"
                                         size="md"
-                                        className="min-w-28 justify-between border-slate-200"
-                                        endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-slate-400 text-sm" />}
+                                        className="min-w-28 justify-between border-default-200 bg-content1 text-default-700"
+                                        endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-default-400 text-sm" />}
                                     >
                                         {selectedSection === "all"
                                             ? "ทุกกลุ่ม"
@@ -273,42 +273,42 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
             </Card>
 
             {/* Score Matrix */}
-            <Card className="shadow-sm border border-slate-200">
+            <Card className="border border-default-200 bg-content1 shadow-sm">
                 <CardBody className="p-0">
                     {!matrixData || matrixData.assignments.length === 0 ? (
                         <div className="text-center py-20">
-                            <Icon icon="solar:clipboard-list-linear" className="text-5xl text-slate-300 mx-auto mb-3" />
-                            <p className="text-slate-500">ยังไม่มี{selectedTab === "lab" ? "Lab" : selectedTab === "assignment" ? "Assignment" : "งานกลุ่ม"}</p>
+                            <Icon icon="solar:clipboard-list-linear" className="mx-auto mb-3 text-5xl text-default-300" />
+                            <p className="text-default-500">ยังไม่มี{selectedTab === "lab" ? "Lab" : selectedTab === "assignment" ? "Assignment" : "งานกลุ่ม"}</p>
                         </div>
                     ) : filteredStudents.length === 0 ? (
                         <div className="text-center py-20">
-                            <Icon icon="solar:user-cross-linear" className="text-5xl text-slate-300 mx-auto mb-3" />
-                            <p className="text-slate-500">ไม่พบนักศึกษา</p>
+                            <Icon icon="solar:user-cross-linear" className="mx-auto mb-3 text-5xl text-default-300" />
+                            <p className="text-default-500">ไม่พบนักศึกษา</p>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto max-h-[590px] overflow-y-auto">
+                        <div className="max-h-147.5 overflow-x-auto overflow-y-auto">
                             <table className="w-full text-sm">
                                 <thead className="sticky top-0 z-10">
                                     {/* Row 1: Assignment names with colspan */}
-                                    <tr className="bg-slate-100 border-b border-slate-200 ">
-                                        <th rowSpan={2} className="px-3 py-2 text-center text-slate-600 font-semibold w-12 border-r border-slate-200 bg-slate-100">#</th>
-                                        <th rowSpan={2} className="px-3 py-2 text-center text-slate-600 font-semibold min-w-[120px] border-r border-slate-200 bg-slate-100">รหัสนักศึกษา</th>
-                                        <th rowSpan={2} className="px-3 py-2 text-center text-slate-600 font-semibold min-w-[200px] border-r border-slate-200 bg-slate-100">ชื่อ-นามสกุล</th>
-                                        <th rowSpan={2} className="px-2 py-2 text-center text-slate-600 font-semibold w-14 border-r border-slate-200 bg-slate-100">Sec</th>
+                                    <tr className="border-b border-divider bg-content2">
+                                        <th rowSpan={2} className="w-12 border-r border-divider bg-content2 px-3 py-2 text-center font-semibold text-default-600">#</th>
+                                        <th rowSpan={2} className="min-w-30 border-r border-divider bg-content2 px-3 py-2 text-center font-semibold text-default-600">รหัสนักศึกษา</th>
+                                        <th rowSpan={2} className="min-w-50 border-r border-divider bg-content2 px-3 py-2 text-center font-semibold text-default-600">ชื่อ-นามสกุล</th>
+                                        <th rowSpan={2} className="w-14 border-r border-divider bg-content2 px-2 py-2 text-center font-semibold text-default-600">Sec</th>
                                         {assignmentGroups.map((group) => (
                                             <th
                                                 key={group.id}
                                                 colSpan={group.colSpan}
-                                                className="px-2 py-2 text-center font-semibold text-slate-700 border-l border-slate-300 bg-slate-200 "
+                                                className="border-l border-default-300 bg-content3 px-2 py-2 text-center font-semibold text-default-700"
                                             >
                                                 {group.title}
                                             </th>
                                         ))}
-                                        <th rowSpan={2} className="px-3 py-2 text-center text-slate-600 font-semibold min-w-[80px] border-l border-slate-300 bg-slate-200">
+                                        <th rowSpan={2} className="min-w-20 border-l border-default-300 bg-content3 px-3 py-2 text-center font-semibold text-default-600">
                                             <div>รวม</div>
-                                            <div className="font-normal text-slate-400 text-xs">({totalMaxScore})</div>
+                                            <div className="text-xs font-normal text-default-400">({totalMaxScore})</div>
                                         </th>
-                                        <th rowSpan={2} className="px-3 py-2 text-center text-amber-600 font-semibold min-w-[70px] border-l border-amber-300 bg-amber-50">
+                                        <th rowSpan={2} className="min-w-17.5 border-l border-amber-300 bg-amber-50 px-3 py-2 text-center font-semibold text-amber-600">
                                             <div className="flex items-center justify-center gap-1">
                                                 <Icon icon="solar:star-bold" className="text-amber-500" />
                                                 <span>พิเศษ</span>
@@ -316,22 +316,22 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                         </th>
                                     </tr>
                                     {/* Row 2: Sub-items / Max scores */}
-                                    <tr className="bg-slate-50 border-b border-slate-300">
+                                    <tr className="border-b border-default-300 bg-content2/80">
                                         {columns.map((col) => (
                                             <th
                                                 key={col.key}
                                                 onMouseEnter={() => onSetHoverColKey(col.key)}
                                                 onMouseLeave={() => onSetHoverColKey(null)}
-                                                className={`px-2 py-2 text-center min-w-[80px] border-l border-slate-200
-                                                    ${hoverColKey === col.key ? "bg-blue-100" : "bg-slate-50"}
+                                                className={`min-w-20 border-l border-divider px-2 py-2 text-center
+                                                    ${hoverColKey === col.key ? "bg-primary/10" : "bg-content2/80"}
                                                 `}
                                             >
                                                 {col.subItemName ? (
-                                                    <div className="font-medium text-slate-600 text-xs">
+                                                    <div className="text-xs font-medium text-default-600">
                                                         {col.subItemName}
                                                     </div>
                                                 ) : (
-                                                    <div className="font-medium text-slate-600 text-xs">
+                                                    <div className="text-xs font-medium text-default-600">
                                                         ข้อ 1
                                                     </div>
                                                 )}
@@ -354,7 +354,7 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                         </td>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100">
+                                <tbody className="divide-y divide-divider">
                                     {filteredStudents.map((student, index) => {
                                         const studentTotal = toNum(student.total_score);
                                         const studentMax = toNum(student.total_max_score);
@@ -366,13 +366,13 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                                 onMouseEnter={() => onSetHoverRowId(student.student_id)}
                                                 onMouseLeave={() => onSetHoverRowId(null)}
                                                 className={`transition-colors
-                                                    ${hoverRowId === student.student_id ? "bg-blue-50/60" : ""}
+                                                    ${hoverRowId === student.student_id ? "bg-primary/10" : ""}
                                                 `}
                                             >
-                                                <td className="px-3 py-3 text-center text-slate-800">{index + 1}</td>
-                                                <td className="px-3 py-3 text-slate-700">{student.student_id}</td>
-                                                <td className="px-3 py-3 text-slate-800 font-medium">{student.full_name}</td>
-                                                <td className="px-2 py-3 text-slate-700 text-center">
+                                                <td className="px-3 py-3 text-center text-foreground">{index + 1}</td>
+                                                <td className="px-3 py-3 text-default-600">{student.student_id}</td>
+                                                <td className="px-3 py-3 font-medium text-foreground">{student.full_name}</td>
+                                                <td className="px-2 py-3 text-center text-default-600">
                                                     {student.section_number}
                                                 </td>
                                                 {columns.map((col) => {
@@ -387,26 +387,26 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                                             key={col.key}
                                                             onMouseEnter={() => onSetHoverColKey(col.key)}
                                                             onMouseLeave={() => onSetHoverColKey(null)}
-                                                            className={`px-2 py-2 text-center border-l transition-colors border-slate-100
-                                                                ${hoverColKey === col.key ? "bg-blue-50" : ""}
+                                                            className={`border-l border-divider px-2 py-2 text-center transition-colors
+                                                                ${hoverColKey === col.key ? "bg-primary/10" : ""}
                                                             `}
                                                         >
                                                             <button
                                                                 onClick={() => onScoreClick(student, col, scoreData)}
                                                                 disabled={!isCourseActive}
-                                                                className={`inline-flex items-center justify-center min-w-[40px] h-7 px-2 rounded-md text-sm font-medium transition-all ${!isCourseActive ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 hover:shadow-sm'} ${color.bg} ${color.text}`}
+                                                                className={`inline-flex min-w-10 items-center justify-center rounded-md px-2 text-sm font-medium transition-all h-7 ${!isCourseActive ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 hover:shadow-sm'} ${color.bg} ${color.text}`}
                                                             >
                                                                 {fmtScore(score)}
                                                             </button>
                                                         </td>
                                                     );
                                                 })}
-                                                <td className="px-2 py-2 text-center border-l border-slate-100">
+                                                <td className="border-l border-divider px-2 py-2 text-center">
                                                     <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md ${totalColor.bg}`}>
                                                         <span className={`text-sm font-bold ${totalColor.text}`}>
                                                             {fmtScore(studentTotal)}
                                                         </span>
-                                                        <span className="text-xs text-slate-400">/{studentMax}</span>
+                                                        <span className="text-xs text-default-400">/{studentMax}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-2 py-2 text-center border-l border-amber-100 bg-amber-50/30">
@@ -415,7 +415,7 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                                             {student.bonus_score}
                                                         </span>
                                                     ) : (
-                                                        <span className="text-slate-300">-</span>
+                                                        <span className="text-default-300">-</span>
                                                     )}
                                                 </td>
                                             </tr>
@@ -433,8 +433,8 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                 <ModalContent>
                     <ModalHeader className="flex items-start justify-between gap-3 pb-2">
                         <div>
-                            <p className="text-lg font-semibold text-slate-800">รายละเอียดคะแนน</p>
-                            <p className="text-xs text-slate-500">ตรวจสอบข้อมูลคะแนนและสถานะการให้คะแนน</p>
+                            <p className="text-lg font-semibold text-foreground">รายละเอียดคะแนน</p>
+                            <p className="text-xs text-default-500">ตรวจสอบข้อมูลคะแนนและสถานะการให้คะแนน</p>
                         </div>
                         {scoreModal.score !== null ? (
                             <Chip
@@ -445,7 +445,7 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                 {fmtScore(scoreModal.score)} / {scoreModal.maxScore}
                             </Chip>
                         ) : (
-                            <Chip size="sm" variant="flat" className="bg-slate-100 text-slate-500">
+                            <Chip size="sm" variant="flat" className="bg-content3 text-default-500">
                                 ยังไม่ได้ให้คะแนน
                             </Chip>
                         )}
@@ -454,64 +454,64 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                     <ModalBody className="py-4">
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                <div className="flex items-center gap-3 rounded-lg border border-default-200 bg-content2 p-3">
                                     <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
                                         <Icon icon="solar:user-bold" className="text-lg text-blue-600" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-slate-500">นักศึกษา</p>
-                                        <p className="font-medium text-slate-800">{scoreModal.studentName}</p>
-                                        <p className="text-sm text-slate-500">{scoreModal.studentId}</p>
+                                        <p className="text-xs text-default-500">นักศึกษา</p>
+                                        <p className="font-medium text-foreground">{scoreModal.studentName}</p>
+                                        <p className="text-sm text-default-500">{scoreModal.studentId}</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                <div className="flex items-center gap-3 rounded-lg border border-default-200 bg-content2 p-3">
                                     <div className="w-9 h-9 rounded-lg bg-indigo-100 flex items-center justify-center">
                                         <Icon icon="solar:document-text-bold" className="text-lg text-indigo-600" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-slate-500">งาน</p>
-                                        <p className="font-medium text-slate-800">{scoreModal.assignmentTitle}</p>
+                                        <p className="text-xs text-default-500">งาน</p>
+                                        <p className="font-medium text-foreground">{scoreModal.assignmentTitle}</p>
                                         {scoreModal.subItemName && (
-                                            <p className="text-sm text-slate-600">{scoreModal.subItemName}</p>
+                                            <p className="text-sm text-default-600">{scoreModal.subItemName}</p>
                                         )}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="rounded-xl border border-slate-200 overflow-hidden">
-                                <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                            <div className="overflow-hidden rounded-xl border border-default-200">
+                                <div className="flex items-center justify-between border-b border-divider bg-content2 px-4 py-3">
                                     <div className="flex items-center gap-2">
                                         <Icon icon="solar:star-bold" className="text-amber-500" />
-                                        <p className="text-sm font-semibold text-slate-700">ข้อมูลการให้คะแนน</p>
+                                        <p className="text-sm font-semibold text-default-700">ข้อมูลการให้คะแนน</p>
                                     </div>
-                                    <div className="text-sm text-slate-500">
+                                    <div className="text-sm text-default-500">
                                         คะแนนเต็ม {scoreModal.maxScore}
                                     </div>
                                 </div>
                                 <div className="p-4 space-y-3">
                                     <div className="flex items-start justify-between gap-3">
-                                        <p className="text-sm text-slate-500">คะแนนที่ได้</p>
+                                        <p className="text-sm text-default-500">คะแนนที่ได้</p>
                                         {scoreModal.score !== null ? (
                                             <p className="text-xl font-bold">
                                                 <span className={getScoreColor(scoreModal.score, scoreModal.maxScore).text}>
                                                     {fmtScore(scoreModal.score)}
                                                 </span>
-                                                <span className="text-slate-400 text-base font-medium"> / {scoreModal.maxScore}</span>
+                                                <span className="text-base font-medium text-default-400"> / {scoreModal.maxScore}</span>
                                             </p>
                                         ) : (
-                                            <p className="text-sm font-medium text-slate-400">ยังไม่ได้ให้คะแนน</p>
+                                            <p className="text-sm font-medium text-default-400">ยังไม่ได้ให้คะแนน</p>
                                         )}
                                     </div>
 
                                     {scoreModal.gradedBy && (
-                                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                                        <div className="flex items-center gap-2 text-sm text-default-600">
                                             <Icon icon="solar:pen-bold" className="text-amber-500" />
                                             <span>ผู้ให้คะแนน: {scoreModal.gradedBy}</span>
                                         </div>
                                     )}
 
                                     {scoreModal.gradedAt && (
-                                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                                        <div className="flex items-center gap-2 text-sm text-default-600">
                                             <Icon icon="solar:calendar-bold" className="text-sky-500" />
                                             <span>วันที่ให้คะแนน: {gradedAtLabel}</span>
                                         </div>
@@ -525,16 +525,16 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                     )}
 
                                     {scoreModal.comment && (
-                                        <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
-                                            <p className="text-xs text-slate-500 mb-1">หมายเหตุ</p>
-                                            <p className="text-sm text-slate-700 whitespace-pre-wrap">{scoreModal.comment}</p>
+                                        <div className="rounded-lg border border-default-200 bg-content2 p-3">
+                                            <p className="mb-1 text-xs text-default-500">หมายเหตุ</p>
+                                            <p className="text-sm whitespace-pre-wrap text-default-700">{scoreModal.comment}</p>
                                         </div>
                                     )}
 
                                     {scoreModal.score === null && (
-                                        <div className="p-3 bg-slate-50 rounded-lg text-center border border-slate-100">
-                                            <Icon icon="solar:info-circle-linear" className="text-2xl text-slate-400 mb-1 mx-auto" />
-                                            <p className="text-sm text-slate-500">ยังไม่มีการบันทึกคะแนนสำหรับรายการนี้</p>
+                                        <div className="rounded-lg border border-default-200 bg-content2 p-3 text-center">
+                                            <Icon icon="solar:info-circle-linear" className="mx-auto mb-1 text-2xl text-default-400" />
+                                            <p className="text-sm text-default-500">ยังไม่มีการบันทึกคะแนนสำหรับรายการนี้</p>
                                         </div>
                                     )}
                                 </div>
@@ -560,21 +560,21 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                     {isEditHistoryOpen && (
                                         <div className="px-3 pb-3 space-y-2">
                                             {(scoreModal.editRequests || []).map((req, idx) => (
-                                                <div key={`${req.reviewed_at || "na"}-${idx}`} className="rounded-lg border border-amber-200 bg-white p-3 space-y-1.5">
+                                                <div key={`${req.reviewed_at || "na"}-${idx}`} className="space-y-1.5 rounded-lg border border-amber-200 bg-content1 p-3">
                                                     <div className="flex items-center justify-between gap-3 text-sm">
-                                                        <span className="font-semibold text-slate-700">ครั้งที่ {idx + 1}</span>
+                                                        <span className="font-semibold text-default-700">ครั้งที่ {idx + 1}</span>
                                                         {req.reviewed_at && (
-                                                            <span className="text-xs text-slate-500">อนุมัติเมื่อ {formatDate(req.reviewed_at)}</span>
+                                                            <span className="text-xs text-default-500">อนุมัติเมื่อ {formatDate(req.reviewed_at)}</span>
                                                         )}
                                                     </div>
-                                                    <p className="text-sm text-slate-600">ผู้ขอแก้ไข: {req.requester || "-"}</p>
-                                                    <p className="text-sm text-slate-600">เหตุผล: {req.reason || "-"}</p>
-                                                    <p className="text-sm text-slate-600">
+                                                    <p className="text-sm text-default-600">ผู้ขอแก้ไข: {req.requester || "-"}</p>
+                                                    <p className="text-sm text-default-600">เหตุผล: {req.reason || "-"}</p>
+                                                    <p className="text-sm text-default-600">
                                                         คะแนนเดิม: {fmtScore(req.old_score)} → คะแนนใหม่: {fmtScore(req.new_score)}
                                                     </p>
-                                                    <p className="text-sm text-slate-600">ผู้อนุมัติ: {req.reviewer || "-"}</p>
+                                                    <p className="text-sm text-default-600">ผู้อนุมัติ: {req.reviewer || "-"}</p>
                                                     {req.review_comment && (
-                                                        <p className="text-sm text-slate-600">หมายเหตุผู้อนุมัติ: {req.review_comment}</p>
+                                                        <p className="text-sm text-default-600">หมายเหตุผู้อนุมัติ: {req.review_comment}</p>
                                                     )}
                                                 </div>
                                             ))}
