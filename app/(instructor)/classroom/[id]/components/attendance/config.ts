@@ -77,21 +77,23 @@ export interface FilterState {
 
 export const SESSION_TYPE_DISPLAY: Record<string, { 
     label: string; 
+    labelEn: string;
     color: "primary" | "secondary" | "success" | "warning" | "danger"; 
     icon: string 
 }> = {
-    lecture: { label: "บรรยาย", color: "primary", icon: "solar:presentation-graph-bold" },
-    lab: { label: "ปฏิบัติ", color: "success", icon: "solar:test-tube-bold" },
-    online: { label: "ออนไลน์", color: "secondary", icon: "solar:laptop-bold" },
+    lecture: { label: "บรรยาย", labelEn: "Lecture", color: "primary", icon: "solar:presentation-graph-bold" },
+    lab: { label: "ปฏิบัติ", labelEn: "Lab", color: "success", icon: "solar:test-tube-bold" },
+    online: { label: "ออนไลน์", labelEn: "Online", color: "secondary", icon: "solar:laptop-bold" },
 };
 
 export const STATUS_DISPLAY: Record<string, { 
     label: string; 
+    labelEn: string;
     color: "default" | "primary" | "secondary" | "success" | "warning" | "danger" 
 }> = {
-    draft: { label: "ฉบับร่าง", color: "default" },
-    active: { label: "กำลังเปิด", color: "success" },
-    closed: { label: "ปิดแล้ว", color: "danger" },
+    draft: { label: "ฉบับร่าง", labelEn: "Draft", color: "default" },
+    active: { label: "กำลังเปิด", labelEn: "Active", color: "success" },
+    closed: { label: "ปิดแล้ว", labelEn: "Closed", color: "danger" },
 };
 
 export const RADIUS_OPTIONS = [10, 50, 100, 200] as const;
@@ -105,9 +107,47 @@ export const AUTO_UPDATE_INTERVAL_MS = 30000; // 30 seconds
 /**
  * Format date for Thai locale display รูปแบบวันที่
  */
-export function formatDate(dateString: string): string {
+function getAttendanceLocale(isEnglish = false): "th-TH" | "en-US" {
+    return isEnglish ? "en-US" : "th-TH";
+}
+
+export function getSessionTypeDisplay(sessionType: string, isEnglish = false) {
+    const display = SESSION_TYPE_DISPLAY[sessionType];
+    if (!display) {
+        return {
+            label: sessionType,
+            color: "default" as const,
+            icon: "solar:clipboard-text-linear",
+        };
+    }
+
+    return {
+        ...display,
+        label: isEnglish ? display.labelEn : display.label,
+    };
+}
+
+export function getStatusDisplay(status: string, isEnglish = false) {
+    const display = STATUS_DISPLAY[status];
+    if (!display) {
+        return {
+            label: status,
+            color: "default" as const,
+        };
+    }
+
+    return {
+        ...display,
+        label: isEnglish ? display.labelEn : display.label,
+    };
+}
+
+/**
+ * Format date for locale display รูปแบบวันที่
+ */
+export function formatDate(dateString: string, isEnglish = false): string {
     const date = new Date(dateString);
-    return date.toLocaleDateString("th-TH", {
+    return date.toLocaleDateString(getAttendanceLocale(isEnglish), {
         year: "numeric",
         month: "short",
         day: "numeric",
@@ -115,21 +155,21 @@ export function formatDate(dateString: string): string {
 }
 
 /**
- * Format time for Thai locale display
+ * Format time for locale display
  */
-export function formatTime(dateString: string): string {
+export function formatTime(dateString: string, isEnglish = false): string {
     const date = new Date(dateString);
-    return date.toLocaleTimeString("th-TH", {
+    return date.toLocaleTimeString(getAttendanceLocale(isEnglish), {
         hour: "2-digit",
         minute: "2-digit",
     });
 }
 
 /**
- * Format datetime for Thai locale display
+ * Format datetime for locale display
  */
-export function formatDateTime(dateString: string): string {
-    return `${formatDate(dateString)} ${formatTime(dateString)}`;
+export function formatDateTime(dateString: string, isEnglish = false): string {
+    return `${formatDate(dateString, isEnglish)} ${formatTime(dateString, isEnglish)}`;
 }
 
 /**

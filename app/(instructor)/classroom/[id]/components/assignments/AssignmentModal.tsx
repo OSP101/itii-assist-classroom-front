@@ -13,6 +13,31 @@ import type { AssignmentType } from "../types";
 import type { AttendanceSession } from "@/services/attendance.service";
 import assignmentService from "@/services/assignment.service";
 import attendanceService from "@/services/attendance.service";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+
+function formatCount(count: number, singular: string, plural: string): string {
+    return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function formatPoints(points: number, isEnglish: boolean): string {
+    return isEnglish ? formatCount(points, "point", "points") : `${points} คะแนน`;
+}
+
+function formatLocalizedDate(value: string, isEnglish: boolean): string {
+    return new Date(value).toLocaleDateString(isEnglish ? "en-US" : "th-TH", {
+        day: "numeric",
+        month: "short",
+        year: isEnglish ? "numeric" : "2-digit",
+    });
+}
+
+function formatLocalizedPublishDateTime(value: string, isEnglish: boolean): string {
+    const date = new Date(value);
+    const locale = isEnglish ? "en-US" : "th-TH";
+    const dateText = date.toLocaleDateString(locale, { dateStyle: "long" });
+    const timeText = date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+    return isEnglish ? `${dateText} at ${timeText}` : `${dateText} เวลา ${timeText} น.`;
+}
 
 interface LocalSubItem {
     id?: number;
@@ -70,6 +95,9 @@ function AssignmentModalComponent({
     onSuccess,
     weeklyTeams = {},
 }: AssignmentModalProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
+
     // Form state
     const [formData, setFormData] = useState<AssignmentFormData>(initialFormData);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -135,8 +163,8 @@ function AssignmentModalComponent({
         // Validation
         if (!formData.name.trim()) {
             addToast({
-                title: "ข้อมูลไม่ครบ",
-                description: "กรุณากรอกชื่องาน",
+                title: isEnglish ? "Missing information" : "ข้อมูลไม่ครบ",
+                description: isEnglish ? "Please enter an assignment name." : "กรุณากรอกชื่องาน",
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -146,8 +174,8 @@ function AssignmentModalComponent({
 
         if (formData.hasSubItems && formData.subItems.length === 0) {
             addToast({
-                title: "ข้อมูลไม่ครบ",
-                description: "กรุณาเพิ่มข้อย่อยอย่างน้อย 1 ข้อ",
+                title: isEnglish ? "Missing information" : "ข้อมูลไม่ครบ",
+                description: isEnglish ? "Please add at least one sub-item." : "กรุณาเพิ่มข้อย่อยอย่างน้อย 1 ข้อ",
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -157,8 +185,8 @@ function AssignmentModalComponent({
 
         if (formData.assignment_type === "weekly_group" && !formData.week_number) {
             addToast({
-                title: "ข้อมูลไม่ครบ",
-                description: "กรุณาเลือกสัปดาห์",
+                title: isEnglish ? "Missing information" : "ข้อมูลไม่ครบ",
+                description: isEnglish ? "Please select a week." : "กรุณาเลือกสัปดาห์",
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -210,8 +238,10 @@ function AssignmentModalComponent({
 
             if (result) {
                 addToast({
-                    title: "สำเร็จ",
-                    description: editingAssignment ? "แก้ไขงานเรียบร้อย" : "สร้างงานใหม่เรียบร้อย",
+                    title: isEnglish ? "Success" : "สำเร็จ",
+                    description: editingAssignment
+                        ? (isEnglish ? "Assignment updated." : "แก้ไขงานเรียบร้อย")
+                        : (isEnglish ? "Assignment created." : "สร้างงานใหม่เรียบร้อย"),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -219,13 +249,13 @@ function AssignmentModalComponent({
                 onSuccess();
                 onClose();
             } else {
-                throw new Error("Failed to save assignment");
+                throw new Error(isEnglish ? "Unable to save the assignment." : "ไม่สามารถบันทึกงานได้");
             }
         } catch (error: any) {
             console.error("Failed to save assignment:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error.message || "ไม่สามารถบันทึกงานได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: isEnglish ? "Unable to save the assignment." : (error.message || "ไม่สามารถบันทึกงานได้"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -252,10 +282,12 @@ function AssignmentModalComponent({
                         </div>
                         <div>
                             <h3 className="text-xl font-bold text-foreground">
-                                {editingAssignment ? "แก้ไขงาน" : "สร้างงานใหม่"}
+                                {editingAssignment
+                                    ? (isEnglish ? "Edit assignment" : "แก้ไขงาน")
+                                    : (isEnglish ? "Create assignment" : "สร้างงานใหม่")}
                             </h3>
                             <p className="mt-1 text-sm font-normal text-default-500">
-                                กำหนดหัวข้องานสำหรับการลงคะแนน
+                                {isEnglish ? "Define grading items for this course." : "กำหนดหัวข้องานสำหรับการลงคะแนน"}
                             </p>
                         </div>
                     </div>
@@ -265,9 +297,9 @@ function AssignmentModalComponent({
                     <div className="space-y-5">
                         {/* Assignment Name */}
                         <Input
-                            label="ชื่องาน"
+                            label={isEnglish ? "Assignment name" : "ชื่องาน"}
                             labelPlacement="outside"
-                            placeholder="เช่น งานที่ 1, Quiz 1, โปรเจคกลุ่ม"
+                            placeholder={isEnglish ? "e.g. Lab 1, Quiz 1, Group project" : "เช่น งานที่ 1, Quiz 1, โปรเจคกลุ่ม"}
                             variant="bordered"
                             size="md"
                             value={formData.name}
@@ -281,7 +313,7 @@ function AssignmentModalComponent({
 
                         {/* Assignment Type */}
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-default-600">ประเภทงาน</label>
+                            <label className="mb-2 block text-sm font-medium text-default-600">{isEnglish ? "Assignment type" : "ประเภทงาน"}</label>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                 <button
                                     type="button"
@@ -296,7 +328,7 @@ function AssignmentModalComponent({
                                         }`} />
                                     <p className={`font-semibold text-sm ${formData.assignment_type === "individual" ? "text-indigo-600" : "text-default-600"
                                         }`}>Laboratory</p>
-                                    <p className="mt-1 text-xs text-default-500">งานในคาบ</p>
+                                    <p className="mt-1 text-xs text-default-500">{isEnglish ? "In-class work" : "งานในคาบ"}</p>
                                 </button>
                                 <button
                                     type="button"
@@ -311,7 +343,7 @@ function AssignmentModalComponent({
                                         }`} />
                                     <p className={`font-semibold text-sm ${formData.assignment_type === "assignment" ? "text-amber-600" : "text-default-600"
                                         }`}>Assignment</p>
-                                    <p className="mt-1 text-xs text-default-500">การบ้าน</p>
+                                    <p className="mt-1 text-xs text-default-500">{isEnglish ? "Homework" : "การบ้าน"}</p>
                                 </button>
                                 <button
                                     type="button"
@@ -325,8 +357,8 @@ function AssignmentModalComponent({
                                     <Icon icon="solar:users-group-rounded-bold" className={`text-3xl mx-auto mb-2 ${formData.assignment_type === "permanent_group" ? "text-purple-500" : "text-default-400"
                                         }`} />
                                     <p className={`font-semibold text-sm ${formData.assignment_type === "permanent_group" ? "text-purple-600" : "text-default-600"
-                                        }`}>กลุ่มโปรเจกต์</p>
-                                    <p className="mt-1 text-xs text-default-500">งานกลุ่ม</p>
+                                        }`}>{isEnglish ? "Project group" : "กลุ่มโปรเจกต์"}</p>
+                                    <p className="mt-1 text-xs text-default-500">{isEnglish ? "Permanent team work" : "งานกลุ่ม"}</p>
                                 </button>
                                 <button
                                     type="button"
@@ -340,8 +372,8 @@ function AssignmentModalComponent({
                                     <Icon icon="solar:calendar-bold" className={`text-3xl mx-auto mb-2 ${formData.assignment_type === "weekly_group" ? "text-emerald-500" : "text-default-400"
                                         }`} />
                                     <p className={`font-semibold text-sm ${formData.assignment_type === "weekly_group" ? "text-emerald-600" : "text-default-600"
-                                        }`}>กลุ่มสัปดาห์</p>
-                                    <p className="mt-1 text-xs text-default-500">กลุ่มรายสัปดาห์</p>
+                                        }`}>{isEnglish ? "Weekly group" : "กลุ่มสัปดาห์"}</p>
+                                    <p className="mt-1 text-xs text-default-500">{isEnglish ? "Weekly team work" : "กลุ่มรายสัปดาห์"}</p>
                                 </button>
                             </div>
                         </div>
@@ -349,10 +381,10 @@ function AssignmentModalComponent({
                         {/* Week Number - Only show for weekly group */}
                         {formData.assignment_type === "weekly_group" && (
                             <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200">
-                                <label className="mb-2 block text-sm font-medium text-default-600">สัปดาห์ที่</label>
+                                <label className="mb-2 block text-sm font-medium text-default-600">{isEnglish ? "Week" : "สัปดาห์ที่"}</label>
                                 {Object.keys(weeklyTeams).length > 0 ? (
                                     <Select
-                                        placeholder="เลือกสัปดาห์"
+                                        placeholder={isEnglish ? "Select week" : "เลือกสัปดาห์"}
                                         selectedKeys={formData.week_number ? [formData.week_number.toString()] : []}
                                         size="md"
                                         onSelectionChange={(keys) => {
@@ -371,11 +403,13 @@ function AssignmentModalComponent({
                                             .map(Number)
                                             .sort((a, b) => a - b)
                                             .map((weekNum) => (
-                                                <SelectItem key={weekNum.toString()} textValue={`สัปดาห์ที่ ${weekNum}`}>
+                                                <SelectItem key={weekNum.toString()} textValue={isEnglish ? `Week ${weekNum}` : `สัปดาห์ที่ ${weekNum}`}>
                                                     <div className="flex items-center justify-between w-full">
-                                                        <span>สัปดาห์ที่ {weekNum}</span>
+                                                        <span>{isEnglish ? `Week ${weekNum}` : `สัปดาห์ที่ ${weekNum}`}</span>
                                                         <span className="text-xs text-default-500">
-                                                            ({weeklyTeams[weekNum]?.length || 0} กลุ่ม)
+                                                            ({isEnglish
+                                                                ? formatCount(weeklyTeams[weekNum]?.length || 0, "group", "groups")
+                                                                : `${weeklyTeams[weekNum]?.length || 0} กลุ่ม`})
                                                         </span>
                                                     </div>
                                                 </SelectItem>
@@ -384,8 +418,8 @@ function AssignmentModalComponent({
                                 ) : (
                                     <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-center">
                                         <Icon icon="solar:info-circle-bold" className="text-amber-500 text-xl mb-1" />
-                                        <p className="text-sm text-amber-700">ยังไม่มีกลุ่มประจำสัปดาห์</p>
-                                        <p className="text-xs text-amber-600 mt-1">กรุณาสร้างกลุ่มประจำสัปดาห์ก่อน</p>
+                                        <p className="text-sm text-amber-700">{isEnglish ? "No weekly groups yet" : "ยังไม่มีกลุ่มประจำสัปดาห์"}</p>
+                                        <p className="text-xs text-amber-600 mt-1">{isEnglish ? "Create weekly groups first." : "กรุณาสร้างกลุ่มประจำสัปดาห์ก่อน"}</p>
                                     </div>
                                 )}
                             </div>
@@ -399,8 +433,8 @@ function AssignmentModalComponent({
                                         <Icon icon="solar:clipboard-check-bold" className="text-lg text-blue-600" />
                                     </div>
                                     <div>
-                                        <span className="font-semibold text-default-700">ลิงก์กับการเช็คชื่อ</span>
-                                        <p className="text-xs text-default-500">สามารถเลือกหลายรอบเช็คชื่อได้</p>
+                                        <span className="font-semibold text-default-700">{isEnglish ? "Link attendance sessions" : "ลิงก์กับการเช็คชื่อ"}</span>
+                                        <p className="text-xs text-default-500">{isEnglish ? "You can link multiple attendance sessions." : "สามารถเลือกหลายรอบเช็คชื่อได้"}</p>
                                     </div>
                                 </div>
                                 <Button
@@ -424,8 +458,10 @@ function AssignmentModalComponent({
                                     }
                                 >
                                     {formData.linked_attendance_session_ids.length > 0 
-                                        ? `ลิงก์ ${formData.linked_attendance_session_ids.length} รอบ` 
-                                        : "ไม่ลิงก์"}
+                                        ? (isEnglish
+                                            ? `Linked ${formatCount(formData.linked_attendance_session_ids.length, "session", "sessions")}`
+                                            : `ลิงก์ ${formData.linked_attendance_session_ids.length} รอบ`)
+                                        : (isEnglish ? "Not linked" : "ไม่ลิงก์")}
                                 </Button>
                             </div>
                             
@@ -435,7 +471,7 @@ function AssignmentModalComponent({
                                 </div>
                             ) : attendanceSessions.length > 0 ? (
                                 <Select
-                                    placeholder="เลือกรอบเช็คชื่อที่ต้องการลิงก์ (เลือกได้หลายรอบ)"
+                                    placeholder={isEnglish ? "Select attendance sessions to link (multiple allowed)" : "เลือกรอบเช็คชื่อที่ต้องการลิงก์ (เลือกได้หลายรอบ)"}
                                     selectionMode="multiple"
                                     size="md"
                                     selectedKeys={new Set(formData.linked_attendance_session_ids.map(String))}
@@ -459,11 +495,7 @@ function AssignmentModalComponent({
                                                 <div>
                                                     <span className="font-medium">{session.title}</span>
                                                     <span className="ml-2 text-xs text-default-500">
-                                                        {new Date(session.start_time).toLocaleDateString("th-TH", { 
-                                                            day: "numeric", 
-                                                            month: "short",
-                                                            year: "2-digit"
-                                                        })}
+                                                        {formatLocalizedDate(session.start_time, isEnglish)}
                                                     </span>
                                                 </div>
                                             </div>
@@ -473,7 +505,7 @@ function AssignmentModalComponent({
                             ) : (
                                 <div className="rounded-lg bg-content3 p-3 text-center">
                                     <Icon icon="solar:clipboard-list-linear" className="mb-1 text-xl text-default-400" />
-                                    <p className="text-sm text-default-500">ยังไม่มีรอบเช็คชื่อ</p>
+                                    <p className="text-sm text-default-500">{isEnglish ? "No attendance sessions yet" : "ยังไม่มีรอบเช็คชื่อ"}</p>
                                 </div>
                             )}
                             
@@ -481,7 +513,7 @@ function AssignmentModalComponent({
                             {formData.linked_attendance_session_ids.length > 1 && (
                                 <div className="mt-4 rounded-lg border border-default-200 bg-content1 p-3">
                                     <label className="mb-3 block text-sm font-medium text-default-600">
-                                        เงื่อนไขการเช็คชื่อ
+                                        {isEnglish ? "Attendance requirement" : "เงื่อนไขการเช็คชื่อ"}
                                     </label>
                                     <div className="grid grid-cols-2 gap-3">
                                         <button
@@ -499,10 +531,10 @@ function AssignmentModalComponent({
                                                     className={formData.attendance_condition === "or" ? "text-blue-600" : "text-default-400"} 
                                                 />
                                                 <span className={`font-semibold ${formData.attendance_condition === "or" ? "text-blue-700" : "text-default-600"}`}>
-                                                    อย่างน้อย 1 รอบ
+                                                    {isEnglish ? "At least one session" : "อย่างน้อย 1 รอบ"}
                                                 </span>
                                             </div>
-                                            <p className="text-xs text-default-500">มาเรียนอย่างน้อย 1 รอบถึงจะลงคะแนนได้</p>
+                                            <p className="text-xs text-default-500">{isEnglish ? "Students can receive scores if they attended at least one linked session." : "มาเรียนอย่างน้อย 1 รอบถึงจะลงคะแนนได้"}</p>
                                         </button>
                                         <button
                                             type="button"
@@ -519,10 +551,10 @@ function AssignmentModalComponent({
                                                     className={formData.attendance_condition === "and" ? "text-amber-600" : "text-default-400"} 
                                                 />
                                                 <span className={`font-semibold ${formData.attendance_condition === "and" ? "text-amber-700" : "text-default-600"}`}>
-                                                    ทุกรอบ
+                                                    {isEnglish ? "Every session" : "ทุกรอบ"}
                                                 </span>
                                             </div>
-                                            <p className="text-xs text-default-500">ต้องมาเรียนครบทุกรอบถึงจะลงคะแนนได้</p>
+                                            <p className="text-xs text-default-500">{isEnglish ? "Students must attend every linked session to receive scores." : "ต้องมาเรียนครบทุกรอบถึงจะลงคะแนนได้"}</p>
                                         </button>
                                     </div>
                                 </div>
@@ -535,10 +567,14 @@ function AssignmentModalComponent({
                                         <div className="text-sm">
                                             <span className="font-medium">
                                                 {formData.linked_attendance_session_ids.length === 1 
-                                                    ? "นักศึกษาที่ขาดเรียนในรอบเช็คชื่อนี้ จะไม่สามารถลงคะแนนได้"
+                                                    ? (isEnglish ? "Students absent from this attendance session cannot receive a score." : "นักศึกษาที่ขาดเรียนในรอบเช็คชื่อนี้ จะไม่สามารถลงคะแนนได้")
                                                     : formData.attendance_condition === "or"
-                                                        ? `นักศึกษาที่ขาดเรียนทั้ง ${formData.linked_attendance_session_ids.length} รอบ จะไม่สามารถลงคะแนนได้`
-                                                        : `นักศึกษาต้องมาเรียนครบทุกรอบ (${formData.linked_attendance_session_ids.length} รอบ) จึงจะลงคะแนนได้`
+                                                        ? (isEnglish
+                                                            ? `Students absent from all ${formatCount(formData.linked_attendance_session_ids.length, "linked session", "linked sessions")} cannot receive a score.`
+                                                            : `นักศึกษาที่ขาดเรียนทั้ง ${formData.linked_attendance_session_ids.length} รอบ จะไม่สามารถลงคะแนนได้`)
+                                                        : (isEnglish
+                                                            ? `Students must attend all ${formatCount(formData.linked_attendance_session_ids.length, "linked session", "linked sessions")} to receive a score.`
+                                                            : `นักศึกษาต้องมาเรียนครบทุกรอบ (${formData.linked_attendance_session_ids.length} รอบ) จึงจะลงคะแนนได้`)
                                                 }
                                             </span>
                                         </div>
@@ -549,7 +585,7 @@ function AssignmentModalComponent({
 
                         {/* Has Sub Items Toggle */}
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-default-600">รูปแบบคะแนน</label>
+                            <label className="mb-2 block text-sm font-medium text-default-600">{isEnglish ? "Score format" : "รูปแบบคะแนน"}</label>
                             <div className="grid grid-cols-2 gap-3">
                                 <button
                                     type="button"
@@ -567,8 +603,8 @@ function AssignmentModalComponent({
                                     <Icon icon="solar:document-bold" className={`text-3xl mx-auto mb-2 ${!formData.hasSubItems ? "text-blue-500" : "text-default-400"
                                         }`} />
                                     <p className={`font-semibold ${!formData.hasSubItems ? "text-blue-600" : "text-default-600"
-                                        }`}>คะแนนเดียว</p>
-                                    <p className="mt-1 text-xs text-default-500">ให้คะแนนรวมทั้งงาน</p>
+                                        }`}>{isEnglish ? "Single score" : "คะแนนเดียว"}</p>
+                                    <p className="mt-1 text-xs text-default-500">{isEnglish ? "One total score for the assignment" : "ให้คะแนนรวมทั้งงาน"}</p>
                                 </button>
                                 <button
                                     type="button"
@@ -577,7 +613,7 @@ function AssignmentModalComponent({
                                         ...prev,
                                         hasSubItems: true,
                                         subItems: prev.subItems.length > 0 ? prev.subItems : [
-                                            { name: "ข้อ 1", max_score: 5 }
+                                            { name: isEnglish ? "Item 1" : "ข้อ 1", max_score: 5 }
                                         ]
                                     }))}
                                     className={`p-4 rounded-xl border-2 transition-all ${formData.hasSubItems
@@ -588,8 +624,8 @@ function AssignmentModalComponent({
                                     <Icon icon="solar:checklist-bold" className={`text-3xl mx-auto mb-2 ${formData.hasSubItems ? "text-amber-500" : "text-default-400"
                                         }`} />
                                     <p className={`font-semibold ${formData.hasSubItems ? "text-amber-600" : "text-default-600"
-                                        }`}>มีข้อย่อย</p>
-                                    <p className="mt-1 text-xs text-default-500">แบ่งเป็นหลายข้อย่อย</p>
+                                        }`}>{isEnglish ? "Sub-items" : "มีข้อย่อย"}</p>
+                                    <p className="mt-1 text-xs text-default-500">{isEnglish ? "Split into multiple graded items" : "แบ่งเป็นหลายข้อย่อย"}</p>
                                 </button>
                             </div>
                         </div>
@@ -598,9 +634,9 @@ function AssignmentModalComponent({
                         {!formData.hasSubItems && (
                             <Input
                                 type="number"
-                                label="คะแนนเต็ม"
+                                label={isEnglish ? "Max score" : "คะแนนเต็ม"}
                                 labelPlacement="outside"
-                                placeholder="เช่น 10, 20, 100"
+                                placeholder={isEnglish ? "e.g. 10, 20, 100" : "เช่น 10, 20, 100"}
                                 variant="bordered"
                                 size="md"
                                 min={0}
@@ -608,7 +644,7 @@ function AssignmentModalComponent({
                                 value={formData.maxScore.toString()}
                                 onValueChange={(val) => setFormData(prev => ({ ...prev, maxScore: parseFloat(val) || 0 }))}
                                 isRequired
-                                endContent={<span className="text-sm text-default-400">คะแนน</span>}
+                                endContent={<span className="text-sm text-default-400">{isEnglish ? "points" : "คะแนน"}</span>}
                                 className="pt-6"
                                 classNames={{
                                     inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
@@ -622,11 +658,15 @@ function AssignmentModalComponent({
                             <div>
                                 <div className="flex items-center justify-between mb-3">
                                     <label className="text-sm font-medium text-default-600">
-                                        ข้อย่อย ({formData.subItems.length} ข้อ)
+                                        {isEnglish
+                                            ? `Sub-items (${formatCount(formData.subItems.length, "item", "items")})`
+                                            : `ข้อย่อย (${formData.subItems.length} ข้อ)`}
                                     </label>
                                     <div className="flex items-center gap-2">
                                         <Chip size="sm" variant="flat" className="bg-amber-100 text-amber-600">
-                                            รวม {Number.isInteger(totalSubItemScore) ? totalSubItemScore : totalSubItemScore.toFixed(2)} คะแนน
+                                            {isEnglish
+                                                ? `Total ${formatPoints(Number.isInteger(totalSubItemScore) ? totalSubItemScore : Number(totalSubItemScore.toFixed(2)), true)}`
+                                                : `รวม ${Number.isInteger(totalSubItemScore) ? totalSubItemScore : totalSubItemScore.toFixed(2)} คะแนน`}
                                         </Chip>
                                         <Button
                                             size="sm"
@@ -639,14 +679,14 @@ function AssignmentModalComponent({
                                                     subItems: [
                                                         ...prev.subItems,
                                                         {
-                                                            name: `ข้อ ${prev.subItems.length + 1}`,
+                                                            name: isEnglish ? `Item ${prev.subItems.length + 1}` : `ข้อ ${prev.subItems.length + 1}`,
                                                             max_score: 10
                                                         }
                                                     ]
                                                 }));
                                             }}
                                         >
-                                            เพิ่มข้อ
+                                            {isEnglish ? "Add item" : "เพิ่มข้อ"}
                                         </Button>
                                     </div>
                                 </div>
@@ -662,7 +702,7 @@ function AssignmentModalComponent({
                                             <Input
                                                 size="sm"
                                                 variant="bordered"
-                                                placeholder="ชื่อข้อย่อย"
+                                                placeholder={isEnglish ? "Sub-item name" : "ชื่อข้อย่อย"}
                                                 value={subItem.name}
                                                 onValueChange={(val) => {
                                                     setFormData(prev => ({
@@ -680,7 +720,7 @@ function AssignmentModalComponent({
                                                 type="number"
                                                 size="sm"
                                                 variant="bordered"
-                                                placeholder="คะแนน"
+                                                placeholder={isEnglish ? "Points" : "คะแนน"}
                                                 min={0}
                                                 step="any"
                                                 value={subItem.max_score.toString()}
@@ -693,7 +733,7 @@ function AssignmentModalComponent({
                                                     }));
                                                 }}
                                                 className="w-36"
-                                                endContent={<span className="text-xs text-default-400">คะแนน</span>}
+                                                endContent={<span className="text-xs text-default-400">{isEnglish ? "points" : "คะแนน"}</span>}
                                                 classNames={{
                                                     inputWrapper: "h-10 bg-content1 border-default-200",
                                                 }}
@@ -721,9 +761,9 @@ function AssignmentModalComponent({
 
                         {/* Description */}
                         <Input
-                            label="รายละเอียดเพิ่มเติม"
+                            label={isEnglish ? "Additional details" : "รายละเอียดเพิ่มเติม"}
                             labelPlacement="outside"
-                            placeholder="คำอธิบายเกี่ยวกับงาน (ถ้ามี)"
+                            placeholder={isEnglish ? "Description for the assignment (optional)" : "คำอธิบายเกี่ยวกับงาน (ถ้ามี)"}
                             variant="bordered"
                             size="md"
                             value={formData.description}
@@ -746,11 +786,11 @@ function AssignmentModalComponent({
                                         />
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-default-700">การแสดงคะแนนต่อนักศึกษา</p>
+                                        <p className="text-sm font-medium text-default-700">{isEnglish ? "Student score visibility" : "การแสดงคะแนนต่อนักศึกษา"}</p>
                                         <p className="text-xs text-default-500">
                                             {formData.isScoreVisible 
-                                                ? "นักศึกษาสามารถดูคะแนนงานนี้ได้" 
-                                                : "ซ่อนคะแนน - นักศึกษาจะไม่เห็นคะแนนงานนี้"
+                                                ? (isEnglish ? "Students can view scores for this assignment" : "นักศึกษาสามารถดูคะแนนงานนี้ได้")
+                                                : (isEnglish ? "Hidden - students cannot see scores for this assignment" : "ซ่อนคะแนน - นักศึกษาจะไม่เห็นคะแนนงานนี้")
                                             }
                                         </p>
                                     </div>
@@ -767,7 +807,7 @@ function AssignmentModalComponent({
                                         />
                                     }
                                 >
-                                    {formData.isScoreVisible ? "แสดง" : "ซ่อน"}
+                                    {formData.isScoreVisible ? (isEnglish ? "Show" : "แสดง") : (isEnglish ? "Hidden" : "ซ่อน")}
                                 </Button>
                             </div>
                             {!formData.isScoreVisible && (
@@ -775,7 +815,9 @@ function AssignmentModalComponent({
                                     <p className="text-xs text-amber-700 flex items-start gap-2">
                                         <Icon icon="solar:info-circle-bold" className="mt-0.5 shrink-0" />
                                         <span>
-                                            คะแนนงานนี้จะไม่แสดงในหน้าค้นหาคะแนนของนักศึกษา แต่ยังสามารถลงคะแนนและ Export Excel ได้ตามปกติ
+                                            {isEnglish
+                                                ? "This assignment's scores will not appear in student score search, but grading and Excel export will still work normally."
+                                                : "คะแนนงานนี้จะไม่แสดงในหน้าค้นหาคะแนนของนักศึกษา แต่ยังสามารถลงคะแนนและ Export Excel ได้ตามปกติ"}
                                         </span>
                                     </p>
                                 </div>
@@ -792,11 +834,11 @@ function AssignmentModalComponent({
                                         />
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-default-700">โหมดฉบับร่าง</p>
+                                        <p className="text-sm font-medium text-default-700">{isEnglish ? "Draft mode" : "โหมดฉบับร่าง"}</p>
                                         <p className="text-xs text-default-500">
                                             {formData.isDraft
-                                                ? "งานนี้เป็นฉบับร่าง — นักศึกษายังไม่เห็น"
-                                                : "เผยแพร่ทันที — นักศึกษาเห็นได้เลย"}
+                                                ? (isEnglish ? "This assignment is a draft - students cannot see it yet" : "งานนี้เป็นฉบับร่าง — นักศึกษายังไม่เห็น")
+                                                : (isEnglish ? "Publish immediately - students can see it right away" : "เผยแพร่ทันที — นักศึกษาเห็นได้เลย")}
                                         </p>
                                     </div>
                                 </div>
@@ -810,7 +852,7 @@ function AssignmentModalComponent({
                                 <div className="mt-3 space-y-3">
                                     <Input
                                         type="datetime-local"
-                                        label="วันที่และเวลาเผยแพร่อัตโนมัติ (ไม่บังคับ)"
+                                        label={isEnglish ? "Scheduled publish date and time (optional)" : "วันที่และเวลาเผยแพร่อัตโนมัติ (ไม่บังคับ)"}
                                         labelPlacement="outside"
                                         size="md"
                                         variant="bordered"
@@ -826,8 +868,10 @@ function AssignmentModalComponent({
                                             <Icon icon="solar:info-circle-bold" className="mt-0.5 shrink-0 text-yellow-600" />
                                             <span>
                                                 {formData.publishAt
-                                                    ? `งานนี้จะเผยแพร่อัตโนมัติในวันที่ ${new Date(formData.publishAt).toLocaleDateString("th-TH", { dateStyle: "long" })} เวลา ${new Date(formData.publishAt).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })} น.`
-                                                    : "ไม่ระบุวันที่ — ต้องกดเผยแพร่ด้วยตนเอง"}
+                                                    ? (isEnglish
+                                                        ? `This assignment will publish automatically on ${formatLocalizedPublishDateTime(formData.publishAt, true)}.`
+                                                        : `งานนี้จะเผยแพร่อัตโนมัติในวันที่ ${formatLocalizedPublishDateTime(formData.publishAt, false)}`)
+                                                    : (isEnglish ? "No date set - publish manually." : "ไม่ระบุวันที่ — ต้องกดเผยแพร่ด้วยตนเอง")}
                                             </span>
                                         </p>
                                     </div>
@@ -841,8 +885,12 @@ function AssignmentModalComponent({
                     <div className="flex items-center justify-between w-full">
                         <div className="text-sm text-default-500">
                             {formData.hasSubItems
-                                ? `คะแนนรวม: ${Number.isInteger(totalSubItemScore) ? totalSubItemScore : totalSubItemScore.toFixed(2)} คะแนน`
-                                : `คะแนนเต็ม: ${formData.maxScore} คะแนน`
+                                ? (isEnglish
+                                    ? `Total score: ${formatPoints(Number.isInteger(totalSubItemScore) ? totalSubItemScore : Number(totalSubItemScore.toFixed(2)), true)}`
+                                    : `คะแนนรวม: ${Number.isInteger(totalSubItemScore) ? totalSubItemScore : totalSubItemScore.toFixed(2)} คะแนน`)
+                                : (isEnglish
+                                    ? `Max score: ${formatPoints(formData.maxScore, true)}`
+                                    : `คะแนนเต็ม: ${formData.maxScore} คะแนน`)
                             }
                         </div>
                         <div className="flex gap-2">
@@ -850,7 +898,7 @@ function AssignmentModalComponent({
                                 variant="light"
                                 onPress={onClose}
                             >
-                                ยกเลิก
+                                {isEnglish ? "Cancel" : "ยกเลิก"}
                             </Button>
                             <Button
                                 color={formData.isDraft ? "warning" : "primary"}
@@ -866,8 +914,12 @@ function AssignmentModalComponent({
                                 } />}
                             >
                                 {formData.isDraft
-                                    ? (editingAssignment ? "บันทึกร่าง" : "บันทึกฉบับร่าง")
-                                    : (editingAssignment ? "บันทึกการแก้ไข" : "สร้างงาน")}
+                                    ? (editingAssignment
+                                        ? (isEnglish ? "Save draft" : "บันทึกร่าง")
+                                        : (isEnglish ? "Create draft" : "บันทึกฉบับร่าง"))
+                                    : (editingAssignment
+                                        ? (isEnglish ? "Save changes" : "บันทึกการแก้ไข")
+                                        : (isEnglish ? "Create assignment" : "สร้างงาน"))}
                             </Button>
                         </div>
                     </div>

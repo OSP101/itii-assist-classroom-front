@@ -5,16 +5,17 @@ import { Progress } from "@heroui/progress";
 import { Chip } from "@heroui/chip";
 import { Avatar } from "@heroui/avatar";
 import { Icon } from "@iconify/react";
+import { useI18n } from "@/hooks/useI18n";
 import type { RiskStudent, RiskLevel } from "../analytics";
 
 const RISK_CONFIG: Record<RiskLevel, {
-  label: string;
+  labelKey: string;
   color: "danger" | "warning" | "success";
   dotClass: string;
 }> = {
-  high: { label: "เสี่ยงสูง", color: "danger", dotClass: "bg-red-500" },
-  medium: { label: "ปานกลาง", color: "warning", dotClass: "bg-amber-500" },
-  low: { label: "ปกติ", color: "success", dotClass: "bg-emerald-500" },
+  high: { labelKey: "riskHigh", color: "danger", dotClass: "bg-red-500" },
+  medium: { labelKey: "riskMedium", color: "warning", dotClass: "bg-amber-500" },
+  low: { labelKey: "riskNormal", color: "success", dotClass: "bg-emerald-500" },
 };
 
 interface RiskTableProps {
@@ -23,6 +24,7 @@ interface RiskTableProps {
 }
 
 function RiskTableComponent({ students, onSelectStudent }: RiskTableProps) {
+  const t = useI18n();
   if (students.length === 0) return null;
 
   return (
@@ -51,12 +53,12 @@ function RiskTableComponent({ students, onSelectStudent }: RiskTableProps) {
                     <p className="text-[11px] text-slate-400 dark:text-zinc-500">{student.student_id}</p>
                   </div>
                 </div>
-                <Chip size="sm" color={cfg.color} variant="flat">{cfg.label}</Chip>
+                <Chip size="sm" color={cfg.color} variant="flat">{t(cfg.labelKey)}</Chip>
               </div>
 
               <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-slate-500 dark:text-zinc-400 tabular-nums">
-                <span>ขาดส่ง: {student.missedCount} ชิ้น</span>
-                <span className="text-right">คะแนน: {pct}%</span>
+                <span>{t("missingWorkCount", { count: student.missedCount })}</span>
+                <span className="text-right">{t("averageScore")}: {pct}%</span>
               </div>
 
               <div className="mt-2 flex items-center gap-2">
@@ -77,11 +79,11 @@ function RiskTableComponent({ students, onSelectStudent }: RiskTableProps) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-slate-100">
-            <th className="text-left pb-3 text-[11px] font-semibold text-slate-500 dark:text-zinc-500 uppercase tracking-wide pr-4">นักศึกษา</th>
-            <th className="text-left pb-3 text-[11px] font-semibold text-slate-500 dark:text-zinc-500 uppercase tracking-wide pr-4">ระดับความเสี่ยง</th>
-            <th className="text-left pb-3 text-[11px] font-semibold text-slate-500 dark:text-zinc-500 uppercase tracking-wide pr-4 hidden sm:table-cell">งานที่ขาด</th>
-            <th className="text-left pb-3 text-[11px] font-semibold text-slate-500 dark:text-zinc-500 uppercase tracking-wide pr-4 hidden md:table-cell">คะแนน</th>
-            <th className="text-left pb-3 text-[11px] font-semibold text-slate-500 dark:text-zinc-500 uppercase tracking-wide">คำแนะนำ</th>
+            <th className="text-left pb-3 text-[11px] font-semibold text-slate-500 dark:text-zinc-500 uppercase tracking-wide pr-4">{t("students")}</th>
+            <th className="text-left pb-3 text-[11px] font-semibold text-slate-500 dark:text-zinc-500 uppercase tracking-wide pr-4">{t("riskLevel")}</th>
+            <th className="text-left pb-3 text-[11px] font-semibold text-slate-500 dark:text-zinc-500 uppercase tracking-wide pr-4 hidden sm:table-cell">{t("missingAssignments")}</th>
+            <th className="text-left pb-3 text-[11px] font-semibold text-slate-500 dark:text-zinc-500 uppercase tracking-wide pr-4 hidden md:table-cell">{t("averageScore")}</th>
+            <th className="text-left pb-3 text-[11px] font-semibold text-slate-500 dark:text-zinc-500 uppercase tracking-wide">{t("recommendation")}</th>
           </tr>
         </thead>
         <tbody>
@@ -115,7 +117,7 @@ function RiskTableComponent({ students, onSelectStudent }: RiskTableProps) {
                   <div className="flex items-center gap-1.5">
                     <span className={`w-2 h-2 rounded-full ${cfg.dotClass}`} />
                     <Chip size="sm" color={cfg.color} variant="flat">
-                      {cfg.label}
+                      {t(cfg.labelKey)}
                     </Chip>
                   </div>
                 </td>
@@ -123,7 +125,7 @@ function RiskTableComponent({ students, onSelectStudent }: RiskTableProps) {
                 {/* Missing count */}
                 <td className="py-3 pr-4 hidden sm:table-cell tabular-nums">
                   <span className={`text-sm font-medium ${student.missedCount > 0 ? "text-red-500" : "text-slate-400"}`}>
-                    {student.missedCount} ชิ้น
+                    {student.missedCount} {t("pointsLabel")}
                   </span>
                 </td>
 
@@ -158,7 +160,7 @@ function RiskTableComponent({ students, onSelectStudent }: RiskTableProps) {
           <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-2">
             <Icon icon="solar:check-circle-bold" className="text-2xl text-emerald-500" />
           </div>
-          <p className="text-sm text-slate-500">ไม่มีนักศึกษาที่อยู่ในกลุ่มเสี่ยง</p>
+          <p className="text-sm text-slate-500">{t("noAtRiskStudents")}</p>
         </div>
       )}
     </div>

@@ -7,11 +7,11 @@ export interface AssignmentTypeInfo {
     textColor: string;
 }
 
-export const getTypeInfo = (type: string): AssignmentTypeInfo => {
+export const getTypeInfo = (type: string, isEnglish = false): AssignmentTypeInfo => {
     switch (type) {
         case "individual":
             return { 
-                label: "Laboratory", 
+                label: isEnglish ? "Laboratory" : "งานในคาบ",
                 color: "bg-indigo-100 text-indigo-700", 
                 icon: "solar:monitor-bold",
                 bgColor: "bg-indigo-100",
@@ -19,7 +19,7 @@ export const getTypeInfo = (type: string): AssignmentTypeInfo => {
             };
         case "assignment":
             return { 
-                label: "Assignment", 
+                label: isEnglish ? "Assignment" : "การบ้าน",
                 color: "bg-amber-100 text-amber-700", 
                 icon: "solar:document-text-bold",
                 bgColor: "bg-amber-100",
@@ -27,7 +27,7 @@ export const getTypeInfo = (type: string): AssignmentTypeInfo => {
             };
         case "permanent_group":
             return { 
-                label: "กลุ่มโปรเจกต์", 
+                label: isEnglish ? "Project group" : "กลุ่มโปรเจกต์",
                 color: "bg-purple-100 text-purple-700", 
                 icon: "solar:users-group-two-rounded-bold",
                 bgColor: "bg-purple-100",
@@ -35,7 +35,7 @@ export const getTypeInfo = (type: string): AssignmentTypeInfo => {
             };
         case "weekly_group":
             return { 
-                label: "กลุ่มสัปดาห์", 
+                label: isEnglish ? "Weekly group" : "กลุ่มสัปดาห์",
                 color: "bg-emerald-100 text-emerald-700", 
                 icon: "solar:users-group-rounded-bold",
                 bgColor: "bg-emerald-100",
@@ -43,7 +43,7 @@ export const getTypeInfo = (type: string): AssignmentTypeInfo => {
             };
         default:
             return { 
-                label: "งาน", 
+                label: isEnglish ? "Assignment" : "งาน",
                 color: "bg-content3 text-default-700", 
                 icon: "solar:clipboard-list-bold",
                 bgColor: "bg-content3",

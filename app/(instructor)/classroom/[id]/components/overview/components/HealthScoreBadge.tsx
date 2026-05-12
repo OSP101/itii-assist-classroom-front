@@ -3,10 +3,11 @@
 import { memo } from "react";
 import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
+import { useI18n } from "@/hooks/useI18n";
 import type { HealthScoreData, HealthLevel } from "../analytics";
 
 const LEVEL_CONFIG: Record<HealthLevel, {
-  label: string;
+  labelKey: string;
   color: string;
   glow: string;
   bg: string;
@@ -14,7 +15,7 @@ const LEVEL_CONFIG: Record<HealthLevel, {
   icon: string;
 }> = {
   excellent: {
-    label: "ดีเยี่ยม",
+    labelKey: "healthLevelExcellent",
     color: "#10b981",
     glow: "rgba(16,185,129,0.35)",
     bg: "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/50",
@@ -22,7 +23,7 @@ const LEVEL_CONFIG: Record<HealthLevel, {
     icon: "solar:verified-check-bold",
   },
   healthy: {
-    label: "ปกติ",
+    labelKey: "healthLevelHealthy",
     color: "#3b82f6",
     glow: "rgba(59,130,246,0.35)",
     bg: "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/50",
@@ -30,7 +31,7 @@ const LEVEL_CONFIG: Record<HealthLevel, {
     icon: "solar:heart-pulse-bold",
   },
   warning: {
-    label: "ควรติดตาม",
+    labelKey: "healthLevelWarning",
     color: "#f59e0b",
     glow: "rgba(245,158,11,0.35)",
     bg: "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/50",
@@ -38,7 +39,7 @@ const LEVEL_CONFIG: Record<HealthLevel, {
     icon: "solar:danger-triangle-bold",
   },
   critical: {
-    label: "ต้องแก้ไขด่วน",
+    labelKey: "healthLevelCritical",
     color: "#ef4444",
     glow: "rgba(239,68,68,0.35)",
     bg: "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800/50",
@@ -53,6 +54,7 @@ interface HealthScoreBadgeProps {
 
 function HealthScoreBadgeComponent({ data }: HealthScoreBadgeProps) {
   const cfg = LEVEL_CONFIG[data.level];
+  const t = useI18n();
   const radius = 42;
   const circumference = 2 * Math.PI * radius;
   const dashOffset = circumference - (data.score / 100) * circumference;
@@ -101,7 +103,7 @@ function HealthScoreBadgeComponent({ data }: HealthScoreBadgeProps) {
           >
             {data.score}
           </motion.span>
-          <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5">/ 100</span>
+          <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5">{t("outOfHundred")}</span>
         </div>
       </div>
 
@@ -113,7 +115,7 @@ function HealthScoreBadgeComponent({ data }: HealthScoreBadgeProps) {
         transition={{ delay: 0.5 }}
       >
         <Icon icon={cfg.icon} className="text-sm" />
-        {cfg.label}
+        {t(cfg.labelKey)}
       </motion.div>
 
       {/* Insight text */}

@@ -6,9 +6,10 @@ import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
 import { Spinner } from "@heroui/spinner";
 import { Icon } from "@iconify/react";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { Session } from "@/services";
 import { formatDistanceToNow } from "date-fns";
-import { th } from "date-fns/locale";
+import { enUS, th } from "date-fns/locale";
 
 interface ActiveSessionsSectionProps {
   sessions: Session[];
@@ -25,6 +26,35 @@ function ActiveSessionsSection({
   onRevokeSession,
   onShowRevokeAllModal,
 }: ActiveSessionsSectionProps) {
+  const { language } = useGlobalSettings();
+  const languageKey = language === "en" ? "en" : "th";
+  const locale = languageKey === "en" ? "en-US" : "th-TH";
+  const distanceLocale = languageKey === "en" ? enUS : th;
+  const copy = languageKey === "en"
+    ? {
+        title: "Active Sessions",
+        description: "Devices and sessions currently signed in",
+        signOutAll: "Sign out all",
+        empty: "No active sessions found",
+        currentSession: "Current session",
+        ipAddress: "IP",
+        signedInAt: "Signed in",
+        signOutThisDevice: "Sign out this device",
+        accountSecurity: "Account security",
+        securityDescription: "If you see an unfamiliar device, sign it out immediately and change your password.",
+      }
+    : {
+        title: "เซสชันที่ใช้งานอยู่",
+        description: "อุปกรณ์และเซสชันที่เข้าสู่ระบบอยู่",
+        signOutAll: "ออกจากระบบทั้งหมด",
+        empty: "ไม่พบเซสชันที่ใช้งานอยู่",
+        currentSession: "เซสชันปัจจุบัน",
+        ipAddress: "IP",
+        signedInAt: "เข้าสู่ระบบ",
+        signOutThisDevice: "ออกจากระบบเครื่องนี้",
+        accountSecurity: "ความปลอดภัยของบัญชี",
+        securityDescription: "หากคุณเห็นอุปกรณ์ที่ไม่คุ้นเคย ให้ออกจากระบบอุปกรณ์นั้นทันทีและเปลี่ยนรหัสผ่านของคุณ",
+      };
   const orderedSessions = useMemo(
     () => [...sessions].sort((a, b) => Number(b.isCurrent) - Number(a.isCurrent)),
     [sessions]
@@ -47,8 +77,8 @@ function ActiveSessionsSection({
         <CardHeader className="px-6 py-4 border-b border-default-100">
           <div className="flex items-center justify-between w-full">
             <div>
-              <h3 className="font-semibold">Active Sessions</h3>
-              <p className="text-sm text-default-500 mt-0.5">อุปกรณ์และเซสชันที่เข้าสู่ระบบอยู่</p>
+              <h3 className="font-semibold">{copy.title}</h3>
+              <p className="text-sm text-default-500 mt-0.5">{copy.description}</p>
             </div>
             {orderedSessions.filter(s => !s.isCurrent).length > 0 && (
               <Button
@@ -58,7 +88,7 @@ function ActiveSessionsSection({
                 startContent={<Icon icon="solar:logout-2-linear" />}
                 onPress={onShowRevokeAllModal}
               >
-                ออกจากระบบทั้งหมด
+                {copy.signOutAll}
               </Button>
             )}
           </div>
@@ -71,7 +101,7 @@ function ActiveSessionsSection({
           ) : sessions.length === 0 ? (
             <div className="text-center py-12 text-default-500">
               <Icon icon="solar:devices-linear" className="text-4xl mx-auto mb-2 text-default-300" />
-              <p>ไม่พบเซสชันที่ใช้งานอยู่</p>
+              <p>{copy.empty}</p>
             </div>
           ) : (
             <div className="divide-y divide-default-100">
@@ -88,7 +118,7 @@ function ActiveSessionsSection({
                       <p className="font-medium text-default-900">{session.os}</p>
                       {session.isCurrent && (
                         <Chip size="sm" color="primary" variant="flat">
-                          เซสชันปัจจุบัน
+                          {copy.currentSession}
                         </Chip>
                       )}
                     </div>
@@ -97,16 +127,16 @@ function ActiveSessionsSection({
                         <Icon icon="solar:global-linear" className="text-sm" />
                         <span>{session.browser}</span>
                         <span className="text-default-300">·</span>
-                        <span>IP: {session.ip}</span>
+                        <span>{copy.ipAddress}: {session.ip}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Icon icon="solar:clock-circle-linear" className="text-sm" />
                         <span>
-                          เข้าสู่ระบบ: {new Date(session.loginAt).toLocaleDateString('th-TH')} {new Date(session.loginAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                          {copy.signedInAt}: {new Date(session.loginAt).toLocaleDateString(locale)} {new Date(session.loginAt).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
                         </span>
                         <span className="text-default-300">·</span>
                         <span className="text-success-600">
-                          {formatDistanceToNow(new Date(session.loginAt), { addSuffix: true, locale: th })}
+                          {formatDistanceToNow(new Date(session.loginAt), { addSuffix: true, locale: distanceLocale })}
                         </span>
                       </div>
                     </div>
@@ -119,6 +149,7 @@ function ActiveSessionsSection({
                       isIconOnly
                       onPress={() => onRevokeSession(session)}
                       isLoading={revokingSessionId === session.id}
+                      aria-label={copy.signOutThisDevice}
                     >
                       <Icon icon="solar:logout-2-linear" className="text-lg" />
                     </Button>
@@ -134,9 +165,9 @@ function ActiveSessionsSection({
         <div className="flex items-start gap-3">
           <Icon icon="solar:info-circle-bold" className="text-xl text-warning mt-0.5" />
           <div>
-            <p className="font-medium text-warning-700">ความปลอดภัยของบัญชี</p>
+            <p className="font-medium text-warning-700">{copy.accountSecurity}</p>
             <p className="text-sm text-warning-600 mt-1">
-              หากคุณเห็นอุปกรณ์ที่ไม่คุ้นเคย ให้ออกจากระบบอุปกรณ์นั้นทันทีและเปลี่ยนรหัสผ่านของคุณ
+              {copy.securityDescription}
             </p>
           </div>
         </div>

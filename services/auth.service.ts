@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from '@/config/api';
 import { clearAppearanceHintCookieString } from '@/lib/appearance-hint';
 
 export const AUTH_USER_UPDATED_EVENT = 'auth:user-updated';
-const PENDING_PREFERENCES_STORAGE_KEY = 'auth:pending-preferences';
+export const PENDING_PREFERENCES_STORAGE_KEY = 'auth:pending-preferences';
 
 let authChannel: BroadcastChannel | null = null;
 if (typeof window !== 'undefined') {
@@ -382,12 +382,12 @@ class AuthService {
     const response = await apiService.put<{ preferences: UserPreferences; user: User }>(API_ENDPOINTS.UPDATE_PREFERENCES, data);
 
     if (response.success && response.data) {
-      this.clearPendingPreferences(response.data.user.id);
       const user = this.withStoredPreferences({
         ...response.data.user,
         preferences: response.data.preferences ?? response.data.user.preferences,
       });
       this.persistUser(user);
+      this.clearPendingPreferences(response.data.user.id);
       return {
         success: true,
         preferences: response.data.preferences,

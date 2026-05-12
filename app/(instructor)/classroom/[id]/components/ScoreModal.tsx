@@ -17,17 +17,41 @@ import { Icon } from "@iconify/react";
 import { addToast } from "@heroui/toast";
 import scoreService, { type Student, type Group, type StudentScore, type ScoresData, type SubItemScoreData } from "@/services/score.service";
 import scoreEditRequestService from "@/services/scoreEditRequest.service";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import type { AssignmentType } from "./types";
 
 // Preset reasons for score edit requests
-const PRESET_EDIT_REASONS = [
-    { key: "wrong_score", label: "กรอกคะแนนผิด" },
-    { key: "wrong_student", label: "ให้คะแนนผิดคน" },
-    { key: "calculation_error", label: "คำนวณคะแนนผิด" },
-    { key: "missing_score", label: "ลืมให้คะแนนบางข้อ" },
-    { key: "recheck_request", label: "นักศึกษาขอตรวจสอบใหม่" },
-    { key: "other", label: "อื่นๆ (ระบุเอง)" },
+interface PresetEditReason {
+    key: string;
+    label: string;
+    enLabel: string;
+}
+
+const PRESET_EDIT_REASONS: PresetEditReason[] = [
+    { key: "wrong_score", label: "กรอกคะแนนผิด", enLabel: "Entered the wrong score" },
+    { key: "wrong_student", label: "ให้คะแนนผิดคน", enLabel: "Assigned the score to the wrong student" },
+    { key: "calculation_error", label: "คำนวณคะแนนผิด", enLabel: "Calculation error" },
+    { key: "missing_score", label: "ลืมให้คะแนนบางข้อ", enLabel: "Missed scoring some items" },
+    { key: "recheck_request", label: "นักศึกษาขอตรวจสอบใหม่", enLabel: "Student requested a re-check" },
+    { key: "other", label: "อื่นๆ (ระบุเอง)", enLabel: "Other (specify)" },
 ];
+
+function localizeGeneratedSubItemName(name: string | undefined, fallbackIndex: number, isEnglish: boolean): string {
+    if (!name) {
+        return isEnglish ? `Item ${fallbackIndex}` : `ข้อ ${fallbackIndex}`;
+    }
+
+    if (!isEnglish) {
+        return name;
+    }
+
+    const match = name.match(/^(ข้อ|ข้อย่อย|เกณฑ์)\s*(\d+)$/);
+    if (match) {
+        return `Item ${match[2]}`;
+    }
+
+    return name;
+}
 
 interface ScoreModalProps {
     isOpen: boolean;
@@ -80,6 +104,29 @@ interface SubItemScoreCopySnapshot {
     copiedSubItemScoreSources: Record<number, Record<number, CopySource | undefined>>;
 }
 
+const SCORE_SEARCH_AUTOCOMPLETE_CLASSNAMES = {
+    base: "w-full",
+    listboxWrapper: "max-h-75 p-0",
+    listbox: "gap-1 p-1 bg-content1",
+    popoverContent: "border border-default-200 bg-content1 text-foreground shadow-xl shadow-black/10",
+    selectorButton: "text-blue-400 dark:text-blue-300",
+};
+
+const SCORE_SEARCH_LISTBOX_PROPS = {
+    classNames: {
+        base: "bg-content1 p-1",
+        list: "gap-1",
+        emptyContent: "text-default-500",
+    },
+    itemClasses: {
+        base: "rounded-lg px-2 py-1.5 text-foreground data-[hover=true]:bg-content2 data-[focus=true]:bg-content2 data-[selected=true]:bg-primary/12 data-[selected=true]:text-foreground",
+        wrapper: "gap-0.5",
+        title: "text-foreground",
+        description: "text-default-500",
+        selectedIcon: "text-primary",
+    },
+};
+
 export default function ScoreModal({
     isOpen,
     onClose,
@@ -92,6 +139,8 @@ export default function ScoreModal({
     // Determine which tabs are available
     const defaultTab: "grade" | "edit" = canGradeAssignments ? "grade" : "edit";
     const showBothTabs = canGradeAssignments && canEditScores;
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
 
     // States
     const [activeTab, setActiveTab] = useState<"grade" | "edit">(defaultTab);
@@ -168,6 +217,45 @@ export default function ScoreModal({
     const isGroupAssignment = assignment?.assignment_type === "permanent_group" || assignment?.assignment_type === "weekly_group";
     const isPermanentGroup = assignment?.assignment_type === "permanent_group";
     const hasSubItems = assignment?.subItems && assignment.subItems.length > 0;
+    const locale = isEnglish ? "en-US" : "th-TH";
+    const t = (th: string, en: string) => (isEnglish ? en : th);
+    const formatPointCount = (value: number | string) => {
+        const numericValue = Number(value);
+        return isEnglish
+            ? `${value} ${numericValue === 1 ? "point" : "points"}`
+            : `${value} คะแนน`;
+    };
+    const formatSubItemCount = (count: number) => (
+        isEnglish ? `${count} ${count === 1 ? "sub-item" : "sub-items"}` : `${count} ข้อย่อย`
+    );
+    const formatMemberCount = (count: number) => (
+        isEnglish ? `${count} ${count === 1 ? "member" : "members"}` : `${count} คน`
+    );
+    const formatStudentCount = (count: number) => (
+        isEnglish ? `${count} ${count === 1 ? "student" : "students"}` : `${count} คน`
+    );
+    const formatRequestCount = (count: number) => (
+        isEnglish ? `${count} ${count === 1 ? "request" : "requests"}` : `${count} รายการ`
+    );
+    const formatLocalizedDate = (value: string) => new Date(value).toLocaleDateString(locale, {
+        day: "numeric",
+        month: "short",
+        year: isEnglish ? "numeric" : "2-digit",
+    });
+    const formatLocalizedDateTime = (value: string) => new Date(value).toLocaleString(locale, {
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+    const getPresetEditReasonLabel = (reason: PresetEditReason) => (
+        isEnglish ? reason.enLabel : reason.label
+    );
+    const getSubItemName = (subItemId: number) => localizeGeneratedSubItemName(
+        assignment?.subItems?.find((subItem) => subItem.id === subItemId)?.name,
+        subItemId,
+        isEnglish,
+    );
 
     // Colors based on group type
     const groupColors = isPermanentGroup
@@ -211,8 +299,8 @@ export default function ScoreModal({
         } catch (error) {
             console.error("loadData error:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถโหลดข้อมูลได้",
+                title: t("เกิดข้อผิดพลาด", "Error"),
+                description: t("ไม่สามารถโหลดข้อมูลได้", "Unable to load the data."),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -289,8 +377,10 @@ export default function ScoreModal({
             // Validate file type
             if (!file.type.startsWith('image/')) {
                 addToast({
-                    title: "ไฟล์ไม่ถูกต้อง",
-                    description: `${file.name} ไม่ใช่ไฟล์รูปภาพ`,
+                    title: t("ไฟล์ไม่ถูกต้อง", "Invalid file"),
+                    description: isEnglish
+                        ? `${file.name} is not an image file.`
+                        : `${file.name} ไม่ใช่ไฟล์รูปภาพ`,
                     color: "warning",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -300,8 +390,10 @@ export default function ScoreModal({
             // Validate file size (max 5MB)
             if (file.size > 5 * 1024 * 1024) {
                 addToast({
-                    title: "ไฟล์ใหญ่เกินไป",
-                    description: `${file.name} มีขนาดเกิน 5MB`,
+                    title: t("ไฟล์ใหญ่เกินไป", "File too large"),
+                    description: isEnglish
+                        ? `${file.name} is larger than 5 MB.`
+                        : `${file.name} มีขนาดเกิน 5MB`,
                     color: "warning",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -342,10 +434,10 @@ export default function ScoreModal({
     // Get attendance status label and color
     const getAttendanceLabel = (status: string | null) => {
         switch (status) {
-            case 'present': return { text: 'มาเรียน', color: 'text-emerald-600', bg: 'bg-emerald-100' };
-            case 'late': return { text: 'มาสาย', color: 'text-amber-600', bg: 'bg-amber-100' };
-            case 'leave': return { text: 'ลา', color: 'text-blue-600', bg: 'bg-blue-100' };
-            case 'absent': return { text: 'ขาดเรียน', color: 'text-red-600', bg: 'bg-red-100' };
+            case 'present': return { text: t('มาเรียน', 'Present'), color: 'text-emerald-600', bg: 'bg-emerald-100' };
+            case 'late': return { text: t('มาสาย', 'Late'), color: 'text-amber-600', bg: 'bg-amber-100' };
+            case 'leave': return { text: t('ลา', 'On leave'), color: 'text-blue-600', bg: 'bg-blue-100' };
+            case 'absent': return { text: t('ขาดเรียน', 'Absent'), color: 'text-red-600', bg: 'bg-red-100' };
             default: return null;
         }
     };
@@ -1085,8 +1177,8 @@ export default function ScoreModal({
     };
 
     const getCopySourceLabel = (source?: CopySource) => {
-        if (source === "from_first") return "คัดลอกจากคนแรก";
-        return "คัดลอกจากคนบน";
+        if (source === "from_first") return t("คัดลอกจากคนแรก", "Copied from the first student");
+        return t("คัดลอกจากคนบน", "Copied from the student above");
     };
 
     const getMemberSubItemScoreData = (studentId: number, subItemId: number): SubItemScoreData | undefined => {
@@ -1334,8 +1426,10 @@ export default function ScoreModal({
             }
 
             addToast({
-                title: "บันทึกคะแนนสำเร็จ",
-                description: `บันทึกคะแนน${isGroupAssignment ? "กลุ่ม" : "นักศึกษา"}เรียบร้อยแล้ว`,
+                title: t("บันทึกคะแนนสำเร็จ", "Score saved"),
+                description: isEnglish
+                    ? `Saved the ${isGroupAssignment ? "group" : "student"} score successfully.`
+                    : `บันทึกคะแนน${isGroupAssignment ? "กลุ่ม" : "นักศึกษา"}เรียบร้อยแล้ว`,
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1362,8 +1456,8 @@ export default function ScoreModal({
             onScoreSubmitted?.();
         } catch (error) {
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถบันทึกคะแนนได้",
+                title: t("เกิดข้อผิดพลาด", "Error"),
+                description: t("ไม่สามารถบันทึกคะแนนได้", "Unable to save the score."),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1759,7 +1853,7 @@ export default function ScoreModal({
         const lines: string[] = [];
 
         if (isGroupAssignment && editSelectedGroup && hasSubItems) {
-            lines.push(`กลุ่ม: ${editSelectedGroup.name}`);
+            lines.push(`${t("กลุ่ม", "Group")}: ${editSelectedGroup.name}`);
 
             const selectedMembers = groupMemberScores.filter(m => m.selected);
             if (editGroupMode === "selected") {
@@ -1775,14 +1869,14 @@ export default function ScoreModal({
                         if (targetScore === "") return;
                         if (currentScore !== null && currentScore !== undefined && parseFloat(targetScore) === Number(currentScore)) return;
 
-                        const subItemName = assignment?.subItems?.find(si => si.id === subScore.subItemId)?.name || `ข้อ ${subScore.subItemId}`;
+                        const subItemName = getSubItemName(subScore.subItemId);
                         lines.push(`- ${member.studentName} | ${subItemName}: ${targetScore}`);
                         changedCount += 1;
                     });
                 });
 
                 if (changedCount === 0) {
-                    lines.push("ยังไม่มีการเปลี่ยนแปลงคะแนนข้อย่อย");
+                    lines.push(t("ยังไม่มีการเปลี่ยนแปลงคะแนนข้อย่อย", "No sub-item score changes yet"));
                 }
             } else {
                 const changedSubItems = editSubItemScores.filter((subItem) => {
@@ -1792,10 +1886,10 @@ export default function ScoreModal({
                 });
 
                 if (changedSubItems.length === 0) {
-                    lines.push("ยังไม่มีการเปลี่ยนแปลงคะแนนข้อย่อย");
+                    lines.push(t("ยังไม่มีการเปลี่ยนแปลงคะแนนข้อย่อย", "No sub-item score changes yet"));
                 } else {
                     changedSubItems.forEach((subItem) => {
-                        const subItemName = assignment?.subItems?.find(si => si.id === subItem.subItemId)?.name || `ข้อ ${subItem.subItemId}`;
+                        const subItemName = getSubItemName(subItem.subItemId);
                         const targetCount = selectedMembers.filter((member) => {
                             if (hasPendingSubItemEdit(member.studentId, subItem.subItemId)) {
                                 return false;
@@ -1803,7 +1897,7 @@ export default function ScoreModal({
                             const sub = groupMemberSubItemScores.get(member.studentId);
                             return sub?.some(s => s.subItemId === subItem.subItemId && s.scoreId != null);
                         }).length;
-                        lines.push(`- ${subItemName}: ${subItem.newScore} (${targetCount} คน)`);
+                        lines.push(`- ${subItemName}: ${subItem.newScore} (${formatMemberCount(targetCount)})`);
                     });
                 }
             }
@@ -1811,7 +1905,7 @@ export default function ScoreModal({
         }
 
         if (isGroupAssignment && editSelectedGroup) {
-            lines.push(`กลุ่ม: ${editSelectedGroup.name}`);
+            lines.push(`${t("กลุ่ม", "Group")}: ${editSelectedGroup.name}`);
             const selectedMembers = groupMemberScores.filter(m => m.selected && m.scoreId && !m.hasPendingEdit);
             if (editGroupMode === "selected") {
                 selectedMembers.forEach((member) => {
@@ -1819,8 +1913,8 @@ export default function ScoreModal({
                     lines.push(`- ${member.studentName}: ${targetScore}`);
                 });
             } else {
-                lines.push(`แก้ทั้งกลุ่มเป็น: ${newScore}`);
-                lines.push(`จำนวนสมาชิก: ${selectedMembers.length} คน`);
+                lines.push(`${t("แก้ทั้งกลุ่มเป็น", "Apply to whole group")}: ${newScore}`);
+                lines.push(`${t("จำนวนสมาชิก", "Members")}: ${formatMemberCount(selectedMembers.length)}`);
             }
             return lines;
         }
@@ -1833,18 +1927,18 @@ export default function ScoreModal({
             });
 
             if (changedSubItems.length === 0) {
-                lines.push("ยังไม่มีการเปลี่ยนแปลงคะแนนข้อย่อย");
+                lines.push(t("ยังไม่มีการเปลี่ยนแปลงคะแนนข้อย่อย", "No sub-item score changes yet"));
                 return lines;
             }
 
             changedSubItems.forEach((subItem) => {
-                const subItemName = assignment?.subItems?.find(si => si.id === subItem.subItemId)?.name || `ข้อ ${subItem.subItemId}`;
+                const subItemName = getSubItemName(subItem.subItemId);
                 lines.push(`- ${subItemName}: ${subItem.newScore}`);
             });
             return lines;
         }
 
-        lines.push(`คะแนนใหม่: ${newScore}`);
+        lines.push(`${t("คะแนนใหม่", "New score")}: ${newScore}`);
         return lines;
     };
     const formatSkippedEditDetails = (result: {
@@ -1857,7 +1951,9 @@ export default function ScoreModal({
         }
 
         const itemLabels = (result.skipped_items ?? [])
-            .map((item) => item.sub_item_name ? `${item.student_name} (${item.sub_item_name})` : item.student_name)
+            .map((item) => item.sub_item_name
+                ? `${item.student_name} (${localizeGeneratedSubItemName(item.sub_item_name, 1, isEnglish)})`
+                : item.student_name)
             .filter((value) => value.trim().length > 0);
 
         const fallbackNames = (result.skipped_names ?? []).filter((value) => value.trim().length > 0);
@@ -1872,7 +1968,9 @@ export default function ScoreModal({
             return unique.join(", ");
         }
 
-        return `${unique.slice(0, 5).join(", ")} และอีก ${unique.length - 5} รายการ`;
+        return isEnglish
+            ? `${unique.slice(0, 5).join(", ")} and ${unique.length - 5} more ${unique.length - 5 === 1 ? "item" : "items"}`
+            : `${unique.slice(0, 5).join(", ")} และอีก ${unique.length - 5} รายการ`;
     };
 
     const handleSubmitEdit = async () => {
@@ -1884,7 +1982,16 @@ export default function ScoreModal({
             if (isGroupAssignment && editSelectedGroup && hasSubItems) {
                 const selectedMembers = groupMemberScores.filter(m => m.selected);
                 if (selectedMembers.length === 0) {
-                    addToast({ title: "ไม่มีสมาชิกที่เลือก", description: "กรุณาเลือกอย่างน้อย 1 คนที่มีคะแนนในข้อย่อยนี้", color: "warning", timeout: 3000, shouldShowTimeoutProgress: true });
+                    addToast({
+                        title: t("ไม่มีสมาชิกที่เลือก", "No members selected"),
+                        description: t(
+                            "กรุณาเลือกอย่างน้อย 1 คนที่มีคะแนนในข้อย่อยนี้",
+                            "Please select at least one member with a score for this sub-item.",
+                        ),
+                        color: "warning",
+                        timeout: 3000,
+                        shouldShowTimeoutProgress: true,
+                    });
                     return;
                 }
 
@@ -1916,8 +2023,11 @@ export default function ScoreModal({
 
                     if (editTargets.length === 0) {
                         addToast({
-                            title: "ยังไม่มีการเปลี่ยนแปลง",
-                            description: "กรุณาปรับคะแนนข้อย่อยอย่างน้อย 1 รายการก่อนส่งคำขอ",
+                            title: t("ยังไม่มีการเปลี่ยนแปลง", "No changes yet"),
+                            description: t(
+                                "กรุณาปรับคะแนนข้อย่อยอย่างน้อย 1 รายการก่อนส่งคำขอ",
+                                "Please update at least one sub-item score before submitting the request.",
+                            ),
                             color: "warning",
                             timeout: 3000,
                             shouldShowTimeoutProgress: true,
@@ -1936,16 +2046,20 @@ export default function ScoreModal({
                     if (detailedBatchResult.skipped > 0) {
                         const skippedDetails = formatSkippedEditDetails(detailedBatchResult);
                         addToast({
-                            title: "ส่งคำขอแก้ไขสำเร็จ (บางส่วน)",
-                            description: `ส่งคำขอรวม ${detailedBatchResult.created} รายการ | ข้าม ${detailedBatchResult.skipped} รายการที่มีคำร้องรออนุมัติอยู่แล้ว${skippedDetails ? `: ${skippedDetails}` : ""}`,
+                            title: t("ส่งคำขอแก้ไขสำเร็จ (บางส่วน)", "Edit request submitted (partial)"),
+                            description: isEnglish
+                                ? `Submitted ${formatRequestCount(detailedBatchResult.created)} | Skipped ${formatRequestCount(detailedBatchResult.skipped)} with pending approvals${skippedDetails ? `: ${skippedDetails}` : ""}`
+                                : `ส่งคำขอรวม ${detailedBatchResult.created} รายการ | ข้าม ${detailedBatchResult.skipped} รายการที่มีคำร้องรออนุมัติอยู่แล้ว${skippedDetails ? `: ${skippedDetails}` : ""}`,
                             color: "warning",
                             timeout: 5000,
                             shouldShowTimeoutProgress: true,
                         });
                     } else {
                         addToast({
-                            title: "ส่งคำขอแก้ไขสำเร็จ",
-                            description: `ส่งคำขอแก้ไขคะแนนข้อย่อยแบบรายบุคคล ${detailedBatchResult.created} รายการเรียบร้อยแล้ว`,
+                            title: t("ส่งคำขอแก้ไขสำเร็จ", "Edit request submitted"),
+                            description: isEnglish
+                                ? `Submitted ${formatRequestCount(detailedBatchResult.created)} for individual sub-item edits.`
+                                : `ส่งคำขอแก้ไขคะแนนข้อย่อยแบบรายบุคคล ${detailedBatchResult.created} รายการเรียบร้อยแล้ว`,
                             color: "success",
                             timeout: 3000,
                             shouldShowTimeoutProgress: true,
@@ -1960,8 +2074,11 @@ export default function ScoreModal({
 
                     if (changedSubItems.length === 0) {
                         addToast({
-                            title: "ยังไม่มีการเปลี่ยนแปลง",
-                            description: "กรุณาปรับคะแนนข้อย่อยอย่างน้อย 1 ข้อก่อนส่งคำขอ",
+                            title: t("ยังไม่มีการเปลี่ยนแปลง", "No changes yet"),
+                            description: t(
+                                "กรุณาปรับคะแนนข้อย่อยอย่างน้อย 1 ข้อก่อนส่งคำขอ",
+                                "Please update at least one sub-item score before submitting the request.",
+                            ),
                             color: "warning",
                             timeout: 3000,
                             shouldShowTimeoutProgress: true,
@@ -1991,8 +2108,11 @@ export default function ScoreModal({
 
                     if (detailedEdits.length === 0) {
                         addToast({
-                            title: "ไม่มีรายการที่ส่งได้",
-                            description: "ไม่พบสมาชิกที่มีคะแนนข้อย่อยตรงกับรายการที่แก้ไข",
+                            title: t("ไม่มีรายการที่ส่งได้", "No eligible items"),
+                            description: t(
+                                "ไม่พบสมาชิกที่มีคะแนนข้อย่อยตรงกับรายการที่แก้ไข",
+                                "No members with matching sub-item scores were found for these edits.",
+                            ),
                             color: "warning",
                             timeout: 3000,
                             shouldShowTimeoutProgress: true,
@@ -2008,16 +2128,20 @@ export default function ScoreModal({
                     if (detailedBatchResult.skipped > 0) {
                         const skippedDetails = formatSkippedEditDetails(detailedBatchResult);
                         addToast({
-                            title: "ส่งคำขอแก้ไขสำเร็จ (บางส่วน)",
-                            description: `ส่งคำขอรวม ${detailedBatchResult.created} รายการ | ข้าม ${detailedBatchResult.skipped} รายการที่มีคำร้องรออนุมัติอยู่แล้ว${skippedDetails ? `: ${skippedDetails}` : ""}`,
+                            title: t("ส่งคำขอแก้ไขสำเร็จ (บางส่วน)", "Edit request submitted (partial)"),
+                            description: isEnglish
+                                ? `Submitted ${formatRequestCount(detailedBatchResult.created)} | Skipped ${formatRequestCount(detailedBatchResult.skipped)} with pending approvals${skippedDetails ? `: ${skippedDetails}` : ""}`
+                                : `ส่งคำขอรวม ${detailedBatchResult.created} รายการ | ข้าม ${detailedBatchResult.skipped} รายการที่มีคำร้องรออนุมัติอยู่แล้ว${skippedDetails ? `: ${skippedDetails}` : ""}`,
                             color: "warning",
                             timeout: 5000,
                             shouldShowTimeoutProgress: true,
                         });
                     } else {
                         addToast({
-                            title: "ส่งคำขอแก้ไขสำเร็จ",
-                            description: `ส่งคำขอแก้ไขคะแนนข้อย่อยรวม ${detailedBatchResult.created} รายการเรียบร้อยแล้ว`,
+                            title: t("ส่งคำขอแก้ไขสำเร็จ", "Edit request submitted"),
+                            description: isEnglish
+                                ? `Submitted ${formatRequestCount(detailedBatchResult.created)} for grouped sub-item edits.`
+                                : `ส่งคำขอแก้ไขคะแนนข้อย่อยรวม ${detailedBatchResult.created} รายการเรียบร้อยแล้ว`,
                             color: "success",
                             timeout: 3000,
                             shouldShowTimeoutProgress: true,
@@ -2035,8 +2159,11 @@ export default function ScoreModal({
 
                 if (changedSubItems.length === 0) {
                     addToast({
-                        title: "ยังไม่มีการเปลี่ยนแปลง",
-                        description: "กรุณาปรับคะแนนข้อย่อยอย่างน้อย 1 ข้อก่อนส่งคำขอ",
+                        title: t("ยังไม่มีการเปลี่ยนแปลง", "No changes yet"),
+                        description: t(
+                            "กรุณาปรับคะแนนข้อย่อยอย่างน้อย 1 ข้อก่อนส่งคำขอ",
+                            "Please update at least one sub-item score before submitting the request.",
+                        ),
                         color: "warning",
                         timeout: 3000,
                         shouldShowTimeoutProgress: true,
@@ -2055,16 +2182,20 @@ export default function ScoreModal({
                 if (detailedBatchResult.skipped > 0) {
                     const skippedDetails = formatSkippedEditDetails(detailedBatchResult);
                     addToast({
-                        title: "ส่งคำขอแก้ไขสำเร็จ (บางส่วน)",
-                        description: `ส่งคำขอรวม ${detailedBatchResult.created} รายการ | ข้าม ${detailedBatchResult.skipped} รายการที่มีคำร้องรออนุมัติอยู่แล้ว${skippedDetails ? `: ${skippedDetails}` : ""}`,
+                        title: t("ส่งคำขอแก้ไขสำเร็จ (บางส่วน)", "Edit request submitted (partial)"),
+                        description: isEnglish
+                            ? `Submitted ${formatRequestCount(detailedBatchResult.created)} | Skipped ${formatRequestCount(detailedBatchResult.skipped)} with pending approvals${skippedDetails ? `: ${skippedDetails}` : ""}`
+                            : `ส่งคำขอรวม ${detailedBatchResult.created} รายการ | ข้าม ${detailedBatchResult.skipped} รายการที่มีคำร้องรออนุมัติอยู่แล้ว${skippedDetails ? `: ${skippedDetails}` : ""}`,
                         color: "warning",
                         timeout: 5000,
                         shouldShowTimeoutProgress: true,
                     });
                 } else {
                     addToast({
-                        title: "ส่งคำขอแก้ไขสำเร็จ",
-                        description: `ส่งคำขอแก้ไขคะแนนข้อย่อย ${detailedBatchResult.created} ข้อเรียบร้อยแล้ว`,
+                        title: t("ส่งคำขอแก้ไขสำเร็จ", "Edit request submitted"),
+                        description: isEnglish
+                            ? `Submitted ${formatRequestCount(detailedBatchResult.created)} for sub-item score edits.`
+                            : `ส่งคำขอแก้ไขคะแนนข้อย่อย ${detailedBatchResult.created} ข้อเรียบร้อยแล้ว`,
                         color: "success",
                         timeout: 3000,
                         shouldShowTimeoutProgress: true,
@@ -2076,8 +2207,11 @@ export default function ScoreModal({
 
                 if (selectedMembers.length === 0) {
                     addToast({
-                        title: "ไม่มีสมาชิกที่เลือก",
-                        description: "กรุณาเลือกอย่างน้อย 1 คนที่มีคะแนนอยู่แล้ว",
+                        title: t("ไม่มีสมาชิกที่เลือก", "No members selected"),
+                        description: t(
+                            "กรุณาเลือกอย่างน้อย 1 คนที่มีคะแนนอยู่แล้ว",
+                            "Please select at least one member who already has a score.",
+                        ),
                         color: "warning",
                         timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -2096,8 +2230,10 @@ export default function ScoreModal({
                     }
 
                     addToast({
-                        title: "ส่งคำขอแก้ไขสำเร็จ",
-                        description: `ส่งคำขอแก้ไขคะแนนแบบรายบุคคล ${selectedMembers.length} คนเรียบร้อยแล้ว`,
+                        title: t("ส่งคำขอแก้ไขสำเร็จ", "Edit request submitted"),
+                        description: isEnglish
+                            ? `Submitted individual edit requests for ${formatStudentCount(selectedMembers.length)}.`
+                            : `ส่งคำขอแก้ไขคะแนนแบบรายบุคคล ${selectedMembers.length} คนเรียบร้อยแล้ว`,
                         color: "success",
                         timeout: 3000,
                         shouldShowTimeoutProgress: true,
@@ -2113,16 +2249,20 @@ export default function ScoreModal({
                     if (batchResult.skipped > 0) {
                         const skippedDetails = formatSkippedEditDetails(batchResult);
                         addToast({
-                            title: "ส่งคำขอแก้ไขสำเร็จ (บางส่วน)",
-                            description: `ส่งคำขอสำหรับ ${batchResult.created} คน | ข้าม ${batchResult.skipped} คนที่มีคำร้องรออนุมัติอยู่แล้ว${skippedDetails ? `: ${skippedDetails}` : ""}`,
+                            title: t("ส่งคำขอแก้ไขสำเร็จ (บางส่วน)", "Edit request submitted (partial)"),
+                            description: isEnglish
+                                ? `Submitted requests for ${formatStudentCount(batchResult.created)} | Skipped ${formatStudentCount(batchResult.skipped)} with pending approvals${skippedDetails ? `: ${skippedDetails}` : ""}`
+                                : `ส่งคำขอสำหรับ ${batchResult.created} คน | ข้าม ${batchResult.skipped} คนที่มีคำร้องรออนุมัติอยู่แล้ว${skippedDetails ? `: ${skippedDetails}` : ""}`,
                             color: "warning",
                             timeout: 5000,
                             shouldShowTimeoutProgress: true,
                         });
                     } else {
                         addToast({
-                            title: "ส่งคำขอแก้ไขสำเร็จ",
-                            description: `ส่งคำขอแก้ไขคะแนนสำหรับ ${batchResult.created} คนเรียบร้อยแล้ว`,
+                            title: t("ส่งคำขอแก้ไขสำเร็จ", "Edit request submitted"),
+                            description: isEnglish
+                                ? `Submitted requests for ${formatStudentCount(batchResult.created)}.`
+                                : `ส่งคำขอแก้ไขคะแนนสำหรับ ${batchResult.created} คนเรียบร้อยแล้ว`,
                             color: "success",
                             timeout: 3000,
                             shouldShowTimeoutProgress: true,
@@ -2140,8 +2280,11 @@ export default function ScoreModal({
                 }, editImages);
 
                 addToast({
-                    title: "ส่งคำขอแก้ไขสำเร็จ",
-                    description: "คำขอแก้ไขคะแนนถูกส่งไปยังอาจารย์แล้ว",
+                    title: t("ส่งคำขอแก้ไขสำเร็จ", "Edit request submitted"),
+                    description: t(
+                        "คำขอแก้ไขคะแนนถูกส่งไปยังอาจารย์แล้ว",
+                        "The score edit request was sent to the instructor.",
+                    ),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -2167,9 +2310,11 @@ export default function ScoreModal({
             setEditGroupMemberScores({});
             setEditGroupMemberSubItemScores({});
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : "ไม่สามารถส่งคำขอแก้ไขได้";
+            const errorMessage = error instanceof Error && error.message
+                ? error.message
+                : t("ไม่สามารถส่งคำขอแก้ไขได้", "Unable to submit the edit request.");
             addToast({
-                title: "เกิดข้อผิดพลาด",
+                title: t("เกิดข้อผิดพลาด", "Error"),
                 description: errorMessage,
                 color: "danger",
                 timeout: 3000,
@@ -2208,7 +2353,7 @@ export default function ScoreModal({
             placement="top-center"
 
         >
-            <ModalContent>
+            <ModalContent className="score-modal-theme-scope bg-content2 text-foreground">
                 <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                     <div className="flex items-center gap-4">
                         <div className={`p-3 bg-linear-to-br ${typeInfo.color} rounded-xl shadow-lg`}>
@@ -2218,16 +2363,16 @@ export default function ScoreModal({
                             <div className="flex items-center gap-2">
                                 <h3 className="text-xl font-bold text-slate-800">{assignment.name}</h3>
                                 {assignment.is_score_visible === false && (
-                                    <Tooltip content="คะแนนงานนี้ถูกซ่อนจากนักศึกษา">
+                                    <Tooltip content={t("คะแนนงานนี้ถูกซ่อนจากนักศึกษา", "Scores for this assignment are hidden from students")}>
                                         <Chip size="sm" variant="flat" className="bg-amber-50 text-amber-600 gap-1" startContent={<Icon icon="solar:eye-closed-linear" width={14} />}>
-                                            ซ่อนคะแนน
+                                            {t("ซ่อนคะแนน", "Hidden score")}
                                         </Chip>
                                     </Tooltip>
                                 )}
                             </div>
                             <p className="text-sm text-slate-500 font-normal mt-1">
-                                คะแนนเต็ม {assignment.max_score} คะแนน
-                                {hasSubItems && ` • ${assignment.subItems?.length} ข้อย่อย`}
+                                {t("คะแนนเต็ม", "Maximum score")} {formatPointCount(assignment.max_score)}
+                                {hasSubItems && ` • ${formatSubItemCount(assignment.subItems?.length ?? 0)}`}
                             </p>
                         </div>
                     </div>
@@ -2258,7 +2403,7 @@ export default function ScoreModal({
                                     title={
                                         <div className="flex items-center gap-2">
                                             <Icon icon="solar:pen-new-square-bold" className="text-lg" />
-                                            <span>ลงคะแนน</span>
+                                            <span>{t("ลงคะแนน", "Grade")}</span>
                                         </div>
                                     }
                                 />
@@ -2267,7 +2412,7 @@ export default function ScoreModal({
                                     title={
                                         <div className="flex items-center gap-2">
                                             <Icon icon="solar:pen-2-bold" className="text-lg" />
-                                            <span>แก้ไขคะแนน</span>
+                                            <span>{t("แก้ไขคะแนน", "Edit score")}</span>
                                         </div>
                                     }
                                 />
@@ -2280,25 +2425,22 @@ export default function ScoreModal({
                                     {/* Student/Group Selection */}
                                     {!isGroupAssignment ? (
                                         <div>
-                                            <label className="text-slate-600 font-medium text-sm mb-2 block">ค้นหานักศึกษา</label>
+                                            <label className="text-slate-600 font-medium text-sm mb-2 block">{t("ค้นหานักศึกษา", "Find a student")}</label>
                                             {!selectedStudent && (
                                                 <Autocomplete
-                                                    placeholder="พิมพ์รหัสหรือชื่อนักศึกษา..."
+                                                    placeholder={t("พิมพ์รหัสหรือชื่อนักศึกษา...", "Type a student ID or name...")}
                                                     inputValue={searchQuery}
                                                     onInputChange={setSearchQuery}
                                                     selectedKey={null}
                                                     onSelectionChange={handleStudentSelect}
                                                     startContent={<Icon icon="solar:magnifer-linear" className="text-blue-400" />}
                                                     variant="bordered"
+                                                    classNames={SCORE_SEARCH_AUTOCOMPLETE_CLASSNAMES}
+                                                    listboxProps={SCORE_SEARCH_LISTBOX_PROPS}
                                                     inputProps={{
                                                         classNames: {
-                                                            inputWrapper: "border-blue-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                                            inputWrapper: "bg-content1 border-blue-200 hover:border-blue-300 focus-within:!border-blue-400",
                                                         },
-                                                    }}
-                                                    classNames={{
-                                                        base: "w-full",
-                                                        listboxWrapper: "max-h-75",
-                                                        selectorButton: "text-blue-400"
                                                     }}
                                                 >
                                                     {filteredStudents.map((student) => (
@@ -2313,8 +2455,8 @@ export default function ScoreModal({
                                                                     className="bg-linear-to-br from-blue-400 to-indigo-500 text-white shrink-0"
                                                                 />
                                                                 <div>
-                                                                    <p className="font-medium text-slate-800">{student.full_name}</p>
-                                                                    <p className="text-xs text-slate-500">{student.student_id}</p>
+                                                                    <p className="font-medium text-foreground">{student.full_name}</p>
+                                                                    <p className="text-xs text-default-500">{student.student_id}</p>
                                                                 </div>
                                                             </div>
                                                         </AutocompleteItem>
@@ -2370,7 +2512,7 @@ export default function ScoreModal({
                                                         <div className="mt-3 p-3 bg-slate-100 rounded-lg border border-slate-200">
                                                             <div className="flex items-center gap-2">
                                                                 <Spinner size="sm" />
-                                                                <p className="text-sm text-slate-600">กำลังตรวจสอบคะแนน...</p>
+                                                                <p className="text-sm text-slate-600">{t("กำลังตรวจสอบคะแนน...", "Checking scores...")}</p>
                                                             </div>
                                                         </div>
                                                     )}
@@ -2381,9 +2523,9 @@ export default function ScoreModal({
                                                             <div className="flex items-start gap-2">
                                                                 <Icon icon="solar:user-cross-bold" className="text-xl text-red-600 shrink-0 mt-0.5" />
                                                                 <div>
-                                                                    <p className="text-sm font-semibold text-red-800">ไม่สามารถลงคะแนนได้</p>
+                                                                    <p className="text-sm font-semibold text-red-800">{t("ไม่สามารถลงคะแนนได้", "Scoring unavailable")}</p>
                                                                     <p className="text-xs text-red-700 mt-1">
-                                                                        นักศึกษาคนนี้ขาดเรียนในรอบเช็คชื่อที่เชื่อมกับงานนี้
+                                                                        {t("นักศึกษาคนนี้ขาดเรียนในรอบเช็คชื่อที่เชื่อมกับงานนี้", "This student was absent in the attendance session linked to this assignment.")}
                                                                     </p>
                                                                 </div>
                                                             </div>
@@ -2396,18 +2538,18 @@ export default function ScoreModal({
                                                             <div className="flex items-start gap-2">
                                                                 <Icon icon="solar:danger-triangle-bold" className="text-xl text-amber-600 shrink-0 mt-0.5" />
                                                                 <div>
-                                                                    <p className="text-sm font-semibold text-amber-800">นักศึกษาคนนี้ได้รับคะแนนไปแล้ว</p>
+                                                                    <p className="text-sm font-semibold text-amber-800">{t("นักศึกษาคนนี้ได้รับคะแนนไปแล้ว", "This student already has a score")}</p>
                                                                     <p className="text-lg font-bold text-amber-900 mt-1">
-                                                                        {existingScore.score} / {assignment?.max_score} คะแนน
+                                                                        {existingScore.score} / {assignment?.max_score} {isEnglish ? "points" : "คะแนน"}
                                                                     </p>
                                                                     {existingScore.graded_by && (
                                                                         <p className="text-xs text-amber-700 mt-1">
-                                                                            ให้คะแนนโดย: {existingScore.graded_by.display_name}
-                                                                            {existingScore.graded_at && ` เมื่อ ${new Date(existingScore.graded_at).toLocaleDateString("th-TH")}`}
+                                                                            {t("ให้คะแนนโดย", "Graded by")}: {existingScore.graded_by.display_name}
+                                                                            {existingScore.graded_at && ` ${t("เมื่อ", "on")} ${formatLocalizedDate(existingScore.graded_at)}`}
                                                                         </p>
                                                                     )}
                                                                     <p className="text-xs text-amber-600 mt-2">
-                                                                        หากต้องการแก้ไข กรุณาไปที่แท็บ "แก้ไขคะแนน"
+                                                                        {t("หากต้องการแก้ไข กรุณาไปที่แท็บ \"แก้ไขคะแนน\"", "If you need to change it, go to the \"Edit score\" tab.")}
                                                                     </p>
                                                                 </div>
                                                             </div>
@@ -2419,24 +2561,21 @@ export default function ScoreModal({
                                     ) : (
                                         /* Group Assignment */
                                         <div>
-                                            <label className="text-slate-600 font-medium text-sm mb-2 block">ค้นหากลุ่ม</label>
+                                            <label className="text-slate-600 font-medium text-sm mb-2 block">{t("ค้นหากลุ่ม", "Find a group")}</label>
                                             {!selectedGroup && (
                                                 <Autocomplete
-                                                    placeholder="พิมพ์ชื่อกลุ่มหรือชื่อสมาชิก..."
+                                                    placeholder={t("พิมพ์ชื่อกลุ่มหรือชื่อสมาชิก...", "Type a group name or member name...")}
                                                     inputValue={groupSearchQuery}
                                                     onInputChange={setGroupSearchQuery}
                                                     selectedKey={null}
                                                     onSelectionChange={handleGroupSelect}
                                                     startContent={<Icon icon="solar:magnifer-linear" className="text-blue-400" />}
                                                     variant="bordered"
-                                                    classNames={{
-                                                        base: "w-full",
-                                                        listboxWrapper: "max-h-75",
-                                                        selectorButton: "text-blue-400"
-                                                    }}
+                                                    classNames={SCORE_SEARCH_AUTOCOMPLETE_CLASSNAMES}
+                                                    listboxProps={SCORE_SEARCH_LISTBOX_PROPS}
                                                     inputProps={{
                                                         classNames: {
-                                                            inputWrapper: "border-blue-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                                            inputWrapper: "bg-content1 border-blue-200 hover:border-blue-300 focus-within:!border-blue-400",
                                                         },
                                                     }}
                                                 >
@@ -2447,19 +2586,19 @@ export default function ScoreModal({
                                                         >
                                                             <div className="flex items-center justify-between w-full">
                                                                 <div className="flex items-center gap-3">
-                                                                    <div className={`p-2 ${isPermanentGroup ? 'bg-purple-100' : 'bg-emerald-100'} rounded-lg shrink-0`}>
+                                                                    <div className={`p-2 ${isPermanentGroup ? 'bg-purple-100 dark:bg-purple-900/40' : 'bg-emerald-100 dark:bg-emerald-900/40'} rounded-lg shrink-0`}>
                                                                         <Icon icon={isPermanentGroup ? "solar:users-group-two-rounded-bold" : "solar:users-group-rounded-bold"} className={`text-lg ${groupColors.icon}`} />
                                                                     </div>
                                                                     <div>
-                                                                        <p className="font-medium text-slate-800">{group.name}</p>
-                                                                        <p className="text-xs text-slate-500">
+                                                                        <p className="font-medium text-foreground">{group.name}</p>
+                                                                        <p className="text-xs text-default-500">
                                                                             {group.members.slice(0, 3).map(m => m.full_name).join(", ")}
-                                                                            {group.members.length > 3 && ` +${group.members.length - 3} คน`}
+                                                                            {group.members.length > 3 && (isEnglish ? ` +${group.members.length - 3} more` : ` +${group.members.length - 3} คน`)}
                                                                         </p>
                                                                     </div>
                                                                 </div>
-                                                                <Chip size="sm" variant="flat" className="bg-slate-100">
-                                                                    {group.members.length} คน
+                                                                <Chip size="sm" variant="flat" className="bg-content3 text-default-600">
+                                                                    {formatMemberCount(group.members.length)}
                                                                 </Chip>
                                                             </div>
                                                         </AutocompleteItem>
@@ -2475,7 +2614,7 @@ export default function ScoreModal({
                                                             <Icon icon={isPermanentGroup ? "solar:users-group-two-rounded-bold" : "solar:users-group-rounded-bold"} className={`text-xl ${absentGroupMembers.length > 0 ? 'text-red-500' : groupColors.icon}`} />
                                                             <span className="font-semibold text-slate-800">{selectedGroup.name}</span>
                                                             <Chip size="sm" variant="flat" className={absentGroupMembers.length > 0 ? 'bg-red-100 text-red-700' : groupColors.chip}>
-                                                                {selectedGroup.members.length} คน
+                                                                {formatMemberCount(selectedGroup.members.length)}
                                                             </Chip>
                                                         </div>
                                                         <Button
@@ -2519,9 +2658,9 @@ export default function ScoreModal({
                                                             <div className="flex items-start gap-2">
                                                                 <Icon icon="solar:users-group-rounded-bold" className="text-xl text-red-600 shrink-0 mt-0.5" />
                                                                 <div>
-                                                                    <p className="text-sm font-semibold text-red-800">ไม่สามารถลงคะแนนได้</p>
+                                                                    <p className="text-sm font-semibold text-red-800">{t("ไม่สามารถลงคะแนนได้", "Scoring unavailable")}</p>
                                                                     <p className="text-xs text-red-700 mt-1">
-                                                                        สมาชิกในกลุ่มขาดเรียน: {absentGroupMembers.map(m => m.full_name).join(", ")}
+                                                                        {t("สมาชิกในกลุ่มขาดเรียน", "Absent group members")}: {absentGroupMembers.map(m => m.full_name).join(", ")}
                                                                     </p>
                                                                 </div>
                                                             </div>
@@ -2533,7 +2672,7 @@ export default function ScoreModal({
                                                         <div className="mt-3 p-3 bg-slate-100 rounded-lg border border-slate-200">
                                                             <div className="flex items-center gap-2">
                                                                 <Spinner size="sm" />
-                                                                <p className="text-sm text-slate-600">กำลังตรวจสอบคะแนน...</p>
+                                                                <p className="text-sm text-slate-600">{t("กำลังตรวจสอบคะแนน...", "Checking scores...")}</p>
                                                             </div>
                                                         </div>
                                                     )}
@@ -2567,7 +2706,7 @@ export default function ScoreModal({
                                                 <div className="mb-4 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
                                                     <p className="text-xs text-emerald-700 font-medium mb-2 flex items-center gap-1.5">
                                                         <Icon icon="solar:check-circle-bold" className="text-emerald-600" />
-                                                        สมาชิกที่ลงคะแนนแล้ว ({gradeGroupMembers.filter(m => m.hasScore).length} คน)
+                                                        {t("สมาชิกที่ลงคะแนนแล้ว", "Members already scored")} ({formatMemberCount(gradeGroupMembers.filter(m => m.hasScore).length)})
                                                     </p>
                                                     <div className="space-y-1.5">
                                                         {gradeGroupMembers.filter(m => m.hasScore).map((member) => (
@@ -2577,7 +2716,7 @@ export default function ScoreModal({
                                                                     <span className="text-slate-700 text-sm font-medium">{member.studentName}</span>
                                                                 </div>
                                                                 <div className="gap-2 text-slate-500">
-                                                                    <p className="text-end text-md font-semibold text-emerald-600">{member.existingScore} คะแนน</p>
+                                                                    <p className="text-end text-md font-semibold text-emerald-600">{member.existingScore} {isEnglish ? "points" : "คะแนน"}</p>
                                                                     {member.gradedBy && (
                                                                         <>
                                                                             <span>{member.gradedBy}</span>
@@ -2586,7 +2725,7 @@ export default function ScoreModal({
                                                                     {member.gradedAt && (
                                                                         <>
                                                                             <span> • </span>
-                                                                            <span>{new Date(member.gradedAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                                                                            <span>{formatLocalizedDateTime(member.gradedAt)}</span>
                                                                         </>
                                                                     )}
                                                                 </div>
@@ -2601,7 +2740,7 @@ export default function ScoreModal({
                                                 <>
                                                     <p className="text-xs text-slate-500 mb-3 font-medium flex items-center gap-1.5">
                                                         {/* <Icon icon="solar:pen-new-square-bold" className="text-blue-500" /> */}
-                                                        สมาชิกที่ยังไม่มีคะแนน ({membersNeedingScores.length} คน)
+                                                        {t("สมาชิกที่ยังไม่มีคะแนน", "Members without scores")} ({formatMemberCount(membersNeedingScores.length)})
                                                     </p>
                                                     
                                                     {/* Mode selection buttons */}
@@ -2617,7 +2756,7 @@ export default function ScoreModal({
                                                             startContent={<Icon icon="solar:users-group-rounded-bold" />}
                                                             className={gradeGroupMode === "all" ? "shadow-md" : ""}
                                                         >
-                                                            ลงทุกคนที่เหลือ
+                                                            {t("ลงทุกคนที่เหลือ", "Score all remaining members")}
                                                         </Button>
                                                         <Button
                                                             size="sm"
@@ -2627,7 +2766,7 @@ export default function ScoreModal({
                                                             startContent={<Icon icon="solar:user-check-rounded-bold" />}
                                                             className={gradeGroupMode === "selected" ? "shadow-md" : ""}
                                                         >
-                                                            เลือกเฉพาะบางคน
+                                                            {t("เลือกเฉพาะบางคน", "Choose specific members")}
                                                         </Button>
                                                     </div>
 
@@ -2636,7 +2775,7 @@ export default function ScoreModal({
                                                         <div className="space-y-3">
                                                             <div className="flex items-center justify-between">
                                                                 <p className="text-xs text-slate-600 font-medium">
-                                                                    เลือกสมาชิกที่ต้องการลงคะแนน:
+                                                                    {t("เลือกสมาชิกที่ต้องการลงคะแนน:", "Choose the members to score:")}
                                                                 </p>
                                                                 <div className="flex gap-1">
                                                                     <Button
@@ -2646,7 +2785,7 @@ export default function ScoreModal({
                                                                         onPress={() => toggleAllGradeMembersSelection(true)}
                                                                         className="text-xs h-7 px-2"
                                                                     >
-                                                                        เลือกทั้งหมด
+                                                                        {t("เลือกทั้งหมด", "Select all")}
                                                                     </Button>
                                                                     <Button
                                                                         size="sm"
@@ -2655,7 +2794,7 @@ export default function ScoreModal({
                                                                         onPress={() => toggleAllGradeMembersSelection(false)}
                                                                         className="text-xs h-7 px-2"
                                                                     >
-                                                                        ยกเลิกทั้งหมด
+                                                                        {t("ยกเลิกทั้งหมด", "Clear all")}
                                                                     </Button>
                                                                 </div>
                                                             </div>
@@ -2705,11 +2844,11 @@ export default function ScoreModal({
                                                                         <div>
                                                                             {!member.canScore ? (
                                                                                 <Chip size="sm" color="danger" variant="flat" className="text-xs" startContent={<Icon icon="solar:user-cross-bold" className="mr-1 text-xs" />}>
-                                                                                    ขาดเรียน
+                                                                                    {t("ขาดเรียน", "Absent")}
                                                                                 </Chip>
                                                                             ) : member.selected ? (
                                                                                 <Chip size="sm" color="primary" variant="flat" className="text-xs" startContent={<Icon icon="solar:check-circle-bold" className="mr-1 text-xs" />}>
-                                                                                    เลือกแล้ว
+                                                                                    {t("เลือกแล้ว", "Selected")}
                                                                                 </Chip>
                                                                             ) : null}
                                                                         </div>
@@ -2719,12 +2858,12 @@ export default function ScoreModal({
                                                             <div className="flex items-center justify-between text-xs">
                                                                 <p className="text-slate-500 flex items-center gap-1">
                                                                     <Icon icon="solar:user-check-bold" className="text-blue-500" />
-                                                                    เลือกแล้ว {selectedGradeMembers.length} / {membersNeedingScores.length} คน
+                                                                    {t("เลือกแล้ว", "Selected")} {selectedGradeMembers.length} / {membersNeedingScores.length} {isEnglish ? "students" : "คน"}
                                                                 </p>
                                                                 {selectedGradeMembers.length === 0 && (
                                                                     <p className="text-amber-600 flex items-center gap-1">
                                                                         <Icon icon="solar:danger-triangle-bold" />
-                                                                        กรุณาเลือกอย่างน้อย 1 คน
+                                                                        {t("กรุณาเลือกอย่างน้อย 1 คน", "Please select at least one student")}
                                                                     </p>
                                                                 )}
                                                             </div>
@@ -2741,8 +2880,8 @@ export default function ScoreModal({
                                             <div className="flex items-start gap-3">
                                                 <Icon icon="solar:check-circle-bold" className="text-2xl text-emerald-600 shrink-0" />
                                                 <div>
-                                                    <p className="text-sm font-semibold text-emerald-800">กลุ่มนี้ลงคะแนนครบทุกคนแล้ว</p>
-                                                    <p className="text-xs text-emerald-600 mt-1">หากต้องการแก้ไข กรุณาไปที่แท็บ "แก้ไขคะแนน"</p>
+                                                    <p className="text-sm font-semibold text-emerald-800">{t("กลุ่มนี้ลงคะแนนครบทุกคนแล้ว", "All members in this group already have scores")}</p>
+                                                    <p className="text-xs text-emerald-600 mt-1">{t("หากต้องการแก้ไข กรุณาไปที่แท็บ \"แก้ไขคะแนน\"", "If you need to change scores, use the \"Edit score\" tab.")}</p>
                                                     <div className="mt-3 space-y-1.5">
                                                         {gradeGroupMembers.map((member) => (
                                                             <div key={member.studentId} className="flex items-center justify-between text-xs bg-white/60 rounded-md px-2 py-1.5">
@@ -2751,11 +2890,11 @@ export default function ScoreModal({
                                                                     <span className="text-slate-700 font-medium">{member.studentName}</span>
                                                                 </div>
                                                                 <div className="flex items-center gap-2 text-slate-500">
-                                                                    <span className="font-semibold text-emerald-600">{member.existingScore} คะแนน</span>
+                                                                    <span className="font-semibold text-emerald-600">{member.existingScore} {isEnglish ? "points" : "คะแนน"}</span>
                                                                     {member.gradedBy && (
                                                                         <>
                                                                             <span>•</span>
-                                                                            <span>โดย {member.gradedBy}</span>
+                                                                            <span>{t("โดย", "by")} {member.gradedBy}</span>
                                                                         </>
                                                                     )}
                                                                 </div>
@@ -2775,7 +2914,7 @@ export default function ScoreModal({
                                             <div>
                                                 <label className="text-slate-600 font-medium text-sm mb-3 flex items-center gap-2">
                                                     {/* <Icon icon="solar:medal-star-bold" className="text-amber-500" /> */}
-                                                    กรอกคะแนน
+                                                    {t("กรอกคะแนน", "Enter score")}
                                                 </label>
 
                                                 {hasSubItems ? (
@@ -2791,7 +2930,7 @@ export default function ScoreModal({
                                                                         className="text-xs"
                                                                         onPress={applyFirstGradeMemberSubItemScoresToAll}
                                                                     >
-                                                                        ใช้คะแนนรายข้อของคนแรกกับทุกคน
+                                                                            {t("ใช้คะแนนรายข้อของคนแรกกับทุกคน", "Apply the first student's sub-item scores to everyone")}
                                                                     </Button>
                                                                     <Button
                                                                         size="sm"
@@ -2800,7 +2939,7 @@ export default function ScoreModal({
                                                                         className="text-xs"
                                                                         onPress={resetCopiedGradeMemberSubItemScores}
                                                                     >
-                                                                        รีเซ็ตค่าที่คัดลอก
+                                                                        {t("รีเซ็ตค่าที่คัดลอก", "Reset copied values")}
                                                                     </Button>
                                                                     <Button
                                                                         size="sm"
@@ -2810,7 +2949,7 @@ export default function ScoreModal({
                                                                         isDisabled={subItemCopyUndoHistory.length === 0}
                                                                         onPress={undoSubItemBulkCopy}
                                                                     >
-                                                                        Undo คัดลอกล่าสุด
+                                                                        {t("Undo คัดลอกล่าสุด", "Undo last copy")}
                                                                     </Button>
                                                                     <Button
                                                                         size="sm"
@@ -2845,11 +2984,13 @@ export default function ScoreModal({
                                                                                         </span>
                                                                                         <div className="flex-1 min-w-0">
                                                                                             <div className="flex items-center gap-2">
-                                                                                                <p className="text-xs font-medium text-slate-700 truncate">{subItem.name}</p>
+                                                                                                <p className="text-xs font-medium text-slate-700 truncate">{localizeGeneratedSubItemName(subItem.name, idx + 1, isEnglish)}</p>
                                                                                                 {copiedGradeMemberSubItemScores[member.studentId]?.[subItemId] && (
                                                                                                     <Tooltip content={getCopySourceLabel(copiedGradeMemberSubItemScoreSources[member.studentId]?.[subItemId])}>
                                                                                                         <Chip size="sm" variant="flat" color="primary" className="text-[10px] h-5">
-                                                                                                            {copiedGradeMemberSubItemScoreSources[member.studentId]?.[subItemId] === "from_first" ? "คัดลอกจากคนแรก" : "คัดลอกจากคนบน"}
+                                                                                                            {copiedGradeMemberSubItemScoreSources[member.studentId]?.[subItemId] === "from_first"
+                                                                                                                ? t("คัดลอกจากคนแรก", "Copied from first")
+                                                                                                                : t("คัดลอกจากคนบน", "Copied from above")}
                                                                                                         </Chip>
                                                                                                     </Tooltip>
                                                                                                 )}
@@ -2883,7 +3024,7 @@ export default function ScoreModal({
                                                                                                     className="text-xs h-7 px-2"
                                                                                                     onPress={() => copyPreviousGradeMemberSubItemScore(member.studentId, subItemId)}
                                                                                                 >
-                                                                                                    คัดลอกจากคนบน
+                                                                                                    {t("คัดลอกจากคนบน", "Copy from above")}
                                                                                                 </Button>
                                                                                             </div>
                                                                                         )}
@@ -2916,10 +3057,10 @@ export default function ScoreModal({
                                                                         {idx + 1}
                                                                     </span>
                                                                     <div className="flex-1 min-w-0">
-                                                                        <p className="text-sm font-medium text-slate-700 truncate">{subItem.name}</p>
+                                                                        <p className="text-sm font-medium text-slate-700 truncate">{localizeGeneratedSubItemName(subItem.name, idx + 1, isEnglish)}</p>
                                                                         {isLocked && existingSubScore?.graded_by && (
                                                                             <p className="text-xs text-amber-600 mt-0.5">
-                                                                                ลงโดย {existingSubScore.graded_by.display_name}
+                                                                                {t("ลงโดย", "Graded by")} {existingSubScore.graded_by.display_name}
                                                                             </p>
                                                                         )}
                                                                     </div>
@@ -3007,7 +3148,7 @@ export default function ScoreModal({
                                                                         className="text-xs"
                                                                         onPress={applyFirstGradeMemberScoreToAll}
                                                                     >
-                                                                        ใช้คะแนนคนแรกกับทุกคน
+                                                                            {t("ใช้คะแนนคนแรกกับทุกคน", "Apply the first score to everyone")}
                                                                     </Button>
                                                                     <Button
                                                                         size="sm"
@@ -3016,7 +3157,7 @@ export default function ScoreModal({
                                                                         className="text-xs"
                                                                         onPress={resetCopiedGradeMemberScores}
                                                                     >
-                                                                        รีเซ็ตค่าที่คัดลอก
+                                                                        {t("รีเซ็ตค่าที่คัดลอก", "Reset copied values")}
                                                                     </Button>
                                                                     <Button
                                                                         size="sm"
@@ -3026,7 +3167,7 @@ export default function ScoreModal({
                                                                         isDisabled={mainCopyUndoHistory.length === 0}
                                                                         onPress={undoMainBulkCopy}
                                                                     >
-                                                                        Undo คัดลอกล่าสุด
+                                                                        {t("Undo คัดลอกล่าสุด", "Undo last copy")}
                                                                     </Button>
                                                                     <Button
                                                                         size="sm"
@@ -3052,7 +3193,9 @@ export default function ScoreModal({
                                                                                     {copiedGradeMemberScores[member.studentId] && (
                                                                                         <Tooltip content={getCopySourceLabel(copiedGradeMemberScoreSources[member.studentId])}>
                                                                                             <Chip size="sm" variant="flat" color="primary" className="text-[10px] h-5">
-                                                                                                {copiedGradeMemberScoreSources[member.studentId] === "from_first" ? "คัดลอกจากคนแรก" : "คัดลอกจากคนบน"}
+                                                                                                {copiedGradeMemberScoreSources[member.studentId] === "from_first"
+                                                                                                    ? t("คัดลอกจากคนแรก", "Copied from first")
+                                                                                                    : t("คัดลอกจากคนบน", "Copied from above")}
                                                                                             </Chip>
                                                                                         </Tooltip>
                                                                                     )}
@@ -3083,7 +3226,7 @@ export default function ScoreModal({
                                                                                     className="text-xs h-7 px-2"
                                                                                     onPress={() => copyPreviousGradeMemberScore(member.studentId)}
                                                                                 >
-                                                                                    คัดลอกจากคนบน
+                                                                                    {t("คัดลอกจากคนบน", "Copy from above")}
                                                                                 </Button>
                                                                             </div>
                                                                         </div>
@@ -3096,7 +3239,7 @@ export default function ScoreModal({
                                                                         <Icon icon="solar:medal-star-bold" className="text-xl text-amber-600" />
                                                                     </div>
                                                                     <div className="flex-1 min-w-0">
-                                                                        <p className="text-sm font-medium text-slate-700">คะแนนรวม</p>
+                                                                        <p className="text-sm font-medium text-slate-700">{t("คะแนนรวม", "Total score")}</p>
                                                                     </div>
                                                                     <div className="flex items-center gap-2">
                                                                         <Input
@@ -3150,9 +3293,9 @@ export default function ScoreModal({
 
                                             {/* Comment */}
                                             <div>
-                                                <label className="text-slate-600 font-medium text-sm mb-2 block">หมายเหตุ (ไม่บังคับ)</label>
+                                                <label className="text-slate-600 font-medium text-sm mb-2 block">{t("หมายเหตุ (ไม่บังคับ)", "Comment (optional)")}</label>
                                                 <Textarea
-                                                    placeholder="เพิ่มหมายเหตุ..."
+                                                    placeholder={t("เพิ่มหมายเหตุ...", "Add a comment...")}
                                                     value={comment}
                                                     onValueChange={setComment}
                                                     variant="bordered"
@@ -3173,9 +3316,9 @@ export default function ScoreModal({
                                         <div className="flex items-start gap-2">
                                             <Icon icon="solar:info-circle-bold" className="text-xl text-amber-600 shrink-0 mt-0.5" />
                                             <div>
-                                                <p className="text-sm font-medium text-amber-800">การแก้ไขคะแนน</p>
+                                                <p className="text-sm font-medium text-amber-800">{t("การแก้ไขคะแนน", "Score editing")}</p>
                                                 <p className="text-xs text-amber-700 mt-1">
-                                                    การแก้ไขคะแนนจะต้องระบุเหตุผล และจะถูกบันทึกไว้ในระบบ
+                                                    {t("การแก้ไขคะแนนจะต้องระบุเหตุผล และจะถูกบันทึกไว้ในระบบ", "Score edits require a reason and are recorded in the system.")}
                                                 </p>
                                             </div>
                                         </div>
@@ -3185,24 +3328,21 @@ export default function ScoreModal({
                                     {!isGroupAssignment ? (
                                         /* Individual - Student Search */
                                         <div>
-                                            <label className="text-slate-600 font-medium text-sm mb-2 block">ค้นหานักศึกษาที่ต้องการแก้ไขคะแนน</label>
+                                            <label className="text-slate-600 font-medium text-sm mb-2 block">{t("ค้นหานักศึกษาที่ต้องการแก้ไขคะแนน", "Find a student to edit")}</label>
                                             {!editSelectedStudent && (
                                                 <Autocomplete
-                                                    placeholder="พิมพ์รหัสหรือชื่อนักศึกษา..."
+                                                    placeholder={t("พิมพ์รหัสหรือชื่อนักศึกษา...", "Type a student ID or name...")}
                                                     inputValue={editSearchQuery}
                                                     onInputChange={setEditSearchQuery}
                                                     selectedKey={null}
                                                     onSelectionChange={handleEditStudentSelect}
                                                     startContent={<Icon icon="solar:magnifer-linear" className="text-blue-400" />}
                                                     variant="bordered"
-                                                    classNames={{
-                                                        base: "w-full",
-                                                        listboxWrapper: "max-h-75",
-                                                        selectorButton: "text-blue-400"
-                                                    }}
+                                                    classNames={SCORE_SEARCH_AUTOCOMPLETE_CLASSNAMES}
+                                                    listboxProps={SCORE_SEARCH_LISTBOX_PROPS}
                                                     inputProps={{
                                                         classNames: {
-                                                            inputWrapper: "border-blue-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                                            inputWrapper: "bg-content1 border-blue-200 hover:border-blue-300 focus-within:!border-blue-400",
                                                         },
                                                     }}
                                                 >
@@ -3218,8 +3358,8 @@ export default function ScoreModal({
                                                                     className="bg-linear-to-br from-blue-400 to-indigo-500 text-white shrink-0"
                                                                 />
                                                                 <div>
-                                                                    <p className="font-medium text-slate-800">{student.full_name}</p>
-                                                                    <p className="text-xs text-slate-500">{student.student_id}</p>
+                                                                    <p className="font-medium text-foreground">{student.full_name}</p>
+                                                                    <p className="text-xs text-default-500">{student.student_id}</p>
                                                                 </div>
                                                             </div>
                                                         </AutocompleteItem>
@@ -3261,24 +3401,21 @@ export default function ScoreModal({
                                     ) : (
                                         /* Group Assignment - Group Search */
                                         <div>
-                                            <label className="text-slate-600 font-medium text-sm mb-2 block">ค้นหากลุ่มที่ต้องการแก้ไขคะแนน</label>
+                                            <label className="text-slate-600 font-medium text-sm mb-2 block">{t("ค้นหากลุ่มที่ต้องการแก้ไขคะแนน", "Find a group to edit")}</label>
                                             {!editSelectedGroup && (
                                                 <Autocomplete
-                                                    placeholder="พิมพ์ชื่อกลุ่ม..."
+                                                    placeholder={t("พิมพ์ชื่อกลุ่ม...", "Type a group name...")}
                                                     inputValue={editGroupSearchQuery}
                                                     onInputChange={setEditGroupSearchQuery}
                                                     selectedKey={null}
                                                     onSelectionChange={handleEditGroupSelect}
                                                     startContent={<Icon icon="solar:magnifer-linear" className="text-blue-400" />}
                                                     variant="bordered"
-                                                    classNames={{
-                                                        base: "w-full",
-                                                        listboxWrapper: "max-h-75",
-                                                        selectorButton: "text-blue-400"
-                                                    }}
+                                                    classNames={SCORE_SEARCH_AUTOCOMPLETE_CLASSNAMES}
+                                                    listboxProps={SCORE_SEARCH_LISTBOX_PROPS}
                                                     inputProps={{
                                                         classNames: {
-                                                            inputWrapper: "border-blue-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                                            inputWrapper: "bg-content1 border-blue-200 hover:border-blue-300 focus-within:!border-blue-400",
                                                         },
                                                     }}
                                                 >
@@ -3289,19 +3426,19 @@ export default function ScoreModal({
                                                         >
                                                             <div className="flex items-center justify-between w-full">
                                                                 <div className="flex items-center gap-3">
-                                                                    <div className={`p-2 ${isPermanentGroup ? 'bg-purple-100' : 'bg-emerald-100'} rounded-lg shrink-0`}>
+                                                                    <div className={`p-2 ${isPermanentGroup ? 'bg-purple-100 dark:bg-purple-900/40' : 'bg-emerald-100 dark:bg-emerald-900/40'} rounded-lg shrink-0`}>
                                                                         <Icon icon={isPermanentGroup ? "solar:users-group-two-rounded-bold" : "solar:users-group-rounded-bold"} className={`text-lg ${groupColors.icon}`} />
                                                                     </div>
                                                                     <div>
-                                                                        <p className="font-medium text-slate-800">{group.name}</p>
-                                                                        <p className="text-xs text-slate-500">
+                                                                        <p className="font-medium text-foreground">{group.name}</p>
+                                                                        <p className="text-xs text-default-500">
                                                                             {group.members.slice(0, 3).map(m => m.full_name).join(", ")}
-                                                                            {group.members.length > 3 && ` +${group.members.length - 3} คน`}
+                                                                            {group.members.length > 3 && (isEnglish ? ` +${group.members.length - 3} more` : ` +${group.members.length - 3} คน`)}
                                                                         </p>
                                                                     </div>
                                                                 </div>
-                                                                <Chip size="sm" variant="flat" className="bg-slate-100">
-                                                                    {group.members.length} คน
+                                                                <Chip size="sm" variant="flat" className="bg-content3 text-default-600">
+                                                                    {formatMemberCount(group.members.length)}
                                                                 </Chip>
                                                             </div>
                                                         </AutocompleteItem>
@@ -3318,7 +3455,7 @@ export default function ScoreModal({
                                                                 <Icon icon={isPermanentGroup ? "solar:users-group-two-rounded-bold" : "solar:users-group-rounded-bold"} className={`text-xl ${groupColors.icon}`} />
                                                                 <span className="font-semibold text-slate-800">{editSelectedGroup.name}</span>
                                                                 <Chip size="sm" variant="flat" className={groupColors.chip}>
-                                                                    {editSelectedGroup.members.length} คน
+                                                                    {formatMemberCount(editSelectedGroup.members.length)}
                                                                 </Chip>
                                                             </div>
                                                             <Button
@@ -3349,7 +3486,7 @@ export default function ScoreModal({
                                                     <div className="mb-3 p-4 bg-linear-to-br from-slate-50 to-amber-50/30 rounded-xl border border-slate-200">
                                                         <p className="text-xs text-slate-500 mb-3 font-medium flex items-center gap-1.5">
                                                             {/* <Icon icon="solar:settings-bold" className="text-slate-400" /> */}
-                                                            เลือกโหมดการแก้ไข
+                                                            {t("เลือกโหมดการแก้ไข", "Choose edit mode")}
                                                         </p>
                                                         <div className="flex gap-2">
                                                             <Button
@@ -3363,7 +3500,7 @@ export default function ScoreModal({
                                                                 startContent={<Icon icon="solar:users-group-rounded-bold" />}
                                                                 className={editGroupMode === "all" ? "shadow-md" : ""}
                                                             >
-                                                                แก้ทั้งกลุ่ม
+                                                                {t("แก้ทั้งกลุ่ม", "Edit whole group")}
                                                             </Button>
                                                             <Button
                                                                 size="sm"
@@ -3376,7 +3513,7 @@ export default function ScoreModal({
                                                                 startContent={<Icon icon="solar:user-check-bold" />}
                                                                 className={editGroupMode === "selected" ? "shadow-md" : ""}
                                                             >
-                                                                เลือกเฉพาะบางคน
+                                                                {t("เลือกเฉพาะบางคน", "Choose specific members")}
                                                             </Button>
                                                         </div>
 
@@ -3386,7 +3523,7 @@ export default function ScoreModal({
                                                                 <div className="flex items-center justify-between">
                                                                     <p className="text-xs text-slate-600 font-medium flex items-center gap-1.5">
                                                                         <Icon icon="solar:users-group-two-rounded-bold" className="text-amber-500" />
-                                                                        เลือกสมาชิกที่ต้องการแก้ไขคะแนน
+                                                                        {t("เลือกสมาชิกที่ต้องการแก้ไขคะแนน", "Choose the members to edit")}
                                                                     </p>
                                                                     <div className="flex gap-1">
                                                                         <Button
@@ -3396,7 +3533,7 @@ export default function ScoreModal({
                                                                             onPress={() => toggleAllMembersSelection(true)}
                                                                             className="text-xs h-7 px-2"
                                                                         >
-                                                                            เลือกทั้งหมด
+                                                                            {t("เลือกทั้งหมด", "Select all")}
                                                                         </Button>
                                                                         <Button
                                                                             size="sm"
@@ -3405,7 +3542,7 @@ export default function ScoreModal({
                                                                             onPress={() => toggleAllMembersSelection(false)}
                                                                             className="text-xs h-7 px-2"
                                                                         >
-                                                                            ยกเลิกทั้งหมด
+                                                                            {t("ยกเลิกทั้งหมด", "Clear all")}
                                                                         </Button>
                                                                     </div>
                                                                 </div>
@@ -3451,7 +3588,7 @@ export default function ScoreModal({
                                                                                             {member.studentName}
                                                                                         </span>
                                                                                         {member.hasPendingEdit && (
-                                                                                            <p className="text-xs text-orange-500">รออนุมัติการแก้ไข</p>
+                                                                                            <p className="text-xs text-orange-500">{t("รออนุมัติการแก้ไข", "Awaiting edit approval")}</p>
                                                                                         )}
                                                                                     </div>
                                                                                 </div>
@@ -3459,15 +3596,15 @@ export default function ScoreModal({
                                                                             <div>
                                                                                 {member.hasPendingEdit ? (
                                                                                     <Chip size="sm" color="warning" variant="flat" className="text-xs" startContent={<Icon icon="solar:hourglass-bold" className="mr-1 text-xs" />}>
-                                                                                        รออนุมัติ
+                                                                                        {t("รออนุมัติ", "Pending")}
                                                                                     </Chip>
                                                                                 ) : canEditMember ? (
                                                                                     <Chip size="sm" color="success" variant="flat" className="text-xs" startContent={<Icon icon="solar:medal-star-bold" className="mr-1 text-xs" />}>
-                                                                                        {hasSubItems ? "มีคะแนนข้อย่อย" : `${member.score ?? 0} คะแนน`}
+                                                                                        {hasSubItems ? t("มีคะแนนข้อย่อย", "Has sub-item scores") : `${member.score ?? 0} ${isEnglish ? "points" : "คะแนน"}`}
                                                                                     </Chip>
                                                                                 ) : (
                                                                                     <Chip size="sm" color="default" variant="flat" className="text-xs">
-                                                                                        ยังไม่มีคะแนน
+                                                                                        {t("ยังไม่มีคะแนน", "No score yet")}
                                                                                     </Chip>
                                                                                 )}
                                                                             </div>
@@ -3479,12 +3616,12 @@ export default function ScoreModal({
                                                                 <div className="flex items-center justify-between text-xs">
                                                                     <p className="text-slate-500 flex items-center gap-1">
                                                                         <Icon icon="solar:user-check-bold" className="text-amber-500" />
-                                                                        เลือกแล้ว {groupMemberScores.filter(m => m.selected && (hasSubItems ? m.hasAnySubItemScore : (!m.hasPendingEdit && !!m.scoreId))).length} / {groupMemberScores.filter(m => hasSubItems ? m.hasAnySubItemScore : (!m.hasPendingEdit && !!m.scoreId)).length} คน
+                                                                        {t("เลือกแล้ว", "Selected")} {groupMemberScores.filter(m => m.selected && (hasSubItems ? m.hasAnySubItemScore : (!m.hasPendingEdit && !!m.scoreId))).length} / {groupMemberScores.filter(m => hasSubItems ? m.hasAnySubItemScore : (!m.hasPendingEdit && !!m.scoreId)).length} {isEnglish ? "students" : "คน"}
                                                                     </p>
                                                                     {groupMemberScores.filter(m => m.selected && (hasSubItems ? m.hasAnySubItemScore : (!m.hasPendingEdit && !!m.scoreId))).length === 0 && (
                                                                         <p className="text-amber-600 flex items-center gap-1">
                                                                             <Icon icon="solar:danger-triangle-bold" />
-                                                                            กรุณาเลือกอย่างน้อย 1 คน
+                                                                            {t("กรุณาเลือกอย่างน้อย 1 คน", "Please select at least one student")}
                                                                         </p>
                                                                     )}
                                                                 </div>
@@ -3496,7 +3633,7 @@ export default function ScoreModal({
                                                             <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
                                                                 <p className="text-xs font-medium text-orange-700 flex items-center gap-1.5 mb-2">
                                                                     <Icon icon="solar:lock-bold" className="text-orange-500" />
-                                                                    สมาชิกที่รออนุมัติการแก้ไข (จะถูกข้ามอัตโนมัติ)
+                                                                    {t("สมาชิกที่รออนุมัติการแก้ไข (จะถูกข้ามอัตโนมัติ)", "Members with pending edit approvals (skipped automatically)")}
                                                                 </p>
                                                                 <div className="flex flex-wrap gap-1.5">
                                                                     {groupMemberScores.filter(m => m.hasPendingEdit).map(member => (
@@ -3525,14 +3662,14 @@ export default function ScoreModal({
                                             {!currentScore && !hasSubItems ? (
                                                 <div className="text-center py-6">
                                                     <Icon icon="solar:clipboard-remove-linear" className="text-4xl text-slate-300 mx-auto mb-2" />
-                                                    <p className="text-slate-500">{isGroupAssignment ? "กลุ่มนี้" : "นักศึกษาคนนี้"}ยังไม่มีคะแนน</p>
-                                                    <p className="text-sm text-slate-400">กรุณาไปที่แท็บ "ลงคะแนน" เพื่อให้คะแนนใหม่</p>
+                                                    <p className="text-slate-500">{isEnglish ? `${isGroupAssignment ? "This group" : "This student"} has no score yet.` : `${isGroupAssignment ? "กลุ่มนี้" : "นักศึกษาคนนี้"}ยังไม่มีคะแนน`}</p>
+                                                    <p className="text-sm text-slate-400">{t("กรุณาไปที่แท็บ \"ลงคะแนน\" เพื่อให้คะแนนใหม่", "Use the \"Grade\" tab to create a score.")}</p>
                                                 </div>
                                             ) : hasSubItems ? (
                                                 /* Sub-items scores for editing */
                                                 <div className="space-y-4">
                                                     <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                                                        <p className="text-sm font-medium text-slate-700 mb-3">เลือกข้อที่ต้องการแก้ไข</p>
+                                                        <p className="text-sm font-medium text-slate-700 mb-3">{t("เลือกข้อที่ต้องการแก้ไข", "Choose a sub-item to edit")}</p>
                                                         <div className="space-y-2">
                                                             {assignment.subItems?.filter(item => item.id !== undefined).map((subItem, idx) => {
                                                                 const editScore = editSubItemScores.find(s => s.subItemId === subItem.id);
@@ -3584,14 +3721,16 @@ export default function ScoreModal({
                                                                             {idx + 1}
                                                                         </span>
                                                                         <div className="flex-1 min-w-0">
-                                                                            <p className="text-sm font-medium text-slate-700 truncate">{subItem.name}</p>
+                                                                                <p className="text-sm font-medium text-slate-700 truncate">{localizeGeneratedSubItemName(subItem.name, idx + 1, isEnglish)}</p>
                                                                             {isGroupAssignment && editSelectedGroup && (
                                                                                 <p className="text-xs text-slate-500">
-                                                                                    แก้ได้ {editableMemberCount} คน{pendingMemberCount > 0 ? ` • รออนุมัติ ${pendingMemberCount} คน` : ""}
+                                                                                        {isEnglish
+                                                                                            ? `Editable for ${formatMemberCount(editableMemberCount)}${pendingMemberCount > 0 ? ` • Pending for ${formatMemberCount(pendingMemberCount)}` : ""}`
+                                                                                            : `แก้ได้ ${editableMemberCount} คน${pendingMemberCount > 0 ? ` • รออนุมัติ ${pendingMemberCount} คน` : ""}`}
                                                                                 </p>
                                                                             )}
                                                                             {hasLockedOnlyScore && (
-                                                                                <p className="text-xs text-amber-600">มีคำร้องค้างในข้อนี้ (แก้ข้ออื่นได้)</p>
+                                                                                    <p className="text-xs text-amber-600">{t("มีคำร้องค้างในข้อนี้ (แก้ข้ออื่นได้)", "This sub-item has a pending request (other sub-items can still be edited)")}</p>
                                                                             )}
                                                                         </div>
                                                                     </div>
@@ -3613,13 +3752,13 @@ export default function ScoreModal({
                                                                             <Icon icon="solar:pen-2-bold" className="text-lg text-blue-600" />
                                                                         </div>
                                                                         <div>
-                                                                            <p className="text-xs text-blue-600 font-medium">แก้ไขคะแนน</p>
-                                                                            <p className="font-semibold text-slate-800">{selectedSubItem?.name}</p>
+                                                                            <p className="text-xs text-blue-600 font-medium">{t("แก้ไขคะแนน", "Edit score")}</p>
+                                                                            <p className="font-semibold text-slate-800">{localizeGeneratedSubItemName(selectedSubItem?.name, selectedEditSubItemId ?? 1, isEnglish)}</p>
                                                                         </div>
                                                                     </div>
                                                                     {selectedEditScore?.currentScore !== null && (
                                                                         <div className="text-right">
-                                                                            <p className="text-xs text-slate-500">คะแนนเดิม</p>
+                                                                            <p className="text-xs text-slate-500">{t("คะแนนเดิม", "Current score")}</p>
                                                                             <p className="text-lg font-bold text-slate-600">
                                                                                 {selectedEditScore?.currentScore} <span className="text-sm font-normal">/ {selectedSubItem?.max_score}</span>
                                                                             </p>
@@ -3630,7 +3769,7 @@ export default function ScoreModal({
                                                                 {/* Score Input */}
                                                                 <div className="bg-white p-4 rounded-lg border border-slate-200">
                                                                     <label className="text-slate-600 font-medium text-sm mb-3 flex items-center gap-2">
-                                                                        คะแนนใหม่
+                                                                        {t("คะแนนใหม่", "New score")}
                                                                     </label>
                                                                     {isGroupAssignment && editSelectedGroup && editGroupMode === "selected" ? (
                                                                         <div className="space-y-2">
@@ -3671,7 +3810,7 @@ export default function ScoreModal({
                                                                                                 <span className="text-xs text-slate-500">/ {selectedSubItem?.max_score}</span>
                                                                                                 {isPendingForSubItem && (
                                                                                                     <Chip size="sm" color="warning" variant="flat" className="text-[10px]" startContent={<Icon icon="solar:hourglass-bold" className="text-xs" />}>
-                                                                                                        รออนุมัติ
+                                                                                                        {t("รออนุมัติ", "Pending")}
                                                                                                     </Chip>
                                                                                                 )}
                                                                                             </div>
@@ -3703,7 +3842,7 @@ export default function ScoreModal({
                                                                             </div>
                                                                             <div className="text-center">
                                                                                 <span className="text-2xl font-bold text-slate-700">{selectedSubItem?.max_score}</span>
-                                                                                <p className="text-xs text-slate-500">คะแนนเต็ม</p>
+                                                                                <p className="text-xs text-slate-500">{t("คะแนนเต็ม", "Max score")}</p>
                                                                             </div>
                                                                         </div>
                                                                     )}
@@ -3713,10 +3852,10 @@ export default function ScoreModal({
                                                                 <div className="space-y-3">
                                                                     <label className="text-slate-600 font-medium text-sm mb-2 flex items-center gap-2">
                                                                         {/* <Icon icon="solar:document-text-bold" className="text-slate-400" /> */}
-                                                                        เหตุผลในการแก้ไข *
+                                                                        {t("เหตุผลในการแก้ไข *", "Reason for edit *")}
                                                                     </label>
                                                                     <Select
-                                                                        placeholder="เลือกเหตุผลในการแก้ไข"
+                                                                        placeholder={t("เลือกเหตุผลในการแก้ไข", "Select a reason")}
                                                                         selectedKeys={editReasonType ? new Set([editReasonType]) : new Set()}
                                                                         onSelectionChange={(keys) => {
                                                                             const selected = Array.from(keys)[0] as string;
@@ -3731,8 +3870,8 @@ export default function ScoreModal({
                                                                         }}
                                                                     >
                                                                         {PRESET_EDIT_REASONS.map((reason) => (
-                                                                            <SelectItem key={reason.key} textValue={reason.label}>
-                                                                                {reason.label}
+                                                                            <SelectItem key={reason.key} textValue={getPresetEditReasonLabel(reason)}>
+                                                                                {getPresetEditReasonLabel(reason)}
                                                                             </SelectItem>
                                                                         ))}
                                                                     </Select>
@@ -3740,7 +3879,7 @@ export default function ScoreModal({
 
                                                                     {editReasonType === "other" && (
                                                                         <Textarea
-                                                                            placeholder="กรุณาระบุเหตุผลในการขอแก้ไขคะแนน..."
+                                                                            placeholder={t("กรุณาระบุเหตุผลในการขอแก้ไขคะแนน...", "Please describe the reason for this score edit request...")}
                                                                             value={editReasonCustom}
                                                                             onValueChange={setEditReasonCustom}
                                                                             variant="bordered"
@@ -3757,7 +3896,7 @@ export default function ScoreModal({
                                                                 <div className="space-y-3">
                                                                     <label className="text-slate-600 font-medium text-sm mb-2 flex items-center gap-2">
                                                                         {/* <Icon icon="solar:camera-bold" className="text-slate-400" /> */}
-                                                                        แนบรูปภาพประกอบ (ไม่บังคับ, สูงสุด 3 รูป)
+                                                                        {t("แนบรูปภาพประกอบ (ไม่บังคับ, สูงสุด 3 รูป)", "Attach images (optional, up to 3)")}
                                                                     </label>
 
                                                                     {/* Image Previews */}
@@ -3767,7 +3906,7 @@ export default function ScoreModal({
                                                                                 <div key={index} className="relative group">
                                                                                     <img
                                                                                         src={preview}
-                                                                                        alt={`Preview ${index + 1}`}
+                                                                                        alt={isEnglish ? `Image preview ${index + 1}` : `Preview ${index + 1}`}
                                                                                         className="w-20 h-20 object-cover rounded-lg border border-slate-200"
                                                                                     />
                                                                                     <button
@@ -3798,7 +3937,7 @@ export default function ScoreModal({
                                                                                 onPress={() => imageInputRef.current?.click()}
                                                                                 startContent={<Icon icon="solar:upload-bold" />}
                                                                             >
-                                                                                เพิ่มรูปภาพ ({editImages.length}/3)
+                                                                                {t("เพิ่มรูปภาพ", "Add image")} ({editImages.length}/3)
                                                                             </Button>
                                                                         </div>
                                                                     )}
@@ -3812,11 +3951,11 @@ export default function ScoreModal({
                                                 <div className="space-y-4">
                                                     <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex justify-between w-full">
                                                         <div className="">
-                                                            <span className="text-sm text-slate-600">คะแนนปัจจุบัน</span>
+                                                            <span className="text-sm text-slate-600">{t("คะแนนปัจจุบัน", "Current score")}</span>
                                                             {currentScore?.graded_by && (
                                                                 <p className="text-xs text-slate-500 mt-2">
-                                                                    ให้คะแนนโดย: {currentScore.graded_by.display_name}
-                                                                    {currentScore.graded_at && ` เมื่อ ${new Date(currentScore.graded_at).toLocaleDateString("th-TH")}`}
+                                                                    {t("ให้คะแนนโดย", "Graded by")}: {currentScore.graded_by.display_name}
+                                                                    {currentScore.graded_at && ` ${t("เมื่อ", "on")} ${formatLocalizedDate(currentScore.graded_at)}`}
                                                                 </p>
                                                             )}
                                                         </div>
@@ -3831,7 +3970,7 @@ export default function ScoreModal({
 
 
                                                     <div>
-                                                        <label className="text-slate-600 font-medium text-sm mb-2 block">คะแนนใหม่ *</label>
+                                                        <label className="text-slate-600 font-medium text-sm mb-2 block">{t("คะแนนใหม่ *", "New score *")}</label>
 
 
                                                         <div className="bg-slate-50 p-4 rounded-xl">
@@ -3875,7 +4014,7 @@ export default function ScoreModal({
                                                                         <Icon icon="solar:medal-star-bold" className="text-xl text-amber-600" />
                                                                     </div>
                                                                     <div className="flex-1 min-w-0">
-                                                                        <p className="text-sm font-medium text-slate-700">คะแนนรวม</p>
+                                                                        <p className="text-sm font-medium text-slate-700">{t("คะแนนรวม", "Total score")}</p>
                                                                     </div>
                                                                     <div className="flex items-center gap-2">
                                                                         <Input
@@ -3904,10 +4043,10 @@ export default function ScoreModal({
                                                     <div className="space-y-3">
                                                         <label className="text-slate-600 font-medium text-sm mb-2 flex items-center gap-2">
                                                             <Icon icon="solar:document-text-bold" className="text-slate-400" />
-                                                            เหตุผลในการแก้ไข *
+                                                            {t("เหตุผลในการแก้ไข *", "Reason for edit *")}
                                                         </label>
                                                         <Select
-                                                            placeholder="เลือกเหตุผลในการแก้ไข"
+                                                            placeholder={t("เลือกเหตุผลในการแก้ไข", "Select a reason")}
                                                             selectedKeys={editReasonType ? new Set([editReasonType]) : new Set()}
                                                             onSelectionChange={(keys) => {
                                                                 const selected = Array.from(keys)[0] as string;
@@ -3922,8 +4061,8 @@ export default function ScoreModal({
                                                             }}
                                                         >
                                                             {PRESET_EDIT_REASONS.map((reason) => (
-                                                                <SelectItem key={reason.key} textValue={reason.label}>
-                                                                    {reason.label}
+                                                                <SelectItem key={reason.key} textValue={getPresetEditReasonLabel(reason)}>
+                                                                    {getPresetEditReasonLabel(reason)}
                                                                 </SelectItem>
                                                             ))}
                                                         </Select>
@@ -3931,7 +4070,7 @@ export default function ScoreModal({
 
                                                         {editReasonType === "other" && (
                                                             <Textarea
-                                                                placeholder="กรุณาระบุเหตุผลในการขอแก้ไขคะแนน..."
+                                                                placeholder={t("กรุณาระบุเหตุผลในการขอแก้ไขคะแนน...", "Please describe the reason for this score edit request...")}
                                                                 value={editReasonCustom}
                                                                 onValueChange={setEditReasonCustom}
                                                                 variant="bordered"
@@ -3943,7 +4082,7 @@ export default function ScoreModal({
                                                             />
                                                         )}
                                                         <p className="text-xs text-slate-500 mt-1">
-                                                            * เหตุผลในการแก้ไขจะถูกบันทึกไว้เพื่อการตรวจสอบ
+                                                            {t("* เหตุผลในการแก้ไขจะถูกบันทึกไว้เพื่อการตรวจสอบ", "* The edit reason will be stored for review.")}
                                                         </p>
                                                     </div>
 
@@ -3951,7 +4090,7 @@ export default function ScoreModal({
                                                     <div className="space-y-3">
                                                         <label className="text-slate-600 font-medium text-sm mb-2 flex items-center gap-2">
                                                             <Icon icon="solar:camera-bold" className="text-slate-400" />
-                                                            แนบรูปภาพประกอบ (ไม่บังคับ, สูงสุด 3 รูป)
+                                                            {t("แนบรูปภาพประกอบ (ไม่บังคับ, สูงสุด 3 รูป)", "Attach images (optional, up to 3)")}
                                                         </label>
 
                                                         {/* Image Previews */}
@@ -3961,7 +4100,7 @@ export default function ScoreModal({
                                                                     <div key={index} className="relative group">
                                                                         <img
                                                                             src={preview}
-                                                                            alt={`Preview ${index + 1}`}
+                                                                            alt={isEnglish ? `Image preview ${index + 1}` : `Preview ${index + 1}`}
                                                                             className="w-20 h-20 object-cover rounded-lg border border-slate-200"
                                                                         />
                                                                         <button
@@ -3992,7 +4131,7 @@ export default function ScoreModal({
                                                                     onPress={() => imageInputRef.current?.click()}
                                                                     startContent={<Icon icon="solar:upload-bold" />}
                                                                 >
-                                                                    เพิ่มรูปภาพ ({editImages.length}/3)
+                                                                    {t("เพิ่มรูปภาพ", "Add image")} ({editImages.length}/3)
                                                                 </Button>
                                                             </div>
                                                         )}
@@ -4011,7 +4150,7 @@ export default function ScoreModal({
                     <div className="w-full space-y-3">
                         {activeTab === "edit" && editConfirmationLines.length > 0 && (
                             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                                <p className="text-xs font-semibold text-amber-800 mb-2">สรุปรายการที่จะส่งแก้ไข</p>
+                                <p className="text-xs font-semibold text-amber-800 mb-2">{t("สรุปรายการที่จะส่งแก้ไข", "Summary of edits to submit")}</p>
                                 <div className="space-y-1">
                                     {editConfirmationLines.map((line, index) => (
                                         <p key={`${line}-${index}`} className="text-xs text-amber-900">{line}</p>
@@ -4022,7 +4161,7 @@ export default function ScoreModal({
 
                         <div className="flex items-center justify-end w-full">
                             <Button variant="light" onPress={onClose}>
-                                ปิด
+                                {t("ปิด", "Close")}
                             </Button>
                             {activeTab === "grade" ? (
                                 <Button
@@ -4033,7 +4172,7 @@ export default function ScoreModal({
                                     className="bg-blue-500"
                                     startContent={!isSubmitting && <Icon icon="solar:check-circle-bold" />}
                                 >
-                                    บันทึกคะแนน
+                                    {t("บันทึกคะแนน", "Save score")}
                                 </Button>
                             ) : (
                                 <Button
@@ -4043,7 +4182,7 @@ export default function ScoreModal({
                                     isLoading={isSubmitting}
                                     startContent={!isSubmitting && <Icon icon="solar:pen-2-bold" />}
                                 >
-                                    ส่งคำขอแก้ไข
+                                    {t("ส่งคำขอแก้ไข", "Submit edit request")}
                                 </Button>
                             )}
                         </div>

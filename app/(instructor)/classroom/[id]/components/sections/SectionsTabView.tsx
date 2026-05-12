@@ -18,6 +18,7 @@ import {
     TableCell,
 } from "@heroui/table";
 import { Icon } from "@iconify/react";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import type { Course, SectionStudent, RemovedSectionStudent } from "@/services/course.service";
 import { TeamsGridSkeleton } from "../Skeletons";
 import type {
@@ -74,6 +75,14 @@ interface SectionsTabViewProps {
     findStudentTeam: (studentId: number, type: TeamType, weekNumber?: number) => string | null;
 }
 
+function formatSectionDate(dateValue: string, isEnglish: boolean) {
+    return new Date(dateValue).toLocaleDateString(isEnglish ? "en-US" : "th-TH", {
+        day: "2-digit",
+        month: "short",
+        year: isEnglish ? "numeric" : "2-digit",
+    });
+}
+
 // ============================================
 // Sub-components (Memoized)
 // ============================================
@@ -105,6 +114,9 @@ const SectionHeader = React.memo(function SectionHeader({
     onEdit,
     onRemove,
 }: SectionHeaderProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
+
     return (
         <div
             className={`flex items-center justify-between p-4 cursor-pointer transition-all ${isExpanded
@@ -124,14 +136,14 @@ const SectionHeader = React.memo(function SectionHeader({
                             className={isExpanded ? "text-white/70" : "text-default-400"}
                         />
                         <span className={`text-sm ${isExpanded ? "text-white/80" : "text-default-500"}`}>
-                            {studentCount} นักศึกษา
+                            {studentCount} {isEnglish ? "students" : "นักศึกษา"}
                         </span>
                     </div>
                 </div>
             </div>
             <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                 {canManageSectionStudents && (
-                    <Tooltip content="เพิ่มนักศึกษา">
+                    <Tooltip content={isEnglish ? "Add student" : "เพิ่มนักศึกษา"}>
                         <Button
                             isIconOnly
                             size="sm"
@@ -145,7 +157,7 @@ const SectionHeader = React.memo(function SectionHeader({
                     </Tooltip>
                 )}
                 {canUpdateSections && (
-                    <Tooltip content="แก้ไขกลุ่มเรียน">
+                    <Tooltip content={isEnglish ? "Edit section" : "แก้ไขกลุ่มเรียน"}>
                         <Button
                             isIconOnly
                             size="sm"
@@ -159,7 +171,7 @@ const SectionHeader = React.memo(function SectionHeader({
                     </Tooltip>
                 )}
                 {canDeleteSections && (
-                    <Tooltip content="ลบกลุ่มเรียน" color="danger">
+                    <Tooltip content={isEnglish ? "Delete section" : "ลบกลุ่มเรียน"} color="danger">
                         <Button
                             isIconOnly
                             size="sm"
@@ -206,6 +218,8 @@ const TeamCard = React.memo(function TeamCard({
     canUpdateTeams = false,
     canDeleteTeams = false,
 }: TeamCardProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
     const isPermanent = type === "permanent";
     const gradientClass = isPermanent
         ? "from-purple-500 to-indigo-500"
@@ -232,12 +246,12 @@ const TeamCard = React.memo(function TeamCard({
                             <Tooltip content={team.name}>
                                 <p className="font-semibold text-white truncate cursor-default">{team.name}</p>
                             </Tooltip>
-                            <p className="text-xs text-white/70">{team.members.length} สมาชิก</p>
+                            <p className="text-xs text-white/70">{team.members.length} {isEnglish ? "members" : "สมาชิก"}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                         {canUpdateTeams && (
-                            <Tooltip content="แก้ไขกลุ่ม">
+                            <Tooltip content={isEnglish ? "Edit team" : "แก้ไขกลุ่ม"}>
                                 <Button
                                     isIconOnly
                                     size="sm"
@@ -250,7 +264,7 @@ const TeamCard = React.memo(function TeamCard({
                             </Tooltip>
                         )}
                         {canDeleteTeams && (
-                            <Tooltip content="ลบกลุ่ม" color="danger">
+                            <Tooltip content={isEnglish ? "Delete team" : "ลบกลุ่ม"} color="danger">
                                 <Button
                                     isIconOnly
                                     size="sm"
@@ -330,6 +344,9 @@ function SectionsTabViewComponent({
     getFilteredSectionStudents,
     findStudentTeam,
 }: SectionsTabViewProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
+
     return (
         <div className="space-y-6 h-auto">
             {/* Header */}
@@ -337,8 +354,8 @@ function SectionsTabViewComponent({
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <div>
-                            <h2 className="text-lg font-semibold text-foreground">จัดการกลุ่มเรียน</h2>
-                            <p className="text-sm text-default-500">จัดการนักศึกษาและกลุ่มทำงานในรายวิชา</p>
+                            <h2 className="text-lg font-semibold text-foreground">{isEnglish ? "Manage sections" : "จัดการกลุ่มเรียน"}</h2>
+                            <p className="text-sm text-default-500">{isEnglish ? "Manage students and project teams in this course." : "จัดการนักศึกษาและกลุ่มทำงานในรายวิชา"}</p>
                         </div>
                     </div>
                 </div>
@@ -362,8 +379,8 @@ function SectionsTabViewComponent({
                         title={
                             <div className="flex items-center gap-2">
                                 <Icon icon="solar:users-group-rounded-bold" className="text-lg" />
-                                <span className="hidden sm:inline">รายชื่อนักศึกษา</span>
-                                <span className="sm:hidden">นักศึกษา</span>
+                                <span className="hidden sm:inline">{isEnglish ? "Student roster" : "รายชื่อนักศึกษา"}</span>
+                                <span className="sm:hidden">{isEnglish ? "Students" : "นักศึกษา"}</span>
                                 {totalStudents > 0 && (
                                     <Chip size="sm" variant="flat" className="bg-blue-100 text-blue-700 h-5 min-w-5 px-1">
                                         {totalStudents}
@@ -377,7 +394,7 @@ function SectionsTabViewComponent({
                         title={
                             <div className="flex items-center gap-2">
                                 <Icon icon="solar:users-group-two-rounded-bold" className="text-lg" />
-                                <span>กลุ่มโปรเจกต์</span>
+                                <span>{isEnglish ? "Project teams" : "กลุ่มโปรเจกต์"}</span>
                                 {permanentTeams.length > 0 && (
                                     <Chip size="sm" variant="flat" className="bg-purple-100 text-purple-700 h-5 min-w-5 px-1">
                                         {permanentTeams.length}
@@ -391,8 +408,8 @@ function SectionsTabViewComponent({
                         title={
                             <div className="flex items-center gap-2">
                                 <Icon icon="solar:calendar-bold" className="text-lg" />
-                                <span className="hidden sm:inline">กลุ่มโปรเจกต์รายสัปดาห์</span>
-                                <span className="sm:hidden">รายสัปดาห์</span>
+                                <span className="hidden sm:inline">{isEnglish ? "Weekly teams" : "กลุ่มโปรเจกต์รายสัปดาห์"}</span>
+                                <span className="sm:hidden">{isEnglish ? "Weekly" : "รายสัปดาห์"}</span>
                                 {Object.keys(weeklyTeams).filter(k => weeklyTeams[parseInt(k)]?.length > 0).length > 0 && (
                                     <Chip size="sm" variant="flat" className="bg-emerald-100 text-emerald-700 h-5 min-w-5 px-1">
                                         W{selectedWeek}
@@ -517,6 +534,8 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
     getFilteredSectionStudents,
     findStudentTeam,
 }: StudentsSubTabProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
     const [showHistory, setShowHistory] = React.useState(false);
     const [historyFilter, setHistoryFilter] = React.useState<string>("");
 
@@ -537,7 +556,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                         <div className="flex-1 min-w-0">
                             <Input
-                                placeholder="ค้นหารหัสหรือชื่อนักศึกษา..."
+                                placeholder={isEnglish ? "Search by student ID or name..." : "ค้นหารหัสหรือชื่อนักศึกษา..."}
                                 value={sectionSearchQuery}
                                 onValueChange={onSearchQueryChange}
                                 startContent={<Icon icon="solar:magnifer-linear" className="text-blue-400 text-lg sm:text-xl" />}
@@ -560,7 +579,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                 isDisabled={removedStudents.length === 0}
                                 onPress={() => setShowHistory(v => !v)}
                             >
-                                รายการที่ลบ
+                                {isEnglish ? "Removed students" : "รายการที่ลบ"}
                             </Button>
 
                             {canCreateSections && (
@@ -571,7 +590,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                     isDisabled={!isCourseActive}
                                     className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25 w-full sm:w-auto"
                                 >
-                                    เพิ่มกลุ่มเรียน
+                                    {isEnglish ? "Add section" : "เพิ่มกลุ่มเรียน"}
                                 </Button>
                             )}
                         </div>
@@ -586,7 +605,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                         <div className="flex items-center justify-between w-full">
                             <div className="flex items-center gap-2">
                                 <Icon icon="solar:history-bold" className="text-amber-600 text-lg" />
-                                <span className="font-semibold text-amber-800 text-sm">ประวัติการลบนักศึกษา (กู้คืนได้ภายใน 10 วัน)</span>
+                                <span className="font-semibold text-amber-800 text-sm">{isEnglish ? "Removed student history (recoverable within 10 days)" : "ประวัติการลบนักศึกษา (กู้คืนได้ภายใน 10 วัน)"}</span>
                             </div>
                             <Button
                                 isIconOnly
@@ -599,7 +618,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                             </Button>
                         </div>
                         <Input
-                            placeholder="ค้นหาชื่อ, รหัส หรือกลุ่มเรียน..."
+                            placeholder={isEnglish ? "Search by name, ID, or section..." : "ค้นหาชื่อ, รหัส หรือกลุ่มเรียน..."}
                             value={historyFilter}
                             onValueChange={setHistoryFilter}
                             startContent={<Icon icon="solar:magnifer-linear" className="text-amber-400" />}
@@ -613,11 +632,11 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                     </CardHeader>
                     <CardBody className="p-0">
                         {filteredHistory.length === 0 ? (
-                            <div className="px-4 py-6 text-center text-sm text-amber-600/70">ไม่พบรายการที่ตรงกับคำค้นหา</div>
+                            <div className="px-4 py-6 text-center text-sm text-amber-600/70">{isEnglish ? "No removed students matched your search." : "ไม่พบรายการที่ตรงกับคำค้นหา"}</div>
                         ) : (
                             <div className="overflow-x-auto">
                                 <Table
-                                    aria-label="ประวัติการลบนักศึกษา"
+                                    aria-label={isEnglish ? "Removed student history" : "ประวัติการลบนักศึกษา"}
                                     removeWrapper
                                     classNames={{
                                         base: "min-w-140",
@@ -627,11 +646,11 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                     }}
                                 >
                                     <TableHeader>
-                                        <TableColumn>นักศึกษา</TableColumn>
-                                        <TableColumn width={90}>กลุ่ม</TableColumn>
-                                        <TableColumn width={120}>วันที่ลบ</TableColumn>
-                                        <TableColumn width={100}>เหลือเวลา</TableColumn>
-                                        <TableColumn width={80} align="center">กู้คืน</TableColumn>
+                                        <TableColumn>{isEnglish ? "Student" : "นักศึกษา"}</TableColumn>
+                                        <TableColumn width={90}>{isEnglish ? "Section" : "กลุ่ม"}</TableColumn>
+                                        <TableColumn width={120}>{isEnglish ? "Removed on" : "วันที่ลบ"}</TableColumn>
+                                        <TableColumn width={100}>{isEnglish ? "Time left" : "เหลือเวลา"}</TableColumn>
+                                        <TableColumn width={80} align="center">{isEnglish ? "Restore" : "กู้คืน"}</TableColumn>
                                     </TableHeader>
                                     <TableBody>
                                         {filteredHistory.map((removed) => (
@@ -653,12 +672,12 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                                 </TableCell>
                                                 <TableCell>
                                                     <Chip size="sm" variant="flat" className="bg-blue-100 text-blue-700">
-                                                        กลุ่ม {removed.section_no}
+                                                        {isEnglish ? `Section ${removed.section_no}` : `กลุ่ม ${removed.section_no}`}
                                                     </Chip>
                                                 </TableCell>
                                                 <TableCell>
                                                     <span className="text-xs text-default-500">
-                                                        {new Date(removed.removed_at).toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "2-digit" })}
+                                                        {formatSectionDate(removed.removed_at, isEnglish)}
                                                     </span>
                                                 </TableCell>
                                                 <TableCell>
@@ -667,12 +686,12 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                                         variant="flat"
                                                         className={removed.remaining_days <= 2 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}
                                                     >
-                                                        {removed.remaining_days} วัน
+                                                        {removed.remaining_days} {isEnglish ? "days" : "วัน"}
                                                     </Chip>
                                                 </TableCell>
                                                 <TableCell>
                                                     {canManageSectionStudents && (
-                                                        <Tooltip content="กู้คืนนักศึกษา" color="warning">
+                                                        <Tooltip content={isEnglish ? "Restore student" : "กู้คืนนักศึกษา"} color="warning">
                                                             <Button
                                                                 isIconOnly
                                                                 size="sm"
@@ -721,7 +740,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                     {getFilteredSectionStudents(section.id).length > 0 ? (
                                         <div className="overflow-x-auto max-w-full">
                                             <Table
-                                                aria-label={`นักศึกษากลุ่ม ${section.section_no}`}
+                                                aria-label={isEnglish ? `Students in section ${section.section_no}` : `นักศึกษากลุ่ม ${section.section_no}`}
                                                 removeWrapper
                                                 classNames={{
                                                     base: "min-w-[640px]",
@@ -731,11 +750,11 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                                 }}
                                             >
                                                 <TableHeader>
-                                                    <TableColumn width={50}>ลำดับ</TableColumn>
-                                                    <TableColumn width={100}>รหัส</TableColumn>
-                                                    <TableColumn>ชื่อ-นามสกุล</TableColumn>
-                                                    <TableColumn width={120}>กลุ่มโปรเจกต์</TableColumn>
-                                                    <TableColumn width={50} align="center">จัดการ</TableColumn>
+                                                    <TableColumn width={50}>{isEnglish ? "#" : "ลำดับ"}</TableColumn>
+                                                    <TableColumn width={100}>{isEnglish ? "ID" : "รหัส"}</TableColumn>
+                                                    <TableColumn>{isEnglish ? "Full name" : "ชื่อ-นามสกุล"}</TableColumn>
+                                                    <TableColumn width={120}>{isEnglish ? "Project team" : "กลุ่มโปรเจกต์"}</TableColumn>
+                                                    <TableColumn width={50} align="center">{isEnglish ? "Actions" : "จัดการ"}</TableColumn>
                                                 </TableHeader>
                                                 <TableBody>
                                                     {getFilteredSectionStudents(section.id).map((student, idx) => (
@@ -769,7 +788,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                                             </TableCell>
                                                             <TableCell>
                                                                 {canManageSectionStudents && (
-                                                                    <Tooltip content="นำออกจากกลุ่ม" color="danger">
+                                                                    <Tooltip content={isEnglish ? "Remove from section" : "นำออกจากกลุ่ม"} color="danger">
                                                                         <Button
                                                                             isIconOnly
                                                                             size="sm"
@@ -792,16 +811,16 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-content3">
                                                 <Icon icon="solar:magnifer-linear" className="text-3xl text-default-400" />
                                             </div>
-                                            <p className="font-medium text-default-500">ไม่พบนักศึกษาที่ค้นหา</p>
-                                            <p className="mt-1 text-sm text-default-400">ลองเปลี่ยนคำค้นหาใหม่</p>
+                                            <p className="font-medium text-default-500">{isEnglish ? "No students matched your search." : "ไม่พบนักศึกษาที่ค้นหา"}</p>
+                                            <p className="mt-1 text-sm text-default-400">{isEnglish ? "Try another search term." : "ลองเปลี่ยนคำค้นหาใหม่"}</p>
                                         </div>
                                     ) : (
                                         <div className="bg-content2/60 py-12 text-center">
                                             <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-amber-100 flex items-center justify-center">
                                                 <Icon icon="solar:users-group-rounded-bold-duotone" className="text-4xl text-amber-500" />
                                             </div>
-                                            <p className="mb-1 font-medium text-default-600">ยังไม่มีนักศึกษาในกลุ่มนี้</p>
-                                            <p className="mb-4 text-sm text-default-400">เพิ่มนักศึกษาเพื่อเริ่มต้นจัดการกลุ่มเรียน</p>
+                                            <p className="mb-1 font-medium text-default-600">{isEnglish ? "No students in this section yet" : "ยังไม่มีนักศึกษาในกลุ่มนี้"}</p>
+                                            <p className="mb-4 text-sm text-default-400">{isEnglish ? "Add students to start managing this section." : "เพิ่มนักศึกษาเพื่อเริ่มต้นจัดการกลุ่มเรียน"}</p>
                                             {canManageSectionStudents && (
                                                 <Button
                                                     color="primary"
@@ -810,7 +829,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                                     onPress={() => onOpenAddStudentModal(section.id)}
                                                     className="text-amber-700"
                                                 >
-                                                    เพิ่มนักศึกษา
+                                                    {isEnglish ? "Add student" : "เพิ่มนักศึกษา"}
                                                 </Button>
                                             )}
                                         </div>
@@ -826,9 +845,9 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                         <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-linear-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
                             <Icon icon="solar:notebook-bold-duotone" className="text-5xl text-blue-500" />
                         </div>
-                        <h3 className="mb-2 text-lg font-semibold text-default-700">ยังไม่มีกลุ่มเรียน</h3>
+                        <h3 className="mb-2 text-lg font-semibold text-default-700">{isEnglish ? "No sections yet" : "ยังไม่มีกลุ่มเรียน"}</h3>
                         <p className="mx-auto mb-6 max-w-md text-default-500">
-                            สร้างกลุ่มเรียนเพื่อจัดการนักศึกษาในรายวิชานี้
+                            {isEnglish ? "Create sections to organize students in this course." : "สร้างกลุ่มเรียนเพื่อจัดการนักศึกษาในรายวิชานี้"}
                         </p>
                         {canCreateSections && (
                             <Button
@@ -839,7 +858,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                 isDisabled={!isCourseActive}
                                 className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25"
                             >
-                                เพิ่มกลุ่มเรียนแรก
+                                {isEnglish ? "Add the first section" : "เพิ่มกลุ่มเรียนแรก"}
                             </Button>
                         )}
                     </CardBody>
@@ -876,6 +895,8 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
     onOpenEditTeamModal,
     onOpenDeleteTeamModal,
 }: PermanentTeamsSubTabProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
     const [searchQuery, setSearchQuery] = React.useState("");
 
     // Filter teams by search query
@@ -903,16 +924,18 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                                 <Icon icon="solar:info-circle-bold" className="text-xl text-purple-500" />
                             </div>
                             <div>
-                                <p className="font-medium text-default-700">กลุ่มโปรเจกต์</p>
+                                <p className="font-medium text-default-700">{isEnglish ? "Project teams" : "กลุ่มโปรเจกต์"}</p>
                                 <p className="text-sm text-default-500">
-                                    {searchQuery ? `พบ ${filteredTeams.length} จาก ${permanentTeams.length} กลุ่ม` : `${permanentTeams.length} กลุ่ม · ที่ใช้ตลอดทั้งเทอม`}
+                                    {searchQuery
+                                        ? (isEnglish ? `Found ${filteredTeams.length} of ${permanentTeams.length} teams` : `พบ ${filteredTeams.length} จาก ${permanentTeams.length} กลุ่ม`)
+                                        : (isEnglish ? `${permanentTeams.length} teams used throughout the semester` : `${permanentTeams.length} กลุ่ม · ที่ใช้ตลอดทั้งเทอม`)}
                                 </p>
                             </div>
                         </div>
                         {/* Search + Buttons */}
                         <div className="flex items-center gap-2 flex-1 md:flex-initial md:w-auto justify-end">
                             <Input
-                                placeholder="ค้นหากลุ่ม..."
+                                placeholder={isEnglish ? "Search teams..." : "ค้นหากลุ่ม..."}
                                 value={searchQuery}
                                 onValueChange={setSearchQuery}
                                 startContent={<Icon icon="solar:magnifer-linear" className="text-purple-400 text-lg" />}
@@ -924,7 +947,7 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                                     inputWrapper: "bg-content1 border-purple-200 hover:border-purple-300 focus-within:!border-purple-400",
                                 }}
                             />
-                            <Tooltip content="สุ่มกลุ่มอัตโนมัติ">
+                            <Tooltip content={isEnglish ? "Auto-generate random teams" : "สุ่มกลุ่มอัตโนมัติ"}>
                                 <Button
                                     color="secondary"
                                     variant="flat"
@@ -946,9 +969,9 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                                 size="md"
                                 isDisabled={isTeamsLoading || !isCourseActive || !canCreateTeams}
                             >
-                                สุ่มกลุ่ม
+                                {isEnglish ? "Randomize" : "สุ่มกลุ่ม"}
                             </Button>
-                            <Tooltip content="สร้างกลุ่มใหม่">
+                            <Tooltip content={isEnglish ? "Create a new team" : "สร้างกลุ่มใหม่"}>
                                 <Button
                                     color="primary"
                                     isIconOnly
@@ -968,7 +991,7 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                                 size="md"
                                 isDisabled={isTeamsLoading || !isCourseActive || !canCreateTeams}
                             >
-                                สร้างกลุ่ม
+                                {isEnglish ? "Create team" : "สร้างกลุ่ม"}
                             </Button>
                         </div>
                     </div>
@@ -999,8 +1022,8 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-purple-100 flex items-center justify-center">
                             <Icon icon="solar:magnifer-linear" className="text-3xl text-purple-400" />
                         </div>
-                        <p className="font-medium text-default-500">ไม่พบกลุ่มที่ค้นหา</p>
-                        <p className="mt-1 text-sm text-default-400">ลองเปลี่ยนคำค้นหาใหม่</p>
+                        <p className="font-medium text-default-500">{isEnglish ? "No teams matched your search." : "ไม่พบกลุ่มที่ค้นหา"}</p>
+                        <p className="mt-1 text-sm text-default-400">{isEnglish ? "Try another search term." : "ลองเปลี่ยนคำค้นหาใหม่"}</p>
                     </CardBody>
                 </Card>
             ) : (
@@ -1009,9 +1032,9 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                         <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-linear-to-br from-purple-100 to-indigo-100 flex items-center justify-center">
                             <Icon icon="solar:users-group-two-rounded-bold-duotone" className="text-5xl text-purple-500" />
                         </div>
-                        <h3 className="mb-2 text-lg font-semibold text-default-700">ยังไม่มีกลุ่มโปรเจกต์</h3>
+                        <h3 className="mb-2 text-lg font-semibold text-default-700">{isEnglish ? "No project teams yet" : "ยังไม่มีกลุ่มโปรเจกต์"}</h3>
                         <p className="mx-auto mb-6 max-w-md text-default-500">
-                            สร้างกลุ่มสำหรับโปรเจกต์หรืองานกลุ่มระยะยาวที่ต้องทำงานร่วมกันตลอดเทอม
+                            {isEnglish ? "Create teams for long-running project work that lasts throughout the semester." : "สร้างกลุ่มสำหรับโปรเจกต์หรืองานกลุ่มระยะยาวที่ต้องทำงานร่วมกันตลอดเทอม"}
                         </p>
                         <div className="flex items-center justify-center gap-3">
                             {canCreateTeams && (
@@ -1021,7 +1044,7 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                                     onPress={() => onOpenCreateTeamModal("permanent", "random")}
                                     className="bg-purple-100 text-purple-700"
                                 >
-                                    สุ่มกลุ่มอัตโนมัติ
+                                    {isEnglish ? "Auto-generate teams" : "สุ่มกลุ่มอัตโนมัติ"}
                                 </Button>
                             )}
                             {canCreateTeams && (
@@ -1031,7 +1054,7 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                                     onPress={() => onOpenCreateTeamModal("permanent", "manual")}
                                     className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
                                 >
-                                    สร้างกลุ่มเอง
+                                    {isEnglish ? "Create manually" : "สร้างกลุ่มเอง"}
                                 </Button>
                             )}
                         </div>
@@ -1079,6 +1102,8 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
     onCopyTeamsFromWeek,
     onOpenBulkDeleteModal,
 }: WeeklyTeamsSubTabProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
     const [searchQuery, setSearchQuery] = React.useState("");
 
     const hasOtherWeeksWithTeams = Object.keys(weeklyTeams).some(
@@ -1111,16 +1136,18 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                 <Icon icon="solar:calendar-bold" className="text-xl text-emerald-500" />
                             </div>
                             <div>
-                                <p className="font-medium text-default-700">สัปดาห์ที่ {selectedWeek}</p>
+                                <p className="font-medium text-default-700">{isEnglish ? `Week ${selectedWeek}` : `สัปดาห์ที่ ${selectedWeek}`}</p>
                                 <p className="text-sm text-default-500">
-                                    {searchQuery ? `พบ ${filteredTeams.length} จาก ${currentWeekTeams.length} กลุ่ม` : `${currentWeekTeams.length} กลุ่ม`}
+                                    {searchQuery
+                                        ? (isEnglish ? `Found ${filteredTeams.length} of ${currentWeekTeams.length} teams` : `พบ ${filteredTeams.length} จาก ${currentWeekTeams.length} กลุ่ม`)
+                                        : (isEnglish ? `${currentWeekTeams.length} teams` : `${currentWeekTeams.length} กลุ่ม`)}
                                 </p>
                             </div>
                         </div>
                         {/* Search + Buttons */}
                         <div className="flex items-center gap-2 flex-1 md:flex-initial md:w-auto justify-end">
                             <Input
-                                placeholder="ค้นหากลุ่ม..."
+                                placeholder={isEnglish ? "Search teams..." : "ค้นหากลุ่ม..."}
                                 value={searchQuery}
                                 onValueChange={setSearchQuery}
                                 startContent={<Icon icon="solar:magnifer-linear" className="text-emerald-400 text-lg" />}
@@ -1146,7 +1173,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                         </Button>
                                     </DropdownTrigger>
                                     <DropdownMenu
-                                        aria-label="เลือกสัปดาห์ที่จะคัดลอก"
+                                        aria-label={isEnglish ? "Select a week to copy" : "เลือกสัปดาห์ที่จะคัดลอก"}
                                         onAction={(key) => onCopyTeamsFromWeek(parseInt(key as string))}
                                     >
                                         {Array.from({ length: totalWeeks }, (_, i) => i + 1)
@@ -1155,9 +1182,9 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                                 <DropdownItem
                                                     key={week.toString()}
                                                     startContent={<Icon icon="solar:calendar-linear" className="text-emerald-500" />}
-                                                    description={`${weeklyTeams[week]?.length || 0} กลุ่ม`}
+                                                    description={isEnglish ? `${weeklyTeams[week]?.length || 0} teams` : `${weeklyTeams[week]?.length || 0} กลุ่ม`}
                                                 >
-                                                    สัปดาห์ที่ {week}
+                                                    {isEnglish ? `Week ${week}` : `สัปดาห์ที่ ${week}`}
                                                 </DropdownItem>
                                             ))
                                         }
@@ -1173,11 +1200,11 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                             startContent={<Icon icon="solar:copy-bold" />}
                                             className="bg-content3 text-default-600 shrink-0 hidden md:flex"
                                         >
-                                            คัดลอก
+                                            {isEnglish ? "Copy" : "คัดลอก"}
                                         </Button>
                                     </DropdownTrigger>
                                     <DropdownMenu
-                                        aria-label="เลือกสัปดาห์ที่จะคัดลอก"
+                                        aria-label={isEnglish ? "Select a week to copy" : "เลือกสัปดาห์ที่จะคัดลอก"}
                                         onAction={(key) => onCopyTeamsFromWeek(parseInt(key as string))}
                                     >
                                         {Array.from({ length: totalWeeks }, (_, i) => i + 1)
@@ -1186,9 +1213,9 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                                 <DropdownItem
                                                     key={week.toString()}
                                                     startContent={<Icon icon="solar:calendar-linear" className="text-emerald-500" />}
-                                                    description={`${weeklyTeams[week]?.length || 0} กลุ่ม`}
+                                                    description={isEnglish ? `${weeklyTeams[week]?.length || 0} teams` : `${weeklyTeams[week]?.length || 0} กลุ่ม`}
                                                 >
-                                                    สัปดาห์ที่ {week}
+                                                    {isEnglish ? `Week ${week}` : `สัปดาห์ที่ ${week}`}
                                                 </DropdownItem>
                                             ))
                                         }
@@ -1198,7 +1225,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                             {/* Delete all */}
                             {weeklyTeams[selectedWeek]?.length > 0 && canDeleteTeams && (
                                 <>
-                                    <Tooltip content="ลบกลุ่มทั้งหมด" color="danger">
+                                    <Tooltip content={isEnglish ? "Delete all teams" : "ลบกลุ่มทั้งหมด"} color="danger">
                                         <Button
                                             variant="flat"
                                             size="md"
@@ -1213,7 +1240,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                 </>
                             )}
                             {/* Random */}
-                            <Tooltip content="สุ่มกลุ่มอัตโนมัติ">
+                            <Tooltip content={isEnglish ? "Auto-generate random teams" : "สุ่มกลุ่มอัตโนมัติ"}>
                                 <Button
                                     variant="flat"
                                     size="md"
@@ -1233,10 +1260,10 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                 onPress={() => onOpenCreateTeamModal("weekly", "random")}
                                 className="bg-emerald-100 text-emerald-700 shrink-0 hidden md:flex"
                             >
-                                สุ่มกลุ่ม
+                                {isEnglish ? "Randomize" : "สุ่มกลุ่ม"}
                             </Button>
                             {/* Create */}
-                            <Tooltip content="สร้างกลุ่มเอง">
+                            <Tooltip content={isEnglish ? "Create teams manually" : "สร้างกลุ่มเอง"}>
                                 <Button
                                     color="primary"
                                     size="md"
@@ -1256,7 +1283,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                 onPress={() => onOpenCreateTeamModal("weekly", "manual")}
                                 className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 shrink-0 hidden md:flex"
                             >
-                                สร้างกลุ่ม
+                                {isEnglish ? "Create team" : "สร้างกลุ่ม"}
                             </Button>
                         </div>
                     </div>
@@ -1313,8 +1340,8 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-100 flex items-center justify-center">
                             <Icon icon="solar:magnifer-linear" className="text-3xl text-emerald-400" />
                         </div>
-                        <p className="font-medium text-default-500">ไม่พบกลุ่มที่ค้นหา</p>
-                        <p className="mt-1 text-sm text-default-400">ลองเปลี่ยนคำค้นหาใหม่</p>
+                        <p className="font-medium text-default-500">{isEnglish ? "No teams matched your search." : "ไม่พบกลุ่มที่ค้นหา"}</p>
+                        <p className="mt-1 text-sm text-default-400">{isEnglish ? "Try another search term." : "ลองเปลี่ยนคำค้นหาใหม่"}</p>
                     </CardBody>
                 </Card>
             ) : (
@@ -1323,9 +1350,9 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                         <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-linear-to-br from-emerald-100 to-teal-100 flex items-center justify-center">
                             <Icon icon="solar:calendar-bold-duotone" className="text-5xl text-emerald-500" />
                         </div>
-                        <h3 className="mb-2 text-lg font-semibold text-default-700">ยังไม่มีกลุ่มสำหรับสัปดาห์ที่ {selectedWeek}</h3>
+                        <h3 className="mb-2 text-lg font-semibold text-default-700">{isEnglish ? `No teams for week ${selectedWeek} yet` : `ยังไม่มีกลุ่มสำหรับสัปดาห์ที่ ${selectedWeek}`}</h3>
                         <p className="mx-auto mb-6 max-w-md text-default-500">
-                            สร้างกลุ่มใหม่หรือคัดลอกจากสัปดาห์ก่อนหน้าเพื่อเริ่มต้น
+                            {isEnglish ? "Create new teams or copy them from another week to get started." : "สร้างกลุ่มใหม่หรือคัดลอกจากสัปดาห์ก่อนหน้าเพื่อเริ่มต้น"}
                         </p>
                         <div className="flex flex-wrap items-center justify-center gap-3">
                             {hasOtherWeeksWithTeams && canCreateTeams && (
@@ -1337,11 +1364,11 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                             endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-sm" />}
                                             className="bg-content3 text-default-600"
                                         >
-                                            คัดลอกจากสัปดาห์อื่น
+                                            {isEnglish ? "Copy from another week" : "คัดลอกจากสัปดาห์อื่น"}
                                         </Button>
                                     </DropdownTrigger>
                                     <DropdownMenu
-                                        aria-label="เลือกสัปดาห์ที่จะคัดลอก"
+                                        aria-label={isEnglish ? "Select a week to copy" : "เลือกสัปดาห์ที่จะคัดลอก"}
                                         onAction={(key) => onCopyTeamsFromWeek(parseInt(key as string))}
                                     >
                                         {Array.from({ length: totalWeeks }, (_, i) => i + 1)
@@ -1350,9 +1377,9 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                                 <DropdownItem
                                                     key={week.toString()}
                                                     startContent={<Icon icon="solar:calendar-linear" className="text-emerald-500" />}
-                                                    description={`${weeklyTeams[week]?.length || 0} กลุ่ม`}
+                                                    description={isEnglish ? `${weeklyTeams[week]?.length || 0} teams` : `${weeklyTeams[week]?.length || 0} กลุ่ม`}
                                                 >
-                                                    สัปดาห์ที่ {week}
+                                                    {isEnglish ? `Week ${week}` : `สัปดาห์ที่ ${week}`}
                                                 </DropdownItem>
                                             ))
                                         }
@@ -1366,7 +1393,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                     onPress={() => onOpenCreateTeamModal("weekly", "random")}
                                     className="bg-emerald-100 text-emerald-700"
                                 >
-                                    สุ่มกลุ่มอัตโนมัติ
+                                    {isEnglish ? "Auto-generate teams" : "สุ่มกลุ่มอัตโนมัติ"}
                                 </Button>
                             )}
                             {canCreateTeams && (
@@ -1376,7 +1403,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                     onPress={() => onOpenCreateTeamModal("weekly", "manual")}
                                     className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
                                 >
-                                    สร้างกลุ่มเอง
+                                    {isEnglish ? "Create manually" : "สร้างกลุ่มเอง"}
                                 </Button>
                             )}
                         </div>

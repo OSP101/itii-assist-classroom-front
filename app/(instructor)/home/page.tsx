@@ -214,8 +214,8 @@ export default function HomePage() {
 
             // Show notification
             addToast({
-                title: "ข้อมูลอัปเดต",
-                description: "มีการเปลี่ยนแปลงข้อมูลรายวิชา",
+                title: t("courseDataUpdated"),
+                description: t("courseDataChanged"),
                 color: "primary",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -225,7 +225,7 @@ export default function HomePage() {
         return () => {
             unsubscribe();
         };
-    }, [onCourseUpdate, fetchCourses, fetchStats]);
+    }, [onCourseUpdate, fetchCourses, fetchStats, t]);
 
     // Client-side filtering - show only active courses
     const filteredCourses = useMemo(() => {
@@ -285,14 +285,49 @@ export default function HomePage() {
         }));
     }, [allCourses]);
 
+    const getSemesterLabel = (semester: number, short = false) => {
+        if (semester === 3) {
+            return t("summerSemester");
+        }
+
+        return t(short ? "semesterShortWithNumber" : "semesterWithNumber", { number: semester });
+    };
+
     const semesterOptions = [
-        { value: "1", label: "เทอม 1" },
-        { value: "2", label: "เทอม 2" },
-        { value: "3", label: "ฤดูร้อน" },
+        { value: "1", label: t("semesterOne") },
+        { value: "2", label: t("semesterTwo") },
+        { value: "3", label: t("summerSemester") },
     ];
 
     const getSemesterText = (semester: number) => {
-        return semester === 3 ? "ฤดูร้อน" : `เทอม ${semester}`;
+        return getSemesterLabel(semester);
+    };
+
+    const formatCourseTitle = (course?: Pick<Course, "code" | "name"> | null) => {
+        if (!course) {
+            return "";
+        }
+
+        return `${course.code} - ${course.name}`;
+    };
+
+    const formatAcademicYearSemester = (year?: number, semester?: number) => {
+        if (!year || !semester) {
+            return "";
+        }
+
+        return t("academicYearSemesterSummary", {
+            year,
+            semester: getSemesterLabel(semester),
+        });
+    };
+
+    const getLocalizedErrorMessage = (message: unknown, fallbackMessage: string) => {
+        if (typeof message === "string" && message.trim() && !/[\u0E00-\u0E7F]/.test(message)) {
+            return message;
+        }
+
+        return fallbackMessage;
     };
 
     const handleCourseClick = (courseId: string) => {
@@ -309,11 +344,11 @@ export default function HomePage() {
         if (file) {
             if (file.size > 2 * 1024 * 1024) {
                 addToast({
-                    title: "ไฟล์ใหญ่เกินไป",
-                    description: "กรุณาเลือกไฟล์ขนาดไม่เกิน 2MB",
+                    title: t("fileTooLarge"),
+                    description: t("courseImageHint"),
                     color: "warning",
                     timeout: 3000,
-                shouldShowTimeoutProgress: true,
+                    shouldShowTimeoutProgress: true,
                 });
                 return;
             }
@@ -348,8 +383,8 @@ export default function HomePage() {
     const handleCreate = async () => {
         if (!formData.code || !formData.name) {
             addToast({
-                title: "กรุณากรอกข้อมูล",
-                description: "กรุณากรอกรหัสวิชาและชื่อวิชา",
+                title: t("pleaseFillRequiredFields"),
+                description: t("courseCodeAndNameRequired"),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -372,11 +407,11 @@ export default function HomePage() {
 
             if (response.success) {
                 addToast({
-                    title: "สำเร็จ",
-                    description: "สร้างรายวิชาเรียบร้อยแล้ว",
+                    title: t("createCourseSuccess"),
+                    description: formatCourseTitle({ code: formData.code, name: formData.name }),
                     color: "success",
                     timeout: 3000,
-                shouldShowTimeoutProgress: true,
+                    shouldShowTimeoutProgress: true,
                 });
                 setIsCreateModalOpen(false);
                 resetForm();
@@ -388,19 +423,19 @@ export default function HomePage() {
                 // Handle API error response (e.g., duplicate course)
                 const errorMessage = typeof response.error === 'object' && response.error !== null
                     ? (response.error as { message?: string }).message
-                    : response.error || response.message || "ไม่สามารถสร้างรายวิชาได้";
+                    : response.error || response.message;
                 addToast({
-                    title: "ไม่สามารถสร้างรายวิชาได้",
-                    description: errorMessage,
+                    title: t("createCourseFailed"),
+                    description: getLocalizedErrorMessage(errorMessage, t("createCourseErrorDefault")),
                     color: "danger",
                     timeout: 3000,
-                shouldShowTimeoutProgress: true,
+                    shouldShowTimeoutProgress: true,
                 });
             }
         } catch (error: any) {
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error.message || "ไม่สามารถสร้างรายวิชาได้",
+                title: t("somethingWentWrong"),
+                description: getLocalizedErrorMessage(error?.message, t("createCourseErrorDefault")),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -434,8 +469,8 @@ export default function HomePage() {
         if (!selectedCourse) return;
         if (!formData.code || !formData.name) {
             addToast({
-                title: "กรุณากรอกข้อมูล",
-                description: "กรุณากรอกรหัสวิชาและชื่อวิชา",
+                title: t("pleaseFillRequiredFields"),
+                description: t("courseCodeAndNameRequired"),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -458,11 +493,11 @@ export default function HomePage() {
 
             if (response.success) {
                 addToast({
-                    title: "สำเร็จ",
-                    description: "แก้ไขรายวิชาเรียบร้อยแล้ว",
+                    title: t("updateCourseSuccess"),
+                    description: formatCourseTitle({ code: formData.code, name: formData.name }),
                     color: "success",
                     timeout: 3000,
-                shouldShowTimeoutProgress: true,
+                    shouldShowTimeoutProgress: true,
                 });
                 setIsEditModalOpen(false);
                 resetForm();
@@ -473,19 +508,19 @@ export default function HomePage() {
             } else {
                 const errorMessage = typeof response.error === 'object' && response.error !== null
                     ? (response.error as { message?: string }).message
-                    : response.error || response.message || "ไม่สามารถแก้ไขรายวิชาได้";
+                    : response.error || response.message;
                 addToast({
-                    title: "ไม่สามารถแก้ไขรายวิชาได้",
-                    description: errorMessage,
+                    title: t("updateCourseFailed"),
+                    description: getLocalizedErrorMessage(errorMessage, t("updateCourseErrorDefault")),
                     color: "danger",
                     timeout: 3000,
-                shouldShowTimeoutProgress: true,
+                    shouldShowTimeoutProgress: true,
                 });
             }
         } catch (error: any) {
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error.message || "ไม่สามารถแก้ไขรายวิชาได้",
+                title: t("somethingWentWrong"),
+                description: getLocalizedErrorMessage(error?.message, t("updateCourseErrorDefault")),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -528,11 +563,11 @@ export default function HomePage() {
             const response = await courseService.toggleStatus(courseToToggle.id);
             if (response.success) {
                 addToast({
-                    title: courseToToggle.is_active ? "ปิดใช้งานแล้ว" : "เปิดใช้งานแล้ว",
-                    description: `รายวิชา ${courseToToggle.code} ${courseToToggle.is_active ? "ปิด" : "เปิด"}ใช้งานเรียบร้อยแล้ว`,
+                    title: courseToToggle.is_active ? t("courseDisabledSuccess") : t("courseEnabledSuccess"),
+                    description: formatCourseTitle(courseToToggle),
                     color: "success",
                     timeout: 3000,
-                shouldShowTimeoutProgress: true,
+                    shouldShowTimeoutProgress: true,
                 });
                 setIsToggleStatusModalOpen(false);
                 setCourseToToggle(null);
@@ -543,19 +578,19 @@ export default function HomePage() {
             } else {
                 const errorMessage = typeof response.error === 'object' && response.error !== null
                     ? (response.error as { message?: string }).message
-                    : response.error || response.message || "ไม่สามารถเปลี่ยนสถานะได้";
+                    : response.error || response.message;
                 addToast({
-                    title: "ไม่สามารถเปลี่ยนสถานะได้",
-                    description: errorMessage,
+                    title: t("toggleCourseStatusFailed"),
+                    description: getLocalizedErrorMessage(errorMessage, t("toggleCourseStatusErrorDefault")),
                     color: "danger",
                     timeout: 3000,
-                shouldShowTimeoutProgress: true,
+                    shouldShowTimeoutProgress: true,
                 });
             }
         } catch (error: any) {
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error.message || "ไม่สามารถเปลี่ยนสถานะได้",
+                title: t("somethingWentWrong"),
+                description: getLocalizedErrorMessage(error?.message, t("toggleCourseStatusErrorDefault")),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -566,7 +601,7 @@ export default function HomePage() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="w-full space-y-6">
             {/* 2FA Reminder Banner */}
             {show2FABanner && !is2FAEnabled && (
                 <div className="bg-linear-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between gap-4">
@@ -670,7 +705,7 @@ export default function HomePage() {
 
 
             {/* Filters */}
-            <Card className="border border-default-200 shadow-sm">
+            <Card className="w-full border border-default-200 shadow-sm">
                 <CardBody className="p-4">
                     <div className="flex flex-col md:flex-row gap-4">
                         {/* Search */}
@@ -691,9 +726,9 @@ export default function HomePage() {
                             />
 
                             <div className="flex items-center overflow-hidden rounded-lg border border-default-200 bg-content1">
-                                <Tooltip content="แบบการ์ด">
+                                <Tooltip content={t("gridView")}>
                                     <Button
-                                        aria-label="แสดงแบบการ์ด"
+                                        aria-label={t("showGridView")}
                                         isIconOnly
                                         size="md"
                                         variant="light"
@@ -704,9 +739,9 @@ export default function HomePage() {
                                     </Button>
                                 </Tooltip>
                                 <div className="h-5 w-px bg-divider" />
-                                <Tooltip content="แบบรายการ">
+                                <Tooltip content={t("listView")}>
                                     <Button
-                                        aria-label="แสดงแบบรายการ"
+                                        aria-label={t("showListView")}
                                         isIconOnly
                                         size="md"
                                         variant="light"
@@ -723,8 +758,8 @@ export default function HomePage() {
                         <div className="flex flex-row gap-2 sm:gap-3">
                             
                             <Select
-                                aria-label="กรองตามปีการศึกษา"
-                                placeholder="ปีการศึกษา"
+                                aria-label={t("academicYear")}
+                                placeholder={t("academicYear")}
                                 selectedKeys={yearFilter ? [yearFilter] : []}
                                 onSelectionChange={(keys) => setYearFilter(Array.from(keys)[0] as string || "")}
                                 className="w-full sm:w-36"
@@ -737,8 +772,8 @@ export default function HomePage() {
                             </Select>
 
                             <Select
-                                aria-label="กรองตามภาคเรียน"
-                                placeholder="ภาคเรียน"
+                                aria-label={t("semesterLabel")}
+                                placeholder={t("semesterLabel")}
                                 selectedKeys={semesterFilter ? [semesterFilter] : []}
                                 onSelectionChange={(keys) => setSemesterFilter(Array.from(keys)[0] as string || "")}
                                 className="w-full sm:w-32"
@@ -758,7 +793,7 @@ export default function HomePage() {
                                     onPress={clearFilters}
                                     startContent={<Icon icon="solar:close-circle-linear" />}
                                 >
-                                    ล้าง
+                                    {t("clear")}
                                 </Button>
                             )}
                         </div>
@@ -770,34 +805,34 @@ export default function HomePage() {
             {isInitialCoursesLoading ? (
                 <CourseListSkeleton viewMode={viewMode} />
             ) : paginatedCourses.length === 0 ? (
-                <Card className="border border-default-200 shadow-sm">
-                    <CardBody className="flex flex-col items-center justify-center py-12">
-                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-content2">
-                            <IoBook className="text-3xl text-default-400" />
-                        </div>
-                        <p className="text-center text-default-500">
-                            {hasActiveFilters
-                                ? "ไม่พบรายวิชาที่ตรงกับการค้นหา"
-                                : userRole === "instructor"
-                                    ? "คุณยังไม่มีรายวิชาที่เปิดใช้งาน กดปุ่ม \"สร้างรายวิชาใหม่\" เพื่อเริ่มต้น"
-                                    : "คุณยังไม่มีรายวิชาที่เปิดใช้งาน"}
-                        </p>
-                        {hasActiveFilters && (
-                            <Button
-                                variant="flat"
-                                color="primary"
-                                className="mt-4"
-                                onPress={clearFilters}
-                            >
-                                ล้างตัวกรอง
-                            </Button>
-                        )}
-                    </CardBody>
-                </Card>
+                <div className="w-full grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <Card className="col-span-full w-full border border-default-200 shadow-sm">
+                        <CardBody className="flex min-h-70 flex-col items-center justify-center py-12 sm:py-16">
+                            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-content2">
+                                <IoBook className="text-3xl text-default-400" />
+                            </div>
+                            <p className="max-w-2xl text-center text-default-500">
+                                {hasActiveFilters
+                                    ? t("noResultsFound")
+                                    : t("noActiveCourses")}
+                            </p>
+                            {hasActiveFilters && (
+                                <Button
+                                    variant="flat"
+                                    color="primary"
+                                    className="mt-4"
+                                    onPress={clearFilters}
+                                >
+                                    {t("clearFilters")}
+                                </Button>
+                            )}
+                        </CardBody>
+                    </Card>
+                </div>
             ) : viewMode === "grid" ? (
                 /* Grid View */
                 <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="w-full grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {paginatedCourses.map((course) => (
                             <Card
                                 key={course.id}
@@ -839,7 +874,7 @@ export default function HomePage() {
                                                 <Dropdown>
                                                     <DropdownTrigger>
                                                         <Button
-                                                            aria-label="เมนูรายวิชา"
+                                                            aria-label={t("courseMenu")}
                                                             isIconOnly
                                                             size="sm"
                                                             variant="light"
@@ -851,7 +886,7 @@ export default function HomePage() {
                                                         </Button>
                                                     </DropdownTrigger>
                                                     <DropdownMenu
-                                                        aria-label="Course actions"
+                                                        aria-label={t("courseMenu")}
                                                         onAction={(key) => {
                                                             if (key === "edit") {
                                                                 openEditModal(course);
@@ -864,7 +899,7 @@ export default function HomePage() {
                                                             key="edit"
                                                             startContent={<Icon icon="solar:pen-linear" className="text-lg" />}
                                                         >
-                                                            แก้ไขรายวิชา
+                                                            {t("editCourse")}
                                                         </DropdownItem>
                                                         <DropdownItem
                                                             key="toggle"
@@ -876,7 +911,7 @@ export default function HomePage() {
                                                             }
                                                             color={course.is_active ? "warning" : "success"}
                                                         >
-                                                            {course.is_active ? "เก็บชั้นเรียน" : "เปิดใช้งาน"}
+                                                            {course.is_active ? t("disableCourse") : t("enableCourse")}
                                                         </DropdownItem>
                                                     </DropdownMenu>
                                                 </Dropdown>
@@ -902,11 +937,11 @@ export default function HomePage() {
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <IoPersonAdd className="text-lg" />
-                                            <span>{course.studentCount ?? 0} นักศึกษา</span>
+                                            <span>{course.studentCount ?? 0} Student</span>
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <IoBook className="text-lg" />
-                                            <span>{course.sections?.length ?? 0} กลุ่ม</span>
+                                            <span>{course.sections?.length ?? 0} Section</span>
                                         </div>
                                     </div>
                                 </CardFooter>
@@ -930,7 +965,7 @@ export default function HomePage() {
             ) : (
                 /* List View */
                 <>
-                    <div className="space-y-2">
+                    <div className="w-full space-y-2">
                         {paginatedCourses.map((course) => (
                             <Card
                                 key={course.id}
@@ -978,7 +1013,7 @@ export default function HomePage() {
                                                     <Dropdown>
                                                         <DropdownTrigger>
                                                             <Button
-                                                                aria-label="เมนูรายวิชา"
+                                                                aria-label={t("courseMenu")}
                                                                 isIconOnly
                                                                 size="sm"
                                                                 variant="light"
@@ -990,7 +1025,7 @@ export default function HomePage() {
                                                             </Button>
                                                         </DropdownTrigger>
                                                         <DropdownMenu
-                                                            aria-label="Course actions"
+                                                            aria-label={t("courseMenu")}
                                                             onAction={(key) => {
                                                                 if (key === "edit") {
                                                                     openEditModal(course);
@@ -1003,7 +1038,7 @@ export default function HomePage() {
                                                                 key="edit"
                                                                 startContent={<Icon icon="solar:pen-linear" className="text-lg" />}
                                                             >
-                                                                แก้ไขรายวิชา
+                                                                {t("editCourse")}
                                                             </DropdownItem>
                                                             <DropdownItem
                                                                 key="toggle"
@@ -1015,7 +1050,7 @@ export default function HomePage() {
                                                                 }
                                                                 color={course.is_active ? "warning" : "success"}
                                                             >
-                                                                {course.is_active ? "เก็บชั้นเรียน" : "เปิดใช้งาน"}
+                                                                {course.is_active ? t("disableCourse") : t("enableCourse")}
                                                             </DropdownItem>
                                                         </DropdownMenu>
                                                     </Dropdown>
@@ -1029,11 +1064,11 @@ export default function HomePage() {
                                                 </div>
                                                 <div className="flex items-center gap-1">
                                                     <IoPersonAdd className="text-lg" />
-                                                    <span>{course.studentCount ?? 0} นักศึกษา</span>
+                                                    <span>{course.studentCount ?? 0} Student</span>
                                                 </div>
                                                 <div className="flex items-center gap-1">
                                                     <IoBook className="text-lg" />
-                                                    <span>{course.sections?.length ?? 0} กลุ่ม</span>
+                                                    <span>{course.sections?.length ?? 0} Section</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -1058,7 +1093,7 @@ export default function HomePage() {
                 </>
             )}
 
-            {/* Create Course Modal อันนี้เอาของแอดมินมาใช้เลย ใส่รูปได้*/}
+            {/* Create Course Modal */}
             <Modal
                 isOpen={isCreateModalOpen}
                 onClose={() => {
@@ -1079,8 +1114,8 @@ export default function HomePage() {
                                 <Icon icon="solar:book-2-bold" className="text-xl sm:text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-foreground sm:text-xl">สร้างรายวิชาใหม่</h3>
-                                <p className="mt-1 text-xs font-normal text-default-500 sm:text-sm">กรอกข้อมูลรายวิชาที่ต้องการสร้าง</p>
+                                <h3 className="text-lg font-bold text-foreground sm:text-xl">{t("addNewCourse")}</h3>
+                                <p className="mt-1 text-xs font-normal text-default-500 sm:text-sm">{t("fillCourseDetailsInSystem")}</p>
                             </div>
                         </div>
                     </ModalHeader>
@@ -1090,14 +1125,14 @@ export default function HomePage() {
                             <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:gallery-bold" className="text-lg text-blue-500" />
-                                    <span className="text-sm font-semibold text-default-700">รูปปกรายวิชา</span>
+                                    <span className="text-sm font-semibold text-default-700">{t("courseImage")}</span>
                                 </div>
                                 <div className="py-3">
                                     {imagePreview ? (
                                         <div className="relative group">
                                             <img
                                                 src={imagePreview}
-                                                alt="Course preview"
+                                                alt={t("courseImage")}
                                                 className="h-40 w-full rounded-xl border border-default-200 object-cover"
                                             />
                                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-3">
@@ -1114,7 +1149,7 @@ export default function HomePage() {
                                                         color="primary"
                                                         startContent={<Icon icon="solar:camera-bold" />}
                                                     >
-                                                        เปลี่ยนรูป
+                                                        {t("changeImage")}
                                                     </Button>
                                                 </label>
                                                 <Button
@@ -1123,7 +1158,7 @@ export default function HomePage() {
                                                     startContent={<Icon icon="solar:trash-bin-trash-bold" />}
                                                     onPress={handleRemoveImage}
                                                 >
-                                                    ลบรูป
+                                                    {t("removeImage")}
                                                 </Button>
                                             </div>
                                         </div>
@@ -1137,8 +1172,8 @@ export default function HomePage() {
                                             />
                                             <div className="rounded-xl border-2 border-dashed border-default-300 p-4 text-center transition-colors hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-500/10">
                                                 <Icon icon="solar:cloud-upload-bold-duotone" className="text-5xl text-blue-400 mx-auto mb-3" />
-                                                <p className="font-medium text-default-600">คลิกเพื่ออัปโหลดรูปปกรายวิชา</p>
-                                                <p className="mt-1 text-sm text-default-400">รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 2MB</p>
+                                                <p className="font-medium text-default-600">{t("clickToUploadCourseCover")}</p>
+                                                <p className="mt-1 text-sm text-default-400">{t("courseImageHint")}</p>
                                             </div>
                                         </label>
                                     )}
@@ -1149,14 +1184,14 @@ export default function HomePage() {
                             <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:document-text-bold" className="text-lg text-blue-500" />
-                                    <span className="text-sm font-semibold text-default-700">ข้อมูลรายวิชา</span>
+                                    <span className="text-sm font-semibold text-default-700">{t("courseInformation")}</span>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 py-3">
                                     <div className="md:col-span-2">
                                         <Input
-                                            label="รหัสวิชา"
+                                            label={t("courseCode")}
                                             labelPlacement="outside"
-                                            placeholder="เช่น 101401"
+                                            placeholder={t("enterCourseCodeExample")}
                                             variant="bordered"
                                             size="md"
                                             value={formData.code}
@@ -1171,9 +1206,9 @@ export default function HomePage() {
                                     </div>
                                     <div className="md:col-span-2">
                                         <Input
-                                            label="ชื่อวิชา"
+                                            label={t("courseName")}
                                             labelPlacement="outside"
-                                            placeholder="เช่น Object-Oriented Programming"
+                                            placeholder={t("enterCourseNameExample")}
                                             variant="bordered"
                                             size="md"
                                             value={formData.name}
@@ -1187,9 +1222,9 @@ export default function HomePage() {
                                         />
                                     </div>
                                     <Input
-                                        label="ปีการศึกษา"
+                                        label={t("academicYear")}
                                         labelPlacement="outside"
-                                        placeholder="เช่น 2568"
+                                        placeholder={t("enterAcademicYearExample")}
                                         variant="bordered"
                                         size="md"
                                         type="number"
@@ -1203,9 +1238,9 @@ export default function HomePage() {
                                         }}
                                     />
                                     <Select
-                                        label="ภาคเรียน"
+                                        label={t("semesterLabel")}
                                         labelPlacement="outside"
-                                        placeholder="เลือกภาคเรียน"
+                                        placeholder={t("selectSemester")}
                                         variant="bordered"
                                         size="md"
                                         selectedKeys={[formData.semester.toString()]}
@@ -1216,24 +1251,24 @@ export default function HomePage() {
                                             label: "text-default-600 font-medium text-sm",
                                         }}
                                     >
-                                        <SelectItem key="1">ภาคเรียนที่ 1</SelectItem>
-                                        <SelectItem key="2">ภาคเรียนที่ 2</SelectItem>
-                                        <SelectItem key="3">ภาคฤดูร้อน</SelectItem>
+                                        {semesterOptions.map((option) => (
+                                            <SelectItem key={option.value}>{option.label}</SelectItem>
+                                        ))}
                                     </Select>
                                 </div>
                             </div>
 
-                            {/* Co-Instructors Section */}
+                            {/* Instructors Section */}
                             <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:users-group-two-rounded-bold" className="text-lg text-blue-500" />
-                                    <span className="text-sm font-semibold text-default-700">ผู้สอนร่วม</span>
+                                    <span className="text-sm font-semibold text-default-700">{t("instructorsLabel")}</span>
                                 </div>
                                 <div className="py-3">
                                     <Select
-                                        label="เลือกผู้สอนร่วม"
+                                        label={t("instructorsLabel")}
                                         labelPlacement="outside"
-                                        placeholder="เลือกผู้สอนร่วม (ถ้ามี)"
+                                        placeholder={t("selectInstructorsPlaceholder")}
                                         variant="bordered"
                                         selectionMode="multiple"
                                         size="md"
@@ -1262,13 +1297,13 @@ export default function HomePage() {
                             <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:chart-bold" className="text-lg text-blue-500" />
-                                    <span className="text-sm font-semibold text-default-700">เกณฑ์นักศึกษาที่นักศึกษาที่ควรได้รับการดูแลเพิ่มเติม</span>
+                                    <span className="text-sm font-semibold text-default-700">{t("attentionThresholdTitle")}</span>
                                 </div>
                                 <div className="py-3">
                                     <Input
-                                        label="เปอร์เซ็นต์คะแนนขั้นต่ำ"
+                                        label={t("minimumScorePercentage")}
                                         labelPlacement="outside"
-                                        placeholder="เช่น 60"
+                                        placeholder={t("enterThresholdExample")}
                                         variant="bordered"
                                         size="md"
                                         type="number"
@@ -1280,7 +1315,7 @@ export default function HomePage() {
                                             setFormData({ ...formData, attention_threshold: Math.min(100, Math.max(0, num)) });
                                         }}
                                         endContent={<span className="text-default-400">%</span>}
-                                        description="นักศึกษาที่มีคะแนนรวมต่ำกว่าเกณฑ์นี้จะแสดงในรายการ 'นักศึกษาที่ควรได้รับการดูแลเพิ่มเติม'"
+                                        description={t("attentionThresholdDescription")}
                                         classNames={{
                                             inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
                                             label: "text-default-600 font-medium text-sm",
@@ -1293,13 +1328,13 @@ export default function HomePage() {
                             <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:notes-bold" className="text-lg text-blue-500" />
-                                    <span className="text-sm font-semibold text-default-700">รายละเอียดเพิ่มเติม</span>
+                                    <span className="text-sm font-semibold text-default-700">{t("additionalDetails")}</span>
                                 </div>
                                 <div className="py-3">
                                     <Textarea
-                                        label="คำอธิบายรายวิชา"
+                                        label={t("courseDescription")}
                                         labelPlacement="outside"
-                                        placeholder="รายละเอียดเพิ่มเติมเกี่ยวกับรายวิชา (ถ้ามี)"
+                                        placeholder={t("courseDescriptionOptional")}
                                         variant="bordered"
                                         value={formData.description}
                                         onValueChange={(value) => setFormData({ ...formData, description: value })}
@@ -1323,7 +1358,7 @@ export default function HomePage() {
                             }}
                             className="font-medium px-6"
                         >
-                            ยกเลิก
+                            {t("cancel")}
                         </Button>
                         <Button
                             color="primary"
@@ -1332,7 +1367,7 @@ export default function HomePage() {
                             className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500"
                             startContent={!isSubmitting && <Icon icon="solar:add-circle-bold" className="text-lg" />}
                         >
-                            สร้างรายวิชา
+                            {t("createCourse")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -1360,9 +1395,9 @@ export default function HomePage() {
                                 <Icon icon="solar:pen-new-square-bold" className="text-xl sm:text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-foreground sm:text-xl">แก้ไขรายวิชา</h3>
+                                <h3 className="text-lg font-bold text-foreground sm:text-xl">{t("editCourse")}</h3>
                                 <p className="mt-1 text-xs font-normal text-default-500 sm:text-sm">
-                                    แก้ไขข้อมูลรายวิชา {selectedCourse?.code}
+                                    {t("editCourseForCode", { code: selectedCourse?.code || "" })}
                                 </p>
                             </div>
                         </div>
@@ -1373,14 +1408,14 @@ export default function HomePage() {
                             <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:gallery-bold" className="text-lg text-amber-500" />
-                                    <span className="text-sm font-semibold text-default-700">รูปปกรายวิชา</span>
+                                    <span className="text-sm font-semibold text-default-700">{t("courseImage")}</span>
                                 </div>
                                 <div className="py-3">
                                     {imagePreview ? (
                                         <div className="relative group">
                                             <img
                                                 src={imagePreview}
-                                                alt="Course preview"
+                                                alt={t("courseImage")}
                                                 className="h-48 w-full rounded-xl border border-default-200 object-cover"
                                             />
                                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-3">
@@ -1397,7 +1432,7 @@ export default function HomePage() {
                                                         color="primary"
                                                         startContent={<Icon icon="solar:camera-bold" />}
                                                     >
-                                                        เปลี่ยนรูป
+                                                        {t("changeImage")}
                                                     </Button>
                                                 </label>
                                                 <Button
@@ -1406,7 +1441,7 @@ export default function HomePage() {
                                                     startContent={<Icon icon="solar:trash-bin-trash-bold" />}
                                                     onPress={handleRemoveImage}
                                                 >
-                                                    ลบรูป
+                                                    {t("removeImage")}
                                                 </Button>
                                             </div>
                                         </div>
@@ -1420,8 +1455,8 @@ export default function HomePage() {
                                             />
                                             <div className="rounded-xl border-2 border-dashed border-default-300 p-8 text-center transition-colors hover:border-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-500/10">
                                                 <Icon icon="solar:cloud-upload-bold-duotone" className="text-5xl text-amber-400 mx-auto mb-3" />
-                                                <p className="font-medium text-default-600">คลิกเพื่ออัปโหลดรูปปกรายวิชา</p>
-                                                <p className="mt-1 text-sm text-default-400">รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 2MB</p>
+                                                <p className="font-medium text-default-600">{t("clickToUploadCourseCover")}</p>
+                                                <p className="mt-1 text-sm text-default-400">{t("courseImageHint")}</p>
                                             </div>
                                         </label>
                                     )}
@@ -1432,14 +1467,14 @@ export default function HomePage() {
                             <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:document-text-bold" className="text-lg text-amber-500" />
-                                    <span className="text-sm font-semibold text-default-700">ข้อมูลรายวิชา</span>
+                                    <span className="text-sm font-semibold text-default-700">{t("courseInformation")}</span>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 py-3">
                                     <div className="md:col-span-2">
                                         <Input
-                                            label="รหัสวิชา"
+                                            label={t("courseCode")}
                                             labelPlacement="outside"
-                                            placeholder="เช่น 101401"
+                                            placeholder={t("enterCourseCodeExample")}
                                             variant="bordered"
                                             size="lg"
                                             value={formData.code}
@@ -1454,9 +1489,9 @@ export default function HomePage() {
                                     </div>
                                     <div className="md:col-span-2">
                                         <Input
-                                            label="ชื่อวิชา"
+                                            label={t("courseName")}
                                             labelPlacement="outside"
-                                            placeholder="เช่น Object-Oriented Programming"
+                                            placeholder={t("enterCourseNameExample")}
                                             variant="bordered"
                                             size="lg"
                                             value={formData.name}
@@ -1470,9 +1505,9 @@ export default function HomePage() {
                                         />
                                     </div>
                                     <Input
-                                        label="ปีการศึกษา"
+                                        label={t("academicYear")}
                                         labelPlacement="outside"
-                                        placeholder="เช่น 2568"
+                                        placeholder={t("enterAcademicYearExample")}
                                         variant="bordered"
                                         size="lg"
                                         type="number"
@@ -1486,9 +1521,9 @@ export default function HomePage() {
                                         }}
                                     />
                                     <Select
-                                        label="ภาคเรียน"
+                                        label={t("semesterLabel")}
                                         labelPlacement="outside"
-                                        placeholder="เลือกภาคเรียน"
+                                        placeholder={t("selectSemester")}
                                         variant="bordered"
                                         size="lg"
                                         selectedKeys={[formData.semester.toString()]}
@@ -1499,24 +1534,24 @@ export default function HomePage() {
                                             label: "text-default-600 font-medium text-sm",
                                         }}
                                     >
-                                        <SelectItem key="1">ภาคเรียนที่ 1</SelectItem>
-                                        <SelectItem key="2">ภาคเรียนที่ 2</SelectItem>
-                                        <SelectItem key="3">ภาคฤดูร้อน</SelectItem>
+                                        {semesterOptions.map((option) => (
+                                            <SelectItem key={option.value}>{option.label}</SelectItem>
+                                        ))}
                                     </Select>
                                 </div>
                             </div>
 
-                            {/* Co-Instructors Section */}
+                            {/* Instructors Section */}
                             <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:users-group-two-rounded-bold" className="text-lg text-amber-500" />
-                                    <span className="text-sm font-semibold text-default-700">ผู้สอนร่วม (ไม่รวมตัวคุณ)</span>
+                                    <span className="text-sm font-semibold text-default-700">{t("instructorsLabel")}</span>
                                 </div>
                                 <div className="py-3">
                                     <Select
-                                        label="เลือกผู้สอนร่วม"
+                                        label={t("instructorsLabel")}
                                         labelPlacement="outside"
-                                        placeholder="เลือกผู้สอนร่วม (ถ้ามี)"
+                                        placeholder={t("selectInstructorsPlaceholder")}
                                         variant="bordered"
                                         selectionMode="multiple"
                                         selectedKeys={new Set(formData.instructor_ids.map(id => id.toString()))}
@@ -1537,9 +1572,6 @@ export default function HomePage() {
                                                 </SelectItem>
                                             ))}
                                     </Select>
-                                    <p className="mt-2 text-xs text-default-400">
-                                        คุณจะเป็นผู้สอนหลักโดยอัตโนมัติ สามารถเลือกผู้สอนร่วมเพิ่มเติมได้
-                                    </p>
                                 </div>
                             </div>
 
@@ -1547,13 +1579,13 @@ export default function HomePage() {
                             <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:chart-bold" className="text-lg text-amber-500" />
-                                    <span className="text-sm font-semibold text-default-700">เกณฑ์นักศึกษาที่นักศึกษาที่ควรได้รับการดูแลเพิ่มเติม</span>
+                                    <span className="text-sm font-semibold text-default-700">{t("attentionThresholdTitle")}</span>
                                 </div>
                                 <div className="py-3">
                                     <Input
-                                        label="เปอร์เซ็นต์คะแนนขั้นต่ำ"
+                                        label={t("minimumScorePercentage")}
                                         labelPlacement="outside"
-                                        placeholder="เช่น 60"
+                                        placeholder={t("enterThresholdExample")}
                                         variant="bordered"
                                         size="lg"
                                         type="number"
@@ -1565,7 +1597,7 @@ export default function HomePage() {
                                             setFormData({ ...formData, attention_threshold: Math.min(100, Math.max(0, num)) });
                                         }}
                                         endContent={<span className="text-default-400">%</span>}
-                                        description="นักศึกษาที่มีคะแนนรวมต่ำกว่าเกณฑ์นี้จะแสดงในรายการ 'นักศึกษาที่ควรได้รับการดูแลเพิ่มเติม'"
+                                        description={t("attentionThresholdDescription")}
                                         classNames={{
                                             inputWrapper: "h-12 bg-content1 border-default-200 hover:border-amber-300 focus-within:!border-amber-400",
                                             label: "text-default-600 font-medium text-sm",
@@ -1578,13 +1610,13 @@ export default function HomePage() {
                             <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:notes-bold" className="text-lg text-amber-500" />
-                                    <span className="text-sm font-semibold text-default-700">รายละเอียดเพิ่มเติม</span>
+                                    <span className="text-sm font-semibold text-default-700">{t("additionalDetails")}</span>
                                 </div>
                                 <div className="py-3">
                                     <Textarea
-                                        label="คำอธิบายรายวิชา"
+                                        label={t("courseDescription")}
                                         labelPlacement="outside"
-                                        placeholder="รายละเอียดเพิ่มเติมเกี่ยวกับรายวิชา (ถ้ามี)"
+                                        placeholder={t("courseDescriptionOptional")}
                                         variant="bordered"
                                         value={formData.description}
                                         onValueChange={(value) => setFormData({ ...formData, description: value })}
@@ -1609,7 +1641,7 @@ export default function HomePage() {
                             }}
                             className="font-medium px-6"
                         >
-                            ยกเลิก
+                            {t("cancel")}
                         </Button>
                         <Button
                             color="primary"
@@ -1618,13 +1650,13 @@ export default function HomePage() {
                             className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             startContent={!isSubmitting && <Icon icon="solar:diskette-bold" className="text-lg" />}
                         >
-                            บันทึกการแก้ไข
+                            {t("saveChanges")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
             </Modal>
 
-            {/* Toggle Status Confirmation Modal - Archive Style */}
+            {/* Toggle Status Modal */}
             <Modal
                 isOpen={isToggleStatusModalOpen}
                 onClose={() => {
@@ -1634,97 +1666,55 @@ export default function HomePage() {
                 size="md"
             >
                 <ModalContent>
-                    <ModalHeader className="flex flex-col gap-1 pb-2">
+                    <ModalHeader className="px-6 pt-6 pb-4">
                         <div className="flex items-center gap-3">
-                            <div className="p-2.5 rounded-xl bg-linear-to-br from-blue-400 to-indigo-500 shadow-lg shadow-blue-500/30">
+                            <div className="p-3 rounded-xl bg-linear-to-br from-blue-400 to-indigo-500 shadow-lg shadow-blue-500/30">
                                 <Icon
-                                    icon={courseToToggle?.is_active ? "solar:archive-bold" : "solar:eye-bold"}
-                                    className="text-xl text-white"
+                                    icon={courseToToggle?.is_active ? "solar:eye-closed-bold" : "solar:eye-bold"}
+                                    className="text-2xl text-white"
                                 />
                             </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-foreground">
-                                    {courseToToggle?.is_active ? "ปิดใช้งานรายวิชา" : "เปิดใช้งานรายวิชา"}
-                                </h3>
-                            </div>
+                            <h3 className="text-xl font-bold text-foreground">
+                                {courseToToggle?.is_active ? t("confirmDisableTitle") : t("confirmEnableTitle")}
+                            </h3>
                         </div>
                     </ModalHeader>
-                    <ModalBody className="py-4">
-                        {courseToToggle?.is_active ? (
-                            <div className="space-y-4">
-                                {/* Info items like in the image */}
-                                <div className="space-y-3">
-                                    <div className="flex items-start gap-3">
-                                        <Icon icon="solar:square-academic-cap-bold" className="text-xl text-blue-500 mt-0.5" />
-                                        <p className="text-sm text-default-600">
-                                            อาจารย์หรือผู้ช่วยสอนจะแก้ไขชั้นเรียนที่ปิดใช้งานไม่ได้ เว้นแต่ชั้นเรียนจะได้รับการกู้คืน
-                                        </p>
-                                    </div>
-                                    <div className="flex items-start gap-3">
-                                        <Icon icon="solar:eye-bold" className="text-xl text-blue-500 mt-0.5" />
-                                        <p className="text-sm text-default-600">
-                                            อาจารย์ยังคงดูตัวอย่างและส่งออกรายงานได้
-                                        </p>
-                                    </div>
-                                    <div className="flex items-start gap-3">
-                                        <Icon icon="solar:eye-closed-linear" className="text-xl text-blue-500 mt-0.5" />
-                                        <p className="text-sm text-default-600">
-                                            นักศึกษาจะไม่สามารถค้นหาของนักศึกษาในคะแนนของรายวิชาที่ปิดใช้งานได้
-                                        </p>
-                                    </div>
+                    <ModalBody className="px-6 py-6">
+                        <div className={`rounded-2xl p-6 border ${courseToToggle?.is_active ? "bg-amber-50 border-amber-100" : "bg-emerald-50 border-emerald-100"}`}>
+                            <div className="flex items-center gap-4">
+                                <div className={`w-14 h-14 rounded-full flex items-center justify-center shrink-0 ${courseToToggle?.is_active ? "bg-amber-100" : "bg-emerald-100"}`}>
+                                    <Icon icon="solar:book-bold" className={`text-2xl ${courseToToggle?.is_active ? "text-amber-600" : "text-emerald-600"}`} />
                                 </div>
-
-                                {/* Course info card */}
-                                <div className="rounded-lg border border-default-200 bg-content2 p-4">
-                                    <div className="flex items-center gap-3">
-                                        {/* <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
-                                            {courseToToggle?.semester}
-                                        </div> */}
-                                        <div>
-                                            <p className="font-semibold text-foreground">
-                                                {courseToToggle?.year}/{courseToToggle?.code} {courseToToggle?.name}
-                                            </p>
-                                            <p className="text-sm text-default-500">
-                                                {courseToToggle?.sections?.length ?? 0} Section • {courseToToggle?.instructor?.full_name || 'ผู้สอน'}
-                                            </p>
-                                        </div>
-                                    </div>
+                                <div>
+                                    <p className="font-semibold text-foreground">{formatCourseTitle(courseToToggle)}</p>
+                                    <p className="text-sm text-default-500">{formatAcademicYearSemester(courseToToggle?.year, courseToToggle?.semester)}</p>
                                 </div>
-
-                                <p className="text-sm text-default-500">
-                                    ระบบจะย้ายชั้นเรียนต่อไปนี้ไปยังชั้นเรียนที่ปิดใช้งาน
-                                </p>
                             </div>
-                        ) : (
-                            <div>
-                                <p className="text-default-600">
-                                    คุณต้องการเปิดใช้งานรายวิชา{" "}
-                                    <span className="font-semibold">{courseToToggle?.code} - {courseToToggle?.name}</span>{" "}
-                                    หรือไม่?
-                                </p>
-                                <p className="text-sm text-green-600 mt-2">
-                                    * เมื่อเปิดใช้งาน นักศึกษาและผู้ช่วยสอนจะสามารถเข้าถึงรายวิชานี้ได้อีกครั้ง
-                                </p>
-                            </div>
-                        )}
+                            <p className={`mt-4 text-sm ${courseToToggle?.is_active ? "text-amber-700" : "text-emerald-700"}`}>
+                                {courseToToggle?.is_active ? t("disabledCourseVisibilityHint") : t("activateCourseDuplicateHint")}
+                            </p>
+                        </div>
                     </ModalBody>
-                    <ModalFooter>
+                    <ModalFooter className="gap-3 border-t border-divider px-6 py-4">
                         <Button
-                            variant="light"
+                            variant="flat"
+                            color="default"
                             onPress={() => {
                                 setIsToggleStatusModalOpen(false);
                                 setCourseToToggle(null);
                             }}
+                            className="font-medium px-6"
                         >
-                            ยกเลิก
+                            {t("cancel")}
                         </Button>
                         <Button
                             color="primary"
                             onPress={handleToggleStatus}
                             isLoading={isSubmitting}
-                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
+                            startContent={!isSubmitting && <Icon icon={courseToToggle?.is_active ? "solar:eye-closed-bold" : "solar:eye-bold"} className="text-lg" />}
                         >
-                            {courseToToggle?.is_active ? "ปิดใช้งาน" : "เปิดใช้งาน"}
+                            {courseToToggle?.is_active ? t("disableAction") : t("enableAction")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -1741,31 +1731,40 @@ export default function HomePage() {
                 size="md"
             >
                 <ModalContent>
-                    <ModalHeader className="flex flex-col gap-1">
+                    <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-3">
-                            <div className="p-2.5 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
-                                <Icon icon="solar:danger-triangle-bold" className="text-xl text-white" />
+                            <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                                <Icon icon="solar:danger-triangle-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-foreground">ไม่สามารถเปิดใช้งานได้</h3>
+                                <h3 className="text-xl font-bold text-foreground">{t("cannotEnableCourse")}</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">{t("duplicateActiveCourseFound")}</p>
                             </div>
                         </div>
                     </ModalHeader>
-                    <ModalBody>
-                        <p className="text-default-600">
-                            มีรายวิชาที่ใช้รหัสวิชา ปีการศึกษา และภาคเรียนเดียวกันที่เปิดใช้งานอยู่แล้ว:
-                        </p>
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-3">
-                            <p className="font-semibold text-foreground">{duplicateCourse?.code} - {duplicateCourse?.name}</p>
-                            <p className="mt-1 text-sm text-default-600">
-                                ปีการศึกษา {duplicateCourse?.year} / ภาคเรียนที่ {duplicateCourse?.semester === 3 ? "ฤดูร้อน" : duplicateCourse?.semester}
+                    <ModalBody className="px-6 py-6">
+                        <div className="space-y-3 rounded-xl border border-danger-100 bg-danger-50/70 p-4 dark:border-danger/20 dark:bg-danger/10">
+                            <p className="text-foreground">{t("cannotEnableSelectedCourse", { code: courseToToggle?.code || "" })}</p>
+                            <p className="text-sm text-default-600">{t("duplicateCourseConflictDescription")}</p>
+                            <div className="rounded-lg border border-danger-200 bg-content1 p-3 dark:border-danger/25">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Chip size="sm" color="danger" variant="flat">{t("currentlyActive")}</Chip>
+                                </div>
+                                <p className="font-semibold text-foreground">{formatCourseTitle(duplicateCourse)}</p>
+                                <p className="mt-1 text-sm text-default-500">
+                                    {t("duplicateCourseSummary", {
+                                        year: duplicateCourse?.year || "",
+                                        semester: duplicateCourse?.semester ? getSemesterLabel(duplicateCourse.semester) : "",
+                                    })}
+                                </p>
+                            </div>
+                            <p className="text-sm text-default-500">
+                                <Icon icon="solar:info-circle-linear" className="inline mr-1" />
+                                {t("disableConflictingCourseFirst")}
                             </p>
                         </div>
-                        <p className="mt-3 text-sm text-default-500">
-                            หากต้องการเปิดใช้งานรายวิชานี้ กรุณาปิดใช้งานรายวิชาที่ซ้ำกันก่อน
-                        </p>
                     </ModalBody>
-                    <ModalFooter>
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button
                             color="primary"
                             onPress={() => {
@@ -1773,9 +1772,9 @@ export default function HomePage() {
                                 setDuplicateCourse(null);
                                 setCourseToToggle(null);
                             }}
-                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                         >
-                            เข้าใจแล้ว
+                            {t("acknowledged")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>

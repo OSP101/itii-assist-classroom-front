@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "หน้าจอแสดงผลคิว",
-  description: "หน้าจอแสดงผังห้องและสถานะคิวสำหรับโปรเจคเตอร์",
+  title: "Queue Projector Display",
+  description: "Projector view for the room layout and queue status.",
 };
 
 export default function ProjectorLayout({

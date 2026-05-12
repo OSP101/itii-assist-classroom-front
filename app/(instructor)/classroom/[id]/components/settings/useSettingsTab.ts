@@ -10,6 +10,7 @@ import attendanceService from "@/services/attendance.service";
 import bonusScoreService from "@/services/bonusScore.service";
 import examScoreService from "@/services/examScore.service";
 import { getTAStats } from "@/services/courseActivityLog.service";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 
 export interface SettingsFormData {
     code: string;
@@ -28,6 +29,8 @@ interface UseSettingsTabProps {
 }
 
 export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettingsTabProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
@@ -91,8 +94,8 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
     const handleSave = useCallback(async () => {
         if (!formData.code.trim() || !formData.name.trim()) {
             addToast({
-                title: "กรุณากรอกข้อมูล",
-                description: "รหัสวิชาและชื่อวิชาจำเป็นต้องกรอก",
+                title: isEnglish ? "Missing required fields" : "กรุณากรอกข้อมูล",
+                description: isEnglish ? "Course code and course name are required." : "รหัสวิชาและชื่อวิชาจำเป็นต้องกรอก",
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -114,8 +117,8 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
 
             if (response.success && response.data) {
                 addToast({
-                    title: "สำเร็จ",
-                    description: "บันทึกการตั้งค่าเรียบร้อยแล้ว",
+                    title: isEnglish ? "Saved" : "สำเร็จ",
+                    description: isEnglish ? "Course settings were saved successfully." : "บันทึกการตั้งค่าเรียบร้อยแล้ว",
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -125,9 +128,9 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
             } else {
                 const errorMessage = typeof response.error === 'object' && response.error !== null
                     ? (response.error as { message?: string }).message
-                    : response.error || response.message || "ไม่สามารถบันทึกได้";
+                    : response.error || response.message || (isEnglish ? "Unable to save course settings." : "ไม่สามารถบันทึกได้");
                 addToast({
-                    title: "เกิดข้อผิดพลาด",
+                    title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
                     description: errorMessage,
                     color: "danger",
                     timeout: 3000,
@@ -136,8 +139,8 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
             }
         } catch (error: any) {
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error.message || "ไม่สามารถบันทึกการตั้งค่าได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: error.message || (isEnglish ? "Unable to save course settings." : "ไม่สามารถบันทึกการตั้งค่าได้"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -145,7 +148,7 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
         } finally {
             setIsSaving(false);
         }
-    }, [course.id, formData, onCourseUpdate]);
+    }, [course.id, formData, isEnglish, onCourseUpdate]);
 
     // Handle cancel
     const handleCancel = useCallback(() => {
@@ -169,12 +172,12 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
     // Get semester text
     const getSemesterText = useCallback((semester: number) => {
         switch (semester) {
-            case 1: return "ภาคเรียนที่ 1";
-            case 2: return "ภาคเรียนที่ 2";
-            case 3: return "ภาคฤดูร้อน";
-            default: return `ภาคเรียนที่ ${semester}`;
+            case 1: return isEnglish ? "Semester 1" : "ภาคเรียนที่ 1";
+            case 2: return isEnglish ? "Semester 2" : "ภาคเรียนที่ 2";
+            case 3: return isEnglish ? "Summer" : "ภาคฤดูร้อน";
+            default: return isEnglish ? `Semester ${semester}` : `ภาคเรียนที่ ${semester}`;
         }
-    }, []);
+    }, [isEnglish]);
 
     // ─── Export All (multi-sheet Excel with full styling) ────────────────────
     const handleExportAll = useCallback(async () => {

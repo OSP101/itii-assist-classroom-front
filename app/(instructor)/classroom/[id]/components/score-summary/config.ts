@@ -56,10 +56,10 @@ export const fmtScore = (score: number | null | undefined): string => {
 };
 
 // Helper: format date
-export const formatDate = (dateStr?: string): string => {
+export const formatDate = (dateStr?: string, isEnglish = false): string => {
     if (!dateStr) return "-";
     const date = new Date(dateStr);
-    return date.toLocaleDateString("th-TH", {
+    return date.toLocaleDateString(isEnglish ? "en-US" : "th-TH", {
         day: "numeric",
         month: "short",
         year: "numeric",

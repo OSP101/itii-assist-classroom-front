@@ -16,6 +16,7 @@ import { OverviewSkeleton } from "../Skeletons";
 import type {
   Course, CourseOverview, AssignmentTypeStats, OverviewAssignment, OverviewStudent,
 } from "@/services/course.service";
+import { useI18n } from "@/hooks/useI18n";
 import type { AssignmentType } from "../types";
 import { getAssignmentTypeConfig, formatRelativeTime } from "./config";
 import {
@@ -91,16 +92,17 @@ function OverviewTabViewComponent({
   onResetAssignmentTypeFilter, onNavigateToAttendance, onNavigateToQueue,
   onNavigateToScores, onNavigateToApproval, onNavigateToPeople,
 }: OverviewTabViewProps) {
+  const t = useI18n();
   const [selectedStudent, setSelectedStudent] = useState<OverviewStudent | null>(null);
 
-  const healthScore = useMemo(() => overview ? computeHealthScore(overview) : null, [overview]);
-  const actionItems = useMemo(() => overview ? computeActionItems(overview) : [], [overview]);
-  const insights    = useMemo(() => overview ? generateInsights(overview) : [], [overview]);
+  const healthScore = useMemo(() => overview ? computeHealthScore(overview, t) : null, [overview, t]);
+  const actionItems = useMemo(() => overview ? computeActionItems(overview, t) : [], [overview, t]);
+  const insights    = useMemo(() => overview ? generateInsights(overview, t) : [], [overview, t]);
   const riskStudents = useMemo(
-    () => overview ? computeRiskStudents(overview.lowPerformers, overview.summary.totalAssignments) : [],
-    [overview],
+    () => overview ? computeRiskStudents(overview.lowPerformers, overview.summary.totalAssignments, t) : [],
+    [overview, t],
   );
-  const gradeData  = useMemo(() => overview?.scoreDistribution ? buildGradeDistributionData(overview.scoreDistribution) : [], [overview?.scoreDistribution]);
+  const gradeData  = useMemo(() => overview?.scoreDistribution ? buildGradeDistributionData(overview.scoreDistribution, t) : [], [overview?.scoreDistribution, t]);
   const diffData   = useMemo(() => overview?.assignments ? buildAssignmentDifficultyData(overview.assignments) : [], [overview?.assignments]);
 
   const handleNavigate = useMemo(() => (tab: string) => {
@@ -140,45 +142,47 @@ function OverviewTabViewComponent({
   const metrics = [
     {
       icon: "solar:users-group-rounded-bold",
-      label: "นักศึกษา",
+      label: t("students"),
       value: overview?.summary.totalStudents ?? 0,
-      sub: "คนทั้งหมด",
+      sub: t("totalPeople"),
       iconBg: "bg-blue-50", iconColor: "text-blue-600",
     },
     {
       icon: "solar:clipboard-list-bold",
-      label: "งาน",
+      label: t("assignmentsShort"),
       value: overview?.summary.totalAssignments ?? 0,
-      sub: scoredSubmissionCount > 0 ? `${scoredSubmissionCount} รายการตรวจแล้ว` : `${gradedCount} งานที่มีการตรวจ`,
+      sub: scoredSubmissionCount > 0
+        ? t("itemsGraded", { count: scoredSubmissionCount })
+        : t("gradedAssignmentsCount", { count: gradedCount }),
       iconBg: "bg-violet-50", iconColor: "text-violet-600",
     },
     {
       icon: "solar:diploma-bold",
-      label: "คะแนนเฉลี่ย",
+      label: t("averageScore"),
       value: avgScorePct + "%",
-      sub: "ของคะแนนเต็ม",
+      sub: t("ofTotalScore"),
       iconBg: "bg-emerald-50", iconColor: "text-emerald-600",
     },
     {
       icon: "solar:calendar-bold",
-      label: "เข้าเรียน",
+      label: t("attendance"),
       value: formatPercent(overview?.summary.attendanceRate),
-      sub: `${overview?.summary.totalAttendanceSessions ?? 0} ครั้งที่เช็คชื่อ`,
+      sub: t("attendanceSessionsCount", { count: overview?.summary.totalAttendanceSessions ?? 0 }),
       iconBg: "bg-amber-50", iconColor: "text-amber-600",
     },
     {
       icon: "solar:user-hands-bold",
       label: "TA",
       value: overview?.summary.totalTAs ?? 0,
-      sub: "ผู้ช่วยสอน",
+      sub: t("teachingAssistants"),
       iconBg: "bg-rose-50", iconColor: "text-rose-600",
     },
   ];
 
   const healthComponents = healthScore ? [
-    { label: "เข้าเรียน", value: healthScore.components.attendance },
-    { label: "ตรวจงาน",  value: healthScore.components.grading },
-    { label: "คะแนน",    value: healthScore.components.avgScore },
+    { label: t("attendance"), value: healthScore.components.attendance },
+    { label: t("grading"),  value: healthScore.components.grading },
+    { label: t("averageScore"),    value: healthScore.components.avgScore },
     { label: "TA",        value: healthScore.components.taCoverage },
   ] : [];
 
@@ -203,11 +207,15 @@ function OverviewTabViewComponent({
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
                 <span className="text-xs font-semibold text-slate-600 bg-slate-100 rounded-md px-2 py-0.5">{course.code}</span>
-                <span className="text-xs text-slate-400">{course.year} / {course.semester === 3 ? "ฤดูร้อน" : "เทอม " + course.semester}</span>
+                <span className="text-xs text-slate-400">
+                  {course.year} / {course.semester === 3
+                    ? t("summerSemester")
+                    : t("semesterShortWithNumber", { number: course.semester })}
+                </span>
                 <span className="flex items-center gap-1 text-xs font-medium">
                   <span className={"w-1.5 h-1.5 rounded-full " + (course.is_active ? "bg-emerald-500 animate-pulse" : "bg-slate-300")} />
                   <span className={course.is_active ? "text-emerald-600" : "text-slate-400"}>
-                    {course.is_active ? "เปิดใช้งาน" : "ปิด"}
+                    {course.is_active ? t("enabledStatus") : t("closedStatus")}
                   </span>
                 </span>
               </div>
@@ -222,26 +230,26 @@ function OverviewTabViewComponent({
             </div>
 
             <div className="hidden lg:flex items-center gap-2 shrink-0">
-              <Button size="sm" variant="flat" color="default" className="bg-slate-100 text-slate-700" onPress={onNavigateToAssignments}>งาน</Button>
+              <Button size="sm" variant="flat" color="default" className="bg-slate-100 text-slate-700" onPress={onNavigateToAssignments}>{t("assignmentsShort")}</Button>
               {onNavigateToAttendance && (
-                <Button size="sm" variant="flat" color="default" className="bg-slate-100 text-slate-700" onPress={onNavigateToAttendance}>เช็คชื่อ</Button>
+                <Button size="sm" variant="flat" color="default" className="bg-slate-100 text-slate-700" onPress={onNavigateToAttendance}>{t("attendance")}</Button>
               )}
               {onNavigateToQueue && (
-                <Button size="sm" variant="flat" color="default" className="bg-slate-100 text-slate-700" onPress={onNavigateToQueue}>คิว</Button>
+                <Button size="sm" variant="flat" color="default" className="bg-slate-100 text-slate-700" onPress={onNavigateToQueue}>{t("queueShort")}</Button>
               )}
             </div>
           </div>
 
           <div className="mt-3 flex lg:hidden items-center gap-2 overflow-x-auto pb-1">
-            <Button size="sm" variant="flat" color="default" className="bg-slate-100 text-slate-700 shrink-0" onPress={onNavigateToAssignments}>งาน</Button>
+            <Button size="sm" variant="flat" color="default" className="bg-slate-100 text-slate-700 shrink-0" onPress={onNavigateToAssignments}>{t("assignmentsShort")}</Button>
             {onNavigateToAttendance && (
-              <Button size="sm" variant="flat" color="default" className="bg-slate-100 text-slate-700 shrink-0" onPress={onNavigateToAttendance}>เช็คชื่อ</Button>
+              <Button size="sm" variant="flat" color="default" className="bg-slate-100 text-slate-700 shrink-0" onPress={onNavigateToAttendance}>{t("attendance")}</Button>
             )}
             {onNavigateToQueue && (
-              <Button size="sm" variant="flat" color="default" className="bg-slate-100 text-slate-700 shrink-0" onPress={onNavigateToQueue}>คิว</Button>
+              <Button size="sm" variant="flat" color="default" className="bg-slate-100 text-slate-700 shrink-0" onPress={onNavigateToQueue}>{t("queueShort")}</Button>
             )}
             {onNavigateToScores && (
-              <Button size="sm" variant="flat" color="default" className="bg-slate-100 text-slate-700 shrink-0" onPress={onNavigateToScores}>คะแนน</Button>
+              <Button size="sm" variant="flat" color="default" className="bg-slate-100 text-slate-700 shrink-0" onPress={onNavigateToScores}>{t("scoresShort")}</Button>
             )}
           </div>
 
@@ -272,7 +280,7 @@ function OverviewTabViewComponent({
                 <div className={"w-8 h-8 rounded-lg flex items-center justify-center " + m.iconBg}>
                   <Icon icon={m.icon} className={"text-base " + m.iconColor} />
                 </div>
-                <span className="text-[11px] font-medium text-slate-400 dark:text-zinc-500 uppercase tracking-widest text-right leading-tight max-w-[74px]">
+                <span className="text-[11px] font-medium text-slate-400 dark:text-zinc-500 uppercase tracking-widest text-right leading-tight max-w-18.5">
                   {m.label}
                 </span>
               </div>
@@ -290,7 +298,7 @@ function OverviewTabViewComponent({
           {/* Health Score */}
           {healthScore && (
             <div className={CARD + " md:col-span-4"}>
-              <CardHeader icon="solar:heart-pulse-bold" iconColor="text-rose-400" title="Course Health" />
+              <CardHeader icon="solar:heart-pulse-bold" iconColor="text-rose-400" title={t("courseHealth")} />
               <div className="p-3 sm:p-4 flex flex-col items-center">
                 <HealthScoreBadge data={healthScore} />
                 <div className="w-full mt-4 space-y-2">
@@ -313,7 +321,7 @@ function OverviewTabViewComponent({
           <div className={CARD + " md:col-span-8 flex flex-col"}>
             <CardHeader
               icon="solar:bell-bing-bold" iconColor="text-rose-500"
-              title="สิ่งที่ต้องดำเนินการ"
+              title={t("actionItems")}
               badge={actionItems.length > 0
                 ? <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-bold">{actionItems.length}</span>
                 : null
@@ -327,19 +335,19 @@ function OverviewTabViewComponent({
                     <div className="w-8 h-8 bg-emerald-50 rounded-full flex items-center justify-center">
                       <Icon icon="solar:check-circle-bold" className="text-emerald-500 text-lg" />
                     </div>
-                    <span className="text-sm text-slate-500 dark:text-zinc-400">ไม่มีรายการที่ต้องดำเนินการ</span>
+                    <span className="text-sm text-slate-500 dark:text-zinc-400">{t("noActionItems")}</span>
                   </div>
                 )
               }
               {pendingSubmissionCount > 0 && (
                 <p className="mt-3 text-xs text-slate-400 dark:text-zinc-500">
-                  ค้างตรวจรวม {pendingSubmissionCount} รายการ
+                  {t("pendingReviewsCount", { count: pendingSubmissionCount })}
                 </p>
               )}
             </div>
             {/* Quick Actions at bottom */}
             <div className="px-4 pb-3 pt-2.5 sm:px-5 sm:pb-4 sm:pt-3 border-t border-slate-100">
-              <p className="text-[10px] text-slate-400 dark:text-zinc-600 uppercase tracking-widest mb-2">Quick Actions</p>
+              <p className="text-[10px] text-slate-400 dark:text-zinc-600 uppercase tracking-widest mb-2">{t("quickActions")}</p>
               <QuickActionsBar onNavigate={handleNavigate} />
             </div>
           </div>
@@ -352,8 +360,8 @@ function OverviewTabViewComponent({
           <div className={CARD}>
             <CardHeader
               icon="solar:lightbulb-bolt-bold" iconColor="text-amber-400"
-              title="Smart Insights"
-              badge={<span className="text-xs text-slate-400">— วิเคราะห์จากข้อมูลจริง</span>}
+              title={t("smartInsights")}
+              badge={<span className="text-xs text-slate-400">- {t("analyzedFromRealData")}</span>}
             />
             <div className="p-4">
               <InsightPanel insights={insights} />
@@ -370,16 +378,16 @@ function OverviewTabViewComponent({
           <div className={CARD + " lg:col-span-2 flex flex-col"}>
             <CardHeader
               icon="solar:document-text-bold" iconColor="text-blue-500"
-              title="การวิเคราะห์งาน"
+              title={t("assignmentAnalytics")}
               action={
                 <>
                   <div className="hidden sm:flex gap-1 flex-wrap">
                     <button
                       className={"text-[11px] px-2.5 py-1 rounded-lg font-medium transition-colors " + (selectedAssignmentType === "all" ? "bg-blue-600 text-white" : "bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-zinc-700")}
                       onClick={() => onSetSelectedAssignmentType("all")}
-                    >ทั้งหมด</button>
+                    >{t("all")}</button>
                     {availableTypes.map(type => {
-                      const cfg = getAssignmentTypeConfig(type);
+                        const cfg = getAssignmentTypeConfig(type, t);
                       return (
                         <button
                           key={type}
@@ -394,7 +402,7 @@ function OverviewTabViewComponent({
                   </div>
                   {assignments.length > 0 && (
                     <Button size="sm" variant="flat" color="primary" onPress={onNavigateToAssignments} className="text-xs h-7 hidden sm:flex">
-                      ดูทั้งหมด
+                      {t("viewAll")}
                     </Button>
                   )}
                 </>
@@ -406,10 +414,10 @@ function OverviewTabViewComponent({
                   className={"text-[11px] px-2.5 py-1 rounded-lg font-medium shrink-0 transition-colors " + (selectedAssignmentType === "all" ? "bg-blue-600 text-white" : "bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300")}
                 onClick={() => onSetSelectedAssignmentType("all")}
               >
-                ทั้งหมด
+                {t("all")}
               </button>
               {availableTypes.map(type => {
-                const cfg = getAssignmentTypeConfig(type);
+                const cfg = getAssignmentTypeConfig(type, t);
                 return (
                   <button
                     key={type}
@@ -428,7 +436,7 @@ function OverviewTabViewComponent({
                 <>
                   <div className="md:hidden px-4 py-3 space-y-2">
                     {filteredAssignments.slice(0, 6).map(assignment => {
-                      const cfg = getAssignmentTypeConfig(assignment.assignment_type);
+                      const cfg = getAssignmentTypeConfig(assignment.assignment_type, t);
                       const isGroup = assignment.assignment_type === "permanent_group" || assignment.assignment_type === "weekly_group";
                       const submittedRate = Math.max(0, Math.min(100, assignment.submittedRate));
                       return (
@@ -445,7 +453,7 @@ function OverviewTabViewComponent({
                               </div>
                               <div className="min-w-0">
                                 <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{assignment.name}</p>
-                                <p className="text-[11px] text-slate-400 dark:text-zinc-500">{cfg.shortLabel} • เต็ม {assignment.max_score}</p>
+                                <p className="text-[11px] text-slate-400 dark:text-zinc-500">{cfg.shortLabel} • {t("fullScore", { score: assignment.max_score })}</p>
                               </div>
                             </div>
                             <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
@@ -453,8 +461,10 @@ function OverviewTabViewComponent({
                             </span>
                           </div>
                           <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 tabular-nums">
-                            <span>ตรวจแล้ว {assignment.scoredCount}{isGroup ? " กลุ่ม" : " คน"}</span>
-                            {!isGroup ? <span>ส่ง {submittedRate}%</span> : <span>งานกลุ่ม</span>}
+                            <span>
+                              {t("graded")} {assignment.scoredCount} {isGroup ? t("groupUnit") : t("personUnit")}
+                            </span>
+                            {!isGroup ? <span>{t("submitted")} {submittedRate}%</span> : <span>{t("groupWorkAssignments")}</span>}
                           </div>
                         </button>
                       );
@@ -462,16 +472,16 @@ function OverviewTabViewComponent({
                   </div>
 
                   <div className="hidden md:block">
-                    <Table removeWrapper aria-label="Assignments">
+                    <Table removeWrapper aria-label={t("assignmentAnalytics")}>
                   <TableHeader>
-                    <TableColumn className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">งาน</TableColumn>
-                    <TableColumn align="center" className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">คะแนนเฉลี่ย</TableColumn>
-                    <TableColumn align="center" className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">ตรวจแล้ว</TableColumn>
-                    <TableColumn align="center" className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">ความก้าวหน้า</TableColumn>
+                    <TableColumn className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{t("assignmentColumn")}</TableColumn>
+                    <TableColumn align="center" className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{t("averageScoreColumn")}</TableColumn>
+                    <TableColumn align="center" className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{t("graded")}</TableColumn>
+                    <TableColumn align="center" className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{t("progressColumn")}</TableColumn>
                   </TableHeader>
                   <TableBody items={filteredAssignments.slice(0, 8)}>
                     {(assignment) => {
-                      const cfg = getAssignmentTypeConfig(assignment.assignment_type);
+                      const cfg = getAssignmentTypeConfig(assignment.assignment_type, t);
                       const isGroup = assignment.assignment_type === "permanent_group" || assignment.assignment_type === "weekly_group";
                       return (
                         <TableRow key={assignment.id} className="hover:bg-slate-50/50">
@@ -484,14 +494,14 @@ function OverviewTabViewComponent({
                                 <div className="flex items-center gap-1">
                                   <p className="text-sm font-medium text-slate-800 leading-tight">{assignment.name}</p>
                                   {assignment.is_score_visible === false && (
-                                    <Tooltip content="คะแนนถูกซ่อน">
+                                    <Tooltip content={t("scoreHidden")}>
                                       <Icon icon="solar:eye-closed-linear" className="text-amber-400" width={12} />
                                     </Tooltip>
                                   )}
                                 </div>
                                 <div className="flex items-center gap-1.5 mt-0.5">
                                   <span className={"text-[10px] font-medium px-1.5 py-0.5 rounded-md " + cfg.bgClass + " " + cfg.textClass}>{cfg.shortLabel}</span>
-                                  <span className="text-[11px] text-slate-400">/ {assignment.max_score} คะแนน</span>
+                                  <span className="text-[11px] text-slate-400">/ {assignment.max_score} {t("pointsLabel")}</span>
                                 </div>
                               </div>
                             </div>
@@ -509,9 +519,9 @@ function OverviewTabViewComponent({
                               <span className={"text-sm font-semibold " + (assignment.scoredCount > 0 ? "text-emerald-600" : "text-slate-400")}>
                                 {assignment.scoredCount}
                               </span>
-                              <span className="text-[10px] text-slate-400">{isGroup ? "กลุ่ม" : "คน"}</span>
+                              <span className="text-[10px] text-slate-400">{isGroup ? t("groupUnit") : t("personUnit")}</span>
                               {!isGroup && assignment.notScoredCount > 0 && (
-                                <span className="text-[10px] text-rose-400">ค้าง {assignment.notScoredCount}</span>
+                                <span className="text-[10px] text-rose-400">{t("pendingLabel", { count: assignment.notScoredCount })}</span>
                               )}
                             </div>
                           </TableCell>
@@ -524,7 +534,7 @@ function OverviewTabViewComponent({
                                 />
                                 <span className="text-[11px] text-slate-500 w-8 text-right shrink-0">{assignment.submittedRate}%</span>
                               </div>
-                            ) : <span className="block text-center text-[11px] text-slate-400">งานกลุ่ม</span>}
+                            ) : <span className="block text-center text-[11px] text-slate-400">{t("groupWorkAssignments")}</span>}
                           </TableCell>
                         </TableRow>
                       );
@@ -536,16 +546,16 @@ function OverviewTabViewComponent({
               ) : overview?.assignments && overview.assignments.length > 0 ? (
                 <div className="py-12 text-center">
                   <Icon icon="solar:filter-linear" className="text-3xl text-slate-300 mx-auto mb-2" />
-                  <p className="text-sm text-slate-500 mb-3">ไม่มีงานประเภทนี้</p>
-                  <Button size="sm" variant="flat" onPress={onResetAssignmentTypeFilter}>แสดงทั้งหมด</Button>
+                  <p className="text-sm text-slate-500 mb-3">{t("noAssignmentsOfType")}</p>
+                  <Button size="sm" variant="flat" onPress={onResetAssignmentTypeFilter}>{t("showAll")}</Button>
                 </div>
               ) : (
                 <div className="py-12 text-center">
                   <Icon icon="solar:document-add-linear" className="text-3xl text-slate-300 mx-auto mb-2" />
-                  <p className="text-sm text-slate-500 mb-3">ยังไม่มีงานที่มอบหมาย</p>
+                  <p className="text-sm text-slate-500 mb-3">{t("noAssignmentsYet")}</p>
                   <Button size="sm" color="primary" variant="flat" onPress={onNavigateToAssignments}
                     startContent={<Icon icon="solar:add-circle-bold" />}>
-                    สร้างงานใหม่
+                    {t("createAssignment")}
                   </Button>
                 </div>
               )}
@@ -553,7 +563,7 @@ function OverviewTabViewComponent({
             {assignments.length > 0 && (
               <div className="px-5 pb-4 pt-3 border-t border-slate-100 sm:hidden">
                 <Button size="sm" variant="flat" color="primary" className="w-full text-xs" onPress={onNavigateToAssignments}>
-                  ดูงานทั้งหมด →
+                  {t("viewAllAssignments")} →
                 </Button>
               </div>
             )}
@@ -561,7 +571,7 @@ function OverviewTabViewComponent({
 
           {/* Recent Activity */}
           <div className={CARD + " flex flex-col"}>
-            <CardHeader icon="solar:history-bold" iconColor="text-purple-500" title="กิจกรรมล่าสุด" />
+            <CardHeader icon="solar:history-bold" iconColor="text-purple-500" title={t("recentActivity")} />
             <div className="flex-1 p-4 overflow-y-auto max-h-105">
               <ActivityTimeline activities={overview?.recentActivities?.slice(0, 8) ?? []} />
             </div>
@@ -573,7 +583,7 @@ function OverviewTabViewComponent({
       <Fade delay={0.25}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           <div className={CARD}>
-            <CardHeader icon="solar:chart-square-bold" iconColor="text-emerald-500" title="การกระจายคะแนน" />
+            <CardHeader icon="solar:chart-square-bold" iconColor="text-emerald-500" title={t("gradeDistribution")} />
             <div className="p-4">
               <GradeDistributionChart data={gradeData} />
               {gradeData.length > 0 && (
@@ -590,7 +600,7 @@ function OverviewTabViewComponent({
             </div>
           </div>
           <div className={CARD}>
-            <CardHeader icon="solar:graph-new-up-bold" iconColor="text-blue-500" title="ความยากของงาน (คะแนนเฉลี่ย %)" />
+            <CardHeader icon="solar:graph-new-up-bold" iconColor="text-blue-500" title={t("assignmentDifficultyAverage")} />
             <div className="p-4">
               <AssignmentDifficultyChart data={diffData} />
             </div>
@@ -604,10 +614,10 @@ function OverviewTabViewComponent({
           <div className={CARD}>
             <CardHeader
               icon="solar:danger-triangle-bold" iconColor="text-rose-500"
-              title="นักศึกษากลุ่มเสี่ยง"
+              title={t("atRiskStudents")}
               badge={
                 <span className="inline-flex items-center gap-1 text-[11px] font-medium text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">
-                  {riskStudents.filter((s: RiskStudent) => s.riskLevel === "high").length} เสี่ยงสูง
+                  {t("highRiskCount", { count: riskStudents.filter((s: RiskStudent) => s.riskLevel === "high").length })}
                 </span>
               }
             />
@@ -625,7 +635,7 @@ function OverviewTabViewComponent({
           {/* TA Activity (instructor/admin only) */}
           {(userRole === "instructor" || userRole === "admin") && (
             <div className={CARD}>
-              <CardHeader icon="solar:user-hands-bold" iconColor="text-emerald-500" title="กิจกรรม TA" />
+              <CardHeader icon="solar:user-hands-bold" iconColor="text-emerald-500" title={t("taActivity")} />
               <div className="p-4">
                 {overview?.taActivity && overview.taActivity.length > 0 ? (
                   <div className="divide-y divide-slate-100">
@@ -641,11 +651,11 @@ function OverviewTabViewComponent({
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{ta.full_name}</p>
-                          <p className="text-xs text-slate-400 dark:text-zinc-500">{ta.lastActive ? formatRelativeTime(ta.lastActive) : "ยังไม่มีกิจกรรม"}</p>
+                          <p className="text-xs text-slate-400 dark:text-zinc-500">{ta.lastActive ? formatRelativeTime(ta.lastActive, "en", t) : t("noActivityYet")}</p>
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-base font-bold text-slate-800 dark:text-white">{ta.gradedCount}</p>
-                          <p className="text-[10px] text-slate-400 dark:text-zinc-500">ชิ้น</p>
+                          <p className="text-[10px] text-slate-400 dark:text-zinc-500">{t("pointsLabel")}</p>
                         </div>
                       </div>
                     ))}
@@ -653,7 +663,7 @@ function OverviewTabViewComponent({
                 ) : (
                   <div className="py-8 text-center">
                     <Icon icon="solar:user-hands-linear" className="text-3xl text-slate-300 mx-auto mb-2" />
-                    <p className="text-sm text-slate-400">ยังไม่มีผู้ช่วยสอน</p>
+                    <p className="text-sm text-slate-400">{t("noTeachingAssistantsYet")}</p>
                   </div>
                 )}
               </div>
@@ -662,14 +672,14 @@ function OverviewTabViewComponent({
 
           {/* Course Info */}
           <div className={CARD + ((userRole !== "instructor" && userRole !== "admin") ? " lg:col-span-2" : "")}>
-            <CardHeader icon="solar:info-circle-bold" iconColor="text-blue-500" title="ข้อมูลรายวิชา" />
+            <CardHeader icon="solar:info-circle-bold" iconColor="text-blue-500" title={t("courseInformation")} />
             <div className="p-4">
               <div className="grid grid-cols-2 gap-2.5">
                 {[
-                  { icon: "solar:hashtag-bold",  label: "รหัสวิชา",    value: course.code,             iconColor: "text-blue-500",    bg: "bg-blue-50" },
-                  { icon: "solar:calendar-bold", label: "ปีการศึกษา",  value: course.year + "",        iconColor: "text-purple-500",  bg: "bg-purple-50" },
-                  { icon: "solar:notebook-bold", label: "ภาคเรียน",    value: course.semester === 3 ? "ฤดูร้อน" : "ภาค " + course.semester, iconColor: "text-emerald-500", bg: "bg-emerald-50" },
-                  { icon: "solar:user-bold",     label: "อาจารย์ผู้สอน", value: course.instructor?.full_name || "—", iconColor: "text-amber-500", bg: "bg-amber-50" },
+                  { icon: "solar:hashtag-bold",  label: t("courseCode"),    value: course.code,             iconColor: "text-blue-500",    bg: "bg-blue-50" },
+                  { icon: "solar:calendar-bold", label: t("academicYear"),  value: course.year + "",        iconColor: "text-purple-500",  bg: "bg-purple-50" },
+                  { icon: "solar:notebook-bold", label: t("semesterLabel"),    value: course.semester === 3 ? t("summerSemester") : t("semesterWithNumber", { number: course.semester }), iconColor: "text-emerald-500", bg: "bg-emerald-50" },
+                  { icon: "solar:user-bold",     label: t("leadInstructor"), value: course.instructor?.full_name || "—", iconColor: "text-amber-500", bg: "bg-amber-50" },
                 ].map(item => (
                   <div key={item.label} className="flex items-start gap-2.5 p-3 bg-slate-50 dark:bg-zinc-800/60 rounded-xl border border-transparent dark:border-zinc-700/40 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors">
                     <div className={"w-7 h-7 rounded-lg flex items-center justify-center shrink-0 " + item.bg}>
@@ -685,7 +695,7 @@ function OverviewTabViewComponent({
 
               {course.description && (
                 <div className="mt-3">
-                  <p className="text-[10px] text-slate-400 uppercase tracking-widest mb-1.5">คำอธิบาย</p>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-widest mb-1.5">{t("descriptionLabel")}</p>
                   <p className="text-xs text-slate-600 dark:text-zinc-300 bg-slate-50 dark:bg-zinc-800/60 rounded-xl p-3 leading-relaxed">{course.description}</p>
                 </div>
               )}
@@ -693,7 +703,7 @@ function OverviewTabViewComponent({
               {userRole === "ta" && course.tas && course.tas.length > 0 && (
                 <div className="mt-3">
                   <Divider className="mb-3" />
-                  <p className="text-[10px] text-slate-400 uppercase tracking-widest mb-2">ผู้ช่วยสอน</p>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-widest mb-2">{t("teachingAssistantsLabel")}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {course.tas.map(ta => (
                       <Chip key={ta.id} size="sm" variant="flat" color="success">{ta.full_name}</Chip>

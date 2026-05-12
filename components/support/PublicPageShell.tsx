@@ -7,6 +7,8 @@ import { usePathname } from 'next/navigation';
 
 import { AppFooter } from '@/components/Footer';
 import { publicFooterGroups } from '@/config/public-links';
+import { useGlobalSettings } from '@/contexts/GlobalSettingsContext';
+import { useI18n } from '@/hooks/useI18n';
 
 interface PublicPageShellProps {
     /** 'landing' = dark hero + full-width content (docs homepage style).
@@ -24,13 +26,69 @@ interface PublicPageShellProps {
     children: React.ReactNode;
 }
 
+const PUBLIC_GROUP_LABELS = {
+    th: {
+        'ช่วยเหลือและคู่มือ': 'ช่วยเหลือและคู่มือ',
+        'นโยบายและความปลอดภัย': 'นโยบายและความปลอดภัย',
+    },
+    en: {
+        'ช่วยเหลือและคู่มือ': 'Help and guides',
+        'นโยบายและความปลอดภัย': 'Policies and security',
+    },
+} as const;
+
+const PUBLIC_LINK_LABELS = {
+    th: {
+        support: 'ศูนย์ช่วยเหลือ',
+        docs: 'คู่มือการใช้งาน',
+        contact: 'ติดต่อทีมสนับสนุน',
+        status: 'สถานะระบบ',
+        terms: 'ข้อกำหนดการใช้งาน',
+        privacy: 'นโยบายความเป็นส่วนตัว',
+        cookies: 'นโยบายคุกกี้',
+        security: 'แจ้งปัญหาความปลอดภัย',
+    },
+    en: {
+        support: 'Help Center',
+        docs: 'Documentation',
+        contact: 'Contact Support',
+        status: 'System Status',
+        terms: 'Terms of Use',
+        privacy: 'Privacy Policy',
+        cookies: 'Cookie Policy',
+        security: 'Security Reporting',
+    },
+} as const;
+
+function getPublicGroupLabel(title: string, language: 'th' | 'en') {
+    return PUBLIC_GROUP_LABELS[language][title as keyof typeof PUBLIC_GROUP_LABELS.th] ?? title;
+}
+
+function getPublicLinkLabel(link: { href: string; label: string; icon?: string }, language: 'th' | 'en') {
+    const labels = PUBLIC_LINK_LABELS[language];
+
+    if (link.href === '/support') return labels.support;
+    if (link.href === '/docs') return labels.docs;
+    if (link.href === '/support/contact') return labels.contact;
+    if (link.href === '/terms') return labels.terms;
+    if (link.href === '/privacy') return labels.privacy;
+    if (link.href === '/cookies') return labels.cookies;
+    if (link.href === '/security') return labels.security;
+    if (link.icon === 'solar:server-path-bold') return labels.status;
+
+    return link.label;
+}
+
 function SidebarNav({ pathname, onLinkClick }: { pathname: string; onLinkClick?: () => void }) {
+    const t = useI18n();
+    const { language } = useGlobalSettings();
+
     return (
-        <nav aria-label="Help Center navigation" className="space-y-7">
+        <nav aria-label={t('helpCenterNavigation')} className="space-y-7">
             {publicFooterGroups.map((group) => (
                 <div key={group.title}>
                     <p className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-widest text-slate-400">
-                        {group.title}
+                        {getPublicGroupLabel(group.title, language)}
                     </p>
                     <ul className="space-y-0.5">
                         {group.links.map((link) => {
@@ -52,7 +110,7 @@ function SidebarNav({ pathname, onLinkClick }: { pathname: string; onLinkClick?:
                                                 className={`shrink-0 text-base ${isActive ? 'text-blue-500' : 'text-slate-400'}`}
                                             />
                                         ) : null}
-                                        <span className="leading-5">{link.label}</span>
+                                        <span className="leading-5">{getPublicLinkLabel(link, language)}</span>
                                         {isActive ? (
                                             <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
                                         ) : null}
@@ -74,15 +132,18 @@ export function PublicPageShell({
     description,
     icon,
     backHref = '/',
-    backLabel = 'กลับหน้าหลัก',
+    backLabel,
     actions,
     heroPanel,
     children,
 }: PublicPageShellProps) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const pathname = usePathname();
+    const t = useI18n();
+    const { language } = useGlobalSettings();
 
     const isLanding = variant === 'landing';
+    const resolvedBackLabel = backLabel ?? t('goHome');
 
     return (
         <div className="min-h-screen bg-white">
@@ -95,7 +156,7 @@ export function PublicPageShell({
                         <button
                             className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 lg:hidden"
                             onClick={() => setSidebarOpen(true)}
-                            aria-label="เปิดเมนูนำทาง"
+                            aria-label={t('openNavigationMenu')}
                         >
                             <Icon icon="solar:hamburger-menu-bold" className="text-xl" />
                         </button>
@@ -107,7 +168,7 @@ export function PublicPageShell({
                             <Icon icon="solar:question-circle-bold" className="text-sm" />
                         </span>
                         <span className={`text-sm font-semibold ${isLanding ? 'text-white' : 'text-slate-900'}`}>
-                            Help Center
+                            {t('helpCenter')}
                         </span>
                     </Link>
 
@@ -132,7 +193,7 @@ export function PublicPageShell({
                                             : 'text-slate-400 hover:text-white'
                                     }`}
                                 >
-                                    {link.label}
+                                    {getPublicLinkLabel(link, language)}
                                 </Link>
                             ))}
                         </nav>
@@ -195,12 +256,12 @@ export function PublicPageShell({
                                         <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-white">
                                             <Icon icon="solar:question-circle-bold" className="text-sm" />
                                         </span>
-                                        <span className="text-sm font-semibold">Help Center</span>
+                                        <span className="text-sm font-semibold">{t('helpCenter')}</span>
                                     </Link>
                                     <button
                                         className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100"
                                         onClick={() => setSidebarOpen(false)}
-                                        aria-label="ปิดเมนู"
+                                        aria-label={t('closeMenu')}
                                     >
                                         <Icon icon="solar:close-circle-bold" className="text-xl" />
                                     </button>
@@ -229,7 +290,7 @@ export function PublicPageShell({
                                     className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-900"
                                 >
                                     <Icon icon="solar:alt-arrow-left-linear" className="text-base" />
-                                    {backLabel}
+                                    {resolvedBackLabel}
                                 </Link>
 
                                 {/* Page header */}

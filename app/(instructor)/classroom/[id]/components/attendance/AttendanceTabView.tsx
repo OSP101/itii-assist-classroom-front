@@ -8,6 +8,7 @@
 import React, { memo } from "react";
 import { Button } from "@heroui/button";
 import { Icon } from "@iconify/react";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 
 import {
     type Course,
@@ -61,11 +62,14 @@ const Header = memo(function Header({
     canCreateAttendanceSessions = false,
     canLaunchAttendanceDisplay = false,
 }: HeaderProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
+
     return (
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-                <h2 className="text-lg font-semibold text-foreground">การเช็คชื่อเข้าเรียน</h2>
-                <p className="text-sm text-default-500">จัดการรอบการเช็คชื่อและดูสถิติการเข้าเรียน</p>
+                <h2 className="text-lg font-semibold text-foreground">{isEnglish ? "Attendance" : "การเช็คชื่อเข้าเรียน"}</h2>
+                <p className="text-sm text-default-500">{isEnglish ? "Manage attendance sessions and view attendance statistics" : "จัดการรอบการเช็คชื่อและดูสถิติการเข้าเรียน"}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
                 {canLaunchAttendanceDisplay && (
@@ -74,7 +78,7 @@ const Header = memo(function Header({
                         startContent={<Icon icon="solar:monitor-smartphone-bold" />}
                         onPress={() => window.open("/d", "_blank", "noopener,noreferrer")}
                     >
-                        เปิดหน้าจอเช็คชื่อ
+                        {isEnglish ? "Open attendance display" : "เปิดหน้าจอเช็คชื่อ"}
                     </Button>
                 )}
                 {canCreateAttendanceSessions && (
@@ -85,7 +89,7 @@ const Header = memo(function Header({
                         isDisabled={!isCourseActive}
                         className="bg-linear-to-r from-blue-400 to-indigo-500"
                     >
-                        สร้างรอบเช็คชื่อ
+                        {isEnglish ? "Create attendance session" : "สร้างรอบเช็คชื่อ"}
                     </Button>
                 )}
             </div>

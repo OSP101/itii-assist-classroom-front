@@ -156,15 +156,15 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
         setUser(result.user);
         setShowConfirmPasswordModal(false);
         addToast({
-          title: "สำเร็จ",
-          description: "อัปเดตโปรไฟล์เรียบร้อยแล้ว",
+          title: t("success"),
+          description: t("profileUpdated"),
           color: "success",
           timeout: 3000,
                 shouldShowTimeoutProgress: true,
         });
       } else {
         // Throw error to show in modal
-        throw new Error(result.error || "ไม่สามารถอัปเดตโปรไฟล์ได้");
+        throw new Error(result.error || t("unableToUpdateProfile"));
       }
     } catch (error) {
       console.error("Update profile error:", error);
@@ -172,11 +172,11 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error("ไม่สามารถอัปเดตโปรไฟล์ได้");
+      throw new Error(t("unableToUpdateProfile"));
     } finally {
       setIsSaving(false);
     }
-  }, [user, fullName, email]);
+  }, [user, fullName, email, t]);
 
   // Handle avatar upload
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -186,8 +186,8 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
     // Validate file type
     if (!file.type.startsWith('image/')) {
       addToast({
-        title: "ไฟล์ไม่ถูกต้อง",
-        description: "กรุณาเลือกไฟล์รูปภาพ",
+        title: t("invalidFileType"),
+        description: t("pleaseSelectImageFileOnly"),
         color: "danger",
         timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -198,8 +198,8 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
     // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
       addToast({
-        title: "ไฟล์ใหญ่เกินไป",
-        description: "ขนาดไฟล์ต้องไม่เกิน 5MB",
+        title: t("fileTooLarge"),
+        description: t("chooseFileUpTo5Mb"),
         color: "danger",
         timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -213,16 +213,16 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
       if (result.success && result.avatar) {
         setUser(prev => prev ? { ...prev, avatar: result.avatar! } : null);
         addToast({
-          title: "สำเร็จ",
-          description: "อัปโหลดรูปโปรไฟล์เรียบร้อยแล้ว",
+          title: t("success"),
+          description: t("avatarUploaded"),
           color: "success",
           timeout: 3000,
                 shouldShowTimeoutProgress: true,
         });
       } else {
         addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: result.error || "ไม่สามารถอัปโหลดรูปภาพได้",
+          title: t("somethingWentWrong"),
+          description: result.error || t("unableToUploadImage"),
           color: "danger",
           timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -231,8 +231,8 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
     } catch (error) {
       console.error("Avatar upload error:", error);
       addToast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถอัปโหลดรูปภาพได้",
+        title: t("somethingWentWrong"),
+        description: t("unableToUploadImage"),
         color: "danger",
         timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -254,16 +254,16 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
       if (result.success) {
         setUser(prev => prev ? { ...prev, avatar: null } : null);
         addToast({
-          title: "สำเร็จ",
-          description: "ลบรูปโปรไฟล์เรียบร้อยแล้ว",
+          title: t("success"),
+          description: t("avatarRemoved"),
           color: "success",
           timeout: 3000,
                 shouldShowTimeoutProgress: true,
         });
       } else {
         addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: result.error || "ไม่สามารถลบรูปภาพได้",
+          title: t("somethingWentWrong"),
+          description: result.error || t("unableToRemoveImage"),
           color: "danger",
           timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -295,16 +295,16 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
         setShowRevokeSessionModal(false);
         setSelectedSession(null);
         addToast({
-          title: "สำเร็จ",
-          description: "ยกเลิกการเข้าสู่ระบบเรียบร้อยแล้ว",
+          title: t("success"),
+          description: t("sessionRevoked"),
           color: "success",
           timeout: 3000,
                 shouldShowTimeoutProgress: true,
         });
       } else {
         addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: result.error || "ไม่สามารถยกเลิกได้",
+          title: t("somethingWentWrong"),
+          description: result.error || t("unableToRevokeSession"),
           color: "danger",
           timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -325,17 +325,18 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
       if (result.success) {
         await loadSessions();
         setShowRevokeAllModal(false);
+        const revokedCount = result.revokedCount ?? 0;
         addToast({
-          title: "สำเร็จ",
-          description: `ยกเลิกการเข้าสู่ระบบ ${result.revokedCount} เซสชันเรียบร้อยแล้ว`,
+          title: t("success"),
+          description: t("sessionsRevokedCount", { count: revokedCount }),
           color: "success",
           timeout: 3000,
                 shouldShowTimeoutProgress: true,
         });
       } else {
         addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: result.error || "ไม่สามารถยกเลิกได้",
+          title: t("somethingWentWrong"),
+          description: result.error || t("unableToRevokeSession"),
           color: "danger",
           timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -350,12 +351,12 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
 
   const getRoleBadge = useCallback((role: string) => {
     const config: Record<string, { color: "primary" | "secondary" | "success" | "warning" | "danger"; label: string }> = {
-      admin: { color: "danger", label: "ผู้ดูแลระบบ" },
-      instructor: { color: "primary", label: "อาจารย์" },
-      ta: { color: "success", label: "ผู้ช่วยสอน (TA)" },
+      admin: { color: "danger", label: t("roleAdmin") },
+      instructor: { color: "primary", label: t("roleInstructor") },
+      ta: { color: "success", label: t("roleTa") },
     };
     return config[role] || { color: "secondary" as const, label: role };
-  }, []);
+  }, [t]);
 
   if (isLoadingUser) {
     return (
@@ -499,19 +500,19 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
             <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
               <Icon icon="solar:logout-3-bold" className="text-xl text-white" />
             </div>
-            <span>ยืนยันการออกจากระบบ</span>
+            <span>{t("signOutEverywhereTitle")}</span>
           </ModalHeader>
           <ModalBody>
             <p className="text-default-600">
-              คุณต้องการออกจากระบบทุกอุปกรณ์ยกเว้นอุปกรณ์นี้หรือไม่? การกระทำนี้จะทำให้อุปกรณ์อื่นๆ ต้องเข้าสู่ระบบใหม่
+              {t("signOutEverywhereDescription")}
             </p>
           </ModalBody>
           <ModalFooter>
             <Button variant="light" onPress={() => setShowRevokeAllModal(false)}>
-              ยกเลิก
+              {t("cancel")}
             </Button>
             <Button color="primary" onPress={handleRevokeAllSessions} isLoading={isRevokingAll} className="bg-linear-to-r from-blue-400 to-indigo-500 text-white">
-              ออกจากระบบทั้งหมด
+              {t("signOutAllDevices")}
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -532,17 +533,17 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
             <div className="p-2 bg-linear-to-br from-red-500 to-red-500 rounded-lg shadow-lg shadow-rose-500/30">
               <Icon icon="solar:logout-2-bold" className="text-xl text-white" />
             </div>
-            <span>ยืนยันการออกจากระบบอุปกรณ์นี้</span>
+            <span>{t("signOutThisDeviceTitle")}</span>
           </ModalHeader>
           <ModalBody>
             <p className="text-default-600">
-              คุณต้องการบังคับให้อุปกรณ์ที่เลือกออกจากระบบใช่หรือไม่?
+              {t("signOutThisDeviceDescription")}
             </p>
             {selectedSession && (
               <div className="mt-2 rounded-lg border border-default-200 bg-default-50 p-3 text-sm text-default-600 space-y-1">
-                <p><span className="font-medium text-default-800">ระบบปฏิบัติการ:</span> {selectedSession.os}</p>
-                <p><span className="font-medium text-default-800">เบราว์เซอร์:</span> {selectedSession.browser}</p>
-                <p><span className="font-medium text-default-800">IP:</span> {selectedSession.ip}</p>
+                <p><span className="font-medium text-default-800">{t("operatingSystem")}:</span> {selectedSession.os}</p>
+                <p><span className="font-medium text-default-800">{t("browserName")}:</span> {selectedSession.browser}</p>
+                <p><span className="font-medium text-default-800">{t("ipAddress")}:</span> {selectedSession.ip}</p>
               </div>
             )}
           </ModalBody>
@@ -555,14 +556,14 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
               }}
               isDisabled={!!revokingSessionId}
             >
-              ยกเลิก
+              {t("cancel")}
             </Button>
             <Button
               color="danger"
               onPress={handleRevokeSession}
               isLoading={!!revokingSessionId}
             >
-              ออกจากระบบเครื่องนี้
+              {t("signOutThisDevice")}
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -579,8 +580,8 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
         isOpen={showConfirmPasswordModal}
         onClose={() => setShowConfirmPasswordModal(false)}
         onConfirm={handleConfirmUpdateProfile}
-        title="ยืนยันการบันทึก"
-        description="กรุณากรอกรหัสผ่านปัจจุบันเพื่อยืนยันการบันทึกข้อมูลส่วนตัว"
+        title={t("confirmSaveProfile")}
+        description={t("confirmSaveProfileDescription")}
         isLoading={isSaving}
       />
     </div>

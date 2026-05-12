@@ -12,6 +12,7 @@ import { Tooltip } from "@heroui/tooltip";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { ScoresSkeleton } from "../Skeletons";
 import examScoreService, { 
     ExamSetting, 
@@ -22,6 +23,31 @@ import examScoreService, {
     getExamName,
     parseExcelData
 } from "@/services/examScore.service";
+
+function formatCount(count: number, singular: string, plural: string): string {
+    return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function getBulkStatusText(
+    status: "valid" | "not_found" | "score_exceeds" | "invalid_score" | "negative_score",
+    isEnglish: boolean,
+    maxScore?: number,
+): string {
+    switch (status) {
+        case "valid":
+            return isEnglish ? "Valid" : "ถูกต้อง";
+        case "not_found":
+            return isEnglish ? "Student not found" : "ไม่พบนักศึกษา";
+        case "score_exceeds":
+            return isEnglish ? `Exceeds max score (${maxScore ?? 0})` : `เกินคะแนนเต็ม (${maxScore ?? 0})`;
+        case "invalid_score":
+            return isEnglish ? "Invalid score" : "คะแนนไม่ถูกต้อง";
+        case "negative_score":
+            return isEnglish ? "Score cannot be negative" : "คะแนนต้องไม่ติดลบ";
+        default:
+            return "-";
+    }
+}
 
 interface ExamScoresTabProps {
     courseId: string;
@@ -44,6 +70,9 @@ export default function ExamScoresTab({
     canUpdateExamScores = false,
     canUpdateExamSettings = false,
 }: ExamScoresTabProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
+
     // State
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -97,12 +126,16 @@ export default function ExamScoresTab({
             setScoreMap(map);
         } catch (error) {
             console.error("Failed to load exam data:", error);
-            addToast({ title: "ไม่สามารถโหลดข้อมูลได้", color: "danger",timeout: 3000,
-                shouldShowTimeoutProgress: true, });
+            addToast({
+                title: isEnglish ? "Unable to load exam data" : "ไม่สามารถโหลดข้อมูลได้",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
         } finally {
             setIsLoading(false);
         }
-    }, [courseId]);
+    }, [courseId, isEnglish]);
 
     useEffect(() => {
         loadData();
@@ -131,21 +164,33 @@ export default function ExamScoresTab({
         
         const score = scoreValue === "" ? null : parseFloat(scoreValue);
         if (scoreValue !== "" && isNaN(score as number)) {
-            addToast({ title: "คะแนนไม่ถูกต้อง", color: "danger",timeout: 3000,
-                shouldShowTimeoutProgress: true, });
+            addToast({
+                title: isEnglish ? "Invalid score" : "คะแนนไม่ถูกต้อง",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
             return;
         }
 
         // Check if score exceeds max_score
         const setting = settings.find(s => s.id === settingId);
         if (setting && score !== null && score > setting.max_score) {
-            addToast({ title: `คะแนนเกินคะแนนเต็ม (${setting.max_score})`, color: "danger",timeout: 3000,
-                shouldShowTimeoutProgress: true, });
+            addToast({
+                title: isEnglish ? `Score exceeds max score (${setting.max_score})` : `คะแนนเกินคะแนนเต็ม (${setting.max_score})`,
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
             return;
         }
         if (score !== null && score < 0) {
-            addToast({ title: "คะแนนต้องไม่ติดลบ", color: "danger",timeout: 3000,
-                shouldShowTimeoutProgress: true, });
+            addToast({
+                title: isEnglish ? "Score cannot be negative" : "คะแนนต้องไม่ติดลบ",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
             return;
         }
 
@@ -166,9 +211,19 @@ export default function ExamScoresTab({
                 },
             }));
             setEditingScore(null);
-            addToast({ title: "บันทึกคะแนนสำเร็จ", color: "success", timeout: 3000, shouldShowTimeoutProgress: true });
+            addToast({
+                title: isEnglish ? "Score saved" : "บันทึกคะแนนสำเร็จ",
+                color: "success",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
         } catch (error: any) {
-            addToast({ title: error?.response?.data?.message || "ไม่สามารถบันทึกได้", color: "danger", timeout: 3000, shouldShowTimeoutProgress: true });
+            addToast({
+                title: isEnglish ? "Unable to save the score" : (error?.response?.data?.message || "ไม่สามารถบันทึกได้"),
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
         } finally {
             setIsSaving(false);
         }
@@ -239,7 +294,12 @@ export default function ExamScoresTab({
         // Get only valid items
         const validItems = parsedBulkData.filter(p => p.status === "valid" && p.matchedStudent);
         if (validItems.length === 0) {
-            addToast({ title: "ไม่มีข้อมูลที่ถูกต้อง กรุณาตรวจสอบข้อมูล", color: "danger", timeout: 3000, shouldShowTimeoutProgress: true });
+            addToast({
+                title: isEnglish ? "No valid rows found. Please review the data." : "ไม่มีข้อมูลที่ถูกต้อง กรุณาตรวจสอบข้อมูล",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
             return;
         }
 
@@ -255,9 +315,21 @@ export default function ExamScoresTab({
                 scores,
             });
 
-            addToast({ title: "สำเร็จ", description: result.message || `บันทึกคะแนน ${result.saved} รายการสำเร็จ`, color: "success", timeout: 3000, shouldShowTimeoutProgress: true });
+            addToast({
+                title: isEnglish ? "Import complete" : "สำเร็จ",
+                description: isEnglish ? `Saved ${formatCount(result.saved, "row", "rows")}.` : (result.message || `บันทึกคะแนน ${result.saved} รายการสำเร็จ`),
+                color: "success",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
             if (result.errors.length > 0) {
-                addToast({ title: "เตือน", description: `มี ${result.errors.length} รายการที่ไม่สำเร็จ`, color: "warning", timeout: 3000, shouldShowTimeoutProgress: true });
+                addToast({
+                    title: isEnglish ? "Warning" : "เตือน",
+                    description: isEnglish ? `${formatCount(result.errors.length, "row", "rows")} failed to import.` : `มี ${result.errors.length} รายการที่ไม่สำเร็จ`,
+                    color: "warning",
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+                });
             }
 
             // Reload data
@@ -267,7 +339,12 @@ export default function ExamScoresTab({
             setBulkSettingId(null);
             setParsedBulkData([]);
         } catch (error: any) {
-            addToast({ title: error?.response?.data?.message || "ไม่สามารถนำเข้าได้", color: "danger", timeout: 3000, shouldShowTimeoutProgress: true });
+            addToast({
+                title: isEnglish ? "Unable to import scores" : (error?.response?.data?.message || "ไม่สามารถนำเข้าได้"),
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
         } finally {
             setIsBulkSaving(false);
         }
@@ -282,12 +359,22 @@ export default function ExamScoresTab({
                 const id = parseInt(idStr);
                 await examScoreService.updateExamSetting(courseId, id, data);
             }
-            addToast({ title: "บันทึกการตั้งค่าสำเร็จ", color: "success", timeout: 3000, shouldShowTimeoutProgress: true });
+            addToast({
+                title: isEnglish ? "Exam settings saved" : "บันทึกการตั้งค่าสำเร็จ",
+                color: "success",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
             await loadData();
             setIsSettingsModalOpen(false);
             setSettingsData({});
         } catch (error: any) {
-            addToast({ title: error?.response?.data?.message || "ไม่สามารถบันทึกได้", color: "danger", timeout: 3000, shouldShowTimeoutProgress: true });
+            addToast({
+                title: isEnglish ? "Unable to save exam settings" : (error?.response?.data?.message || "ไม่สามารถบันทึกได้"),
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
         } finally {
             setIsSaving(false);
         }
@@ -311,8 +398,8 @@ export default function ExamScoresTab({
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-lg font-semibold text-foreground">คะแนนสอบ</h2>
-                    <p className="text-sm text-default-500">จัดการคะแนนสอบกลางภาคและปลายภาค</p>
+                    <h2 className="text-lg font-semibold text-foreground">{isEnglish ? "Exam scores" : "คะแนนสอบ"}</h2>
+                    <p className="text-sm text-default-500">{isEnglish ? "Manage midterm and final exam scores." : "จัดการคะแนนสอบกลางภาคและปลายภาค"}</p>
                 </div>
                 <Button
                     className="font-medium bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-md hover:shadow-lg"
@@ -331,7 +418,7 @@ export default function ExamScoresTab({
                         setIsSettingsModalOpen(true);
                     }}
                 >
-                    ตั้งค่าการสอบ
+                    {isEnglish ? "Exam settings" : "ตั้งค่าการสอบ"}
                 </Button>
             </div>
 
@@ -342,9 +429,9 @@ export default function ExamScoresTab({
                         <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-linear-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
                             <Icon icon="solar:document-add-bold-duotone" className="text-5xl text-blue-500" />
                         </div>
-                        <h3 className="mb-2 text-lg font-semibold text-default-700">ยังไม่เปิดใช้งานการสอบ</h3>
+                        <h3 className="mb-2 text-lg font-semibold text-default-700">{isEnglish ? "Exam scoring is not enabled yet" : "ยังไม่เปิดใช้งานการสอบ"}</h3>
                         <p className="mx-auto mb-6 max-w-md text-default-500">
-                            กดปุ่ม "ตั้งค่าการสอบ" เพื่อเปิดใช้งานและกำหนดคะแนนเต็มของแต่ละการสอบ
+                            {isEnglish ? "Click \"Exam settings\" to enable exam components and set the maximum score for each exam." : "กดปุ่ม \"ตั้งค่าการสอบ\" เพื่อเปิดใช้งานและกำหนดคะแนนเต็มของแต่ละการสอบ"}
                         </p>
                     </CardBody>
                 </Card>
@@ -367,7 +454,7 @@ export default function ExamScoresTab({
                             title={
                                 <div className="flex items-center gap-2">
                                     <Icon icon="solar:notebook-bold" className="text-lg" />
-                                    <span>สอบกลางภาค</span>
+                                    <span>{isEnglish ? "Midterm" : "สอบกลางภาค"}</span>
                                 </div>
                             }
                         />
@@ -376,7 +463,7 @@ export default function ExamScoresTab({
                             title={
                                 <div className="flex items-center gap-2">
                                     <Icon icon="solar:diploma-bold" className="text-lg" />
-                                    <span>สอบปลายภาค</span>
+                                    <span>{isEnglish ? "Final" : "สอบปลายภาค"}</span>
                                 </div>
                             }
                         />
@@ -387,7 +474,7 @@ export default function ExamScoresTab({
                         <CardBody className="py-3 px-4">
                             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                                 <Input
-                                    placeholder="ค้นหารหัสหรือชื่อนักศึกษา..."
+                                    placeholder={isEnglish ? "Search by student ID or name..." : "ค้นหารหัสหรือชื่อนักศึกษา..."}
                                     value={searchQuery}
                                     onValueChange={setSearchQuery}
                                     startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
@@ -398,7 +485,7 @@ export default function ExamScoresTab({
                                 />
                                 <div className="flex items-center gap-2">
                                     <Chip size="md" variant="flat" className="bg-content3 text-default-600">
-                                        {filteredStudents.length} คน
+                                        {isEnglish ? formatCount(filteredStudents.length, "student", "students") : `${filteredStudents.length} คน`}
                                     </Chip>
                                 </div>
                             </div>
@@ -444,7 +531,9 @@ export default function ExamScoresTab({
                                                 </div>
                                                 <div className="text-foreground">
                                                     <p className="font-bold text-lg">
-                                                        {setting.component === 'lab' ? 'ปฏิบัติการ (Lab)' : 'บรรยาย (Lecture)'}
+                                                        {setting.component === 'lab'
+                                                            ? (isEnglish ? 'Lab component' : 'ปฏิบัติการ (Lab)')
+                                                            : (isEnglish ? 'Lecture component' : 'บรรยาย (Lecture)')}
                                                     </p>
                                                     {/* <p className="text-sm text-white/80">
                                                         Max {setting.max_score} คะแนน
@@ -461,7 +550,7 @@ export default function ExamScoresTab({
                                                     setIsBulkModalOpen(true);
                                                 }}
                                             >
-                                                ดึงจาก Excel
+                                                {isEnglish ? "Import from Excel" : "ดึงจาก Excel"}
                                             </Button>
                                         </div>
                                     </CardHeader>
@@ -474,7 +563,7 @@ export default function ExamScoresTab({
                                                     <Icon icon="solar:calculator-bold" className="text-white text-lg" />
                                                 </div> */}
                                                 <div>
-                                                    <p className="text-sm font-medium uppercase tracking-wide text-blue-700 dark:text-blue-200">คะแนนเฉลี่ย</p>
+                                                    <p className="text-sm font-medium uppercase tracking-wide text-blue-700 dark:text-blue-200">{isEnglish ? "Average" : "คะแนนเฉลี่ย"}</p>
                                                     <p className="text-base font-bold text-blue-950 dark:text-blue-50">{avgScore}</p>
                                                 </div>
                                             </div>
@@ -483,7 +572,7 @@ export default function ExamScoresTab({
                                                     <Icon icon="solar:arrow-up-bold" className="text-white text-lg" />
                                                 </div> */}
                                                 <div>
-                                                    <p className="text-sm font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-200">คะแนนสูงสุด</p>
+                                                    <p className="text-sm font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-200">{isEnglish ? "Highest" : "คะแนนสูงสุด"}</p>
                                                     <p className="text-base font-bold text-emerald-950 dark:text-emerald-50">{highScore}</p>
                                                 </div>
                                             </div>
@@ -492,7 +581,7 @@ export default function ExamScoresTab({
                                                     <Icon icon="solar:arrow-down-bold" className="text-white text-lg" />
                                                 </div> */}
                                                 <div>
-                                                    <p className="text-sm font-medium uppercase tracking-wide text-orange-700 dark:text-orange-200">คะแนนต่ำสุด</p>
+                                                    <p className="text-sm font-medium uppercase tracking-wide text-orange-700 dark:text-orange-200">{isEnglish ? "Lowest" : "คะแนนต่ำสุด"}</p>
                                                     <p className="text-base font-bold text-orange-950 dark:text-orange-50">{lowScore}</p>
                                                 </div>
                                             </div>
@@ -501,7 +590,7 @@ export default function ExamScoresTab({
                                                     <Icon icon="solar:star-bold" className="text-white text-lg" />
                                                 </div> */}
                                                 <div>
-                                                    <p className="text-sm font-medium uppercase tracking-wide text-violet-700 dark:text-violet-200">คะแนนเต็ม</p>
+                                                    <p className="text-sm font-medium uppercase tracking-wide text-violet-700 dark:text-violet-200">{isEnglish ? "Max score" : "คะแนนเต็ม"}</p>
                                                     <p className="text-base font-bold text-violet-950 dark:text-violet-50">{setting.max_score}</p>
                                                 </div>
                                             </div>
@@ -514,16 +603,16 @@ export default function ExamScoresTab({
                                         {/* Table Header - sticky top */}
                                         <div className="sticky top-0 z-20 flex items-center border-b border-divider bg-content1">
                                             <div className="shrink-0 w-32 px-3 py-3 text-xs font-semibold uppercase tracking-wider text-default-500">
-                                                รหัสนักศึกษา
+                                                {isEnglish ? "Student ID" : "รหัสนักศึกษา"}
                                             </div>
                                             <div className="min-w-35 flex-1 px-3 py-3 text-xs font-semibold uppercase tracking-wider text-default-500">
-                                                ชื่อ-นามสกุล
+                                                {isEnglish ? "Student name" : "ชื่อ-นามสกุล"}
                                             </div>
                                             <div className="shrink-0 w-20 px-3 py-3 text-center text-xs font-semibold uppercase tracking-wider text-default-500">
                                                 Section
                                             </div>
                                             <div className="sticky right-0 z-30 shrink-0 w-32 bg-content1 px-3 py-3 text-right text-xs font-semibold uppercase tracking-wider text-default-500 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.28)]">
-                                                คะแนน
+                                                {isEnglish ? "Score" : "คะแนน"}
                                             </div>
                                         </div>
 
@@ -635,7 +724,7 @@ export default function ExamScoresTab({
 
                                         {filteredStudents.length === 0 && (
                                             <div className="py-8 text-center text-default-500">
-                                                ไม่พบนักศึกษา
+                                                {isEnglish ? "No students found" : "ไม่พบนักศึกษา"}
                                             </div>
                                         )}
                                       </div>
@@ -650,10 +739,12 @@ export default function ExamScoresTab({
                             <CardBody className="text-center py-12">
                                 <Icon icon="solar:document-text-linear" className="mx-auto mb-3 text-4xl text-default-300" />
                                 <p className="text-default-500">
-                                    ยังไม่เปิดใช้งานสอบ{activeTab === 'midterm' ? 'กลางภาค' : 'ปลายภาค'}
+                                    {isEnglish
+                                        ? `${activeTab === 'midterm' ? 'Midterm' : 'Final'} exam scoring is not enabled`
+                                        : `ยังไม่เปิดใช้งานสอบ${activeTab === 'midterm' ? 'กลางภาค' : 'ปลายภาค'}`}
                                 </p>
                                 <p className="mt-1 text-sm text-default-400">
-                                    กดปุ่ม "ตั้งค่าการสอบ" เพื่อเปิดใช้งาน
+                                    {isEnglish ? 'Click "Exam settings" to enable it.' : 'กดปุ่ม "ตั้งค่าการสอบ" เพื่อเปิดใช้งาน'}
                                 </p>
                             </CardBody>
                         </Card>
@@ -678,9 +769,9 @@ export default function ExamScoresTab({
                             <Icon icon="solar:import-bold" className="text-xl text-white" />
                         </div>
                         <div>
-                            <h3 className="text-lg font-semibold">นำเข้าคะแนนจาก Excel</h3>
+                            <h3 className="text-lg font-semibold">{isEnglish ? "Import scores from Excel" : "นำเข้าคะแนนจาก Excel"}</h3>
                             <p className="text-sm font-normal text-default-500">
-                                คัดลอกข้อมูลจาก Excel แล้ววางในช่องด้านล่าง
+                                {isEnglish ? "Copy data from Excel and paste it into the field below." : "คัดลอกข้อมูลจาก Excel แล้ววางในช่องด้านล่าง"}
                             </p>
                         </div>
                     </ModalHeader>
@@ -689,16 +780,16 @@ export default function ExamScoresTab({
                         <div className="rounded-xl border border-default-200 bg-content2 p-4">
                             <div className="flex items-center gap-2 mb-3">
                                 <Icon icon="solar:info-circle-bold" className="text-blue-500" />
-                                <span className="text-sm font-medium text-default-700">รูปแบบข้อมูล</span>
+                                <span className="text-sm font-medium text-default-700">{isEnglish ? "Data format" : "รูปแบบข้อมูล"}</span>
                             </div>
-                            <p className="mb-3 text-sm text-default-600">คัดลอกข้อมูลจาก Excel โดยเรียงคอลัมน์ดังนี้:</p>
+                            <p className="mb-3 text-sm text-default-600">{isEnglish ? "Copy the Excel data in this column order:" : "คัดลอกข้อมูลจาก Excel โดยเรียงคอลัมน์ดังนี้:"}</p>
                             <div className="flex flex-wrap gap-2 mb-3">
-                                <Chip size="sm" variant="flat" className="bg-blue-100 text-blue-700">คอลัมน์ A: รหัสนักศึกษา</Chip>
-                                <Chip size="sm" variant="flat" className="bg-emerald-100 text-emerald-700">คอลัมน์ B: คะแนน</Chip>
+                                <Chip size="sm" variant="flat" className="bg-blue-100 text-blue-700">{isEnglish ? "Column A: Student ID" : "คอลัมน์ A: รหัสนักศึกษา"}</Chip>
+                                <Chip size="sm" variant="flat" className="bg-emerald-100 text-emerald-700">{isEnglish ? "Column B: Score" : "คอลัมน์ B: คะแนน"}</Chip>
                             </div>
                             <div className="flex items-start gap-2 text-xs text-default-500">
                                 <Icon icon="solar:lightbulb-bolt-bold" className="text-amber-500 mt-0.5" />
-                                <span>เมื่อคัดลอกจาก Excel แล้ววาง ระบบจะแยกข้อมูลอัตโนมัติ</span>
+                                <span>{isEnglish ? "After pasting from Excel, the system will split the data automatically." : "เมื่อคัดลอกจาก Excel แล้ววาง ระบบจะแยกข้อมูลอัตโนมัติ"}</span>
                             </div>
                         </div>
 
@@ -706,16 +797,16 @@ export default function ExamScoresTab({
                         <div className="rounded-xl border border-default-200 bg-content2 p-4">
                             <div className="flex items-center gap-2 mb-3">
                                 <Icon icon="solar:clipboard-list-bold" className="text-default-500" />
-                                <span className="text-sm font-medium text-default-700">ข้อมูลคะแนน</span>
+                                <span className="text-sm font-medium text-default-700">{isEnglish ? "Score data" : "ข้อมูลคะแนน"}</span>
                                 {bulkSettingId && settings.find(s => s.id === bulkSettingId) && (
                                     <Chip size="sm" variant="flat" className="bg-purple-100 text-purple-700 ml-auto">
-                                        คะแนนเต็ม: {settings.find(s => s.id === bulkSettingId)?.max_score}
+                                        {isEnglish ? "Max score" : "คะแนนเต็ม"}: {settings.find(s => s.id === bulkSettingId)?.max_score}
                                     </Chip>
                                 )}
                             </div>
                             <textarea
                                 className="h-40 w-full resize-none rounded-lg border border-default-200 bg-content1 p-3 font-mono text-sm text-foreground focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                placeholder="ตัวอย่าง: 650705010-1    85"
+                                placeholder={isEnglish ? "Example: 650705010-1    85" : "ตัวอย่าง: 650705010-1    85"}
                                 value={bulkData}
                                 onChange={(e) => {
                                     setBulkData(e.target.value);
@@ -730,17 +821,17 @@ export default function ExamScoresTab({
                                 {/* Summary Chips */}
                                 <div className="flex flex-wrap gap-2">
                                     <Chip size="sm" color="success" variant="flat" startContent={<Icon icon="solar:check-circle-bold" width={14} />}>
-                                        ถูกต้อง {parsedBulkData.filter(p => p.status === "valid").length}
+                                        {isEnglish ? `Valid ${parsedBulkData.filter(p => p.status === "valid").length}` : `ถูกต้อง ${parsedBulkData.filter(p => p.status === "valid").length}`}
                                     </Chip>
                                     <Chip size="sm" color="danger" variant="flat" startContent={<Icon icon="solar:user-cross-bold" width={14} />}>
-                                        ไม่พบรหัส {parsedBulkData.filter(p => p.status === "not_found").length}
+                                        {isEnglish ? `Not found ${parsedBulkData.filter(p => p.status === "not_found").length}` : `ไม่พบรหัส ${parsedBulkData.filter(p => p.status === "not_found").length}`}
                                     </Chip>
                                     <Chip size="sm" color="warning" variant="flat" startContent={<Icon icon="solar:danger-triangle-bold" width={14} />}>
-                                        คะแนนเกิน {parsedBulkData.filter(p => p.status === "score_exceeds").length}
+                                        {isEnglish ? `Exceeds max ${parsedBulkData.filter(p => p.status === "score_exceeds").length}` : `คะแนนเกิน ${parsedBulkData.filter(p => p.status === "score_exceeds").length}`}
                                     </Chip>
                                     {parsedBulkData.filter(p => p.status === "invalid_score" || p.status === "negative_score").length > 0 && (
                                         <Chip size="sm" color="danger" variant="flat" startContent={<Icon icon="solar:close-circle-bold" width={14} />}>
-                                            คะแนนไม่ถูกต้อง {parsedBulkData.filter(p => p.status === "invalid_score" || p.status === "negative_score").length}
+                                            {isEnglish ? `Invalid ${parsedBulkData.filter(p => p.status === "invalid_score" || p.status === "negative_score").length}` : `คะแนนไม่ถูกต้อง ${parsedBulkData.filter(p => p.status === "invalid_score" || p.status === "negative_score").length}`}
                                         </Chip>
                                     )}
                                 </div>
@@ -782,17 +873,10 @@ export default function ExamScoresTab({
                                                 {item.status === "valid" && item.matchedStudent && (
                                                     <span className="text-emerald-600">{item.matchedStudent.full_name}</span>
                                                 )}
-                                                {item.status === "not_found" && (
-                                                    <span className="text-red-600">ไม่พบนักศึกษา</span>
-                                                )}
-                                                {item.status === "score_exceeds" && (
-                                                    <span className="text-amber-600">เกินคะแนนเต็ม ({settings.find(s => s.id === bulkSettingId)?.max_score})</span>
-                                                )}
-                                                {item.status === "invalid_score" && (
-                                                    <span className="text-red-600">คะแนนไม่ถูกต้อง</span>
-                                                )}
-                                                {item.status === "negative_score" && (
-                                                    <span className="text-red-600">คะแนนต้องไม่ติดลบ</span>
+                                                {item.status !== "valid" && (
+                                                    <span className={item.status === "score_exceeds" ? "text-amber-600" : "text-red-600"}>
+                                                        {getBulkStatusText(item.status, isEnglish, settings.find(s => s.id === bulkSettingId)?.max_score)}
+                                                    </span>
                                                 )}
                                             </div>
                                         </div>
@@ -811,7 +895,7 @@ export default function ExamScoresTab({
                                 setParsedBulkData([]);
                             }}
                         >
-                            ยกเลิก
+                            {isEnglish ? "Cancel" : "ยกเลิก"}
                         </Button>
                         <Button 
                             color="primary"
@@ -821,7 +905,7 @@ export default function ExamScoresTab({
                             isDisabled={parsedBulkData.filter(p => p.status === "valid").length === 0}
                             startContent={!isBulkSaving && <Icon icon="solar:import-bold" />}
                         >
-                            นำเข้าข้อมูล
+                            {isEnglish ? "Import data" : "นำเข้าข้อมูล"}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -835,8 +919,8 @@ export default function ExamScoresTab({
                             <Icon icon="solar:settings-bold" className="text-xl text-white" />
                         </div>
                         <div>
-                            <h3 className="text-lg font-semibold">ตั้งค่าการสอบ</h3>
-                            <p className="text-sm font-normal text-default-500">กำหนดการเปิดใช้งาน คะแนนเต็ม และการแสดงผล</p>
+                            <h3 className="text-lg font-semibold">{isEnglish ? "Exam settings" : "ตั้งค่าการสอบ"}</h3>
+                            <p className="text-sm font-normal text-default-500">{isEnglish ? "Configure activation, maximum score, and visibility." : "กำหนดการเปิดใช้งาน คะแนนเต็ม และการแสดงผล"}</p>
                         </div>
                     </ModalHeader>
                     <ModalBody>
@@ -845,7 +929,7 @@ export default function ExamScoresTab({
                             <div>
                                 <h4 className="mb-3 flex items-center gap-2 font-medium text-default-700">
                                     <Icon icon="solar:notebook-bold" className="text-blue-500" />
-                                    สอบกลางภาค
+                                    {isEnglish ? "Midterm" : "สอบกลางภาค"}
                                 </h4>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     {(settings || []).filter(s => s.exam_type === 'midterm').map(setting => (
@@ -857,7 +941,7 @@ export default function ExamScoresTab({
                                                             icon={setting.component === 'lab' ? 'solar:monitor-bold' : 'solar:book-bold'}
                                                             className={setting.component === 'lab' ? 'text-emerald-500' : 'text-blue-500'}
                                                         />
-                                                        <span className="font-medium">{getComponentLabel(setting.component)}</span>
+                                                        <span className="font-medium">{getComponentLabel(setting.component, isEnglish)}</span>
                                                     </div>
                                                     <Switch
                                                         size="sm"
@@ -872,7 +956,7 @@ export default function ExamScoresTab({
                                                 <div className="space-y-3">
                                                     <Input
                                                         type="number"
-                                                        label="คะแนนเต็ม"
+                                                        label={isEnglish ? "Max score" : "คะแนนเต็ม"}
                                                         size="sm"
                                                         variant="bordered"
                                                         value={String(settingsData[setting.id]?.max_score ?? setting.max_score)}
@@ -891,7 +975,7 @@ export default function ExamScoresTab({
                                                         }))}
                                                         isDisabled={!isCourseActive || !canUpdateExamSettings || !settingsData[setting.id]?.is_active}
                                                     >
-                                                        <span className="text-sm">เปิดให้นักศึกษาดูคะแนน</span>
+                                                        <span className="text-sm">{isEnglish ? "Allow students to view scores" : "เปิดให้นักศึกษาดูคะแนน"}</span>
                                                     </Checkbox>
                                                 </div>
                                             </CardBody>
@@ -904,7 +988,7 @@ export default function ExamScoresTab({
                             <div>
                                 <h4 className="mb-3 flex items-center gap-2 font-medium text-default-700">
                                     <Icon icon="solar:notebook-bold" className="text-indigo-500" />
-                                    สอบปลายภาค
+                                    {isEnglish ? "Final" : "สอบปลายภาค"}
                                 </h4>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     {(settings || []).filter(s => s.exam_type === 'final').map(setting => (
@@ -916,7 +1000,7 @@ export default function ExamScoresTab({
                                                             icon={setting.component === 'lab' ? 'solar:monitor-bold' : 'solar:book-bold'}
                                                             className={setting.component === 'lab' ? 'text-emerald-500' : 'text-blue-500'}
                                                         />
-                                                        <span className="font-medium">{getComponentLabel(setting.component)}</span>
+                                                        <span className="font-medium">{getComponentLabel(setting.component, isEnglish)}</span>
                                                     </div>
                                                     <Switch
                                                         size="sm"
@@ -931,7 +1015,7 @@ export default function ExamScoresTab({
                                                 <div className="space-y-3">
                                                     <Input
                                                         type="number"
-                                                        label="คะแนนเต็ม"
+                                                        label={isEnglish ? "Max score" : "คะแนนเต็ม"}
                                                         size="sm"
                                                         variant="bordered"
                                                         value={String(settingsData[setting.id]?.max_score ?? setting.max_score)}
@@ -950,7 +1034,7 @@ export default function ExamScoresTab({
                                                         }))}
                                                         isDisabled={!isCourseActive || !canUpdateExamSettings || !settingsData[setting.id]?.is_active}
                                                     >
-                                                        <span className="text-sm">เปิดให้นักศึกษาดูคะแนน</span>
+                                                        <span className="text-sm">{isEnglish ? "Allow students to view scores" : "เปิดให้นักศึกษาดูคะแนน"}</span>
                                                     </Checkbox>
                                                 </div>
                                             </CardBody>
@@ -962,7 +1046,7 @@ export default function ExamScoresTab({
                     </ModalBody>
                     <ModalFooter>
                         <Button variant="light" onPress={() => setIsSettingsModalOpen(false)}>
-                            ยกเลิก
+                            {isEnglish ? "Cancel" : "ยกเลิก"}
                         </Button>
                         <Button 
                             color="primary" 
@@ -970,7 +1054,7 @@ export default function ExamScoresTab({
                             isLoading={isSaving}
                             isDisabled={!isCourseActive || !canUpdateExamSettings}
                         >
-                            บันทึก
+                            {isEnglish ? "Save" : "บันทึก"}
                         </Button>
                     </ModalFooter>
                 </ModalContent>

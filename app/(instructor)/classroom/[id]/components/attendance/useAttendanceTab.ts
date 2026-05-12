@@ -11,6 +11,7 @@ import { addToast } from "@heroui/toast";
 import { now, getLocalTimeZone, parseAbsolute, type DateValue } from "@internationalized/date";
 import attendanceService, { type AttendanceSession, type CreateAttendanceData, type TimeChangePreview, type SectionChangePreview } from "@/services/attendance.service";
 import { useSocket } from "@/contexts/SocketContext";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import {
     type Course,
     type AttendanceStats,
@@ -111,6 +112,8 @@ export function useAttendanceTab(
 ): UseAttendanceTabReturn {
     const router = useRouter();
     const { emitDataUpdate, onDataUpdate, subscribeToUpdates, unsubscribeFromUpdates } = useSocket();
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
 
     // ========================================================================
     // Memoized Values
@@ -270,8 +273,8 @@ export function useAttendanceTab(
         } catch (error) {
             console.error("Error fetching attendance sessions:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถโหลดข้อมูลการเช็คชื่อได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: isEnglish ? "Unable to load attendance data." : "ไม่สามารถโหลดข้อมูลการเช็คชื่อได้",
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -281,7 +284,7 @@ export function useAttendanceTab(
                 setIsSessionsLoading(false);
             }
         }
-    }, [course.id]);
+    }, [course.id, isEnglish]);
 
     // Initial fetch
     useEffect(() => {
@@ -419,8 +422,8 @@ export function useAttendanceTab(
     const handleCreateSession = useCallback(async () => {
         if (!formData.title.trim()) {
             addToast({
-                title: "กรุณากรอกข้อมูล",
-                description: "กรุณากรอกชื่อรอบการเช็คชื่อ",
+                title: isEnglish ? "Please complete the form" : "กรุณากรอกข้อมูล",
+                description: isEnglish ? "Please enter an attendance session title." : "กรุณากรอกชื่อรอบการเช็คชื่อ",
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -430,8 +433,8 @@ export function useAttendanceTab(
 
         if (!formData.course_section_ids || formData.course_section_ids.length === 0) {
             addToast({
-                title: "กรุณาเลือกกลุ่มเรียน",
-                description: "ต้องเลือกกลุ่มเรียนอย่างน้อย 1 กลุ่ม",
+                title: isEnglish ? "Select sections" : "กรุณาเลือกกลุ่มเรียน",
+                description: isEnglish ? "Please select at least one section." : "ต้องเลือกกลุ่มเรียนอย่างน้อย 1 กลุ่ม",
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -445,8 +448,8 @@ export function useAttendanceTab(
         const _lateDate  = lateThresholdTime.toDate(getLocalTimeZone());
         if (_endDate <= _startDate) {
             addToast({
-                title: "เวลาไม่ถูกต้อง",
-                description: "เวลาสิ้นสุดต้องมากกว่าเวลาเริ่มต้น",
+                title: isEnglish ? "Invalid time range" : "เวลาไม่ถูกต้อง",
+                description: isEnglish ? "End time must be later than start time." : "เวลาสิ้นสุดต้องมากกว่าเวลาเริ่มต้น",
                 color: "danger",
                 timeout: 4000,
                 shouldShowTimeoutProgress: true,
@@ -455,8 +458,8 @@ export function useAttendanceTab(
         }
         if (_lateDate < _startDate || _lateDate > _endDate) {
             addToast({
-                title: "เวลาตัดสายไม่ถูกต้อง",
-                description: "เวลาตัดสายต้องอยู่ระหว่างเวลาเริ่มต้นและสิ้นสุด",
+                title: isEnglish ? "Invalid late cutoff" : "เวลาตัดสายไม่ถูกต้อง",
+                description: isEnglish ? "Late cutoff time must be between the start and end time." : "เวลาตัดสายต้องอยู่ระหว่างเวลาเริ่มต้นและสิ้นสุด",
                 color: "danger",
                 timeout: 4000,
                 shouldShowTimeoutProgress: true,
@@ -485,8 +488,8 @@ export function useAttendanceTab(
             const result = await attendanceService.createSession(data);
             if (result) {
                 addToast({
-                    title: "สำเร็จ",
-                    description: "สร้างรอบการเช็คชื่อเรียบร้อยแล้ว",
+                    title: isEnglish ? "Success" : "สำเร็จ",
+                    description: isEnglish ? "Attendance session created successfully." : "สร้างรอบการเช็คชื่อเรียบร้อยแล้ว",
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -499,8 +502,8 @@ export function useAttendanceTab(
         } catch (error: unknown) {
             console.error("Error creating session:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error instanceof Error ? error.message : "ไม่สามารถสร้างรอบการเช็คชื่อได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: error instanceof Error ? error.message : (isEnglish ? "Unable to create the attendance session." : "ไม่สามารถสร้างรอบการเช็คชื่อได้"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -508,15 +511,15 @@ export function useAttendanceTab(
         } finally {
             setIsSubmitting(false);
         }
-    }, [formData, startDateTime, endDateTime, lateThresholdTime, lateThresholdMinutes, course.id, closeCreateModal, fetchSessions, emitDataUpdate, onAttendanceChanged]);
+    }, [formData, startDateTime, endDateTime, lateThresholdTime, lateThresholdMinutes, course.id, closeCreateModal, fetchSessions, emitDataUpdate, onAttendanceChanged, isEnglish]);
 
     const handleUpdateSession = useCallback(async () => {
         if (!editTarget) return;
 
         if (!formData.title.trim()) {
             addToast({
-                title: "กรุณากรอกข้อมูล",
-                description: "กรุณากรอกชื่อรอบการเช็คชื่อ",
+                title: isEnglish ? "Please complete the form" : "กรุณากรอกข้อมูล",
+                description: isEnglish ? "Please enter an attendance session title." : "กรุณากรอกชื่อรอบการเช็คชื่อ",
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -526,8 +529,8 @@ export function useAttendanceTab(
 
         if (!formData.course_section_ids || formData.course_section_ids.length === 0) {
             addToast({
-                title: "กรุณาเลือกกลุ่มเรียน",
-                description: "ต้องเลือกกลุ่มเรียนอย่างน้อย 1 กลุ่ม",
+                title: isEnglish ? "Select sections" : "กรุณาเลือกกลุ่มเรียน",
+                description: isEnglish ? "Please select at least one section." : "ต้องเลือกกลุ่มเรียนอย่างน้อย 1 กลุ่ม",
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -541,8 +544,8 @@ export function useAttendanceTab(
         const _lateDate  = lateThresholdTime.toDate(getLocalTimeZone());
         if (_endDate <= _startDate) {
             addToast({
-                title: "เวลาไม่ถูกต้อง",
-                description: "เวลาสิ้นสุดต้องมากกว่าเวลาเริ่มต้น",
+                title: isEnglish ? "Invalid time range" : "เวลาไม่ถูกต้อง",
+                description: isEnglish ? "End time must be later than start time." : "เวลาสิ้นสุดต้องมากกว่าเวลาเริ่มต้น",
                 color: "danger",
                 timeout: 4000,
                 shouldShowTimeoutProgress: true,
@@ -551,8 +554,8 @@ export function useAttendanceTab(
         }
         if (_lateDate < _startDate || _lateDate > _endDate) {
             addToast({
-                title: "เวลาตัดสายไม่ถูกต้อง",
-                description: "เวลาตัดสายต้องอยู่ระหว่างเวลาเริ่มต้นและสิ้นสุด",
+                title: isEnglish ? "Invalid late cutoff" : "เวลาตัดสายไม่ถูกต้อง",
+                description: isEnglish ? "Late cutoff time must be between the start and end time." : "เวลาตัดสายต้องอยู่ระหว่างเวลาเริ่มต้นและสิ้นสุด",
                 color: "danger",
                 timeout: 4000,
                 shouldShowTimeoutProgress: true,
@@ -664,8 +667,8 @@ export function useAttendanceTab(
             const result = await attendanceService.updateSession(editTarget.id, data);
             if (result) {
                 addToast({
-                    title: "สำเร็จ",
-                    description: "แก้ไขรอบการเช็คชื่อเรียบร้อยแล้ว",
+                    title: isEnglish ? "Success" : "สำเร็จ",
+                    description: isEnglish ? "Attendance session updated successfully." : "แก้ไขรอบการเช็คชื่อเรียบร้อยแล้ว",
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -677,8 +680,8 @@ export function useAttendanceTab(
         } catch (error: unknown) {
             console.error("Error updating session:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error instanceof Error ? error.message : "ไม่สามารถแก้ไขรอบการเช็คชื่อได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: error instanceof Error ? error.message : (isEnglish ? "Unable to update the attendance session." : "ไม่สามารถแก้ไขรอบการเช็คชื่อได้"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -686,7 +689,7 @@ export function useAttendanceTab(
         } finally {
             setIsSubmitting(false);
         }
-    }, [editTarget, formData, startDateTime, endDateTime, lateThresholdTime, lateThresholdMinutes, course.id, closeEditModal, fetchSessions, emitDataUpdate]);
+    }, [editTarget, formData, startDateTime, endDateTime, lateThresholdTime, lateThresholdMinutes, course.id, closeEditModal, fetchSessions, emitDataUpdate, isEnglish]);
 
     /**
      * Confirm and apply the time change after preview.
@@ -701,16 +704,16 @@ export function useAttendanceTab(
             if (result) {
                 const { impact } = result;
                 const parts: string[] = [];
-                if (impact.invalidated > 0) parts.push(`${impact.invalidated} ยกเลิก`);
-                if (impact.present_to_late > 0) parts.push(`${impact.present_to_late} เปลี่ยนเป็นสาย`);
-                if (impact.late_to_present > 0) parts.push(`${impact.late_to_present} เปลี่ยนเป็นตรงเวลา`);
-                if (impact.recovered > 0) parts.push(`${impact.recovered} กลับมาถูกต้อง`);
+                if (impact.invalidated > 0) parts.push(isEnglish ? `${impact.invalidated} invalidated` : `${impact.invalidated} ยกเลิก`);
+                if (impact.present_to_late > 0) parts.push(isEnglish ? `${impact.present_to_late} changed to late` : `${impact.present_to_late} เปลี่ยนเป็นสาย`);
+                if (impact.late_to_present > 0) parts.push(isEnglish ? `${impact.late_to_present} changed to on time` : `${impact.late_to_present} เปลี่ยนเป็นตรงเวลา`);
+                if (impact.recovered > 0) parts.push(isEnglish ? `${impact.recovered} restored` : `${impact.recovered} กลับมาถูกต้อง`);
 
                 addToast({
-                    title: "บันทึกเรียบร้อย",
+                    title: isEnglish ? "Saved" : "บันทึกเรียบร้อย",
                     description: parts.length > 0
-                        ? `แก้ไขเวลาและปรับปรุงสถานะ: ${parts.join(', ')}`
-                        : "แก้ไขรอบการเช็คชื่อเรียบร้อยแล้ว",
+                        ? (isEnglish ? `Updated the time and attendance statuses: ${parts.join(", ")}` : `แก้ไขเวลาและปรับปรุงสถานะ: ${parts.join(', ')}`)
+                        : (isEnglish ? "Attendance session updated successfully." : "แก้ไขรอบการเช็คชื่อเรียบร้อยแล้ว"),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -726,8 +729,8 @@ export function useAttendanceTab(
         } catch (error: unknown) {
             console.error("Error applying time change:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error instanceof Error ? error.message : "ไม่สามารถบันทึกการเปลี่ยนแปลงได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: error instanceof Error ? error.message : (isEnglish ? "Unable to save the time changes." : "ไม่สามารถบันทึกการเปลี่ยนแปลงได้"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -735,7 +738,7 @@ export function useAttendanceTab(
         } finally {
             setIsApplyingTimeChange(false);
         }
-    }, [editTarget, course.id, closeEditModal, fetchSessions, emitDataUpdate]);
+    }, [editTarget, course.id, closeEditModal, fetchSessions, emitDataUpdate, isEnglish]);
 
     const closeTimeChangePreview = useCallback(() => {
         setIsTimeChangePreviewOpen(false);
@@ -758,8 +761,8 @@ export function useAttendanceTab(
             const result = await attendanceService.updateSession(editTarget.id, pendingUpdateDataRef.current);
             if (result) {
                 addToast({
-                    title: "สำเร็จ",
-                    description: "แก้ไขรอบการเช็คชื่อเรียบร้อยแล้ว",
+                    title: isEnglish ? "Success" : "สำเร็จ",
+                    description: isEnglish ? "Attendance session updated successfully." : "แก้ไขรอบการเช็คชื่อเรียบร้อยแล้ว",
                     color: "success",
                     timeout: 3000,
                     shouldShowTimeoutProgress: true,
@@ -772,8 +775,8 @@ export function useAttendanceTab(
         } catch (error: unknown) {
             console.error("Error updating session after section change confirmation:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error instanceof Error ? error.message : "ไม่สามารถแก้ไขรอบการเช็คชื่อได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: error instanceof Error ? error.message : (isEnglish ? "Unable to update the attendance session." : "ไม่สามารถแก้ไขรอบการเช็คชื่อได้"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -781,7 +784,7 @@ export function useAttendanceTab(
         } finally {
             setIsSubmitting(false);
         }
-    }, [editTarget, course.id, closeEditModal, fetchSessions, emitDataUpdate, closeSectionChangePreview]);
+    }, [editTarget, course.id, closeEditModal, fetchSessions, emitDataUpdate, closeSectionChangePreview, isEnglish]);
 
     const handleDeleteSession = useCallback(async () => {
         if (!deleteTarget) return;
@@ -791,8 +794,8 @@ export function useAttendanceTab(
             const success = await attendanceService.deleteSession(deleteTarget.id);
             if (success) {
                 addToast({
-                    title: "สำเร็จ",
-                    description: "ลบรอบการเช็คชื่อเรียบร้อยแล้ว",
+                    title: isEnglish ? "Success" : "สำเร็จ",
+                    description: isEnglish ? "Attendance session deleted successfully." : "ลบรอบการเช็คชื่อเรียบร้อยแล้ว",
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -805,8 +808,8 @@ export function useAttendanceTab(
         } catch (error: unknown) {
             console.error("Error deleting session:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error instanceof Error ? error.message : "ไม่สามารถลบรอบการเช็คชื่อได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: error instanceof Error ? error.message : (isEnglish ? "Unable to delete the attendance session." : "ไม่สามารถลบรอบการเช็คชื่อได้"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -814,7 +817,7 @@ export function useAttendanceTab(
         } finally {
             setIsSubmitting(false);
         }
-    }, [deleteTarget, closeDeleteModal, fetchSessions, emitDataUpdate, onAttendanceChanged]);
+    }, [deleteTarget, closeDeleteModal, fetchSessions, emitDataUpdate, onAttendanceChanged, isEnglish]);
 
     const handleActivateSession = useCallback(async (session: AttendanceSession) => {
         const computedStatus = computeSessionStatus(session);
@@ -822,8 +825,8 @@ export function useAttendanceTab(
             try {
                 await attendanceService.activateSession(session.id);
                 addToast({
-                    title: "สำเร็จ",
-                    description: "เริ่มเปิดรอบเช็คชื่อแล้ว",
+                    title: isEnglish ? "Success" : "สำเร็จ",
+                    description: isEnglish ? "Attendance session is now open." : "เริ่มเปิดรอบเช็คชื่อแล้ว",
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -833,8 +836,8 @@ export function useAttendanceTab(
             } catch (error: unknown) {
                 console.error("Error activating session:", error);
                 addToast({
-                    title: "เกิดข้อผิดพลาด",
-                    description: error instanceof Error ? error.message : "ไม่สามารถเปิดรอบเช็คชื่อได้",
+                    title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                    description: error instanceof Error ? error.message : (isEnglish ? "Unable to open the attendance session." : "ไม่สามารถเปิดรอบเช็คชื่อได้"),
                     color: "danger",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -843,7 +846,7 @@ export function useAttendanceTab(
             }
         }
         window.open(`/attendance/${course.id}/session/${session.id}/live`, "_blank");
-    }, [course.id, fetchSessions, emitDataUpdate]);
+    }, [course.id, fetchSessions, emitDataUpdate, isEnglish]);
 
     const confirmCloseSession = useCallback(async () => {
         if (!closeTarget) return;
@@ -853,8 +856,8 @@ export function useAttendanceTab(
             const result = await attendanceService.closeSession(closeTarget.id);
             if (result) {
                 addToast({
-                    title: "สำเร็จ",
-                    description: "ปิดรอบการเช็คชื่อเรียบร้อยแล้ว",
+                    title: isEnglish ? "Success" : "สำเร็จ",
+                    description: isEnglish ? "Attendance session closed successfully." : "ปิดรอบการเช็คชื่อเรียบร้อยแล้ว",
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -866,8 +869,8 @@ export function useAttendanceTab(
         } catch (error: unknown) {
             console.error("Error closing session:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error instanceof Error ? error.message : "ไม่สามารถปิดรอบการเช็คชื่อได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: error instanceof Error ? error.message : (isEnglish ? "Unable to close the attendance session." : "ไม่สามารถปิดรอบการเช็คชื่อได้"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -875,7 +878,7 @@ export function useAttendanceTab(
         } finally {
             setIsSubmitting(false);
         }
-    }, [closeTarget, course.id, closeCloseSessionModal, fetchSessions, emitDataUpdate]);
+    }, [closeTarget, course.id, closeCloseSessionModal, fetchSessions, emitDataUpdate, isEnglish]);
 
     // Acknowledge pending attendance update (dismiss notification + silent refresh)
     const ackAttendanceUpdate = useCallback(async () => {
@@ -890,8 +893,8 @@ export function useAttendanceTab(
     const getCurrentLocation = useCallback(() => {
         if (!navigator.geolocation) {
             addToast({
-                title: "ไม่รองรับ",
-                description: "เบราว์เซอร์ของคุณไม่รองรับการดึงตำแหน่งที่ตั้ง",
+                title: isEnglish ? "Not supported" : "ไม่รองรับ",
+                description: isEnglish ? "Your browser does not support location access." : "เบราว์เซอร์ของคุณไม่รองรับการดึงตำแหน่งที่ตั้ง",
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -901,8 +904,8 @@ export function useAttendanceTab(
 
         setIsGettingLocation(true);
         addToast({
-            title: "กำลังดึงตำแหน่ง GPS...",
-            description: "กรุณารอสักครู่ ระบบกำลังระบุตำแหน่งจาก GPS",
+            title: isEnglish ? "Getting GPS location..." : "กำลังดึงตำแหน่ง GPS...",
+            description: isEnglish ? "Please wait while the system determines the GPS location." : "กรุณารอสักครู่ ระบบกำลังระบุตำแหน่งจาก GPS",
             color: "primary",
             timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -919,22 +922,28 @@ export function useAttendanceTab(
             },
             (error) => {
                 console.error("Geolocation error:", error);
-                let errorMessage = "ไม่สามารถดึงตำแหน่งได้";
+                let errorMessage = isEnglish ? "Unable to get the current location." : "ไม่สามารถดึงตำแหน่งได้";
 
                 switch (error.code) {
                     case error.PERMISSION_DENIED:
-                        errorMessage = "คุณไม่อนุญาตให้เข้าถึงตำแหน่ง GPS กรุณาเปิดสิทธิ์ในการตั้งค่าเบราว์เซอร์";
+                        errorMessage = isEnglish
+                            ? "Location permission was denied. Please enable GPS access in your browser settings."
+                            : "คุณไม่อนุญาตให้เข้าถึงตำแหน่ง GPS กรุณาเปิดสิทธิ์ในการตั้งค่าเบราว์เซอร์";
                         break;
                     case error.POSITION_UNAVAILABLE:
-                        errorMessage = "ไม่สามารถระบุตำแหน่งได้ กรุณาตรวจสอบว่าเปิด GPS แล้ว";
+                        errorMessage = isEnglish
+                            ? "Unable to determine the location. Please make sure GPS is enabled."
+                            : "ไม่สามารถระบุตำแหน่งได้ กรุณาตรวจสอบว่าเปิด GPS แล้ว";
                         break;
                     case error.TIMEOUT:
-                        errorMessage = "หมดเวลารอการรับตำแหน่ง GPS กรุณาลองใหม่อีกครั้ง";
+                        errorMessage = isEnglish
+                            ? "Timed out while waiting for GPS. Please try again."
+                            : "หมดเวลารอการรับตำแหน่ง GPS กรุณาลองใหม่อีกครั้ง";
                         break;
                 }
 
                 addToast({
-                    title: "ไม่สามารถดึงตำแหน่ง GPS ได้",
+                    title: isEnglish ? "Unable to get GPS location" : "ไม่สามารถดึงตำแหน่ง GPS ได้",
                     description: errorMessage,
                     color: "danger",
                     timeout: 3000,
@@ -948,7 +957,7 @@ export function useAttendanceTab(
                 maximumAge: 0,
             }
         );
-    }, []);
+    }, [isEnglish]);
 
     // ========================================================================
     // Return Hook Values

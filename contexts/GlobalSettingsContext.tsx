@@ -12,12 +12,14 @@ import React, {
 import {
   authService,
   AUTH_USER_UPDATED_EVENT,
+  PENDING_PREFERENCES_STORAGE_KEY,
   type User,
   type UserPreferences,
 } from "@/services/auth.service";
 import {
+  APPEARANCE_HINT_COOKIE_NAME,
   buildAppearanceHintCookieString,
-  clearAppearanceHintCookieString,
+  parseAppearanceHintCookieValue,
 } from "@/lib/appearance-hint";
 
 export type Language = "th" | "en";
@@ -25,10 +27,28 @@ export type FontSize = "sm" | "md" | "lg";
 export type ThemePreference = "system" | "light" | "dark";
 type ResolvedTheme = "light" | "dark";
 
+export interface InitialGlobalSettings {
+  theme: ThemePreference;
+  resolvedTheme: ResolvedTheme;
+  fontSize: FontSize;
+  language: Language;
+}
+
 const DEFAULT_SETTINGS = {
   theme: "system" as ThemePreference,
   fontSize: "md" as FontSize,
   language: "th" as Language,
+};
+
+const ROOT_THEME_PALETTE: Record<ResolvedTheme, { background: string; foreground: string }> = {
+  light: {
+    background: "#f4f7fb",
+    foreground: "#0f172a",
+  },
+  dark: {
+    background: "#0b1220",
+    foreground: "#e7edf7",
+  },
 };
 
 export interface GlobalSettings {
@@ -51,6 +71,15 @@ export const useGlobalSettings = () => {
   if (!ctx) throw new Error("useGlobalSettings must be used within GlobalSettingsProvider");
   return ctx;
 };
+
+function normalizeInitialSettings(initialSettings: InitialGlobalSettings): InitialGlobalSettings {
+  return {
+    theme: normalizeThemePreference(initialSettings.theme),
+    resolvedTheme: initialSettings.resolvedTheme === "dark" ? "dark" : "light",
+    fontSize: normalizeFontSizePreference(initialSettings.fontSize),
+    language: normalizeLanguagePreference(initialSettings.language),
+  };
+}
 
 function normalizeThemePreference(value?: string): ThemePreference {
   if (value === "light" || value === "dark" || value === "system") {
@@ -98,7 +127,22 @@ function getConfirmedStoredPreferencesSnapshot() {
   }
 
   const storedUser = authService.getStoredUser();
-  return normalizePreferences(storedUser?.preferences);
+
+  if (storedUser?.preferences) {
+    return normalizePreferences(storedUser.preferences);
+  }
+
+  const appearanceHintCookie = document.cookie
+    .split("; ")
+    .find((cookie) => cookie.startsWith(`${APPEARANCE_HINT_COOKIE_NAME}=`))
+    ?.slice(APPEARANCE_HINT_COOKIE_NAME.length + 1);
+  const appearanceHint = parseAppearanceHintCookieValue(appearanceHintCookie ?? null);
+
+  return normalizePreferences({
+    theme: appearanceHint?.theme,
+    fontSize: appearanceHint?.fontSize,
+    language: appearanceHint?.language,
+  });
 }
 
 function getCachedPreferencesSnapshot(user?: User | null) {
@@ -107,6 +151,11 @@ function getCachedPreferencesSnapshot(user?: User | null) {
   }
 
   const storedUser = user ?? authService.getStoredUser();
+
+  if (!storedUser) {
+    return getConfirmedStoredPreferencesSnapshot();
+  }
+
   const pendingPreferences = storedUser ? authService.getPendingPreferences(storedUser.id) : null;
 
   return normalizePreferences({
@@ -140,13 +189,8 @@ function persistAppearanceHintCookie(
   }
 
   const storedUser = authService.getStoredUser();
-  if (!storedUser) {
-    document.cookie = clearAppearanceHintCookieString();
-    return;
-  }
-
   const isStaffRole =
-    storedUser.role === "admin" || storedUser.role === "instructor" || storedUser.role === "ta";
+    storedUser?.role === "admin" || storedUser?.role === "instructor" || storedUser?.role === "ta";
 
   document.cookie = buildAppearanceHintCookieString({
     theme: preferences.theme,
@@ -157,18 +201,42 @@ function persistAppearanceHintCookie(
   });
 }
 
-export const GlobalSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const initialPreferencesRef = useRef(getCachedPreferencesSnapshot());
+export const GlobalSettingsProvider: React.FC<{
+  children: React.ReactNode;
+  initialSettings?: InitialGlobalSettings;
+}> = ({ children, initialSettings }) => {
+  const normalizedInitialSettings = initialSettings
+    ? normalizeInitialSettings(initialSettings)
+    : null;
+  const initialPreferencesRef = useRef(
+    normalizedInitialSettings
+      ? {
+          theme: normalizedInitialSettings.theme,
+          fontSize: normalizedInitialSettings.fontSize,
+          language: normalizedInitialSettings.language,
+        }
+      : getCachedPreferencesSnapshot(),
+  );
   const [theme, setThemeState] = useState<ThemePreference>(initialPreferencesRef.current.theme);
   const [fontSize, setFontSizeState] = useState<FontSize>(initialPreferencesRef.current.fontSize);
   const [language, setLanguageState] = useState<Language>(initialPreferencesRef.current.language);
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(
-    getInitialResolvedTheme(initialPreferencesRef.current.theme),
+    normalizedInitialSettings?.resolvedTheme ?? getInitialResolvedTheme(initialPreferencesRef.current.theme),
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
-  const lastSyncedPreferencesRef = useRef(serializePreferences(getConfirmedStoredPreferencesSnapshot()));
+  const lastSyncedPreferencesRef = useRef(
+    serializePreferences(
+      normalizedInitialSettings
+        ? {
+            theme: normalizedInitialSettings.theme,
+            fontSize: normalizedInitialSettings.fontSize,
+            language: normalizedInitialSettings.language,
+          }
+        : getConfirmedStoredPreferencesSnapshot(),
+    ),
+  );
   const isReadyToPersistRef = useRef(false);
 
   const applyThemeRoleScope = useCallback((user: User | null | undefined) => {
@@ -224,6 +292,10 @@ export const GlobalSettingsProvider: React.FC<{ children: React.ReactNode }> = (
       setIsLoading(false);
     } else {
       applyThemeRoleScope(null);
+
+      if (!authService.isAuthenticated()) {
+        setIsLoading(false);
+      }
     }
   }, [applyCachedUserPreferences, applyThemeRoleScope]);
 
@@ -286,6 +358,39 @@ export const GlobalSettingsProvider: React.FC<{ children: React.ReactNode }> = (
   }, [applyCachedUserPreferences, applyUserPreferences]);
 
   useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.storageArea !== window.localStorage) {
+        return;
+      }
+
+      if (
+        event.key !== null &&
+        event.key !== "user" &&
+        event.key !== PENDING_PREFERENCES_STORAGE_KEY
+      ) {
+        return;
+      }
+
+      const storedUser = authService.getStoredUser();
+
+      if (!storedUser) {
+        applyUserPreferences(null);
+      } else {
+        applyCachedUserPreferences(storedUser);
+      }
+
+      isReadyToPersistRef.current = true;
+      setIsLoading(false);
+    };
+
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [applyCachedUserPreferences, applyUserPreferences]);
+
+  useEffect(() => {
     if (typeof window === "undefined") {
       return undefined;
     }
@@ -309,9 +414,18 @@ export const GlobalSettingsProvider: React.FC<{ children: React.ReactNode }> = (
 
   useEffect(() => {
     const root = document.documentElement;
+    const palette = ROOT_THEME_PALETTE[resolvedTheme];
+
     root.classList.toggle("dark", resolvedTheme === "dark");
     root.dataset.theme = resolvedTheme;
     root.style.colorScheme = resolvedTheme;
+    root.style.backgroundColor = palette.background;
+    root.style.color = palette.foreground;
+
+    if (document.body) {
+      document.body.style.backgroundColor = palette.background;
+      document.body.style.color = palette.foreground;
+    }
   }, [resolvedTheme]);
 
   useEffect(() => {

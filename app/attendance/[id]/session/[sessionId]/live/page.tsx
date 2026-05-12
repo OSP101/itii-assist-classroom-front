@@ -29,6 +29,7 @@ import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { IoSchool } from "react-icons/io5";
 import { QRCodeSVG } from "qrcode.react";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket";
 import attendanceService, {
     type AttendanceSession,
@@ -38,19 +39,24 @@ import attendanceService, {
 // Status display config
 const statusConfig: Record<
     string,
-    { label: string; color: "success" | "warning" | "danger" | "default"; icon: string }
+    {
+        label: string;
+        labelEn: string;
+        color: "success" | "warning" | "danger" | "default";
+        icon: string;
+    }
 > = {
-    present: { label: "มา", color: "success", icon: "solar:check-circle-bold" },
-    late: { label: "สาย", color: "warning", icon: "solar:clock-circle-bold" },
-    leave: { label: "ลา", color: "default", icon: "solar:document-bold" },
-    absent: { label: "ขาด", color: "danger", icon: "solar:close-circle-bold" },
+    present: { label: "มา", labelEn: "Present", color: "success", icon: "solar:check-circle-bold" },
+    late: { label: "สาย", labelEn: "Late", color: "warning", icon: "solar:clock-circle-bold" },
+    leave: { label: "ลา", labelEn: "On leave", color: "default", icon: "solar:document-bold" },
+    absent: { label: "ขาด", labelEn: "Absent", color: "danger", icon: "solar:close-circle-bold" },
 };
 
 // Format time
-function formatTime(dateString: string | null): string {
+function formatTime(dateString: string | null, isEnglish = false): string {
     if (!dateString) return "-";
     const date = new Date(dateString);
-    return date.toLocaleTimeString("th-TH", {
+    return date.toLocaleTimeString(isEnglish ? "en-US" : "th-TH", {
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
@@ -58,9 +64,9 @@ function formatTime(dateString: string | null): string {
 }
 
 // Format datetime
-function formatDateTime(dateString: string): string {
+function formatDateTime(dateString: string, isEnglish = false): string {
     const date = new Date(dateString);
-    return date.toLocaleString("th-TH", {
+    return date.toLocaleString(isEnglish ? "en-US" : "th-TH", {
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -69,11 +75,41 @@ function formatDateTime(dateString: string): string {
     });
 }
 
+function formatShortDateTime(dateString: string, isEnglish = false): string {
+    const date = new Date(dateString);
+    return date.toLocaleString(isEnglish ? "en-US" : "th-TH", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
+
+function getStatusLabel(status: string, isEnglish = false): string {
+    const config = statusConfig[status];
+    if (!config) return status;
+    return isEnglish ? config.labelEn : config.label;
+}
+
+function formatDistance(distanceMeters: number, isEnglish = false): string {
+    if (distanceMeters < 1000) {
+        return `${Math.round(distanceMeters)} ${isEnglish ? "m" : "ม."}`;
+    }
+
+    return `${(distanceMeters / 1000).toFixed(1)} ${isEnglish ? "km" : "กม."}`;
+}
+
 export default function LiveAttendancePage() {
     const params = useParams();
     const router = useRouter();
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
     const courseId = params.id as string;
     const sessionId = Number(params.sessionId);
+    const t = (thai: string, english: string) => (isEnglish ? english : thai);
+    const formatStudentCount = (count: number) =>
+        isEnglish ? `${count} ${count === 1 ? "student" : "students"}` : `${count} คน`;
 
     // State
     const [session, setSession] = useState<AttendanceSession | null>(null);
@@ -133,8 +169,8 @@ export default function LiveAttendancePage() {
         } catch (error) {
             console.error("Error fetching data:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถโหลดข้อมูลได้",
+                title: t("เกิดข้อผิดพลาด", "Error"),
+                description: t("ไม่สามารถโหลดข้อมูลได้", "Unable to load the data."),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -142,7 +178,7 @@ export default function LiveAttendancePage() {
         } finally {
             setIsLoading(false);
         }
-    }, [sessionId]);
+    }, [sessionId, isEnglish]);
 
     // Initialize socket connection
     useEffect(() => {
@@ -177,8 +213,8 @@ export default function LiveAttendancePage() {
                 return [...prev, data.record];
             });
             addToast({
-                title: "นักศึกษาเช็คชื่อ",
-                description: `${data.record.student?.full_name || "นักศึกษา"} เช็คชื่อเรียบร้อย`,
+                title: t("นักศึกษาเช็คชื่อ", "Student checked in"),
+                description: `${data.record.student?.full_name || t("นักศึกษา", "Student")} ${t("เช็คชื่อเรียบร้อย", "checked in successfully")}`,
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -195,8 +231,8 @@ export default function LiveAttendancePage() {
         // Listen for session closed
         socket.on("session-closed", () => {
             addToast({
-                title: "ปิดรอบเช็คชื่อแล้ว",
-                description: "รอบการเช็คชื่อถูกปิดแล้ว",
+                title: t("ปิดรอบเช็คชื่อแล้ว", "Check-in closed"),
+                description: t("รอบการเช็คชื่อถูกปิดแล้ว", "This attendance session has been closed."),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -210,12 +246,18 @@ export default function LiveAttendancePage() {
             socket.emit("leave-instructor", sessionId);
             socket.disconnect();
         };
-    }, [sessionId]);
+    }, [sessionId, isEnglish]);
 
     // Initial fetch
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
+    useEffect(() => {
+        document.title = isEnglish
+            ? "Live Attendance - ITII Assist Classroom"
+            : "เช็คชื่อ Live - ITII Assist Classroom";
+    }, [isEnglish]);
 
     // Countdown timer
     useEffect(() => {
@@ -239,7 +281,7 @@ export default function LiveAttendancePage() {
             lateThreshold.setMinutes(lateThreshold.getMinutes() + session.late_threshold_minutes);
             // Format for display
             setLateThresholdDisplay(
-                lateThreshold.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+                lateThreshold.toLocaleTimeString(isEnglish ? "en-US" : "th-TH", { hour: "2-digit", minute: "2-digit" })
             );
         }
 
@@ -275,7 +317,7 @@ export default function LiveAttendancePage() {
         const interval = setInterval(updateCountdown, 1000);
 
         return () => clearInterval(interval);
-    }, [session]);
+    }, [session, isEnglish]);
 
     // Check session status
     const isSessionOpen = () => {
@@ -296,8 +338,8 @@ export default function LiveAttendancePage() {
             if (result) {
                 setSession({ ...session, status: "closed" });
                 addToast({
-                    title: "สำเร็จ",
-                    description: "ปิดรอบการเช็คชื่อเรียบร้อยแล้ว",
+                    title: t("สำเร็จ", "Success"),
+                    description: t("ปิดรอบการเช็คชื่อเรียบร้อยแล้ว", "The attendance session was closed successfully."),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -306,8 +348,8 @@ export default function LiveAttendancePage() {
         } catch (error) {
             console.error("Error closing session:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถปิดรอบเช็คชื่อได้",
+                title: t("เกิดข้อผิดพลาด", "Error"),
+                description: t("ไม่สามารถปิดรอบเช็คชื่อได้", "Unable to close the attendance session."),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -336,8 +378,8 @@ export default function LiveAttendancePage() {
                 setNewStatus("");
                 setStatusNote("");
                 addToast({
-                    title: "สำเร็จ",
-                    description: "อัปเดตสถานะเรียบร้อย",
+                    title: t("สำเร็จ", "Updated"),
+                    description: t("อัปเดตสถานะเรียบร้อย", "Attendance status updated successfully."),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -346,8 +388,8 @@ export default function LiveAttendancePage() {
         } catch (error) {
             console.error("Error updating status:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถอัปเดตสถานะได้",
+                title: t("เกิดข้อผิดพลาด", "Error"),
+                description: t("ไม่สามารถอัปเดตสถานะได้", "Unable to update the attendance status."),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -367,8 +409,8 @@ export default function LiveAttendancePage() {
         if (session?.pin_code) {
             navigator.clipboard.writeText(session.pin_code);
             addToast({
-                title: "คัดลอกแล้ว",
-                description: "PIN ถูกคัดลอกไปยังคลิปบอร์ดแล้ว",
+                title: t("คัดลอกแล้ว", "Copied"),
+                description: t("PIN ถูกคัดลอกไปยังคลิปบอร์ดแล้ว", "The PIN has been copied to the clipboard."),
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -380,8 +422,8 @@ export default function LiveAttendancePage() {
     const copyURL = () => {
         navigator.clipboard.writeText(checkInUrl);
         addToast({
-            title: "คัดลอกแล้ว",
-            description: "URL ถูกคัดลอกไปยังคลิปบอร์ดแล้ว",
+            title: t("คัดลอกแล้ว", "Copied"),
+            description: t("URL ถูกคัดลอกไปยังคลิปบอร์ดแล้ว", "The URL has been copied to the clipboard."),
             color: "success",
             timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -392,18 +434,6 @@ export default function LiveAttendancePage() {
     const now = new Date();
     const notStarted = session ? now < new Date(session.start_time) : false;
 
-    // Format short datetime
-    const formatShortDateTime = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleString("th-TH", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-    };
-
     // Total students count (should be fetched from course enrollment)
     const totalStudents = (session?.course as { enrollment_count?: number } | undefined)?.enrollment_count || records.length || 0;
 
@@ -413,13 +443,13 @@ export default function LiveAttendancePage() {
                 <Card className="max-w-md border-2 border-dashed border-default-300 bg-content1 shadow-xl">
                     <CardBody className="text-center py-12">
                         <Icon icon="solar:clipboard-remove-bold-duotone" className="mx-auto mb-4 text-6xl text-default-300" />
-                        <p className="mb-2 text-lg text-default-600">ไม่พบข้อมูลการเช็คชื่อ</p>
-                        <p className="mb-6 text-sm text-default-400">กรุณาตรวจสอบลิงก์อีกครั้ง</p>
+                        <p className="mb-2 text-lg text-default-600">{t("ไม่พบข้อมูลการเช็คชื่อ", "Attendance session not found")}</p>
+                        <p className="mb-6 text-sm text-default-400">{t("กรุณาตรวจสอบลิงก์อีกครั้ง", "Please check the link and try again.")}</p>
                         <Button
                             className="w-full bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg"
                             onPress={() => router.back()}
                         >
-                            กลับหน้าหลัก
+                            {t("กลับหน้าหลัก", "Go back")}
                         </Button>
                     </CardBody>
                 </Card>
@@ -446,10 +476,10 @@ export default function LiveAttendancePage() {
                                 {session.title}
                             </h1>
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-default-500">
-                                <span>รหัสวิชา: {session.course?.code || "-"}</span>
-                                <span>ชื่อวิชา: {session.course?.name || "-"}</span>
-                                <span>ปีการศึกษา: {session.course?.year || "-"}</span>
-                                <span>ภาคเรียน: {session.course?.semester || "-"}</span>
+                                <span>{t("รหัสวิชา", "Course code")}: {session.course?.code || "-"}</span>
+                                <span>{t("ชื่อวิชา", "Course name")}: {session.course?.name || "-"}</span>
+                                <span>{t("ปีการศึกษา", "Academic year")}: {session.course?.year || "-"}</span>
+                                <span>{t("ภาคเรียน", "Semester")}: {session.course?.semester || "-"}</span>
                             </div>
                         </div>
 
@@ -465,7 +495,7 @@ export default function LiveAttendancePage() {
                                     onPress={handleCloseSession}
                                     isLoading={isClosing}
                                 >
-                                    ปิดรับการเช็คชื่อ
+                                    {t("ปิดรับการเช็คชื่อ", "Close check-in")}
                                 </Button>
                             )}
 
@@ -473,11 +503,11 @@ export default function LiveAttendancePage() {
                             <div className="text-sm text-right">
                                 <div className="flex items-center gap-2 text-green-600">
                                     <Icon icon="solar:clock-circle-linear" className="text-base" />
-                                    <span>เริ่ม: {formatShortDateTime(session.start_time)}</span>
+                                    <span>{t("เริ่ม", "Starts")}: {formatShortDateTime(session.start_time, isEnglish)}</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-orange-500 mt-1">
                                     <Icon icon="solar:clock-circle-linear" className="text-base" />
-                                    <span>สิ้นสุด: {formatShortDateTime(session.end_time)}</span>
+                                    <span>{t("สิ้นสุด", "Ends")}: {formatShortDateTime(session.end_time, isEnglish)}</span>
                                 </div>
                             </div>
                         </div>
@@ -493,7 +523,7 @@ export default function LiveAttendancePage() {
                         <CardHeader className="pb-2">
                             <div className="flex items-center gap-2">
                                 <Icon icon="solar:key-minimalistic-square-2-linear" className="text-xl text-blue-500" />
-                                <h3 className="text-lg font-semibold text-default-700">รหัสและช่องทางการเช็คชื่อ</h3>
+                                <h3 className="text-lg font-semibold text-default-700">{t("รหัสและช่องทางการเช็คชื่อ", "PIN and check-in access")}</h3>
                             </div>
                         </CardHeader>
                         <CardBody className="text-center pt-2">
@@ -507,7 +537,7 @@ export default function LiveAttendancePage() {
                             </div>
 
                             {/* QR CODE */}
-                            <p className="mb-3 text-xs uppercase tracking-wider text-default-400">QR CODE (คลิกเพื่อขยาย)</p>
+                            <p className="mb-3 text-xs uppercase tracking-wider text-default-400">{t("QR CODE (คลิกเพื่อขยาย)", "QR CODE (click to expand)")}</p>
                             <div
                                 className="mb-4 flex cursor-pointer justify-center rounded-xl border-2 border-default-200 bg-content1 p-4 transition-all hover:border-blue-300 hover:shadow-lg"
                                 onClick={() => setIsQRModalOpen(true)}
@@ -529,7 +559,7 @@ export default function LiveAttendancePage() {
                             <div className="mt-4">
                                 <div className="mb-2 flex items-center justify-center gap-1 text-default-400">
                                     <Icon icon="solar:clock-circle-linear" className="text-base" />
-                                    <span className="text-xs">เวลาที่เหลือ</span>
+                                    <span className="text-xs">{t("เวลาที่เหลือ", "Time remaining")}</span>
                                 </div>
                                 <div className={`inline-block px-6 py-3 rounded-xl ${isPastLateThreshold ? 'bg-amber-500' : 'bg-slate-700'}`}>
                                     <span className="text-2xl font-mono font-bold text-white">
@@ -542,7 +572,7 @@ export default function LiveAttendancePage() {
                                 {lateThresholdDisplay && (
                                     <div className="mt-2 text-xs text-amber-400">
                                         <Icon icon="solar:alarm-bold" className="inline mr-1" />
-                                        ตัดสาย {lateThresholdDisplay} น.
+                                        {isEnglish ? `Late after ${lateThresholdDisplay}` : `ตัดสาย ${lateThresholdDisplay} น.`}
                                     </div>
                                 )}
                             </div>
@@ -556,7 +586,7 @@ export default function LiveAttendancePage() {
                         <CardHeader className="pb-2">
                             <div className="flex items-center gap-2">
                                 <Icon icon="solar:chart-2-linear" className="text-xl text-blue-500" />
-                                <h3 className="text-lg font-semibold text-default-700">สถิติภาพรวมการเช็คชื่อ</h3>
+                                <h3 className="text-lg font-semibold text-default-700">{t("สถิติภาพรวมการเช็คชื่อ", "Attendance overview")}</h3>
                             </div>
                         </CardHeader>
                         <CardBody>
@@ -566,11 +596,13 @@ export default function LiveAttendancePage() {
                                     <Icon icon="solar:clock-circle-bold" className={`text-2xl ${isPastLateThreshold ? 'text-amber-600' : 'text-amber-500'}`} />
                                     <div>
                                         <p className={`text-sm font-medium ${isPastLateThreshold ? 'text-amber-800' : 'text-amber-700'}`}>
-                                            เกณฑ์เวลาสาย: <span className="font-bold">{lateThresholdDisplay} น.</span>
-                                            {isPastLateThreshold && <span className="ml-2 text-red-600">(เลยเวลาตัดสายแล้ว)</span>}
+                                            {t("เกณฑ์เวลาสาย", "Late threshold")}: <span className="font-bold">{isEnglish ? lateThresholdDisplay : `${lateThresholdDisplay} น.`}</span>
+                                            {isPastLateThreshold && <span className="ml-2 text-red-600"> {t("(เลยเวลาตัดสายแล้ว)", "(late threshold passed)")}</span>}
                                         </p>
                                         <p className="text-xs text-amber-600">
-                                            เช็คชื่อหลัง {lateThresholdDisplay} น. จะถือว่า "สาย"
+                                            {isEnglish
+                                                ? `Check-ins after ${lateThresholdDisplay} are marked as "Late"`
+                                                : `เช็คชื่อหลัง ${lateThresholdDisplay} น. จะถือว่า "สาย"`}
                                         </p>
                                     </div>
                                 </div>
@@ -583,7 +615,7 @@ export default function LiveAttendancePage() {
                                         <div className="p-1.5 bg-blue-100 rounded-lg">
                                             <Icon icon="solar:users-group-rounded-bold" className="text-lg text-blue-500" />
                                         </div>
-                                        <p className="text-xs text-blue-600 font-medium">เช็คชื่อแล้ว</p>
+                                        <p className="text-xs text-blue-600 font-medium">{t("เช็คชื่อแล้ว", "Checked in")}</p>
                                     </div>
                                     <p className="text-2xl font-bold text-blue-600">{stats.checkedIn}</p>
                                 </div>
@@ -594,7 +626,7 @@ export default function LiveAttendancePage() {
                                         <div className="p-1.5 bg-green-100 rounded-lg">
                                             <Icon icon="solar:check-circle-bold" className="text-lg text-green-500" />
                                         </div>
-                                        <p className="text-xs text-green-600 font-medium">มาเรียน</p>
+                                        <p className="text-xs text-green-600 font-medium">{t("มาเรียน", "Present")}</p>
                                     </div>
                                     <p className="text-2xl font-bold text-green-600">{stats.present}</p>
                                 </div>
@@ -605,7 +637,7 @@ export default function LiveAttendancePage() {
                                         <div className="p-1.5 bg-amber-100 rounded-lg">
                                             <Icon icon="solar:clock-circle-bold" className="text-lg text-amber-500" />
                                         </div>
-                                        <p className="text-xs text-amber-600 font-medium">สาย</p>
+                                        <p className="text-xs text-amber-600 font-medium">{t("สาย", "Late")}</p>
                                     </div>
                                     <p className="text-2xl font-bold text-amber-600">{stats.late}</p>
                                 </div>
@@ -616,7 +648,7 @@ export default function LiveAttendancePage() {
                                         <div className="rounded-lg bg-content3 p-1.5">
                                             <Icon icon="solar:document-bold" className="text-lg text-default-500" />
                                         </div>
-                                        <p className="text-xs font-medium text-default-600">ลา</p>
+                                        <p className="text-xs font-medium text-default-600">{t("ลา", "On leave")}</p>
                                     </div>
                                     <p className="text-2xl font-bold text-default-600">{stats.leave}</p>
                                 </div>
@@ -627,7 +659,7 @@ export default function LiveAttendancePage() {
                                         <div className="p-1.5 bg-red-100 rounded-lg">
                                             <Icon icon="solar:close-circle-bold" className="text-lg text-red-500" />
                                         </div>
-                                        <p className="text-xs text-red-600 font-medium">ขาด</p>
+                                        <p className="text-xs text-red-600 font-medium">{t("ขาด", "Absent")}</p>
                                     </div>
                                     <p className="text-2xl font-bold text-red-600">{stats.absent}</p>
                                 </div>
@@ -640,11 +672,11 @@ export default function LiveAttendancePage() {
                         <CardHeader className="flex flex-col items-start justify-between gap-3 border-b border-divider bg-content2 p-4 sm:flex-row sm:items-center">
                             <h2 className="flex items-center gap-2 text-lg font-bold text-foreground">
                                 <Icon icon="solar:checklist-minimalistic-linear" className="text-xl text-blue-600" />
-                                รายชื่อผู้เช็คชื่อ
-                                <Chip size="sm" variant="flat" color="primary">{stats.checkedIn} คน</Chip>
+                                {t("รายชื่อผู้เช็คชื่อ", "Checked-in students")}
+                                <Chip size="sm" variant="flat" color="primary">{formatStudentCount(stats.checkedIn)}</Chip>
                             </h2>
                             <Input
-                                placeholder="ค้นหาชื่อ / รหัสนักศึกษา..."
+                                placeholder={t("ค้นหาชื่อ / รหัสนักศึกษา...", "Search by name / student ID...")}
                                 value={searchQuery}
                                 onValueChange={setSearchQuery}
                                 size="sm"
@@ -670,10 +702,10 @@ export default function LiveAttendancePage() {
                                 >
                                     <TableHeader>
                                         {[
-                                            <TableColumn key="status">สถานะ</TableColumn>,
-                                            <TableColumn key="name">ชื่อนักศึกษา / รหัส</TableColumn>,
-                                            <TableColumn key="time" align="center">เวลาเช็คชื่อ</TableColumn>,
-                                            ...(session.check_location ? [<TableColumn key="distance" align="center">ระยะห่าง</TableColumn>] : [])
+                                            <TableColumn key="status">{t("สถานะ", "Status")}</TableColumn>,
+                                            <TableColumn key="name">{t("ชื่อนักศึกษา / รหัส", "Student / ID")}</TableColumn>,
+                                            <TableColumn key="time" align="center">{t("เวลาเช็คชื่อ", "Check-in time")}</TableColumn>,
+                                            ...(session.check_location ? [<TableColumn key="distance" align="center">{t("ระยะห่าง", "Distance")}</TableColumn>] : [])
                                         ]}
                                     </TableHeader>
                                     <TableBody
@@ -685,9 +717,9 @@ export default function LiveAttendancePage() {
                                                         className="text-5xl text-default-300"
                                                     />
                                                 </div>
-                                                <p className="font-medium text-default-500">ยังไม่มีนักศึกษาเช็คชื่อ</p>
+                                                <p className="font-medium text-default-500">{t("ยังไม่มีนักศึกษาเช็คชื่อ", "No students have checked in yet")}</p>
                                                 <p className="mt-1 text-sm text-default-400">
-                                                    รอนักศึกษาสแกน QR Code หรือกรอก PIN
+                                                    {t("รอนักศึกษาสแกน QR Code หรือกรอก PIN", "Wait for students to scan the QR code or enter the PIN")}
                                                 </p>
                                             </div>
                                         }
@@ -718,7 +750,7 @@ export default function LiveAttendancePage() {
                                                             variant="flat"
                                                             startContent={<Icon icon={statusConfig[record.status]?.icon} className="text-xs" />}
                                                         >
-                                                            {statusConfig[record.status]?.label || record.status}
+                                                            {getStatusLabel(record.status, isEnglish)}
                                                         </Chip>
                                                     </TableCell>,
                                                     <TableCell key="name">
@@ -740,23 +772,20 @@ export default function LiveAttendancePage() {
                                                     </TableCell>,
                                                     <TableCell key="time">
                                                         <span className="font-mono text-sm text-default-600">
-                                                            {formatTime(record.check_in_time)}
+                                                            {formatTime(record.check_in_time, isEnglish)}
                                                         </span>
                                                     </TableCell>,
                                                     ...(session.check_location ? [
                                                         <TableCell key="distance">
                                                             {record.distance_meters !== null ? (
-                                                                <Tooltip content={record.location_verified ? "ตำแหน่งถูกต้อง" : "ตำแหน่งไม่ตรง"}>
+                                                                <Tooltip content={record.location_verified ? t("ตำแหน่งถูกต้อง", "Location verified") : t("ตำแหน่งไม่ตรง", "Location mismatch")}>
                                                                     <Chip
                                                                         size="sm"
                                                                         variant="flat"
                                                                         color={record.location_verified ? "success" : "warning"}
                                                                         startContent={<Icon icon={record.location_verified ? "solar:map-point-bold" : "solar:map-point-wave-bold"} className="text-xs" />}
                                                                     >
-                                                                        {record.distance_meters < 1000
-                                                                            ? `${Math.round(record.distance_meters)} ม.`
-                                                                            : `${(record.distance_meters / 1000).toFixed(1)} กม.`
-                                                                        }
+                                                                        {formatDistance(record.distance_meters, isEnglish)}
                                                                     </Chip>
                                                                 </Tooltip>
                                                             ) : (
@@ -780,7 +809,7 @@ export default function LiveAttendancePage() {
                                 <h2 className="mb-2 text-3xl font-bold text-foreground">
                                     {session.title}
                                 </h2>
-                                <p className="mb-6 text-default-500">สแกน QR Code เพื่อเช็คชื่อเข้าเรียน</p>
+                                <p className="mb-6 text-default-500">{t("สแกน QR Code เพื่อเช็คชื่อเข้าเรียน", "Scan the QR code to check in")}</p>
                                 
                                 {/* QR Code - optimized for scanning */}
                                 <div className="rounded-3xl border-4 border-default-200 bg-white p-2 shadow-xl">
@@ -815,7 +844,7 @@ export default function LiveAttendancePage() {
                                 {session.late_threshold_minutes > 0 && (
                                     <div className="mt-6 flex items-center gap-2 text-amber-600 bg-amber-50 px-4 py-2 rounded-lg">
                                         <Icon icon="solar:clock-circle-bold" className="text-xl" />
-                                        <span className="text-sm">เช็คชื่อหลัง {session.late_threshold_minutes} นาที ถือว่าสาย</span>
+                                        <span className="text-sm">{isEnglish ? `Check-ins after ${session.late_threshold_minutes} minutes are marked as late` : `เช็คชื่อหลัง ${session.late_threshold_minutes} นาที ถือว่าสาย`}</span>
                                     </div>
                                 )}
 
@@ -842,7 +871,7 @@ export default function LiveAttendancePage() {
                     <ModalHeader>
                         <div className="flex items-center gap-2">
                             <Icon icon="solar:pen-new-square-linear" className="text-xl text-blue-500" />
-                            เปลี่ยนสถานะการเช็คชื่อ
+                            {t("เปลี่ยนสถานะการเช็คชื่อ", "Change attendance status")}
                         </div>
                     </ModalHeader>
                     <ModalBody className="py-4">
@@ -859,13 +888,13 @@ export default function LiveAttendancePage() {
                                             {selectedRecord.student?.full_name}
                                         </p>
                                         <p className="text-sm text-default-500">
-                                            ID: {selectedRecord.student?.student_id}
+                                            {t("รหัส", "ID")}: {selectedRecord.student?.student_id}
                                         </p>
                                     </div>
                                 </div>
 
                                 <Select
-                                    label="สถานะ"
+                                    label={t("สถานะ", "Status")}
                                     selectedKeys={[newStatus]}
                                     onSelectionChange={(keys) =>
                                         setNewStatus(Array.from(keys)[0] as string)
@@ -877,7 +906,7 @@ export default function LiveAttendancePage() {
                                             <Icon icon="solar:check-circle-bold" className="text-green-500" />
                                         }
                                     >
-                                        มา
+                                        {t("มา", "Present")}
                                     </SelectItem>
                                     <SelectItem
                                         key="late"
@@ -885,7 +914,7 @@ export default function LiveAttendancePage() {
                                             <Icon icon="solar:clock-circle-bold" className="text-amber-500" />
                                         }
                                     >
-                                        สาย
+                                        {t("สาย", "Late")}
                                     </SelectItem>
                                     <SelectItem
                                         key="leave"
@@ -893,7 +922,7 @@ export default function LiveAttendancePage() {
                                             <Icon icon="solar:document-bold" className="text-default-500" />
                                         }
                                     >
-                                        ลา
+                                        {t("ลา", "On leave")}
                                     </SelectItem>
                                     <SelectItem
                                         key="absent"
@@ -901,13 +930,13 @@ export default function LiveAttendancePage() {
                                             <Icon icon="solar:close-circle-bold" className="text-red-500" />
                                         }
                                     >
-                                        ขาด
+                                        {t("ขาด", "Absent")}
                                     </SelectItem>
                                 </Select>
 
                                 <Input
-                                    label="หมายเหตุ (ถ้ามี)"
-                                    placeholder="ระบุเหตุผล..."
+                                    label={t("หมายเหตุ (ถ้ามี)", "Note (optional)")}
+                                    placeholder={t("ระบุเหตุผล...", "Add a note...")}
                                     value={statusNote}
                                     onValueChange={setStatusNote}
                                 />
@@ -916,14 +945,14 @@ export default function LiveAttendancePage() {
                     </ModalBody>
                     <ModalFooter>
                         <Button variant="flat" onPress={() => setIsStatusModalOpen(false)}>
-                            ยกเลิก
+                            {t("ยกเลิก", "Cancel")}
                         </Button>
                         <Button
                             color="primary"
                             onPress={handleUpdateStatus}
                             isLoading={isUpdatingStatus}
                         >
-                            บันทึก
+                            {t("บันทึก", "Save")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>

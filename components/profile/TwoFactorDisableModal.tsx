@@ -8,6 +8,7 @@ import { Button } from "@heroui/button";
 import { Link } from "@heroui/link";
 import { Icon } from "@iconify/react";
 import { addToast } from "@heroui/toast";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { twoFactorService } from "@/services/twoFactor.service";
 
 interface TwoFactorDisableModalProps {
@@ -23,6 +24,68 @@ function TwoFactorDisableModal({
   onSuccess,
   method,
 }: TwoFactorDisableModalProps) {
+  const { language } = useGlobalSettings();
+  const copy = language === "en"
+    ? {
+        sendCodeError: "Could not send the verification code",
+        sendCodeGenericError: "Something went wrong while sending the code",
+        resentTitle: "Code sent again",
+        resentDescription: "Check your email for the latest code.",
+        passwordRequired: "Please enter your password",
+        successTitle: "Two-factor disabled",
+        successDescription: "Two-factor authentication was turned off.",
+        disableError: "Could not disable two-factor authentication",
+        genericError: "Something went wrong. Please try again.",
+        modalTitle: "Turn off two-factor authentication",
+        modalSubtitle: "Disable Two-Factor Authentication",
+        warningTitle: "Warning",
+        warningDescription: "Turning off 2FA reduces the security of your account. This is not recommended.",
+        currentPassword: "Current password",
+        sixDigitTotp: "6-digit 2FA code",
+        sixDigitEmail: "6-digit email verification code",
+        recoveryCode: "Recovery code",
+        recoveryPlaceholder: "XXXX-XXXX",
+        useRecoveryInstead: "Use a recovery code instead",
+        useAuthenticatorInstead: "Use an Authenticator app code",
+        useEmailInstead: "Use the email code",
+        sendingEmail: "Sending a code to your email...",
+        emailSent: "A verification code was sent to your email",
+        resendIn: "You can resend in {seconds}s",
+        resend: "Resend code",
+        cancel: "Cancel",
+        disableSubmit: "Turn off 2FA",
+      }
+    : {
+        sendCodeError: "ไม่สามารถส่งรหัสได้",
+        sendCodeGenericError: "เกิดข้อผิดพลาดในการส่งรหัส",
+        resentTitle: "ส่งรหัสใหม่แล้ว",
+        resentDescription: "กรุณาตรวจสอบอีเมลของคุณ",
+        passwordRequired: "กรุณากรอกรหัสผ่าน",
+        successTitle: "สำเร็จ",
+        successDescription: "ปิดใช้งานการยืนยันตัวตนสองขั้นตอนสำเร็จ",
+        disableError: "ไม่สามารถปิดการใช้งานได้",
+        genericError: "เกิดข้อผิดพลาด กรุณาลองใหม่",
+        modalTitle: "ปิดการยืนยันตัวตนสองขั้นตอน",
+        modalSubtitle: "Disable Two-Factor Authentication",
+        warningTitle: "คำเตือน",
+        warningDescription: "การปิด 2FA จะทำให้บัญชีของคุณมีความปลอดภัยน้อยลง ไม่แนะนำให้ปิดการใช้งานนี้",
+        currentPassword: "รหัสผ่านปัจจุบัน",
+        sixDigitTotp: "รหัส 2FA 6 หลัก",
+        sixDigitEmail: "รหัสยืนยัน 6 หลักจากอีเมล",
+        recoveryCode: "รหัสสำรอง (Recovery Code)",
+        recoveryPlaceholder: "XXXX-XXXX",
+        useRecoveryInstead: "ใช้รหัสสำรองแทน",
+        useAuthenticatorInstead: "ใช้รหัสจาก Authenticator App",
+        useEmailInstead: "ใช้รหัสจากอีเมล",
+        sendingEmail: "กำลังส่งรหัสไปยังอีเมล...",
+        emailSent: "ส่งรหัสไปยังอีเมลแล้ว",
+        resendIn: "ส่งรหัสใหม่ได้ใน {seconds} วินาที",
+        resend: "ส่งรหัสใหม่",
+        cancel: "ยกเลิก",
+        disableSubmit: "ปิดการใช้งาน 2FA",
+      };
+  const formatTemplate = (template: string, values: Record<string, string | number>) =>
+    template.replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? ""));
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [recoveryCode, setRecoveryCode] = useState("");
@@ -76,10 +139,10 @@ function TwoFactorDisableModal({
         setEmailSent(true);
         setResendCooldown(60);
       } else {
-        setError(result.error || "ไม่สามารถส่งรหัสได้");
+        setError(result.error || copy.sendCodeError);
       }
     } catch (err) {
-      setError("เกิดข้อผิดพลาดในการส่งรหัส");
+      setError(copy.sendCodeGenericError);
     } finally {
       setIsSendingEmail(false);
     }
@@ -90,8 +153,8 @@ function TwoFactorDisableModal({
     await sendEmailCode();
     if (!error) {
       addToast({
-        title: "ส่งรหัสใหม่แล้ว",
-        description: "กรุณาตรวจสอบอีเมลของคุณ",
+        title: copy.resentTitle,
+        description: copy.resentDescription,
         color: "success",
         timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -101,7 +164,7 @@ function TwoFactorDisableModal({
 
   const handleDisable = useCallback(async () => {
     if (!password.trim()) {
-      setError("กรุณากรอกรหัสผ่าน");
+      setError(copy.passwordRequired);
       return;
     }
 
@@ -114,8 +177,8 @@ function TwoFactorDisableModal({
       const result = await twoFactorService.disable(password, codeToSend || undefined);
       if (result.success) {
         addToast({
-          title: "สำเร็จ",
-          description: "ปิดใช้งานการยืนยันตัวตนสองขั้นตอนสำเร็จ",
+          title: copy.successTitle,
+          description: copy.successDescription,
           color: "success",
           timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -123,14 +186,14 @@ function TwoFactorDisableModal({
         onSuccess();
         onClose();
       } else {
-        setError(result.error || "ไม่สามารถปิดการใช้งานได้");
+        setError(result.error || copy.disableError);
       }
     } catch (err) {
-      setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
+      setError(copy.genericError);
     } finally {
       setIsLoading(false);
     }
-  }, [password, code, recoveryCode, inputMode, onSuccess, onClose]);
+  }, [code, copy.disableError, copy.genericError, copy.passwordRequired, copy.successDescription, copy.successTitle, inputMode, onClose, onSuccess, password, recoveryCode]);
 
   return (
     <Modal 
@@ -147,8 +210,8 @@ function TwoFactorDisableModal({
             <Icon icon="solar:shield-warning-bold" className="text-xl text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold">ปิดการยืนยันตัวตนสองขั้นตอน</h2>
-            <p className="text-xs text-default-500 font-normal">Disable Two-Factor Authentication</p>
+            <h2 className="text-lg font-semibold">{copy.modalTitle}</h2>
+            <p className="text-xs text-default-500 font-normal">{copy.modalSubtitle}</p>
           </div>
         </ModalHeader>
         <ModalBody className="py-6">
@@ -156,9 +219,9 @@ function TwoFactorDisableModal({
             <div className="flex gap-3">
               <Icon icon="solar:danger-triangle-bold" className="text-xl text-danger shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm text-danger-800 font-medium">คำเตือน</p>
+                <p className="text-sm text-danger-800 font-medium">{copy.warningTitle}</p>
                 <p className="text-sm text-danger-700 mt-1">
-                  การปิด 2FA จะทำให้บัญชีของคุณมีความปลอดภัยน้อยลง <span className="font-semibold">ไม่แนะนำให้ปิดการใช้งานนี้</span>
+                  {copy.warningDescription}
                 </p>
               </div>
             </div>
@@ -167,7 +230,7 @@ function TwoFactorDisableModal({
           <div className="space-y-4">
             <Input
               type={showPassword ? "text" : "password"}
-              label="รหัสผ่านปัจจุบัน"
+              label={copy.currentPassword}
               labelPlacement="outside"
               variant="bordered"
               placeholder=" "
@@ -192,7 +255,7 @@ function TwoFactorDisableModal({
               <div className="space-y-4">
                 {inputMode === "otp" ? (
                   <div className="flex flex-col items-center gap-2">
-                    <label className="text-sm text-default-600">รหัส 2FA 6 หลัก</label>
+                    <label className="text-sm text-default-600">{copy.sixDigitTotp}</label>
                     <InputOtp
                       length={6}
                       value={code}
@@ -209,9 +272,9 @@ function TwoFactorDisableModal({
                   </div>
                 ) : (
                   <Input
-                    label="รหัสสำรอง (Recovery Code)"
+                    label={copy.recoveryCode}
                     labelPlacement="outside"
-                    placeholder="XXXX-XXXX"
+                    placeholder={copy.recoveryPlaceholder}
                     value={recoveryCode}
                     onValueChange={(v) => {
                       setRecoveryCode(v.toUpperCase());
@@ -234,7 +297,7 @@ function TwoFactorDisableModal({
                     }}
                     className="text-default-600 hover:text-primary"
                   >
-                    {inputMode === "otp" ? "ใช้รหัสสำรองแทน" : "ใช้รหัสจาก Authenticator App"}
+                    {inputMode === "otp" ? copy.useRecoveryInstead : copy.useAuthenticatorInstead}
                   </Link>
                 </div>
               </div>
@@ -246,21 +309,21 @@ function TwoFactorDisableModal({
                 {isSendingEmail && (
                   <div className="flex items-center justify-center gap-2 text-default-500">
                     <Icon icon="svg-spinners:ring-resize" className="text-lg" />
-                    <span className="text-sm">กำลังส่งรหัสไปยังอีเมล...</span>
+                    <span className="text-sm">{copy.sendingEmail}</span>
                   </div>
                 )}
                 
                 {emailSent && !isSendingEmail && (
                   <div className="flex items-center justify-center gap-2 text-success">
                     <Icon icon="solar:check-circle-bold" className="text-lg" />
-                    <span className="text-sm">ส่งรหัสไปยังอีเมลแล้ว</span>
+                    <span className="text-sm">{copy.emailSent}</span>
                   </div>
                 )}
 
                 {inputMode === "otp" ? (
                   <>
                     <div className="flex flex-col items-center gap-2">
-                      <label className="text-sm text-default-600">รหัสยืนยัน 6 หลักจากอีเมล</label>
+                      <label className="text-sm text-default-600">{copy.sixDigitEmail}</label>
                       <InputOtp
                         length={6}
                         value={code}
@@ -284,15 +347,15 @@ function TwoFactorDisableModal({
                         isDisabled={resendCooldown > 0}
                         startContent={resendCooldown > 0 ? <Icon icon="solar:clock-circle-outline" className="text-lg" /> : <Icon icon="solar:refresh-linear" className="text-lg" />}
                       >
-                        {resendCooldown > 0 ? `ส่งรหัสใหม่ได้ใน ${resendCooldown} วินาที` : "ส่งรหัสใหม่"}
+                        {resendCooldown > 0 ? formatTemplate(copy.resendIn, { seconds: resendCooldown }) : copy.resend}
                       </Button>
                     </div>
                   </>
                 ) : (
                   <Input
-                    label="รหัสสำรอง (Recovery Code)"
+                    label={copy.recoveryCode}
                     labelPlacement="outside"
-                    placeholder="XXXX-XXXX"
+                    placeholder={copy.recoveryPlaceholder}
                     value={recoveryCode}
                     onValueChange={(v) => {
                       setRecoveryCode(v.toUpperCase());
@@ -315,7 +378,7 @@ function TwoFactorDisableModal({
                     }}
                     className="text-default-600 hover:text-primary"
                   >
-                    {inputMode === "otp" ? "ใช้รหัสสำรองแทน" : "ใช้รหัสจากอีเมล"}
+                    {inputMode === "otp" ? copy.useRecoveryInstead : copy.useEmailInstead}
                   </Link>
                 </div>
               </div>
@@ -330,7 +393,7 @@ function TwoFactorDisableModal({
         </ModalBody>
         <ModalFooter>
           <Button variant="light" onPress={onClose}>
-            ยกเลิก
+            {copy.cancel}
           </Button>
           <Button 
             color="primary" 
@@ -339,7 +402,7 @@ function TwoFactorDisableModal({
             isDisabled={!password.trim()}
             className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
           >
-            ปิดการใช้งาน 2FA
+            {copy.disableSubmit}
           </Button>
         </ModalFooter>
       </ModalContent>

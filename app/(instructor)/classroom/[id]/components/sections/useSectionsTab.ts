@@ -18,6 +18,7 @@ import {
     filterStudentsByQuery,
 } from "./config";
 import { useSocket, type ResourceType, type ActionType } from "@/contexts/SocketContext";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 
 // ============================================
 // Cache Configuration
@@ -28,6 +29,53 @@ const CACHE_DURATION = 60000; // 1 minute
 interface CacheEntry<T> {
     data: T;
     timestamp: number;
+}
+
+function localizeAutoTeamName(name: string, isEnglish: boolean) {
+    const thaiMatch = name.match(/^กลุ่มที่\s+(\d+)$/);
+    if (thaiMatch) {
+        return isEnglish ? `Team ${thaiMatch[1]}` : `กลุ่มที่ ${thaiMatch[1]}`;
+    }
+
+    const englishMatch = name.match(/^Team\s+(\d+)$/i);
+    if (englishMatch) {
+        return isEnglish ? `Team ${englishMatch[1]}` : `กลุ่มที่ ${englishMatch[1]}`;
+    }
+
+    return name;
+}
+
+function localizePermanentTeams(teams: PermanentTeam[], isEnglish: boolean) {
+    return teams
+        .map(team => ({
+            ...team,
+            name: localizeAutoTeamName(team.name, isEnglish),
+        }))
+        .sort(naturalSortTeams);
+}
+
+function localizeWeeklyTeams(weeklyTeams: Record<number, WeeklyTeam[]>, isEnglish: boolean) {
+    const localized: Record<number, WeeklyTeam[]> = {};
+
+    Object.entries(weeklyTeams).forEach(([week, teams]) => {
+        localized[Number(week)] = teams
+            .map(team => ({
+                ...team,
+                name: localizeAutoTeamName(team.name, isEnglish),
+            }))
+            .sort(naturalSortTeams);
+    });
+
+    return localized;
+}
+
+function getLocalizedErrorMessage(
+    isEnglish: boolean,
+    englishMessage: string,
+    thaiMessage: string,
+    backendMessage?: string
+) {
+    return isEnglish ? englishMessage : backendMessage || thaiMessage;
 }
 
 // ============================================
@@ -245,6 +293,8 @@ export interface UseSectionsTabReturn {
 export function useSectionsTab(courseId: string): UseSectionsTabReturn {
     // Real-time sync
     const { emitDataUpdate, isConnected } = useSocket();
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
     
     // Cache
     const cache = useRef<{
@@ -382,8 +432,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } catch (error) {
             console.error("Error fetching course:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถโหลดข้อมูลรายวิชาได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: isEnglish ? "Unable to load course data." : "ไม่สามารถโหลดข้อมูลรายวิชาได้",
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -391,13 +441,13 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } finally {
             setIsLoading(false);
         }
-    }, [courseId, isCacheValid]);
+    }, [courseId, isCacheValid, isEnglish]);
     
     const fetchTeams = useCallback(async (forceRefresh = false) => {
         if (!forceRefresh && isCacheValid(cache.current.teams)) {
             const cachedTeams = cache.current.teams!.data;
-            setPermanentTeams(cachedTeams.permanent);
-            setWeeklyTeams(cachedTeams.weekly);
+            setPermanentTeams(localizePermanentTeams(cachedTeams.permanent, isEnglish));
+            setWeeklyTeams(localizeWeeklyTeams(cachedTeams.weekly, isEnglish));
             return;
         }
         
@@ -422,7 +472,6 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
                     })),
                     createdAt: t.created_at,
                 }));
-                permanent.sort(naturalSortTeams);
             }
             
             if (weeklyResponse.success && weeklyResponse.data) {
@@ -446,14 +495,24 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
             }
             
             cache.current.teams = { data: { permanent, weekly }, timestamp: Date.now() };
-            setPermanentTeams(permanent);
-            setWeeklyTeams(weekly);
+            setPermanentTeams(localizePermanentTeams(permanent, isEnglish));
+            setWeeklyTeams(localizeWeeklyTeams(weekly, isEnglish));
         } catch (error) {
             console.error("Error fetching teams:", error);
         } finally {
             setIsTeamsLoading(false);
         }
-    }, [courseId, isCacheValid]);
+    }, [courseId, isCacheValid, isEnglish]);
+
+    useEffect(() => {
+        if (!cache.current.teams) {
+            return;
+        }
+
+        const cachedTeams = cache.current.teams.data;
+        setPermanentTeams(localizePermanentTeams(cachedTeams.permanent, isEnglish));
+        setWeeklyTeams(localizeWeeklyTeams(cachedTeams.weekly, isEnglish));
+    }, [isEnglish]);
     
     const fetchSectionStudents = useCallback(async (sectionId: number) => {
         try {
@@ -745,8 +804,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
     const handleAddSection = useCallback(async () => {
         if (!sectionModalState.sectionNo.trim()) {
             addToast({
-                title: "ข้อมูลไม่ครบ",
-                description: "กรุณากรอกหมายเลขกลุ่มเรียน",
+                title: isEnglish ? "Incomplete information" : "ข้อมูลไม่ครบ",
+                description: isEnglish ? "Please enter a section number." : "กรุณากรอกหมายเลขกลุ่มเรียน",
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -781,8 +840,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
                 cache.current.course = undefined; // Invalidate cache
                 
                 addToast({
-                    title: "สำเร็จ",
-                    description: "เพิ่มกลุ่มเรียนสำเร็จ",
+                    title: isEnglish ? "Success" : "สำเร็จ",
+                    description: isEnglish ? "Added the section successfully." : "เพิ่มกลุ่มเรียนสำเร็จ",
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -794,8 +853,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } catch (error: unknown) {
             const err = error as { message?: string };
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: err.message || "ไม่สามารถเพิ่มกลุ่มเรียนได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: getLocalizedErrorMessage(isEnglish, "Unable to add the section.", "ไม่สามารถเพิ่มกลุ่มเรียนได้", err.message),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -803,7 +862,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } finally {
             setIsSubmitting(false);
         }
-    }, [courseId, sectionModalState.sectionNo, sectionModalState.note, sectionModal, emitUpdate]);
+    }, [courseId, sectionModalState.sectionNo, sectionModalState.note, sectionModal, emitUpdate, isEnglish]);
     
     const handleRemoveSection = useCallback((sectionId: number) => {
         const section = course?.sections?.find(s => s.id === sectionId);
@@ -841,8 +900,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
                 cache.current.course = undefined;
                 
                 addToast({
-                    title: "สำเร็จ",
-                    description: "ลบกลุ่มเรียนเรียบร้อย",
+                    title: isEnglish ? "Success" : "สำเร็จ",
+                    description: isEnglish ? "Deleted the section successfully." : "ลบกลุ่มเรียนเรียบร้อย",
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -854,8 +913,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } catch (error: unknown) {
             const err = error as { message?: string };
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: err.message || "ไม่สามารถลบกลุ่มเรียนได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: getLocalizedErrorMessage(isEnglish, "Unable to delete the section.", "ไม่สามารถลบกลุ่มเรียนได้", err.message),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -863,7 +922,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } finally {
             setIsSubmitting(false);
         }
-    }, [courseId, deleteModalState.target, deleteModal, emitUpdate]);
+    }, [courseId, deleteModalState.target, deleteModal, emitUpdate, isEnglish]);
     
     // Open edit section modal
     const openEditSectionModal = useCallback((sectionId: number) => {
@@ -882,8 +941,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
     const handleEditSection = useCallback(async () => {
         if (!editSectionModalState.sectionId || !editSectionModalState.sectionNo.trim()) {
             addToast({
-                title: "ข้อมูลไม่ครบ",
-                description: "กรุณากรอกหมายเลขกลุ่มเรียน",
+                title: isEnglish ? "Incomplete information" : "ข้อมูลไม่ครบ",
+                description: isEnglish ? "Please enter a section number." : "กรุณากรอกหมายเลขกลุ่มเรียน",
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -899,8 +958,10 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         
         if (isDuplicate) {
             addToast({
-                title: "หมายเลขซ้ำ",
-                description: `หมายเลขกลุ่มเรียน ${editSectionModalState.sectionNo} มีอยู่แล้ว`,
+                title: isEnglish ? "Duplicate section number" : "หมายเลขซ้ำ",
+                description: isEnglish
+                    ? `Section ${editSectionModalState.sectionNo} already exists.`
+                    : `หมายเลขกลุ่มเรียน ${editSectionModalState.sectionNo} มีอยู่แล้ว`,
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -935,8 +996,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
                 cache.current.course = undefined;
                 
                 addToast({
-                    title: "สำเร็จ",
-                    description: "แก้ไขกลุ่มเรียนสำเร็จ",
+                    title: isEnglish ? "Success" : "สำเร็จ",
+                    description: isEnglish ? "Updated the section successfully." : "แก้ไขกลุ่มเรียนสำเร็จ",
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -948,8 +1009,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } catch (error: unknown) {
             const err = error as { message?: string };
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: err.message || "ไม่สามารถแก้ไขกลุ่มเรียนได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: getLocalizedErrorMessage(isEnglish, "Unable to update the section.", "ไม่สามารถแก้ไขกลุ่มเรียนได้", err.message),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -957,7 +1018,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } finally {
             setIsSubmitting(false);
         }
-    }, [courseId, editSectionModalState, course?.sections, emitUpdate]);
+    }, [courseId, editSectionModalState, course?.sections, emitUpdate, isEnglish]);
     
     // Edit section modal helpers
     const editSectionModal = useMemo(() => ({
@@ -974,8 +1035,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
     const handleAddStudent = useCallback(async () => {
         if (!studentModalState.sectionId || !studentModalState.studentId) {
             addToast({
-                title: "ข้อมูลไม่ครบ",
-                description: "กรุณาเลือกนักศึกษา",
+                title: isEnglish ? "Incomplete information" : "ข้อมูลไม่ครบ",
+                description: isEnglish ? "Please select a student." : "กรุณาเลือกนักศึกษา",
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1020,8 +1081,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
                 }
                 
                 addToast({
-                    title: "สำเร็จ",
-                    description: "เพิ่มนักศึกษาเรียบร้อย",
+                    title: isEnglish ? "Success" : "สำเร็จ",
+                    description: isEnglish ? "Added the student successfully." : "เพิ่มนักศึกษาเรียบร้อย",
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1038,8 +1099,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
                     response.message ||
                     "ไม่สามารถเพิ่มนักศึกษาได้";
                 addToast({
-                    title: "เกิดข้อผิดพลาด",
-                    description: errMsg,
+                    title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                    description: getLocalizedErrorMessage(isEnglish, "Unable to add the student.", "ไม่สามารถเพิ่มนักศึกษาได้", errMsg),
                     color: "danger",
                     timeout: 5000,
                     shouldShowTimeoutProgress: true,
@@ -1048,8 +1109,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } catch (error: unknown) {
             const err = error as { message?: string };
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: err.message || "ไม่สามารถเพิ่มนักศึกษาได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: getLocalizedErrorMessage(isEnglish, "Unable to add the student.", "ไม่สามารถเพิ่มนักศึกษาได้", err.message),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1057,7 +1118,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } finally {
             setIsSubmitting(false);
         }
-    }, [courseId, studentModalState.sectionId, studentModalState.studentId, studentsList, studentModal, emitUpdate]);
+    }, [courseId, studentModalState.sectionId, studentModalState.studentId, studentsList, studentModal, emitUpdate, isEnglish]);
     
     const handleBulkAddStudents = useCallback(async () => {
         const studentsToAdd = studentModalState.parsedStudents
@@ -1079,8 +1140,10 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
                 await fetchCourse(true);
                 
                 addToast({
-                    title: "สำเร็จ",
-                    description: `เพิ่มนักศึกษา ${studentsToAdd.length} คนเรียบร้อย`,
+                    title: isEnglish ? "Success" : "สำเร็จ",
+                    description: isEnglish
+                        ? `Added ${studentsToAdd.length} students successfully.`
+                        : `เพิ่มนักศึกษา ${studentsToAdd.length} คนเรียบร้อย`,
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1097,8 +1160,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
                     response.message ||
                     "ไม่สามารถเพิ่มนักศึกษาได้";
                 addToast({
-                    title: "เกิดข้อผิดพลาด",
-                    description: errMsg,
+                    title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                    description: getLocalizedErrorMessage(isEnglish, "Unable to add the students.", "ไม่สามารถเพิ่มนักศึกษาได้", errMsg),
                     color: "danger",
                     timeout: 5000,
                     shouldShowTimeoutProgress: true,
@@ -1107,8 +1170,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } catch (error: unknown) {
             const err = error as { message?: string };
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: err.message || "ไม่สามารถเพิ่มนักศึกษาได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: getLocalizedErrorMessage(isEnglish, "Unable to add the students.", "ไม่สามารถเพิ่มนักศึกษาได้", err.message),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1116,7 +1179,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } finally {
             setIsSubmitting(false);
         }
-    }, [courseId, studentModalState.sectionId, studentModalState.parsedStudents, fetchAllSectionStudents, fetchCourse, studentModal, emitUpdate]);
+    }, [courseId, studentModalState.sectionId, studentModalState.parsedStudents, fetchAllSectionStudents, fetchCourse, studentModal, emitUpdate, isEnglish]);
     
     
     const handleRemoveStudent = useCallback(async () => {
@@ -1167,8 +1230,10 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
                 });
                 
                 addToast({
-                    title: "สำเร็จ",
-                    description: "นำนักศึกษาออกเรียบร้อย (กู้คืนได้ภายใน 10 วัน)",
+                    title: isEnglish ? "Success" : "สำเร็จ",
+                    description: isEnglish
+                        ? "Removed the student from the section. You can restore this action within 10 days."
+                        : "นำนักศึกษาออกเรียบร้อย (กู้คืนได้ภายใน 10 วัน)",
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1181,8 +1246,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } catch (error: unknown) {
             const err = error as { message?: string };
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: err.message || "ไม่สามารถนำนักศึกษาออกได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: getLocalizedErrorMessage(isEnglish, "Unable to remove the student.", "ไม่สามารถนำนักศึกษาออกได้", err.message),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1190,7 +1255,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } finally {
             setIsSubmitting(false);
         }
-    }, [courseId, deleteModalState.target, deleteModal, emitUpdate, fetchRemovedStudents]);
+    }, [courseId, deleteModalState.target, deleteModal, emitUpdate, fetchRemovedStudents, isEnglish]);
 
     const handleRestoreStudent = useCallback((removed: RemovedSectionStudent) => {
         setRestoreModalState({ isOpen: true, target: removed });
@@ -1217,8 +1282,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
                     "ไม่สามารถกู้คืนนักศึกษาได้";
 
                 addToast({
-                    title: "เกิดข้อผิดพลาด",
-                    description: errMsg,
+                    title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                    description: getLocalizedErrorMessage(isEnglish, "Unable to restore the student.", "ไม่สามารถกู้คืนนักศึกษาได้", errMsg),
                     color: "danger",
                     timeout: 3000,
                     shouldShowTimeoutProgress: true,
@@ -1230,8 +1295,10 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
             await Promise.all([fetchCourse(true), fetchAllSectionStudents(), fetchTeams(true), fetchRemovedStudents()]);
 
             addToast({
-                title: "สำเร็จ",
-                description: `กู้คืน ${removed.full_name} สำเร็จ`,
+                title: isEnglish ? "Success" : "สำเร็จ",
+                description: isEnglish
+                    ? `Restored ${removed.full_name} successfully.`
+                    : `กู้คืน ${removed.full_name} สำเร็จ`,
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1241,8 +1308,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } catch (error: unknown) {
             const err = error as { message?: string };
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: err.message || "ไม่สามารถกู้คืนนักศึกษาได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: getLocalizedErrorMessage(isEnglish, "Unable to restore the student.", "ไม่สามารถกู้คืนนักศึกษาได้", err.message),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1250,7 +1317,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } finally {
             setIsSubmitting(false);
         }
-    }, [restoreModalState.target, courseId, fetchAllSectionStudents, fetchCourse, fetchRemovedStudents, fetchTeams, emitUpdate]);
+    }, [restoreModalState.target, courseId, fetchAllSectionStudents, fetchCourse, fetchRemovedStudents, fetchTeams, emitUpdate, isEnglish]);
     
     const handleCreateTeam = useCallback(async () => {
         setIsSubmitting(true);
@@ -1258,8 +1325,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         if (teamModalState.formationMethod === "manual") {
             if (!teamModalState.name.trim()) {
                 addToast({
-                    title: "ข้อมูลไม่ครบ",
-                    description: "กรุณากรอกชื่อกลุ่ม",
+                    title: isEnglish ? "Incomplete information" : "ข้อมูลไม่ครบ",
+                    description: isEnglish ? "Please enter a team name." : "กรุณากรอกชื่อกลุ่ม",
                     color: "warning",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1270,8 +1337,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
             
             if (teamModalState.members.length === 0) {
                 addToast({
-                    title: "ข้อมูลไม่ครบ",
-                    description: "กรุณาเลือกสมาชิกอย่างน้อย 1 คน",
+                    title: isEnglish ? "Incomplete information" : "ข้อมูลไม่ครบ",
+                    description: isEnglish ? "Please select at least one member." : "กรุณาเลือกสมาชิกอย่างน้อย 1 คน",
                     color: "warning",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1291,8 +1358,10 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
                 if (response.success) {
                     await fetchTeams(true);
                     addToast({
-                        title: "สำเร็จ",
-                        description: `สร้างกลุ่ม "${teamModalState.name}" เรียบร้อย`,
+                        title: isEnglish ? "Success" : "สำเร็จ",
+                        description: isEnglish
+                            ? `Created team "${teamModalState.name}" successfully.`
+                            : `สร้างกลุ่ม "${teamModalState.name}" เรียบร้อย`,
                         color: "success",
                         timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1303,8 +1372,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
             } catch (error: unknown) {
                 const err = error as { message?: string };
                 addToast({
-                    title: "เกิดข้อผิดพลาด",
-                    description: err.message || "ไม่สามารถสร้างกลุ่มได้",
+                    title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                    description: getLocalizedErrorMessage(isEnglish, "Unable to create the team.", "ไม่สามารถสร้างกลุ่มได้", err.message),
                     color: "danger",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1323,7 +1392,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
                 teams.push(shuffled.slice(i, i + teamModalState.size));
             }
             
-            const baseName = "กลุ่มที่";
+            const baseName = isEnglish ? "Team" : "กลุ่มที่";
             let successCount = 0;
             
             for (let i = 0; i < teams.length; i++) {
@@ -1347,8 +1416,10 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
             
             if (successCount > 0) {
                 addToast({
-                    title: "สำเร็จ",
-                    description: `สร้างกลุ่มแบบสุ่ม ${successCount} กลุ่มเรียบร้อย`,
+                    title: isEnglish ? "Success" : "สำเร็จ",
+                    description: isEnglish
+                        ? `Created ${successCount} random teams successfully.`
+                        : `สร้างกลุ่มแบบสุ่ม ${successCount} กลุ่มเรียบร้อย`,
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1360,7 +1431,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         }
         
         setIsSubmitting(false);
-    }, [courseId, teamModalState, selectedWeek, getUnassignedStudents, fetchTeams, teamModal, emitUpdate]);
+    }, [courseId, teamModalState, selectedWeek, getUnassignedStudents, fetchTeams, teamModal, emitUpdate, isEnglish]);
     
     const handleSaveEditedTeam = useCallback(async () => {
         if (!editTeamModalState.team) return;
@@ -1375,8 +1446,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
             if (response.success) {
                 await fetchTeams(true);
                 addToast({
-                    title: "สำเร็จ",
-                    description: "แก้ไขกลุ่มเรียบร้อย",
+                    title: isEnglish ? "Success" : "สำเร็จ",
+                    description: isEnglish ? "Updated the team successfully." : "แก้ไขกลุ่มเรียบร้อย",
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1387,8 +1458,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } catch (error: unknown) {
             const err = error as { message?: string };
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: err.message || "ไม่สามารถแก้ไขกลุ่มได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: getLocalizedErrorMessage(isEnglish, "Unable to update the team.", "ไม่สามารถแก้ไขกลุ่มได้", err.message),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1396,7 +1467,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } finally {
             setIsSubmitting(false);
         }
-    }, [courseId, editTeamModalState.team, editTeamModalState.name, editTeamModalState.members, fetchTeams, editTeamModal, emitUpdate]);
+    }, [courseId, editTeamModalState.team, editTeamModalState.name, editTeamModalState.members, fetchTeams, editTeamModal, emitUpdate, isEnglish]);
     
     const handleDeleteTeam = useCallback(async () => {
         const target = deleteModalState.target;
@@ -1408,8 +1479,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
             if (response.success) {
                 await fetchTeams(true);
                 addToast({
-                    title: "สำเร็จ",
-                    description: "ลบกลุ่มเรียบร้อย",
+                    title: isEnglish ? "Success" : "สำเร็จ",
+                    description: isEnglish ? "Deleted the team successfully." : "ลบกลุ่มเรียบร้อย",
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1420,8 +1491,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } catch (error: unknown) {
             const err = error as { message?: string };
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: err.message || "ไม่สามารถลบกลุ่มได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: getLocalizedErrorMessage(isEnglish, "Unable to delete the team.", "ไม่สามารถลบกลุ่มได้", err.message),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1429,7 +1500,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } finally {
             setIsSubmitting(false);
         }
-    }, [courseId, deleteModalState.target, fetchTeams, deleteModal, emitUpdate]);
+    }, [courseId, deleteModalState.target, fetchTeams, deleteModal, emitUpdate, isEnglish]);
     
     const handleBulkDeleteTeams = useCallback(async () => {
         const teamsToDelete = weeklyTeams[selectedWeek] || [];
@@ -1451,8 +1522,10 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         
         if (successCount > 0) {
             addToast({
-                title: "สำเร็จ",
-                description: `ลบกลุ่ม ${successCount} กลุ่มเรียบร้อย`,
+                title: isEnglish ? "Success" : "สำเร็จ",
+                description: isEnglish
+                    ? `Deleted ${successCount} teams successfully.`
+                    : `ลบกลุ่ม ${successCount} กลุ่มเรียบร้อย`,
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1462,14 +1535,16 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         
         setBulkDeleteModalOpen(false);
         setIsSubmitting(false);
-    }, [courseId, selectedWeek, weeklyTeams, fetchTeams, emitUpdate]);
+    }, [courseId, selectedWeek, weeklyTeams, fetchTeams, emitUpdate, isEnglish]);
     
     const handleCopyTeamsFromWeek = useCallback(async (sourceWeek: number) => {
         const sourceTeams = weeklyTeams[sourceWeek];
         if (!sourceTeams || sourceTeams.length === 0) {
             addToast({
-                title: "ไม่พบกลุ่ม",
-                description: `ไม่พบกลุ่มในสัปดาห์ที่ ${sourceWeek}`,
+                title: isEnglish ? "No teams found" : "ไม่พบกลุ่ม",
+                description: isEnglish
+                    ? `No teams were found in week ${sourceWeek}.`
+                    : `ไม่พบกลุ่มในสัปดาห์ที่ ${sourceWeek}`,
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1498,8 +1573,10 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         
         if (successCount > 0) {
             addToast({
-                title: "สำเร็จ",
-                description: `คัดลอก ${successCount} กลุ่มเรียบร้อย`,
+                title: isEnglish ? "Success" : "สำเร็จ",
+                description: isEnglish
+                    ? `Copied ${successCount} teams successfully.`
+                    : `คัดลอก ${successCount} กลุ่มเรียบร้อย`,
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1508,7 +1585,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         }
         
         setIsSubmitting(false);
-    }, [courseId, selectedWeek, weeklyTeams, fetchTeams, emitUpdate]);
+    }, [courseId, selectedWeek, weeklyTeams, fetchTeams, emitUpdate, isEnglish]);
     
     // ============================================
     // Modal Openers
@@ -1578,8 +1655,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         const teamsToDelete = weeklyTeams[selectedWeek];
         if (!teamsToDelete || teamsToDelete.length === 0) {
             addToast({
-                title: "ไม่มีกลุ่มที่จะลบ",
-                description: "ไม่พบกลุ่มในสัปดาห์ที่เลือก",
+                title: isEnglish ? "No teams to delete" : "ไม่มีกลุ่มที่จะลบ",
+                description: isEnglish ? "No teams were found in the selected week." : "ไม่พบกลุ่มในสัปดาห์ที่เลือก",
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1587,7 +1664,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
             return;
         }
         setBulkDeleteModalOpen(true);
-    }, [selectedWeek, weeklyTeams]);
+    }, [selectedWeek, weeklyTeams, isEnglish]);
     
     // ============================================
     // Excel Parsing
@@ -1709,8 +1786,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } catch (error) {
             console.error("Error parsing team members:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถค้นหานักศึกษาได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: isEnglish ? "Unable to search for students." : "ไม่สามารถค้นหานักศึกษาได้",
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1719,7 +1796,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } finally {
             teamModal.setIsParsing(false);
         }
-    }, [course?.id, selectedWeek, teamModalState.type, getUnassignedStudents, findStudentTeam, teamModal]);
+    }, [course?.id, selectedWeek, teamModalState.type, getUnassignedStudents, findStudentTeam, teamModal, isEnglish]);
     
     // ============================================
     // Return

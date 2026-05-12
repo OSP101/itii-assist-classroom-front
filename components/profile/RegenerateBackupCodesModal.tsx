@@ -6,6 +6,7 @@ import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
 import { Icon } from "@iconify/react";
 import { addToast } from "@heroui/toast";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { twoFactorService } from "@/services/twoFactor.service";
 
 interface RegenerateBackupCodesModalProps {
@@ -17,6 +18,69 @@ function RegenerateBackupCodesModal({
   isOpen,
   onClose,
 }: RegenerateBackupCodesModalProps) {
+  const { language } = useGlobalSettings();
+  const locale = language === "en" ? "en-US" : "th-TH";
+  const copy = language === "en"
+    ? {
+        requirePassword: "Please enter your password",
+        successTitle: "Backup codes regenerated",
+        successDescription: "Your new backup codes are ready.",
+        regenerateError: "Could not generate new backup codes",
+        genericError: "Something went wrong. Please try again.",
+        copiedTitle: "Copied",
+        copiedDescription: "All backup codes were copied.",
+        fileTitle: "ITII Assist Classroom - Backup Codes",
+        fileCreatedAt: "Created at",
+        fileCodesLabel: "Backup codes for sign-in (each code can be used once):",
+        fileWarningTitle: "Warning:",
+        fileWarningLine1: "Store these codes somewhere safe.",
+        fileWarningLine2: "Each code can only be used once.",
+        warningTitle: "Warning",
+        warningDescription: "Generating new backup codes will immediately invalidate all existing backup codes.",
+        currentPassword: "Current password",
+        currentPasswordPlaceholder: "Enter your password to confirm",
+        cancel: "Cancel",
+        regenerate: "Generate new codes",
+        newCodesTitle: "Your new backup codes",
+        newCodesDescription: "Store these codes somewhere safe. Use them when you cannot access another two-factor method.",
+        copyAll: "Copy all",
+        download: "Download .txt",
+        singleUseWarning: "Each code can only be used once. After you close this dialog, these codes will not be shown again.",
+        finish: "Done",
+        modalConfirmTitle: "Regenerate backup codes",
+        modalCodesTitle: "Your backup codes",
+        modalSubtitle: "Recovery codes",
+      }
+    : {
+        requirePassword: "กรุณากรอกรหัสผ่าน",
+        successTitle: "สำเร็จ",
+        successDescription: "สร้างรหัสสำรองใหม่สำเร็จ",
+        regenerateError: "ไม่สามารถสร้างรหัสสำรองใหม่ได้",
+        genericError: "เกิดข้อผิดพลาด กรุณาลองใหม่",
+        copiedTitle: "คัดลอกแล้ว",
+        copiedDescription: "คัดลอกรหัสสำรองทั้งหมดแล้ว",
+        fileTitle: "ITII Assist Classroom - รหัสสำรอง",
+        fileCreatedAt: "สร้างเมื่อ",
+        fileCodesLabel: "รหัสสำรองสำหรับเข้าสู่ระบบ (ใช้ได้ครั้งเดียว):",
+        fileWarningTitle: "คำเตือน:",
+        fileWarningLine1: "เก็บรหัสเหล่านี้ไว้ในที่ปลอดภัย",
+        fileWarningLine2: "รหัสแต่ละรหัสใช้ได้เพียงครั้งเดียวเท่านั้น",
+        warningTitle: "คำเตือน",
+        warningDescription: "การสร้างรหัสสำรองใหม่จะทำให้รหัสสำรองเดิมทั้งหมดใช้ไม่ได้อีกต่อไป",
+        currentPassword: "รหัสผ่านปัจจุบัน",
+        currentPasswordPlaceholder: "กรอกรหัสผ่านเพื่อยืนยัน",
+        cancel: "ยกเลิก",
+        regenerate: "สร้างรหัสใหม่",
+        newCodesTitle: "รหัสสำรองใหม่",
+        newCodesDescription: "เก็บรหัสเหล่านี้ไว้ในที่ปลอดภัย ใช้เข้าสู่ระบบเมื่อไม่สามารถใช้วิธีอื่นได้",
+        copyAll: "คัดลอกทั้งหมด",
+        download: "ดาวน์โหลด .txt",
+        singleUseWarning: "รหัสแต่ละรหัสใช้ได้เพียงครั้งเดียว เมื่อปิดหน้านี้ คุณจะไม่สามารถดูรหัสเหล่านี้ได้อีก",
+        finish: "เสร็จสิ้น",
+        modalConfirmTitle: "สร้างรหัสสำรองใหม่",
+        modalCodesTitle: "รหัสสำรองของคุณ",
+        modalSubtitle: "Recovery Codes",
+      };
   const [step, setStep] = useState<"confirm" | "codes">("confirm");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -39,7 +103,7 @@ function RegenerateBackupCodesModal({
 
   const handleRegenerate = useCallback(async () => {
     if (!password.trim()) {
-      setError("กรุณากรอกรหัสผ่าน");
+      setError(copy.requirePassword);
       return;
     }
 
@@ -52,21 +116,21 @@ function RegenerateBackupCodesModal({
         setBackupCodes(result.backupCodes);
         setStep("codes");
         addToast({
-          title: "สำเร็จ",
-          description: "สร้างรหัสสำรองใหม่สำเร็จ",
+          title: copy.successTitle,
+          description: copy.successDescription,
           color: "success",
           timeout: 3000,
                 shouldShowTimeoutProgress: true,
         });
       } else {
-        setError(result.error || "ไม่สามารถสร้างรหัสสำรองใหม่ได้");
+        setError(result.error || copy.regenerateError);
       }
     } catch (err) {
-      setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
+      setError(copy.genericError);
     } finally {
       setIsLoading(false);
     }
-  }, [password]);
+  }, [copy.genericError, copy.regenerateError, copy.requirePassword, copy.successDescription, copy.successTitle, password]);
 
   const handleCopyCode = useCallback((code: string) => {
     navigator.clipboard.writeText(code);
@@ -78,26 +142,26 @@ function RegenerateBackupCodesModal({
     const allCodes = backupCodes.join("\n");
     navigator.clipboard.writeText(allCodes);
     addToast({
-      title: "คัดลอกแล้ว",
-      description: "คัดลอกรหัสสำรองทั้งหมดแล้ว",
+      title: copy.copiedTitle,
+      description: copy.copiedDescription,
       color: "success",
       timeout: 3000,
                 shouldShowTimeoutProgress: true,
     });
-  }, [backupCodes]);
+  }, [backupCodes, copy.copiedDescription, copy.copiedTitle]);
 
   const handleDownloadCodes = useCallback(() => {
-    const content = `ITII Assist Classroom - Recovery Codes
+    const content = `${copy.fileTitle}
 ==========================================
-สร้างเมื่อ: ${new Date().toLocaleString("th-TH")}
+${copy.fileCreatedAt}: ${new Date().toLocaleString(locale)}
 
-รหัสสำรองสำหรับเข้าสู่ระบบ (ใช้ได้ครั้งเดียว):
+${copy.fileCodesLabel}
 
 ${backupCodes.map((code, i) => `${i + 1}. ${code}`).join("\n")}
 
 ==========================================
-คำเตือน: เก็บรหัสเหล่านี้ไว้ในที่ปลอดภัย
-รหัสแต่ละรหัสใช้ได้เพียงครั้งเดียวเท่านั้น
+${copy.fileWarningTitle} ${copy.fileWarningLine1}
+${copy.fileWarningLine2}
 `;
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -108,7 +172,7 @@ ${backupCodes.map((code, i) => `${i + 1}. ${code}`).join("\n")}
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [backupCodes]);
+  }, [backupCodes, copy.fileCodesLabel, copy.fileCreatedAt, copy.fileTitle, copy.fileWarningLine1, copy.fileWarningLine2, copy.fileWarningTitle, locale]);
 
   const renderConfirmStep = () => (
     <>
@@ -117,9 +181,9 @@ ${backupCodes.map((code, i) => `${i + 1}. ${code}`).join("\n")}
           <div className="flex gap-3">
             <Icon icon="solar:danger-triangle-bold" className="text-xl text-danger shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm text-danger-800 font-medium">คำเตือน</p>
+              <p className="text-sm text-danger-800 font-medium">{copy.warningTitle}</p>
               <p className="text-sm text-danger-700 mt-1">
-                การสร้างรหัสสำรองใหม่จะทำให้รหัสสำรองเดิมทั้งหมด <span className="font-semibold">ใช้ไม่ได้อีกต่อไป</span>
+                {copy.warningDescription}
               </p>
             </div>
           </div>
@@ -127,9 +191,9 @@ ${backupCodes.map((code, i) => `${i + 1}. ${code}`).join("\n")}
 
         <Input
           type={showPassword ? "text" : "password"}
-          label="รหัสผ่านปัจจุบัน"
+          label={copy.currentPassword}
           labelPlacement="outside"
-          placeholder="กรอกรหัสผ่านเพื่อยืนยัน"
+          placeholder={copy.currentPasswordPlaceholder}
           value={password}
           onValueChange={(v) => {
             setPassword(v);
@@ -156,7 +220,7 @@ ${backupCodes.map((code, i) => `${i + 1}. ${code}`).join("\n")}
       </ModalBody>
       <ModalFooter>
         <Button variant="light" onPress={onClose}>
-          ยกเลิก
+          {copy.cancel}
         </Button>
         <Button 
           color="primary" 
@@ -165,7 +229,7 @@ ${backupCodes.map((code, i) => `${i + 1}. ${code}`).join("\n")}
           isDisabled={!password.trim()}
           className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
         >
-          สร้างรหัสใหม่
+          {copy.regenerate}
         </Button>
       </ModalFooter>
     </>
@@ -178,9 +242,9 @@ ${backupCodes.map((code, i) => `${i + 1}. ${code}`).join("\n")}
           <div className="w-16 h-16 mx-auto mb-4 bg-linear-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/30">
             <Icon icon="solar:shield-keyhole-bold" className="text-3xl text-white" />
           </div>
-          <h3 className="text-lg font-semibold text-default-900">รหัสสำรองใหม่</h3>
+          <h3 className="text-lg font-semibold text-default-900">{copy.newCodesTitle}</h3>
           <p className="text-sm text-default-500 mt-1">
-            เก็บรหัสเหล่านี้ไว้ในที่ปลอดภัย ใช้เข้าสู่ระบบเมื่อไม่สามารถใช้วิธีอื่นได้
+            {copy.newCodesDescription}
           </p>
         </div>
 
@@ -209,7 +273,7 @@ ${backupCodes.map((code, i) => `${i + 1}. ${code}`).join("\n")}
             startContent={<Icon icon="solar:copy-linear" />}
             onPress={handleCopyAll}
           >
-            คัดลอกทั้งหมด
+            {copy.copyAll}
           </Button>
           <Button
             variant="flat"
@@ -217,7 +281,7 @@ ${backupCodes.map((code, i) => `${i + 1}. ${code}`).join("\n")}
             startContent={<Icon icon="solar:download-linear" />}
             onPress={handleDownloadCodes}
           >
-            ดาวน์โหลด .txt
+            {copy.download}
           </Button>
         </div>
 
@@ -225,14 +289,14 @@ ${backupCodes.map((code, i) => `${i + 1}. ${code}`).join("\n")}
           <div className="flex items-start gap-2">
             <Icon icon="solar:danger-triangle-bold" className="text-warning-600 mt-0.5" />
             <p className="text-xs text-warning-800">
-              รหัสแต่ละรหัสใช้ได้เพียงครั้งเดียว เมื่อปิดหน้านี้ คุณจะไม่สามารถดูรหัสเหล่านี้ได้อีก
+              {copy.singleUseWarning}
             </p>
           </div>
         </div>
       </ModalBody>
       <ModalFooter>
         <Button color="primary" onPress={onClose}>
-          เสร็จสิ้น
+          {copy.finish}
         </Button>
       </ModalFooter>
     </>
@@ -254,10 +318,10 @@ ${backupCodes.map((code, i) => `${i + 1}. ${code}`).join("\n")}
           </div>
           <div>
             <h2 className="text-lg font-semibold">
-              {step === "confirm" ? "สร้างรหัสสำรองใหม่" : "รหัสสำรองของคุณ"}
+              {step === "confirm" ? copy.modalConfirmTitle : copy.modalCodesTitle}
             </h2>
             <p className="text-xs text-default-500 font-normal">
-              Recovery Codes
+              {copy.modalSubtitle}
             </p>
           </div>
         </ModalHeader>

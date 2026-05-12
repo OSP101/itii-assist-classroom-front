@@ -14,6 +14,7 @@ import { useNotification } from "@/contexts/NotificationContext";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { useSettingsMenuItems } from "@/components/SettingsPanel";
 import { useI18n } from "@/hooks/useI18n";
+import { getNotificationHeadline, getNotificationMessage } from "@/lib/notification-display";
 import Link from "next/link";
 import { IoSchool } from "react-icons/io5";
 import { AppFooter } from "@/components/Footer";
@@ -127,40 +128,6 @@ export default function InstructorLayout({
             return `${courseInfo.code} - ${courseInfo.name}`;
         }
         return `${t("courseLabel")} ${courseId}`;
-    };
-
-    const getActionLabel = (type?: string) => {
-        const mapping: Record<string, string> = {
-            assignment_created: "assignmentCreated",
-            assignment_updated: "assignmentUpdated",
-            attendance_created: "attendanceCreated",
-            attendance_started: "attendanceOpened",
-            attendance_opened: "attendanceOpened",
-            attendance_closed: "attendanceClosed",
-            queue_created: "queueCreated",
-            queue_updated: "queueUpdated",
-            queue_opened: "queueOpened",
-            queue_closed: "queueClosed",
-            score_edit_request: "scoreEditRequest",
-            score_edit_approved: "scoreEditApproved",
-            score_edit_rejected: "scoreEditRejected",
-            admin_message: "systemAnnouncement",
-        };
-        return t(mapping[String(type || "")] || "genericUpdate");
-    };
-
-    const getEntityName = (notification: any) => {
-        const payload = notification?.data && typeof notification.data === "object" ? notification.data : {};
-        const fromPayload = payload.resource_name || payload.title || payload.name;
-        if (fromPayload) return String(fromPayload);
-
-        const title = String(notification?.title || "").trim();
-        if (title.includes(":")) {
-            const parts = title.split(":");
-            const tail = parts.slice(1).join(":").trim();
-            if (tail) return tail;
-        }
-        return title || t("unnamedItem");
     };
 
     const resolveNotificationLink = (notification: any): string | null => {
@@ -594,10 +561,10 @@ export default function InstructorLayout({
                                                         {t("courseLabel")}: {getCourseLabel(notification.course_id)}
                                                     </p>
                                                     <p className={`mt-0.5 line-clamp-2 text-sm leading-snug ${notification.is_read ? "text-default-600 font-normal" : "text-foreground font-medium"}`}>
-                                                        {getActionLabel(notification.type)}: {getEntityName(notification)}
+                                                        {getNotificationHeadline(notification, language, t)}
                                                     </p>
                                                     <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-default-500">
-                                                        {notification.message || t("updatedInCourse")}
+                                                        {getNotificationMessage(notification, language, t)}
                                                     </p>
                                                     <p className={`mt-0.5 text-[11px] ${notification.is_read ? "text-default-400" : "text-primary-500 font-medium"}`}>
                                                         {formatRelativeTime(notification.created_at)}
@@ -746,7 +713,7 @@ export default function InstructorLayout({
                 </header>
 
                 {/* Main Content */}
-                <main className={`flex-1 ${isHomePage ? "max-w-7xl mx-auto px-4 py-6" : ""}`}>
+                <main className={`w-full flex-1 ${isHomePage ? "max-w-7xl mx-auto px-4 py-6" : ""}`}>
                     {children}
                 </main>
 

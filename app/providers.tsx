@@ -6,12 +6,13 @@ import { ToastProvider } from "@heroui/toast";
 import { useRouter, usePathname } from "next/navigation";
 import { SocketProvider } from "@/contexts/SocketContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
-import { GlobalSettingsProvider } from "@/contexts/GlobalSettingsContext";
+import { GlobalSettingsProvider, type InitialGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { authService } from "@/services/auth.service";
 import { IconifyPreload } from "@/components/IconifyPreload";
 
 export interface ProvidersProps {
   children: React.ReactNode;
+  initialSettings: InitialGlobalSettings;
 }
 
 declare module "@react-types/shared" {
@@ -47,13 +48,13 @@ function AuthSyncProvider({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-export function Providers({ children }: ProvidersProps) {
+export function Providers({ children, initialSettings }: ProvidersProps) {
   const router = useRouter();
 
   return (
     <HeroUIProvider navigate={router.push}>
       <IconifyPreload />
-      <GlobalSettingsProvider>
+      <GlobalSettingsProvider initialSettings={initialSettings}>
         <SocketProvider>
           <NotificationProvider>
             <AuthSyncProvider>

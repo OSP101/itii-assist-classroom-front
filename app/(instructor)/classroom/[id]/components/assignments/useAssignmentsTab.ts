@@ -5,6 +5,7 @@ import { addToast } from "@heroui/toast";
 import assignmentService from "@/services/assignment.service";
 import scoreService from "@/services/score.service";
 import type { UngradedSummary } from "@/services/score.service";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { useSocket } from "@/contexts/SocketContext";
 import type { AssignmentType } from "../types";
 import type { AssignmentTabType, ViewMode } from "./config";
@@ -68,6 +69,8 @@ export function useAssignmentsTab({
     onAssignmentChanged,
 }: UseAssignmentsTabProps): UseAssignmentsTabReturn {
     const { emitDataUpdate } = useSocket();
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
     
     // State
     const [searchQuery, setSearchQuery] = useState("");
@@ -183,10 +186,16 @@ export function useAssignmentsTab({
             await assignmentService.reorderAssignments(courseId, orderedIds);
             emitDataUpdate("assignment", "update", undefined, { courseId });
         } catch {
-            addToast({ title: "เกิดข้อผิดพลาด", description: "ไม่สามารถบันทึกลำดับได้", color: "danger", timeout: 3000, shouldShowTimeoutProgress: true });
+            addToast({
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: isEnglish ? "Unable to save the assignment order." : "ไม่สามารถบันทึกลำดับได้",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
             onAssignmentChanged?.(); // Revert by refreshing
         }
-    }, [draggingId, courseId, setAssignments, emitDataUpdate, onAssignmentChanged]);
+    }, [draggingId, courseId, setAssignments, emitDataUpdate, isEnglish, onAssignmentChanged]);
 
     // Delete modal actions
     const openDeleteModal = useCallback((assignment: AssignmentType) => {
@@ -207,8 +216,8 @@ export function useAssignmentsTab({
             await assignmentService.deleteAssignment(deleteTarget.id);
             setAssignments(prev => prev.filter(a => a.id !== deleteTarget.id));
             addToast({
-                title: "สำเร็จ",
-                description: "ลบงานเรียบร้อยแล้ว",
+                title: isEnglish ? "Success" : "สำเร็จ",
+                description: isEnglish ? "Assignment deleted." : "ลบงานเรียบร้อยแล้ว",
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -223,8 +232,8 @@ export function useAssignmentsTab({
             closeDeleteModal();
         } catch (error) {
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถลบงานได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: isEnglish ? "Unable to delete the assignment." : "ไม่สามารถลบงานได้",
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -232,7 +241,7 @@ export function useAssignmentsTab({
         } finally {
             setIsDeleting(false);
         }
-    }, [deleteTarget, setAssignments, emitDataUpdate, onAssignmentChanged, closeDeleteModal]);
+    }, [deleteTarget, setAssignments, emitDataUpdate, isEnglish, onAssignmentChanged, closeDeleteModal]);
 
     const handleDeleteAssignment = useCallback((assignment: AssignmentType) => {
         openDeleteModal(assignment);

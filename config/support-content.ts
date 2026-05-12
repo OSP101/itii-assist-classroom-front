@@ -91,18 +91,18 @@ export interface SecurityChannel {
 
 export const supportHeroHighlights: HelpHighlight[] = [
   {
-    label: "First response target",
+    label: "เป้าหมายเวลาตอบกลับครั้งแรก",
     value: "ภายใน 1 วันทำการ",
     description: "เคสทั่วไปจะได้รับการตอบกลับครั้งแรกทางอีเมลหรือช่องทางที่ผู้ใช้ระบุ",
   },
   {
-    label: "Coverage",
+    label: "ขอบเขตการช่วยเหลือ",
     value: "งาน, เช็คชื่อ, คิว, คะแนน",
     description: "ครอบคลุม workflow หลักของนักศึกษา, TA, และผู้สอนในห้องเรียน",
   },
   {
-    label: "Escalation",
-    value: "Support + Security",
+    label: "การส่งต่อเหตุ",
+    value: "ซัพพอร์ต + ความปลอดภัย",
     description: "มีแยกเส้นทางสำหรับเหตุขัดข้องทั่วไปและประเด็นด้านความปลอดภัยของระบบ",
   },
 ];
@@ -110,7 +110,7 @@ export const supportHeroHighlights: HelpHighlight[] = [
 export const helpResources: HelpResource[] = [
   {
     id: "docs",
-    title: "Documentation",
+    title: "คู่มือการใช้งาน",
     description: "คู่มือใช้งานแบบ step-by-step สำหรับทุกบทบาทในระบบ",
     icon: "solar:book-bookmark-bold",
     href: "/docs",
@@ -119,7 +119,7 @@ export const helpResources: HelpResource[] = [
   },
   {
     id: "status",
-    title: "System Status",
+    title: "สถานะระบบ",
     description: statusLiveLink.description,
     icon: "solar:server-path-bold",
     href: statusLiveLink.href,
@@ -128,7 +128,7 @@ export const helpResources: HelpResource[] = [
   },
   {
     id: "contact",
-    title: "Contact Support",
+    title: "ติดต่อทีมสนับสนุน",
     description: "ส่งคำขอช่วยเหลือโดยระบุหมวดปัญหาและบริบทของห้องเรียน",
     icon: "solar:chat-round-dots-bold",
     href: "/support/contact",
@@ -137,7 +137,7 @@ export const helpResources: HelpResource[] = [
   },
   {
     id: "security",
-    title: "Security Reporting",
+    title: "แจ้งปัญหาความปลอดภัย",
     description: "แจ้งช่องโหว่หรือพฤติกรรมที่อาจกระทบความปลอดภัยอย่างรับผิดชอบ",
     icon: "solar:shield-warning-bold",
     href: "/security",

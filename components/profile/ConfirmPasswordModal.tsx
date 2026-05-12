@@ -5,6 +5,7 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@herou
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
 import { Icon } from "@iconify/react";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 
 interface ConfirmPasswordModalProps {
   isOpen: boolean;
@@ -19,10 +20,32 @@ function ConfirmPasswordModal({
   isOpen,
   onClose,
   onConfirm,
-  title = "ยืนยันรหัสผ่าน",
-  description = "กรุณากรอกรหัสผ่านปัจจุบันเพื่อยืนยันการเปลี่ยนแปลง",
+  title,
+  description,
   isLoading = false,
 }: ConfirmPasswordModalProps) {
+  const { language } = useGlobalSettings();
+  const copy = language === "en"
+    ? {
+        defaultTitle: "Confirm password",
+        defaultDescription: "Enter your current password to confirm this change.",
+        requiredPassword: "Please enter your password",
+        genericError: "Something went wrong. Please try again.",
+        currentPassword: "Current password",
+        cancel: "Cancel",
+        confirm: "Confirm",
+      }
+    : {
+        defaultTitle: "ยืนยันรหัสผ่าน",
+        defaultDescription: "กรุณากรอกรหัสผ่านปัจจุบันเพื่อยืนยันการเปลี่ยนแปลง",
+        requiredPassword: "กรุณากรอกรหัสผ่าน",
+        genericError: "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
+        currentPassword: "รหัสผ่านปัจจุบัน",
+        cancel: "ยกเลิก",
+        confirm: "ยืนยัน",
+      };
+  const resolvedTitle = title ?? copy.defaultTitle;
+  const resolvedDescription = description ?? copy.defaultDescription;
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -36,7 +59,7 @@ function ConfirmPasswordModal({
 
   const handleConfirm = useCallback(async () => {
     if (!password.trim()) {
-      setError("กรุณากรอกรหัสผ่าน");
+      setError(copy.requiredPassword);
       return;
     }
 
@@ -51,10 +74,10 @@ function ConfirmPasswordModal({
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+        setError(copy.genericError);
       }
     }
-  }, [password, onConfirm]);
+  }, [copy.genericError, copy.requiredPassword, onConfirm, password]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !isLoading && password.trim()) {
@@ -77,17 +100,17 @@ function ConfirmPasswordModal({
             <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
               <Icon icon="solar:lock-password-bold" className="text-xl text-white" />
             </div>
-            <span>{title}</span>
+            <span>{resolvedTitle}</span>
           </div>
         </ModalHeader>
         <ModalBody>
           <p className="text-sm text-default-500 mb-4">
-            {description}
+            {resolvedDescription}
           </p>
           
           <Input
             type={showPassword ? "text" : "password"}
-            label="รหัสผ่านปัจจุบัน"
+            label={copy.currentPassword}
             labelPlacement="outside"
             value={password}
             onValueChange={(value) => {
@@ -122,7 +145,7 @@ function ConfirmPasswordModal({
             onPress={handleClose}
             isDisabled={isLoading}
           >
-            ยกเลิก
+            {copy.cancel}
           </Button>
           <Button 
             color="primary" 
@@ -132,7 +155,7 @@ function ConfirmPasswordModal({
             className="bg-linear-to-br from-blue-400 to-indigo-500"
             startContent={!isLoading && <Icon icon="solar:check-circle-linear" />}
           >
-            ยืนยัน
+            {copy.confirm}
           </Button>
         </ModalFooter>
       </ModalContent>

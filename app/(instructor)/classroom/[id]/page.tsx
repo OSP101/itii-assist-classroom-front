@@ -21,6 +21,7 @@ import { Spinner } from "@heroui/spinner";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import Link from "next/link";
+import { useI18n } from "@/hooks/useI18n";
 // Import custom hooks
 import {
     useClassroomData,
@@ -158,6 +159,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
     const params = useParams();
     const pathname = usePathname();
     const courseId = params.id as string;
+    const t = useI18n();
 
     // ============================================
     // Custom Hooks - Data & Business Logic
@@ -1054,23 +1056,23 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
     // ============================================
 
     const menuItems = useMemo(() => [
-        { key: "overview", label: "ภาพรวม", icon: "solar:chart-2-bold" },
-        ...(canAccessSections ? [{ key: "sections", label: "กลุ่มเรียน", icon: "solar:notebook-bold" }] : []),
-        ...(canViewPeople ? [{ key: "people", label: "บุคลากร", icon: "solar:users-group-rounded-bold" }] : []),
-        ...(canAccessAssignments ? [{ key: "assignments", label: "งานในชั้นเรียน", icon: "solar:clipboard-list-bold" }] : []),
-        ...(canAccessScores ? [{ key: "scores", label: "คะแนนในชั้นเรียน", icon: "solar:chart-square-bold" }] : []),
-        ...(canAccessExamScores ? [{ key: "exam-scores", label: "คะแนนสอบ", icon: "solar:diploma-bold" }] : []),
+        { key: "overview", label: t("overview"), icon: "solar:chart-2-bold" },
+        ...(canAccessSections ? [{ key: "sections", label: t("sections"), icon: "solar:notebook-bold" }] : []),
+        ...(canViewPeople ? [{ key: "people", label: t("people"), icon: "solar:users-group-rounded-bold" }] : []),
+        ...(canAccessAssignments ? [{ key: "assignments", label: t("classwork"), icon: "solar:clipboard-list-bold" }] : []),
+        ...(canAccessScores ? [{ key: "scores", label: t("classroomScores"), icon: "solar:chart-square-bold" }] : []),
+        ...(canAccessExamScores ? [{ key: "exam-scores", label: t("examScores"), icon: "solar:diploma-bold" }] : []),
         ...(canAccessApproval ? [{
             key: "approval",
-            label: approvalRole === "ta" ? "สถานะคำร้องคะแนน" : "อนุมัติคะแนน",
+            label: approvalRole === "ta" ? t("scoreRequestStatus") : t("scoreApproval"),
             icon: "solar:clipboard-check-bold",
         }] : []),
-        ...(canAccessAttendance ? [{ key: "attendance", label: "เช็คชื่อ", icon: "solar:user-check-bold" }] : []),
-        ...(canAccessQueue ? [{ key: "queue", label: "คิวตรวจงาน", icon: "solar:sort-by-time-bold" }] : []),
-        ...(userRole === 'instructor' ? [{ key: "activity-log", label: "บันทึกกิจกรรม", icon: "solar:document-text-bold" }] : []),
-        ...(userRole === 'instructor' ? [{ key: "ta-stats", label: "สถิติ TA", icon: "solar:graph-new-up-bold" }] : []),
-        ...(userRole === 'instructor' ? [{ key: "settings", label: "ตั้งค่ารายวิชา", icon: "solar:settings-bold" }] : []),
-    ], [approvalRole, canAccessApproval, canAccessAssignments, canAccessAttendance, canAccessExamScores, canAccessScores, canAccessSections, canViewPeople, userRole]);
+        ...(canAccessAttendance ? [{ key: "attendance", label: t("attendance"), icon: "solar:user-check-bold" }] : []),
+        ...(canAccessQueue ? [{ key: "queue", label: t("reviewQueue"), icon: "solar:sort-by-time-bold" }] : []),
+        ...(userRole === 'instructor' ? [{ key: "activity-log", label: t("activityLog"), icon: "solar:document-text-bold" }] : []),
+        ...(userRole === 'instructor' ? [{ key: "ta-stats", label: t("taStats"), icon: "solar:graph-new-up-bold" }] : []),
+        ...(userRole === 'instructor' ? [{ key: "settings", label: t("courseSettings"), icon: "solar:settings-bold" }] : []),
+    ], [approvalRole, canAccessApproval, canAccessAssignments, canAccessAttendance, canAccessExamScores, canAccessScores, canAccessSections, canViewPeople, t, userRole]);
 
     useEffect(() => {
         if (isLoading || !course) {

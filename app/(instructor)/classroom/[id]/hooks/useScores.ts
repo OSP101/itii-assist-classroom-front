@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { addToast } from "@heroui/toast";
 import scoreService from "@/services/score.service";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import type { Assignment as AssignmentType, AssignmentSubItem } from "@/services/assignment.service";
 import type { ScoresData, Group } from "@/services/score.service";
 
@@ -16,6 +17,9 @@ interface UseScoresOptions {
  */
 export function useScores(options: UseScoresOptions = {}) {
     const { onOverviewRefresh, emitUpdate } = options;
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
+    const t = (th: string, en: string) => (isEnglish ? en : th);
 
     // Score states
     const [selectedAssignment, setSelectedAssignment] = useState<AssignmentType | null>(null);
@@ -57,8 +61,8 @@ export function useScores(options: UseScoresOptions = {}) {
         } catch (error) {
             console.error("Error fetching scores:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถโหลดข้อมูลคะแนนได้",
+                title: t("เกิดข้อผิดพลาด", "Error"),
+                description: t("ไม่สามารถโหลดข้อมูลคะแนนได้", "Unable to load score data."),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -66,7 +70,7 @@ export function useScores(options: UseScoresOptions = {}) {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [isEnglish]);
 
     // Save individual score
     const saveScore = useCallback(async (studentId: number, score: number) => {
@@ -80,8 +84,8 @@ export function useScores(options: UseScoresOptions = {}) {
             });
             
             addToast({
-                title: "บันทึกแล้ว",
-                description: "บันทึกคะแนนเรียบร้อย",
+                title: t("บันทึกแล้ว", "Saved"),
+                description: t("บันทึกคะแนนเรียบร้อย", "Score saved successfully."),
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -92,14 +96,14 @@ export function useScores(options: UseScoresOptions = {}) {
         } catch (error) {
             console.error("Error saving score:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถบันทึกคะแนนได้",
+                title: t("เกิดข้อผิดพลาด", "Error"),
+                description: t("ไม่สามารถบันทึกคะแนนได้", "Unable to save the score."),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
             });
         }
-    }, [selectedAssignment, onOverviewRefresh, emitUpdate]);
+    }, [selectedAssignment, onOverviewRefresh, emitUpdate, isEnglish]);
 
     // Save all scores
     const saveAllScores = useCallback(async () => {
@@ -127,8 +131,10 @@ export function useScores(options: UseScoresOptions = {}) {
                 });
                 
                 addToast({
-                    title: "บันทึกแล้ว",
-                    description: `บันทึกคะแนนทั้งหมด ${scores.length} รายการเรียบร้อย`,
+                    title: t("บันทึกแล้ว", "Saved"),
+                    description: isEnglish
+                        ? `Saved ${scores.length} ${scores.length === 1 ? "score" : "scores"} successfully.`
+                        : `บันทึกคะแนนทั้งหมด ${scores.length} รายการเรียบร้อย`,
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -141,8 +147,8 @@ export function useScores(options: UseScoresOptions = {}) {
         } catch (error) {
             console.error("Error saving all scores:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถบันทึกคะแนนได้",
+                title: t("เกิดข้อผิดพลาด", "Error"),
+                description: t("ไม่สามารถบันทึกคะแนนได้", "Unable to save the scores."),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -150,7 +156,7 @@ export function useScores(options: UseScoresOptions = {}) {
         } finally {
             setIsSaving(false);
         }
-    }, [selectedAssignment, scoresData, scoreEntries, fetchScores, onOverviewRefresh, emitUpdate]);
+    }, [selectedAssignment, scoresData, scoreEntries, fetchScores, onOverviewRefresh, emitUpdate, isEnglish]);
 
     // Save group score
     const saveGroupScore = useCallback(async () => {
@@ -165,8 +171,10 @@ export function useScores(options: UseScoresOptions = {}) {
             });
             
             addToast({
-                title: "บันทึกแล้ว",
-                description: `บันทึกคะแนนกลุ่ม ${selectedGroup.name} เรียบร้อย`,
+                title: t("บันทึกแล้ว", "Saved"),
+                description: isEnglish
+                    ? `Saved the score for group ${selectedGroup.name}.`
+                    : `บันทึกคะแนนกลุ่ม ${selectedGroup.name} เรียบร้อย`,
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -180,8 +188,8 @@ export function useScores(options: UseScoresOptions = {}) {
         } catch (error) {
             console.error("Error saving group score:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถบันทึกคะแนนกลุ่มได้",
+                title: t("เกิดข้อผิดพลาด", "Error"),
+                description: t("ไม่สามารถบันทึกคะแนนกลุ่มได้", "Unable to save the group score."),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -190,7 +198,7 @@ export function useScores(options: UseScoresOptions = {}) {
         } finally {
             setIsSaving(false);
         }
-    }, [selectedAssignment, selectedGroup, groupScoreValue, fetchScores, onOverviewRefresh, emitUpdate]);
+    }, [selectedAssignment, selectedGroup, groupScoreValue, fetchScores, onOverviewRefresh, emitUpdate, isEnglish]);
 
     // Reset score states
     const resetScores = useCallback(() => {

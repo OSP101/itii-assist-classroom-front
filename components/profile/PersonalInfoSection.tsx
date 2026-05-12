@@ -9,6 +9,7 @@ import { Chip } from "@heroui/chip";
 import { Divider } from "@heroui/divider";
 import { Spinner } from "@heroui/spinner";
 import { Icon } from "@iconify/react";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { User } from "@/services";
 
 interface RoleInfo {
@@ -47,6 +48,40 @@ function PersonalInfoSection({
   handleUpdateProfile,
   isSaving,
 }: PersonalInfoSectionProps) {
+  const { language } = useGlobalSettings();
+  const copy = language === "en"
+    ? {
+        avatarTitle: "Profile photo",
+        uploadNew: "Upload new photo",
+        removePhoto: "Remove photo",
+        avatarHelp: "Supports JPG, PNG, and GIF up to 5MB",
+        personalInfoTitle: "Personal information",
+        usernameDescription: "Username cannot be changed",
+        fullName: "Full name",
+        fullNamePlaceholder: "Enter your full name",
+        email: "Email",
+        role: "Role",
+        status: "Status",
+        active: "Active",
+        inactive: "Inactive",
+        saveChanges: "Save changes",
+      }
+    : {
+        avatarTitle: "รูปโปรไฟล์",
+        uploadNew: "อัปโหลดรูปใหม่",
+        removePhoto: "ลบรูป",
+        avatarHelp: "รองรับไฟล์ JPG, PNG, GIF ขนาดไม่เกิน 5MB",
+        personalInfoTitle: "ข้อมูลส่วนตัว",
+        usernameDescription: "ไม่สามารถแก้ไข Username ได้",
+        fullName: "ชื่อ-นามสกุล",
+        fullNamePlaceholder: "กรอกชื่อ-นามสกุล",
+        email: "อีเมล",
+        role: "บทบาท",
+        status: "สถานะ",
+        active: "ใช้งานอยู่",
+        inactive: "ปิดใช้งาน",
+        saveChanges: "บันทึกการเปลี่ยนแปลง",
+      };
   return (
     <div className="space-y-6">
       {/* Avatar Section */}
@@ -54,7 +89,7 @@ function PersonalInfoSection({
         <CardHeader className="px-6 py-4 border-b border-default-100">
           <div className="flex items-center gap-2">
             <Icon icon="solar:camera-bold" className="text-lg text-primary" />
-            <h3 className="font-semibold">รูปโปรไฟล์</h3>
+            <h3 className="font-semibold">{copy.avatarTitle}</h3>
           </div>
         </CardHeader>
         <CardBody className="p-6">
@@ -92,7 +127,7 @@ function PersonalInfoSection({
                   onPress={() => fileInputRef.current?.click()}
                   isLoading={isUploadingAvatar}
                 >
-                  อัปโหลดรูปใหม่
+                  {copy.uploadNew}
                 </Button>
                 {user.avatar && (
                   <Button
@@ -103,12 +138,12 @@ function PersonalInfoSection({
                     onPress={handleRemoveAvatar}
                     isLoading={isUploadingAvatar}
                   >
-                    ลบรูป
+                    {copy.removePhoto}
                   </Button>
                 )}
               </div>
               <p className="text-xs text-default-400">
-                รองรับไฟล์ JPG, PNG, GIF ขนาดไม่เกิน 5MB
+                {copy.avatarHelp}
               </p>
             </div>
           </div>
@@ -120,7 +155,7 @@ function PersonalInfoSection({
         <CardHeader className="px-6 py-4 border-b border-default-100">
           <div className="flex items-center gap-2">
             <Icon icon="solar:pen-new-square-bold" className="text-lg text-primary" />
-            <h3 className="font-semibold">ข้อมูลส่วนตัว</h3>
+            <h3 className="font-semibold">{copy.personalInfoTitle}</h3>
           </div>
         </CardHeader>
         <CardBody className="p-6 space-y-4">
@@ -131,13 +166,13 @@ function PersonalInfoSection({
             isDisabled
             variant="flat"
             labelPlacement="outside"
-            description="ไม่สามารถแก้ไข Username ได้"
+            description={copy.usernameDescription}
             startContent={<Icon icon="solar:user-id-linear" className="text-default-400" />}
           />
           
           <Input
-            label="ชื่อ-นามสกุล"
-            placeholder="กรอกชื่อ-นามสกุล"
+            label={copy.fullName}
+            placeholder={copy.fullNamePlaceholder}
             value={fullName}
             onValueChange={setFullName}
             labelPlacement="outside"
@@ -146,7 +181,7 @@ function PersonalInfoSection({
           />
           
           <Input
-            label="อีเมล"
+            label={copy.email}
             type="email"
             placeholder="example@email.com"
             value={email}
@@ -158,15 +193,15 @@ function PersonalInfoSection({
 
           <div className="grid grid-cols-2 gap-4 pt-2">
             <div className="p-3 bg-default-50 rounded-lg">
-              <p className="text-xs text-default-500 mb-1">บทบาท</p>
+              <p className="text-xs text-default-500 mb-1">{copy.role}</p>
               <Chip color={roleInfo.color} variant="flat" size="sm">
                 {roleInfo.label}
               </Chip>
             </div>
             <div className="p-3 bg-default-50 rounded-lg">
-              <p className="text-xs text-default-500 mb-1">สถานะ</p>
+              <p className="text-xs text-default-500 mb-1">{copy.status}</p>
               <Chip color={user.is_active ? "success" : "danger"} variant="flat" size="sm">
-                {user.is_active ? "ใช้งานอยู่" : "ปิดใช้งาน"}
+                {user.is_active ? copy.active : copy.inactive}
               </Chip>
             </div>
           </div>
@@ -181,7 +216,7 @@ function PersonalInfoSection({
               className="bg-linear-to-br from-blue-400 to-indigo-500"
               startContent={!isSaving && <Icon icon="solar:check-circle-linear" />}
             >
-              บันทึกการเปลี่ยนแปลง
+              {copy.saveChanges}
             </Button>
           </div>
         </CardBody>

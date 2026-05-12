@@ -4,6 +4,8 @@ import { memo } from "react";
 import { Avatar } from "@heroui/avatar";
 import { Chip } from "@heroui/chip";
 import { Icon } from "@iconify/react";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import { useI18n } from "@/hooks/useI18n";
 import type { RecentActivity } from "@/services/course.service";
 import { formatRelativeTime } from "../config";
 
@@ -12,11 +14,13 @@ interface ActivityTimelineProps {
 }
 
 function ActivityTimelineComponent({ activities }: ActivityTimelineProps) {
+  const { language } = useGlobalSettings();
+  const t = useI18n();
   if (activities.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-10 gap-2">
         <Icon icon="solar:history-2-linear" className="text-4xl text-slate-300" />
-        <p className="text-sm text-slate-400">ยังไม่มีกิจกรรม</p>
+        <p className="text-sm text-slate-400">{t("noActivityYet")}</p>
       </div>
     );
   }
@@ -49,11 +53,11 @@ function ActivityTimelineComponent({ activities }: ActivityTimelineProps) {
                   </p>
                   <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                     <span className="text-[11px] text-slate-400 dark:text-zinc-500">
-                      {formatRelativeTime(activity.timestamp)}
+                      {formatRelativeTime(activity.timestamp, language, t)}
                     </span>
                     {activity.score > 0 && (
                       <Chip size="sm" variant="flat" color="primary" className="h-5 text-[11px]">
-                        +{activity.score} คะแนน
+                        +{activity.score} {t("pointsLabel")}
                       </Chip>
                     )}
                   </div>

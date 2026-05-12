@@ -20,6 +20,29 @@ interface BonusScoreModalProps {
     courseId: string;
 }
 
+const BONUS_SEARCH_AUTOCOMPLETE_CLASSNAMES = {
+    base: "w-full",
+    listboxWrapper: "max-h-[300px] p-0",
+    listbox: "gap-1 p-1 bg-content1",
+    popoverContent: "border border-default-200 bg-content1 text-foreground shadow-xl shadow-black/10",
+    selectorButton: "text-amber-400 dark:text-amber-300",
+};
+
+const BONUS_SEARCH_LISTBOX_PROPS = {
+    classNames: {
+        base: "bg-content1 p-1",
+        list: "gap-1",
+        emptyContent: "text-default-500",
+    },
+    itemClasses: {
+        base: "rounded-lg px-2 py-1.5 text-foreground data-[hover=true]:bg-content2 data-[focus=true]:bg-content2 data-[selected=true]:bg-warning/15 data-[selected=true]:text-foreground",
+        wrapper: "gap-0.5",
+        title: "text-foreground",
+        description: "text-default-500",
+        selectedIcon: "text-warning",
+    },
+};
+
 export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScoreModalProps) {
     const [activeTab, setActiveTab] = useState<"give" | "history">("give");
     const [searchQuery, setSearchQuery] = useState("");
@@ -190,7 +213,7 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
             size="3xl"
             scrollBehavior="inside"
         >
-            <ModalContent>
+            <ModalContent className="score-modal-theme-scope bg-content2 text-foreground">
                 <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                     <div className="flex items-center gap-4">
                         <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
@@ -245,15 +268,12 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
                                             isDisabled={givingTo !== null}
                                             startContent={<Icon icon="solar:magnifer-linear" className="text-amber-500" />}
                                             variant="bordered"
+                                            classNames={BONUS_SEARCH_AUTOCOMPLETE_CLASSNAMES}
+                                            listboxProps={BONUS_SEARCH_LISTBOX_PROPS}
                                             inputProps={{
                                                 classNames: {
                                                     inputWrapper: "bg-content1 border-amber-200 hover:border-amber-300 focus-within:!border-amber-400",
                                                 },
-                                            }}
-                                            classNames={{
-                                                base: "w-full",
-                                                listboxWrapper: "max-h-[300px]",
-                                                selectorButton: "text-amber-400"
                                             }}
                                         >
                                             {filteredStudents.map((student) => (

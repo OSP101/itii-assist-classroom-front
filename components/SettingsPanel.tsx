@@ -209,33 +209,55 @@ export const useSettingsMenuItems = ({
         >
           <div className="space-y-0.5">
             {section.options.map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                className={clsx(
-                  "flex h-10 w-full items-center gap-2 rounded-lg px-2.5 text-left text-sm leading-5 transition-colors",
-                  option.selected
-                    ? "font-medium text-foreground"
-                    : "text-default-700 hover:bg-default-100",
-                )}
-                onClick={(event) => {
-                  event.stopPropagation();
+              (() => {
+                const selectOption = (event?: React.PointerEvent<HTMLButtonElement> | React.KeyboardEvent<HTMLButtonElement>) => {
+                  event?.preventDefault();
+                  event?.stopPropagation();
                   clearCloseTimer();
                   option.onSelect();
                   setOpenSection(null);
                   onOptionSelect?.();
-                }}
-              >
-                {"preview" in option ? (
-                  <span className="w-7 shrink-0 text-center text-sm font-semibold text-current">
-                    {option.preview}
-                  </span>
-                ) : null}
-                <span className="min-w-0 flex-1 truncate">{option.label}</span>
-                {option.selected ? (
-                  <Icon icon="solar:check-circle-bold" className="shrink-0 text-base text-default-700" />
-                ) : null}
-              </button>
+                };
+
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    className={clsx(
+                      "flex h-10 w-full items-center gap-2 rounded-lg px-2.5 text-left text-sm leading-5 transition-colors",
+                      option.selected
+                        ? "font-medium text-foreground"
+                        : "text-default-700 hover:bg-default-100",
+                    )}
+                    onPointerDown={(event) => {
+                      if (event.button !== 0) {
+                        return;
+                      }
+
+                      selectOption(event);
+                    }}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        selectOption(event);
+                      }
+                    }}
+                  >
+                    {"preview" in option ? (
+                      <span className="w-7 shrink-0 text-center text-sm font-semibold text-current">
+                        {option.preview}
+                      </span>
+                    ) : null}
+                    <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                    {option.selected ? (
+                      <Icon icon="solar:check-circle-bold" className="shrink-0 text-base text-default-700" />
+                    ) : null}
+                  </button>
+                );
+              })()
             ))}
           </div>
         </div>

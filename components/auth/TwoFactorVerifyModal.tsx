@@ -6,6 +6,7 @@ import { Input } from "@heroui/input";
 import { InputOtp } from "@heroui/input-otp";
 import { Button } from "@heroui/button";
 import { Link } from "@heroui/link";
+import { useI18n } from "@/hooks/useI18n";
 import { twoFactorService, TwoFactorLoginData } from "@/services/twoFactor.service";
 
 interface TwoFactorVerifyModalProps {
@@ -23,6 +24,7 @@ function TwoFactorVerifyModal({
   onSuccess,
   twoFactorData,
 }: TwoFactorVerifyModalProps) {
+  const t = useI18n();
   const [otpCode, setOtpCode] = useState("");
   const [recoveryCode, setRecoveryCode] = useState("");
   const [inputMode, setInputMode] = useState<InputMode>("otp");
@@ -58,26 +60,26 @@ function TwoFactorVerifyModal({
       if (result.success) {
         setCodeSent(true);
       } else {
-        setError(result.error || "ไม่สามารถส่งรหัสได้");
+        setError(result.error || t("unableToSendCodeTryAgain"));
       }
     } catch (err) {
-      setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
+      setError(t("unableToSendCodeTryAgain"));
     } finally {
       setIsSendingCode(false);
     }
-  }, [twoFactorData?.userId]);
+  }, [t, twoFactorData?.userId]);
 
   const handleVerify = useCallback(async () => {
     const codeToVerify = inputMode === "otp" ? otpCode : recoveryCode.trim();
     
     if (!codeToVerify || !twoFactorData?.userId) {
-      setError("กรุณากรอกรหัสยืนยัน");
+      setError(inputMode === "otp" ? t("enterSixDigitCode") : t("enterBackupCode"));
       return;
     }
 
     // Validate OTP is 6 digits
     if (inputMode === "otp" && otpCode.length !== 6) {
-      setError("กรุณากรอกรหัส 6 หลักให้ครบ");
+      setError(t("enterSixDigitCode"));
       return;
     }
 
@@ -94,14 +96,14 @@ function TwoFactorVerifyModal({
           mustChangePassword: result.data.mustChangePassword,
         });
       } else {
-        setError(result.error || "รหัสไม่ถูกต้อง");
+        setError(result.error || t("invalidCodeTryAgain"));
       }
     } catch (err) {
-      setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
+      setError(t("tryAgain"));
     } finally {
       setIsLoading(false);
     }
-  }, [inputMode, otpCode, recoveryCode, twoFactorData?.userId, onSuccess]);
+  }, [inputMode, onSuccess, otpCode, recoveryCode, t, twoFactorData?.userId]);
 
   // Auto-submit when OTP is complete
   useEffect(() => {
@@ -119,14 +121,14 @@ function TwoFactorVerifyModal({
 
   const getMethodDescription = () => {
     if (inputMode === "recovery") {
-      return "กรอกรหัสสำรองที่คุณบันทึกไว้ตอนตั้งค่า 2FA";
+      return t("enterRecoveryCodeSavedDuringSetup");
     }
     if (twoFactorData?.twoFactorMethod === "totp") {
-      return "เปิดแอป Authenticator แล้วกรอกรหัส 6 หลัก";
+      return t("enterCodeFromAuthenticator");
     }
     return twoFactorData?.email 
-      ? `กรอกรหัสที่ส่งไปยัง ${twoFactorData.email}`
-      : "กรอกรหัสที่ส่งไปยังอีเมลของคุณ";
+      ? t("enterCodeSentToEmailAddress", { email: twoFactorData.email })
+      : t("enterCodeFromEmail");
   };
 
   return (
@@ -142,7 +144,7 @@ function TwoFactorVerifyModal({
           {/* Header */}
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-default-900 mb-2">
-              Two-Factor Authentication
+              {t("twoFactorAuthentication")}
             </h2>
             <p className="text-sm text-default-500">
               {getMethodDescription()}
@@ -180,7 +182,7 @@ function TwoFactorVerifyModal({
                 isLoading={isLoading}
                 isDisabled={otpCode.length !== 6}
               >
-                Verify
+                {t("verify")}
               </Button>
 
               {twoFactorData?.twoFactorMethod === "email" && (
@@ -192,7 +194,7 @@ function TwoFactorVerifyModal({
                   isDisabled={isSendingCode}
                   className="mt-2"
                 >
-                  {codeSent ? "ส่งรหัสใหม่" : "ส่งรหัสอีกครั้ง"}
+                  {t("resendCode")}
                 </Button>
               )}
 
@@ -203,15 +205,15 @@ function TwoFactorVerifyModal({
                 onPress={toggleInputMode}
                 className="mt-4"
               >
-                Use a recovery code
+                {t("useRecoveryCode")}
               </Link>
             </div>
           ) : (
             /* Recovery Code Input Mode */
             <div className="flex flex-col items-center gap-4">
               <Input
-                label="Recovery Code"
-                placeholder="Enter recovery code"
+                label={t("recoveryCode")}
+                placeholder={t("recoveryCode")}
                 value={recoveryCode}
                 onValueChange={(v) => {
                   setRecoveryCode(v.toUpperCase());
@@ -239,7 +241,7 @@ function TwoFactorVerifyModal({
                 isLoading={isLoading}
                 isDisabled={!recoveryCode.trim()}
               >
-                Verify
+                {t("verify")}
               </Button>
 
               <Link
@@ -249,7 +251,7 @@ function TwoFactorVerifyModal({
                 onPress={toggleInputMode}
                 className="mt-4"
               >
-                Use an authenticator app
+                {twoFactorData?.twoFactorMethod === "email" ? t("useEmailCode") : t("useAuthenticatorAppCode")}
               </Link>
             </div>
           )}

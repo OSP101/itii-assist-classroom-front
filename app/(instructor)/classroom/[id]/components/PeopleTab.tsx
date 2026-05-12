@@ -19,6 +19,7 @@ import { Pagination } from "@heroui/pagination";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { Switch } from "@heroui/switch";
 import { Icon } from "@iconify/react";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import {
     buildCoursePermissionPreset,
     resolveCourseMemberPermissions,
@@ -106,89 +107,106 @@ function PeopleTableSkeleton() {
 
 const ITEMS_PER_PAGE = 10;
 
-const PERMISSION_SECTIONS: Array<{
+function getPermissionSections(isEnglish: boolean): Array<{
     title: string;
     items: Array<{ key: keyof CourseMemberPermissions; label: string; description: string }>;
-}> = [
-    {
-        title: "บุคลากรและโครงสร้างรายวิชา",
-        items: [
-            { key: "view_people", label: "ดูรายชื่อบุคลากร", description: "เปิดแท็บบุคลากรและดูรายชื่ออาจารย์หรือ TA ในรายวิชา" },
-            { key: "add_people", label: "เพิ่มบุคลากร", description: "เพิ่มอาจารย์ผู้สอนหรือผู้ช่วยสอนเข้าสู่รายวิชา" },
-            { key: "remove_people", label: "นำบุคลากรออก", description: "ลบอาจารย์หรือ TA ออกจากรายวิชา" },
-            { key: "edit_member_permissions", label: "แก้สิทธิ์บุคลากร", description: "ปรับสิทธิ์ของอาจารย์หรือ TA รายคน" },
-            { key: "view_sections", label: "ดูกลุ่มเรียน", description: "ดูรายการกลุ่มเรียนและรายชื่อนักศึกษาในกลุ่ม" },
-            { key: "create_sections", label: "สร้างกลุ่มเรียน", description: "เพิ่มกลุ่มเรียนใหม่ในรายวิชา" },
-            { key: "update_sections", label: "แก้ไขกลุ่มเรียน", description: "แก้ชื่อหรือข้อมูลของกลุ่มเรียน" },
-            { key: "delete_sections", label: "ลบกลุ่มเรียน", description: "ลบกลุ่มเรียนออกจากรายวิชา" },
-            { key: "manage_section_students", label: "จัดการนักศึกษาในกลุ่มเรียน", description: "เพิ่ม ย้าย ลบ และกู้คืนนักศึกษาในกลุ่มเรียน" },
-        ],
-    },
-    {
-        title: "กลุ่มงาน งานชั้นเรียน และคะแนน",
-        items: [
-            { key: "view_teams", label: "ดูกลุ่มงาน", description: "ดูทีมถาวรหรือทีมรายสัปดาห์" },
-            { key: "create_teams", label: "สร้างกลุ่มงาน", description: "สร้างทีมถาวรหรือทีมรายสัปดาห์" },
-            { key: "update_teams", label: "แก้ไขกลุ่มงาน", description: "เปลี่ยนชื่อทีม หรือคัดลอกทีมข้ามสัปดาห์" },
-            { key: "delete_teams", label: "ลบกลุ่มงาน", description: "ลบทีมรายบุคคลหรือแบบกลุ่ม" },
-            { key: "manage_team_members", label: "จัดการสมาชิกในกลุ่มงาน", description: "เพิ่มหรือนำสมาชิกออกจากทีม" },
-            { key: "view_assignments", label: "ดูงานในชั้นเรียน", description: "ดูรายการงาน รายละเอียดงาน และลำดับงาน" },
-            { key: "create_assignments", label: "สร้างงาน", description: "สร้างงานหรือหัวข้อใหม่ในชั้นเรียน" },
-            { key: "update_assignments", label: "แก้ไขงาน", description: "แก้ไขงาน ปรับลำดับ และเชื่อม attendance กับงาน" },
-            { key: "delete_assignments", label: "ลบงาน", description: "ลบงานในชั้นเรียน" },
-            { key: "grade_assignments", label: "ให้คะแนนงาน", description: "เปิดดูงานและบันทึกคะแนนรายคนหรือรายกลุ่ม" },
-            { key: "edit_scores", label: "แก้ไขคะแนน", description: "แก้คะแนนและส่งคำร้องแก้ไขคะแนน" },
-            { key: "view_score_summary", label: "ดูสรุปคะแนน", description: "ดู score summary, matrix และสถิติการให้คะแนน" },
-            { key: "review_own_score_requests", label: "ดูคำร้องคะแนนของตนเอง", description: "ดูสถานะคำร้องที่ตนเองเป็นผู้ส่งหรือดูแล" },
-            { key: "review_all_score_requests", label: "อนุมัติคำร้องคะแนนทั้งหมด", description: "ตรวจและอนุมัติคำร้องคะแนนได้แบบเดียวกับอาจารย์" },
-        ],
-    },
-    {
-        title: "คะแนนสอบ เช็คชื่อ และคิว",
-        items: [
-            { key: "view_exam_scores", label: "ดูคะแนนสอบ", description: "เปิดดูข้อมูลคะแนนสอบและสถิติ" },
-            { key: "create_exam_scores", label: "เพิ่มคะแนนสอบ", description: "เพิ่มคะแนนสอบใหม่เข้าระบบ" },
-            { key: "update_exam_scores", label: "แก้ไขคะแนนสอบ", description: "แก้ไขคะแนนสอบที่มีอยู่แล้ว" },
-            { key: "delete_exam_scores", label: "ลบคะแนนสอบ", description: "ลบข้อมูลคะแนนสอบ" },
-            { key: "update_exam_settings", label: "แก้การตั้งค่าคะแนนสอบ", description: "ปรับ exam settings หรือสัดส่วนคะแนนสอบ" },
-            { key: "view_attendance", label: "ดูข้อมูลเช็คชื่อ", description: "ดู session เช็คชื่อและรายการเข้าเรียน" },
-            { key: "create_attendance_sessions", label: "สร้าง session เช็คชื่อ", description: "สร้าง session เช็คชื่อใหม่" },
-            { key: "update_attendance_sessions", label: "แก้ session เช็คชื่อ", description: "ปรับเวลา เปิด ปิด และแก้ session เช็คชื่อ" },
-            { key: "delete_attendance_sessions", label: "ลบ session เช็คชื่อ", description: "ลบ session เช็คชื่อ" },
-            { key: "update_attendance_status", label: "แก้สถานะเช็คชื่อ", description: "อัปเดตสถานะการเข้าเรียนรายคนหรือแบบกลุ่ม" },
-            { key: "view_queue", label: "ดูคิวตรวจงาน", description: "ดู session คิว รายชื่อ worker และรายการจองคิว" },
-            { key: "create_queue_sessions", label: "สร้างคิวตรวจงาน", description: "สร้าง session คิวตรวจงานใหม่" },
-            { key: "update_queue_sessions", label: "แก้คิวตรวจงาน", description: "แก้ session คิว เปิด ปิด หยุดพัก และจัดการ worker" },
-            { key: "delete_queue_sessions", label: "ลบคิวตรวจงาน", description: "ลบ session คิวตรวจงาน" },
-            { key: "manage_queue_bookings", label: "จัดการรายการจองคิว", description: "รับงาน ข้ามคิว ปิดงาน และจัดการ booking" },
-        ],
-    },
-];
+}> {
+    return [
+        {
+            title: isEnglish ? "People and course structure" : "บุคลากรและโครงสร้างรายวิชา",
+            items: [
+                { key: "view_people", label: isEnglish ? "View people" : "ดูรายชื่อบุคลากร", description: isEnglish ? "Open the People tab and view instructors or TAs in this course." : "เปิดแท็บบุคลากรและดูรายชื่ออาจารย์หรือ TA ในรายวิชา" },
+                { key: "add_people", label: isEnglish ? "Add people" : "เพิ่มบุคลากร", description: isEnglish ? "Add instructors or teaching assistants to this course." : "เพิ่มอาจารย์ผู้สอนหรือผู้ช่วยสอนเข้าสู่รายวิชา" },
+                { key: "remove_people", label: isEnglish ? "Remove people" : "นำบุคลากรออก", description: isEnglish ? "Remove instructors or TAs from this course." : "ลบอาจารย์หรือ TA ออกจากรายวิชา" },
+                { key: "edit_member_permissions", label: isEnglish ? "Edit member permissions" : "แก้สิทธิ์บุคลากร", description: isEnglish ? "Adjust permissions for individual instructors or TAs." : "ปรับสิทธิ์ของอาจารย์หรือ TA รายคน" },
+                { key: "view_sections", label: isEnglish ? "View sections" : "ดูกลุ่มเรียน", description: isEnglish ? "View sections and the students assigned to them." : "ดูรายการกลุ่มเรียนและรายชื่อนักศึกษาในกลุ่ม" },
+                { key: "create_sections", label: isEnglish ? "Create sections" : "สร้างกลุ่มเรียน", description: isEnglish ? "Create new sections in this course." : "เพิ่มกลุ่มเรียนใหม่ในรายวิชา" },
+                { key: "update_sections", label: isEnglish ? "Edit sections" : "แก้ไขกลุ่มเรียน", description: isEnglish ? "Update section names or details." : "แก้ชื่อหรือข้อมูลของกลุ่มเรียน" },
+                { key: "delete_sections", label: isEnglish ? "Delete sections" : "ลบกลุ่มเรียน", description: isEnglish ? "Remove sections from this course." : "ลบกลุ่มเรียนออกจากรายวิชา" },
+                { key: "manage_section_students", label: isEnglish ? "Manage section students" : "จัดการนักศึกษาในกลุ่มเรียน", description: isEnglish ? "Add, move, remove, and restore students in sections." : "เพิ่ม ย้าย ลบ และกู้คืนนักศึกษาในกลุ่มเรียน" },
+            ],
+        },
+        {
+            title: isEnglish ? "Teams, classwork, and scores" : "กลุ่มงาน งานชั้นเรียน และคะแนน",
+            items: [
+                { key: "view_teams", label: isEnglish ? "View teams" : "ดูกลุ่มงาน", description: isEnglish ? "View permanent or weekly teams." : "ดูทีมถาวรหรือทีมรายสัปดาห์" },
+                { key: "create_teams", label: isEnglish ? "Create teams" : "สร้างกลุ่มงาน", description: isEnglish ? "Create permanent or weekly teams." : "สร้างทีมถาวรหรือทีมรายสัปดาห์" },
+                { key: "update_teams", label: isEnglish ? "Edit teams" : "แก้ไขกลุ่มงาน", description: isEnglish ? "Rename teams or copy them across weeks." : "เปลี่ยนชื่อทีม หรือคัดลอกทีมข้ามสัปดาห์" },
+                { key: "delete_teams", label: isEnglish ? "Delete teams" : "ลบกลุ่มงาน", description: isEnglish ? "Delete individual or group teams." : "ลบทีมรายบุคคลหรือแบบกลุ่ม" },
+                { key: "manage_team_members", label: isEnglish ? "Manage team members" : "จัดการสมาชิกในกลุ่มงาน", description: isEnglish ? "Add or remove members from teams." : "เพิ่มหรือนำสมาชิกออกจากทีม" },
+                { key: "view_assignments", label: isEnglish ? "View classwork" : "ดูงานในชั้นเรียน", description: isEnglish ? "View assignments, details, and ordering." : "ดูรายการงาน รายละเอียดงาน และลำดับงาน" },
+                { key: "create_assignments", label: isEnglish ? "Create assignments" : "สร้างงาน", description: isEnglish ? "Create assignments or topics in classwork." : "สร้างงานหรือหัวข้อใหม่ในชั้นเรียน" },
+                { key: "update_assignments", label: isEnglish ? "Edit assignments" : "แก้ไขงาน", description: isEnglish ? "Edit assignments, reorder items, and link attendance." : "แก้ไขงาน ปรับลำดับ และเชื่อม attendance กับงาน" },
+                { key: "delete_assignments", label: isEnglish ? "Delete assignments" : "ลบงาน", description: isEnglish ? "Delete classwork assignments." : "ลบงานในชั้นเรียน" },
+                { key: "grade_assignments", label: isEnglish ? "Grade assignments" : "ให้คะแนนงาน", description: isEnglish ? "Open work and save individual or group scores." : "เปิดดูงานและบันทึกคะแนนรายคนหรือรายกลุ่ม" },
+                { key: "edit_scores", label: isEnglish ? "Edit scores" : "แก้ไขคะแนน", description: isEnglish ? "Edit scores and submit score-edit requests." : "แก้คะแนนและส่งคำร้องแก้ไขคะแนน" },
+                { key: "view_score_summary", label: isEnglish ? "View score summary" : "ดูสรุปคะแนน", description: isEnglish ? "View score summaries, matrices, and grading stats." : "ดู score summary, matrix และสถิติการให้คะแนน" },
+                { key: "review_own_score_requests", label: isEnglish ? "Review own score requests" : "ดูคำร้องคะแนนของตนเอง", description: isEnglish ? "See the status of requests you submitted or oversee." : "ดูสถานะคำร้องที่ตนเองเป็นผู้ส่งหรือดูแล" },
+                { key: "review_all_score_requests", label: isEnglish ? "Review all score requests" : "อนุมัติคำร้องคะแนนทั้งหมด", description: isEnglish ? "Review and approve all score requests like an instructor." : "ตรวจและอนุมัติคำร้องคะแนนได้แบบเดียวกับอาจารย์" },
+            ],
+        },
+        {
+            title: isEnglish ? "Exam scores, attendance, and queue" : "คะแนนสอบ เช็คชื่อ และคิว",
+            items: [
+                { key: "view_exam_scores", label: isEnglish ? "View exam scores" : "ดูคะแนนสอบ", description: isEnglish ? "Open exam score data and statistics." : "เปิดดูข้อมูลคะแนนสอบและสถิติ" },
+                { key: "create_exam_scores", label: isEnglish ? "Add exam scores" : "เพิ่มคะแนนสอบ", description: isEnglish ? "Add new exam scores to the system." : "เพิ่มคะแนนสอบใหม่เข้าระบบ" },
+                { key: "update_exam_scores", label: isEnglish ? "Edit exam scores" : "แก้ไขคะแนนสอบ", description: isEnglish ? "Edit existing exam scores." : "แก้ไขคะแนนสอบที่มีอยู่แล้ว" },
+                { key: "delete_exam_scores", label: isEnglish ? "Delete exam scores" : "ลบคะแนนสอบ", description: isEnglish ? "Delete exam score records." : "ลบข้อมูลคะแนนสอบ" },
+                { key: "update_exam_settings", label: isEnglish ? "Edit exam settings" : "แก้การตั้งค่าคะแนนสอบ", description: isEnglish ? "Adjust exam settings or score weighting." : "ปรับ exam settings หรือสัดส่วนคะแนนสอบ" },
+                { key: "view_attendance", label: isEnglish ? "View attendance" : "ดูข้อมูลเช็คชื่อ", description: isEnglish ? "View attendance sessions and records." : "ดู session เช็คชื่อและรายการเข้าเรียน" },
+                { key: "create_attendance_sessions", label: isEnglish ? "Create attendance sessions" : "สร้าง session เช็คชื่อ", description: isEnglish ? "Create new attendance sessions." : "สร้าง session เช็คชื่อใหม่" },
+                { key: "update_attendance_sessions", label: isEnglish ? "Edit attendance sessions" : "แก้ session เช็คชื่อ", description: isEnglish ? "Adjust time, status, and attendance session details." : "ปรับเวลา เปิด ปิด และแก้ session เช็คชื่อ" },
+                { key: "delete_attendance_sessions", label: isEnglish ? "Delete attendance sessions" : "ลบ session เช็คชื่อ", description: isEnglish ? "Delete attendance sessions." : "ลบ session เช็คชื่อ" },
+                { key: "update_attendance_status", label: isEnglish ? "Update attendance status" : "แก้สถานะเช็คชื่อ", description: isEnglish ? "Update attendance status per student or in bulk." : "อัปเดตสถานะการเข้าเรียนรายคนหรือแบบกลุ่ม" },
+                { key: "view_queue", label: isEnglish ? "View review queue" : "ดูคิวตรวจงาน", description: isEnglish ? "View queue sessions, workers, and bookings." : "ดู session คิว รายชื่อ worker และรายการจองคิว" },
+                { key: "create_queue_sessions", label: isEnglish ? "Create review queues" : "สร้างคิวตรวจงาน", description: isEnglish ? "Create new queue sessions." : "สร้าง session คิวตรวจงานใหม่" },
+                { key: "update_queue_sessions", label: isEnglish ? "Edit review queues" : "แก้คิวตรวจงาน", description: isEnglish ? "Edit queue sessions, open/close state, breaks, and workers." : "แก้ session คิว เปิด ปิด หยุดพัก และจัดการ worker" },
+                { key: "delete_queue_sessions", label: isEnglish ? "Delete review queues" : "ลบคิวตรวจงาน", description: isEnglish ? "Delete queue sessions." : "ลบ session คิวตรวจงาน" },
+                { key: "manage_queue_bookings", label: isEnglish ? "Manage queue bookings" : "จัดการรายการจองคิว", description: isEnglish ? "Take work, skip, close, and manage bookings." : "รับงาน ข้ามคิว ปิดงาน และจัดการ booking" },
+            ],
+        },
+    ];
+}
 
-const PERMISSION_PRESETS: Array<{
+function getPermissionPresets(isEnglish: boolean): Array<{
     id: CoursePermissionPreset;
     label: string;
     description: string;
     roles?: Array<EditableMember["type"]>;
-}> = [
-    { id: "view_only", label: "ดูอย่างเดียว", description: "เข้าแท็บและดูข้อมูลได้ แต่แก้ไขอะไรไม่ได้" },
-    { id: "ta_standard", label: "ช่วยสอนปกติ", description: "เหมาะกับ TA ที่ช่วยเช็กงาน ดูคะแนน และดูคิว", roles: ["ta"] },
-    { id: "course_coordinator", label: "ผู้ประสานงานรายวิชา", description: "ดูแลการสอนเกือบทั้งหมด ยกเว้นการเป็นเจ้าของวิชา" },
-];
+}> {
+    return [
+        {
+            id: "view_only",
+            label: isEnglish ? "View only" : "ดูอย่างเดียว",
+            description: isEnglish ? "Can open tabs and view information, but cannot make changes." : "เข้าแท็บและดูข้อมูลได้ แต่แก้ไขอะไรไม่ได้",
+        },
+        {
+            id: "ta_standard",
+            label: isEnglish ? "Standard TA" : "ช่วยสอนปกติ",
+            description: isEnglish ? "Suitable for TAs who review work, scores, and queue items." : "เหมาะกับ TA ที่ช่วยเช็กงาน ดูคะแนน และดูคิว",
+            roles: ["ta"],
+        },
+        {
+            id: "course_coordinator",
+            label: isEnglish ? "Course coordinator" : "ผู้ประสานงานรายวิชา",
+            description: isEnglish ? "Can manage most teaching operations, except course ownership." : "ดูแลการสอนเกือบทั้งหมด ยกเว้นการเป็นเจ้าของวิชา",
+        },
+    ];
+}
 
-function summarizePermissions(permissions: CourseMemberPermissions) {
+function summarizePermissions(permissions: CourseMemberPermissions, isEnglish: boolean) {
     const labels = [
-        permissions.view_people || permissions.add_people || permissions.remove_people || permissions.edit_member_permissions ? "บุคลากร" : null,
-        permissions.view_sections || permissions.create_sections || permissions.update_sections || permissions.delete_sections || permissions.manage_section_students ? "กลุ่มเรียน" : null,
-        permissions.view_teams || permissions.create_teams || permissions.update_teams || permissions.delete_teams || permissions.manage_team_members ? "กลุ่มงาน" : null,
-        permissions.view_assignments || permissions.create_assignments || permissions.update_assignments || permissions.delete_assignments ? "งาน" : null,
-        permissions.grade_assignments ? "ให้คะแนน" : null,
-        permissions.edit_scores ? "แก้คะแนน" : null,
-        permissions.view_score_summary ? "สรุปคะแนน" : null,
-        permissions.review_all_score_requests ? "อนุมัติคำร้อง" : permissions.review_own_score_requests ? "ดูคำร้องตนเอง" : null,
-        permissions.view_exam_scores || permissions.create_exam_scores || permissions.update_exam_scores || permissions.delete_exam_scores || permissions.update_exam_settings ? "คะแนนสอบ" : null,
-        permissions.view_attendance || permissions.create_attendance_sessions || permissions.update_attendance_sessions || permissions.delete_attendance_sessions || permissions.update_attendance_status ? "เช็คชื่อ" : null,
-        permissions.view_queue || permissions.create_queue_sessions || permissions.update_queue_sessions || permissions.delete_queue_sessions || permissions.manage_queue_bookings ? "คิว" : null,
+        permissions.view_people || permissions.add_people || permissions.remove_people || permissions.edit_member_permissions ? (isEnglish ? "People" : "บุคลากร") : null,
+        permissions.view_sections || permissions.create_sections || permissions.update_sections || permissions.delete_sections || permissions.manage_section_students ? (isEnglish ? "Sections" : "กลุ่มเรียน") : null,
+        permissions.view_teams || permissions.create_teams || permissions.update_teams || permissions.delete_teams || permissions.manage_team_members ? (isEnglish ? "Teams" : "กลุ่มงาน") : null,
+        permissions.view_assignments || permissions.create_assignments || permissions.update_assignments || permissions.delete_assignments ? (isEnglish ? "Classwork" : "งาน") : null,
+        permissions.grade_assignments ? (isEnglish ? "Grading" : "ให้คะแนน") : null,
+        permissions.edit_scores ? (isEnglish ? "Score edits" : "แก้คะแนน") : null,
+        permissions.view_score_summary ? (isEnglish ? "Score summary" : "สรุปคะแนน") : null,
+        permissions.review_all_score_requests ? (isEnglish ? "All score requests" : "อนุมัติคำร้อง") : permissions.review_own_score_requests ? (isEnglish ? "Own score requests" : "ดูคำร้องตนเอง") : null,
+        permissions.view_exam_scores || permissions.create_exam_scores || permissions.update_exam_scores || permissions.delete_exam_scores || permissions.update_exam_settings ? (isEnglish ? "Exam scores" : "คะแนนสอบ") : null,
+        permissions.view_attendance || permissions.create_attendance_sessions || permissions.update_attendance_sessions || permissions.delete_attendance_sessions || permissions.update_attendance_status ? (isEnglish ? "Attendance" : "เช็คชื่อ") : null,
+        permissions.view_queue || permissions.create_queue_sessions || permissions.update_queue_sessions || permissions.delete_queue_sessions || permissions.manage_queue_bookings ? (isEnglish ? "Queue" : "คิว") : null,
     ].filter((value): value is string => Boolean(value));
 
     return {
@@ -215,10 +233,14 @@ export default function PeopleTab({
     canEditMemberPermissions,
     isCourseActive = true,
 }: PeopleTabProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
     const [currentPage, setCurrentPage] = useState(1);
     const [editingMember, setEditingMember] = useState<EditableMember | null>(null);
     const [draftPermissions, setDraftPermissions] = useState<CourseMemberPermissions | null>(null);
     const [isSavingPermissions, setIsSavingPermissions] = useState(false);
+    const permissionSections = useMemo(() => getPermissionSections(isEnglish), [isEnglish]);
+    const permissionPresets = useMemo(() => getPermissionPresets(isEnglish), [isEnglish]);
 
     const instructorsCount = course.instructors?.length || (course.instructor ? 1 : 0);
     const instructorsList = course.instructors || (course.instructor ? [course.instructor] : []);
@@ -382,8 +404,8 @@ export default function PeopleTab({
         <div className="space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-lg font-semibold text-foreground">บุคลากรในรายวิชา</h2>
-                    <p className="text-sm text-default-500">เพิ่มบุคลากรและกำหนดขอบเขตงานของแต่ละคนในรายวิชา</p>
+                    <h2 className="text-lg font-semibold text-foreground">{isEnglish ? "Course people" : "บุคลากรในรายวิชา"}</h2>
+                    <p className="text-sm text-default-500">{isEnglish ? "Add course staff and define what each person can manage in this course." : "เพิ่มบุคลากรและกำหนดขอบเขตงานของแต่ละคนในรายวิชา"}</p>
                 </div>
 
                 {(canAddInstructor || canAddTA) && (
@@ -397,7 +419,7 @@ export default function PeopleTab({
                                 isDisabled={isPeopleLoading || !isCourseActive}
                                 className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
                             >
-                                เพิ่มอาจารย์
+                                {isEnglish ? "Add instructor" : "เพิ่มอาจารย์"}
                             </Button>
                         )}
                         {canAddTA && (
@@ -408,7 +430,7 @@ export default function PeopleTab({
                                 isDisabled={isPeopleLoading || !isCourseActive}
                                 className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
                             >
-                                เพิ่มผู้ช่วยสอน
+                                {isEnglish ? "Add teaching assistant" : "เพิ่มผู้ช่วยสอน"}
                             </Button>
                         )}
                     </div>
@@ -444,7 +466,7 @@ export default function PeopleTab({
                                         <Icon icon="solar:users-group-rounded-bold" className="text-2xl text-blue-600" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-default-500">บุคลากรทั้งหมด</p>
+                                        <p className="text-xs text-default-500">{isEnglish ? "Total people" : "บุคลากรทั้งหมด"}</p>
                                         <p className="text-2xl font-bold text-foreground">{instructorsCount + (course.tas?.length || 0)}</p>
                                     </div>
                                 </div>
@@ -457,7 +479,7 @@ export default function PeopleTab({
                                         <Icon icon="solar:user-circle-bold" className="text-2xl text-indigo-600" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-default-500">อาจารย์ผู้สอน</p>
+                                        <p className="text-xs text-default-500">{isEnglish ? "Instructors" : "อาจารย์ผู้สอน"}</p>
                                         <p className="text-2xl font-bold text-foreground">{instructorsCount}</p>
                                     </div>
                                 </div>
@@ -470,7 +492,7 @@ export default function PeopleTab({
                                         <Icon icon="solar:user-hands-bold" className="text-2xl text-emerald-600" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-default-500">ผู้ช่วยสอน (TA)</p>
+                                        <p className="text-xs text-default-500">{isEnglish ? "Teaching assistants" : "ผู้ช่วยสอน (TA)"}</p>
                                         <p className="text-2xl font-bold text-foreground">{course.tas?.length || 0}</p>
                                     </div>
                                 </div>
@@ -491,20 +513,20 @@ export default function PeopleTab({
                                     }}
                                 >
                                     <TableHeader>
-                                        <TableColumn className="min-w-45">ชื่อ-นามสกุล</TableColumn>
-                                        <TableColumn className="min-w-45">อีเมล / Username</TableColumn>
-                                        <TableColumn className="min-w-35">บทบาท</TableColumn>
-                                        <TableColumn className={showPermissionColumn ? "min-w-55" : "hidden"}>สิทธิ์ในรายวิชา</TableColumn>
-                                        <TableColumn align="center" className="min-w-30">จัดการ</TableColumn>
+                                        <TableColumn className="min-w-45">{isEnglish ? "Full name" : "ชื่อ-นามสกุล"}</TableColumn>
+                                        <TableColumn className="min-w-45">{isEnglish ? "Email / username" : "อีเมล / Username"}</TableColumn>
+                                        <TableColumn className="min-w-35">{isEnglish ? "Role" : "บทบาท"}</TableColumn>
+                                        <TableColumn className={showPermissionColumn ? "min-w-55" : "hidden"}>{isEnglish ? "Course permissions" : "สิทธิ์ในรายวิชา"}</TableColumn>
+                                        <TableColumn align="center" className="min-w-30">{isEnglish ? "Actions" : "จัดการ"}</TableColumn>
                                     </TableHeader>
                                     <TableBody emptyContent={
                                         <div className="py-10 text-center">
                                                 <Icon icon="solar:users-group-rounded-linear" className="mx-auto mb-3 text-5xl text-default-300" />
-                                                <p className="text-default-400">ยังไม่มีบุคลากรในรายวิชานี้</p>
+                                                <p className="text-default-400">{isEnglish ? "No people in this course yet." : "ยังไม่มีบุคลากรในรายวิชานี้"}</p>
                                         </div>
                                     }>
                                         {paginatedPeople.map((person) => {
-                                            const summary = summarizePermissions(person.permissions);
+                                            const summary = summarizePermissions(person.permissions, isEnglish);
                                             return (
                                                 <TableRow key={person.id}>
                                                     <TableCell>
@@ -531,7 +553,7 @@ export default function PeopleTab({
                                                             {person.type === "instructor" ? (
                                                                 <>
                                                                     <Chip size="sm" variant="flat" className="bg-blue-100 text-blue-700">
-                                                                        อาจารย์ผู้สอน
+                                                                        {isEnglish ? "Instructor" : "อาจารย์ผู้สอน"}
                                                                     </Chip>
                                                                     {person.isPrimary && (
                                                                         <Chip
@@ -540,13 +562,13 @@ export default function PeopleTab({
                                                                             className="bg-amber-100 text-amber-700"
                                                                             startContent={<Icon icon="solar:crown-bold" className="text-xs" />}
                                                                         >
-                                                                            เจ้าของวิชา
+                                                                            {isEnglish ? "Lead instructor" : "เจ้าของวิชา"}
                                                                         </Chip>
                                                                     )}
                                                                 </>
                                                             ) : (
                                                                 <Chip size="sm" variant="flat" className="bg-emerald-100 text-emerald-700">
-                                                                    ผู้ช่วยสอน
+                                                                    {isEnglish ? "Teaching assistant" : "ผู้ช่วยสอน"}
                                                                 </Chip>
                                                             )}
                                                         </div>
@@ -565,7 +587,7 @@ export default function PeopleTab({
                                                                     </Chip>
                                                                 )}
                                                             </div>
-                                                            <p className="text-xs text-default-500">เปิดใช้งาน {summary.total} สิทธิ์</p>
+                                                            <p className="text-xs text-default-500">{isEnglish ? `Enabled ${summary.total} permission${summary.total === 1 ? "" : "s"}` : `เปิดใช้งาน ${summary.total} สิทธิ์`}</p>
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
@@ -580,7 +602,7 @@ export default function PeopleTab({
                                                                         // </Tooltip>
                                                                         <></>
                                                                     ) : canEditTAPermissions(person.personId) ? (
-                                                                        <Tooltip content="ตั้งค่าสิทธิ์">
+                                                                        <Tooltip content={isEnglish ? "Configure permissions" : "ตั้งค่าสิทธิ์"}>
                                                                             <Button
                                                                                 isIconOnly
                                                                                 size="sm"
@@ -593,7 +615,7 @@ export default function PeopleTab({
                                                                             </Button>
                                                                         </Tooltip>
                                                                     ) : (
-                                                                        <Tooltip content={userRole === "ta" && person.personId === currentUserId ? "ผู้ช่วยสอนไม่สามารถแก้สิทธิ์ของตัวเองได้" : "บัญชีนี้ไม่มีสิทธิ์แก้ permission บุคลากร"}>
+                                                                        <Tooltip content={userRole === "ta" && person.personId === currentUserId ? (isEnglish ? "Teaching assistants cannot edit their own permissions." : "ผู้ช่วยสอนไม่สามารถแก้สิทธิ์ของตัวเองได้") : (isEnglish ? "This account cannot edit course member permissions." : "บัญชีนี้ไม่มีสิทธิ์แก้ permission บุคลากร")}>
                                                                             <span className="p-2 text-default-300">
                                                                                 <Icon icon="solar:lock-keyhole-bold" className="text-lg" />
                                                                             </span>
@@ -602,7 +624,7 @@ export default function PeopleTab({
 
                                                                     {person.type === "instructor" ? (
                                                                         canRemoveInstructor(person.personId, person.isPrimary) ? (
-                                                                            <Tooltip content="ลบออกจากรายวิชา" color="danger">
+                                                                            <Tooltip content={isEnglish ? "Remove from course" : "ลบออกจากรายวิชา"} color="danger">
                                                                                 <Button
                                                                                     isIconOnly
                                                                                     size="sm"
@@ -615,14 +637,14 @@ export default function PeopleTab({
                                                                                 </Button>
                                                                             </Tooltip>
                                                                         ) : (
-                                                                            <Tooltip content={person.isPrimary ? "อาจารย์เจ้าของวิชาไม่สามารถลบออกได้" : "ไม่สามารถลบตัวเองออกได้"}>
+                                                                            <Tooltip content={person.isPrimary ? (isEnglish ? "The lead instructor cannot be removed." : "อาจารย์เจ้าของวิชาไม่สามารถลบออกได้") : (isEnglish ? "You cannot remove yourself." : "ไม่สามารถลบตัวเองออกได้")}>
                                                                                 <span className="p-2 text-default-300">
                                                                                     <Icon icon="solar:lock-keyhole-bold" className="text-lg" />
                                                                                 </span>
                                                                             </Tooltip>
                                                                         )
                                                                     ) : canRemoveTA(person.personId) ? (
-                                                                        <Tooltip content="ลบออกจากรายวิชา" color="danger">
+                                                                        <Tooltip content={isEnglish ? "Remove from course" : "ลบออกจากรายวิชา"} color="danger">
                                                                             <Button
                                                                                 isIconOnly
                                                                                 size="sm"
@@ -644,7 +666,7 @@ export default function PeopleTab({
                                                                     )}
                                                                 </>
                                                             ) : (
-                                                                <Tooltip content="บัญชีนี้ไม่มีสิทธิ์จัดการบุคลากร">
+                                                                <Tooltip content={isEnglish ? "This account cannot manage course people." : "บัญชีนี้ไม่มีสิทธิ์จัดการบุคลากร"}>
                                                                     <span className="p-2 text-default-300">
                                                                         <Icon icon="solar:lock-keyhole-bold" className="text-lg" />
                                                                     </span>
@@ -685,8 +707,8 @@ export default function PeopleTab({
                                 <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-linear-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
                                     <Icon icon="solar:users-group-rounded-bold-duotone" className="text-5xl text-blue-500" />
                                 </div>
-                                <h3 className="mb-2 text-lg font-semibold text-default-700">ยังไม่มีบุคลากร</h3>
-                                <p className="mx-auto mb-6 max-w-md text-default-500">เพิ่มอาจารย์หรือผู้ช่วยสอนเพื่อช่วยจัดการรายวิชาและมอบหมายสิทธิ์ได้ตามงานที่ต้องรับผิดชอบ</p>
+                                <h3 className="mb-2 text-lg font-semibold text-default-700">{isEnglish ? "No people yet" : "ยังไม่มีบุคลากร"}</h3>
+                                <p className="mx-auto mb-6 max-w-md text-default-500">{isEnglish ? "Add instructors or teaching assistants to help manage the course and assign responsibilities." : "เพิ่มอาจารย์หรือผู้ช่วยสอนเพื่อช่วยจัดการรายวิชาและมอบหมายสิทธิ์ได้ตามงานที่ต้องรับผิดชอบ"}</p>
                                 {(canAddInstructor || canAddTA) && (
                                     <div className="flex gap-2 justify-center">
                                         {canAddInstructor && (
@@ -697,7 +719,7 @@ export default function PeopleTab({
                                                 onPress={onOpenAddInstructorModal}
                                                 className="bg-indigo-100 text-indigo-700"
                                             >
-                                                เพิ่มอาจารย์
+                                                {isEnglish ? "Add instructor" : "เพิ่มอาจารย์"}
                                             </Button>
                                         )}
                                         {canAddTA && (
@@ -707,7 +729,7 @@ export default function PeopleTab({
                                                 onPress={onOpenAddTAModal}
                                                 className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
                                             >
-                                                เพิ่มผู้ช่วยสอน
+                                                {isEnglish ? "Add teaching assistant" : "เพิ่มผู้ช่วยสอน"}
                                             </Button>
                                         )}
                                     </div>
@@ -721,7 +743,7 @@ export default function PeopleTab({
             <Modal isOpen={!!editingMember} onClose={() => setEditingMember(null)} size="3xl" scrollBehavior="inside">
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1">
-                        <span>สิทธิ์ในรายวิชา</span>
+                        <span>{isEnglish ? "Course permissions" : "สิทธิ์ในรายวิชา"}</span>
                         <span className="text-sm font-normal text-default-500">{editingMember?.full_name}</span>
                     </ModalHeader>
                     <ModalBody>
@@ -730,13 +752,17 @@ export default function PeopleTab({
                                 <div className="rounded-xl border border-default-200 bg-content2 p-4">
                                     <div className="flex items-center justify-between gap-3 flex-wrap">
                                         <div>
-                                            <p className="text-sm font-medium text-foreground">บทบาทปัจจุบัน</p>
+                                            <p className="text-sm font-medium text-foreground">{isEnglish ? "Current role" : "บทบาทปัจจุบัน"}</p>
                                             <p className="text-sm text-default-500">
-                                                {editingMember.type === "instructor" ? "อาจารย์ผู้สอน" : "ผู้ช่วยสอน"}
+                                                {editingMember.type === "instructor"
+                                                    ? (isEnglish ? "Instructor" : "อาจารย์ผู้สอน")
+                                                    : (isEnglish ? "Teaching assistant" : "ผู้ช่วยสอน")}
                                             </p>
                                         </div>
                                         <Chip size="sm" variant="flat" className="bg-content4 text-default-700">
-                                            เปิดใช้งาน {summarizePermissions(draftPermissions).total} สิทธิ์
+                                            {isEnglish
+                                                ? `Enabled ${summarizePermissions(draftPermissions, isEnglish).total} permission${summarizePermissions(draftPermissions, isEnglish).total === 1 ? "" : "s"}`
+                                                : `เปิดใช้งาน ${summarizePermissions(draftPermissions, isEnglish).total} สิทธิ์`}
                                         </Chip>
                                     </div>
                                 </div>
@@ -745,12 +771,12 @@ export default function PeopleTab({
                                     <div className="flex items-center gap-2 mb-3">
                                         <Icon icon="solar:magic-stick-3-bold" className="text-blue-500 dark:text-blue-300" />
                                         <div>
-                                            <p className="text-sm font-medium text-foreground">Preset สิทธิ์</p>
-                                            <p className="text-xs text-default-500">เลือกชุดสิทธิ์เริ่มต้นแล้วค่อยปรับจุดย่อยต่อได้</p>
+                                            <p className="text-sm font-medium text-foreground">{isEnglish ? "Permission presets" : "Preset สิทธิ์"}</p>
+                                            <p className="text-xs text-default-500">{isEnglish ? "Start from a preset, then fine-tune the details if needed." : "เลือกชุดสิทธิ์เริ่มต้นแล้วค่อยปรับจุดย่อยต่อได้"}</p>
                                         </div>
                                     </div>
                                     <div className="grid gap-2 md:grid-cols-3">
-                                        {PERMISSION_PRESETS
+                                        {permissionPresets
                                             .filter((preset) => !preset.roles || preset.roles.includes(editingMember.type))
                                             .map((preset) => (
                                                 <Button
@@ -768,7 +794,7 @@ export default function PeopleTab({
                                     </div>
                                 </div>
 
-                                {PERMISSION_SECTIONS.map((section) => {
+                                    {permissionSections.map((section) => {
                                     const enabledCount = section.items.filter((item) => draftPermissions[item.key]).length;
                                     return (
                                         <div key={section.title} className="overflow-hidden rounded-xl border border-default-200">
@@ -808,10 +834,10 @@ export default function PeopleTab({
                     </ModalBody>
                     <ModalFooter>
                         <Button variant="light" onPress={() => setEditingMember(null)}>
-                            ยกเลิก
+                            {isEnglish ? "Cancel" : "ยกเลิก"}
                         </Button>
                         <Button color="primary" onPress={handleSavePermissions} isLoading={isSavingPermissions}>
-                            บันทึกสิทธิ์
+                            {isEnglish ? "Save permissions" : "บันทึกสิทธิ์"}
                         </Button>
                     </ModalFooter>
                 </ModalContent>

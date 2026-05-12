@@ -10,6 +10,7 @@ import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/d
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { Icon } from "@iconify/react";
 import { addToast } from "@heroui/toast";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { twoFactorService, TwoFactorStatus } from "@/services/twoFactor.service";
 import { oauthService, OAuthAccount } from "@/services/oauth.service";
 import TwoFactorSetupModal from "./TwoFactorSetupModal";
@@ -27,7 +28,10 @@ const PROVIDERS = [
     key: 'google', 
     name: 'Google', 
     icon: 'logos:google-icon', 
-    description: 'เข้าสู่ระบบด้วย Google Account',
+    descriptions: {
+      th: 'เข้าสู่ระบบด้วย Google Account',
+      en: 'Sign in with your Google account',
+    },
     manageUrl: 'https://myaccount.google.com/connections',
     enabled: true,
   },
@@ -35,7 +39,10 @@ const PROVIDERS = [
     key: 'github', 
     name: 'GitHub', 
     icon: 'mingcute:github-fill', 
-    description: 'เข้าสู่ระบบด้วย GitHub Account',
+    descriptions: {
+      th: 'เข้าสู่ระบบด้วย GitHub Account',
+      en: 'Sign in with your GitHub account',
+    },
     manageUrl: 'https://github.com/settings/applications',
     enabled: true,
   },
@@ -43,15 +50,135 @@ const PROVIDERS = [
     key: 'apple', 
     name: 'Apple', 
     icon: 'ic:baseline-apple', 
-    description: 'เข้าสู่ระบบด้วย Apple ID',
+    descriptions: {
+      th: 'เข้าสู่ระบบด้วย Apple ID',
+      en: 'Sign in with your Apple ID',
+    },
     manageUrl: 'https://appleid.apple.com/account/manage',
     enabled: false,
     comingSoon: true,
   },
 ] as const;
 
+const AUTHENTICATION_COPY = {
+  en: {
+    securityTitle: "Account security",
+    securityDescription: "Manage your password and verification methods to protect your account.",
+    passwordTitle: "Password",
+    passwordDescription: "You can change your password at any time.",
+    changePassword: "Change password",
+    twoFactorTitle: "Two-Factor Authentication",
+    enabled: "Enabled",
+    disabled: "Off",
+    twoFactorEnabledDescription: "Your account is protected with two-factor authentication.",
+    twoFactorDisabledDescription: "Add two-factor authentication to make your account more secure.",
+    verificationMethod: "Verification method",
+    authenticatorApp: "Authenticator App",
+    email: "Email",
+    unspecified: "Unspecified",
+    edit: "Edit",
+    disable: "Turn off",
+    recoveryCodesTitle: "Recovery codes",
+    recoveryCodesDescription: "Backup codes for sign-in",
+    regenerate: "Regenerate",
+    recoveryCodesInfo: "If you lose access to your verification device, you can still sign in with a recovery code.",
+    setup2FA: "Set up 2FA",
+    linkedAccountsTitle: "Connected accounts",
+    linkedCount: "{count} connected",
+    connected: "Connected",
+    connectedOn: "Connected on {date}",
+    manageOn: "Manage on {provider}",
+    reauthenticate: "Re-authenticate",
+    processing: "Processing...",
+    disconnect: "Disconnect",
+    connecting: "Connecting...",
+    connect: "Connect",
+    comingSoon: "Coming soon",
+    linkedAccountsInfo: "Connected accounts can be used to sign in without entering your password.",
+    connectSuccessTitle: "Connected",
+    connectSuccessDescription: "Your {provider} account is now connected.",
+    connectFailureTitle: "Connection failed",
+    connectFailureDescription: "Could not connect the account",
+    popupBlockedTitle: "Could not open a window",
+    popupBlockedDescription: "Allow pop-ups in your browser and try again.",
+    unlinkSuccessTitle: "Disconnected",
+    unlinkSuccessDescription: "Your {provider} account was disconnected.",
+    unlinkErrorTitle: "Something went wrong",
+    unlinkErrorDescription: "Could not disconnect the account",
+    actionsLabel: "Connected account actions",
+    unlinkTitle: "Disconnect {provider}",
+    unlinkAfterTitle: "After disconnecting:",
+    unlinkAfterCannotSignIn: "You will no longer be able to sign in with {provider}.",
+    unlinkAfterUseOtherMethod: "You will need your password or another connected account to sign in.",
+    unlinkAfterReconnect: "You can connect it again later.",
+    unlinkWarning: "Are you sure you want to disconnect this account? You will no longer be able to sign in with {provider}.",
+    cancel: "Cancel",
+    confirmDisconnect: "Disconnect",
+  },
+  th: {
+    securityTitle: "ความปลอดภัยบัญชี",
+    securityDescription: "จัดการรหัสผ่านและการยืนยันตัวตนเพื่อปกป้องบัญชีของคุณ",
+    passwordTitle: "รหัสผ่าน",
+    passwordDescription: "คุณสามารถเปลี่ยนรหัสผ่านได้ตลอดเวลา",
+    changePassword: "เปลี่ยนรหัสผ่าน",
+    twoFactorTitle: "Two-Factor Authentication",
+    enabled: "เปิดใช้งาน",
+    disabled: "ปิดอยู่",
+    twoFactorEnabledDescription: "บัญชีของคุณได้รับการปกป้องด้วยการยืนยันตัวตนสองขั้นตอน",
+    twoFactorDisabledDescription: "เพิ่มความปลอดภัยให้บัญชีของคุณด้วยการยืนยันตัวตนสองขั้นตอน",
+    verificationMethod: "วิธีการยืนยัน",
+    authenticatorApp: "Authenticator App",
+    email: "Email",
+    unspecified: "ไม่ระบุ",
+    edit: "แก้ไข",
+    disable: "ปิดการใช้งาน",
+    recoveryCodesTitle: "Recovery Codes",
+    recoveryCodesDescription: "รหัสสำรองสำหรับเข้าสู่ระบบ",
+    regenerate: "สร้างใหม่",
+    recoveryCodesInfo: "หากสูญเสียการเข้าถึงอุปกรณ์ยืนยันตัวตน คุณสามารถใช้รหัสสำรองเข้าสู่ระบบได้",
+    setup2FA: "ตั้งค่า 2FA",
+    linkedAccountsTitle: "เชื่อมต่อบัญชี",
+    linkedCount: "{count} เชื่อมต่อแล้ว",
+    connected: "เชื่อมต่อแล้ว",
+    connectedOn: "เชื่อมต่อเมื่อ {date}",
+    manageOn: "จัดการบน {provider}",
+    reauthenticate: "ยืนยันตัวตนใหม่",
+    processing: "กำลังดำเนินการ...",
+    disconnect: "ยกเลิกการเชื่อมต่อ",
+    connecting: "กำลังเชื่อมต่อ...",
+    connect: "เชื่อมต่อ",
+    comingSoon: "กำลังพัฒนา",
+    linkedAccountsInfo: "บัญชีที่เชื่อมต่อสามารถใช้เข้าสู่ระบบได้โดยไม่ต้องกรอกรหัสผ่าน",
+    connectSuccessTitle: "เชื่อมต่อสำเร็จ",
+    connectSuccessDescription: "เชื่อมต่อบัญชี {provider} เรียบร้อยแล้ว",
+    connectFailureTitle: "เชื่อมต่อไม่สำเร็จ",
+    connectFailureDescription: "ไม่สามารถเชื่อมต่อบัญชีได้",
+    popupBlockedTitle: "ไม่สามารถเปิดหน้าต่างได้",
+    popupBlockedDescription: "กรุณาอนุญาต Popup ในเบราว์เซอร์แล้วลองใหม่อีกครั้ง",
+    unlinkSuccessTitle: "สำเร็จ",
+    unlinkSuccessDescription: "ยกเลิกการเชื่อมต่อ {provider} แล้ว",
+    unlinkErrorTitle: "เกิดข้อผิดพลาด",
+    unlinkErrorDescription: "ไม่สามารถยกเลิกการเชื่อมต่อได้",
+    actionsLabel: "OAuth account actions",
+    unlinkTitle: "ยกเลิกการเชื่อมต่อ {provider}",
+    unlinkAfterTitle: "หลังจากยกเลิกการเชื่อมต่อ:",
+    unlinkAfterCannotSignIn: "ไม่สามารถใช้ {provider} เพื่อเข้าสู่ระบบได้",
+    unlinkAfterUseOtherMethod: "ต้องใช้รหัสผ่านหรือบัญชีอื่นที่เชื่อมต่อในการเข้าสู่ระบบ",
+    unlinkAfterReconnect: "สามารถเชื่อมต่อใหม่ได้ภายหลัง",
+    unlinkWarning: "คุณแน่ใจหรือไม่ที่จะยกเลิกการเชื่อมต่อนี้? การดำเนินการนี้จะทำให้คุณไม่สามารถใช้บัญชี {provider} เพื่อเข้าสู่ระบบได้อีก",
+    cancel: "ยกเลิก",
+    confirmDisconnect: "ยกเลิกการเชื่อมต่อ",
+  },
+} as const;
+
 
 function AuthenticationSection({ onOpenPasswordModal, userEmail }: AuthenticationSectionProps) {
+  const { language } = useGlobalSettings();
+  const languageKey = language === "en" ? "en" : "th";
+  const locale = languageKey === "en" ? "en-US" : "th-TH";
+  const copy = AUTHENTICATION_COPY[languageKey];
+  const formatTemplate = (template: string, values: Record<string, string | number>) =>
+    template.replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? ""));
   const [twoFactorStatus, setTwoFactorStatus] = useState<TwoFactorStatus | null>(null);
   const [isLoading2FA, setIsLoading2FA] = useState(true);
   const [showSetupModal, setShowSetupModal] = useState(false);
@@ -126,8 +253,8 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
 
       if (data.success) {
         addToast({
-          title: "เชื่อมต่อสำเร็จ",
-          description: `เชื่อมต่อบัญชี ${data.providerName} เรียบร้อยแล้ว`,
+          title: copy.connectSuccessTitle,
+          description: formatTemplate(copy.connectSuccessDescription, { provider: data.providerName }),
           color: "success",
           timeout: 3000,
           shouldShowTimeoutProgress: true,
@@ -135,8 +262,8 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
         loadOAuthAccounts();
       } else {
         addToast({
-          title: "เชื่อมต่อไม่สำเร็จ",
-          description: data.error || "ไม่สามารถเชื่อมต่อบัญชีได้",
+          title: copy.connectFailureTitle,
+          description: data.error || copy.connectFailureDescription,
           color: "danger",
           timeout: 3000,
           shouldShowTimeoutProgress: true,
@@ -147,7 +274,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
     };
 
     return () => channel.close();
-  }, [loadOAuthAccounts]);
+  }, [copy, loadOAuthAccounts]);
 
   // Cleanup DB poll & safety timeout on unmount
   useEffect(() => {
@@ -190,8 +317,8 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
           setLinkingProvider(prev => {
             if (prev === provider) {
               addToast({
-                title: "เชื่อมต่อสำเร็จ",
-                description: `เชื่อมต่อบัญชี ${providerName} เรียบร้อยแล้ว`,
+                  title: copy.connectSuccessTitle,
+                  description: formatTemplate(copy.connectSuccessDescription, { provider: providerName }),
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -218,11 +345,11 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
   const getMethodLabel = (method: string | null) => {
     switch (method) {
       case "totp":
-        return "Authenticator App";
+        return copy.authenticatorApp;
       case "email":
-        return "Email";
+        return copy.email;
       default:
-        return "ไม่ระบุ";
+        return copy.unspecified;
     }
   };
 
@@ -252,8 +379,8 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
       const result = await oauthService.unlinkAccount(providerToUnlink);
       if (result.success) {
         addToast({
-          title: "สำเร็จ",
-          description: `ยกเลิกการเชื่อมต่อ ${oauthService.getProviderDisplayName(providerToUnlink)} แล้ว`,
+          title: copy.unlinkSuccessTitle,
+          description: formatTemplate(copy.unlinkSuccessDescription, { provider: oauthService.getProviderDisplayName(providerToUnlink) }),
           color: "success",
           timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -261,8 +388,8 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
         await loadOAuthAccounts();
       } else {
         addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: result.error || "ไม่สามารถยกเลิกการเชื่อมต่อได้",
+          title: copy.unlinkErrorTitle,
+          description: result.error || copy.unlinkErrorDescription,
           color: "danger",
           timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -271,8 +398,8 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
     } catch (error) {
       console.error("Unlink error:", error);
       addToast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถยกเลิกการเชื่อมต่อได้",
+        title: copy.unlinkErrorTitle,
+        description: copy.unlinkErrorDescription,
         color: "danger",
         timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -315,8 +442,8 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
           setLinkingProvider(prev => {
             if (prev === provider) {
               addToast({
-                title: "เชื่อมต่อสำเร็จ",
-                description: `เชื่อมต่อบัญชี ${providerName} เรียบร้อยแล้ว`,
+                title: copy.connectSuccessTitle,
+                description: formatTemplate(copy.connectSuccessDescription, { provider: providerName }),
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -336,7 +463,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
     setTimeout(checkOnce, 1500);
     // Then keep polling every 3s
     dbPollRef.current = setInterval(checkOnce, 3000);
-  }, [loadOAuthAccounts]);
+  }, [copy, loadOAuthAccounts]);
 
   // Open OAuth tab and start DB polling
   const initiateOAuthLink = useCallback((provider: string) => {
@@ -348,8 +475,8 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
     if (!tab) {
       setLinkingProvider(null);
       addToast({
-        title: "ไม่สามารถเปิดหน้าต่างได้",
-        description: "กรุณาอนุญาต Popup ในเบราว์เซอร์แล้วลองใหม่อีกครั้ง",
+        title: copy.popupBlockedTitle,
+        description: copy.popupBlockedDescription,
         color: "warning",
         timeout: 5000,
         shouldShowTimeoutProgress: true,
@@ -373,7 +500,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
       });
       linkingTimeoutRef.current = null;
     }, 120_000);
-  }, [linkedAccounts, startDbPoll]);
+  }, [copy, linkedAccounts, startDbPoll]);
 
   const handleLink = useCallback((provider: string) => {
     initiateOAuthLink(provider);
@@ -398,8 +525,8 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
           <Icon icon="solar:shield-warning-bold" className="text-xl sm:text-2xl text-warning-600 dark:text-warning-400" />
         </div>
         <div>
-          <h2 className="text-sm sm:text-base font-semibold text-warning-800 dark:text-warning-300">ความปลอดภัยบัญชี</h2>
-          <p className="text-xs sm:text-sm text-warning-700 dark:text-warning-400">จัดการรหัสผ่านและการยืนยันตัวตนเพื่อปกป้องบัญชีของคุณ</p>
+          <h2 className="text-sm sm:text-base font-semibold text-warning-800 dark:text-warning-300">{copy.securityTitle}</h2>
+          <p className="text-xs sm:text-sm text-warning-700 dark:text-warning-400">{copy.securityDescription}</p>
         </div>
       </div>
 
@@ -412,9 +539,9 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                 <Icon icon="solar:lock-password-bold" className="text-lg sm:text-xl text-primary-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-default-900 text-sm sm:text-base">รหัสผ่าน</h3>
+                <h3 className="font-semibold text-default-900 text-sm sm:text-base">{copy.passwordTitle}</h3>
                 <p className="text-xs sm:text-sm text-default-500 mt-0.5 sm:mt-1">
-                  คุณสามารถเปลี่ยนรหัสผ่านได้ตลอดเวลา
+                  {copy.passwordDescription}
                 </p>
               </div>
             </div>
@@ -425,7 +552,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
               onPress={onOpenPasswordModal}
               startContent={<Icon icon="solar:key-linear" />}
             >
-              เปลี่ยนรหัสผ่าน
+              {copy.changePassword}
             </Button>
           </div>
         </CardBody>
@@ -448,11 +575,11 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-semibold text-default-900 text-sm sm:text-base">Two-Factor Authentication</h3>
-                      <Chip size="sm" color="success" variant="flat">เปิดใช้งาน</Chip>
+                      <h3 className="font-semibold text-default-900 text-sm sm:text-base">{copy.twoFactorTitle}</h3>
+                      <Chip size="sm" color="success" variant="flat">{copy.enabled}</Chip>
                     </div>
                     <p className="text-xs sm:text-sm text-default-500 mt-0.5 sm:mt-1">
-                      บัญชีของคุณได้รับการปกป้องด้วยการยืนยันตัวตนสองขั้นตอน
+                      {copy.twoFactorEnabledDescription}
                     </p>
                   </div>
                 </div>
@@ -466,7 +593,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                       className="text-lg sm:text-xl text-default-600" 
                     />
                     <div>
-                      <p className="text-xs sm:text-sm font-medium text-default-700">วิธีการยืนยัน</p>
+                      <p className="text-xs sm:text-sm font-medium text-default-700">{copy.verificationMethod}</p>
                       <p className="text-xs sm:text-sm text-default-500">{getMethodLabel(twoFactorStatus.method)}</p>
                     </div>
                   </div>
@@ -482,7 +609,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                           setShowSetupModal(true);
                         }}
                       >
-                        แก้ไข
+                        {copy.edit}
                       </Button>
                     )}
                     <Button 
@@ -491,7 +618,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                       size="sm"
                       onPress={() => setShowDisableModal(true)}
                     >
-                      ปิดการใช้งาน
+                      {copy.disable}
                     </Button>
                   </div>
                 </div>
@@ -505,8 +632,8 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                   <div className="flex items-center gap-3">
                     <Icon icon="solar:key-bold" className="text-lg sm:text-xl text-default-600" />
                     <div>
-                      <p className="text-xs sm:text-sm font-medium text-default-700">Recovery Codes</p>
-                      <p className="text-xs sm:text-sm text-default-500">รหัสสำรองสำหรับเข้าสู่ระบบ</p>
+                      <p className="text-xs sm:text-sm font-medium text-default-700">{copy.recoveryCodesTitle}</p>
+                      <p className="text-xs sm:text-sm text-default-500">{copy.recoveryCodesDescription}</p>
                     </div>
                   </div>
                   <Button 
@@ -516,7 +643,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                     startContent={<Icon icon="solar:refresh-linear" />}
                     onPress={() => setShowRegenerateModal(true)}
                   >
-                    สร้างใหม่
+                    {copy.regenerate}
                   </Button>
                 </div>
               </div>
@@ -526,7 +653,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                 <Icon icon="solar:info-circle-bold" className="text-base sm:text-lg text-warning-600 mt-0.5 shrink-0" />
                 <div>
                   <p className="text-xs sm:text-sm text-warning-800">
-                    หากสูญเสียการเข้าถึงอุปกรณ์ยืนยันตัวตน คุณสามารถใช้รหัสสำรองเข้าสู่ระบบได้
+                    {copy.recoveryCodesInfo}
                   </p>
                 </div>
               </div>
@@ -540,11 +667,11 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-semibold text-default-900 text-sm sm:text-base">Two-Factor Authentication</h3>
-                    <Chip size="sm" color="warning" variant="flat">ปิดอยู่</Chip>
+                    <h3 className="font-semibold text-default-900 text-sm sm:text-base">{copy.twoFactorTitle}</h3>
+                    <Chip size="sm" color="warning" variant="flat">{copy.disabled}</Chip>
                   </div>
                   <p className="text-xs sm:text-sm text-default-500 mt-0.5 sm:mt-1">
-                    เพิ่มความปลอดภัยให้บัญชีของคุณด้วยการยืนยันตัวตนสองขั้นตอน
+                    {copy.twoFactorDisabledDescription}
                   </p>
                 </div>
               </div>
@@ -555,7 +682,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                 startContent={<Icon icon="solar:shield-plus-linear" />}
                 onPress={() => setShowSetupModal(true)}
               >
-                ตั้งค่า 2FA
+                {copy.setup2FA}
               </Button>
             </div>
           )}
@@ -568,11 +695,11 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
               <Icon icon="solar:link-bold" className="text-base sm:text-lg text-primary" />
-              <h3 className="font-semibold text-sm sm:text-base">เชื่อมต่อบัญชี</h3>
+              <h3 className="font-semibold text-sm sm:text-base">{copy.linkedAccountsTitle}</h3>
             </div>
             {linkedAccounts.length > 0 && (
               <Chip size="sm" color="success" variant="flat">
-                {linkedAccounts.length} เชื่อมต่อแล้ว
+                {formatTemplate(copy.linkedCount, { count: linkedAccounts.length })}
               </Chip>
             )}
           </div>
@@ -601,21 +728,21 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                           <p className="font-medium text-default-900 text-sm sm:text-base">{provider.name}</p>
                           {linked && (
                             <Chip size="sm" color="success" variant="dot" className="hidden sm:flex">
-                              เชื่อมต่อแล้ว
+                              {copy.connected}
                             </Chip>
                           )}
                         </div>
                         {linked && account?.provider_email ? (
                           <p className="text-xs text-default-500 truncate">{account.provider_email}</p>
                         ) : (
-                          <p className="text-xs text-default-500 hidden sm:block">{provider.description}</p>
+                          <p className="text-xs text-default-500 hidden sm:block">{provider.descriptions[languageKey]}</p>
                         )}
                       </div>
                     </div>
                     {linked ? (
                       <div className="flex items-center gap-2">
                         <p className="text-xs text-default-400 hidden sm:block">
-                          {account?.linked_at ? `เชื่อมต่อเมื่อ ${new Date(account.linked_at).toLocaleDateString('th-TH')}` : ''}
+                          {account?.linked_at ? formatTemplate(copy.connectedOn, { date: new Date(account.linked_at).toLocaleDateString(locale) }) : ''}
                         </p>
                         <Dropdown>
                           <DropdownTrigger>
@@ -628,7 +755,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                               <Icon icon="solar:menu-dots-bold" className="text-lg" />
                             </Button>
                           </DropdownTrigger>
-                          <DropdownMenu aria-label="OAuth account actions">
+                          <DropdownMenu aria-label={copy.actionsLabel}>
                             <DropdownItem
                               key="manage"
                               startContent={<Icon icon="solar:settings-linear" className="text-lg" />}
@@ -637,7 +764,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                               target="_blank"
                               rel="noopener noreferrer"
                             >
-                              จัดการบน {provider.name}
+                              {formatTemplate(copy.manageOn, { provider: provider.name })}
                             </DropdownItem>
                             <DropdownItem
                               key="reauth"
@@ -645,7 +772,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                               onPress={() => handleReAuthenticate(provider.key)}
                               isDisabled={linkingProvider !== null && linkingProvider !== provider.key}
                             >
-                              {linkingProvider === provider.key ? "กำลังดำเนินการ..." : "ยืนยันตัวตนใหม่"}
+                              {linkingProvider === provider.key ? copy.processing : copy.reauthenticate}
                             </DropdownItem>
                             <DropdownItem
                               key="disconnect"
@@ -654,7 +781,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                               startContent={<Icon icon="solar:link-broken-linear" className="text-lg" />}
                               onPress={() => openUnlinkModal(provider.key)}
                             >
-                              ยกเลิกการเชื่อมต่อ
+                              {copy.disconnect}
                             </DropdownItem>
                           </DropdownMenu>
                         </Dropdown>
@@ -669,7 +796,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                         isLoading={linkingProvider === provider.key}
                         isDisabled={linkingProvider !== null && linkingProvider !== provider.key}
                       >
-                        {linkingProvider === provider.key ? "กำลังเชื่อมต่อ..." : "เชื่อมต่อ"}
+                        {linkingProvider === provider.key ? copy.connecting : copy.connect}
                       </Button>
                     ) : (
                       <Chip 
@@ -679,7 +806,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                         startContent={<Icon icon="solar:clock-circle-linear" className="text-sm" />}
                         className="text-xs"
                       >
-                        กำลังพัฒนา
+                        {copy.comingSoon}
                       </Chip>
                     )}
                   </div>
@@ -696,7 +823,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
           <Icon icon="solar:info-circle-bold" className="text-base sm:text-lg text-primary-600 mt-0.5 shrink-0" />
           <div>
             <p className="text-xs sm:text-sm text-primary-800">
-              บัญชีที่เชื่อมต่อสามารถใช้เข้าสู่ระบบได้โดยไม่ต้องกรอกรหัสผ่าน
+              {copy.linkedAccountsInfo}
             </p>
           </div>
         </div>
@@ -751,7 +878,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                     <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
                       <Icon icon="solar:danger-triangle-bold" className="text-white text-xl" />
                     </div>
-                    <span>ยกเลิกการเชื่อมต่อ {providerName}</span>
+                    <span>{formatTemplate(copy.unlinkTitle, { provider: providerName })}</span>
                   </div>
                 </ModalHeader>
                 <ModalBody>
@@ -769,20 +896,20 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                     
                     <div className="space-y-2">
                       <p className="text-sm text-default-700 font-medium">
-                        หลังจากยกเลิกการเชื่อมต่อ:
+                        {copy.unlinkAfterTitle}
                       </p>
                       <ul className="text-sm text-default-600 space-y-1.5 ml-4">
                         <li className="flex items-start gap-2">
                           <Icon icon="solar:close-circle-bold" className="text-danger mt-0.5 shrink-0" />
-                          <span>ไม่สามารถใช้ {providerName} เพื่อเข้าสู่ระบบได้</span>
+                          <span>{formatTemplate(copy.unlinkAfterCannotSignIn, { provider: providerName })}</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <Icon icon="solar:close-circle-bold" className="text-danger mt-0.5 shrink-0" />
-                          <span>ต้องใช้รหัสผ่านหรือบัญชีอื่นที่เชื่อมต่อในการเข้าสู่ระบบ</span>
+                          <span>{copy.unlinkAfterUseOtherMethod}</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <Icon icon="solar:info-circle-bold" className="text-primary mt-0.5 shrink-0" />
-                          <span>สามารถเชื่อมต่อใหม่ได้ภายหลัง</span>
+                          <span>{copy.unlinkAfterReconnect}</span>
                         </li>
                       </ul>
                     </div>
@@ -791,7 +918,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                       <div className="flex items-start gap-2">
                         <Icon icon="solar:shield-warning-bold" className="text-warning-600 mt-0.5 shrink-0" />
                         <p className="text-xs text-warning-700">
-                          คุณแน่ใจหรือไม่ที่จะยกเลิกการเชื่อมต่อนี้? การดำเนินการนี้จะทำให้คุณไม่สามารถใช้บัญชี {providerName} เพื่อเข้าสู่ระบบได้อีก
+                          {formatTemplate(copy.unlinkWarning, { provider: providerName })}
                         </p>
                       </div>
                     </div>
@@ -802,7 +929,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                     variant="flat" 
                     onPress={onClose}
                   >
-                    ยกเลิก
+                    {copy.cancel}
                   </Button>
                   <Button 
                     color="primary" 
@@ -810,7 +937,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                     startContent={<Icon icon="solar:link-broken-linear" />}
                     className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                   >
-                    ยกเลิกการเชื่อมต่อ
+                    {copy.confirmDisconnect}
                   </Button>
                 </ModalFooter>
               </>

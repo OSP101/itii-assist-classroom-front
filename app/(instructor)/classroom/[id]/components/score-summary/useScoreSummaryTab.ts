@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import scoreService, { ScoreSummaryMatrix } from "@/services/score.service";
 import {
     AssignmentTabType,
@@ -43,6 +44,9 @@ interface StudentType {
 }
 
 export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
+
     // Tab & Filter state
     const [selectedTab, setSelectedTab] = useState<AssignmentTabType>("lab");
     const [selectedSection, setSelectedSection] = useState<string>("all");
@@ -140,7 +144,7 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
         const cols: ColumnDef[] = [];
 
         for (const assignment of matrixData.assignments) {
-            const title = assignment.title || `งาน #${assignment.id}`;
+            const title = assignment.title || (isEnglish ? `Assignment #${assignment.id}` : `งาน #${assignment.id}`);
             const shortTitle = assignment.short_title || title;
 
             if (assignment.subItems && assignment.subItems.length > 0) {
@@ -167,18 +171,18 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
         }
 
         return cols;
-    }, [matrixData?.assignments]);
+    }, [isEnglish, matrixData?.assignments]);
 
     // Group assignments for header (for colspan)
     const assignmentGroups = useMemo((): AssignmentGroup[] => {
         if (!matrixData?.assignments) return [];
         return matrixData.assignments.map(a => ({
             id: a.id,
-            title: a.title || a.short_title || `งาน #${a.id}`,
+            title: a.title || a.short_title || (isEnglish ? `Assignment #${a.id}` : `งาน #${a.id}`),
             colSpan: a.subItems && a.subItems.length > 0 ? a.subItems.length : 1,
             hasSubItems: a.subItems && a.subItems.length > 0,
         }));
-    }, [matrixData?.assignments]);
+    }, [isEnglish, matrixData?.assignments]);
 
     // Total max score
     const totalMaxScore = useMemo(() => columns.reduce((sum, c) => sum + c.maxScore, 0), [columns]);

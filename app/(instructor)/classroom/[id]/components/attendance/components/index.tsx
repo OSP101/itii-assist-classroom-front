@@ -35,17 +35,18 @@ import {
 import { Icon } from "@iconify/react";
 import { type DateValue, getLocalTimeZone, parseDateTime, CalendarDateTime } from "@internationalized/date";
 import { QRCodeSVG } from "qrcode.react";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 
 import {
     type SessionWithComputedStatus,
     type AttendanceStats,
     type Section,
     type CreateAttendanceData,
-    SESSION_TYPE_DISPLAY,
-    STATUS_DISPLAY,
     RADIUS_OPTIONS,
     formatDate,
     formatTime,
+    getSessionTypeDisplay,
+    getStatusDisplay,
 } from "../config";
 import { type AttendanceSession, type TimeChangePreview, type TimeChangeRecord, type SectionChangePreview } from "@/services/attendance.service";
 
@@ -210,30 +211,32 @@ interface StatsCardsProps {
 }
 
 export const StatsCards = memo(function StatsCards({ stats }: StatsCardsProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
     const items = [
         {
-            label: "ทั้งหมด",
+            label: isEnglish ? "Total" : "ทั้งหมด",
             value: stats.total,
             icon: "solar:calendar-bold",
             iconClass: "text-blue-600",
             bgClass: "bg-blue-100",
         },
         {
-            label: "กำลังเปิด",
+            label: isEnglish ? "Active" : "กำลังเปิด",
             value: stats.active,
             icon: "solar:play-circle-bold",
             iconClass: "text-emerald-600",
             bgClass: "bg-emerald-100",
         },
         {
-            label: "ฉบับร่าง",
+            label: isEnglish ? "Draft" : "ฉบับร่าง",
             value: stats.draft,
             icon: "solar:document-bold",
             iconClass: "text-default-600",
             bgClass: "bg-content3",
         },
         {
-            label: "ปิดแล้ว",
+            label: isEnglish ? "Closed" : "ปิดแล้ว",
             value: stats.closed,
             icon: "solar:stop-circle-bold",
             iconClass: "text-red-600",
@@ -283,12 +286,15 @@ export const FiltersCard = memo(function FiltersCard({
     onStatusChange,
     onTypeChange,
 }: FiltersCardProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
+
     return (
         <Card className="border border-default-200 bg-content1 shadow-sm">
             <CardBody className="p-4">
                 <div className="flex flex-col sm:flex-row gap-3">
                     <Input
-                        placeholder="ค้นหาชื่อรอบการเช็คชื่อ..."
+                        placeholder={isEnglish ? "Search attendance sessions..." : "ค้นหาชื่อรอบการเช็คชื่อ..."}
                         value={searchQuery}
                         onValueChange={onSearchChange}
                         startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
@@ -303,30 +309,30 @@ export const FiltersCard = memo(function FiltersCard({
                     />
                     <div className="flex gap-2">
                         <Select
-                            placeholder="สถานะ"
+                            placeholder={isEnglish ? "Status" : "สถานะ"}
                             selectedKeys={[statusFilter]}
                             onSelectionChange={(keys) => onStatusChange(Array.from(keys)[0] as string)}
                             className="w-full sm:w-40"
                             variant="bordered"
                             size="md"
                         >
-                            <SelectItem key="all">ทุกสถานะ</SelectItem>
-                            <SelectItem key="draft">ฉบับร่าง</SelectItem>
-                            <SelectItem key="active">กำลังเปิด</SelectItem>
-                            <SelectItem key="closed">ปิดแล้ว</SelectItem>
+                            <SelectItem key="all">{isEnglish ? "All statuses" : "ทุกสถานะ"}</SelectItem>
+                            <SelectItem key="draft">{getStatusDisplay("draft", isEnglish).label}</SelectItem>
+                            <SelectItem key="active">{getStatusDisplay("active", isEnglish).label}</SelectItem>
+                            <SelectItem key="closed">{getStatusDisplay("closed", isEnglish).label}</SelectItem>
                         </Select>
                         <Select
-                            placeholder="ประเภท"
+                            placeholder={isEnglish ? "Type" : "ประเภท"}
                             selectedKeys={[typeFilter]}
                             onSelectionChange={(keys) => onTypeChange(Array.from(keys)[0] as string)}
                             className="w-full sm:w-40"
                             variant="bordered"
                             size="md"
                         >
-                            <SelectItem key="all">ทุกประเภท</SelectItem>
-                            <SelectItem key="lecture">บรรยาย</SelectItem>
-                            <SelectItem key="lab">ปฏิบัติ</SelectItem>
-                            <SelectItem key="online">ออนไลน์</SelectItem>
+                            <SelectItem key="all">{isEnglish ? "All types" : "ทุกประเภท"}</SelectItem>
+                            <SelectItem key="lecture">{getSessionTypeDisplay("lecture", isEnglish).label}</SelectItem>
+                            <SelectItem key="lab">{getSessionTypeDisplay("lab", isEnglish).label}</SelectItem>
+                            <SelectItem key="online">{getSessionTypeDisplay("online", isEnglish).label}</SelectItem>
                         </Select>
                     </div>
                 </div>
@@ -345,6 +351,9 @@ interface EmptyStateProps {
 }
 
 export const EmptyState = memo(function EmptyState({ onCreateClick, canCreateAttendanceSessions = false }: EmptyStateProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
+
     return (
         <Card className="border border-dashed border-default-300 bg-content2/50 shadow-sm">
             <CardBody className="text-center py-16">
@@ -354,9 +363,9 @@ export const EmptyState = memo(function EmptyState({ onCreateClick, canCreateAtt
                         className="text-5xl text-blue-500"
                     />
                 </div>
-                <h3 className="mb-2 text-lg font-semibold text-default-700">ยังไม่มีรอบการเช็คชื่อ</h3>
+                <h3 className="mb-2 text-lg font-semibold text-default-700">{isEnglish ? "No attendance sessions yet" : "ยังไม่มีรอบการเช็คชื่อ"}</h3>
                 <p className="mx-auto mb-6 max-w-md text-default-500">
-                    สร้างรอบการเช็คชื่อเพื่อให้นักศึกษาสามารถเช็คชื่อเข้าเรียนได้
+                    {isEnglish ? "Create an attendance session so students can check in." : "สร้างรอบการเช็คชื่อเพื่อให้นักศึกษาสามารถเช็คชื่อเข้าเรียนได้"}
                 </p>
                 {canCreateAttendanceSessions && (
                     <Button
@@ -365,7 +374,7 @@ export const EmptyState = memo(function EmptyState({ onCreateClick, canCreateAtt
                         onPress={onCreateClick}
                         className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
                     >
-                        สร้างรอบเช็คชื่อแรก
+                        {isEnglish ? "Create first attendance session" : "สร้างรอบเช็คชื่อแรก"}
                     </Button>
                 )}
             </CardBody>
@@ -388,6 +397,9 @@ export const QRPreviewModal = memo(function QRPreviewModal({
     onClose,
     session,
 }: QRPreviewModalProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
+
     if (!session) return null;
 
     const checkInUrl = typeof window !== "undefined"
@@ -398,8 +410,8 @@ export const QRPreviewModal = memo(function QRPreviewModal({
         if (session.pin_code) {
             navigator.clipboard.writeText(session.pin_code);
             addToast({
-                title: "คัดลอกแล้ว",
-                description: "PIN ถูกคัดลอกไปยังคลิปบอร์ดแล้ว",
+                title: isEnglish ? "Copied" : "คัดลอกแล้ว",
+                description: isEnglish ? "PIN copied to clipboard." : "PIN ถูกคัดลอกไปยังคลิปบอร์ดแล้ว",
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -410,8 +422,8 @@ export const QRPreviewModal = memo(function QRPreviewModal({
     const copyURL = () => {
         navigator.clipboard.writeText(checkInUrl);
         addToast({
-            title: "คัดลอกแล้ว",
-            description: "ลิงก์เช็คชื่อถูกคัดลอกไปยังคลิปบอร์ดแล้ว",
+            title: isEnglish ? "Copied" : "คัดลอกแล้ว",
+            description: isEnglish ? "Check-in link copied to clipboard." : "ลิงก์เช็คชื่อถูกคัดลอกไปยังคลิปบอร์ดแล้ว",
             color: "success",
             timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -433,7 +445,7 @@ export const QRPreviewModal = memo(function QRPreviewModal({
             ctx?.drawImage(img, 0, 0);
             const pngFile = canvas.toDataURL("image/png");
             const downloadLink = document.createElement("a");
-            downloadLink.download = `check-in-${session.title}-${session.pin_code}.png`;
+            downloadLink.download = `${isEnglish ? "attendance" : "check-in"}-${session.title}-${session.pin_code}.png`;
             downloadLink.href = pngFile;
             downloadLink.click();
         };
@@ -449,8 +461,8 @@ export const QRPreviewModal = memo(function QRPreviewModal({
                         <Icon icon="solar:qr-code-bold" className="text-xl text-blue-600" />
                     </div>
                     <div>
-                        <p className="font-semibold">QR Code และ PIN</p>
-                        <p className="text-sm font-normal text-default-500">สำหรับตั้งเวลาโพสต์</p>
+                        <p className="font-semibold">{isEnglish ? "QR code and PIN" : "QR Code และ PIN"}</p>
+                        <p className="text-sm font-normal text-default-500">{isEnglish ? "For scheduled posting" : "สำหรับตั้งเวลาโพสต์"}</p>
                     </div>
                 </ModalHeader>
                 <Divider />
@@ -492,7 +504,7 @@ export const QRPreviewModal = memo(function QRPreviewModal({
 
                     {/* URL */}
                     <div className="rounded-xl bg-content2 p-3">
-                        <p className="mb-1 text-xs text-default-400">ลิงก์เช็คชื่อ</p>
+                        <p className="mb-1 text-xs text-default-400">{isEnglish ? "Check-in link" : "ลิงก์เช็คชื่อ"}</p>
                         <div className="flex items-center gap-2">
                             <code className="flex-1 truncate rounded-lg border border-default-200 bg-content1 px-3 py-2 text-sm text-blue-600">
                                 {checkInUrl}
@@ -514,14 +526,14 @@ export const QRPreviewModal = memo(function QRPreviewModal({
                 <Divider />
                 <ModalFooter>
                     <Button variant="flat" onPress={onClose}>
-                        ปิด
+                        {isEnglish ? "Close" : "ปิด"}
                     </Button>
                     <Button
                         color="primary"
                         startContent={<Icon icon="solar:download-bold" />}
                         onPress={downloadQR}
                     >
-                        ดาวน์โหลด QR
+                        {isEnglish ? "Download QR" : "ดาวน์โหลด QR"}
                     </Button>
                 </ModalFooter>
             </ModalContent>
@@ -556,10 +568,13 @@ const SessionRowActions = memo(function SessionRowActions({
     canUpdateAttendanceSessions = false,
     canDeleteAttendanceSessions = false,
 }: SessionRowActionsProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
+
     if (session.status === "draft") {
         return (
             <>
-                <Tooltip content="ดู QR/PIN">
+                <Tooltip content={isEnglish ? "View QR/PIN" : "ดู QR/PIN"}>
                     <Button
                         isIconOnly
                         size="sm"
@@ -571,7 +586,7 @@ const SessionRowActions = memo(function SessionRowActions({
                     </Button>
                 </Tooltip>
                 {canUpdateAttendanceSessions && (
-                    <Tooltip content="เริ่มเปิดเช็คชื่อทันที">
+                    <Tooltip content={isEnglish ? "Open now" : "เริ่มเปิดเช็คชื่อทันที"}>
                         <Button
                             isIconOnly
                             size="sm"
@@ -584,7 +599,7 @@ const SessionRowActions = memo(function SessionRowActions({
                     </Tooltip>
                 )}
                 {canUpdateAttendanceSessions && (
-                    <Tooltip content="แก้ไข">
+                    <Tooltip content={isEnglish ? "Edit" : "แก้ไข"}>
                         <Button
                             isIconOnly
                             size="sm"
@@ -597,7 +612,7 @@ const SessionRowActions = memo(function SessionRowActions({
                     </Tooltip>
                 )}
                 {canDeleteAttendanceSessions && (
-                    <Tooltip content="ลบ" color="danger">
+                    <Tooltip content={isEnglish ? "Delete" : "ลบ"} color="danger">
                         <Button
                             isIconOnly
                             size="sm"
@@ -616,7 +631,7 @@ const SessionRowActions = memo(function SessionRowActions({
     if (session.status === "active") {
         return (
             <>
-                <Tooltip content="ดูหน้าเช็คชื่อ">
+                <Tooltip content={isEnglish ? "Open attendance page" : "ดูหน้าเช็คชื่อ"}>
                     <Link
                         className="inline-flex items-center justify-center rounded-lg p-2 hover:bg-content2"
                         href={`/attendance/${courseId}/session/${session.id}/live`}
@@ -625,7 +640,7 @@ const SessionRowActions = memo(function SessionRowActions({
                         <Icon icon="solar:eye-bold" className="text-lg text-blue-600" />
                     </Link>
                 </Tooltip>
-                <Tooltip content="ดูสรุป">
+                <Tooltip content={isEnglish ? "View summary" : "ดูสรุป"}>
                     <Link
                         className="inline-flex items-center justify-center rounded-lg p-2 hover:bg-content2"
                         href={`/classroom/${courseId}/attendance/${session.id}/summary`}
@@ -635,7 +650,7 @@ const SessionRowActions = memo(function SessionRowActions({
                     </Link>
                 </Tooltip>
                 {canUpdateAttendanceSessions && (
-                    <Tooltip content="แก้ไขเวลา">
+                    <Tooltip content={isEnglish ? "Edit time" : "แก้ไขเวลา"}>
                         <Button
                             isIconOnly
                             size="sm"
@@ -648,7 +663,7 @@ const SessionRowActions = memo(function SessionRowActions({
                     </Tooltip>
                 )}
                 {canUpdateAttendanceSessions && (
-                    <Tooltip content="ปิดทันที" color="danger">
+                    <Tooltip content={isEnglish ? "Close now" : "ปิดทันที"} color="danger">
                         <Button
                             isIconOnly
                             size="sm"
@@ -667,7 +682,7 @@ const SessionRowActions = memo(function SessionRowActions({
     // closed status
     return (
         <>
-            <Tooltip content="ดูหน้าเช็คชื่อ">
+            <Tooltip content={isEnglish ? "Open attendance page" : "ดูหน้าเช็คชื่อ"}>
                 <Link
                     className="inline-flex items-center justify-center rounded-lg p-2 hover:bg-content2"
                     href={`/attendance/${courseId}/session/${session.id}/live`}
@@ -676,7 +691,7 @@ const SessionRowActions = memo(function SessionRowActions({
                     <Icon icon="solar:eye-bold" className="text-lg" />
                 </Link>
             </Tooltip>
-            <Tooltip content="ดูสรุป">
+            <Tooltip content={isEnglish ? "View summary" : "ดูสรุป"}>
                 <Link
                     className="inline-flex items-center justify-center rounded-lg p-2 hover:bg-content2"
                     href={`/classroom/${courseId}/attendance/${session.id}/summary`}
@@ -687,7 +702,7 @@ const SessionRowActions = memo(function SessionRowActions({
             </Tooltip>
 
             {canDeleteAttendanceSessions && (
-                <Tooltip content="ลบ" color="danger">
+                <Tooltip content={isEnglish ? "Delete" : "ลบ"} color="danger">
                     <Button
                         isIconOnly
                         size="sm"
@@ -732,6 +747,9 @@ export const SessionsTable = memo(function SessionsTable({
     canUpdateAttendanceSessions = false,
     canDeleteAttendanceSessions = false,
 }: SessionsTableProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
+
     // QR Preview Modal State
     const [qrPreviewSession, setQRPreviewSession] = useState<SessionWithComputedStatus | null>(null);
 
@@ -751,7 +769,7 @@ export const SessionsTable = memo(function SessionsTable({
                 <CardBody className="p-2">
                     <div className="overflow-x-auto">
                         <Table
-                            aria-label="Attendance sessions table"
+                            aria-label={isEnglish ? "Attendance sessions table" : "ตารางรอบการเช็คชื่อ"}
                             removeWrapper
                             classNames={{
                                 base: "min-w-225",
@@ -760,13 +778,13 @@ export const SessionsTable = memo(function SessionsTable({
                             }}
                         >
                             <TableHeader>
-                                <TableColumn className="min-w-40">รอบการเช็คชื่อ</TableColumn>
-                                <TableColumn className="min-w-25">เซคชัน</TableColumn>
-                                <TableColumn className="min-w-22.5">ประเภท</TableColumn>
-                                <TableColumn className="min-w-35">วันเวลา</TableColumn>
-                                <TableColumn className="min-w-22.5">สถานะ</TableColumn>
-                                <TableColumn className="min-w-35">สถิติ</TableColumn>
-                                <TableColumn align="center" className="min-w-30">จัดการ</TableColumn>
+                                <TableColumn className="min-w-40">{isEnglish ? "Attendance session" : "รอบการเช็คชื่อ"}</TableColumn>
+                                <TableColumn className="min-w-25">{isEnglish ? "Section" : "เซคชัน"}</TableColumn>
+                                <TableColumn className="min-w-22.5">{isEnglish ? "Type" : "ประเภท"}</TableColumn>
+                                <TableColumn className="min-w-35">{isEnglish ? "Date & time" : "วันเวลา"}</TableColumn>
+                                <TableColumn className="min-w-22.5">{isEnglish ? "Status" : "สถานะ"}</TableColumn>
+                                <TableColumn className="min-w-35">{isEnglish ? "Stats" : "สถิติ"}</TableColumn>
+                                <TableColumn align="center" className="min-w-30">{isEnglish ? "Actions" : "จัดการ"}</TableColumn>
                             </TableHeader>
                             <TableBody
                                 emptyContent={
@@ -775,7 +793,7 @@ export const SessionsTable = memo(function SessionsTable({
                                             icon="solar:clipboard-list-linear"
                                             className="mx-auto mb-3 text-5xl text-default-300"
                                         />
-                                        <p className="text-default-400">ไม่พบรอบการเช็คชื่อที่ตรงกับเงื่อนไข</p>
+                                        <p className="text-default-400">{isEnglish ? "No attendance sessions match the current filters." : "ไม่พบรอบการเช็คชื่อที่ตรงกับเงื่อนไข"}</p>
                                         {canCreateAttendanceSessions && (
                                             <Button
                                                 color="primary"
@@ -784,13 +802,17 @@ export const SessionsTable = memo(function SessionsTable({
                                                 className="mt-3"
                                                 onPress={onCreateClick}
                                             >
-                                                สร้างรอบเช็คชื่อ
+                                                {isEnglish ? "Create attendance session" : "สร้างรอบเช็คชื่อ"}
                                             </Button>
                                         )}
                                     </div>
                                 }
                             >
-                                {paginatedSessions.map((session) => (
+                                {paginatedSessions.map((session) => {
+                                    const sessionTypeDisplay = getSessionTypeDisplay(session.session_type, isEnglish);
+                                    const statusDisplay = getStatusDisplay(session.status, isEnglish);
+
+                                    return (
                                     <TableRow key={session.id}>
                                         <TableCell>
                                             <div className="flex items-center gap-3">
@@ -798,7 +820,7 @@ export const SessionsTable = memo(function SessionsTable({
                                                     <p className="font-medium text-foreground">{session.title}</p>
                                                     {session.check_location && (
                                                         <div className="flex items-center gap-1 text-xs text-default-500">
-                                                            <span>ตรวจสอบตำแหน่ง</span>
+                                                            <span>{isEnglish ? "GPS required" : "ตรวจสอบตำแหน่ง"}</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -818,30 +840,30 @@ export const SessionsTable = memo(function SessionsTable({
                                                     {session.section.section_no}
                                                 </Chip>
                                             ) : (
-                                                <span className="text-sm text-default-500">ทุกเซคชัน</span>
+                                                <span className="text-sm text-default-500">{isEnglish ? "All sections" : "ทุกเซคชัน"}</span>
                                             )}
                                         </TableCell>
                                         <TableCell>
                                             <Chip
                                                 size="sm"
-                                                color={SESSION_TYPE_DISPLAY[session.session_type]?.color || "default"}
+                                                color={sessionTypeDisplay.color}
                                                 variant="flat"
                                             >
-                                                {SESSION_TYPE_DISPLAY[session.session_type]?.label || session.session_type}
+                                                {sessionTypeDisplay.label}
                                             </Chip>
                                         </TableCell>
                                         <TableCell>
                                             <div className="text-sm">
-                                                <p className="text-foreground">{formatDate(session.start_time)}</p>
+                                                <p className="text-foreground">{formatDate(session.start_time, isEnglish)}</p>
                                                 <p className="text-default-500">
-                                                    {formatTime(session.start_time)} - {formatTime(session.end_time)}
+                                                    {formatTime(session.start_time, isEnglish)} - {formatTime(session.end_time, isEnglish)}
                                                 </p>
                                             </div>
                                         </TableCell>
                                         <TableCell>
                                             <Chip
                                                 size="sm"
-                                                color={STATUS_DISPLAY[session.status]?.color || "default"}
+                                                color={statusDisplay.color}
                                                 variant="flat"
                                                 startContent={
                                                     session.status === "active" ? (
@@ -852,23 +874,23 @@ export const SessionsTable = memo(function SessionsTable({
                                                     ) : undefined
                                                 }
                                             >
-                                                {STATUS_DISPLAY[session.status]?.label || session.status}
+                                                {statusDisplay.label}
                                             </Chip>
                                         </TableCell>
                                         <TableCell>
                                             {session.stats ? (
                                                 <div className="flex items-center gap-2">
-                                                    <Tooltip content="มาเรียน">
+                                                    <Tooltip content={isEnglish ? "Present" : "มาเรียน"}>
                                                         <Chip size="sm" color="success" variant="flat">
                                                             {session.stats.present}
                                                         </Chip>
                                                     </Tooltip>
-                                                    <Tooltip content="สาย">
+                                                    <Tooltip content={isEnglish ? "Late" : "สาย"}>
                                                         <Chip size="sm" color="warning" variant="flat">
                                                             {session.stats.late}
                                                         </Chip>
                                                     </Tooltip>
-                                                    <Tooltip content="ขาด">
+                                                    <Tooltip content={isEnglish ? "Absent" : "ขาด"}>
                                                         <Chip size="sm" color="danger" variant="flat">
                                                             {session.stats.absent}
                                                         </Chip>
@@ -894,7 +916,8 @@ export const SessionsTable = memo(function SessionsTable({
                                             </div>
                                         </TableCell>
                                     </TableRow>
-                                ))}
+                                    );
+                                })}
                             </TableBody>
                         </Table>
                     </div>
@@ -959,6 +982,9 @@ export const LocationCheckCard = memo(function LocationCheckCard({
     onRadiusChange,
     onClearLocation,
 }: LocationCheckCardProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
+
     return (
         <Card className="overflow-hidden border border-default-200 bg-content1">
             <CardBody className="p-0">
@@ -969,8 +995,8 @@ export const LocationCheckCard = memo(function LocationCheckCard({
                             <Icon icon="solar:map-point-bold" className="text-xl text-blue-600" />
                         </div>
                         <div>
-                            <span className="font-semibold text-foreground">ตรวจสอบตำแหน่ง GPS</span>
-                            <p className="text-xs text-default-500">ให้นักศึกษาต้องอยู่ในบริเวณที่กำหนด</p>
+                            <span className="font-semibold text-foreground">{isEnglish ? "GPS location check" : "ตรวจสอบตำแหน่ง GPS"}</span>
+                            <p className="text-xs text-default-500">{isEnglish ? "Require students to be within the selected area." : "ให้นักศึกษาต้องอยู่ในบริเวณที่กำหนด"}</p>
                         </div>
                     </div>
                     <Button
@@ -985,7 +1011,7 @@ export const LocationCheckCard = memo(function LocationCheckCard({
                             />
                         }
                     >
-                        {checkLocation ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+                        {checkLocation ? (isEnglish ? "Enabled" : "เปิดใช้งาน") : (isEnglish ? "Disabled" : "ปิดใช้งาน")}
                     </Button>
                 </div>
 
@@ -1012,10 +1038,10 @@ export const LocationCheckCard = memo(function LocationCheckCard({
                                     />
                                 </div>
                                 <span className="font-medium text-default-700">
-                                    {isGettingLocation ? "กำลังดึง GPS..." : "ดึงจาก GPS ของเครื่อง"}
+                                    {isGettingLocation ? (isEnglish ? "Getting GPS..." : "กำลังดึง GPS...") : (isEnglish ? "Get device GPS" : "ดึงจาก GPS ของเครื่อง")}
                                 </span>
                                 <span className="text-xs text-default-500">
-                                    {isGettingLocation ? "รอสักครู่..." : "ใช้ GPS ความแม่นยำสูง"}
+                                    {isGettingLocation ? (isEnglish ? "Please wait..." : "รอสักครู่...") : (isEnglish ? "Use high-accuracy GPS" : "ใช้ GPS ความแม่นยำสูง")}
                                 </span>
                             </div>
                             {isGettingLocation && (
@@ -1035,7 +1061,7 @@ export const LocationCheckCard = memo(function LocationCheckCard({
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2">
                                             <Icon icon="solar:check-circle-bold" className="text-green-600" />
-                                            <span className="font-medium text-green-700">กำหนดตำแหน่งแล้ว</span>
+                                            <span className="font-medium text-green-700">{isEnglish ? "Location set" : "กำหนดตำแหน่งแล้ว"}</span>
                                         </div>
                                         <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
                                             <div className="flex items-center gap-1.5">
@@ -1070,8 +1096,8 @@ export const LocationCheckCard = memo(function LocationCheckCard({
                                         <Icon icon="solar:map-point-search-bold" className="text-xl text-amber-600" />
                                     </div>
                                     <div>
-                                        <span className="font-medium text-amber-700">ยังไม่ได้กำหนดตำแหน่ง</span>
-                                        <p className="text-xs text-amber-600 mt-0.5">กรุณาเลือกวิธีกำหนดตำแหน่งด้านบน</p>
+                                        <span className="font-medium text-amber-700">{isEnglish ? "Location not set" : "ยังไม่ได้กำหนดตำแหน่ง"}</span>
+                                        <p className="text-xs text-amber-600 mt-0.5">{isEnglish ? "Choose a method above to set the location." : "กรุณาเลือกวิธีกำหนดตำแหน่งด้านบน"}</p>
                                     </div>
                                 </div>
                             </div>
@@ -1081,7 +1107,7 @@ export const LocationCheckCard = memo(function LocationCheckCard({
                         <div className="space-y-3">
                             <div className="flex items-center gap-2">
                                 <Icon icon="solar:map-bold" className="text-default-400" />
-                                <span className="text-sm font-medium text-default-600">แผนที่ (คลิกเพื่อปักหมุด)</span>
+                                <span className="text-sm font-medium text-default-600">{isEnglish ? "Map (click to place a pin)" : "แผนที่ (คลิกเพื่อปักหมุด)"}</span>
                             </div>
                             <Suspense fallback={
                                 <div className="flex h-70 items-center justify-center rounded-xl border border-default-200 bg-content2">
@@ -1089,7 +1115,7 @@ export const LocationCheckCard = memo(function LocationCheckCard({
                                         <div className="rounded-full bg-content1 p-4 shadow-sm">
                                             <Icon icon="solar:map-bold" className="animate-pulse text-4xl text-default-400" />
                                         </div>
-                                        <span className="text-sm text-default-500">กำลังโหลดแผนที่...</span>
+                                        <span className="text-sm text-default-500">{isEnglish ? "Loading map..." : "กำลังโหลดแผนที่..."}</span>
                                     </div>
                                 </div>
                             }>
@@ -1109,8 +1135,8 @@ export const LocationCheckCard = memo(function LocationCheckCard({
                                     <Icon icon="solar:ruler-angular-bold" className="text-lg text-violet-600" />
                                 </div>
                                 <div>
-                                    <span className="font-medium text-default-700">รัศมีที่อนุญาต</span>
-                                    <p className="text-xs text-default-500">ระยะห่างจากจุดกำหนดที่อนุญาตให้เช็คชื่อได้</p>
+                                    <span className="font-medium text-default-700">{isEnglish ? "Allowed radius" : "รัศมีที่อนุญาต"}</span>
+                                    <p className="text-xs text-default-500">{isEnglish ? "Maximum distance from the selected point allowed for check-in." : "ระยะห่างจากจุดกำหนดที่อนุญาตให้เช็คชื่อได้"}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
@@ -1120,7 +1146,7 @@ export const LocationCheckCard = memo(function LocationCheckCard({
                                     value={String(radiusMeters)}
                                     onValueChange={(value) => onRadiusChange(parseInt(value) || 10)}
                                     size="sm"
-                                    endContent={<span className="text-sm text-default-400">เมตร</span>}
+                                    endContent={<span className="text-sm text-default-400">{isEnglish ? "meters" : "เมตร"}</span>}
                                     className="max-w-37.5"
                                 />
                                 <div className="flex gap-1.5">
@@ -1187,6 +1213,9 @@ export const CreateSessionModal = memo(function CreateSessionModal({
     onSubmit,
     onGetCurrentLocation,
 }: CreateSessionModalProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
+
     return (
         <Modal
             isOpen={isOpen}
@@ -1203,9 +1232,9 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                             <Icon icon="solar:clipboard-check-bold" className="text-2xl text-white" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-foreground">สร้างรอบการเช็คชื่อ</h3>
+                            <h3 className="text-xl font-bold text-foreground">{isEnglish ? "Create attendance session" : "สร้างรอบการเช็คชื่อ"}</h3>
                             <p className="mt-1 text-sm font-normal text-default-500">
-                                กำหนดรายละเอียดการเช็คชื่อเข้าเรียน
+                                {isEnglish ? "Set the attendance session details." : "กำหนดรายละเอียดการเช็คชื่อเข้าเรียน"}
                             </p>
                         </div>
                     </div>
@@ -1215,8 +1244,8 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                         {/* Title */}
                         <div>
                             <Input
-                                label="ชื่อรอบการเช็คชื่อ"
-                                placeholder="เช่น เช็คชื่อสัปดาห์ที่ 1, Lab 1"
+                                label={isEnglish ? "Attendance session title" : "ชื่อรอบการเช็คชื่อ"}
+                                placeholder={isEnglish ? "e.g. Week 1 attendance, Lab 1" : "เช่น เช็คชื่อสัปดาห์ที่ 1, Lab 1"}
                                 value={formData.title}
                                 onValueChange={(value) => setFormData((prev) => ({ ...prev, title: value }))}
                                 isRequired
@@ -1233,8 +1262,8 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                         {/* Section - Multi-select */}
                         <div>
                             <Select
-                                label="กลุ่มเรียน"
-                                placeholder="เลือกกลุ่มเรียน"
+                                label={isEnglish ? "Sections" : "กลุ่มเรียน"}
+                                placeholder={isEnglish ? "Select sections" : "เลือกกลุ่มเรียน"}
                                 selectionMode="multiple"
                                 selectedKeys={new Set((formData.course_section_ids || []).map(String))}
                                 labelPlacement="outside"
@@ -1266,7 +1295,7 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                         {/* Session Type */}
                         <div>
                             <Select
-                                label="ประเภทการเรียน"
+                                label={isEnglish ? "Session type" : "ประเภทการเรียน"}
                                 selectedKeys={[formData.session_type]}
                                 variant="bordered"
                                 onSelectionChange={(keys) => {
@@ -1282,13 +1311,13 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                                 }}
                             >
                                 <SelectItem key="lecture">
-                                    บรรยาย (Lecture)
+                                    {isEnglish ? "Lecture" : "บรรยาย (Lecture)"}
                                 </SelectItem>
                                 <SelectItem key="lab">
-                                    ปฏิบัติการ (Lab)
+                                    {isEnglish ? "Lab" : "ปฏิบัติการ (Lab)"}
                                 </SelectItem>
                                 <SelectItem key="online">
-                                    ออนไลน์ (Online)
+                                    {isEnglish ? "Online" : "ออนไลน์ (Online)"}
                                 </SelectItem>
                             </Select>
                         </div>
@@ -1296,14 +1325,14 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                         {/* Date Time */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <DateTimeInput
-                                label="เวลาเริ่มต้น"
+                                label={isEnglish ? "Start time" : "เวลาเริ่มต้น"}
                                 value={startDateTime}
                                 onChange={setStartDateTime}
                                 isRequired
                                 colorScheme="blue"
                             />
                             <DateTimeInput
-                                label="เวลาสิ้นสุด"
+                                label={isEnglish ? "End time" : "เวลาสิ้นสุด"}
                                 value={endDateTime}
                                 onChange={setEndDateTime}
                                 isRequired
@@ -1316,12 +1345,12 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                         {/* Late Threshold Time */}
                         <div className="">
                             <DateTimeInput
-                                label="เวลาตัดสาย"
+                                label={isEnglish ? "Late cutoff time" : "เวลาตัดสาย"}
                                 value={lateThresholdTime}
                                 onChange={setLateThresholdTime}
                                 isRequired
                                 colorScheme="amber"
-                                description="เช็คอินหลังเวลานี้จะถูกนับเป็นสาย"
+                                description={isEnglish ? "Check-ins after this time will be marked late." : "เช็คอินหลังเวลานี้จะถูกนับเป็นสาย"}
                                 min={toDateTimeLocalStr(startDateTime)}
                                 max={toDateTimeLocalStr(endDateTime)}
                             />
@@ -1344,7 +1373,7 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                 </ModalBody>
                 <ModalFooter className="border-t border-divider px-6 py-4">
                     <Button variant="light" onPress={onClose}>
-                        ยกเลิก
+                        {isEnglish ? "Cancel" : "ยกเลิก"}
                     </Button>
                     <Button
                         color="primary"
@@ -1352,7 +1381,7 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                         isLoading={isSubmitting}
                         className="bg-linear-to-r from-blue-400 to-indigo-500"
                     >
-                        สร้างรอบเช็คชื่อ
+                        {isEnglish ? "Create attendance session" : "สร้างรอบเช็คชื่อ"}
                     </Button>
                 </ModalFooter>
             </ModalContent>
@@ -1405,6 +1434,9 @@ export const EditSessionModal = memo(function EditSessionModal({
     onSubmit,
     onGetCurrentLocation,
 }: EditSessionModalProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
+
     return (
         <Modal
             isOpen={isOpen}
@@ -1421,7 +1453,7 @@ export const EditSessionModal = memo(function EditSessionModal({
                             <Icon icon="solar:pen-bold" className="text-2xl text-white" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-foreground">แก้ไขรอบการเช็คชื่อ</h3>
+                            <h3 className="text-xl font-bold text-foreground">{isEnglish ? "Edit attendance session" : "แก้ไขรอบการเช็คชื่อ"}</h3>
                             <p className="mt-1 text-sm font-normal text-default-500">
                                 {editTarget?.title}
                             </p>
@@ -1432,7 +1464,7 @@ export const EditSessionModal = memo(function EditSessionModal({
                     <div className="space-y-3">
                         {/* Title */}
                         <Input
-                            label="ชื่อรอบการเช็คชื่อ"
+                            label={isEnglish ? "Attendance session title" : "ชื่อรอบการเช็คชื่อ"}
                             value={formData.title}
                             onValueChange={(value) => setFormData((prev: CreateAttendanceData) => ({ ...prev, title: value }))}
                             isRequired
@@ -1447,8 +1479,8 @@ export const EditSessionModal = memo(function EditSessionModal({
 
                         {/* Section - Multi-select */}
                         <Select
-                            label="กลุ่มเรียน"
-                            placeholder="เลือกกลุ่มเรียน"
+                            label={isEnglish ? "Sections" : "กลุ่มเรียน"}
+                            placeholder={isEnglish ? "Select sections" : "เลือกกลุ่มเรียน"}
                             selectionMode="multiple"
                             selectedKeys={new Set((formData.course_section_ids || []).map(String))}
                             labelPlacement="outside"
@@ -1477,7 +1509,7 @@ export const EditSessionModal = memo(function EditSessionModal({
 
                         {/* Session Type */}
                         <Select
-                            label="ประเภทการสอน"
+                            label={isEnglish ? "Session type" : "ประเภทการสอน"}
                             selectedKeys={[formData.session_type]}
                             labelPlacement="outside"
                             variant="bordered"
@@ -1492,27 +1524,27 @@ export const EditSessionModal = memo(function EditSessionModal({
                             }}
                         >
                             <SelectItem key="lecture" startContent={<Icon icon="solar:presentation-graph-bold" className="text-blue-500" />}>
-                                บรรยาย
+                                {isEnglish ? "Lecture" : "บรรยาย"}
                             </SelectItem>
                             <SelectItem key="lab" startContent={<Icon icon="solar:test-tube-bold" className="text-emerald-500" />}>
-                                ปฏิบัติ
+                                {isEnglish ? "Lab" : "ปฏิบัติ"}
                             </SelectItem>
                             <SelectItem key="online" startContent={<Icon icon="solar:laptop-bold" className="text-violet-500" />}>
-                                ออนไลน์
+                                {isEnglish ? "Online" : "ออนไลน์"}
                             </SelectItem>
                         </Select>
 
                         {/* Time Settings */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
                             <DateTimeInput
-                                label="เวลาเริ่มต้น"
+                                label={isEnglish ? "Start time" : "เวลาเริ่มต้น"}
                                 value={startDateTime}
                                 onChange={setStartDateTime}
                                 isRequired
                                 colorScheme="amber"
                             />
                             <DateTimeInput
-                                label="เวลาสิ้นสุด"
+                                label={isEnglish ? "End time" : "เวลาสิ้นสุด"}
                                 value={endDateTime}
                                 onChange={setEndDateTime}
                                 isRequired
@@ -1525,12 +1557,12 @@ export const EditSessionModal = memo(function EditSessionModal({
                         {/* Late Threshold Time */}
                         <div className="">
                             <DateTimeInput
-                                label="เวลาสำหรับเช็คสาย"
+                                label={isEnglish ? "Late cutoff time" : "เวลาสำหรับเช็คสาย"}
                                 value={lateThresholdTime}
                                 onChange={setLateThresholdTime}
                                 isRequired
                                 colorScheme="amber"
-                                description="เช็คอินหลังเวลานี้จะถูกนับเป็นสาย"
+                                description={isEnglish ? "Check-ins after this time will be marked late." : "เช็คอินหลังเวลานี้จะถูกนับเป็นสาย"}
                                 min={toDateTimeLocalStr(startDateTime)}
                                 max={toDateTimeLocalStr(endDateTime)}
                             />
@@ -1542,15 +1574,15 @@ export const EditSessionModal = memo(function EditSessionModal({
                             <CardBody className="p-4">
                                 <div className="flex items-center justify-between mb-4">
                                     <div>
-                                        <p className="font-medium text-default-700">ตรวจสอบตำแหน่ง GPS</p>
-                                        <p className="text-sm text-default-500">ให้นักศึกษาเช็คชื่อได้เฉพาะในพื้นที่ที่กำหนด</p>
+                                        <p className="font-medium text-default-700">{isEnglish ? "GPS location check" : "ตรวจสอบตำแหน่ง GPS"}</p>
+                                        <p className="text-sm text-default-500">{isEnglish ? "Restrict check-in to the selected area." : "ให้นักศึกษาเช็คชื่อได้เฉพาะในพื้นที่ที่กำหนด"}</p>
                                     </div>
                                     <Button
                                         color={formData.check_location ? "primary" : "default"}
                                         variant={formData.check_location ? "solid" : "flat"}
                                         onPress={() => setFormData((prev: CreateAttendanceData) => ({ ...prev, check_location: !prev.check_location }))}
                                     >
-                                        {formData.check_location ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+                                        {formData.check_location ? (isEnglish ? "Enabled" : "เปิดใช้งาน") : (isEnglish ? "Disabled" : "ปิดใช้งาน")}
                                     </Button>
                                 </div>
 
@@ -1560,7 +1592,7 @@ export const EditSessionModal = memo(function EditSessionModal({
                                         <div className="overflow-hidden rounded-xl border border-default-200">
                                             <Suspense fallback={
                                                 <div className="flex h-64 items-center justify-center bg-content2">
-                                                    <span className="text-default-400">กำลังโหลดแผนที่...</span>
+                                                    <span className="text-default-400">{isEnglish ? "Loading map..." : "กำลังโหลดแผนที่..."}</span>
                                                 </div>
                                             }>
                                                 <LocationPicker
@@ -1588,18 +1620,18 @@ export const EditSessionModal = memo(function EditSessionModal({
                                                 onPress={onGetCurrentLocation}
                                                 isLoading={isGettingLocation}
                                             >
-                                                {isGettingLocation ? "กำลังระบุตำแหน่ง..." : "ใช้ตำแหน่งปัจจุบัน (GPS)"}
+                                                {isGettingLocation ? (isEnglish ? "Getting location..." : "กำลังระบุตำแหน่ง...") : (isEnglish ? "Use current location (GPS)" : "ใช้ตำแหน่งปัจจุบัน (GPS)")}
                                             </Button>
                                             <div className="flex-1">
                                                 <p className="text-xs text-default-500">
-                                                    ตำแหน่ง: {formData.location_lat ? Number(formData.location_lat).toFixed(6) : "-"}, {formData.location_lng ? Number(formData.location_lng).toFixed(6) : "-"}
+                                                    {isEnglish ? "Location" : "ตำแหน่ง"}: {formData.location_lat ? Number(formData.location_lat).toFixed(6) : "-"}, {formData.location_lng ? Number(formData.location_lng).toFixed(6) : "-"}
                                                 </p>
                                             </div>
                                         </div>
 
                                         {/* Radius */}
                                         <div>
-                                            <p className="mb-2 text-sm text-default-600">รัศมีการเช็คชื่อ</p>
+                                            <p className="mb-2 text-sm text-default-600">{isEnglish ? "Attendance radius" : "รัศมีการเช็คชื่อ"}</p>
                                             <div className="flex gap-1.5">
                                                 {RADIUS_OPTIONS.map((r) => (
                                                     <Button
@@ -1623,7 +1655,7 @@ export const EditSessionModal = memo(function EditSessionModal({
                 </ModalBody>
                 <ModalFooter className="border-t border-divider">
                     <Button variant="light" onPress={onClose}>
-                        ยกเลิก
+                        {isEnglish ? "Cancel" : "ยกเลิก"}
                     </Button>
                     <Button
                         color="primary"
@@ -1631,7 +1663,7 @@ export const EditSessionModal = memo(function EditSessionModal({
                         isLoading={isSubmitting}
                         className="bg-linear-to-r from-amber-400 to-orange-500"
                     >
-                        บันทึกการแก้ไข
+                        {isEnglish ? "Save changes" : "บันทึกการแก้ไข"}
                     </Button>
                 </ModalFooter>
             </ModalContent>
@@ -1658,6 +1690,9 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
     isSubmitting,
     onConfirm,
 }: DeleteConfirmModalProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
+
     return (
         <Modal isOpen={isOpen} onClose={onClose} size="sm">
             <ModalContent>
@@ -1666,22 +1701,22 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
                         <div className="p-2 bg-red-100 rounded-lg">
                             <Icon icon="solar:trash-bin-trash-bold" className="text-xl text-red-600" />
                         </div>
-                        <span>ยืนยันการลบรอบเช็คชื่อ</span>
+                        <span>{isEnglish ? "Confirm attendance session deletion" : "ยืนยันการลบรอบเช็คชื่อ"}</span>
                     </div>
                 </ModalHeader>
                 <ModalBody>
                     <p>
-                        คุณต้องการลบรอบการเช็คชื่อ <strong className="text-red-600">{targetTitle}</strong> หรือไม่?
+                        {isEnglish ? "Do you want to delete attendance session " : "คุณต้องการลบรอบการเช็คชื่อ "}<strong className="text-red-600">{targetTitle}</strong>{isEnglish ? "?" : " หรือไม่?"}
                     </p>
                     <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
                         <div className="flex items-start gap-2">
                             <Icon icon="solar:danger-triangle-bold" className="text-red-500 text-lg mt-0.5 shrink-0" />
                             <div className="text-sm text-red-700">
-                                <p className="font-bold">คำเตือน: การลบจะไม่สามารถกู้คืนได้!</p>
+                                <p className="font-bold">{isEnglish ? "Warning: this action cannot be undone!" : "คำเตือน: การลบจะไม่สามารถกู้คืนได้!"}</p>
                                 <ul className="list-disc list-inside mt-2 space-y-1">
-                                    <li>ข้อมูลการเช็คชื่อทั้งหมดจะ<strong>หายไปถาวร</strong></li>
-                                    <li>ผลการเช็คชื่อของนักศึกษาจะถูกลบ</li>
-                                    <li>ไม่สามารถกู้คืนข้อมูลได้</li>
+                                    <li>{isEnglish ? "All attendance data will be permanently deleted." : <><span>ข้อมูลการเช็คชื่อทั้งหมดจะ</span><strong>หายไปถาวร</strong></>}</li>
+                                    <li>{isEnglish ? "Student attendance results will be removed." : "ผลการเช็คชื่อของนักศึกษาจะถูกลบ"}</li>
+                                    <li>{isEnglish ? "The data cannot be restored." : "ไม่สามารถกู้คืนข้อมูลได้"}</li>
                                 </ul>
                             </div>
                         </div>
@@ -1689,10 +1724,10 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
                 </ModalBody>
                 <ModalFooter>
                     <Button variant="light" onPress={onClose}>
-                        ยกเลิก
+                        {isEnglish ? "Cancel" : "ยกเลิก"}
                     </Button>
                     <Button color="danger" onPress={onConfirm} isLoading={isSubmitting}>
-                        ลบถาวร
+                        {isEnglish ? "Delete permanently" : "ลบถาวร"}
                     </Button>
                 </ModalFooter>
             </ModalContent>
@@ -1719,6 +1754,9 @@ export const CloseSessionModal = memo(function CloseSessionModal({
     isSubmitting,
     onConfirm,
 }: CloseSessionModalProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
+
     return (
         <Modal isOpen={isOpen} onClose={onClose} size="sm">
             <ModalContent>
@@ -1727,22 +1765,22 @@ export const CloseSessionModal = memo(function CloseSessionModal({
                         <div className="p-2 bg-red-100 rounded-lg">
                             <Icon icon="solar:stop-bold" className="text-xl text-red-600" />
                         </div>
-                        <span>ยืนยันการปิดรอบเช็คชื่อ</span>
+                        <span>{isEnglish ? "Confirm attendance session closure" : "ยืนยันการปิดรอบเช็คชื่อ"}</span>
                     </div>
                 </ModalHeader>
                 <ModalBody>
                     <p>
-                        คุณต้องการปิดรอบการเช็คชื่อ <strong>{targetTitle}</strong> ทันทีหรือไม่?
+                        {isEnglish ? "Do you want to close attendance session " : "คุณต้องการปิดรอบการเช็คชื่อ "}<strong>{targetTitle}</strong>{isEnglish ? " immediately?" : " ทันทีหรือไม่?"}
                     </p>
                     <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                         <div className="flex items-start gap-2">
                             <Icon icon="solar:danger-triangle-bold" className="text-amber-500 text-lg mt-0.5" />
                             <div className="text-sm text-amber-700">
-                                <p className="font-medium">หลังจากปิดแล้ว:</p>
+                                <p className="font-medium">{isEnglish ? "After closing:" : "หลังจากปิดแล้ว:"}</p>
                                 <ul className="list-disc list-inside mt-1 space-y-1">
-                                    <li>นักศึกษาจะไม่สามารถเช็คชื่อได้อีก</li>
-                                    <li>ไม่สามารถแก้ไขรอบเช็คชื่อได้</li>
-                                    <li>รหัส PIN จะถูกปล่อยให้รอบอื่นใช้งานได้</li>
+                                    <li>{isEnglish ? "Students will no longer be able to check in." : "นักศึกษาจะไม่สามารถเช็คชื่อได้อีก"}</li>
+                                    <li>{isEnglish ? "This attendance session can no longer be edited." : "ไม่สามารถแก้ไขรอบเช็คชื่อได้"}</li>
+                                    <li>{isEnglish ? "The PIN will be released for other sessions." : "รหัส PIN จะถูกปล่อยให้รอบอื่นใช้งานได้"}</li>
                                 </ul>
                             </div>
                         </div>
@@ -1750,11 +1788,11 @@ export const CloseSessionModal = memo(function CloseSessionModal({
                 </ModalBody>
                 <ModalFooter>
                     <Button variant="light" onPress={onClose}>
-                        ยกเลิก
+                        {isEnglish ? "Cancel" : "ยกเลิก"}
                     </Button>
                     <Button color="danger" onPress={onConfirm} isLoading={isSubmitting}>
                         <Icon icon="solar:stop-bold" className="text-lg" />
-                        ปิดรอบเช็คชื่อ
+                        {isEnglish ? "Close attendance session" : "ปิดรอบเช็คชื่อ"}
                     </Button>
                 </ModalFooter>
             </ModalContent>
@@ -1768,11 +1806,11 @@ export const CloseSessionModal = memo(function CloseSessionModal({
 // ============================================================================
 
 /**
- * Format ISO date string to localized Thai short datetime
+ * Format ISO date string to localized short datetime
  */
-const formatPreviewTime = (isoStr: string) => {
+const formatPreviewTime = (isoStr: string, isEnglish: boolean) => {
     try {
-        return new Date(isoStr).toLocaleString('th-TH', {
+        return new Date(isoStr).toLocaleString(isEnglish ? "en-US" : "th-TH", {
             day: '2-digit', month: 'short', year: 'numeric',
             hour: '2-digit', minute: '2-digit',
         });
@@ -1781,13 +1819,13 @@ const formatPreviewTime = (isoStr: string) => {
     }
 };
 
-const CHANGE_TYPE_CONFIG: Record<string, { label: string; color: string; icon: string; bgClass: string }> = {
-    will_be_invalidated: { label: 'จะถูกยกเลิก', color: 'text-red-600', icon: 'solar:close-circle-bold', bgClass: 'bg-red-50' },
-    present_to_late: { label: 'มาตรงเวลา → สาย', color: 'text-amber-600', icon: 'solar:clock-circle-bold', bgClass: 'bg-amber-50' },
-    late_to_present: { label: 'สาย → มาตรงเวลา', color: 'text-emerald-600', icon: 'solar:check-circle-bold', bgClass: 'bg-emerald-50' },
-    recovered: { label: 'กลับมาถูกต้อง', color: 'text-blue-600', icon: 'solar:refresh-circle-bold', bgClass: 'bg-blue-50' },
-    already_invalid: { label: 'ยังคงอยู่นอกช่วงเวลา', color: 'text-default-500', icon: 'solar:minus-circle-bold', bgClass: 'bg-content2' },
-};
+const getChangeTypeConfig = (isEnglish: boolean): Record<string, { label: string; color: string; icon: string; bgClass: string }> => ({
+    will_be_invalidated: { label: isEnglish ? "Will be invalidated" : 'จะถูกยกเลิก', color: 'text-red-600', icon: 'solar:close-circle-bold', bgClass: 'bg-red-50' },
+    present_to_late: { label: isEnglish ? "On time -> Late" : 'มาตรงเวลา → สาย', color: 'text-amber-600', icon: 'solar:clock-circle-bold', bgClass: 'bg-amber-50' },
+    late_to_present: { label: isEnglish ? "Late -> On time" : 'สาย → มาตรงเวลา', color: 'text-emerald-600', icon: 'solar:check-circle-bold', bgClass: 'bg-emerald-50' },
+    recovered: { label: isEnglish ? "Restored" : 'กลับมาถูกต้อง', color: 'text-blue-600', icon: 'solar:refresh-circle-bold', bgClass: 'bg-blue-50' },
+    already_invalid: { label: isEnglish ? "Still outside time range" : 'ยังคงอยู่นอกช่วงเวลา', color: 'text-default-500', icon: 'solar:minus-circle-bold', bgClass: 'bg-content2' },
+});
 
 interface TimeChangePreviewModalProps {
     isOpen: boolean;
@@ -1804,9 +1842,13 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
     isApplying,
     onConfirm,
 }: TimeChangePreviewModalProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
+
     if (!preview) return null;
 
     const { summary, changes, timeChanges, hasDestructiveChanges, hasAnyImpact } = preview;
+    const changeTypeConfig = getChangeTypeConfig(isEnglish);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} size="2xl" scrollBehavior="inside" isDismissable={false}>
@@ -1818,10 +1860,14 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                         </div>
                         <div>
                             <h3 className="text-xl font-bold text-foreground">
-                                {hasDestructiveChanges ? 'คำเตือน: การเปลี่ยนแปลงนี้มีผลกระทบ' : hasAnyImpact ? 'ตรวจสอบผลกระทบก่อนบันทึก' : 'ไม่มีผลกระทบต่อข้อมูลที่มีอยู่'}
+                                {hasDestructiveChanges
+                                    ? (isEnglish ? "Warning: this change affects existing records" : 'คำเตือน: การเปลี่ยนแปลงนี้มีผลกระทบ')
+                                    : hasAnyImpact
+                                        ? (isEnglish ? "Review impact before saving" : 'ตรวจสอบผลกระทบก่อนบันทึก')
+                                        : (isEnglish ? "No impact on existing records" : 'ไม่มีผลกระทบต่อข้อมูลที่มีอยู่')}
                             </h3>
                             <p className="mt-1 text-sm font-normal text-default-500">
-                                {preview.session_title} — {summary.total_checked_in} รายการเช็คชื่อ
+                                {preview.session_title} — {summary.total_checked_in} {isEnglish ? "check-ins" : "รายการเช็คชื่อ"}
                             </p>
                         </div>
                     </div>
@@ -1832,18 +1878,18 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                     <div className="space-y-2">
                         <h4 className="flex items-center gap-2 text-sm font-semibold text-default-700">
                             <Icon icon="solar:clock-circle-bold" className="text-blue-500" />
-                            การเปลี่ยนแปลงเวลา
+                            {isEnglish ? "Time changes" : 'การเปลี่ยนแปลงเวลา'}
                         </h4>
                         <div className="grid gap-2">
                             {timeChanges.start_time.changed && (
                                 <div className="flex items-center gap-2 p-2.5 bg-blue-50 rounded-lg border border-blue-100">
                                     <Icon icon="solar:play-bold" className="text-blue-500" />
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-xs text-default-500">เวลาเริ่มต้น</p>
+                                        <p className="text-xs text-default-500">{isEnglish ? "Start time" : 'เวลาเริ่มต้น'}</p>
                                         <div className="flex items-center gap-2 text-sm">
-                                            <span className="text-default-500 line-through">{formatPreviewTime(timeChanges.start_time.old)}</span>
+                                            <span className="text-default-500 line-through">{formatPreviewTime(timeChanges.start_time.old, isEnglish)}</span>
                                             <Icon icon="solar:arrow-right-linear" className="text-default-400" width={14} />
-                                            <span className="font-medium text-blue-700">{formatPreviewTime(timeChanges.start_time.new)}</span>
+                                            <span className="font-medium text-blue-700">{formatPreviewTime(timeChanges.start_time.new, isEnglish)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1852,11 +1898,11 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                                 <div className="flex items-center gap-2 p-2.5 bg-amber-50 rounded-lg border border-amber-100">
                                     <Icon icon="solar:clock-circle-bold" className="text-amber-500" />
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-xs text-default-500">เวลาตัดสาย</p>
+                                        <p className="text-xs text-default-500">{isEnglish ? "Late cutoff" : 'เวลาตัดสาย'}</p>
                                         <div className="flex items-center gap-2 text-sm">
-                                            <span className="text-default-500 line-through">{formatPreviewTime(timeChanges.late_threshold.old)}</span>
+                                            <span className="text-default-500 line-through">{formatPreviewTime(timeChanges.late_threshold.old, isEnglish)}</span>
                                             <Icon icon="solar:arrow-right-linear" className="text-default-400" width={14} />
-                                            <span className="font-medium text-amber-700">{formatPreviewTime(timeChanges.late_threshold.new)}</span>
+                                            <span className="font-medium text-amber-700">{formatPreviewTime(timeChanges.late_threshold.new, isEnglish)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1865,11 +1911,11 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                                 <div className="flex items-center gap-2 p-2.5 bg-rose-50 rounded-lg border border-rose-100">
                                     <Icon icon="solar:stop-bold" className="text-rose-500" />
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-xs text-default-500">เวลาสิ้นสุด</p>
+                                        <p className="text-xs text-default-500">{isEnglish ? "End time" : 'เวลาสิ้นสุด'}</p>
                                         <div className="flex items-center gap-2 text-sm">
-                                            <span className="text-default-500 line-through">{formatPreviewTime(timeChanges.end_time.old)}</span>
+                                            <span className="text-default-500 line-through">{formatPreviewTime(timeChanges.end_time.old, isEnglish)}</span>
                                             <Icon icon="solar:arrow-right-linear" className="text-default-400" width={14} />
-                                            <span className="font-medium text-rose-700">{formatPreviewTime(timeChanges.end_time.new)}</span>
+                                            <span className="font-medium text-rose-700">{formatPreviewTime(timeChanges.end_time.new, isEnglish)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1877,7 +1923,7 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                             {!timeChanges.start_time.changed && !timeChanges.late_threshold.changed && !timeChanges.end_time.changed && (
                                 <div className="flex items-center gap-2 rounded-lg border border-default-200 bg-content2 p-2.5">
                                     <Icon icon="solar:check-circle-bold" className="text-emerald-500" />
-                                    <span className="text-sm text-default-600">ไม่มีการเปลี่ยนแปลงเวลา</span>
+                                    <span className="text-sm text-default-600">{isEnglish ? "No time changes" : 'ไม่มีการเปลี่ยนแปลงเวลา'}</span>
                                 </div>
                             )}
                         </div>
@@ -1888,36 +1934,36 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                         <div className="space-y-2">
                             <h4 className="flex items-center gap-2 text-sm font-semibold text-default-700">
                                 <Icon icon="solar:chart-2-bold" className="text-indigo-500" />
-                                ผลกระทบต่อข้อมูลเช็คชื่อ
+                                {isEnglish ? "Impact on attendance records" : 'ผลกระทบต่อข้อมูลเช็คชื่อ'}
                             </h4>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                 {summary.will_be_invalidated > 0 && (
                                     <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-center">
                                         <p className="text-2xl font-bold text-red-600">{summary.will_be_invalidated}</p>
-                                        <p className="text-xs text-red-500 mt-0.5">จะถูกยกเลิก</p>
+                                        <p className="text-xs text-red-500 mt-0.5">{isEnglish ? "Will be invalidated" : 'จะถูกยกเลิก'}</p>
                                     </div>
                                 )}
                                 {summary.present_to_late > 0 && (
                                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-center">
                                         <p className="text-2xl font-bold text-amber-600">{summary.present_to_late}</p>
-                                        <p className="text-xs text-amber-500 mt-0.5">ตรงเวลา → สาย</p>
+                                        <p className="text-xs text-amber-500 mt-0.5">{isEnglish ? "On-time -> Late" : 'ตรงเวลา → สาย'}</p>
                                     </div>
                                 )}
                                 {summary.late_to_present > 0 && (
                                     <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
                                         <p className="text-2xl font-bold text-emerald-600">{summary.late_to_present}</p>
-                                        <p className="text-xs text-emerald-500 mt-0.5">สาย → ตรงเวลา</p>
+                                        <p className="text-xs text-emerald-500 mt-0.5">{isEnglish ? "Late -> On-time" : 'สาย → ตรงเวลา'}</p>
                                     </div>
                                 )}
                                 {summary.recovered > 0 && (
                                     <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-center">
                                         <p className="text-2xl font-bold text-blue-600">{summary.recovered}</p>
-                                        <p className="text-xs text-blue-500 mt-0.5">กลับมาถูกต้อง</p>
+                                        <p className="text-xs text-blue-500 mt-0.5">{isEnglish ? "Restored" : 'กลับมาถูกต้อง'}</p>
                                     </div>
                                 )}
                                 <div className="rounded-xl border border-default-200 bg-content2 p-3 text-center">
                                     <p className="text-2xl font-bold text-default-600">{summary.unchanged}</p>
-                                    <p className="mt-0.5 text-xs text-default-500">ไม่เปลี่ยนแปลง</p>
+                                    <p className="mt-0.5 text-xs text-default-500">{isEnglish ? "Unchanged" : 'ไม่เปลี่ยนแปลง'}</p>
                                 </div>
                             </div>
                         </div>
@@ -1930,21 +1976,21 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                                 <Icon icon="solar:shield-warning-bold" className="text-2xl text-red-600 mt-0.5 shrink-0" />
                                 <div className="space-y-1.5">
                                     <p className="font-semibold text-red-800">
-                                        การเช็คชื่อ {summary.will_be_invalidated} รายการจะถูกเปลี่ยนเป็น &quot;ขาด&quot;
+                                        {isEnglish ? `${summary.will_be_invalidated} attendance records will become "Absent"` : `การเช็คชื่อ ${summary.will_be_invalidated} รายการจะถูกเปลี่ยนเป็น "ขาด"`}
                                     </p>
                                     <p className="text-sm text-red-600">
-                                        เนื่องจากเวลาเช็คอินอยู่นอกช่วงเวลาใหม่ ข้อมูลเวลาเช็คอินจะยังคงอยู่ แต่สถานะจะเปลี่ยน
+                                        {isEnglish ? "Check-in times that fall outside the new time window will keep their timestamps, but their status will change." : 'เนื่องจากเวลาเช็คอินอยู่นอกช่วงเวลาใหม่ ข้อมูลเวลาเช็คอินจะยังคงอยู่ แต่สถานะจะเปลี่ยน'}
                                     </p>
                                     <ul className="text-sm text-red-600 list-disc ml-4 space-y-0.5">
                                         {timeChanges.start_time.changed && new Date(timeChanges.start_time.new) > new Date(timeChanges.start_time.old) && (
-                                            <li>เลื่อนเวลาเริ่มไปข้างหน้า — นักศึกษาที่เช็คชื่อก่อนเวลาเริ่มใหม่จะถูกนับเป็น &quot;ขาด&quot;</li>
+                                            <li>{isEnglish ? 'Moving the start time later means students who checked in before the new start time will be marked "Absent".' : 'เลื่อนเวลาเริ่มไปข้างหน้า — นักศึกษาที่เช็คชื่อก่อนเวลาเริ่มใหม่จะถูกนับเป็น "ขาด"'}</li>
                                         )}
                                         {timeChanges.end_time.changed && new Date(timeChanges.end_time.new) < new Date(timeChanges.end_time.old) && (
-                                            <li>เลื่อนเวลาสิ้นสุดให้เร็วขึ้น — นักศึกษาที่เช็คชื่อหลังเวลาสิ้นสุดใหม่จะถูกนับเป็น &quot;ขาด&quot;</li>
+                                            <li>{isEnglish ? 'Moving the end time earlier means students who checked in after the new end time will be marked "Absent".' : 'เลื่อนเวลาสิ้นสุดให้เร็วขึ้น — นักศึกษาที่เช็คชื่อหลังเวลาสิ้นสุดใหม่จะถูกนับเป็น "ขาด"'}</li>
                                         )}
                                     </ul>
                                     <p className="text-xs text-red-500 mt-1">
-                                        การดำเนินการนี้บันทึกลง Log เพื่อตรวจสอบย้อนหลังได้
+                                        {isEnglish ? "This action is logged for audit history." : 'การดำเนินการนี้บันทึกลง Log เพื่อตรวจสอบย้อนหลังได้'}
                                     </p>
                                 </div>
                             </div>
@@ -1957,10 +2003,10 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                                 <Icon icon="solar:clock-circle-bold" className="text-xl text-amber-600 mt-0.5 shrink-0" />
                                 <div>
                                     <p className="font-medium text-amber-800">
-                                        {summary.present_to_late} คนจะเปลี่ยนจาก &quot;มาตรงเวลา&quot; เป็น &quot;สาย&quot;
+                                        {isEnglish ? `${summary.present_to_late} students will change from "On time" to "Late"` : `${summary.present_to_late} คนจะเปลี่ยนจาก "มาตรงเวลา" เป็น "สาย"`}
                                     </p>
                                     <p className="text-sm text-amber-600 mt-0.5">
-                                        เนื่องจากเวลาตัดสายถูกขยับให้เร็วขึ้น นักศึกษาที่เคยมาก่อนเส้นตัดเดิมจะกลายเป็นสาย
+                                        {isEnglish ? "The late cutoff moved earlier, so some students who were previously on time will now be marked late." : 'เนื่องจากเวลาตัดสายถูกขยับให้เร็วขึ้น นักศึกษาที่เคยมาก่อนเส้นตัดเดิมจะกลายเป็นสาย'}
                                     </p>
                                 </div>
                             </div>
@@ -1973,10 +2019,10 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                                 <Icon icon="solar:check-circle-bold" className="text-xl text-emerald-600 mt-0.5 shrink-0" />
                                 <div>
                                     <p className="font-medium text-emerald-800">
-                                        {summary.late_to_present} คนจะเปลี่ยนจาก &quot;สาย&quot; เป็น &quot;มาตรงเวลา&quot;
+                                        {isEnglish ? `${summary.late_to_present} students will change from "Late" to "On time"` : `${summary.late_to_present} คนจะเปลี่ยนจาก "สาย" เป็น "มาตรงเวลา"`}
                                     </p>
                                     <p className="text-sm text-emerald-600 mt-0.5">
-                                        เนื่องจากเวลาตัดสายถูกขยับให้ช้าลง นักศึกษาที่เคยสายจะกลับมาเป็นมาตรงเวลา
+                                        {isEnglish ? "The late cutoff moved later, so some students who were previously late will now be on time." : 'เนื่องจากเวลาตัดสายถูกขยับให้ช้าลง นักศึกษาที่เคยสายจะกลับมาเป็นมาตรงเวลา'}
                                     </p>
                                 </div>
                             </div>
@@ -1989,10 +2035,10 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                                 <Icon icon="solar:refresh-circle-bold" className="text-xl text-blue-600 mt-0.5 shrink-0" />
                                 <div>
                                     <p className="font-medium text-blue-800">
-                                        {summary.recovered} คนจะกลับมาถูกต้อง
+                                        {isEnglish ? `${summary.recovered} students will be restored` : `${summary.recovered} คนจะกลับมาถูกต้อง`}
                                     </p>
                                     <p className="text-sm text-blue-600 mt-0.5">
-                                        นักศึกษาที่เคยอยู่นอกช่วงเวลาเดิมจะกลับมาอยู่ในช่วงเวลาใหม่ และได้รับสถานะตามเวลาเช็คอิน
+                                        {isEnglish ? "Students who were previously outside the old time window now fall inside the new one and will regain the appropriate status." : 'นักศึกษาที่เคยอยู่นอกช่วงเวลาเดิมจะกลับมาอยู่ในช่วงเวลาใหม่ และได้รับสถานะตามเวลาเช็คอิน'}
                                     </p>
                                 </div>
                             </div>
@@ -2005,7 +2051,7 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                             <div className="flex items-center gap-2">
                                 <Icon icon="solar:shield-check-bold" className="text-purple-500 shrink-0" />
                                 <p className="text-xs text-purple-600">
-                                    นักศึกษาที่มีสถานะ &quot;ลา&quot; (กำหนดโดยอาจารย์) จะไม่ถูกเปลี่ยนแปลง — ข้อมูลจะถูกข้ามโดยอัตโนมัติ
+                                    {isEnglish ? 'Students with "Leave" status set by the instructor will not be changed automatically.' : 'นักศึกษาที่มีสถานะ "ลา" (กำหนดโดยอาจารย์) จะไม่ถูกเปลี่ยนแปลง — ข้อมูลจะถูกข้ามโดยอัตโนมัติ'}
                                 </p>
                             </div>
                         </div>
@@ -2016,18 +2062,18 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                         <div className="space-y-2">
                             <h4 className="flex items-center gap-2 text-sm font-semibold text-default-700">
                                 <Icon icon="solar:users-group-rounded-bold" className="text-default-500" />
-                                รายละเอียดนักศึกษาที่ได้รับผลกระทบ ({changes.length} คน)
+                                {isEnglish ? `Affected students (${changes.length})` : `รายละเอียดนักศึกษาที่ได้รับผลกระทบ (${changes.length} คน)`}
                             </h4>
                             <div className="overflow-x-auto">
-                                <Table removeWrapper aria-label="ผลกระทบ" classNames={{ th: "bg-content2 text-default-600 text-xs", td: "text-sm" }}>
+                                <Table removeWrapper aria-label={isEnglish ? "Attendance impact preview" : "ผลกระทบ"} classNames={{ th: "bg-content2 text-default-600 text-xs", td: "text-sm" }}>
                                     <TableHeader>
-                                        <TableColumn>นักศึกษา</TableColumn>
-                                        <TableColumn align="center">เวลาเช็คอิน</TableColumn>
-                                        <TableColumn align="center">การเปลี่ยนแปลง</TableColumn>
+                                        <TableColumn>{isEnglish ? "Student" : 'นักศึกษา'}</TableColumn>
+                                        <TableColumn align="center">{isEnglish ? "Check-in time" : 'เวลาเช็คอิน'}</TableColumn>
+                                        <TableColumn align="center">{isEnglish ? "Change" : 'การเปลี่ยนแปลง'}</TableColumn>
                                     </TableHeader>
                                     <TableBody items={changes.slice(0, 20)}>
                                         {(record: TimeChangeRecord) => {
-                                            const cfg = CHANGE_TYPE_CONFIG[record.change_type] || CHANGE_TYPE_CONFIG.already_invalid;
+                                            const cfg = changeTypeConfig[record.change_type] || changeTypeConfig.already_invalid;
                                             return (
                                                 <TableRow key={record.record_id}>
                                                     <TableCell>
@@ -2038,7 +2084,7 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                                                     </TableCell>
                                                     <TableCell>
                                                         <span className="text-xs text-default-600">
-                                                            {new Date(record.check_in_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                                            {new Date(record.check_in_time).toLocaleTimeString(isEnglish ? "en-US" : 'th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                                         </span>
                                                     </TableCell>
                                                     <TableCell>
@@ -2053,7 +2099,7 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                                 </Table>
                                 {changes.length > 20 && (
                                     <p className="mt-2 text-center text-xs text-default-400">
-                                        แสดง 20 จาก {changes.length} รายการ
+                                        {isEnglish ? `Showing 20 of ${changes.length} records` : `แสดง 20 จาก ${changes.length} รายการ`}
                                     </p>
                                 )}
                             </div>
@@ -2066,9 +2112,9 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                             <div className="w-16 h-16 mx-auto mb-3 bg-emerald-100 rounded-full flex items-center justify-center">
                                 <Icon icon="solar:check-circle-bold" className="text-3xl text-emerald-500" />
                             </div>
-                            <p className="font-medium text-default-700">ไม่มีผลกระทบต่อข้อมูลเช็คชื่อ</p>
+                            <p className="font-medium text-default-700">{isEnglish ? "No impact on attendance records" : 'ไม่มีผลกระทบต่อข้อมูลเช็คชื่อ'}</p>
                             <p className="mt-1 text-sm text-default-500">
-                                การเปลี่ยนแปลงเวลาไม่ส่งผลกระทบต่อสถานะเช็คชื่อที่มีอยู่
+                                {isEnglish ? "The time changes do not affect existing attendance statuses." : 'การเปลี่ยนแปลงเวลาไม่ส่งผลกระทบต่อสถานะเช็คชื่อที่มีอยู่'}
                             </p>
                         </div>
                     )}
@@ -2076,7 +2122,7 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
 
                 <ModalFooter className="border-t border-divider px-6 py-4">
                     <Button variant="light" onPress={onClose} isDisabled={isApplying}>
-                        ยกเลิก
+                        {isEnglish ? "Cancel" : 'ยกเลิก'}
                     </Button>
                     <Button
                         color={hasDestructiveChanges ? 'danger' : 'primary'}
@@ -2085,7 +2131,7 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                         className={hasDestructiveChanges ? 'bg-red-500' : 'bg-linear-to-r from-amber-400 to-orange-500'}
                         startContent={!isApplying ? <Icon icon={hasDestructiveChanges ? 'solar:shield-warning-bold' : 'solar:check-circle-bold'} /> : undefined}
                     >
-                        {hasDestructiveChanges ? 'ยืนยันการเปลี่ยนแปลง' : 'บันทึกการแก้ไข'}
+                        {hasDestructiveChanges ? (isEnglish ? 'Confirm changes' : 'ยืนยันการเปลี่ยนแปลง') : (isEnglish ? 'Save changes' : 'บันทึกการแก้ไข')}
                     </Button>
                 </ModalFooter>
             </ModalContent>
@@ -2098,11 +2144,11 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
 // Shows which checked-in students will lose their data when sections are removed
 // ============================================================================
 
-const STATUS_LABELS: Record<string, { label: string; color: string; icon: string }> = {
-    present: { label: 'มาเรียน', color: 'text-emerald-600', icon: 'solar:check-circle-bold' },
-    late: { label: 'สาย', color: 'text-amber-600', icon: 'solar:clock-circle-bold' },
-    leave: { label: 'ลา', color: 'text-purple-600', icon: 'solar:letter-bold' },
-};
+const getSectionStatusLabels = (isEnglish: boolean): Record<string, { label: string; color: string; icon: string }> => ({
+    present: { label: isEnglish ? "Present" : 'มาเรียน', color: 'text-emerald-600', icon: 'solar:check-circle-bold' },
+    late: { label: isEnglish ? "Late" : 'สาย', color: 'text-amber-600', icon: 'solar:clock-circle-bold' },
+    leave: { label: isEnglish ? "Leave" : 'ลา', color: 'text-purple-600', icon: 'solar:letter-bold' },
+});
 
 interface SectionChangeWarningModalProps {
     isOpen: boolean;
@@ -2119,9 +2165,13 @@ export const SectionChangeWarningModal = memo(function SectionChangeWarningModal
     isSubmitting,
     onConfirm,
 }: SectionChangeWarningModalProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
+
     if (!preview) return null;
 
     const { removed_sections, affected_students, total_affected } = preview;
+    const statusLabels = getSectionStatusLabels(isEnglish);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} size="2xl" scrollBehavior="inside" isDismissable={false}>
@@ -2133,7 +2183,7 @@ export const SectionChangeWarningModal = memo(function SectionChangeWarningModal
                         </div>
                         <div>
                             <h3 className="text-xl font-bold text-foreground">
-                                คำเตือน: มีนักศึกษาที่เช็คชื่อแล้ว
+                                {isEnglish ? "Warning: checked-in students found" : 'คำเตือน: มีนักศึกษาที่เช็คชื่อแล้ว'}
                             </h3>
                             <p className="mt-1 text-sm font-normal text-default-500">
                                 {preview.session_title}
@@ -2147,7 +2197,7 @@ export const SectionChangeWarningModal = memo(function SectionChangeWarningModal
                     <div className="space-y-2">
                         <h4 className="flex items-center gap-2 text-sm font-semibold text-default-700">
                             <Icon icon="solar:minus-circle-bold" className="text-red-500" />
-                            กลุ่มเรียนที่จะถูกนำออก
+                            {isEnglish ? "Sections to remove" : 'กลุ่มเรียนที่จะถูกนำออก'}
                         </h4>
                         <div className="flex flex-wrap gap-2">
                             {removed_sections.map(section => (
@@ -2158,7 +2208,7 @@ export const SectionChangeWarningModal = memo(function SectionChangeWarningModal
                                     className="bg-red-50 text-red-700 border border-red-200"
                                     startContent={<Icon icon="solar:users-group-rounded-bold" width={14} />}
                                 >
-                                    กลุ่ม {section.section_no}
+                                    {isEnglish ? `Section ${section.section_no}` : `กลุ่ม ${section.section_no}`}
                                 </Chip>
                             ))}
                         </div>
@@ -2170,11 +2220,10 @@ export const SectionChangeWarningModal = memo(function SectionChangeWarningModal
                             <Icon icon="solar:shield-warning-bold" className="text-2xl text-red-600 mt-0.5 shrink-0" />
                             <div className="space-y-1.5">
                                 <p className="font-semibold text-red-800">
-                                    ข้อมูลการเช็คชื่อของนักศึกษา {total_affected} คนจะถูกลบออก
+                                        {isEnglish ? `Attendance data for ${total_affected} students will be removed` : `ข้อมูลการเช็คชื่อของนักศึกษา ${total_affected} คนจะถูกลบออก`}
                                 </p>
                                 <p className="text-sm text-red-600">
-                                    นักศึกษาในกลุ่มที่ถูกนำออกซึ่งเช็คชื่อแล้วจะสูญเสียข้อมูลการเช็คชื่อทั้งหมดในรอบนี้
-                                    การดำเนินการนี้ไม่สามารถย้อนกลับได้
+                                        {isEnglish ? "Students in the removed sections who already checked in will lose all attendance data for this session. This action cannot be undone." : 'นักศึกษาในกลุ่มที่ถูกนำออกซึ่งเช็คชื่อแล้วจะสูญเสียข้อมูลการเช็คชื่อทั้งหมดในรอบนี้ การดำเนินการนี้ไม่สามารถย้อนกลับได้'}
                                 </p>
                             </div>
                         </div>
@@ -2185,19 +2234,19 @@ export const SectionChangeWarningModal = memo(function SectionChangeWarningModal
                         <div className="space-y-2">
                             <h4 className="flex items-center gap-2 text-sm font-semibold text-default-700">
                                 <Icon icon="solar:users-group-rounded-bold" className="text-default-500" />
-                                นักศึกษาที่ได้รับผลกระทบ ({total_affected} คน)
+                                {isEnglish ? `Affected students (${total_affected})` : `นักศึกษาที่ได้รับผลกระทบ (${total_affected} คน)`}
                             </h4>
                             <div className="overflow-x-auto">
-                                <Table removeWrapper aria-label="นักศึกษาที่ได้รับผลกระทบ" classNames={{ th: "bg-content2 text-default-600 text-xs", td: "text-sm" }}>
+                                <Table removeWrapper aria-label={isEnglish ? "Affected students" : "นักศึกษาที่ได้รับผลกระทบ"} classNames={{ th: "bg-content2 text-default-600 text-xs", td: "text-sm" }}>
                                     <TableHeader>
-                                        <TableColumn>นักศึกษา</TableColumn>
-                                        <TableColumn align="center">กลุ่ม</TableColumn>
-                                        <TableColumn align="center">สถานะ</TableColumn>
-                                        <TableColumn align="center">เวลาเช็คอิน</TableColumn>
+                                        <TableColumn>{isEnglish ? "Student" : 'นักศึกษา'}</TableColumn>
+                                        <TableColumn align="center">{isEnglish ? "Section" : 'กลุ่ม'}</TableColumn>
+                                        <TableColumn align="center">{isEnglish ? "Status" : 'สถานะ'}</TableColumn>
+                                        <TableColumn align="center">{isEnglish ? "Check-in time" : 'เวลาเช็คอิน'}</TableColumn>
                                     </TableHeader>
                                     <TableBody items={affected_students.slice(0, 30)}>
                                         {(student) => {
-                                            const cfg = STATUS_LABELS[student.status] || STATUS_LABELS.present;
+                                            const cfg = statusLabels[student.status] || statusLabels.present;
                                             return (
                                                 <TableRow key={student.record_id}>
                                                     <TableCell>
@@ -2217,7 +2266,7 @@ export const SectionChangeWarningModal = memo(function SectionChangeWarningModal
                                                     <TableCell>
                                                         <span className="text-xs text-default-600">
                                                             {student.check_in_time
-                                                                ? new Date(student.check_in_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                                                                ? new Date(student.check_in_time).toLocaleTimeString(isEnglish ? "en-US" : 'th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
                                                                 : '-'}
                                                         </span>
                                                     </TableCell>
@@ -2228,7 +2277,7 @@ export const SectionChangeWarningModal = memo(function SectionChangeWarningModal
                                 </Table>
                                 {affected_students.length > 30 && (
                                     <p className="mt-2 text-center text-xs text-default-400">
-                                        แสดง 30 จาก {affected_students.length} รายการ
+                                        {isEnglish ? `Showing 30 of ${affected_students.length} records` : `แสดง 30 จาก ${affected_students.length} รายการ`}
                                     </p>
                                 )}
                             </div>
@@ -2238,7 +2287,7 @@ export const SectionChangeWarningModal = memo(function SectionChangeWarningModal
 
                 <ModalFooter className="border-t border-divider px-6 py-4">
                     <Button variant="light" onPress={onClose} isDisabled={isSubmitting}>
-                        ยกเลิก
+                        {isEnglish ? "Cancel" : 'ยกเลิก'}
                     </Button>
                     <Button
                         color="danger"
@@ -2247,7 +2296,7 @@ export const SectionChangeWarningModal = memo(function SectionChangeWarningModal
                         className="bg-red-500"
                         startContent={!isSubmitting ? <Icon icon="solar:shield-warning-bold" /> : undefined}
                     >
-                        ยืนยันการนำกลุ่มออก
+                        {isEnglish ? "Confirm section removal" : 'ยืนยันการนำกลุ่มออก'}
                     </Button>
                 </ModalFooter>
             </ModalContent>

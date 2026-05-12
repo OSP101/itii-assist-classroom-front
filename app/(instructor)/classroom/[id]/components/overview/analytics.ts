@@ -5,6 +5,8 @@
 
 import type { CourseOverview, OverviewStudent } from "@/services/course.service";
 
+type TranslateFn = (key: string, values?: Record<string, string | number>) => string;
+
 function clampPercent(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(100, Math.round(value)));
@@ -59,7 +61,7 @@ export interface WeeklyDataPoint {
 
 // ─── Health Score ────────────────────────────────────────────────────────────
 
-export function computeHealthScore(overview: CourseOverview): HealthScoreData {
+export function computeHealthScore(overview: CourseOverview, t: TranslateFn): HealthScoreData {
   const { summary, assignments } = overview;
 
   const attendance = clampPercent(summary.attendanceRate ?? 0);
@@ -96,24 +98,24 @@ export function computeHealthScore(overview: CourseOverview): HealthScoreData {
 
   if (score >= 80) {
     level = "excellent";
-    insight = "รายวิชาทำงานได้ดีเยี่ยมในทุกด้าน";
+    insight = t("healthInsightExcellent");
   } else if (score >= 65) {
     level = "healthy";
     const worstKey = (Object.keys(components) as Array<keyof typeof components>).reduce((a, b) =>
       components[a] < components[b] ? a : b,
     );
-    if (worstKey === "attendance") insight = "การเข้าเรียนมีโอกาสปรับปรุงได้";
-    else if (worstKey === "grading") insight = "มีงานบางส่วนที่รอการตรวจ";
-    else insight = "ภาพรวมดี มีบางส่วนที่ควรติดตาม";
+    if (worstKey === "attendance") insight = t("healthInsightAttendanceCanImprove");
+    else if (worstKey === "grading") insight = t("healthInsightPendingGrading");
+    else insight = t("healthInsightOverallGoodTrack");
   } else if (score >= 50) {
     level = "warning";
-    if (components.attendance < 60) insight = "อัตราการเข้าเรียนต่ำกว่าเกณฑ์";
-    else if (components.grading < 50) insight = "งานจำนวนมากยังรอการตรวจ";
-    else if (components.avgScore < 45) insight = "คะแนนเฉลี่ยต่ำกว่าครึ่งหนึ่ง";
-    else insight = "ต้องการความใส่ใจในหลายประเด็น";
+    if (components.attendance < 60) insight = t("healthInsightLowAttendance");
+    else if (components.grading < 50) insight = t("healthInsightManyAssignmentsPending");
+    else if (components.avgScore < 45) insight = t("healthInsightAverageBelowHalf");
+    else insight = t("healthInsightNeedsAttention");
   } else {
     level = "critical";
-    insight = "ตัวชี้วัดหลายด้านต่ำกว่าเกณฑ์ ควรดำเนินการแก้ไขเร่งด่วน";
+    insight = t("healthInsightCritical");
   }
 
   return { score, level, insight, components };
@@ -121,7 +123,7 @@ export function computeHealthScore(overview: CourseOverview): HealthScoreData {
 
 // ─── Action Items ────────────────────────────────────────────────────────────
 
-export function computeActionItems(overview: CourseOverview): ActionItem[] {
+export function computeActionItems(overview: CourseOverview, t: TranslateFn): ActionItem[] {
   const actions: ActionItem[] = [];
   const { assignments, lowPerformers, summary } = overview;
 
@@ -131,8 +133,8 @@ export function computeActionItems(overview: CourseOverview): ActionItem[] {
     actions.push({
       id: "ungraded",
       icon: "solar:document-text-bold",
-      title: "งานรอการตรวจ",
-      description: `${ungradedCount} ชิ้นงานยังไม่ได้รับการตรวจ`,
+      title: t("actionUngradedTitle"),
+      description: t("actionUngradedDescription", { count: ungradedCount }),
       count: ungradedCount,
       severity: ungradedCount > 20 ? "high" : ungradedCount > 5 ? "medium" : "low",
       tab: "assignments",
@@ -144,8 +146,8 @@ export function computeActionItems(overview: CourseOverview): ActionItem[] {
     actions.push({
       id: "at_risk",
       icon: "solar:danger-triangle-bold",
-      title: "นักศึกษาเสี่ยงไม่ผ่าน",
-      description: `${lowPerformers.length} คนมีคะแนนต่ำกว่าเกณฑ์`,
+      title: t("actionAtRiskTitle"),
+      description: t("actionAtRiskDescription", { count: lowPerformers.length }),
       count: lowPerformers.length,
       severity: lowPerformers.length > 5 ? "high" : "medium",
       tab: "people",
@@ -157,8 +159,8 @@ export function computeActionItems(overview: CourseOverview): ActionItem[] {
     actions.push({
       id: "no_ta",
       icon: "solar:user-hands-bold",
-      title: "ยังไม่มีผู้ช่วยสอน",
-      description: `มีนักศึกษา ${summary.totalStudents} คน แต่ไม่มี TA`,
+      title: t("actionNoTaTitle"),
+      description: t("actionNoTaDescription", { count: summary.totalStudents }),
       count: 0,
       severity: "medium",
       tab: "people",
@@ -170,8 +172,8 @@ export function computeActionItems(overview: CourseOverview): ActionItem[] {
     actions.push({
       id: "low_attendance",
       icon: "solar:calendar-mark-bold",
-      title: "การเข้าเรียนต่ำ",
-      description: `เฉลี่ยเข้าเรียนเพียง ${summary.attendanceRate}%`,
+      title: t("actionLowAttendanceTitle"),
+      description: t("actionLowAttendanceDescription", { rate: summary.attendanceRate }),
       count: 0,
       severity: summary.attendanceRate < 40 ? "high" : "medium",
       tab: "attendance",
@@ -183,7 +185,7 @@ export function computeActionItems(overview: CourseOverview): ActionItem[] {
 
 // ─── Insights ────────────────────────────────────────────────────────────────
 
-export function generateInsights(overview: CourseOverview): InsightItem[] {
+export function generateInsights(overview: CourseOverview, t: TranslateFn): InsightItem[] {
   const insights: InsightItem[] = [];
   const { summary, assignments, lowPerformers, taActivity } = overview;
   let id = 0;
@@ -195,16 +197,16 @@ export function generateInsights(overview: CourseOverview): InsightItem[] {
       id: next(),
       type: "warning",
       icon: "solar:graph-down-bold",
-      title: "แนวโน้มคะแนนลดลง",
-      description: `คะแนนเฉลี่ยลดลง ${summary.trendValue.toFixed(1)}% จากช่วงที่ผ่านมา`,
+      title: t("insightScoreTrendDownTitle"),
+      description: t("insightScoreTrendDownDescription", { value: summary.trendValue.toFixed(1) }),
     });
   } else if (summary.trend === "up" && summary.trendValue > 0) {
     insights.push({
       id: next(),
       type: "success",
       icon: "solar:graph-up-bold",
-      title: "แนวโน้มคะแนนดีขึ้น",
-      description: `คะแนนเฉลี่ยเพิ่มขึ้น ${summary.trendValue.toFixed(1)}% ต่อเนื่อง`,
+      title: t("insightScoreTrendUpTitle"),
+      description: t("insightScoreTrendUpDescription", { value: summary.trendValue.toFixed(1) }),
     });
   }
 
@@ -214,8 +216,11 @@ export function generateInsights(overview: CourseOverview): InsightItem[] {
       id: next(),
       type: summary.attendanceRate < 50 ? "danger" : "warning",
       icon: "solar:users-group-rounded-bold",
-      title: "อัตราการเข้าเรียนต่ำ",
-      description: `เฉลี่ย ${summary.attendanceRate}% จาก ${summary.totalAttendanceSessions} รอบ`,
+      title: t("insightLowAttendanceTitle"),
+      description: t("insightLowAttendanceDescription", {
+        rate: summary.attendanceRate,
+        count: summary.totalAttendanceSessions,
+      }),
     });
   }
 
@@ -232,8 +237,12 @@ export function generateInsights(overview: CourseOverview): InsightItem[] {
       id: next(),
       type: "warning",
       icon: "solar:document-text-bold",
-      title: `"${h.name}" มีคะแนนต่ำผิดปกติ`,
-      description: `คะแนนเฉลี่ย ${h.avgScore} / ${h.max_score} (${pct}%)`,
+      title: t("insightUnusuallyLowScoreTitle", { name: h.name }),
+      description: t("insightUnusuallyLowScoreDescription", {
+        score: h.avgScore ?? 0,
+        max: h.max_score,
+        percent: pct,
+      }),
     });
   }
 
@@ -243,8 +252,8 @@ export function generateInsights(overview: CourseOverview): InsightItem[] {
       id: next(),
       type: "danger",
       icon: "solar:danger-triangle-bold",
-      title: `นักศึกษาเสี่ยงสอบไม่ผ่าน ${lowPerformers.length} คน`,
-      description: "ควรดำเนินการช่วยเหลือและติดตามผลโดยด่วน",
+      title: t("insightAtRiskCountTitle", { count: lowPerformers.length }),
+      description: t("insightAtRiskCountDescription"),
     });
   }
 
@@ -259,8 +268,8 @@ export function generateInsights(overview: CourseOverview): InsightItem[] {
           id: next(),
           type: "info",
           icon: "solar:user-hands-bold",
-          title: "ภาระงาน TA ไม่สมดุล",
-          description: "TA บางคนมีภาระงานมากกว่าคนอื่นมากกว่า 3 เท่า",
+          title: t("insightTaWorkloadImbalanceTitle"),
+          description: t("insightTaWorkloadImbalanceDescription"),
         });
       }
     }
@@ -275,8 +284,8 @@ export function generateInsights(overview: CourseOverview): InsightItem[] {
       id: next(),
       type: "warning",
       icon: "solar:clipboard-check-bold",
-      title: "งานจำนวนมากยังรอการตรวจ",
-      description: `ตรวจงานแล้ว ${Math.round(gradingRate)}% ของทั้งหมด`,
+      title: t("insightGradingBacklogTitle"),
+      description: t("insightGradingBacklogDescription", { rate: Math.round(gradingRate) }),
     });
   }
 
@@ -286,8 +295,8 @@ export function generateInsights(overview: CourseOverview): InsightItem[] {
       id: next(),
       type: "success",
       icon: "solar:verified-check-bold",
-      title: "รายวิชาอยู่ในสภาพดีเยี่ยม",
-      description: "ทุกตัวชี้วัดอยู่ในเกณฑ์ที่ดี ไม่มีประเด็นที่ต้องแก้ไข",
+      title: t("insightCourseGreatShapeTitle"),
+      description: t("insightCourseGreatShapeDescription"),
     });
   }
 
@@ -299,6 +308,7 @@ export function generateInsights(overview: CourseOverview): InsightItem[] {
 export function computeRiskStudents(
   students: OverviewStudent[],
   totalAssignments: number,
+  t: TranslateFn,
 ): RiskStudent[] {
   return students.map(student => {
     const missRate =
@@ -314,9 +324,9 @@ export function computeRiskStudents(
     else riskLevel = "low";
 
     let recommendation: string;
-    if (riskLevel === "high") recommendation = "ติดต่อนักศึกษาด่วน";
-    else if (riskLevel === "medium") recommendation = "แนะนำเข้าพบเพื่อขอคำปรึกษา";
-    else recommendation = "ติดตามงานถัดไป";
+    if (riskLevel === "high") recommendation = t("recommendationContactStudent");
+    else if (riskLevel === "medium") recommendation = t("recommendationSuggestCounseling");
+    else recommendation = t("recommendationFollowNextAssignment");
 
     return { ...student, riskLevel, recommendation, riskScore };
   });
@@ -357,12 +367,13 @@ export interface GradeBarData {
 
 export function buildGradeDistributionData(
   distribution: { excellent: number; good: number; average: number; poor: number },
+  t: TranslateFn,
 ): GradeBarData[] {
   return [
-    { label: "ดีเยี่ยม (A)", count: distribution.excellent, fill: "#10b981" },
-    { label: "ดี (B)", count: distribution.good, fill: "#3b82f6" },
-    { label: "ปานกลาง (C)", count: distribution.average, fill: "#f59e0b" },
-    { label: "ต้องปรับปรุง (D/F)", count: distribution.poor, fill: "#ef4444" },
+    { label: t("gradeExcellent"), count: distribution.excellent, fill: "#10b981" },
+    { label: t("gradeGood"), count: distribution.good, fill: "#3b82f6" },
+    { label: t("gradeAverage"), count: distribution.average, fill: "#f59e0b" },
+    { label: t("gradeNeedsImprovement"), count: distribution.poor, fill: "#ef4444" },
   ];
 }
 

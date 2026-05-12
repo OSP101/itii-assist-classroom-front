@@ -11,6 +11,7 @@ import { Divider } from "@heroui/divider";
 import { Accordion, AccordionItem } from "@heroui/accordion";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import scoreEditRequestService, { type ScoreEditRequest } from "@/services/scoreEditRequest.service";
 import { API_BASE_URL } from "@/config/api";
 import Image from "next/image";
@@ -40,15 +41,43 @@ interface RequestGroup {
 }
 
 // Format date helper
-const formatDate = (dateStr: string): string => {
+const formatDate = (dateStr: string, isEnglish: boolean): string => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString("th-TH", {
+    return date.toLocaleDateString(isEnglish ? "en-US" : "th-TH", {
         day: "numeric",
         month: "short",
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
     });
+};
+
+const formatCount = (count: number, singular: string, plural: string): string => `${count} ${count === 1 ? singular : plural}`;
+
+const localizeGeneratedSubItemName = (name: string | null | undefined, isEnglish: boolean): string | null | undefined => {
+    if (!name || !isEnglish) {
+        return name;
+    }
+
+    const match = name.match(/^ข้อ\s*(\d+)$/);
+    if (match) {
+        return `Item ${match[1]}`;
+    }
+
+    return name;
+};
+
+const getStatusLabel = (status: string, isEnglish: boolean): string => {
+    switch (status) {
+        case "pending":
+            return isEnglish ? "Pending" : "รออนุมัติ";
+        case "approved":
+            return isEnglish ? "Approved" : "อนุมัติแล้ว";
+        case "rejected":
+            return isEnglish ? "Rejected" : "ปฏิเสธ";
+        default:
+            return status;
+    }
 };
 
 // Get image URL helper — point directly to backend server
@@ -61,6 +90,8 @@ const getImageUrl = (imagePath: string): string => {
 };
 
 export default function ScoreApprovalTab({ courseId, userRole, onPendingCountChange, isCourseActive = true }: ScoreApprovalTabProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
     const [filterStatus, setFilterStatus] = useState<FilterStatus>("pending");
     const [requests, setRequests] = useState<ScoreEditRequest[]>([]);
     const [counts, setCounts] = useState({ pending: 0, approved: 0, rejected: 0 });
@@ -183,8 +214,8 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
             console.error("Failed to fetch edit requests:", error);
             setRequests([]);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถโหลดข้อมูลได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: isEnglish ? "Unable to load score edit requests." : "ไม่สามารถโหลดข้อมูลได้",
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -209,8 +240,10 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                 // Batch approve
                 await scoreEditRequestService.batchApproveEditRequests(selectedIds, actionComment || undefined);
                 addToast({
-                    title: "อนุมัติสำเร็จ",
-                    description: `อนุมัติการแก้ไขคะแนน ${selectedIds.length} รายการเรียบร้อยแล้ว`,
+                    title: isEnglish ? "Approved" : "อนุมัติสำเร็จ",
+                    description: isEnglish
+                        ? `Approved ${formatCount(selectedIds.length, "request", "requests")}.`
+                        : `อนุมัติการแก้ไขคะแนน ${selectedIds.length} รายการเรียบร้อยแล้ว`,
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -219,8 +252,8 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                 // Single approve
                 await scoreEditRequestService.approveEditRequest(request.id, actionComment || undefined);
                 addToast({
-                    title: "อนุมัติสำเร็จ",
-                    description: "อนุมัติการแก้ไขคะแนนเรียบร้อยแล้ว",
+                    title: isEnglish ? "Approved" : "อนุมัติสำเร็จ",
+                    description: isEnglish ? "Score edit approved." : "อนุมัติการแก้ไขคะแนนเรียบร้อยแล้ว",
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -231,8 +264,8 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
             fetchRequests();
         } catch (error) {
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถอนุมัติได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: isEnglish ? "Unable to approve the score edit." : "ไม่สามารถอนุมัติได้",
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -248,8 +281,8 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
 
         if (!actionComment.trim()) {
             addToast({
-                title: "กรุณาระบุเหตุผล",
-                description: "ต้องระบุเหตุผลในการปฏิเสธ",
+                title: isEnglish ? "Reason required" : "กรุณาระบุเหตุผล",
+                description: isEnglish ? "A rejection reason is required." : "ต้องระบุเหตุผลในการปฏิเสธ",
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -263,8 +296,10 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                 // Batch reject
                 await scoreEditRequestService.batchRejectEditRequests(selectedIds, actionComment);
                 addToast({
-                    title: "ปฏิเสธสำเร็จ",
-                    description: `ปฏิเสธการแก้ไขคะแนน ${selectedIds.length} รายการเรียบร้อยแล้ว`,
+                    title: isEnglish ? "Rejected" : "ปฏิเสธสำเร็จ",
+                    description: isEnglish
+                        ? `Rejected ${formatCount(selectedIds.length, "request", "requests")}.`
+                        : `ปฏิเสธการแก้ไขคะแนน ${selectedIds.length} รายการเรียบร้อยแล้ว`,
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -273,8 +308,8 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                 // Single reject
                 await scoreEditRequestService.rejectEditRequest(request.id, actionComment);
                 addToast({
-                    title: "ปฏิเสธสำเร็จ",
-                    description: "ปฏิเสธการแก้ไขคะแนนเรียบร้อยแล้ว",
+                    title: isEnglish ? "Rejected" : "ปฏิเสธสำเร็จ",
+                    description: isEnglish ? "Score edit rejected." : "ปฏิเสธการแก้ไขคะแนนเรียบร้อยแล้ว",
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -285,8 +320,8 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
             fetchRequests();
         } catch (error) {
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถปฏิเสธได้",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: isEnglish ? "Unable to reject the score edit." : "ไม่สามารถปฏิเสธได้",
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -306,8 +341,8 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
         try {
             await scoreEditRequestService.cancelEditRequest(cancelModalRequest.id);
             addToast({
-                title: "ยกเลิกคำร้องสำเร็จ",
-                description: "คำร้องแก้ไขคะแนนถูกยกเลิกแล้ว",
+                title: isEnglish ? "Request cancelled" : "ยกเลิกคำร้องสำเร็จ",
+                description: isEnglish ? "The score edit request has been cancelled." : "คำร้องแก้ไขคะแนนถูกยกเลิกแล้ว",
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -315,9 +350,9 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
             setCancelModalRequest(null);
             fetchRequests();
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : "ไม่สามารถยกเลิกคำร้องได้";
+            const errorMessage = error instanceof Error ? error.message : (isEnglish ? "Unable to cancel the request." : "ไม่สามารถยกเลิกคำร้องได้");
             addToast({
-                title: "เกิดข้อผิดพลาด",
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
                 description: errorMessage,
                 color: "danger",
                 timeout: 3000,
@@ -376,11 +411,11 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
     const getStatusChip = (status: string) => {
         switch (status) {
             case "pending":
-                return <Chip size="sm" color="warning" variant="flat">รออนุมัติ</Chip>;
+                return <Chip size="sm" color="warning" variant="flat">{isEnglish ? "Pending" : "รออนุมัติ"}</Chip>;
             case "approved":
-                return <Chip size="sm" color="success" variant="flat">อนุมัติแล้ว</Chip>;
+                return <Chip size="sm" color="success" variant="flat">{isEnglish ? "Approved" : "อนุมัติแล้ว"}</Chip>;
             case "rejected":
-                return <Chip size="sm" color="danger" variant="flat">ปฏิเสธ</Chip>;
+                return <Chip size="sm" color="danger" variant="flat">{isEnglish ? "Rejected" : "ปฏิเสธ"}</Chip>;
             default:
                 return null;
         }
@@ -392,12 +427,14 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-lg font-semibold text-foreground">
-                        {isReadOnly ? "สถานะคำร้องแก้ไขคะแนน" : "อนุมัติการแก้ไขคะแนน"}
+                        {isReadOnly
+                            ? (isEnglish ? "Score edit request status" : "สถานะคำร้องแก้ไขคะแนน")
+                            : (isEnglish ? "Score edit approvals" : "อนุมัติการแก้ไขคะแนน")}
                     </h2>
                     <p className="text-sm text-default-500">
                         {isReadOnly
-                            ? "ติดตามสถานะคำร้องขอแก้ไขคะแนนที่คุณส่ง"
-                            : "ตรวจสอบและอนุมัติคำร้องขอแก้ไขคะแนนจาก TA"
+                            ? (isEnglish ? "Track the score edit requests you submitted." : "ติดตามสถานะคำร้องขอแก้ไขคะแนนที่คุณส่ง")
+                            : (isEnglish ? "Review and approve score edit requests from teaching assistants." : "ตรวจสอบและอนุมัติคำร้องขอแก้ไขคะแนนจาก TA")
                         }
                     </p>
                 </div>
@@ -426,7 +463,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                     title={
                         <div className="flex items-center gap-2">
                             <Icon icon="solar:hourglass-bold" className="text-base" />
-                            <span>รออนุมัติ</span>
+                            <span>{isEnglish ? "Pending" : "รออนุมัติ"}</span>
                             {counts.pending > 0 && (
                                 <Chip size="sm" color="warning" variant="flat" className="h-5 px-1.5 text-xs">
                                     {counts.pending}
@@ -440,7 +477,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                     title={
                         <div className="flex items-center gap-2">
                             <Icon icon="solar:check-circle-bold" className="text-base" />
-                            <span>อนุมัติแล้ว</span>
+                            <span>{isEnglish ? "Approved" : "อนุมัติแล้ว"}</span>
                             {counts.approved > 0 && (
                                 <Chip size="sm" color="success" variant="flat" className="h-5 px-1.5 text-xs">
                                     {counts.approved}
@@ -454,7 +491,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                     title={
                         <div className="flex items-center gap-2">
                             <Icon icon="solar:close-circle-bold" className="text-base" />
-                            <span>ปฏิเสธ</span>
+                            <span>{isEnglish ? "Rejected" : "ปฏิเสธ"}</span>
                             {counts.rejected > 0 && (
                                 <Chip size="sm" color="danger" variant="flat" className="h-5 px-1.5 text-xs">
                                     {counts.rejected}
@@ -476,10 +513,10 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                             />
                             <p className="text-default-500">
                                 {filterStatus === "pending"
-                                    ? "ไม่มีคำร้องรออนุมัติ"
+                                    ? (isEnglish ? "No pending requests" : "ไม่มีคำร้องรออนุมัติ")
                                     : filterStatus === "approved"
-                                        ? "ยังไม่มีคำร้องที่อนุมัติ"
-                                        : "ยังไม่มีคำร้องที่ปฏิเสธ"
+                                        ? (isEnglish ? "No approved requests yet" : "ยังไม่มีคำร้องที่อนุมัติ")
+                                        : (isEnglish ? "No rejected requests yet" : "ยังไม่มีคำร้องที่ปฏิเสธ")
                                 }
                             </p>
                         </div>
@@ -511,7 +548,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                         {isGroup && (
                                             <Chip size="sm" color="secondary" variant="flat">
                                                 <Icon icon="solar:users-group-rounded-bold" className="mr-1" />
-                                                {group.requests.length} คน
+                                                {isEnglish ? formatCount(group.requests.length, "student", "students") : `${group.requests.length} คน`}
                                             </Chip>
                                         )}
                                     </div>
@@ -520,7 +557,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
                                         {isGroup ? (
                                             <>
-                                                <span className="font-medium text-foreground">งานกลุ่ม</span>
+                                                <span className="font-medium text-foreground">{isEnglish ? "Grouped request" : "งานกลุ่ม"}</span>
                                                 <span className="text-sm text-default-500">
                                                     ({group.requests.map(r => r.student.full_name).join(", ")})
                                                 </span>
@@ -536,8 +573,8 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                 subtitle={
                                     <div className="flex flex-wrap items-center gap-2 mt-1">
                                         <span className="text-default-600">{group.assignment.name}</span>
-                                        {group.sub_item && (
-                                            <span className="text-default-400">• {group.sub_item.name}</span>
+                                        {group.sub_item && localizeGeneratedSubItemName(group.sub_item.name, isEnglish) && (
+                                            <span className="text-default-400">• {localizeGeneratedSubItemName(group.sub_item.name, isEnglish)}</span>
                                         )}
                                         <span className="text-default-400">•</span>
                                         <span className="font-medium">
@@ -551,7 +588,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                 <span className="text-default-400">•</span>
                                                 <span className="text-blue-500 text-xs flex items-center gap-1">
                                                     <Icon icon="solar:gallery-bold" />
-                                                    {group.images.length} รูป
+                                                    {isEnglish ? formatCount(group.images.length, "image", "images") : `${group.images.length} รูป`}
                                                 </span>
                                             </>
                                         )}
@@ -565,11 +602,15 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                             <div className="flex items-center justify-between border-b border-divider bg-content2 px-3 py-2">
                                                 <p className="flex items-center gap-1.5 text-xs font-semibold text-default-600">
                                                     <Icon icon="solar:users-group-two-rounded-bold" className="text-blue-500" />
-                                                    สมาชิก ({group.requests.length} คน)
+                                                    {isEnglish
+                                                        ? `Members (${formatCount(group.requests.length, "student", "students")})`
+                                                        : `สมาชิก (${group.requests.length} คน)`}
                                                 </p>
                                                 {group.status === "pending" && (
                                                     <span className="text-xs text-default-400">
-                                                        รออนุมัติ {group.requests.filter(r => r.status === "pending").length} คน
+                                                        {isEnglish
+                                                            ? `${formatCount(group.requests.filter(r => r.status === "pending").length, "student pending", "students pending")}`
+                                                            : `รออนุมัติ ${group.requests.filter(r => r.status === "pending").length} คน`}
                                                     </span>
                                                 )}
                                             </div>
@@ -601,13 +642,13 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                                 <span className="text-emerald-600 font-semibold">{req.new_score}</span>
                                                             </span>
                                                             {req.status === "approved" && (
-                                                                <Chip size="sm" color="success" variant="flat" className="text-xs shrink-0" startContent={<Icon icon="solar:check-circle-bold" className="mr-0.5 text-xs" />}>อนุมัติแล้ว</Chip>
+                                                                <Chip size="sm" color="success" variant="flat" className="text-xs shrink-0" startContent={<Icon icon="solar:check-circle-bold" className="mr-0.5 text-xs" />}>{isEnglish ? "Approved" : "อนุมัติแล้ว"}</Chip>
                                                             )}
                                                             {req.status === "rejected" && (
-                                                                <Chip size="sm" color="danger" variant="flat" className="text-xs shrink-0" startContent={<Icon icon="solar:close-circle-bold" className="mr-0.5 text-xs" />}>ปฏิเสธ</Chip>
+                                                                <Chip size="sm" color="danger" variant="flat" className="text-xs shrink-0" startContent={<Icon icon="solar:close-circle-bold" className="mr-0.5 text-xs" />}>{isEnglish ? "Rejected" : "ปฏิเสธ"}</Chip>
                                                             )}
                                                             {req.status === "pending" && (
-                                                                <Chip size="sm" color="warning" variant="flat" className="text-xs shrink-0" startContent={<Icon icon="solar:hourglass-bold" className="mr-0.5 text-xs" />}>รออนุมัติ</Chip>
+                                                                <Chip size="sm" color="warning" variant="flat" className="text-xs shrink-0" startContent={<Icon icon="solar:hourglass-bold" className="mr-0.5 text-xs" />}>{isEnglish ? "Pending" : "รออนุมัติ"}</Chip>
                                                             )}
                                                         </div>
                                                     </div>
@@ -621,7 +662,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                         {!isGroup && (
                                             <>
                                                 <div className="text-center flex-1">
-                                                    <p className="mb-1 text-xs text-default-500">คะแนนเดิม</p>
+                                                    <p className="mb-1 text-xs text-default-500">{isEnglish ? "Previous score" : "คะแนนเดิม"}</p>
                                                     <p className="text-2xl font-bold text-default-600">
                                                         {group.old_score ?? "-"}
                                                     </p>
@@ -630,13 +671,13 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                             </>
                                         )}
                                         <div className="text-center flex-1">
-                                            <p className="mb-1 text-xs text-default-500">คะแนนใหม่</p>
+                                            <p className="mb-1 text-xs text-default-500">{isEnglish ? "New score" : "คะแนนใหม่"}</p>
                                             <p className="text-2xl font-bold text-emerald-600">
                                                 {group.new_score}
                                             </p>
                                         </div>
                                         <div className={`flex-1 border-l border-divider pl-4 text-center ${isGroup ? "" : ""}`}>
-                                            <p className="mb-1 text-xs text-default-500">คะแนนเต็ม</p>
+                                            <p className="mb-1 text-xs text-default-500">{isEnglish ? "Max score" : "คะแนนเต็ม"}</p>
                                             <p className="text-2xl font-medium text-default-400">
                                                 {group.sub_item?.max_score ?? group.assignment.max_score}
                                             </p>
@@ -648,7 +689,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-700/45 dark:bg-amber-950/35">
                                             <p className="mb-1 text-xs font-medium text-amber-700 dark:text-amber-300">
                                                 <Icon icon="solar:chat-round-line-bold" className="inline mr-1" />
-                                                เหตุผลการแก้ไข
+                                                {isEnglish ? "Edit reason" : "เหตุผลการแก้ไข"}
                                             </p>
                                             <p className="text-sm text-amber-950 dark:text-amber-50">{group.reason}</p>
                                         </div>
@@ -659,7 +700,9 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                         <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
                                             <p className="text-xs text-blue-600 font-medium mb-2">
                                                 <Icon icon="solar:gallery-bold" className="inline mr-1" />
-                                                รูปภาพประกอบ ({group.images.length} รูป)
+                                                {isEnglish
+                                                    ? `Attachments (${formatCount(group.images.length, "image", "images")})`
+                                                    : `รูปภาพประกอบ (${group.images.length} รูป)`}
                                             </p>
                                             <div className="flex flex-wrap gap-2">
                                                 {group.images.map((imagePath, idx) => (
@@ -670,12 +713,14 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                     >
                                                         <img
                                                             src={getImageUrl(imagePath)}
-                                                            alt={`รูปภาพ ${idx + 1}`}
+                                                            alt={isEnglish ? `Image ${idx + 1}` : `รูปภาพ ${idx + 1}`}
                                                             className="w-20 h-20 object-cover rounded-lg border border-blue-200 hover:border-blue-400 transition-colors"
                                                             onError={(e) => {
                                                                 const target = e.target as HTMLImageElement;
                                                                 target.style.display = 'none';
-                                                                target.parentElement!.innerHTML = '<div class="w-20 h-20 rounded-lg border border-red-200 bg-red-50 flex items-center justify-center text-red-400 text-xs text-center p-1">ไม่พบรูป</div>';
+                                                                target.parentElement!.innerHTML = isEnglish
+                                                                    ? '<div class="w-20 h-20 rounded-lg border border-red-200 bg-red-50 flex items-center justify-center text-red-400 text-xs text-center p-1">Image unavailable</div>'
+                                                                    : '<div class="w-20 h-20 rounded-lg border border-red-200 bg-red-50 flex items-center justify-center text-red-400 text-xs text-center p-1">ไม่พบรูป</div>';
                                                             }}
                                                         />
                                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition-colors flex items-center justify-center">
@@ -696,7 +741,9 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                             <p className={`text-xs font-medium mb-1 ${firstRequest.status === "approved" ? "text-emerald-600" : "text-red-600"
                                                 }`}>
                                                 <Icon icon={firstRequest.status === "approved" ? "solar:check-circle-bold" : "solar:close-circle-bold"} className="inline mr-1" />
-                                                {firstRequest.status === "approved" ? "หมายเหตุการอนุมัติ" : "เหตุผลการปฏิเสธ"}
+                                                {firstRequest.status === "approved"
+                                                    ? (isEnglish ? "Approval note" : "หมายเหตุการอนุมัติ")
+                                                    : (isEnglish ? "Rejection reason" : "เหตุผลการปฏิเสธ")}
                                             </p>
                                             <p className={`text-sm ${firstRequest.status === "approved" ? "text-emerald-950 dark:text-emerald-50" : "text-red-950 dark:text-red-50"}`}>{firstRequest.review_comment}</p>
                                         </div>
@@ -710,7 +757,9 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                 }`}>
                                                     <p className={`text-xs font-medium mb-1 ${req.status === "approved" ? "text-emerald-600" : "text-red-600"}`}>
                                                         <Icon icon={req.status === "approved" ? "solar:check-circle-bold" : "solar:close-circle-bold"} className="inline mr-1" />
-                                                        {req.student.full_name} — {req.status === "approved" ? "หมายเหตุการอนุมัติ" : "เหตุผลการปฏิเสธ"}
+                                                        {req.student.full_name} - {req.status === "approved"
+                                                            ? (isEnglish ? "Approval note" : "หมายเหตุการอนุมัติ")
+                                                            : (isEnglish ? "Rejection reason" : "เหตุผลการปฏิเสธ")}
                                                     </p>
                                                     <p className={`text-sm ${req.status === "approved" ? "text-emerald-950 dark:text-emerald-50" : "text-red-950 dark:text-red-50"}`}>{req.review_comment}</p>
                                                 </div>
@@ -723,20 +772,22 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                         <div className="flex flex-wrap gap-4 text-xs text-default-500">
                                             <div className="flex items-center gap-1">
                                                 <Icon icon="solar:user-linear" />
-                                                <span>ร้องขอโดย: {group.requester.full_name}</span>
+                                                <span>{isEnglish ? "Requested by" : "ร้องขอโดย"}: {group.requester.full_name}</span>
                                             </div>
                                             <div className="flex items-center gap-1">
                                                 <Icon icon="solar:calendar-linear" />
-                                                <span>{formatDate(group.created_at)}</span>
+                                                <span>{formatDate(group.created_at, isEnglish)}</span>
                                             </div>
                                             {firstRequest.reviewer && firstRequest.reviewed_at && (
                                                 <div className="flex items-center gap-1">
                                                     <Icon icon="solar:check-read-linear" />
                                                     <span className="mr-2">
-                                                        {firstRequest.status === "approved" ? "อนุมัติ" : "ปฏิเสธ"}โดย: {firstRequest.reviewer.full_name}
+                                                        {firstRequest.status === "approved"
+                                                            ? (isEnglish ? "Approved by" : "อนุมัติโดย")
+                                                            : (isEnglish ? "Rejected by" : "ปฏิเสธโดย")}: {firstRequest.reviewer.full_name}
                                                     </span>
                                                     <Icon icon="solar:calendar-linear" />
-                                                    <span> {formatDate(firstRequest.reviewed_at)}</span>
+                                                    <span> {formatDate(firstRequest.reviewed_at, isEnglish)}</span>
                                                 </div>
                                             )}
                                         </div>
@@ -754,7 +805,9 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                         : openSingleActionModal("approve", firstRequest)
                                                     }
                                                 >
-                                                    {isGroup ? `อนุมัติ (${group.requests.length} คน)` : "อนุมัติ"}
+                                                    {isGroup
+                                                        ? (isEnglish ? `Approve (${formatCount(group.requests.length, "student", "students")})` : `อนุมัติ (${group.requests.length} คน)`)
+                                                        : (isEnglish ? "Approve" : "อนุมัติ")}
                                                 </Button>
                                                 <Button
                                                     color="danger"
@@ -766,7 +819,9 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                         : openSingleActionModal("reject", firstRequest)
                                                     }
                                                 >
-                                                    {isGroup ? `ปฏิเสธ (${group.requests.length} คน)` : "ปฏิเสธ"}
+                                                    {isGroup
+                                                        ? (isEnglish ? `Reject (${formatCount(group.requests.length, "student", "students")})` : `ปฏิเสธ (${group.requests.length} คน)`)
+                                                        : (isEnglish ? "Reject" : "ปฏิเสธ")}
                                                 </Button>
                                             </div>
                                         )}
@@ -785,7 +840,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                                 isLoading={cancellingRequestId === req.id}
                                                                 onPress={() => setCancelModalRequest(req)}
                                                             >
-                                                                ยกเลิก ({req.student.full_name})
+                                                                    {isEnglish ? `Cancel (${req.student.full_name})` : `ยกเลิก (${req.student.full_name})`}
                                                             </Button>
                                                         ))}
                                                     </div>
@@ -798,7 +853,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                         isLoading={cancellingRequestId === firstRequest.id}
                                                         onPress={() => setCancelModalRequest(firstRequest)}
                                                     >
-                                                        ยกเลิกคำร้อง
+                                                        {isEnglish ? "Cancel request" : "ยกเลิกคำร้อง"}
                                                     </Button>
                                                 )}
                                             </>
@@ -820,15 +875,17 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                 }}
                 size="lg"
             >
-                <ModalContent>
+                <ModalContent className="bg-content1 text-foreground">
                     <ModalHeader className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${actionModal.type === "approve" ? "bg-emerald-100" : "bg-red-100"}`}>
+                        <div className={`p-2 rounded-lg ${actionModal.type === "approve" ? "bg-emerald-100 dark:bg-emerald-900/35" : "bg-red-100 dark:bg-red-900/35"}`}>
                             <Icon
                                 icon={actionModal.type === "approve" ? "solar:check-circle-bold" : "solar:close-circle-bold"}
-                                className={`text-xl ${actionModal.type === "approve" ? "text-emerald-600" : "text-red-600"}`}
+                                className={`text-xl ${actionModal.type === "approve" ? "text-emerald-600 dark:text-emerald-200" : "text-red-600 dark:text-red-200"}`}
                             />
                         </div>
-                        <span>{actionModal.type === "approve" ? "อนุมัติการแก้ไขคะแนน" : "ปฏิเสธการแก้ไขคะแนน"}</span>
+                        <span>{actionModal.type === "approve"
+                            ? (isEnglish ? "Approve score edit" : "อนุมัติการแก้ไขคะแนน")
+                            : (isEnglish ? "Reject score edit" : "ปฏิเสธการแก้ไขคะแนน")}</span>
                     </ModalHeader>
                     <Divider />
                     <ModalBody className="py-4">
@@ -838,18 +895,18 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                 {/* Request Summary */}
                                 <div className="space-y-2 rounded-lg bg-content2 p-3">
                                     <p className="text-sm">
-                                        <span className="text-default-500">งาน:</span>{" "}
+                                        <span className="text-default-500">{isEnglish ? "Assignment" : "งาน"}:</span>{" "}
                                         <span className="font-medium">{actionModal.request.assignment.name}</span>
-                                        {actionModal.request.sub_item && (
-                                            <span className="text-default-500"> - {actionModal.request.sub_item.name}</span>
+                                        {actionModal.request.sub_item && localizeGeneratedSubItemName(actionModal.request.sub_item.name, isEnglish) && (
+                                            <span className="text-default-500"> - {localizeGeneratedSubItemName(actionModal.request.sub_item.name, isEnglish)}</span>
                                         )}
                                     </p>
                                     <p className="text-sm">
-                                        <span className="text-default-500">นักศึกษา:</span>{" "}
+                                        <span className="text-default-500">{isEnglish ? "Student" : "นักศึกษา"}:</span>{" "}
                                         <span className="font-medium">{actionModal.request.student.student_id} - {actionModal.request.student.full_name}</span>
                                     </p>
                                     <p className="text-sm">
-                                        <span className="text-default-500">คะแนน:</span>{" "}
+                                        <span className="text-default-500">{isEnglish ? "Score" : "คะแนน"}:</span>{" "}
                                         <span className="text-default-600">{actionModal.request.old_score ?? "-"}</span>
                                         <span className="mx-2">→</span>
                                         <span className="font-bold text-emerald-600">{actionModal.request.new_score}</span>
@@ -859,10 +916,12 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
 
                                 {/* Comment Input */}
                                 <Textarea
-                                    label={actionModal.type === "approve" ? "หมายเหตุ (ไม่บังคับ)" : "เหตุผลการปฏิเสธ *"}
+                                    label={actionModal.type === "approve"
+                                        ? (isEnglish ? "Comment (optional)" : "หมายเหตุ (ไม่บังคับ)")
+                                        : (isEnglish ? "Rejection reason *" : "เหตุผลการปฏิเสธ *")}
                                     placeholder={actionModal.type === "approve"
-                                        ? "ระบุหมายเหตุเพิ่มเติม (ถ้ามี)..."
-                                        : "กรุณาระบุเหตุผลในการปฏิเสธ..."
+                                        ? (isEnglish ? "Add an optional comment..." : "ระบุหมายเหตุเพิ่มเติม (ถ้ามี)...")
+                                        : (isEnglish ? "Please provide a rejection reason..." : "กรุณาระบุเหตุผลในการปฏิเสธ...")
                                     }
                                     value={actionComment}
                                     onValueChange={setActionComment}
@@ -879,14 +938,14 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                 {/* Group Summary */}
                                 <div className="space-y-2 rounded-lg bg-content2 p-3">
                                     <p className="text-sm">
-                                        <span className="text-default-500">งาน:</span>{" "}
+                                        <span className="text-default-500">{isEnglish ? "Assignment" : "งาน"}:</span>{" "}
                                         <span className="font-medium">{actionModal.group.assignment.name}</span>
-                                        {actionModal.group.sub_item && (
-                                            <span className="text-default-500"> - {actionModal.group.sub_item.name}</span>
+                                        {actionModal.group.sub_item && localizeGeneratedSubItemName(actionModal.group.sub_item.name, isEnglish) && (
+                                            <span className="text-default-500"> - {localizeGeneratedSubItemName(actionModal.group.sub_item.name, isEnglish)}</span>
                                         )}
                                     </p>
                                     <p className="text-sm">
-                                        <span className="text-default-500">คะแนน:</span>{" "}
+                                        <span className="text-default-500">{isEnglish ? "Score" : "คะแนน"}:</span>{" "}
                                         <span className="text-default-600">{actionModal.group.old_score ?? "-"}</span>
                                         <span className="mx-2">→</span>
                                         <span className="font-bold text-emerald-600">{actionModal.group.new_score}</span>
@@ -899,7 +958,9 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                     <div className="flex items-center justify-between">
                                         <p className="flex items-center gap-1.5 text-sm font-medium text-default-700">
                                             <Icon icon="solar:users-group-two-rounded-bold" className="text-blue-500" />
-                                            เลือกสมาชิกที่ต้องการ{actionModal.type === "approve" ? "อนุมัติ" : "ปฏิเสธ"}
+                                            {actionModal.type === "approve"
+                                                ? (isEnglish ? "Select members to approve" : "เลือกสมาชิกที่ต้องการอนุมัติ")
+                                                : (isEnglish ? "Select members to reject" : "เลือกสมาชิกที่ต้องการปฏิเสธ")}
                                         </p>
                                         <div className="flex gap-1">
                                             <Button
@@ -909,7 +970,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                 onPress={() => toggleAllSelection(true)}
                                                 className="text-xs h-7 px-2"
                                             >
-                                                เลือกทั้งหมด
+                                                {isEnglish ? "Select all" : "เลือกทั้งหมด"}
                                             </Button>
                                             <Button
                                                 size="sm"
@@ -918,7 +979,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                 onPress={() => toggleAllSelection(false)}
                                                 className="text-xs h-7 px-2"
                                             >
-                                                ยกเลิกทั้งหมด
+                                                {isEnglish ? "Clear all" : "ยกเลิกทั้งหมด"}
                                             </Button>
                                         </div>
                                     </div>
@@ -930,7 +991,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                     key={req.id}
                                                     className={`flex items-center justify-between p-3 cursor-pointer transition-all ${
                                                         actionModal.selectedIds.includes(req.id)
-                                                            ? 'bg-blue-50/70'
+                                                            ? 'bg-blue-50/70 dark:bg-blue-950/35'
                                                             : 'hover:bg-content2'
                                                     }`}
                                                     onClick={() => toggleRequestSelection(req.id)}
@@ -938,7 +999,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                     <div className="flex items-center gap-3">
                                                         <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
                                                             actionModal.selectedIds.includes(req.id)
-                                                                ? 'bg-blue-500 border-blue-500 shadow-sm'
+                                                                ? 'bg-blue-500 border-blue-500 shadow-sm dark:bg-blue-500 dark:border-blue-400'
                                                                 : 'border-default-300 bg-content1 hover:border-blue-300'
                                                         }`}>
                                                             {actionModal.selectedIds.includes(req.id) && (
@@ -948,7 +1009,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                         <div className="flex items-center gap-2">
                                                             <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
                                                                 actionModal.selectedIds.includes(req.id)
-                                                                    ? 'bg-blue-100 text-blue-600'
+                                                                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/45 dark:text-blue-100'
                                                                     : 'bg-content3 text-default-600'
                                                             }`}>
                                                                 <Icon icon="solar:user-bold" className="text-sm" />
@@ -971,7 +1032,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                         </div>
                                                         {actionModal.selectedIds.includes(req.id) && (
                                                             <Chip size="sm" color="primary" variant="flat" className="text-xs" startContent={<Icon icon="solar:check-circle-bold" className="mr-1 text-xs" />}>
-                                                                เลือกแล้ว
+                                                                {isEnglish ? "Selected" : "เลือกแล้ว"}
                                                             </Chip>
                                                         )}
                                                     </div>
@@ -981,12 +1042,14 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                     <div className="flex items-center justify-between text-xs">
                                         <p className="flex items-center gap-1 text-default-500">
                                             <Icon icon="solar:user-check-bold" className="text-blue-500" />
-                                            เลือกแล้ว {actionModal.selectedIds.length} / {actionModal.group.requests.filter(r => r.status === "pending").length} คน
+                                            {isEnglish
+                                                ? `Selected ${actionModal.selectedIds.length} / ${actionModal.group.requests.filter(r => r.status === "pending").length} students`
+                                                : `เลือกแล้ว ${actionModal.selectedIds.length} / ${actionModal.group.requests.filter(r => r.status === "pending").length} คน`}
                                         </p>
                                         {actionModal.selectedIds.length === 0 && (
                                             <p className="text-amber-600 flex items-center gap-1">
                                                 <Icon icon="solar:danger-triangle-bold" />
-                                                กรุณาเลือกอย่างน้อย 1 คน
+                                                {isEnglish ? "Please select at least 1 student" : "กรุณาเลือกอย่างน้อย 1 คน"}
                                             </p>
                                         )}
                                     </div>
@@ -994,10 +1057,12 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
 
                                 {/* Comment Input */}
                                 <Textarea
-                                    label={actionModal.type === "approve" ? "หมายเหตุ (ไม่บังคับ)" : "เหตุผลการปฏิเสธ *"}
+                                    label={actionModal.type === "approve"
+                                        ? (isEnglish ? "Comment (optional)" : "หมายเหตุ (ไม่บังคับ)")
+                                        : (isEnglish ? "Rejection reason *" : "เหตุผลการปฏิเสธ *")}
                                     placeholder={actionModal.type === "approve"
-                                        ? "ระบุหมายเหตุเพิ่มเติม (ถ้ามี)..."
-                                        : "กรุณาระบุเหตุผลในการปฏิเสธ..."
+                                        ? (isEnglish ? "Add an optional comment..." : "ระบุหมายเหตุเพิ่มเติม (ถ้ามี)...")
+                                        : (isEnglish ? "Please provide a rejection reason..." : "กรุณาระบุเหตุผลในการปฏิเสธ...")
                                     }
                                     value={actionComment}
                                     onValueChange={setActionComment}
@@ -1017,7 +1082,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                 setActionComment("");
                             }}
                         >
-                            ยกเลิก
+                            {isEnglish ? "Cancel" : "ยกเลิก"}
                         </Button>
                         <Button
                             color={actionModal.type === "approve" ? "success" : "danger"}
@@ -1025,8 +1090,12 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                             isDisabled={actionModal.group ? actionModal.selectedIds.length === 0 : false}
                             onPress={actionModal.type === "approve" ? handleApprove : handleReject}
                         >
-                            {actionModal.type === "approve" ? "อนุมัติ" : "ปฏิเสธ"}
-                            {actionModal.group && actionModal.selectedIds.length > 0 && ` (${actionModal.selectedIds.length} คน)`}
+                            {actionModal.type === "approve"
+                                ? (isEnglish ? "Approve" : "อนุมัติ")
+                                : (isEnglish ? "Reject" : "ปฏิเสธ")}
+                            {actionModal.group && actionModal.selectedIds.length > 0 && (isEnglish
+                                ? ` (${formatCount(actionModal.selectedIds.length, "student", "students")})`
+                                : ` (${actionModal.selectedIds.length} คน)`)}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -1043,15 +1112,15 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                 }}
                 size="lg"
             >
-                <ModalContent>
+                <ModalContent className="bg-content1 text-foreground">
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                                <Icon icon="solar:danger-triangle-bold" className="text-xl text-amber-600" />
+                            <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/35 flex items-center justify-center">
+                                <Icon icon="solar:danger-triangle-bold" className="text-xl text-amber-600 dark:text-amber-200" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-semibold text-foreground">ยืนยันการยกเลิกคำร้อง</h3>
-                                <p className="text-sm text-default-500">กรุณาตรวจสอบข้อมูลก่อนยืนยัน</p>
+                                <h3 className="text-lg font-semibold text-foreground">{isEnglish ? "Confirm request cancellation" : "ยืนยันการยกเลิกคำร้อง"}</h3>
+                                <p className="text-sm text-default-500">{isEnglish ? "Review the details before confirming." : "กรุณาตรวจสอบข้อมูลก่อนยืนยัน"}</p>
                             </div>
                         </div>
                     </ModalHeader>
@@ -1062,20 +1131,20 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                 <Card className="border border-default-200 bg-content2/80 shadow-none">
                                     <CardBody className="py-3 px-4 space-y-2">
                                         <p className="text-sm">
-                                            <span className="text-default-500">งาน:</span>{" "}
+                                            <span className="text-default-500">{isEnglish ? "Assignment" : "งาน"}:</span>{" "}
                                             <span className="font-medium text-foreground">{cancelModalRequest.assignment.name}</span>
-                                            {cancelModalRequest.sub_item && (
-                                                <span className="text-default-500"> - {cancelModalRequest.sub_item.name}</span>
+                                            {cancelModalRequest.sub_item && localizeGeneratedSubItemName(cancelModalRequest.sub_item.name, isEnglish) && (
+                                                <span className="text-default-500"> - {localizeGeneratedSubItemName(cancelModalRequest.sub_item.name, isEnglish)}</span>
                                             )}
                                         </p>
                                         <p className="text-sm">
-                                            <span className="text-default-500">นักศึกษา:</span>{" "}
+                                            <span className="text-default-500">{isEnglish ? "Student" : "นักศึกษา"}:</span>{" "}
                                             <span className="font-medium text-foreground">
                                                 {cancelModalRequest.student.student_id} - {cancelModalRequest.student.full_name}
                                             </span>
                                         </p>
                                         <p className="text-sm">
-                                            <span className="text-default-500">คะแนน:</span>{" "}
+                                            <span className="text-default-500">{isEnglish ? "Score" : "คะแนน"}:</span>{" "}
                                             <span className="text-default-600">{cancelModalRequest.old_score ?? "-"}</span>
                                             <span className="mx-2 text-default-400">→</span>
                                             <span className="font-semibold text-emerald-600">{cancelModalRequest.new_score}</span>
@@ -1084,13 +1153,15 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                     </CardBody>
                                 </Card>
 
-                                <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
+                                <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 dark:bg-amber-950/30 dark:border-amber-700/45">
                                     <div className="flex items-start gap-3">
-                                        <Icon icon="solar:info-circle-bold" className="text-xl text-amber-600 mt-0.5" />
+                                        <Icon icon="solar:info-circle-bold" className="text-xl text-amber-600 dark:text-amber-200 mt-0.5" />
                                         <div>
-                                            <p className="font-medium text-amber-800">ต้องการยกเลิกคำร้องนี้ใช่หรือไม่?</p>
-                                            <p className="text-sm text-amber-700 mt-1">
-                                                หลังยกเลิกแล้ว คำร้องนี้จะหายจากรายการรออนุมัติ และสามารถส่งคำร้องใหม่ได้อีกครั้ง
+                                            <p className="font-medium text-amber-800 dark:text-amber-50">{isEnglish ? "Cancel this request?" : "ต้องการยกเลิกคำร้องนี้ใช่หรือไม่?"}</p>
+                                            <p className="text-sm text-amber-700 dark:text-amber-100/80 mt-1">
+                                                {isEnglish
+                                                    ? "After cancellation, this request will disappear from the pending list and can be submitted again later."
+                                                    : "หลังยกเลิกแล้ว คำร้องนี้จะหายจากรายการรออนุมัติ และสามารถส่งคำร้องใหม่ได้อีกครั้ง"}
                                             </p>
                                         </div>
                                     </div>
@@ -1105,7 +1176,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                             onPress={() => setCancelModalRequest(null)}
                             isDisabled={cancellingRequestId !== null}
                         >
-                            ยกเลิก
+                            {isEnglish ? "Cancel" : "ยกเลิก"}
                         </Button>
                         <Button
                             color="warning"
@@ -1113,7 +1184,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                             isLoading={cancellingRequestId !== null}
                             startContent={<Icon icon="solar:close-square-bold" />}
                         >
-                            ยืนยันยกเลิกคำร้อง
+                            {isEnglish ? "Confirm cancellation" : "ยืนยันยกเลิกคำร้อง"}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -1139,7 +1210,9 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                 onError={(e) => {
                                     const target = e.target as HTMLImageElement;
                                     target.style.display = 'none';
-                                    target.insertAdjacentHTML('afterend', '<div class="text-white text-center py-20"><p class="text-xl">ไม่สามารถโหลดรูปภาพได้</p><p class="text-sm mt-2 text-white/60">ไฟล์รูปภาพอาจถูกลบหรือไม่พบบนเซิร์ฟเวอร์</p></div>');
+                                    target.insertAdjacentHTML('afterend', isEnglish
+                                        ? '<div class="text-white text-center py-20"><p class="text-xl">Unable to load the image</p><p class="text-sm mt-2 text-white/60">The image may have been removed or is missing from the server.</p></div>'
+                                        : '<div class="text-white text-center py-20"><p class="text-xl">ไม่สามารถโหลดรูปภาพได้</p><p class="text-sm mt-2 text-white/60">ไฟล์รูปภาพอาจถูกลบหรือไม่พบบนเซิร์ฟเวอร์</p></div>');
                                 }}
                             />
                             <Button

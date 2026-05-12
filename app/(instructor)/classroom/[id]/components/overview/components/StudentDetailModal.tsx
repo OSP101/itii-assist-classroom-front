@@ -7,6 +7,7 @@ import { Progress } from "@heroui/progress";
 import { Spinner } from "@heroui/spinner";
 import { Divider } from "@heroui/divider";
 import { Icon } from "@iconify/react";
+import { useI18n } from "@/hooks/useI18n";
 import scoreService from "@/services/score.service";
 import type { Assignment } from "@/services/assignment.service";
 import { getAssignmentTypeConfig } from "../config";
@@ -44,6 +45,7 @@ interface AssignmentWithScores extends Assignment {
 }
 
 export function StudentDetailModal({ isOpen, onClose, student, courseId }: StudentDetailModalProps) {
+    const t = useI18n();
     const [assignments, setAssignments] = useState<AssignmentWithScores[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -147,7 +149,7 @@ export function StudentDetailModal({ isOpen, onClose, student, courseId }: Stude
                                 }`}>
                                     {overallPercentage}%
                                 </p>
-                                <p className="text-xs text-slate-400">{totalScore.toFixed(1)}/{totalMaxScore} คะแนน</p>
+                                <p className="text-xs text-slate-400">{t("studentTotalPoints", { score: totalScore.toFixed(1), max: totalMaxScore })}</p>
                             </div>
                         </div>
                     )}
@@ -164,13 +166,13 @@ export function StudentDetailModal({ isOpen, onClose, student, courseId }: Stude
                         <div className="space-y-5">
                             {/* Overall Summary */}
                             <div className="flex items-center justify-between text-sm text-slate-500">
-                                <span>มีคะแนนแล้ว {gradedCount}/{assignments.length} งาน</span>
-                                <span>{totalScore.toFixed(1)} / {totalMaxScore} คะแนนรวม</span>
+                                <span>{t("studentProgressSummary", { graded: gradedCount, total: assignments.length })}</span>
+                                <span>{t("studentTotalPoints", { score: totalScore.toFixed(1), max: totalMaxScore })}</span>
                             </div>
 
                             {/* Grouped by type */}
                             {Object.entries(groupedAssignments).map(([type, items]) => {
-                                const config = getAssignmentTypeConfig(type);
+                                const config = getAssignmentTypeConfig(type, t);
                                 const stats = getTypeStats(items);
 
                                 return (
@@ -183,18 +185,18 @@ export function StudentDetailModal({ isOpen, onClose, student, courseId }: Stude
                                                     {config.shortLabel}
                                                 </span>
                                                 <Chip size="sm" variant="flat" className="bg-white/60">
-                                                    {stats.total} งาน
+                                                    {t("assignmentsCount", { count: stats.total })}
                                                 </Chip>
                                             </div>
                                             <div className="flex items-center gap-3 text-xs">
                                                 <span className="flex items-center gap-1 text-emerald-600 font-medium">
                                                     <Icon icon="solar:check-circle-bold" className="text-sm" />
-                                                    {stats.graded} ส่ง
+                                                    {stats.graded} {t("submitted")}
                                                 </span>
                                                 {stats.missed > 0 && (
                                                     <span className="flex items-center gap-1 text-red-500 font-medium">
                                                         <Icon icon="solar:close-circle-bold" className="text-sm" />
-                                                        {stats.missed} ขาด
+                                                        {stats.missed} {t("missing")}
                                                     </span>
                                                 )}
                                                 <span className={`font-bold ${
@@ -266,7 +268,7 @@ export function StudentDetailModal({ isOpen, onClose, student, courseId }: Stude
                                                                 ) : (
                                                                     <p className="text-xs text-slate-400 flex items-center gap-1">
                                                                         <Icon icon="solar:close-circle-linear" className="text-sm text-slate-300" />
-                                                                        ยังไม่มีคะแนน
+                                                                        {t("noScoreYet")}
                                                                     </p>
                                                                 )}
 
@@ -327,7 +329,7 @@ export function StudentDetailModal({ isOpen, onClose, student, courseId }: Stude
                             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
                                 <Icon icon="solar:clipboard-list-linear" className="text-3xl text-slate-300" />
                             </div>
-                            <p className="text-sm text-slate-500">ยังไม่มีงานในวิชานี้</p>
+                            <p className="text-sm text-slate-500">{t("noAssignmentsInCourse")}</p>
                         </div>
                     )}
                 </ModalBody>

@@ -28,6 +28,7 @@ import queueService, {
 import { authService } from "@/services/auth.service";
 import scoreService from "@/services/score.service";
 import { useNotification } from "@/contexts/NotificationContext";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { API_BASE_URL } from "@/config/api";
 
 
@@ -206,17 +207,91 @@ function MiniRoomMap({
     );
 }
 
-function formatCutoffDateTime(value?: string | null): string {
+function getWorkerLocale(isEnglish = false): "th-TH" | "en-US" {
+    return isEnglish ? "en-US" : "th-TH";
+}
+
+function formatCutoffDateTime(value?: string | null, isEnglish = false): string {
     if (!value) return "-";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "-";
-    return date.toLocaleString("th-TH", {
+    return date.toLocaleString(getWorkerLocale(isEnglish), {
         year: "numeric",
         month: "short",
         day: "numeric",
         hour: "2-digit",
         minute: "2-digit",
     });
+}
+
+function formatDeskLabel(deskNumber: string | number | null | undefined, isEnglish = false): string {
+    if (deskNumber === null || deskNumber === undefined || deskNumber === "") return "-";
+    return `${isEnglish ? "Desk" : "โต๊ะ"} ${deskNumber}`;
+}
+
+function formatBookingTypeLabel(bookingType: QueueBooking["booking_type"], isEnglish = false): string {
+    return bookingType === "grading"
+        ? (isEnglish ? "Grading" : "ตรวจงาน")
+        : (isEnglish ? "Help" : "ช่วยเหลือ");
+}
+
+function formatDirectionLabel(label: string, isEnglish = false): string {
+    if (!isEnglish) return label;
+
+    switch (label) {
+        case "ขวา":
+            return "right";
+        case "ขวา-ล่าง":
+            return "down-right";
+        case "ล่าง":
+            return "down";
+        case "ซ้าย-ล่าง":
+            return "down-left";
+        case "ซ้าย":
+            return "left";
+        case "ซ้าย-บน":
+            return "up-left";
+        case "บน":
+            return "up";
+        case "ขวา-บน":
+            return "up-right";
+        default:
+            return label;
+    }
+}
+
+function formatDistanceLabel(distance: "ใกล้" | "ปานกลาง" | "ไกล", isEnglish = false): string {
+    if (!isEnglish) return distance;
+
+    switch (distance) {
+        case "ใกล้":
+            return "near";
+        case "ปานกลาง":
+            return "medium";
+        case "ไกล":
+            return "far";
+        default:
+            return distance;
+    }
+}
+
+function formatBookingStatusLabel(status: string, isEnglish = false): string {
+    switch (status) {
+        case "waiting":
+            return isEnglish ? "Waiting" : "รอคิว";
+        case "assigned":
+            return isEnglish ? "Assigned" : "มอบหมายแล้ว";
+        case "in_progress":
+            return isEnglish ? "In progress" : "กำลังดำเนินการ";
+        case "completed":
+            return isEnglish ? "Completed" : "เสร็จสิ้น";
+        case "cancelled":
+            return isEnglish ? "Cancelled" : "ยกเลิกแล้ว";
+        case "skipped":
+            return isEnglish ? "Skipped" : "ข้ามแล้ว";
+        default:
+            return status;
+    }
 }
 
 // ============================================================
@@ -226,8 +301,11 @@ function formatCutoffDateTime(value?: string | null): string {
 export default function WorkerDashboardPage() {
     const params = useParams();
     const router = useRouter();
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
     const courseId = params.id as string;
     const sessionId = params.sessionId as string;
+    const t = (thai: string, english: string) => (isEnglish ? english : thai);
 
     const [session, setSession] = useState<QueueSession | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -286,6 +364,12 @@ export default function WorkerDashboardPage() {
         registerFcmToken,
         fcmToken,
     } = useNotification();
+
+    useEffect(() => {
+        document.title = isEnglish
+            ? "Queue Worker - ITII Assist Classroom"
+            : "หน้ารับงาน - ITII Assist Classroom";
+    }, [isEnglish]);
 
     // Get current user
     useEffect(() => {
@@ -361,8 +445,8 @@ export default function WorkerDashboardPage() {
                     }
                     
                     addToast({
-                        title: "พบงานที่ค้างอยู่",
-                        description: `โต๊ะ ${currentBooking.desk_number} - ${currentBooking.booking_type === "grading" ? "ตรวจงาน" : "ช่วยเหลือ"}`,
+                        title: t("พบงานที่ค้างอยู่", "Pending task restored"),
+                        description: `${formatDeskLabel(currentBooking.desk_number, isEnglish)} - ${formatBookingTypeLabel(currentBooking.booking_type, isEnglish)}`,
                         color: "primary",
                         timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -384,8 +468,8 @@ export default function WorkerDashboardPage() {
         } catch (error) {
             console.error("Error fetching session:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถโหลดข้อมูล Session ได้",
+                title: t("เกิดข้อผิดพลาด", "Error"),
+                description: t("ไม่สามารถโหลดข้อมูล Session ได้", "Unable to load the queue session."),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -393,7 +477,7 @@ export default function WorkerDashboardPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [courseId, sessionId, currentUser]);
+    }, [courseId, sessionId, currentUser, isEnglish]);
 
     useEffect(() => {
         if (currentUser) {
@@ -407,7 +491,9 @@ export default function WorkerDashboardPage() {
             if (isWorkerOnline || currentBooking) {
                 e.preventDefault();
                 // Chrome requires returnValue to be set
-                e.returnValue = "คุณกำลังรับงานอยู่ ต้องการออกจากหน้านี้หรือไม่?";
+                e.returnValue = isEnglish
+                    ? "You are currently receiving tasks. Do you want to leave this page?"
+                    : "คุณกำลังรับงานอยู่ ต้องการออกจากหน้านี้หรือไม่?";
                 return e.returnValue;
             }
         };
@@ -417,7 +503,7 @@ export default function WorkerDashboardPage() {
         return () => {
             window.removeEventListener("beforeunload", handleBeforeUnload);
         };
-    }, [isWorkerOnline, currentBooking]);
+    }, [isWorkerOnline, currentBooking, isEnglish]);
 
     // Polling interval ref
     const pollingRef = useRef<NodeJS.Timeout | null>(null);
@@ -450,8 +536,8 @@ export default function WorkerDashboardPage() {
                 setCurrentBooking(result.currentBooking);
                 skipPollingRef.current = true;
                 addToast({
-                    title: "มีงานใหม่!",
-                    description: `โต๊ะ ${result.currentBooking.desk_number} - ${result.currentBooking.booking_type === "grading" ? "ตรวจงาน" : "ขอความช่วยเหลือ"}`,
+                    title: t("มีงานใหม่!", "New task assigned"),
+                    description: `${formatDeskLabel(result.currentBooking.desk_number, isEnglish)} - ${formatBookingTypeLabel(result.currentBooking.booking_type, isEnglish)}`,
                     color: "primary",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -460,7 +546,7 @@ export default function WorkerDashboardPage() {
         } catch (err) {
             console.error("Polling error:", err);
         }
-    }, [courseId, sessionId, isWorkerOnline, currentBooking]);
+    }, [courseId, sessionId, isWorkerOnline, currentBooking, isEnglish]);
 
     // Socket connection - connect only when worker is online
     useEffect(() => {
@@ -492,8 +578,8 @@ export default function WorkerDashboardPage() {
             
             setCurrentBooking(data.booking);
             addToast({
-                title: "มีงานใหม่!",
-                description: `โต๊ะ ${data.booking.desk_number} - ${data.booking.booking_type === "grading" ? "ตรวจงาน" : "ขอความช่วยเหลือ"}`,
+                title: t("มีงานใหม่!", "New task assigned"),
+                description: `${formatDeskLabel(data.booking.desk_number, isEnglish)} - ${formatBookingTypeLabel(data.booking.booking_type, isEnglish)}`,
                 color: "primary",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -506,8 +592,8 @@ export default function WorkerDashboardPage() {
                 setSession((prev) => (prev ? { ...prev, status: data.status as QueueSession["status"] } : null));
                 if (data.status === "closed") {
                     addToast({
-                        title: "Session ถูกปิด",
-                        description: "การรับคิวถูกยกเลิก",
+                        title: t("Session ถูกปิด", "Session closed"),
+                        description: t("การรับคิวถูกยกเลิก", "Queue intake has been cancelled."),
                         color: "warning",
                         timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -541,14 +627,14 @@ export default function WorkerDashboardPage() {
                 pollingRef.current = null;
             }
         };
-    }, [sessionId, currentUser, isWorkerOnline, pollForBooking]);
+    }, [sessionId, currentUser, isWorkerOnline, pollForBooking, isEnglish]);
 
     // Join as worker
     const handleJoinAsWorker = async () => {
         if (!workerPreferences.accept_grading && !workerPreferences.accept_help) {
             addToast({
-                title: "กรุณาเลือก",
-                description: "กรุณาเลือกอย่างน้อย 1 ประเภทงานที่ต้องการรับ",
+                title: t("กรุณาเลือก", "Select a task type"),
+                description: t("กรุณาเลือกอย่างน้อย 1 ประเภทงานที่ต้องการรับ", "Please choose at least one task type to accept."),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -577,16 +663,16 @@ export default function WorkerDashboardPage() {
             if (result.assignedBooking) {
                 setCurrentBooking(result.assignedBooking);
                 addToast({
-                    title: "มีงานรอตรวจ!",
-                    description: `โต๊ะ ${result.assignedBooking.desk_number} - ${result.assignedBooking.booking_type === "grading" ? "ตรวจงาน" : "ขอความช่วยเหลือ"}`,
+                    title: t("มีงานรอตรวจ!", "Task assigned immediately"),
+                    description: `${formatDeskLabel(result.assignedBooking.desk_number, isEnglish)} - ${formatBookingTypeLabel(result.assignedBooking.booking_type, isEnglish)}`,
                     color: "primary",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
                 });
             } else {
                 addToast({
-                    title: "สำเร็จ",
-                    description: "เข้าร่วมรับงานเรียบร้อยแล้ว",
+                    title: t("สำเร็จ", "Success"),
+                    description: t("เข้าร่วมรับงานเรียบร้อยแล้ว", "You are now receiving tasks."),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -595,8 +681,10 @@ export default function WorkerDashboardPage() {
         } catch (error: unknown) {
             console.error("Error joining as worker:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error instanceof Error ? error.message : "ไม่สามารถเข้าร่วมรับงานได้",
+                title: t("เกิดข้อผิดพลาด", "Error"),
+                description: isEnglish
+                    ? "Unable to join task intake."
+                    : error instanceof Error ? error.message : "ไม่สามารถเข้าร่วมรับงานได้",
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -616,8 +704,8 @@ export default function WorkerDashboardPage() {
                 // Has current booking - mark as paused, will fully leave after completing
                 setIsPausedAfterComplete(true);
                 addToast({
-                    title: "หยุดรับงานใหม่",
-                    description: "จะไม่ได้รับงานใหม่ กรุณาทำงานปัจจุบันให้เสร็จ",
+                    title: t("หยุดรับงานใหม่", "Stopped receiving new tasks"),
+                    description: t("จะไม่ได้รับงานใหม่ กรุณาทำงานปัจจุบันให้เสร็จ", "No new tasks will be assigned. Please finish your current task."),
                     color: "warning",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -627,8 +715,8 @@ export default function WorkerDashboardPage() {
                 setIsWorkerOnline(false);
                 setIsPausedAfterComplete(false);
                 addToast({
-                    title: "สำเร็จ",
-                    description: "ออกจากการรับงานเรียบร้อยแล้ว",
+                    title: t("สำเร็จ", "Success"),
+                    description: t("ออกจากการรับงานเรียบร้อยแล้ว", "You have stopped receiving tasks."),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -637,8 +725,10 @@ export default function WorkerDashboardPage() {
         } catch (error: unknown) {
             console.error("Error leaving as worker:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error instanceof Error ? error.message : "ไม่สามารถออกจากการรับงานได้",
+                title: t("เกิดข้อผิดพลาด", "Error"),
+                description: isEnglish
+                    ? "Unable to stop receiving tasks."
+                    : error instanceof Error ? error.message : "ไม่สามารถออกจากการรับงานได้",
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -676,8 +766,8 @@ export default function WorkerDashboardPage() {
             });
 
             addToast({
-                title: "สำเร็จ",
-                description: "บันทึกผลเรียบร้อยแล้ว",
+                title: t("สำเร็จ", "Saved"),
+                description: t("บันทึกผลเรียบร้อยแล้ว", "The result has been saved successfully."),
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -699,8 +789,8 @@ export default function WorkerDashboardPage() {
                 isPausedRef.current = false;
                 skipPollingRef.current = true;
                 addToast({
-                    title: "ออกจากการรับงานแล้ว",
-                    description: "คุณได้ออกจากการรับงานเรียบร้อยแล้ว",
+                    title: t("ออกจากการรับงานแล้ว", "Stopped receiving tasks"),
+                    description: t("คุณได้ออกจากการรับงานเรียบร้อยแล้ว", "You have left task intake successfully."),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -710,8 +800,8 @@ export default function WorkerDashboardPage() {
                     setCurrentBooking(result.next_booking);
                     skipPollingRef.current = true;
                     addToast({
-                        title: "งานถัดไปมาแล้ว",
-                        description: `โต๊ะ ${result.next_booking.desk_number} - ${result.next_booking.booking_type === "grading" ? "ตรวจงาน" : "ขอความช่วยเหลือ"}`,
+                        title: t("งานถัดไปมาแล้ว", "Next task assigned"),
+                        description: `${formatDeskLabel(result.next_booking.desk_number, isEnglish)} - ${formatBookingTypeLabel(result.next_booking.booking_type, isEnglish)}`,
                         color: "primary",
                         timeout: 3000,
                         shouldShowTimeoutProgress: true,
@@ -728,8 +818,10 @@ export default function WorkerDashboardPage() {
         } catch (error: unknown) {
             console.error("Error completing booking:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error instanceof Error ? error.message : "ไม่สามารถบันทึกผลได้",
+                title: t("เกิดข้อผิดพลาด", "Error"),
+                description: isEnglish
+                    ? "Unable to save the result."
+                    : error instanceof Error ? error.message : "ไม่สามารถบันทึกผลได้",
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -748,8 +840,8 @@ export default function WorkerDashboardPage() {
             const result = await queueService.skipBooking(courseId, sessionId, currentBooking.id, skipReason);
 
             addToast({
-                title: "ข้ามคิวแล้ว",
-                description: "ระบบจะยิงงานใหม่มาให้อัตโนมัติ",
+                title: t("ข้ามคิวแล้ว", "Queue skipped"),
+                description: t("ระบบจะยิงงานใหม่มาให้อัตโนมัติ", "The next task will be assigned automatically."),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -775,8 +867,10 @@ export default function WorkerDashboardPage() {
         } catch (error: unknown) {
             console.error("Error skipping booking:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error instanceof Error ? error.message : "ไม่สามารถข้ามคิวได้",
+                title: t("เกิดข้อผิดพลาด", "Error"),
+                description: isEnglish
+                    ? "Unable to skip this queue item."
+                    : error instanceof Error ? error.message : "ไม่สามารถข้ามคิวได้",
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -891,10 +985,10 @@ export default function WorkerDashboardPage() {
                 <Card className="max-w-md border border-default-200 shadow-sm">
                     <CardBody className="p-8 text-center">
                         <Icon icon="solar:clipboard-remove-bold" className="mx-auto mb-4 text-6xl text-default-300" />
-                        <h2 className="mb-2 text-xl font-bold text-default-700">ไม่พบ Session</h2>
-                        <p className="mb-4 text-default-500">Session นี้อาจถูกลบหรือไม่มีอยู่ในระบบ</p>
+                        <h2 className="mb-2 text-xl font-bold text-default-700">{t("ไม่พบ Session", "Session not found")}</h2>
+                        <p className="mb-4 text-default-500">{t("Session นี้อาจถูกลบหรือไม่มีอยู่ในระบบ", "This session may have been deleted or does not exist.")}</p>
                         <Button color="primary" onPress={() => router.back()}>
-                            กลับ
+                            {t("กลับ", "Back")}
                         </Button>
                     </CardBody>
                 </Card>
@@ -916,10 +1010,10 @@ export default function WorkerDashboardPage() {
                 <Card className="max-w-md border border-default-200 shadow-sm">
                     <CardBody className="p-8 text-center">
                         <Icon icon="solar:document-bold" className="mx-auto mb-4 text-6xl text-default-300" />
-                        <h2 className="mb-2 text-xl font-bold text-default-700">Session ยังไม่เปิดใช้งาน</h2>
-                        <p className="mb-4 text-default-500">Session นี้ยังเป็นแบบร่าง กรุณาเปิดใช้งานก่อน</p>
+                        <h2 className="mb-2 text-xl font-bold text-default-700">{t("Session ยังไม่เปิดใช้งาน", "Session not active yet")}</h2>
+                        <p className="mb-4 text-default-500">{t("Session นี้ยังเป็นแบบร่าง กรุณาเปิดใช้งานก่อน", "This session is still in draft mode. Please activate it first.")}</p>
                         <Button color="primary" onPress={() => router.back()}>
-                            กลับ
+                            {t("กลับ", "Back")}
                         </Button>
                     </CardBody>
                 </Card>
@@ -938,8 +1032,8 @@ export default function WorkerDashboardPage() {
                                 <Icon icon="solar:pause-circle-bold" className="text-amber-600 text-xl" />
                             </div>
                             <div className="flex-1">
-                                <h3 className="font-semibold text-amber-800">ปิดรับการจองคิวชั่วคราว</h3>
-                                <p className="text-sm text-amber-600">ไม่รับการจองคิวใหม่ แต่ยังสามารถจัดการคิวที่มีอยู่ได้</p>
+                                <h3 className="font-semibold text-amber-800">{t("ปิดรับการจองคิวชั่วคราว", "Queue booking temporarily paused")}</h3>
+                                <p className="text-sm text-amber-600">{t("ไม่รับการจองคิวใหม่ แต่ยังสามารถจัดการคิวที่มีอยู่ได้", "New bookings are paused, but you can still manage the existing queue.")}</p>
                             </div>
                         </div>
                     </div>
@@ -951,8 +1045,8 @@ export default function WorkerDashboardPage() {
                                 <Icon icon="solar:stop-circle-bold" className="text-rose-600 text-xl" />
                             </div>
                             <div className="flex-1">
-                                <h3 className="font-semibold text-rose-800">Session ปิดแล้ว</h3>
-                                <p className="text-sm text-rose-600">Session นี้ถูกปิดแล้ว แต่ยังสามารถจัดการคิวที่ค้างอยู่ได้</p>
+                                <h3 className="font-semibold text-rose-800">{t("Session ปิดแล้ว", "Session closed")}</h3>
+                                <p className="text-sm text-rose-600">{t("Session นี้ถูกปิดแล้ว แต่ยังสามารถจัดการคิวที่ค้างอยู่ได้", "This session is closed, but you can still manage pending queue items.")}</p>
                             </div>
                         </div>
                     </div>
@@ -970,7 +1064,7 @@ export default function WorkerDashboardPage() {
                         </Button> */}
                         <h1 className="text-xl font-bold text-foreground">{session.title}</h1>
                         <p className="text-sm text-default-500">
-                            ห้อง {session.classroom?.name} • PIN: <span className="font-mono font-bold text-blue-600">{session.pin_code}</span>
+                            {t("ห้อง", "Room")} {session.classroom?.name} • PIN: <span className="font-mono font-bold text-blue-600">{session.pin_code}</span>
                         </p>
                     </div>
                     <Chip
@@ -983,7 +1077,7 @@ export default function WorkerDashboardPage() {
                             />
                         }
                     >
-                        {isPausedAfterComplete ? "รอเคลียร์งาน" : isWorkerOnline ? "กำลังรับงาน" : "ไม่ได้รับงาน"}
+                        {isPausedAfterComplete ? t("รอเคลียร์งาน", "Finishing current task") : isWorkerOnline ? t("กำลังรับงาน", "Receiving tasks") : t("ไม่ได้รับงาน", "Not receiving tasks")}
                     </Chip>
                 </div>
 
@@ -996,8 +1090,8 @@ export default function WorkerDashboardPage() {
                                     <Icon icon="solar:user-check-bold" className="text-blue-600 text-xl" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-foreground">ตั้งค่าการรับงาน</h2>
-                                    <p className="text-sm text-default-500">เลือกประเภทงานที่ต้องการรับ</p>
+                                    <h2 className="text-lg font-semibold text-foreground">{t("ตั้งค่าการรับงาน", "Task intake settings")}</h2>
+                                    <p className="text-sm text-default-500">{t("เลือกประเภทงานที่ต้องการรับ", "Choose the task types you want to accept.")}</p>
                                 </div>
                             </div>
                         </CardHeader>
@@ -1015,7 +1109,7 @@ export default function WorkerDashboardPage() {
                                     >
                                         <div className="flex items-center gap-2">
                                             <Icon icon="solar:clipboard-check-bold" className="text-emerald-500" />
-                                            <span>รับตรวจงาน</span>
+                                            <span>{t("รับตรวจงาน", "Accept grading")}</span>
                                         </div>
                                     </Checkbox>
                                     <Checkbox
@@ -1029,7 +1123,7 @@ export default function WorkerDashboardPage() {
                                     >
                                         <div className="flex items-center gap-2">
                                             <Icon icon="solar:hand-shake-bold" className="text-amber-500" />
-                                            <span>รับช่วยเหลือ</span>
+                                            <span>{t("รับช่วยเหลือ", "Accept help")}</span>
                                         </div>
                                     </Checkbox>
                                 </div>
@@ -1040,9 +1134,9 @@ export default function WorkerDashboardPage() {
                                         <div className="flex items-start gap-2">
                                             <Icon icon="solar:bell-bold" className="text-amber-500 text-lg mt-0.5" />
                                             <div className="text-sm">
-                                                <p className="font-medium text-amber-700">เปิดการแจ้งเตือน</p>
+                                                <p className="font-medium text-amber-700">{t("เปิดการแจ้งเตือน", "Enable notifications")}</p>
                                                 <p className="text-amber-600 text-xs mt-0.5">
-                                                    เมื่อกดเริ่มรับงาน ระบบจะขออนุญาตส่งการแจ้งเตือนเมื่อมีงานใหม่ แม้ปิดหน้าจอก็ได้รับแจ้งเตือน
+                                                    {t("เมื่อกดเริ่มรับงาน ระบบจะขออนุญาตส่งการแจ้งเตือนเมื่อมีงานใหม่ แม้ปิดหน้าจอก็ได้รับแจ้งเตือน", "When you start receiving tasks, the system will request notification permission so you can get alerts for new tasks even when this page is closed.")}
                                                 </p>
                                             </div>
                                         </div>
@@ -1054,9 +1148,9 @@ export default function WorkerDashboardPage() {
                                         <div className="flex items-start gap-2">
                                             <Icon icon="solar:bell-off-bold" className="text-red-500 text-lg mt-0.5" />
                                             <div className="text-sm">
-                                                <p className="font-medium text-red-700">การแจ้งเตือนถูกปิด</p>
+                                                <p className="font-medium text-red-700">{t("การแจ้งเตือนถูกปิด", "Notifications are blocked")}</p>
                                                 <p className="text-red-600 text-xs mt-0.5">
-                                                    กรุณาเปิดการแจ้งเตือนในการตั้งค่าเบราว์เซอร์เพื่อรับการแจ้งเตือนเมื่อมีงานใหม่
+                                                    {t("กรุณาเปิดการแจ้งเตือนในการตั้งค่าเบราว์เซอร์เพื่อรับการแจ้งเตือนเมื่อมีงานใหม่", "Please enable notifications in your browser settings to receive alerts for new tasks.")}
                                                 </p>
                                             </div>
                                         </div>
@@ -1071,7 +1165,7 @@ export default function WorkerDashboardPage() {
                                     onPress={handleJoinAsWorker}
                                     isLoading={isJoining}
                                 >
-                                    เริ่มรับงาน
+                                    {t("เริ่มรับงาน", "Start receiving tasks")}
                                 </Button>
                             </div>
                         </CardBody>
@@ -1091,12 +1185,12 @@ export default function WorkerDashboardPage() {
                                         </div>
                                         <div>
                                             <h2 className="text-lg font-semibold text-foreground">
-                                                {currentBooking ? "งานปัจจุบัน" : "รอรับงาน"}
+                                                {currentBooking ? t("งานปัจจุบัน", "Current task") : t("รอรับงาน", "Waiting for task")}
                                             </h2>
                                             <p className="text-sm text-default-500">
                                                 {currentBooking 
-                                                    ? `โต๊ะ ${currentBooking.desk_number}`
-                                                    : "ระบบจะยิงงานมาให้อัตโนมัติ"}
+                                                    ? formatDeskLabel(currentBooking.desk_number, isEnglish)
+                                                    : t("ระบบจะยิงงานมาให้อัตโนมัติ", "New tasks will be assigned automatically")}
                                             </p>
                                         </div>
                                     </div>
@@ -1109,7 +1203,7 @@ export default function WorkerDashboardPage() {
                                         isLoading={isLeaving}
                                         isDisabled={isPausedAfterComplete}
                                     >
-                                        {isPausedAfterComplete ? "รอเครียร์งาน..." : "หยุดรับงาน"}
+                                        {isPausedAfterComplete ? t("รอเครียร์งาน...", "Finishing task...") : t("หยุดรับงาน", "Stop receiving tasks")}
                                     </Button>
                                 </div>
                             </CardHeader>
@@ -1120,7 +1214,7 @@ export default function WorkerDashboardPage() {
                                         <div className="flex items-center gap-2 text-amber-700">
                                             <Icon icon="solar:info-circle-bold" className="text-xl shrink-0" />
                                             <p className="text-sm">
-                                                คุณหยุดรับงานใหม่แล้ว หลังจากทำงานนี้เสร็จจะออกจากการรับงานอัตโนมัติ
+                                                {t("คุณหยุดรับงานใหม่แล้ว หลังจากทำงานนี้เสร็จจะออกจากการรับงานอัตโนมัติ", "You have stopped receiving new tasks. Once this task is completed, you will leave task intake automatically.")}
                                             </p>
                                         </div>
                                     </div>
@@ -1143,10 +1237,10 @@ export default function WorkerDashboardPage() {
                                                         />
                                                     }
                                                 >
-                                                    {currentBooking.booking_type === "grading" ? "ตรวจงาน" : "ช่วยเหลือ"}
+                                                    {formatBookingTypeLabel(currentBooking.booking_type, isEnglish)}
                                                 </Chip>
                                                 <span className="text-sm text-default-500">
-                                                    คิวที่ {currentBooking.queue_number}
+                                                    {isEnglish ? `Queue #${currentBooking.queue_number}` : `คิวที่ ${currentBooking.queue_number}`}
                                                 </span>
                                             </div>
 
@@ -1155,13 +1249,13 @@ export default function WorkerDashboardPage() {
                                                     <div className="flex items-start gap-2 text-rose-700">
                                                         <Icon icon="solar:danger-triangle-bold" className="text-lg mt-0.5 shrink-0" />
                                                         <div className="min-w-0">
-                                                            <p className="font-semibold text-sm">นักศึกษาคนนี้จองหลัง Cutoff</p>
+                                                            <p className="font-semibold text-sm">{t("นักศึกษาคนนี้จองหลัง Cutoff", "This student booked after cutoff")}</p>
                                                             <p className="text-xs mt-0.5 text-rose-600">
-                                                                {currentBooking.late_reason || "งานนี้ต้องพิจารณาเกณฑ์คะแนนหลัง cutoff"}
+                                                                {currentBooking.late_reason || t("งานนี้ต้องพิจารณาเกณฑ์คะแนนหลัง cutoff", "This booking may require post-cutoff scoring criteria.")}
                                                             </p>
                                                             {session?.cutoff_at && (
                                                                 <p className="text-xs mt-0.5 text-rose-600">
-                                                                    เวลา cutoff: {formatCutoffDateTime(session.cutoff_at)}
+                                                                    {t("เวลา cutoff", "Cutoff time")}: {formatCutoffDateTime(session.cutoff_at, isEnglish)}
                                                                 </p>
                                                             )}
                                                         </div>
@@ -1177,7 +1271,7 @@ export default function WorkerDashboardPage() {
                                                 </div>
                                                 <div>
                                                 <p className="text-md font-semibold text-foreground">
-                                                    โต๊ะ {currentBooking.desk_number}
+                                                    {formatDeskLabel(currentBooking.desk_number, isEnglish)}
                                                 </p>
                                                 {currentBooking.zone && (
                                                     // <div className="inline-flex items-center gap-1.5 mt-1 px-3 py-1 rounded-full bg-indigo-100 text-indigo-700">
@@ -1196,9 +1290,11 @@ export default function WorkerDashboardPage() {
                                                         <div className="flex items-center gap-2 px-3 py-2 bg-indigo-500 text-white text-xs text-center font-normal">
                                                             {/* <Icon icon={directionGuide.icon} className="text-lg shrink-0" /> */}
                                                             <span className="text-center">
-                                                                จากโต๊ะ {previousDeskNumber} → โต๊ะ {currentBooking.desk_number}{" "}
+                                                                {isEnglish
+                                                                    ? `From ${formatDeskLabel(previousDeskNumber, true)} to ${formatDeskLabel(currentBooking.desk_number, true)}`
+                                                                    : `จากโต๊ะ ${previousDeskNumber} → โต๊ะ ${currentBooking.desk_number}`}{" "}
                                                                 <span className="font-normal">
-                                                                    ({directionGuide.label},{" "}{directionGuide.distance})
+                                                                    ({formatDirectionLabel(directionGuide.label, isEnglish)},{" "}{formatDistanceLabel(directionGuide.distance, isEnglish)})
                                                                 </span>
                                                             </span>
                                                         </div>
@@ -1215,12 +1311,12 @@ export default function WorkerDashboardPage() {
                                                     <div className="flex items-center gap-4 px-3 pb-2 text-xs text-default-500">
                                                         <span className="flex items-center gap-1">
                                                             <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-400" />
-                                                            โต๊ะนี้
+                                                            {t("โต๊ะนี้", "Current desk")}
                                                         </span>
                                                         {previousDeskNumber && String(previousDeskNumber) !== String(currentBooking.desk_number) && (
                                                             <span className="flex items-center gap-1">
                                                                 <span className="inline-block w-2.5 h-2.5 rounded-full bg-blue-300" />
-                                                                โต๊ะก่อนหน้า
+                                                                {t("โต๊ะก่อนหน้า", "Previous desk")}
                                                             </span>
                                                         )}
                                                         {/* <span className="flex items-center gap-1">
@@ -1239,7 +1335,7 @@ export default function WorkerDashboardPage() {
                                             <div className="space-y-2 rounded-xl border border-default-200 bg-content1 p-3">
                                                 <div className="flex items-center gap-3">
                                                     <Avatar
-                                                        name={currentBooking.student?.full_name || "Student"}
+                                                        name={currentBooking.student?.full_name || t("นักศึกษา", "Student")}
                                                         size="sm"
                                                         className="bg-linear-to-br from-blue-400 to-indigo-500"
                                                     />
@@ -1273,7 +1369,7 @@ export default function WorkerDashboardPage() {
                                                 startContent={<Icon icon="solar:check-circle-bold" className="text-xl" />}
                                                 onPress={initializeCompleteForm}
                                             >
-                                                เสร็จสิ้น
+                                                {t("เสร็จสิ้น", "Complete")}
                                             </Button>
                                             <Button
                                                 color="warning"
@@ -1282,7 +1378,7 @@ export default function WorkerDashboardPage() {
                                                 startContent={<Icon icon="solar:skip-next-bold" className="text-xl" />}
                                                 onPress={() => setIsSkipModalOpen(true)}
                                             >
-                                                ข้าม
+                                                {t("ข้าม", "Skip")}
                                             </Button>
                                         </div>
                                     </div>
@@ -1292,10 +1388,10 @@ export default function WorkerDashboardPage() {
                                             <Spinner size="lg" color="primary" />
                                         </div>
                                         <p className="mb-1 text-lg font-medium text-default-600">
-                                            กำลังรอรับงาน...
+                                            {t("กำลังรอรับงาน...", "Waiting for new task...")}
                                         </p>
                                         <p className="text-sm text-default-400">
-                                            เมื่อมีนักศึกษาจองคิว ระบบจะยิงงานมาให้อัตโนมัติ
+                                            {t("เมื่อมีนักศึกษาจองคิว ระบบจะยิงงานมาให้อัตโนมัติ", "When a student books a queue slot, the system will assign it automatically.")}
                                         </p>
                                     </div>
                                 )}
@@ -1306,17 +1402,17 @@ export default function WorkerDashboardPage() {
                         <Card className="border border-default-200 bg-content1 shadow-md">
                             <CardBody className="p-4">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm text-default-600">ประเภทงานที่รับ:</span>
+                                    <span className="text-sm text-default-600">{t("ประเภทงานที่รับ:", "Accepting:")}</span>
                                     <div className="flex gap-2">
                                         {workerPreferences.accept_grading && (
                                             <Chip size="sm" color="success" variant="flat" startContent={<Icon icon="solar:clipboard-check-bold" className="mr-1" />}>
                                                 {/* <Icon icon="solar:clipboard-check-bold" className="mr-1" /> */}
-                                                ตรวจงาน
+                                                {t("ตรวจงาน", "Grading")}
                                             </Chip>
                                         )}
                                         {workerPreferences.accept_help && (
                                             <Chip size="sm" color="warning" variant="flat" startContent={<Icon icon="solar:hand-shake-bold" className="mr-1" />}>
-                                                ช่วยเหลือ
+                                                {t("ช่วยเหลือ", "Help")}
                                             </Chip>
                                         )}
                                     </div>
@@ -1339,7 +1435,7 @@ export default function WorkerDashboardPage() {
                     <ModalHeader>
                         <div className="flex items-center gap-3">
                             <Icon icon="solar:check-circle-bold" className="text-emerald-500 text-2xl" />
-                            <span>บันทึกผลการตรวจ</span>
+                            <span>{t("บันทึกผลการตรวจ", "Record result")}</span>
                         </div>
                     </ModalHeader>
                     <ModalBody>
@@ -1351,10 +1447,10 @@ export default function WorkerDashboardPage() {
                                         <div className="space-y-4">
                                             <div className="flex items-center justify-between">
                                                 <label className="text-sm font-medium text-default-700">
-                                                    กรอกคะแนนรายข้อ
+                                                    {t("กรอกคะแนนรายข้อ", "Enter sub-item scores")}
                                                 </label>
                                                 <Chip size="sm" color={totalScoredItemsCount === subItems.length ? "success" : "primary"} variant="flat">
-                                                    ลงแล้ว {totalScoredItemsCount}/{subItems.length} ข้อ
+                                                    {isEnglish ? `Scored ${totalScoredItemsCount}/${subItems.length} items` : `ลงแล้ว ${totalScoredItemsCount}/${subItems.length} ข้อ`}
                                                 </Chip>
                                             </div>
                                             
@@ -1393,7 +1489,7 @@ export default function WorkerDashboardPage() {
                                                                     <p className="truncate text-sm font-medium text-default-700">{item.name}</p>
                                                                     {isLocked && existingScore?.graded_by && (
                                                                         <p className="text-xs text-amber-600 mt-0.5">
-                                                                            ลงโดย {existingScore.graded_by.display_name}
+                                                                            {t("ลงโดย", "Scored by")} {existingScore.graded_by.display_name}
                                                                         </p>
                                                                     )}
                                                                 </div>
@@ -1479,7 +1575,7 @@ export default function WorkerDashboardPage() {
                                             {/* Total score summary */}
                                             {newScoredItemsCount > 0 && (
                                                 <div className="bg-blue-50 rounded-xl p-4 flex items-center justify-between">
-                                                    <span className="font-medium text-blue-700">คะแนนที่จะลงครั้งนี้ ({newScoredItemsCount} ข้อ)</span>
+                                                    <span className="font-medium text-blue-700">{isEnglish ? `Score to submit now (${newScoredItemsCount} items)` : `คะแนนที่จะลงครั้งนี้ (${newScoredItemsCount} ข้อ)`}</span>
                                                     <span className="text-2xl font-bold text-blue-600">
                                                         {totalSubItemScore.toFixed(1)}
                                                     </span>
@@ -1494,7 +1590,7 @@ export default function WorkerDashboardPage() {
                                                     <Icon icon="solar:medal-star-bold" className="text-xl text-amber-600" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-default-700">คะแนนรวม</p>
+                                                        <p className="text-sm font-medium text-default-700">{t("คะแนนรวม", "Total score")}</p>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <Input
@@ -1548,14 +1644,14 @@ export default function WorkerDashboardPage() {
                                 <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
                                     <div className="flex items-center gap-2 text-amber-700">
                                         <Icon icon="solar:info-circle-bold" className="text-xl" />
-                                        <span className="text-sm">การขอความช่วยเหลือไม่ต้องลงคะแนน</span>
+                                        <span className="text-sm">{t("การขอความช่วยเหลือไม่ต้องลงคะแนน", "Help requests do not require scoring.")}</span>
                                     </div>
                                 </div>
                             )}
 
                             <Input
-                                label="ความคิดเห็น/หมายเหตุ (ถ้ามี)"
-                                placeholder="เพิ่มความคิดเห็นหรือหมายเหตุ..."
+                                label={t("ความคิดเห็น/หมายเหตุ (ถ้ามี)", "Comment / note (optional)")}
+                                placeholder={t("เพิ่มความคิดเห็นหรือหมายเหตุ...", "Add a comment or note...")}
                                 value={completeForm.score_comment}
                                 onValueChange={(value) => setCompleteForm({ ...completeForm, score_comment: value })}
                             />
@@ -1563,14 +1659,14 @@ export default function WorkerDashboardPage() {
                     </ModalBody>
                     <ModalFooter>
                         <Button variant="flat" onPress={() => setIsCompleteModalOpen(false)}>
-                            ยกเลิก
+                            {t("ยกเลิก", "Cancel")}
                         </Button>
                         <Button 
                             color="success" 
                             onPress={handleCompleteBooking}
                             isLoading={isCompleting}
                         >
-                            บันทึกผล
+                            {t("บันทึกผล", "Save result")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -1582,16 +1678,16 @@ export default function WorkerDashboardPage() {
                     <ModalHeader>
                         <div className="flex items-center gap-3">
                             <Icon icon="solar:skip-next-bold" className="text-amber-500 text-2xl" />
-                            <span>ข้ามคิว</span>
+                            <span>{t("ข้ามคิว", "Skip queue")}</span>
                         </div>
                     </ModalHeader>
                     <ModalBody>
                         <p className="mb-4 text-default-600">
-                            คุณแน่ใจหรือไม่ที่จะข้ามคิวนี้? (เช่น นักศึกษาไม่อยู่ที่โต๊ะ)
+                            {t("คุณแน่ใจหรือไม่ที่จะข้ามคิวนี้? (เช่น นักศึกษาไม่อยู่ที่โต๊ะ)", "Are you sure you want to skip this queue item? (for example, the student is not at the desk)")}
                         </p>
                         <Input
-                            label="เหตุผล (ถ้ามี)"
-                            placeholder="ไม่พบนักศึกษา..."
+                            label={t("เหตุผล (ถ้ามี)", "Reason (optional)")}
+                            placeholder={t("ไม่พบนักศึกษา...", "Student not found...")}
                             labelPlacement="outside"
                             variant="bordered"
                             value={skipReason}
@@ -1600,14 +1696,14 @@ export default function WorkerDashboardPage() {
                     </ModalBody>
                     <ModalFooter>
                         <Button variant="flat" onPress={() => setIsSkipModalOpen(false)}>
-                            ยกเลิก
+                            {t("ยกเลิก", "Cancel")}
                         </Button>
                         <Button 
                             color="warning" 
                             onPress={handleSkipBooking}
                             isLoading={isSkipping}
                         >
-                            ข้ามคิว
+                            {t("ข้ามคิว", "Skip queue")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>

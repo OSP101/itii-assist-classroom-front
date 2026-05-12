@@ -27,6 +27,7 @@ import {
 import { Select, SelectItem } from "@heroui/select";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import attendanceService, {
     type AttendanceSession,
     type AttendanceRecord,
@@ -35,18 +36,43 @@ import attendanceService, {
 // Status display config
 const statusConfig: Record<
     string,
-    { label: string; color: "success" | "warning" | "danger" | "default"; icon: string }
+    {
+        label: string;
+        labelEn: string;
+        color: "success" | "warning" | "danger" | "default";
+        icon: string;
+    }
 > = {
-    present: { label: "มา", color: "success", icon: "solar:check-circle-bold" },
-    late: { label: "สาย", color: "warning", icon: "solar:clock-circle-bold" },
-    leave: { label: "ลา", color: "default", icon: "solar:document-bold" },
-    absent: { label: "ขาด", color: "danger", icon: "solar:close-circle-bold" },
+    present: {
+        label: "มา",
+        labelEn: "Present",
+        color: "success",
+        icon: "solar:check-circle-bold",
+    },
+    late: {
+        label: "สาย",
+        labelEn: "Late",
+        color: "warning",
+        icon: "solar:clock-circle-bold",
+    },
+    leave: {
+        label: "ลา",
+        labelEn: "On leave",
+        color: "default",
+        icon: "solar:document-bold",
+    },
+    absent: {
+        label: "ขาด",
+        labelEn: "Absent",
+        color: "danger",
+        icon: "solar:close-circle-bold",
+    },
 };
 
 // Format date for display
-function formatDate(dateString: string): string {
+function formatDate(dateString: string, isEnglish = false): string {
     const date = new Date(dateString);
-    return date.toLocaleDateString("th-TH", {
+    return date.toLocaleDateString(isEnglish ? "en-US" : "th-TH", {
         year: "numeric",
         month: "short",
         day: "numeric",
@@ -54,21 +80,30 @@ function formatDate(dateString: string): string {
 }
 
 // Format time
-function formatTime(dateString: string | null): string {
+function formatTime(dateString: string | null, isEnglish = false): string {
     if (!dateString) return "-";
     const date = new Date(dateString);
-    return date.toLocaleTimeString("th-TH", {
+    return date.toLocaleTimeString(isEnglish ? "en-US" : "th-TH", {
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
     });
 }
 
+function getStatusLabel(status: string, isEnglish = false): string {
+    const config = statusConfig[status];
+    if (!config) return status;
+    return isEnglish ? config.labelEn : config.label;
+}
+
 export default function AttendanceSummaryPage() {
     const params = useParams();
     const router = useRouter();
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
     const courseId = params.id as string;
     const sessionId = Number(params.sessionId);
+    const t = (thai: string, english: string) => (isEnglish ? english : thai);
 
     // State
     const [session, setSession] = useState<AttendanceSession | null>(null);
@@ -123,8 +158,8 @@ export default function AttendanceSummaryPage() {
         } catch (error) {
             console.error("Error fetching data:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถโหลดข้อมูลได้",
+                title: t("เกิดข้อผิดพลาด", "Error"),
+                description: t("ไม่สามารถโหลดข้อมูลได้", "Unable to load the data."),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -138,6 +173,12 @@ export default function AttendanceSummaryPage() {
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
+    useEffect(() => {
+        document.title = isEnglish
+            ? "Attendance Summary - ITII Assist Classroom"
+            : "สรุปการเช็คชื่อ - ITII Assist Classroom";
+    }, [isEnglish]);
 
     // Update record status
     const handleUpdateStatus = async () => {
@@ -158,8 +199,8 @@ export default function AttendanceSummaryPage() {
                 setNewStatus("");
                 setStatusNote("");
                 addToast({
-                    title: "สำเร็จ",
-                    description: "อัปเดตสถานะเรียบร้อย",
+                    title: t("สำเร็จ", "Updated"),
+                    description: t("อัปเดตสถานะเรียบร้อย", "Attendance status updated successfully."),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -168,8 +209,8 @@ export default function AttendanceSummaryPage() {
         } catch (error) {
             console.error("Error updating status:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถอัปเดตสถานะได้",
+                title: t("เกิดข้อผิดพลาด", "Error"),
+                description: t("ไม่สามารถอัปเดตสถานะได้", "Unable to update the attendance status."),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -183,12 +224,14 @@ export default function AttendanceSummaryPage() {
     const exportCSV = () => {
         if (!session || records.length === 0) return;
 
-        const headers = ["รหัสนักศึกษา", "ชื่อ-นามสกุล", "สถานะ", "เวลาเช็คชื่อ", "หมายเหตุ"];
+        const headers = isEnglish
+            ? ["Student ID", "Student name", "Status", "Check-in time", "Note"]
+            : ["รหัสนักศึกษา", "ชื่อ-นามสกุล", "สถานะ", "เวลาเช็คชื่อ", "หมายเหตุ"];
         const rows = records.map((r) => [
             r.student?.student_id || "",
             r.student?.full_name || "",
-            statusConfig[r.status]?.label || r.status,
-            r.check_in_time ? formatTime(r.check_in_time) : "-",
+            getStatusLabel(r.status, isEnglish),
+            r.check_in_time ? formatTime(r.check_in_time, isEnglish) : "-",
             r.note || "",
         ]);
 
@@ -201,7 +244,7 @@ export default function AttendanceSummaryPage() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `attendance_${session.title}_${formatDate(session.start_time)}.csv`;
+        a.download = `attendance_${session.title}_${formatDate(session.start_time, isEnglish)}.csv`;
         a.click();
         URL.revokeObjectURL(url);
     };
@@ -210,14 +253,14 @@ export default function AttendanceSummaryPage() {
         return (
             <div className="flex min-h-screen flex-col items-center justify-center bg-background text-foreground">
                 <Icon icon="solar:clipboard-remove-bold-duotone" className="mb-4 text-6xl text-default-300" />
-                <h2 className="text-xl font-semibold text-default-700">ไม่พบรอบการเช็คชื่อ</h2>
+                <h2 className="text-xl font-semibold text-default-700">{t("ไม่พบรอบการเช็คชื่อ", "Attendance session not found")}</h2>
                 <Button
                     color="primary"
                     variant="light"
                     className="mt-4"
                     onPress={() => router.back()}
                 >
-                    ย้อนกลับ
+                    {t("ย้อนกลับ", "Go back")}
                 </Button>
             </div>
         );
@@ -243,10 +286,10 @@ export default function AttendanceSummaryPage() {
                         <h1 className="text-xl font-bold text-foreground">{session.title}</h1>
                         <div className="flex items-center gap-2 mt-1">
                             <Chip size="sm" color="default" variant="flat">
-                                ปิดแล้ว
+                                {t("ปิดแล้ว", "Closed")}
                             </Chip>
                             <span className="text-sm text-default-500">
-                                {formatDate(session.start_time)}
+                                {formatDate(session.start_time, isEnglish)}
                             </span>
                             {session.section && (
                                 <Chip size="sm" variant="flat">
@@ -276,7 +319,7 @@ export default function AttendanceSummaryPage() {
                                 <Icon icon="solar:users-group-rounded-bold" className="text-2xl text-blue-600" />
                             </div>
                             <div>
-                                <p className="text-xs text-default-500">ทั้งหมด</p>
+                                <p className="text-xs text-default-500">{t("ทั้งหมด", "Total")}</p>
                                 <p className="text-2xl font-bold text-foreground">{stats.total}</p>
                             </div>
                         </div>
@@ -289,7 +332,7 @@ export default function AttendanceSummaryPage() {
                                 <Icon icon="solar:check-circle-bold" className="text-2xl text-emerald-600" />
                             </div>
                             <div>
-                                <p className="text-xs text-default-500">มา</p>
+                                <p className="text-xs text-default-500">{t("มา", "Present")}</p>
                                 <p className="text-2xl font-bold text-emerald-600">{stats.present}</p>
                             </div>
                         </div>
@@ -302,7 +345,7 @@ export default function AttendanceSummaryPage() {
                                 <Icon icon="solar:clock-circle-bold" className="text-2xl text-amber-600" />
                             </div>
                             <div>
-                                <p className="text-xs text-default-500">สาย</p>
+                                <p className="text-xs text-default-500">{t("สาย", "Late")}</p>
                                 <p className="text-2xl font-bold text-amber-600">{stats.late}</p>
                             </div>
                         </div>
@@ -315,7 +358,7 @@ export default function AttendanceSummaryPage() {
                                 <Icon icon="solar:document-bold" className="text-2xl text-default-600" />
                             </div>
                             <div>
-                                <p className="text-xs text-default-500">ลา</p>
+                                <p className="text-xs text-default-500">{t("ลา", "On leave")}</p>
                                 <p className="text-2xl font-bold text-default-600">{stats.leave}</p>
                             </div>
                         </div>
@@ -328,7 +371,7 @@ export default function AttendanceSummaryPage() {
                                 <Icon icon="solar:close-circle-bold" className="text-2xl text-red-600" />
                             </div>
                             <div>
-                                <p className="text-xs text-default-500">ขาด</p>
+                                <p className="text-xs text-default-500">{t("ขาด", "Absent")}</p>
                                 <p className="text-2xl font-bold text-red-600">{stats.absent}</p>
                             </div>
                         </div>
@@ -340,7 +383,7 @@ export default function AttendanceSummaryPage() {
             <Card className="mb-6 border border-default-200 shadow-sm">
                 <CardBody className="p-4">
                     <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-sm font-semibold text-default-700">อัตราการเข้าเรียน</h3>
+                        <h3 className="text-sm font-semibold text-default-700">{t("อัตราการเข้าเรียน", "Attendance rate")}</h3>
                         <span className="text-2xl font-bold text-blue-600">{attendanceRate.toFixed(1)}%</span>
                     </div>
                     <Progress
@@ -354,10 +397,10 @@ export default function AttendanceSummaryPage() {
             {/* Filters & Table */}
             <Card className="border border-default-200 shadow-sm">
                 <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <h3 className="text-lg font-semibold text-foreground">รายชื่อนักศึกษา</h3>
+                    <h3 className="text-lg font-semibold text-foreground">{t("รายชื่อนักศึกษา", "Student list")}</h3>
                     <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                         <Input
-                            placeholder="ค้นหา..."
+                            placeholder={t("ค้นหา...", "Search...")}
                             value={searchQuery}
                             onValueChange={setSearchQuery}
                             startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
@@ -366,24 +409,24 @@ export default function AttendanceSummaryPage() {
                             isClearable
                         />
                         <Select
-                            placeholder="สถานะ"
+                            placeholder={t("สถานะ", "Status")}
                             selectedKeys={[statusFilter]}
                             onSelectionChange={(keys) => setStatusFilter(Array.from(keys)[0] as string)}
                             className="w-full sm:w-32"
                             size="sm"
                         >
-                            <SelectItem key="all">ทั้งหมด</SelectItem>
-                            <SelectItem key="present">มา</SelectItem>
-                            <SelectItem key="late">สาย</SelectItem>
-                            <SelectItem key="leave">ลา</SelectItem>
-                            <SelectItem key="absent">ขาด</SelectItem>
+                            <SelectItem key="all">{t("ทั้งหมด", "All")}</SelectItem>
+                            <SelectItem key="present">{t("มา", "Present")}</SelectItem>
+                            <SelectItem key="late">{t("สาย", "Late")}</SelectItem>
+                            <SelectItem key="leave">{t("ลา", "On leave")}</SelectItem>
+                            <SelectItem key="absent">{t("ขาด", "Absent")}</SelectItem>
                         </Select>
                     </div>
                 </CardHeader>
                 <CardBody className="p-0">
                     <div className="overflow-x-auto">
                         <Table
-                            aria-label="Student attendance table"
+                            aria-label={t("ตารางเช็คชื่อนักศึกษา", "Student attendance table")}
                             removeWrapper
                             classNames={{
                                 th: "bg-content2 text-default-600 font-semibold text-sm",
@@ -391,12 +434,12 @@ export default function AttendanceSummaryPage() {
                             }}
                         >
                             <TableHeader>
-                                <TableColumn>นักศึกษา</TableColumn>
-                                <TableColumn>เวลาเช็คชื่อ</TableColumn>
-                                <TableColumn>สถานะ</TableColumn>
-                                <TableColumn>การยืนยัน</TableColumn>
-                                <TableColumn>หมายเหตุ</TableColumn>
-                                <TableColumn align="center">จัดการ</TableColumn>
+                                <TableColumn>{t("นักศึกษา", "Student")}</TableColumn>
+                                <TableColumn>{t("เวลาเช็คชื่อ", "Check-in time")}</TableColumn>
+                                <TableColumn>{t("สถานะ", "Status")}</TableColumn>
+                                <TableColumn>{t("การยืนยัน", "Verification")}</TableColumn>
+                                <TableColumn>{t("หมายเหตุ", "Note")}</TableColumn>
+                                <TableColumn align="center">{t("จัดการ", "Manage")}</TableColumn>
                             </TableHeader>
                             <TableBody
                                 emptyContent={
@@ -405,7 +448,7 @@ export default function AttendanceSummaryPage() {
                                             icon="solar:users-group-rounded-linear"
                                             className="mx-auto mb-3 text-5xl text-default-300"
                                         />
-                                        <p className="text-default-400">ไม่พบรายการที่ตรงกับการค้นหา</p>
+                                        <p className="text-default-400">{t("ไม่พบรายการที่ตรงกับการค้นหา", "No records match your search")}</p>
                                     </div>
                                 }
                             >
@@ -440,7 +483,7 @@ export default function AttendanceSummaryPage() {
                                                         : "text-default-400"
                                                 }
                                             >
-                                                {formatTime(record.check_in_time)}
+                                                {formatTime(record.check_in_time, isEnglish)}
                                             </span>
                                         </TableCell>
                                         <TableCell>
@@ -455,13 +498,13 @@ export default function AttendanceSummaryPage() {
                                                     />
                                                 }
                                             >
-                                                {statusConfig[record.status].label}
+                                                {getStatusLabel(record.status, isEnglish)}
                                             </Chip>
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2">
                                                 {record.pin_verified && (
-                                                    <Tooltip content="ยืนยัน PIN แล้ว">
+                                                    <Tooltip content={t("ยืนยัน PIN แล้ว", "PIN verified")}> 
                                                         <Chip size="sm" color="primary" variant="flat">
                                                             <Icon icon="solar:key-bold" className="text-xs" />
                                                         </Chip>
@@ -469,7 +512,10 @@ export default function AttendanceSummaryPage() {
                                                 )}
                                                 {record.location_verified && (
                                                     <Tooltip
-                                                        content={`ยืนยันตำแหน่ง (${record.distance_meters?.toFixed(0) || "-"}m)`}
+                                                        content={t(
+                                                            `ยืนยันตำแหน่ง (${record.distance_meters?.toFixed(0) || "-"}m)`,
+                                                            `Location verified (${record.distance_meters?.toFixed(0) || "-"}m)`
+                                                        )}
                                                     >
                                                         <Chip size="sm" color="success" variant="flat">
                                                             <Icon icon="solar:map-point-bold" className="text-xs" />
@@ -487,7 +533,7 @@ export default function AttendanceSummaryPage() {
                                             </span>
                                         </TableCell>
                                         <TableCell>
-                                            <Tooltip content="แก้ไขสถานะ">
+                                            <Tooltip content={t("แก้ไขสถานะ", "Edit status")}>
                                                 <Button
                                                     isIconOnly
                                                     size="sm"
@@ -514,7 +560,7 @@ export default function AttendanceSummaryPage() {
             {/* Status Update Modal */}
             <Modal isOpen={isStatusModalOpen} onClose={() => setIsStatusModalOpen(false)}>
                 <ModalContent>
-                    <ModalHeader>แก้ไขสถานะการเช็คชื่อ</ModalHeader>
+                    <ModalHeader>{t("แก้ไขสถานะการเช็คชื่อ", "Edit attendance status")}</ModalHeader>
                     <ModalBody>
                         {selectedRecord && (
                             <div className="space-y-4">
@@ -534,7 +580,7 @@ export default function AttendanceSummaryPage() {
                                 </div>
 
                                 <Select
-                                    label="สถานะ"
+                                    label={t("สถานะ", "Status")}
                                     selectedKeys={[newStatus]}
                                     onSelectionChange={(keys) =>
                                         setNewStatus(Array.from(keys)[0] as string)
@@ -546,7 +592,7 @@ export default function AttendanceSummaryPage() {
                                             <Icon icon="solar:check-circle-bold" className="text-emerald-500" />
                                         }
                                     >
-                                        มา
+                                        {t("มา", "Present")}
                                     </SelectItem>
                                     <SelectItem
                                         key="late"
@@ -554,7 +600,7 @@ export default function AttendanceSummaryPage() {
                                             <Icon icon="solar:clock-circle-bold" className="text-amber-500" />
                                         }
                                     >
-                                        สาย
+                                        {t("สาย", "Late")}
                                     </SelectItem>
                                     <SelectItem
                                         key="leave"
@@ -562,7 +608,7 @@ export default function AttendanceSummaryPage() {
                                             <Icon icon="solar:document-bold" className="text-default-500" />
                                         }
                                     >
-                                        ลา
+                                        {t("ลา", "On leave")}
                                     </SelectItem>
                                     <SelectItem
                                         key="absent"
@@ -570,13 +616,13 @@ export default function AttendanceSummaryPage() {
                                             <Icon icon="solar:close-circle-bold" className="text-red-500" />
                                         }
                                     >
-                                        ขาด
+                                        {t("ขาด", "Absent")}
                                     </SelectItem>
                                 </Select>
 
                                 <Input
-                                    label="หมายเหตุ (ถ้ามี)"
-                                    placeholder="ระบุเหตุผล..."
+                                    label={t("หมายเหตุ (ถ้ามี)", "Note (optional)")}
+                                    placeholder={t("ระบุเหตุผล...", "Add a note...")}
                                     value={statusNote}
                                     onValueChange={setStatusNote}
                                 />
@@ -585,14 +631,14 @@ export default function AttendanceSummaryPage() {
                     </ModalBody>
                     <ModalFooter>
                         <Button variant="flat" onPress={() => setIsStatusModalOpen(false)}>
-                            ยกเลิก
+                            {t("ยกเลิก", "Cancel")}
                         </Button>
                         <Button
                             color="primary"
                             onPress={handleUpdateStatus}
                             isLoading={isUpdatingStatus}
                         >
-                            บันทึก
+                            {t("บันทึก", "Save")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>

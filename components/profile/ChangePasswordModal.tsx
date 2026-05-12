@@ -7,6 +7,7 @@ import { Button } from "@heroui/button";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { Icon } from "@iconify/react";
 import { addToast } from "@heroui/toast";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { authService } from "@/services";
 
 interface ChangePasswordModalProps {
@@ -16,6 +17,64 @@ interface ChangePasswordModalProps {
 
 function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
   const router = useRouter();
+  const { language } = useGlobalSettings();
+  const copy = language === "en"
+    ? {
+        incompleteTitle: "Missing information",
+        incompleteDescription: "Please complete all required fields.",
+        mismatchTitle: "Passwords do not match",
+        mismatchDescription: "The new password and confirmation do not match.",
+        invalidTitle: "Password requirements not met",
+        invalidDescription: "Please review the password rules below.",
+        successTitle: "Password changed",
+        successDescription: "Your password was updated. Please sign in again.",
+        errorTitle: "Something went wrong",
+        errorDescription: "Could not change the password.",
+        modalTitle: "Change password",
+        modalDescription: "Enter your current password and a new password.",
+        currentPassword: "Current password",
+        currentPasswordPlaceholder: "Enter your current password",
+        newPassword: "New password",
+        newPasswordPlaceholder: "Enter your new password",
+        confirmPassword: "Confirm new password",
+        confirmPasswordPlaceholder: "Enter the new password again",
+        passwordMismatchInline: "Passwords do not match",
+        passwordRequirements: "Password requirements:",
+        minLength: "At least 8 characters",
+        lowercase: "Contains a lowercase letter (a-z)",
+        uppercase: "Contains an uppercase letter (A-Z)",
+        specialChar: "Contains a special character (!@#$%^&* etc.)",
+        cancel: "Cancel",
+        submit: "Change password",
+      }
+    : {
+        incompleteTitle: "ข้อมูลไม่ครบ",
+        incompleteDescription: "กรุณากรอกข้อมูลให้ครบถ้วน",
+        mismatchTitle: "รหัสผ่านไม่ตรงกัน",
+        mismatchDescription: "รหัสผ่านใหม่และยืนยันรหัสผ่านไม่ตรงกัน",
+        invalidTitle: "รหัสผ่านไม่ผ่านเงื่อนไข",
+        invalidDescription: "กรุณาตรวจสอบเงื่อนไขรหัสผ่าน",
+        successTitle: "สำเร็จ",
+        successDescription: "เปลี่ยนรหัสผ่านเรียบร้อยแล้ว กรุณาเข้าสู่ระบบใหม่",
+        errorTitle: "เกิดข้อผิดพลาด",
+        errorDescription: "ไม่สามารถเปลี่ยนรหัสผ่านได้",
+        modalTitle: "เปลี่ยนรหัสผ่าน",
+        modalDescription: "กรุณากรอกรหัสผ่านปัจจุบันและรหัสผ่านใหม่",
+        currentPassword: "รหัสผ่านปัจจุบัน",
+        currentPasswordPlaceholder: "กรอกรหัสผ่านปัจจุบัน",
+        newPassword: "รหัสผ่านใหม่",
+        newPasswordPlaceholder: "กรอกรหัสผ่านใหม่",
+        confirmPassword: "ยืนยันรหัสผ่านใหม่",
+        confirmPasswordPlaceholder: "กรอกรหัสผ่านใหม่อีกครั้ง",
+        passwordMismatchInline: "รหัสผ่านไม่ตรงกัน",
+        passwordRequirements: "ข้อกำหนดรหัสผ่าน:",
+        minLength: "อย่างน้อย 8 ตัวอักษร",
+        lowercase: "มีตัวอักษรพิมพ์เล็ก (a-z)",
+        uppercase: "มีตัวอักษรพิมพ์ใหญ่ (A-Z)",
+        specialChar: "มีอักขระพิเศษ (!@#$%^&* ฯลฯ)",
+        cancel: "ยกเลิก",
+        submit: "เปลี่ยนรหัสผ่าน",
+      };
   
   // Password form state - local to this component
   const [currentPassword, setCurrentPassword] = useState("");
@@ -58,8 +117,8 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
       addToast({
-        title: "ข้อมูลไม่ครบ",
-        description: "กรุณากรอกข้อมูลให้ครบถ้วน",
+        title: copy.incompleteTitle,
+        description: copy.incompleteDescription,
         color: "warning",
         timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -69,8 +128,8 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
     
     if (newPassword !== confirmPassword) {
       addToast({
-        title: "รหัสผ่านไม่ตรงกัน",
-        description: "รหัสผ่านใหม่และยืนยันรหัสผ่านไม่ตรงกัน",
+        title: copy.mismatchTitle,
+        description: copy.mismatchDescription,
         color: "danger",
         timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -80,8 +139,8 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
     
     if (!isPasswordValid) {
       addToast({
-        title: "รหัสผ่านไม่ผ่านเงื่อนไข",
-        description: "กรุณาตรวจสอบเงื่อนไขรหัสผ่าน",
+        title: copy.invalidTitle,
+        description: copy.invalidDescription,
         color: "warning",
         timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -95,8 +154,8 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
       
       if (result.success) {
         addToast({
-          title: "สำเร็จ",
-          description: "เปลี่ยนรหัสผ่านเรียบร้อยแล้ว กรุณาเข้าสู่ระบบใหม่",
+          title: copy.successTitle,
+          description: copy.successDescription,
           color: "success",
           timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -109,8 +168,8 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
         }, 2000);
       } else {
         addToast({
-          title: "เกิดข้อผิดพลาด",
-          description: result.error || "ไม่สามารถเปลี่ยนรหัสผ่านได้",
+          title: copy.errorTitle,
+          description: result.error || copy.errorDescription,
           color: "danger",
           timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -119,8 +178,8 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
     } catch (error) {
       console.error("Change password error:", error);
       addToast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถเปลี่ยนรหัสผ่านได้",
+        title: copy.errorTitle,
+        description: copy.errorDescription,
         color: "danger",
         timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -138,14 +197,14 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
             <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
               <Icon icon="solar:key-bold" className="text-xl text-white" />
             </div>
-            <span>เปลี่ยนรหัสผ่าน</span>
+            <span>{copy.modalTitle}</span>
           </div>
-          <p className="text-sm text-default-500 font-normal ml-12">กรุณากรอกรหัสผ่านปัจจุบันและรหัสผ่านใหม่</p>
+          <p className="text-sm text-default-500 font-normal ml-12">{copy.modalDescription}</p>
         </ModalHeader>
         <ModalBody className="gap-4">
           <Input
-            label="รหัสผ่านปัจจุบัน"
-            placeholder="กรอกรหัสผ่านปัจจุบัน"
+            label={copy.currentPassword}
+            placeholder={copy.currentPasswordPlaceholder}
             type={showCurrentPassword ? "text" : "password"}
             value={currentPassword}
             onValueChange={setCurrentPassword}
@@ -160,8 +219,8 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
           />
           
           <Input
-            label="รหัสผ่านใหม่"
-            placeholder="กรอกรหัสผ่านใหม่"
+            label={copy.newPassword}
+            placeholder={copy.newPasswordPlaceholder}
             type={showNewPassword ? "text" : "password"}
             value={newPassword}
             onValueChange={setNewPassword}
@@ -178,15 +237,15 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
           
           
           <Input
-            label="ยืนยันรหัสผ่านใหม่"
-            placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
+            label={copy.confirmPassword}
+            placeholder={copy.confirmPasswordPlaceholder}
             type={showConfirmPassword ? "text" : "password"}
             value={confirmPassword}
             onValueChange={setConfirmPassword}
             variant="bordered"
             labelPlacement="outside"
             isInvalid={confirmPassword !== "" && confirmPassword !== newPassword}
-            errorMessage={confirmPassword !== "" && confirmPassword !== newPassword ? "รหัสผ่านไม่ตรงกัน" : ""}
+            errorMessage={confirmPassword !== "" && confirmPassword !== newPassword ? copy.passwordMismatchInline : ""}
             startContent={<Icon icon="solar:lock-password-linear" className="text-default-400" />}
             endContent={
               <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
@@ -197,7 +256,7 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
 
           {/* Password Requirements */}
           <div className="bg-default-100 rounded-lg p-3 space-y-2">
-            <p className="text-xs font-medium text-default-600 mb-2">ข้อกำหนดรหัสผ่าน:</p>
+            <p className="text-xs font-medium text-default-600 mb-2">{copy.passwordRequirements}</p>
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
                 <Icon 
@@ -205,7 +264,7 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
                   className={passwordValidation.minLength ? "text-success" : "text-default-400"} 
                 />
                 <span className={`text-xs ${passwordValidation.minLength ? "text-success" : "text-default-500"}`}>
-                  อย่างน้อย 8 ตัวอักษร
+                  {copy.minLength}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -214,7 +273,7 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
                   className={passwordValidation.hasLowercase ? "text-success" : "text-default-400"} 
                 />
                 <span className={`text-xs ${passwordValidation.hasLowercase ? "text-success" : "text-default-500"}`}>
-                  มีตัวอักษรพิมพ์เล็ก (a-z)
+                  {copy.lowercase}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -223,7 +282,7 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
                   className={passwordValidation.hasUppercase ? "text-success" : "text-default-400"} 
                 />
                 <span className={`text-xs ${passwordValidation.hasUppercase ? "text-success" : "text-default-500"}`}>
-                  มีตัวอักษรพิมพ์ใหญ่ (A-Z)
+                  {copy.uppercase}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -232,7 +291,7 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
                   className={passwordValidation.hasSpecialChar ? "text-success" : "text-default-400"} 
                 />
                 <span className={`text-xs ${passwordValidation.hasSpecialChar ? "text-success" : "text-default-500"}`}>
-                  มีอักขระพิเศษ (!@#$%^&* ฯลฯ)
+                  {copy.specialChar}
                 </span>
               </div>
             </div>
@@ -240,7 +299,7 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
         </ModalBody>
         <ModalFooter>
           <Button variant="light" onPress={handleClose}>
-            ยกเลิก
+            {copy.cancel}
           </Button>
           <Button 
             color="primary"
@@ -250,7 +309,7 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
             isDisabled={!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword || !isPasswordValid}
             startContent={!isChangingPassword && <Icon icon="solar:key-linear" />}
           >
-            เปลี่ยนรหัสผ่าน
+            {copy.submit}
           </Button>
         </ModalFooter>
       </ModalContent>

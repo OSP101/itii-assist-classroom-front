@@ -21,7 +21,7 @@ export const publicFooterGroups: Array<{
         icon: "solar:question-circle-bold",
       },
       {
-        label: "Documentation",
+        label: "คู่มือการใช้งาน",
         href: "/docs",
         description: "คู่มือการใช้งานระบบสำหรับนักศึกษา, TA, และผู้สอน",
         icon: "solar:book-bookmark-bold",

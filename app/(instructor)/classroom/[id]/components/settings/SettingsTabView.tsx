@@ -9,6 +9,7 @@ import { Switch } from "@heroui/switch";
 import { Slider } from "@heroui/slider";
 import { Divider } from "@heroui/divider";
 import { Icon } from "@iconify/react";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import type { Course } from "@/services/course.service";
 import type { SettingsFormData, UseSettingsTabReturn } from "./useSettingsTab";
 
@@ -68,6 +69,16 @@ function ReadField({ icon, value }: { icon: string; value: string }) {
     );
 }
 
+function formatSettingsDate(dateValue: string | null | undefined, isEnglish: boolean) {
+    if (!dateValue) return "-";
+
+    return new Date(dateValue).toLocaleDateString(isEnglish ? "en-US" : "th-TH", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+    });
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 function SettingsTabViewComponent({
     course,
@@ -85,6 +96,8 @@ function SettingsTabViewComponent({
     onExportAll,
     getSemesterText,
 }: SettingsTabViewProps) {
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
     const thresholdColor =
         formData.attention_threshold < 50 ? "danger" : formData.attention_threshold < 70 ? "warning" : "success";
     const thresholdBarColor =
@@ -107,7 +120,7 @@ function SettingsTabViewComponent({
                             </div>
                             <div>
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <h1 className="text-xl font-bold">ตั้งค่ารายวิชา</h1>
+                                    <h1 className="text-xl font-bold">{isEnglish ? "Course settings" : "ตั้งค่ารายวิชา"}</h1>
                                     <Chip
                                         size="sm"
                                         className={`border-0 text-xs ${course.is_active ? "bg-emerald-500/30 text-emerald-100" : "bg-red-500/30 text-red-100"}`}
@@ -115,7 +128,7 @@ function SettingsTabViewComponent({
                                             <div className={`w-1.5 h-1.5 rounded-full ${course.is_active ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
                                         }
                                     >
-                                        {course.is_active ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+                                        {course.is_active ? (isEnglish ? "Active" : "เปิดใช้งาน") : (isEnglish ? "Closed" : "ปิดใช้งาน")}
                                     </Chip>
                                 </div>
                                 <p className="text-white/60 text-sm">{course.code} · {getSemesterText(course.semester)} · {course.year}</p>
@@ -130,7 +143,7 @@ function SettingsTabViewComponent({
                                 onPress={onStartEditing}
                                 size="sm"
                             >
-                                แก้ไขข้อมูล
+                                {isEnglish ? "Edit details" : "แก้ไขข้อมูล"}
                             </Button>
                         ) : (
                             <div className="flex gap-2">
@@ -139,7 +152,7 @@ function SettingsTabViewComponent({
                                     className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
                                     onPress={onCancel}
                                 >
-                                    ยกเลิก
+                                    {isEnglish ? "Cancel" : "ยกเลิก"}
                                 </Button>
                                 <Button
                                     size="sm"
@@ -148,7 +161,7 @@ function SettingsTabViewComponent({
                                     startContent={!isSaving && <Icon icon="solar:check-circle-bold" />}
                                     onPress={onSave}
                                 >
-                                    บันทึก
+                                    {isEnglish ? "Save" : "บันทึก"}
                                 </Button>
                             </div>
                         )}
@@ -158,19 +171,19 @@ function SettingsTabViewComponent({
                     <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-white/10">
                         <div className="flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1 text-xs text-white/80">
                             <Icon icon="solar:users-group-rounded-bold" className="text-sm" />
-                            {stats.totalStudents} นักศึกษา
+                            {stats.totalStudents} {isEnglish ? "students" : "นักศึกษา"}
                         </div>
                         <div className="flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1 text-xs text-white/80">
                             <Icon icon="solar:notebook-bold" className="text-sm" />
-                            {stats.sectionsCount} กลุ่มเรียน
+                            {stats.sectionsCount} {isEnglish ? "sections" : "กลุ่มเรียน"}
                         </div>
                         <div className="flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1 text-xs text-white/80">
                             <Icon icon="solar:user-speak-bold" className="text-sm" />
-                            {stats.instructorsCount} อาจารย์
+                            {stats.instructorsCount} {isEnglish ? "instructors" : "อาจารย์"}
                         </div>
                         <div className="flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1 text-xs text-white/80">
                             <Icon icon="solar:star-bold" className="text-sm" />
-                            {stats.tasCount} ผู้ช่วยสอน
+                            {stats.tasCount} {isEnglish ? "teaching assistants" : "ผู้ช่วยสอน"}
                         </div>
                     </div>
                 </CardBody>
@@ -180,8 +193,8 @@ function SettingsTabViewComponent({
             <Card className="border border-default-200 bg-content1 shadow-sm">
                 <SectionCardHeader
                     icon="solar:document-text-bold"
-                    title="ข้อมูลรายวิชา"
-                    subtitle="แก้ไขข้อมูลพื้นฐานของรายวิชา"
+                    title={isEnglish ? "Course information" : "ข้อมูลรายวิชา"}
+                    subtitle={isEnglish ? "Edit the core details of this course" : "แก้ไขข้อมูลพื้นฐานของรายวิชา"}
                     gradientFrom="from-blue-500"
                     gradientTo="to-indigo-600"
                 />
@@ -189,12 +202,12 @@ function SettingsTabViewComponent({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Course Code */}
                         <div className="space-y-1.5">
-                            <label className="text-xs font-medium uppercase tracking-wide text-default-500">รหัสวิชา</label>
+                            <label className="text-xs font-medium uppercase tracking-wide text-default-500">{isEnglish ? "Course code" : "รหัสวิชา"}</label>
                             {isEditing ? (
                                 <Input
                                     value={formData.code}
                                     onValueChange={(v) => onUpdateField("code", v)}
-                                    placeholder="เช่น 01076001"
+                                    placeholder={isEnglish ? "e.g. 01076001" : "เช่น 01076001"}
                                     variant="bordered"
                                     size="sm"
                                     startContent={<Icon icon="solar:hashtag-bold" className="text-sm text-default-400" />}
@@ -207,12 +220,12 @@ function SettingsTabViewComponent({
 
                         {/* Course Name */}
                         <div className="space-y-1.5">
-                            <label className="text-xs font-medium uppercase tracking-wide text-default-500">ชื่อวิชา</label>
+                            <label className="text-xs font-medium uppercase tracking-wide text-default-500">{isEnglish ? "Course name" : "ชื่อวิชา"}</label>
                             {isEditing ? (
                                 <Input
                                     value={formData.name}
                                     onValueChange={(v) => onUpdateField("name", v)}
-                                    placeholder="ชื่อรายวิชา"
+                                    placeholder={isEnglish ? "Course name" : "ชื่อรายวิชา"}
                                     variant="bordered"
                                     size="sm"
                                     startContent={<Icon icon="solar:book-bold" className="text-sm text-default-400" />}
@@ -225,13 +238,13 @@ function SettingsTabViewComponent({
 
                         {/* Academic Year */}
                         <div className="space-y-1.5">
-                            <label className="text-xs font-medium uppercase tracking-wide text-default-500">ปีการศึกษา</label>
+                            <label className="text-xs font-medium uppercase tracking-wide text-default-500">{isEnglish ? "Academic year" : "ปีการศึกษา"}</label>
                             {isEditing ? (
                                 <Input
                                     type="number"
                                     value={String(formData.year)}
                                     onValueChange={(v) => onUpdateField("year", parseInt(v) || formData.year)}
-                                    placeholder="พ.ศ."
+                                    placeholder={isEnglish ? "Academic year" : "พ.ศ."}
                                     variant="bordered"
                                     size="sm"
                                     startContent={<Icon icon="solar:calendar-bold" className="text-sm text-default-400" />}
@@ -244,7 +257,7 @@ function SettingsTabViewComponent({
 
                         {/* Semester */}
                         <div className="space-y-1.5">
-                            <label className="text-xs font-medium uppercase tracking-wide text-default-500">ภาคเรียน</label>
+                            <label className="text-xs font-medium uppercase tracking-wide text-default-500">{isEnglish ? "Semester" : "ภาคเรียน"}</label>
                             {isEditing ? (
                                 <div className="flex gap-2">
                                     {[1, 2, 3].map((sem) => (
@@ -256,7 +269,7 @@ function SettingsTabViewComponent({
                                             className={formData.semester === sem ? "flex-1 bg-linear-to-r from-blue-400 to-indigo-500 text-white" : "flex-1 border-default-300 bg-content1 text-default-600"}
                                             onPress={() => onUpdateField("semester", sem)}
                                         >
-                                            {sem === 3 ? "ฤดูร้อน" : `ภาค ${sem}`}
+                                            {sem === 3 ? (isEnglish ? "Summer" : "ฤดูร้อน") : (isEnglish ? `Semester ${sem}` : `ภาค ${sem}`)}
                                         </Button>
                                     ))}
                                 </div>
@@ -267,12 +280,12 @@ function SettingsTabViewComponent({
 
                         {/* Description */}
                         <div className="space-y-1.5 md:col-span-2">
-                            <label className="text-xs font-medium uppercase tracking-wide text-default-500">คำอธิบายรายวิชา</label>
+                            <label className="text-xs font-medium uppercase tracking-wide text-default-500">{isEnglish ? "Course description" : "คำอธิบายรายวิชา"}</label>
                             {isEditing ? (
                                 <Textarea
                                     value={formData.description}
                                     onValueChange={(v) => onUpdateField("description", v)}
-                                    placeholder="คำอธิบายเพิ่มเติม (ไม่บังคับ)"
+                                    placeholder={isEnglish ? "Additional description (optional)" : "คำอธิบายเพิ่มเติม (ไม่บังคับ)"}
                                     variant="bordered"
                                     minRows={2}
                                     classNames={{ inputWrapper: "border-default-300 bg-content1" }}
@@ -281,7 +294,7 @@ function SettingsTabViewComponent({
                                 <div className="min-h-15 rounded-lg border border-default-200 bg-content2 px-3 py-2.5">
                                     {course.description
                                         ? <p className="text-sm text-default-700">{course.description}</p>
-                                        : <p className="text-sm italic text-default-400">ไม่มีคำอธิบาย</p>
+                                        : <p className="text-sm italic text-default-400">{isEnglish ? "No description provided" : "ไม่มีคำอธิบาย"}</p>
                                     }
                                 </div>
                             )}
@@ -293,7 +306,13 @@ function SettingsTabViewComponent({
                                 <div className="flex items-start gap-2">
                                     <Icon icon="solar:info-circle-bold" className="text-lg text-amber-600 mt-0.5 shrink-0" />
                                     <p className="text-sm text-amber-700">
-                                        การเปลี่ยน<strong>รหัสวิชา / ปี / ภาคเรียน</strong> ระบบจะตรวจสอบว่าไม่มีรายวิชาซ้ำ หากพบรายวิชาซ้ำจะไม่สามารถบันทึกได้
+                                        {isEnglish
+                                            ? <>
+                                                Updating <strong>course code / academic year / semester</strong> will trigger a duplicate-course check. The form cannot be saved if a duplicate course already exists.
+                                            </>
+                                            : <>
+                                                การเปลี่ยน<strong>รหัสวิชา / ปี / ภาคเรียน</strong> ระบบจะตรวจสอบว่าไม่มีรายวิชาซ้ำ หากพบรายวิชาซ้ำจะไม่สามารถบันทึกได้
+                                            </>}
                                     </p>
                                 </div>
                             </div>
@@ -309,14 +328,14 @@ function SettingsTabViewComponent({
                 <Card className="border border-default-200 bg-content1 shadow-sm">
                     <SectionCardHeader
                         icon="solar:bell-bold"
-                        title="เกณฑ์การแจ้งเตือน"
-                        subtitle="ไฮไลท์นักศึกษาที่ต้องดูแลเป็นพิเศษ"
+                        title={isEnglish ? "Attention threshold" : "เกณฑ์การแจ้งเตือน"}
+                        subtitle={isEnglish ? "Highlight students who may need additional support" : "ไฮไลท์นักศึกษาที่ต้องดูแลเป็นพิเศษ"}
                         gradientFrom="from-amber-500"
                         gradientTo="to-orange-600"
                     />
                     <CardBody className="p-5 space-y-4">
                         <div className="flex items-center justify-between">
-                            <p className="text-sm text-default-600">นักศึกษาที่คะแนนรวมต่ำกว่า</p>
+                            <p className="text-sm text-default-600">{isEnglish ? "Highlight students whose total score is below" : "นักศึกษาที่คะแนนรวมต่ำกว่า"}</p>
                             <Chip size="sm" color={thresholdColor} variant="flat" className="font-bold">
                                 {formData.attention_threshold}%
                             </Chip>
@@ -348,7 +367,7 @@ function SettingsTabViewComponent({
                                     />
                                 </div>
                                 <p className="text-xs text-default-500">
-                                    จะถูกไฮไลท์ในรายการ &quot;นักศึกษาที่ควรได้รับการดูแลเพิ่มเติม&quot;
+                                    {isEnglish ? "These students will be highlighted in the at-risk student list." : "จะถูกไฮไลท์ในรายการ \"นักศึกษาที่ควรได้รับการดูแลเพิ่มเติม\""}
                                 </p>
                             </div>
                         )}
@@ -359,8 +378,8 @@ function SettingsTabViewComponent({
                 <Card className="border border-default-200 bg-content1 shadow-sm">
                     <SectionCardHeader
                         icon={formData.is_active ? "solar:check-circle-bold" : "solar:close-circle-bold"}
-                        title="สถานะรายวิชา"
-                        subtitle="เปิด/ปิดการใช้งานรายวิชา"
+                        title={isEnglish ? "Course status" : "สถานะรายวิชา"}
+                        subtitle={isEnglish ? "Open or close access to this course" : "เปิด/ปิดการใช้งานรายวิชา"}
                         gradientFrom={formData.is_active ? "from-emerald-500" : "from-red-500"}
                         gradientTo={formData.is_active ? "to-teal-600" : "to-rose-600"}
                     />
@@ -368,12 +387,12 @@ function SettingsTabViewComponent({
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-medium text-foreground">
-                                    {formData.is_active ? "เปิดใช้งานอยู่" : "ปิดใช้งานอยู่"}
+                                    {formData.is_active ? (isEnglish ? "Currently active" : "เปิดใช้งานอยู่") : (isEnglish ? "Currently closed" : "ปิดใช้งานอยู่")}
                                 </p>
                                 <p className="mt-0.5 text-xs text-default-500">
                                     {formData.is_active
-                                        ? "นักศึกษาและ TA สามารถเข้าถึงรายวิชาได้"
-                                        : "นักศึกษาและ TA ไม่สามารถเข้าถึงรายวิชาได้"}
+                                        ? (isEnglish ? "Students and TAs can access this course." : "นักศึกษาและ TA สามารถเข้าถึงรายวิชาได้")
+                                        : (isEnglish ? "Students and TAs cannot access this course." : "นักศึกษาและ TA ไม่สามารถเข้าถึงรายวิชาได้")}
                                 </p>
                             </div>
                             {isEditing ? (
@@ -392,7 +411,7 @@ function SettingsTabViewComponent({
                                         <Icon icon={formData.is_active ? "solar:check-circle-bold" : "solar:close-circle-bold"} />
                                     }
                                 >
-                                    {formData.is_active ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+                                    {formData.is_active ? (isEnglish ? "Active" : "เปิดใช้งาน") : (isEnglish ? "Closed" : "ปิดใช้งาน")}
                                 </Chip>
                             )}
                         </div>
@@ -402,11 +421,11 @@ function SettingsTabViewComponent({
                                 <div className="flex items-start gap-2">
                                     <Icon icon="solar:danger-triangle-bold" className="text-lg text-red-600 mt-0.5 shrink-0" />
                                     <div>
-                                        <p className="text-sm font-medium text-red-800">คำเตือน: การปิดใช้งานรายวิชา</p>
+                                        <p className="text-sm font-medium text-red-800">{isEnglish ? "Warning: closing this course" : "คำเตือน: การปิดใช้งานรายวิชา"}</p>
                                         <ul className="text-xs text-red-600 mt-1 space-y-0.5 list-disc list-inside">
-                                            <li>นักศึกษาจะไม่เห็นรายวิชาในรายการ</li>
-                                            <li>ผู้ช่วยสอนจะไม่สามารถเข้าถึงได้</li>
-                                            <li>ข้อมูลทั้งหมดยังคงอยู่ และสามารถเปิดได้อีกครั้ง</li>
+                                            <li>{isEnglish ? "Students will no longer see this course in their list." : "นักศึกษาจะไม่เห็นรายวิชาในรายการ"}</li>
+                                            <li>{isEnglish ? "Teaching assistants will lose access." : "ผู้ช่วยสอนจะไม่สามารถเข้าถึงได้"}</li>
+                                            <li>{isEnglish ? "All data will remain intact and the course can be reopened later." : "ข้อมูลทั้งหมดยังคงอยู่ และสามารถเปิดได้อีกครั้ง"}</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -420,8 +439,8 @@ function SettingsTabViewComponent({
             <Card className="border border-default-200 bg-content1 shadow-sm">
                 <SectionCardHeader
                     icon="solar:download-bold"
-                    title="ส่งออกรายงาน"
-                    subtitle="ดาวน์โหลดรายงานครบถ้วนในรูปแบบ Excel บันทึกเดียว 6 แผ่น"
+                    title={isEnglish ? "Export report" : "ส่งออกรายงาน"}
+                    subtitle={isEnglish ? "Download a complete Excel workbook for this course" : "ดาวน์โหลดรายงานครบถ้วนในรูปแบบ Excel บันทึกเดียว 6 แผ่น"}
                     gradientFrom="from-emerald-500"
                     gradientTo="to-teal-600"
                 />
@@ -429,13 +448,13 @@ function SettingsTabViewComponent({
                     {/* Sheet preview badges */}
                     <div className="flex flex-wrap gap-2 mb-4">
                         {[
-                            { label: "คะแนนแลป",        icon: "solar:test-tube-bold",                  color: "bg-blue-100 text-blue-700" },
-                            { label: "คะแนนการบ้าน",    icon: "solar:document-text-bold",              color: "bg-indigo-100 text-indigo-700" },
-                            { label: "คะแนนกลุ่ม",      icon: "solar:users-group-two-rounded-bold",    color: "bg-violet-100 text-violet-700" },
-                            { label: "เช็คชื่อ",         icon: "solar:check-square-bold",               color: "bg-emerald-100 text-emerald-700" },
-                            { label: "การทำงานทีเอ",    icon: "solar:star-bold",                       color: "bg-amber-100 text-amber-700" },
-                            { label: "คะแนนสอบ",       icon: "solar:diploma-bold",                    color: "bg-purple-100 text-purple-700" },
-                            { label: "สรุปคะแนน",       icon: "solar:chart-2-bold",                    color: "bg-rose-100 text-rose-700" },
+                            { label: isEnglish ? "Lab scores" : "คะแนนแลป",        icon: "solar:test-tube-bold",                  color: "bg-blue-100 text-blue-700" },
+                            { label: isEnglish ? "Homework scores" : "คะแนนการบ้าน",    icon: "solar:document-text-bold",              color: "bg-indigo-100 text-indigo-700" },
+                            { label: isEnglish ? "Group scores" : "คะแนนกลุ่ม",      icon: "solar:users-group-two-rounded-bold",    color: "bg-violet-100 text-violet-700" },
+                            { label: isEnglish ? "Attendance" : "เช็คชื่อ",         icon: "solar:check-square-bold",               color: "bg-emerald-100 text-emerald-700" },
+                            { label: isEnglish ? "TA performance" : "การทำงานทีเอ",    icon: "solar:star-bold",                       color: "bg-amber-100 text-amber-700" },
+                            { label: isEnglish ? "Exam scores" : "คะแนนสอบ",       icon: "solar:diploma-bold",                    color: "bg-purple-100 text-purple-700" },
+                            { label: isEnglish ? "Score summary" : "สรุปคะแนน",       icon: "solar:chart-2-bold",                    color: "bg-rose-100 text-rose-700" },
                         ].map(({ label, icon, color }) => (
                             <div key={label} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${color}`}>
                                 <Icon icon={icon} className="text-sm" />
@@ -452,12 +471,12 @@ function SettingsTabViewComponent({
                         isLoading={isExporting}
                         onPress={onExportAll}
                     >
-                        {isExporting ? "กำลังสร้างไฟล์รายงาน..." : "ดาวน์โหลดรายงาน Excel (.xlsx)"}
+                        {isExporting ? (isEnglish ? "Generating report file..." : "กำลังสร้างไฟล์รายงาน...") : (isEnglish ? "Download Excel report (.xlsx)" : "ดาวน์โหลดรายงาน Excel (.xlsx)")}
                     </Button>
 
                     <p className="mt-3 flex items-center gap-1 text-xs text-default-400">
                         <Icon icon="solar:info-circle-linear" className="text-sm" />
-                        ไฟล์ .xlsx เปิดด้วย Microsoft Excel, Google Sheets หรือ LibreOffice Calc ได้ทันที
+                        {isEnglish ? "This .xlsx file can be opened directly in Microsoft Excel, Google Sheets, or LibreOffice Calc." : "ไฟล์ .xlsx เปิดด้วย Microsoft Excel, Google Sheets หรือ LibreOffice Calc ได้ทันที"}
                     </p>
                 </CardBody>
             </Card>
@@ -465,35 +484,31 @@ function SettingsTabViewComponent({
             <Card className="border border-default-200 bg-content1 shadow-sm">
                 <SectionCardHeader
                     icon="solar:info-circle-bold"
-                    title="ข้อมูลระบบ"
-                    subtitle="ข้อมูลเพิ่มเติมของรายวิชาในระบบ"
+                    title={isEnglish ? "System information" : "ข้อมูลระบบ"}
+                    subtitle={isEnglish ? "Additional metadata for this course" : "ข้อมูลเพิ่มเติมของรายวิชาในระบบ"}
                     gradientFrom="from-slate-500"
                     gradientTo="to-slate-700"
                 />
                 <CardBody className="p-5">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <div className="space-y-0.5 rounded-xl border border-default-200 bg-content2 p-3">
-                            <p className="text-xs text-default-400">รหัสรายวิชา (ID)</p>
+                            <p className="text-xs text-default-400">{isEnglish ? "Course ID" : "รหัสรายวิชา (ID)"}</p>
                             <p className="text-sm font-semibold text-foreground">{course.id}</p>
                         </div>
                         <div className="space-y-0.5 rounded-xl border border-default-200 bg-content2 p-3">
-                            <p className="text-xs text-default-400">อาจารย์หลัก</p>
+                            <p className="text-xs text-default-400">{isEnglish ? "Lead instructor" : "อาจารย์หลัก"}</p>
                             <p className="truncate text-sm font-semibold text-foreground">{stats.primaryInstructor}</p>
                         </div>
                         <div className="space-y-0.5 rounded-xl border border-default-200 bg-content2 p-3">
-                            <p className="text-xs text-default-400">วันที่สร้าง</p>
+                            <p className="text-xs text-default-400">{isEnglish ? "Created" : "วันที่สร้าง"}</p>
                             <p className="text-sm font-semibold text-foreground">
-                                {course.created_at
-                                    ? new Date(course.created_at).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })
-                                    : "-"}
+                                {formatSettingsDate(course.created_at, isEnglish)}
                             </p>
                         </div>
                         <div className="space-y-0.5 rounded-xl border border-default-200 bg-content2 p-3">
-                            <p className="text-xs text-default-400">แก้ไขล่าสุด</p>
+                            <p className="text-xs text-default-400">{isEnglish ? "Last updated" : "แก้ไขล่าสุด"}</p>
                             <p className="text-sm font-semibold text-foreground">
-                                {course.updated_at
-                                    ? new Date(course.updated_at).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })
-                                    : "-"}
+                                {formatSettingsDate(course.updated_at, isEnglish)}
                             </p>
                         </div>
                     </div>

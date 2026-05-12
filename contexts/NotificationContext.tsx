@@ -10,7 +10,10 @@ import {
     isPushNotificationSupported,
     getNotificationPermissionStatus,
 } from "@/config/firebase";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { authService } from "@/services/auth.service";
+import { useI18n } from "@/hooks/useI18n";
+import { getNotificationHeadline, getNotificationMessage } from "@/lib/notification-display";
 import { useSocket } from "@/contexts/SocketContext";
 import userNotificationService, { UserNotificationItem } from "@/services/user-notification.service";
 
@@ -66,6 +69,8 @@ interface NotificationProviderProps {
 
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
     const { joinUserRoom, onNotification } = useSocket();
+    const { language } = useGlobalSettings();
+    const t = useI18n();
     const [isSupported, setIsSupported] = useState(false);
     const [permissionStatus, setPermissionStatus] = useState<NotificationPermission | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -122,8 +127,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     const requestPermission = useCallback(async (): Promise<boolean> => {
         if (!isSupported) {
             addToast({
-                title: "ไม่รองรับ",
-                description: "เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน",
+                title: t("notificationsNotSupportedTitle"),
+                description: t("notificationsNotSupportedDescription"),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -145,12 +150,16 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
                     setLastNotification(payload);
 
                     // Show in-app toast for foreground notifications
-                    const title = payload.notification?.title || payload.data?.title || "แจ้งเตือน";
-                    const body = payload.notification?.body || payload.data?.body || "";
+                    const preview = {
+                        type: payload.data?.type,
+                        title: payload.notification?.title || payload.data?.title || t("notification"),
+                        message: payload.notification?.body || payload.data?.body || "",
+                        data: payload.data,
+                    };
 
                     addToast({
-                        title,
-                        description: body,
+                        title: getNotificationHeadline(preview, language, t),
+                        description: getNotificationMessage(preview, language, t),
                         color: getToastColor(payload.data?.type),
                         timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -162,8 +171,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
                 }
 
                 addToast({
-                    title: "เปิดการแจ้งเตือนแล้ว",
-                    description: "คุณจะได้รับการแจ้งเตือนเมื่อมีงานใหม่",
+                    title: t("notificationsEnabledTitle"),
+                    description: t("notificationsEnabledDescription"),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -175,8 +184,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
                 if (Notification.permission === "denied") {
                     addToast({
-                        title: "การแจ้งเตือนถูกปิด",
-                        description: "กรุณาเปิดการแจ้งเตือนในการตั้งค่าเบราว์เซอร์",
+                        title: t("notificationsDisabledTitle"),
+                        description: t("enableNotificationsInBrowserSettings"),
                         color: "warning",
                         timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -188,8 +197,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         } catch (error) {
             console.error("Error requesting permission:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถเปิดการแจ้งเตือนได้",
+                title: t("notificationPermissionErrorTitle"),
+                description: t("notificationPermissionErrorDescription"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -198,7 +207,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         } finally {
             setIsLoading(false);
         }
-    }, [isSupported]);
+    }, [isSupported, language, t]);
 
     // Register FCM token with backend
     const registerFcmToken = useCallback(async (
@@ -342,7 +351,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
                 id: incomingId,
                 user_id: user.id,
                 type: String(data?.type || "notification"),
-                title: String(data?.title || "แจ้งเตือน"),
+                title: String(data?.title || t("notification")),
                 message: String(data?.message || ""),
                 course_id: data?.course_id ? String(data.course_id) : undefined,
                 link: data?.link ? String(data.link) : undefined,
@@ -365,7 +374,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
                 setUnreadCount((prev) => prev + 1);
             }
         });
-    }, [joinUserRoom, onNotification, refreshNotifications]);
+    }, [joinUserRoom, onNotification, refreshNotifications, t]);
 
     const value: NotificationContextType = {
         isSupported,

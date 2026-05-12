@@ -20,6 +20,7 @@ import { authService } from "@/services/auth.service";
 import { courseService, Course } from "@/services/course.service";
 import { useSocket } from "@/contexts/SocketContext";
 import { CourseListSkeleton } from "@/components/loading-skeletons";
+import { useI18n } from "@/hooks/useI18n";
 import { IoSchool, IoBook, IoPeople, IoPersonAdd } from "react-icons/io5";
 
 interface Stats {
@@ -33,6 +34,7 @@ interface Stats {
 
 export default function ClosedCoursesPage() {
     const router = useRouter();
+    const t = useI18n();
     const { subscribeToCourseUpdates, unsubscribeFromCourseUpdates, onCourseUpdate, emitCourseUpdate, isConnected } = useSocket();
     const [allCourses, setAllCourses] = useState<Course[]>([]);
     const [stats, setStats] = useState<Stats | null>(null);
@@ -131,8 +133,8 @@ export default function ClosedCoursesPage() {
             fetchStats();
 
             addToast({
-                title: "ข้อมูลอัปเดต",
-                description: "มีการเปลี่ยนแปลงข้อมูลรายวิชา",
+                title: t("courseDataUpdated"),
+                description: t("courseDataChanged"),
                 color: "primary",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -142,7 +144,7 @@ export default function ClosedCoursesPage() {
         return () => {
             unsubscribe();
         };
-    }, [onCourseUpdate, fetchCourses, fetchStats]);
+    }, [onCourseUpdate, fetchCourses, fetchStats, t]);
 
     // Client-side filtering - show only inactive (closed) courses
     const filteredCourses = useMemo(() => {
@@ -203,14 +205,49 @@ export default function ClosedCoursesPage() {
         }));
     }, [allCourses]);
 
+    const getSemesterLabel = (semester: number, short = false) => {
+        if (semester === 3) {
+            return t("summerSemester");
+        }
+
+        return t(short ? "semesterShortWithNumber" : "semesterWithNumber", { number: semester });
+    };
+
     const semesterOptions = [
-        { value: "1", label: "เทอม 1" },
-        { value: "2", label: "เทอม 2" },
-        { value: "3", label: "ฤดูร้อน" },
+        { value: "1", label: t("semesterOne") },
+        { value: "2", label: t("semesterTwo") },
+        { value: "3", label: t("summerSemester") },
     ];
 
     const getSemesterText = (semester: number) => {
-        return semester === 3 ? "ฤดูร้อน" : `เทอม ${semester}`;
+        return getSemesterLabel(semester);
+    };
+
+    const formatCourseTitle = (course?: Pick<Course, "code" | "name"> | null) => {
+        if (!course) {
+            return "";
+        }
+
+        return `${course.code} - ${course.name}`;
+    };
+
+    const formatAcademicYearSemester = (year?: number, semester?: number) => {
+        if (!year || !semester) {
+            return "";
+        }
+
+        return t("academicYearSemesterSummary", {
+            year,
+            semester: getSemesterLabel(semester),
+        });
+    };
+
+    const getLocalizedErrorMessage = (message: unknown, fallbackMessage: string) => {
+        if (typeof message === "string" && message.trim() && !/[\u0E00-\u0E7F]/.test(message)) {
+            return message;
+        }
+
+        return fallbackMessage;
     };
 
     const handleCourseClick = (courseId: string) => {
@@ -255,11 +292,11 @@ export default function ClosedCoursesPage() {
             const response = await courseService.toggleStatus(selectedCourse.id);
             if (response.success) {
                 addToast({
-                    title: "เปิดใช้งานแล้ว",
-                    description: `รายวิชา ${selectedCourse.code} เปิดใช้งานเรียบร้อยแล้ว`,
+                    title: t("courseEnabledSuccess"),
+                    description: formatCourseTitle(selectedCourse),
                     color: "success",
                     timeout: 3000,
-                shouldShowTimeoutProgress: true,
+                    shouldShowTimeoutProgress: true,
                 });
                 setIsRestoreModalOpen(false);
                 setSelectedCourse(null);
@@ -269,19 +306,19 @@ export default function ClosedCoursesPage() {
             } else {
                 const errorMessage = typeof response.error === 'object' && response.error !== null
                     ? (response.error as { message?: string }).message
-                    : response.error || response.message || "ไม่สามารถเปิดใช้งานได้";
+                    : response.error || response.message;
                 addToast({
-                    title: "ไม่สามารถเปิดใช้งานได้",
-                    description: errorMessage,
+                    title: t("cannotEnableCourse"),
+                    description: getLocalizedErrorMessage(errorMessage, t("toggleCourseStatusErrorDefault")),
                     color: "danger",
                     timeout: 3000,
-                shouldShowTimeoutProgress: true,
+                    shouldShowTimeoutProgress: true,
                 });
             }
         } catch (error: any) {
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error.message || "ไม่สามารถเปิดใช้งานได้",
+                title: t("somethingWentWrong"),
+                description: getLocalizedErrorMessage(error?.message, t("toggleCourseStatusErrorDefault")),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -300,11 +337,11 @@ export default function ClosedCoursesPage() {
             const response = await courseService.deleteCourse(selectedCourse.id);
             if (response.success) {
                 addToast({
-                    title: "ลบรายวิชาแล้ว",
-                    description: `รายวิชา ${selectedCourse.code} ถูกลบออกจากระบบถาวรแล้ว`,
+                    title: t("deleteCourseSuccess"),
+                    description: formatCourseTitle(selectedCourse),
                     color: "success",
                     timeout: 3000,
-                shouldShowTimeoutProgress: true,
+                    shouldShowTimeoutProgress: true,
                 });
                 setIsDeleteModalOpen(false);
                 setSelectedCourse(null);
@@ -315,19 +352,19 @@ export default function ClosedCoursesPage() {
             } else {
                 const errorMessage = typeof response.error === 'object' && response.error !== null
                     ? (response.error as { message?: string }).message
-                    : response.error || response.message || "ไม่สามารถลบรายวิชาได้";
+                    : response.error || response.message;
                 addToast({
-                    title: "ไม่สามารถลบรายวิชาได้",
-                    description: errorMessage,
+                    title: t("deleteCourseFailed"),
+                    description: getLocalizedErrorMessage(errorMessage, t("deleteCourseFailed")),
                     color: "danger",
                     timeout: 3000,
-                shouldShowTimeoutProgress: true,
+                    shouldShowTimeoutProgress: true,
                 });
             }
         } catch (error: any) {
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error.message || "ไม่สามารถลบรายวิชาได้",
+                title: t("somethingWentWrong"),
+                description: getLocalizedErrorMessage(error?.message, t("deleteCourseFailed")),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -344,27 +381,27 @@ export default function ClosedCoursesPage() {
                 <div className="flex items-center gap-3">
                     <div>
                         <div className="flex items-center gap-2">
-                            <h1 className="text-2xl font-bold text-foreground">วิชาที่ปิดใช้งาน</h1>
+                            <h1 className="text-2xl font-bold text-foreground">{t("disabledCourses")}</h1>
                             <Chip size="sm" variant="flat" className="bg-content3 text-default-600">
                                 {filteredCourses.length}
                             </Chip>
                         </div>
                         <p className="mt-1 text-default-500">
-                            รายวิชาที่ปิดใช้งานแล้ว สามารถดูข้อมูลหรือเปิดใช้งานอีกครั้งได้
+                            {t("closedCoursesDescription")}
                         </p>
                     </div>
                     {/* Real-time connection indicator */}
-                    <Tooltip content={isConnected ? "ข้อมูลอัปเดตแบบ Real-time" : "กำลังเชื่อมต่อ..."}>
+                    <Tooltip content={isConnected ? t("realTimeData") : t("connecting")}>
                         <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs ${isConnected ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
                             }`}>
                             <span className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500 animate-pulse" : "bg-yellow-500 animate-bounce"
                                 }`} />
-                            <span className="hidden sm:inline">{isConnected ? "Live" : "..."}</span>
+                            <span className="hidden sm:inline">{isConnected ? t("live") : "..."}</span>
                         </div>
                     </Tooltip>
                     {isRefreshingCourses && (
                         <Chip size="sm" variant="flat" color="primary">
-                            กำลังอัปเดตข้อมูล
+                            {t("updatingData")}
                         </Chip>
                     )}
                 </div>
@@ -375,7 +412,7 @@ export default function ClosedCoursesPage() {
                         variant="bordered"
                         onPress={() => router.push('/home')}
                     >
-                        กลับไปวิชาที่เปิด
+                        {t("activeCourses")}
                         <Skeleton isLoaded={Boolean(stats)} className="ml-1 h-5 w-7 rounded-full bg-primary/10">
                             <Chip size="sm" className="ml-1" color="primary" variant="flat">
                                 {stats?.byStatus?.active ?? 0}
@@ -393,8 +430,8 @@ export default function ClosedCoursesPage() {
                         {/* Search */}
                         <div className="flex flex-row gap-2 sm:gap-3">
                             <Input
-                                aria-label="ค้นหารายวิชา"
-                                placeholder="ค้นหารายวิชา..."
+                                aria-label={t("searchCourses")}
+                                placeholder={`${t("searchCourses")}...`}
                                 value={search}
                                 onValueChange={setSearch}
                                 startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
@@ -408,9 +445,9 @@ export default function ClosedCoursesPage() {
                             />
 
                             <div className="flex items-center overflow-hidden rounded-lg border border-default-200 bg-content1">
-                                <Tooltip content="แบบการ์ด">
+                                <Tooltip content={t("gridView")}>
                                     <Button
-                                        aria-label="แสดงแบบการ์ด"
+                                        aria-label={t("showGridView")}
                                         isIconOnly
                                         size="md"
                                         variant="light"
@@ -421,9 +458,9 @@ export default function ClosedCoursesPage() {
                                     </Button>
                                 </Tooltip>
                                 <div className="h-5 w-px bg-divider" />
-                                <Tooltip content="แบบรายการ">
+                                <Tooltip content={t("listView")}>
                                     <Button
-                                        aria-label="แสดงแบบรายการ"
+                                        aria-label={t("showListView")}
                                         isIconOnly
                                         size="md"
                                         variant="light"
@@ -440,8 +477,8 @@ export default function ClosedCoursesPage() {
                         <div className="flex flex-row gap-2 sm:gap-3">
                             
                             <Select
-                                aria-label="กรองตามปีการศึกษา"
-                                placeholder="ปีการศึกษา"
+                                aria-label={t("academicYear")}
+                                placeholder={t("academicYear")}
                                 selectedKeys={yearFilter ? [yearFilter] : []}
                                 onSelectionChange={(keys) => setYearFilter(Array.from(keys)[0] as string || "")}
                                 className="w-full sm:w-36"
@@ -454,8 +491,8 @@ export default function ClosedCoursesPage() {
                             </Select>
 
                             <Select
-                                aria-label="กรองตามภาคเรียน"
-                                placeholder="ภาคเรียน"
+                                aria-label={t("semesterLabel")}
+                                placeholder={t("semesterLabel")}
                                 selectedKeys={semesterFilter ? [semesterFilter] : []}
                                 onSelectionChange={(keys) => setSemesterFilter(Array.from(keys)[0] as string || "")}
                                 className="w-full sm:w-32"
@@ -475,7 +512,7 @@ export default function ClosedCoursesPage() {
                                     onPress={clearFilters}
                                     startContent={<Icon icon="solar:close-circle-linear" />}
                                 >
-                                    ล้าง
+                                    {t("clear")}
                                 </Button>
                             )}
                         </div>
@@ -495,12 +532,12 @@ export default function ClosedCoursesPage() {
                             </div>
                             <div>
                                 <p className="text-lg font-medium text-default-700">
-                                    {hasActiveFilters ? "ไม่พบรายวิชาที่ค้นหา" : "ไม่มีวิชาที่ปิดใช้งาน"}
+                                    {hasActiveFilters ? t("noResultsFound") : t("noClosedCourses")}
                                 </p>
                                 <p className="mt-1 text-default-500">
                                     {hasActiveFilters
-                                        ? "ลองค้นหาด้วยคำค้นหาอื่น หรือล้างตัวกรอง"
-                                        : "ยังไม่มีรายวิชาที่ปิดใช้งานในขณะนี้"}
+                                        ? t("adjustSearchOrClearFilters")
+                                        : t("noClosedCoursesDescription")}
                                 </p>
                             </div>
                             {hasActiveFilters && (
@@ -510,7 +547,7 @@ export default function ClosedCoursesPage() {
                                     startContent={<Icon icon="solar:close-circle-linear" />}
                                     onPress={clearFilters}
                                 >
-                                    ล้างตัวกรอง
+                                    {t("clearFilters")}
                                 </Button>
                             )}
                         </div>
@@ -547,7 +584,7 @@ export default function ClosedCoursesPage() {
                                     <div className="absolute top-2 left-2">
                                         <Chip size="sm" color="default" variant="solid" className="bg-slate-700/80 text-white">
                                             <Icon icon="solar:archive-bold" className="mr-1" />
-                                            ปิดใช้งาน
+                                            {t("inactive")}
                                         </Chip>
                                     </div>
                                 </div>
@@ -568,7 +605,7 @@ export default function ClosedCoursesPage() {
                                                 <Dropdown>
                                                     <DropdownTrigger>
                                                         <Button
-                                                            aria-label="เมนูรายวิชา"
+                                                            aria-label={t("courseMenu")}
                                                             isIconOnly
                                                             size="sm"
                                                             variant="light"
@@ -580,7 +617,7 @@ export default function ClosedCoursesPage() {
                                                         </Button>
                                                     </DropdownTrigger>
                                                     <DropdownMenu
-                                                        aria-label="Course actions"
+                                                        aria-label={t("courseMenu")}
                                                         onAction={(key) => {
                                                             if (key === "restore") {
                                                                 openRestoreModal(course);
@@ -594,7 +631,7 @@ export default function ClosedCoursesPage() {
                                                             startContent={<Icon icon="solar:refresh-bold" className="text-lg" />}
                                                             color="success"
                                                         >
-                                                            เปิดใช้งานอีกครั้ง
+                                                            {t("enableCourse")}
                                                         </DropdownItem>
                                                         <DropdownItem
                                                             key="delete"
@@ -602,7 +639,7 @@ export default function ClosedCoursesPage() {
                                                             color="danger"
                                                             className="text-danger"
                                                         >
-                                                            ลบออกจากระบบถาวร
+                                                            {t("deleteCoursePermanently")}
                                                         </DropdownItem>
                                                     </DropdownMenu>
                                                 </Dropdown>
@@ -628,11 +665,11 @@ export default function ClosedCoursesPage() {
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <IoPersonAdd className="text-lg" />
-                                            <span>{course.studentCount ?? 0} นักศึกษา</span>
+                                            <span>{course.studentCount ?? 0} Student</span>
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <IoBook className="text-lg" />
-                                            <span>{course.sections?.length ?? 0} กลุ่ม</span>
+                                            <span>{course.sections?.length ?? 0} Section</span>
                                         </div>
                                     </div>
                                 </CardFooter>
@@ -692,7 +729,7 @@ export default function ClosedCoursesPage() {
                                                             {course.code} - {course.name}
                                                         </h3>
                                                         <Chip size="sm" color="default" variant="flat" className="shrink-0 bg-content3 text-default-600">
-                                                            ปิดใช้งาน
+                                                            {t("inactive")}
                                                         </Chip>
                                                     </div>
                                                     <div className="flex items-center gap-2 flex-wrap mt-1">
@@ -709,7 +746,7 @@ export default function ClosedCoursesPage() {
                                                     <Dropdown>
                                                         <DropdownTrigger>
                                                             <Button
-                                                                aria-label="เมนูรายวิชา"
+                                                                aria-label={t("courseMenu")}
                                                                 isIconOnly
                                                                 size="sm"
                                                                 variant="light"
@@ -721,7 +758,7 @@ export default function ClosedCoursesPage() {
                                                             </Button>
                                                         </DropdownTrigger>
                                                         <DropdownMenu
-                                                            aria-label="Course actions"
+                                                            aria-label={t("courseMenu")}
                                                             onAction={(key) => {
                                                                 if (key === "restore") {
                                                                     openRestoreModal(course);
@@ -735,7 +772,7 @@ export default function ClosedCoursesPage() {
                                                                 startContent={<Icon icon="solar:refresh-bold" className="text-lg" />}
                                                                 color="success"
                                                             >
-                                                                เปิดใช้งานอีกครั้ง
+                                                                {t("enableCourse")}
                                                             </DropdownItem>
                                                             <DropdownItem
                                                                 key="delete"
@@ -743,7 +780,7 @@ export default function ClosedCoursesPage() {
                                                                 color="danger"
                                                                 className="text-danger"
                                                             >
-                                                                ลบออกจากระบบถาวร
+                                                                {t("deleteCoursePermanently")}
                                                             </DropdownItem>
                                                         </DropdownMenu>
                                                     </Dropdown>
@@ -757,11 +794,11 @@ export default function ClosedCoursesPage() {
                                                 </div>
                                                 <div className="flex items-center gap-1">
                                                     <IoPersonAdd className="text-lg" />
-                                                    <span>{course.studentCount ?? 0} นักศึกษา</span>
+                                                    <span>{course.studentCount ?? 0} Student</span>
                                                 </div>
                                                 <div className="flex items-center gap-1">
                                                     <IoBook className="text-lg" />
-                                                    <span>{course.sections?.length ?? 0} กลุ่ม</span>
+                                                    <span>{course.sections?.length ?? 0} Section</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -796,43 +833,48 @@ export default function ClosedCoursesPage() {
                 size="md"
             >
                 <ModalContent>
-                    <ModalHeader className="flex flex-col gap-1">
+                    <ModalHeader className="px-6 pt-6 pb-4">
                         <div className="flex items-center gap-3">
-                            <div className="p-2.5 rounded-xl bg-linear-to-br from-blue-400 to-indigo-500 shadow-lg shadow-blue-500/30">
-                                <Icon icon="solar:refresh-bold" className="text-xl text-white" />
+                            <div className="p-3 rounded-xl bg-linear-to-br from-blue-400 to-indigo-500 shadow-lg shadow-blue-500/30">
+                                <Icon icon="solar:eye-bold" className="text-2xl text-white" />
                             </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-foreground">เปิดใช้งานรายวิชาอีกครั้ง</h3>
-                            </div>
+                            <h3 className="text-xl font-bold text-foreground">{t("confirmEnableTitle")}</h3>
                         </div>
                     </ModalHeader>
-                    <ModalBody>
-                        <p className="text-default-600">
-                            คุณต้องการเปิดใช้งานรายวิชา{" "}
-                            <span className="font-semibold">{selectedCourse?.code} - {selectedCourse?.name}</span>{" "}
-                            อีกครั้งหรือไม่?
-                        </p>
-                        <p className="text-sm text-green-600 mt-2">
-                            * เมื่อเปิดใช้งาน นักศึกษาและ TA จะสามารถเข้าถึงรายวิชานี้ได้อีกครั้ง
-                        </p>
+                    <ModalBody className="px-6 py-6">
+                        <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-6">
+                            <div className="flex items-center gap-4">
+                                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                                    <Icon icon="solar:book-bold" className="text-2xl text-emerald-600" />
+                                </div>
+                                <div>
+                                    <p className="font-semibold text-foreground">{formatCourseTitle(selectedCourse)}</p>
+                                    <p className="text-sm text-default-500">{formatAcademicYearSemester(selectedCourse?.year, selectedCourse?.semester)}</p>
+                                </div>
+                            </div>
+                            <p className="mt-4 text-sm text-emerald-700">{t("activateCourseDuplicateHint")}</p>
+                        </div>
                     </ModalBody>
-                    <ModalFooter>
+                    <ModalFooter className="gap-3 border-t border-divider px-6 py-4">
                         <Button
-                            variant="light"
+                            variant="flat"
+                            color="default"
                             onPress={() => {
                                 setIsRestoreModalOpen(false);
                                 setSelectedCourse(null);
                             }}
+                            className="font-medium px-6"
                         >
-                            ยกเลิก
+                            {t("cancel")}
                         </Button>
                         <Button
                             color="primary"
                             onPress={handleRestoreCourse}
                             isLoading={isSubmitting}
-                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
+                            startContent={!isSubmitting && <Icon icon="solar:eye-bold" className="text-lg" />}
                         >
-                            เปิดใช้งาน
+                            {t("enableAction")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -849,34 +891,32 @@ export default function ClosedCoursesPage() {
                 size="md"
             >
                 <ModalContent>
-                    <ModalHeader className="flex flex-col gap-1">
+                    <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-3">
-                            <div className="p-2.5 rounded-xl bg-linear-to-br from-blue-400 to-indigo-500 shadow-lg shadow-blue-500/30">
-                                <Icon icon="solar:trash-bin-trash-bold" className="text-xl text-white" />
+                            <div className="p-3 rounded-xl bg-linear-to-br from-blue-400 to-indigo-500 shadow-lg shadow-blue-500/30">
+                                <Icon icon="solar:trash-bin-trash-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-foreground">ลบรายวิชาถาวร</h3>
+                                <h3 className="text-xl font-bold text-foreground">{t("deleteCoursePermanently")}</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">{t("irreversibleAction")}</p>
                             </div>
                         </div>
                     </ModalHeader>
-                    <ModalBody>
+                    <ModalBody className="px-6 py-6">
                         <div className="space-y-4">
                             <p className="text-default-600">
-                                คุณกำลังจะลบรายวิชา{" "}
-                                <span className="font-semibold">{selectedCourse?.code} - {selectedCourse?.name}</span>{" "}
-                                ออกจากระบบอย่างถาวร
+                                {t("doYouWantDeleteCourse", { course: formatCourseTitle(selectedCourse) })}
                             </p>
 
                             <div className="rounded-lg border border-danger-200 bg-danger-50/70 p-4 dark:border-danger/25 dark:bg-danger/10">
                                 <div className="flex items-start gap-3">
                                     <Icon icon="solar:danger-triangle-bold" className="text-xl text-red-600 mt-0.5" />
                                     <div className="text-sm text-red-700">
-                                        <p className="font-semibold mb-1">คำเตือน: การดำเนินการนี้ไม่สามารถยกเลิกได้!</p>
+                                        <p className="font-semibold mb-1">{t("irreversibleAction")}</p>
                                         <ul className="list-disc ml-4 space-y-1 text-red-600">
-                                            <li>ข้อมูลนักศึกษาทั้งหมดในรายวิชาจะถูกลบ</li>
-                                            <li>คะแนนและการส่งงานทั้งหมดจะถูกลบ</li>
-                                            <li>ข้อมูล TA และ Section ทั้งหมดจะถูกลบ</li>
-                                            <li>ไฟล์ของชั้นเรียนจะยังอยู่ใน Google ไดรฟ์</li>
+                                            <li>{t("deleteCourseRelatedDataWarning")}</li>
+                                            <li>{t("deleteCourseScoresWarning")}</li>
+                                            <li>{t("googleDriveFilesRemainWarning")}</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -890,29 +930,31 @@ export default function ClosedCoursesPage() {
                                     label: "text-sm text-default-600"
                                 }}
                             >
-                                ฉันเข้าใจและต้องการลบรายวิชานี้ออกจากระบบถาวร
+                                {t("confirmPermanentDeleteCourse")}
                             </Checkbox>
                         </div>
                     </ModalBody>
-                    <ModalFooter>
+                    <ModalFooter className="gap-3 border-t border-divider px-6 py-4">
                         <Button
-                            variant="light"
+                            variant="flat"
+                            color="default"
                             onPress={() => {
                                 setIsDeleteModalOpen(false);
                                 setSelectedCourse(null);
                                 setDeleteConfirmChecked(false);
                             }}
+                            className="font-medium px-6"
                         >
-                            ยกเลิก
+                            {t("cancel")}
                         </Button>
                         <Button
                             color="primary"
                             onPress={handleDeleteCourse}
                             isLoading={isSubmitting}
                             isDisabled={!deleteConfirmChecked}
-                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                         >
-                            ลบถาวร
+                            {t("deleteCoursePermanently")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -929,31 +971,40 @@ export default function ClosedCoursesPage() {
                 size="md"
             >
                 <ModalContent>
-                    <ModalHeader className="flex flex-col gap-1">
+                    <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-3">
-                            <div className="p-2.5 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
-                                <Icon icon="solar:danger-triangle-bold" className="text-xl text-white" />
+                            <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                                <Icon icon="solar:danger-triangle-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-foreground">ไม่สามารถเปิดใช้งานได้</h3>
+                                <h3 className="text-xl font-bold text-foreground">{t("cannotEnableCourse")}</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">{t("duplicateActiveCourseFound")}</p>
                             </div>
                         </div>
                     </ModalHeader>
-                    <ModalBody>
-                        <p className="text-default-600">
-                            มีรายวิชาที่ใช้รหัสวิชา ปีการศึกษา และภาคเรียนเดียวกันที่เปิดใช้งานอยู่แล้ว:
-                        </p>
-                        <div className="mt-3 rounded-lg border border-warning-200 bg-warning-50/70 p-4 dark:border-warning/25 dark:bg-warning/10">
-                            <p className="font-semibold text-foreground">{duplicateCourse?.code} - {duplicateCourse?.name}</p>
-                            <p className="mt-1 text-sm text-default-600">
-                                ปีการศึกษา {duplicateCourse?.year} / ภาคเรียนที่ {duplicateCourse?.semester === 3 ? "ฤดูร้อน" : duplicateCourse?.semester}
+                    <ModalBody className="px-6 py-6">
+                        <div className="space-y-3 rounded-xl border border-danger-100 bg-danger-50/70 p-4 dark:border-danger/20 dark:bg-danger/10">
+                            <p className="text-foreground">{t("cannotEnableSelectedCourse", { code: selectedCourse?.code || "" })}</p>
+                            <p className="text-sm text-default-600">{t("duplicateCourseConflictDescription")}</p>
+                            <div className="rounded-lg border border-danger-200 bg-content1 p-3 dark:border-danger/25">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Chip size="sm" color="danger" variant="flat">{t("currentlyActive")}</Chip>
+                                </div>
+                                <p className="font-semibold text-foreground">{formatCourseTitle(duplicateCourse)}</p>
+                                <p className="mt-1 text-sm text-default-500">
+                                    {t("duplicateCourseSummary", {
+                                        year: duplicateCourse?.year || "",
+                                        semester: duplicateCourse?.semester ? getSemesterLabel(duplicateCourse.semester) : "",
+                                    })}
+                                </p>
+                            </div>
+                            <p className="text-sm text-default-500">
+                                <Icon icon="solar:info-circle-linear" className="inline mr-1" />
+                                {t("disableConflictingCourseFirst")}
                             </p>
                         </div>
-                        <p className="mt-3 text-sm text-default-500">
-                            หากต้องการเปิดใช้งานรายวิชานี้ กรุณาปิดใช้งานรายวิชาที่ซ้ำกันก่อน
-                        </p>
                     </ModalBody>
-                    <ModalFooter>
+                    <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button
                             color="primary"
                             onPress={() => {
@@ -961,9 +1012,9 @@ export default function ClosedCoursesPage() {
                                 setDuplicateCourse(null);
                                 setSelectedCourse(null);
                             }}
-                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                         >
-                            เข้าใจแล้ว
+                            {t("acknowledged")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>

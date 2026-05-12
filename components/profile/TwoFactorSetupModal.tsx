@@ -6,10 +6,10 @@ import { Input } from "@heroui/input";
 import { InputOtp } from "@heroui/input-otp";
 import { Button } from "@heroui/button";
 import { Card, CardBody } from "@heroui/card";
-import { Tabs, Tab } from "@heroui/tabs";
 import { Chip } from "@heroui/chip";
 import { Icon } from "@iconify/react";
 import { addToast } from "@heroui/toast";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { twoFactorService, TOTPSetupResponse } from "@/services/twoFactor.service";
 import Image from "next/image";
 
@@ -31,6 +31,118 @@ function TwoFactorSetupModal({
     hasEmail = true,
     isReconfiguring = false,
 }: TwoFactorSetupModalProps) {
+    const { language } = useGlobalSettings();
+    const copy = language === "en"
+        ? {
+            setupStartError: "Could not start setup",
+            sendVerificationError: "Could not send the verification code",
+            genericError: "Something went wrong. Please try again.",
+            genericShortError: "Something went wrong",
+            verificationRequired: "Please enter the verification code",
+            successTitle: "Two-factor enabled",
+            successDescription: "Two-factor authentication is now active.",
+            invalidCode: "Invalid verification code",
+            resendTitle: "Code sent again",
+            resendDescription: "Check your email for the latest code.",
+            resendError: "Could not send a new code",
+            copiedTitle: "Copied",
+            copiedDescription: "All backup codes were copied.",
+            downloadTitle: "Downloaded",
+            downloadDescription: "The backup codes file was downloaded.",
+            downloadFileTitle: "ITII Assist - 2FA Backup Codes",
+            downloadFileCreatedAt: "Created at",
+            downloadFileCodes: "Backup codes (each code can be used once):",
+            downloadFileWarning1: "Store these codes somewhere safe.",
+            downloadFileWarning2: "Use them when you cannot access your Authenticator app.",
+            selectTitle: "Add extra protection to your account",
+            selectDescription: "Choose the two-factor method you want to use.",
+            authAppTitle: "Authenticator App",
+            recommended: "Recommended",
+            authAppDescription: "Use Google Authenticator, Authy, or Microsoft Authenticator to generate sign-in codes.",
+            emailTitle: "Email Authentication",
+            emailDescription: "Receive a verification code by email every time you sign in.",
+            emailMissing: "Add an email address to your profile before using this method.",
+            cancel: "Cancel",
+            continue: "Continue",
+            setupTotpTitle: "Set up your Authenticator app",
+            setupTotpDescription: "Scan this QR code with your Authenticator app.",
+            qrCodeAlt: "Two-factor QR code",
+            manualEntry: "Or enter the secret manually:",
+            verificationCodeLabel: "6-digit verification code",
+            back: "Back",
+            verify: "Verify",
+            emailVerifyTitle: "Verify by email",
+            emailVerifyDescription: "We sent a 6-digit verification code to your email.",
+            resendIn: "You can resend in {seconds}s",
+            resend: "Resend code",
+            backupTitle: "Save your backup codes",
+            backupDescription: "Keep these codes somewhere safe. Use them when you cannot access your verification device.",
+            importantPrefix: "Important:",
+            importantDescription: "This is the only time these backup codes will be shown. Save them before closing this dialog.",
+            copyAll: "Copy all",
+            download: "Download .txt",
+            finish: "Done",
+            configureTitle: "Set up two-factor authentication",
+            configureSubtitle: "Two-Factor Authentication (2FA)",
+            reconfigureTitle: "Change your Authenticator app",
+            reconfigureSubtitle: "Reconfigure Authenticator App",
+        }
+        : {
+            setupStartError: "ไม่สามารถเริ่มตั้งค่าได้",
+            sendVerificationError: "ไม่สามารถส่งรหัสยืนยันได้",
+            genericError: "เกิดข้อผิดพลาด กรุณาลองใหม่",
+            genericShortError: "เกิดข้อผิดพลาด",
+            verificationRequired: "กรุณากรอกรหัสยืนยัน",
+            successTitle: "สำเร็จ",
+            successDescription: "เปิดใช้งานการยืนยันตัวตนสองขั้นตอนสำเร็จ",
+            invalidCode: "รหัสไม่ถูกต้อง",
+            resendTitle: "ส่งรหัสใหม่แล้ว",
+            resendDescription: "กรุณาตรวจสอบอีเมลของคุณ",
+            resendError: "ไม่สามารถส่งรหัสใหม่ได้",
+            copiedTitle: "คัดลอกแล้ว",
+            copiedDescription: "คัดลอกรหัสสำรองทั้งหมดแล้ว",
+            downloadTitle: "ดาวน์โหลดสำเร็จ",
+            downloadDescription: "ไฟล์รหัสสำรองถูกดาวน์โหลดแล้ว",
+            downloadFileTitle: "ITII Assist - รหัสสำรอง 2FA",
+            downloadFileCreatedAt: "สร้างเมื่อ",
+            downloadFileCodes: "รหัสสำรอง (ใช้ได้ครั้งเดียวต่อรหัส):",
+            downloadFileWarning1: "เก็บรหัสเหล่านี้ไว้ในที่ปลอดภัย",
+            downloadFileWarning2: "ใช้เมื่อไม่สามารถเข้าถึงแอป Authenticator ได้",
+            selectTitle: "เพิ่มความปลอดภัยให้บัญชีของคุณ",
+            selectDescription: "เลือกวิธีการยืนยันตัวตนสองขั้นตอนที่ต้องการใช้",
+            authAppTitle: "Authenticator App",
+            recommended: "แนะนำ",
+            authAppDescription: "ใช้แอปเช่น Google Authenticator, Authy หรือ Microsoft Authenticator เพื่อสร้างรหัส",
+            emailTitle: "Email Authentication",
+            emailDescription: "รับรหัสยืนยันผ่านทางอีเมลทุกครั้งที่เข้าสู่ระบบ",
+            emailMissing: "กรุณาเพิ่มอีเมลในโปรไฟล์ก่อนใช้งาน",
+            cancel: "ยกเลิก",
+            continue: "ดำเนินการต่อ",
+            setupTotpTitle: "ตั้งค่า Authenticator App",
+            setupTotpDescription: "สแกน QR Code ด้วยแอป Authenticator ของคุณ",
+            qrCodeAlt: "QR Code",
+            manualEntry: "หรือกรอกรหัสด้วยตนเอง:",
+            verificationCodeLabel: "รหัสยืนยัน 6 หลัก",
+            back: "ย้อนกลับ",
+            verify: "ยืนยัน",
+            emailVerifyTitle: "ยืนยันทาง Email",
+            emailVerifyDescription: "เราได้ส่งรหัสยืนยัน 6 หลักไปที่อีเมลของคุณแล้ว",
+            resendIn: "ส่งรหัสใหม่ได้ใน {seconds} วินาที",
+            resend: "ส่งรหัสใหม่",
+            backupTitle: "บันทึกรหัสสำรอง",
+            backupDescription: "เก็บรหัสเหล่านี้ไว้ในที่ปลอดภัย ใช้เมื่อไม่สามารถเข้าถึงอุปกรณ์ยืนยันได้",
+            importantPrefix: "สำคัญ:",
+            importantDescription: "นี่คือครั้งเดียวที่คุณจะเห็นรหัสเหล่านี้ กรุณาบันทึกไว้ก่อนปิด",
+            copyAll: "คัดลอกทั้งหมด",
+            download: "ดาวน์โหลด .txt",
+            finish: "เสร็จสิ้น",
+            configureTitle: "ตั้งค่าการยืนยันตัวตนสองขั้นตอน",
+            configureSubtitle: "Two-Factor Authentication (2FA)",
+            reconfigureTitle: "เปลี่ยนแอปยืนยันตัวตน",
+            reconfigureSubtitle: "Reconfigure Authenticator App",
+        };
+    const formatTemplate = (template: string, values: Record<string, string | number>) =>
+        template.replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? ""));
     const [step, setStep] = useState<SetupStep>("select");
     const [method, setMethod] = useState<Method>("totp");
     const [isLoading, setIsLoading] = useState(false);
@@ -66,18 +178,18 @@ function TwoFactorSetupModal({
                         setTotpData(result.data);
                         setStep("setup");
                     } else {
-                        setError(result.error || "ไม่สามารถเริ่มตั้งค่าได้");
+                        setError(result.error || copy.setupStartError);
                     }
                 } catch (err) {
                     console.error('2FA reconfigure error:', err);
-                    setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
+                    setError(copy.genericError);
                 } finally {
                     setIsLoading(false);
                 }
             };
             startReconfigure();
         }
-    }, [isOpen, isReconfiguring]);
+    }, [copy.genericError, copy.setupStartError, isOpen, isReconfiguring]);
 
     // Countdown timer for resend button
     useEffect(() => {
@@ -99,7 +211,7 @@ function TwoFactorSetupModal({
                     setTotpData(result.data);
                     setStep("setup");
                 } else {
-                    setError(result.error || "ไม่สามารถเริ่มตั้งค่าได้");
+                    setError(result.error || copy.setupStartError);
                 }
             } else {
                 const result = await twoFactorService.setupEmail();
@@ -107,21 +219,21 @@ function TwoFactorSetupModal({
                     setStep("verify");
                     setResendCooldown(60); // Start 60s cooldown after initial send
                 } else {
-                    setError(result.error || "ไม่สามารถส่งรหัสยืนยันได้");
+                    setError(result.error || copy.sendVerificationError);
                 }
             }
         } catch (err) {
             console.error('2FA setup error:', err);
-            setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
+            setError(copy.genericError);
         } finally {
             setIsLoading(false);
         }
-    }, [method]);
+    }, [copy.genericError, copy.sendVerificationError, copy.setupStartError, method]);
 
     const handleVerify = useCallback(async (codeOverride?: string) => {
         const code = codeOverride || verificationCode;
         if (!code.trim()) {
-            setError("กรุณากรอกรหัสยืนยัน");
+            setError(copy.verificationRequired);
             return;
         }
 
@@ -134,21 +246,21 @@ function TwoFactorSetupModal({
                 setBackupCodes(result.data.backupCodes);
                 setStep("backup");
                 addToast({
-                    title: "สำเร็จ",
-                    description: "เปิดใช้งานการยืนยันตัวตนสองขั้นตอนสำเร็จ",
+                    title: copy.successTitle,
+                    description: copy.successDescription,
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
                 });
             } else {
-                setError(result.error || "รหัสไม่ถูกต้อง");
+                setError(result.error || copy.invalidCode);
             }
         } catch (err) {
-            setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
+            setError(copy.genericError);
         } finally {
             setIsLoading(false);
         }
-    }, [verificationCode, method]);
+    }, [copy.genericError, copy.invalidCode, copy.successDescription, copy.successTitle, copy.verificationRequired, method, verificationCode]);
 
     const handleResendEmail = useCallback(async () => {
         if (resendCooldown > 0) return;
@@ -161,21 +273,21 @@ function TwoFactorSetupModal({
             if (result.success) {
                 setResendCooldown(60); // Start 60s cooldown
                 addToast({
-                    title: "ส่งรหัสใหม่แล้ว",
-                    description: "กรุณาตรวจสอบอีเมลของคุณ",
+                    title: copy.resendTitle,
+                    description: copy.resendDescription,
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
                 });
             } else {
-                setError(result.error || "ไม่สามารถส่งรหัสใหม่ได้");
+                setError(result.error || copy.resendError);
             }
         } catch (err) {
-            setError("เกิดข้อผิดพลาด");
+            setError(copy.genericShortError);
         } finally {
             setIsLoading(false);
         }
-    }, [resendCooldown]);
+    }, [copy.genericShortError, copy.resendDescription, copy.resendError, copy.resendTitle, resendCooldown]);
 
     const handleCopyCode = useCallback((code: string) => {
         navigator.clipboard.writeText(code);
@@ -187,17 +299,17 @@ function TwoFactorSetupModal({
         const allCodes = backupCodes.join("\n");
         navigator.clipboard.writeText(allCodes);
         addToast({
-            title: "คัดลอกแล้ว",
-            description: "คัดลอกรหัสสำรองทั้งหมดแล้ว",
+            title: copy.copiedTitle,
+            description: copy.copiedDescription,
             color: "success",
             timeout: 3000,
                 shouldShowTimeoutProgress: true,
         });
-    }, [backupCodes]);
+    }, [backupCodes, copy.copiedDescription, copy.copiedTitle]);
 
     const handleDownloadCodes = useCallback(() => {
         const date = new Date().toISOString().split('T')[0];
-        const content = `ITII Assist - รหัสสำรอง 2FA\n=============================\nสร้างเมื่อ: ${date}\n\nรหัสสำรอง (ใช้ได้ครั้งเดียวต่อรหัส):\n${backupCodes.map((code, i) => `${i + 1}. ${code}`).join('\n')}\n\n⚠️ เก็บรหัสเหล่านี้ไว้ในที่ปลอดภัย\n⚠️ ใช้เมื่อไม่สามารถเข้าถึงแอป Authenticator ได้`;
+        const content = `${copy.downloadFileTitle}\n=============================\n${copy.downloadFileCreatedAt}: ${date}\n\n${copy.downloadFileCodes}\n${backupCodes.map((code, i) => `${i + 1}. ${code}`).join('\n')}\n\n⚠️ ${copy.downloadFileWarning1}\n⚠️ ${copy.downloadFileWarning2}`;
 
         const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
         const url = URL.createObjectURL(blob);
@@ -210,13 +322,13 @@ function TwoFactorSetupModal({
         URL.revokeObjectURL(url);
 
         addToast({
-            title: "ดาวน์โหลดสำเร็จ",
-            description: "ไฟล์รหัสสำรองถูกดาวน์โหลดแล้ว",
+            title: copy.downloadTitle,
+            description: copy.downloadDescription,
             color: "success",
             timeout: 3000,
                 shouldShowTimeoutProgress: true,
         });
-    }, [backupCodes]);
+    }, [backupCodes, copy.downloadDescription, copy.downloadFileCodes, copy.downloadFileCreatedAt, copy.downloadFileTitle, copy.downloadFileWarning1, copy.downloadFileWarning2, copy.downloadTitle]);
 
     const handleComplete = useCallback(() => {
         onSuccess();
@@ -230,9 +342,9 @@ function TwoFactorSetupModal({
                     <div className="w-16 h-16 mx-auto mb-4 bg-primary-100 rounded-full flex items-center justify-center">
                         <Icon icon="solar:shield-check-bold" className="text-3xl text-primary" />
                     </div>
-                    <h3 className="text-lg font-semibold text-default-900">เพิ่มความปลอดภัยให้บัญชีของคุณ</h3>
+                    <h3 className="text-lg font-semibold text-default-900">{copy.selectTitle}</h3>
                     <p className="text-sm text-default-500 mt-1">
-                        เลือกวิธีการยืนยันตัวตนสองขั้นตอนที่ต้องการใช้
+                        {copy.selectDescription}
                     </p>
                 </div>
 
@@ -250,11 +362,11 @@ function TwoFactorSetupModal({
                                 </div>
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2">
-                                        <h4 className="font-semibold text-default-900">Authenticator App</h4>
-                                        <Chip size="sm" color="success" variant="flat">แนะนำ</Chip>
+                                        <h4 className="font-semibold text-default-900">{copy.authAppTitle}</h4>
+                                        <Chip size="sm" color="success" variant="flat">{copy.recommended}</Chip>
                                     </div>
                                     <p className="text-sm text-default-500 mt-1">
-                                        ใช้แอปเช่น Google Authenticator, Authy หรือ Microsoft Authenticator เพื่อสร้างรหัส
+                                        {copy.authAppDescription}
                                     </p>
                                 </div>
                                 {method === "totp" && (
@@ -277,11 +389,11 @@ function TwoFactorSetupModal({
                                     <Icon icon="solar:letter-bold" className={`text-2xl ${method === "email" ? "text-primary" : "text-default-500"}`} />
                                 </div>
                                 <div className="flex-1">
-                                    <h4 className="font-semibold text-default-900">Email Authentication</h4>
+                                    <h4 className="font-semibold text-default-900">{copy.emailTitle}</h4>
                                     <p className="text-sm text-default-500 mt-1">
                                         {hasEmail
-                                            ? "รับรหัสยืนยันผ่านทางอีเมลทุกครั้งที่เข้าสู่ระบบ"
-                                            : "กรุณาเพิ่มอีเมลในโปรไฟล์ก่อนใช้งาน"
+                                            ? copy.emailDescription
+                                            : copy.emailMissing
                                         }
                                     </p>
                                 </div>
@@ -301,10 +413,10 @@ function TwoFactorSetupModal({
             </ModalBody>
             <ModalFooter>
                 <Button variant="light" onPress={onClose}>
-                    ยกเลิก
+                    {copy.cancel}
                 </Button>
                 <Button color="primary" onPress={handleStartSetup} isLoading={isLoading} className="bg-linear-to-br from-blue-400 to-indigo-500">
-                    ดำเนินการต่อ
+                    {copy.continue}
                 </Button>
             </ModalFooter>
         </>
@@ -314,9 +426,9 @@ function TwoFactorSetupModal({
         <>
             <ModalBody className="py-6">
                 <div className="text-center mb-4">
-                    <h3 className="text-lg font-semibold text-default-900">ตั้งค่า Authenticator App</h3>
+                    <h3 className="text-lg font-semibold text-default-900">{copy.setupTotpTitle}</h3>
                     <p className="text-sm text-default-500 mt-1">
-                        สแกน QR Code ด้วยแอป Authenticator ของคุณ
+                        {copy.setupTotpDescription}
                     </p>
                 </div>
 
@@ -327,7 +439,7 @@ function TwoFactorSetupModal({
                             <div className="p-4 bg-white rounded-xl shadow-sm border border-default-200">
                                 <Image
                                     src={totpData.qrCode}
-                                    alt="QR Code"
+                                    alt={copy.qrCodeAlt}
                                     width={200}
                                     height={200}
                                     className="rounded-lg"
@@ -338,7 +450,7 @@ function TwoFactorSetupModal({
                         {/* Manual Entry */}
                         <div className="bg-default-50 rounded-lg p-4 mb-6">
                             <p className="text-xs text-default-500 mb-2 text-center">
-                                หรือกรอกรหัสด้วยตนเอง:
+                                {copy.manualEntry}
                             </p>
                             <div className="flex items-center justify-center gap-2">
                                 {showSecret ? (
@@ -371,7 +483,7 @@ function TwoFactorSetupModal({
 
                         {/* Verification Input */}
                         <div className="flex flex-col items-center gap-2">
-                            <label className="text-sm text-default-600">รหัสยืนยัน 6 หลัก</label>
+                            <label className="text-sm text-default-600">{copy.verificationCodeLabel}</label>
                             <InputOtp
                                 length={6}
                                 value={verificationCode}
@@ -395,7 +507,7 @@ function TwoFactorSetupModal({
             </ModalBody>
             <ModalFooter>
                 <Button variant="light" onPress={() => setStep("select")}>
-                    ย้อนกลับ
+                    {copy.back}
                 </Button>
                 <Button
                     color="primary"
@@ -404,7 +516,7 @@ function TwoFactorSetupModal({
                     isDisabled={verificationCode.length !== 6}
                     className="bg-linear-to-br from-blue-400 to-indigo-500"
                 >
-                    ยืนยัน
+                    {copy.verify}
                 </Button>
             </ModalFooter>
         </>
@@ -417,14 +529,14 @@ function TwoFactorSetupModal({
                     <div className="w-16 h-16 mx-auto mb-4 bg-primary-100 rounded-full flex items-center justify-center">
                         <Icon icon="solar:letter-bold" className="text-3xl text-primary" />
                     </div>
-                    <h3 className="text-lg font-semibold text-default-900">ยืนยันทาง Email</h3>
+                    <h3 className="text-lg font-semibold text-default-900">{copy.emailVerifyTitle}</h3>
                     <p className="text-sm text-default-500 mt-1">
-                        เราได้ส่งรหัสยืนยัน 6 หลักไปที่อีเมลของคุณแล้ว
+                        {copy.emailVerifyDescription}
                     </p>
                 </div>
 
                 <div className="flex flex-col items-center gap-2">
-                    <label className="text-sm text-default-600">รหัสยืนยัน 6 หลัก</label>
+                    <label className="text-sm text-default-600">{copy.verificationCodeLabel}</label>
                     <InputOtp
                         length={6}
                         value={verificationCode}
@@ -453,13 +565,13 @@ function TwoFactorSetupModal({
                         isDisabled={resendCooldown > 0}
                         startContent={resendCooldown > 0 ? <Icon icon="solar:clock-circle-outline" className="text-lg" /> : <Icon icon="solar:refresh-linear" className="text-lg" />}
                     >
-                        {resendCooldown > 0 ? `ส่งรหัสใหม่ได้ใน ${resendCooldown} วินาที` : "ส่งรหัสใหม่"}
+                        {resendCooldown > 0 ? formatTemplate(copy.resendIn, { seconds: resendCooldown }) : copy.resend}
                     </Button>
                 </div>
             </ModalBody>
             <ModalFooter>
                 <Button variant="light" onPress={() => setStep("select")}>
-                    ย้อนกลับ
+                    {copy.back}
                 </Button>
                 <Button
                     color="primary"
@@ -468,7 +580,7 @@ function TwoFactorSetupModal({
                     isDisabled={verificationCode.length !== 6}
                     className="bg-linear-to-br from-blue-400 to-indigo-500"
                 >
-                    ยืนยัน
+                    {copy.verify}
                 </Button>
             </ModalFooter>
         </>
@@ -481,9 +593,9 @@ function TwoFactorSetupModal({
                     <div className="w-16 h-16 mx-auto mb-4 bg-success-100 rounded-full flex items-center justify-center">
                         <Icon icon="solar:key-bold" className="text-3xl text-success" />
                     </div>
-                    <h3 className="text-lg font-semibold text-default-900">บันทึกรหัสสำรอง</h3>
+                    <h3 className="text-lg font-semibold text-default-900">{copy.backupTitle}</h3>
                     <p className="text-sm text-default-500 mt-1">
-                        เก็บรหัสเหล่านี้ไว้ในที่ปลอดภัย ใช้เมื่อไม่สามารถเข้าถึงอุปกรณ์ยืนยันได้
+                        {copy.backupDescription}
                     </p>
                 </div>
 
@@ -491,7 +603,7 @@ function TwoFactorSetupModal({
                     <div className="flex gap-3">
                         <Icon icon="solar:danger-triangle-bold" className="text-xl text-warning shrink-0 mt-0.5" />
                         <p className="text-sm text-warning-800">
-                            <strong>สำคัญ:</strong> นี่คือครั้งเดียวที่คุณจะเห็นรหัสเหล่านี้ กรุณาบันทึกไว้ก่อนปิด
+                            <strong>{copy.importantPrefix}</strong> {copy.importantDescription}
                         </p>
                     </div>
                 </div>
@@ -519,7 +631,7 @@ function TwoFactorSetupModal({
                         startContent={<Icon icon="solar:copy-linear" />}
                         onPress={handleCopyAllCodes}
                     >
-                        คัดลอกทั้งหมด
+                        {copy.copyAll}
                     </Button>
                     <Button
                         variant="flat"
@@ -528,13 +640,13 @@ function TwoFactorSetupModal({
                         startContent={<Icon icon="solar:download-bold" />}
                         onPress={handleDownloadCodes}
                     >
-                        ดาวน์โหลด .txt
+                        {copy.download}
                     </Button>
                 </div>
             </ModalBody>
             <ModalFooter>
                 <Button color="primary" onPress={handleComplete} className="w-full">
-                    เสร็จสิ้น
+                    {copy.finish}
                 </Button>
             </ModalFooter>
         </>
@@ -559,10 +671,10 @@ function TwoFactorSetupModal({
                     </div>
                     <div>
                         <h2 className="text-lg font-semibold">
-                            {isReconfiguring ? "เปลี่ยนแอปยืนยันตัวตน" : "ตั้งค่าการยืนยันตัวตนสองขั้นตอน"}
+                            {isReconfiguring ? copy.reconfigureTitle : copy.configureTitle}
                         </h2>
                         <p className="text-xs text-default-500 font-normal">
-                            {isReconfiguring ? "Reconfigure Authenticator App" : "Two-Factor Authentication (2FA)"}
+                            {isReconfiguring ? copy.reconfigureSubtitle : copy.configureSubtitle}
                         </p>
                     </div>
                 </ModalHeader>

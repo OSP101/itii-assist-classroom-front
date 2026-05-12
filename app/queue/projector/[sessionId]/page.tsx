@@ -18,6 +18,7 @@ import { Icon } from "@iconify/react";
 import { IoSchool } from "react-icons/io5";
 import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket";
 import QRCode from "react-qr-code";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 
 import { API_BASE_URL } from "@/config/api";
 import { Divider } from "@heroui/divider";
@@ -72,7 +73,10 @@ interface ProjectorViewData {
 
 export default function ProjectorViewPage() {
     const params = useParams();
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
     const sessionId = params.sessionId as string;
+    const t = (thai: string, english: string) => (isEnglish ? english : thai);
 
     const [data, setData] = useState<ProjectorViewData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -103,6 +107,12 @@ export default function ProjectorViewPage() {
         return () => clearInterval(timer);
     }, []);
 
+    useEffect(() => {
+        document.title = isEnglish
+            ? "Queue Projector Display - ITII Assist Classroom"
+            : "หน้าจอแสดงผลคิว - ITII Assist Classroom";
+    }, [isEnglish]);
+
     // Fetch data
     const fetchData = useCallback(async () => {
         try {
@@ -114,15 +124,15 @@ export default function ProjectorViewPage() {
                 setData(result.data);
                 setError(null);
             } else {
-                setError(result.error?.message || "ไม่สามารถโหลดข้อมูลได้");
+                setError(isEnglish ? "Unable to load the data." : (result.error?.message || "ไม่สามารถโหลดข้อมูลได้"));
             }
         } catch (err) {
             console.error("Error fetching data:", err);
-            setError("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+            setError(isEnglish ? "A connection error occurred." : "เกิดข้อผิดพลาดในการเชื่อมต่อ");
         } finally {
             setIsLoading(false);
         }
-    }, [sessionId]);
+    }, [sessionId, isEnglish]);
 
     useEffect(() => {
         fetchData();
@@ -160,8 +170,8 @@ export default function ProjectorViewPage() {
         socket.on("session-status-changed", (eventData: { status: string }) => {
             if (eventData.status === "closed") {
                 addToast({
-                    title: "Session ปิดแล้ว",
-                    description: "การจองคิวถูกปิด",
+                    title: t("Session ปิดแล้ว", "Session closed"),
+                    description: t("การจองคิวถูกปิด", "Queue booking has been closed."),
                     color: "warning",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -184,7 +194,7 @@ export default function ProjectorViewPage() {
             socket.emit("leave-queue", sessionId);
             socket.disconnect();
         };
-    }, [sessionId, fetchData]);
+    }, [sessionId, fetchData, isEnglish]);
 
     // Fullscreen toggle
     const toggleFullscreen = () => {
@@ -216,10 +226,12 @@ export default function ProjectorViewPage() {
 
             if (result.success) {
                 addToast({
-                    title: newStatus === 'paused' ? "หยุดรับคิวแล้ว" : "เปิดรับคิวแล้ว",
+                    title: newStatus === 'paused'
+                        ? t("หยุดรับคิวแล้ว", "Queue paused")
+                        : t("เปิดรับคิวแล้ว", "Queue resumed"),
                     description: newStatus === 'paused'
-                        ? "นักศึกษาจะไม่สามารถจองคิวใหม่ได้"
-                        : "นักศึกษาสามารถจองคิวได้อีกครั้ง",
+                        ? t("นักศึกษาจะไม่สามารถจองคิวใหม่ได้", "Students cannot create new bookings right now.")
+                        : t("นักศึกษาสามารถจองคิวได้อีกครั้ง", "Students can create bookings again."),
                     color: newStatus === 'paused' ? "warning" : "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -227,8 +239,8 @@ export default function ProjectorViewPage() {
                 fetchData();
             } else {
                 addToast({
-                    title: "เกิดข้อผิดพลาด",
-                    description: result.error?.message || "ไม่สามารถเปลี่ยนสถานะได้",
+                    title: t("เกิดข้อผิดพลาด", "Error"),
+                    description: isEnglish ? "Unable to change the queue status." : (result.error?.message || "ไม่สามารถเปลี่ยนสถานะได้"),
                     color: "danger",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -237,8 +249,8 @@ export default function ProjectorViewPage() {
         } catch (error) {
             console.error("Error toggling status:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถเปลี่ยนสถานะได้",
+                title: t("เกิดข้อผิดพลาด", "Error"),
+                description: t("ไม่สามารถเปลี่ยนสถานะได้", "Unable to change the queue status."),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -264,10 +276,10 @@ export default function ProjectorViewPage() {
             const result = await response.json();
             if (result.success) {
                 addToast({
-                    title: nextEnabled ? "เปิด Cutoff แล้ว" : "ปิด Cutoff แล้ว",
+                    title: nextEnabled ? t("เปิด Cutoff แล้ว", "Cutoff enabled") : t("ปิด Cutoff แล้ว", "Cutoff disabled"),
                     description: nextEnabled
-                        ? "การจองใหม่จากนี้จะถูกติดป้าย Late Booking"
-                        : "การจองใหม่จะไม่ถูกติดป้าย Late Booking",
+                        ? t("การจองใหม่จากนี้จะถูกติดป้าย Late Booking", "All new bookings will now be marked as Late Booking.")
+                        : t("การจองใหม่จะไม่ถูกติดป้าย Late Booking", "New bookings will no longer be marked as Late Booking."),
                     color: nextEnabled ? "warning" : "success",
                     timeout: 3000,
                     shouldShowTimeoutProgress: true,
@@ -275,8 +287,8 @@ export default function ProjectorViewPage() {
                 fetchData();
             } else {
                 addToast({
-                    title: "เกิดข้อผิดพลาด",
-                    description: result.error?.message || "ไม่สามารถเปลี่ยนสถานะ Cutoff ได้",
+                    title: t("เกิดข้อผิดพลาด", "Error"),
+                    description: isEnglish ? "Unable to change the cutoff status." : (result.error?.message || "ไม่สามารถเปลี่ยนสถานะ Cutoff ได้"),
                     color: "danger",
                     timeout: 3000,
                     shouldShowTimeoutProgress: true,
@@ -285,8 +297,8 @@ export default function ProjectorViewPage() {
         } catch (error) {
             console.error("Error toggling cutoff:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถเปลี่ยนสถานะ Cutoff ได้",
+                title: t("เกิดข้อผิดพลาด", "Error"),
+                description: t("ไม่สามารถเปลี่ยนสถานะ Cutoff ได้", "Unable to change the cutoff status."),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -320,8 +332,10 @@ export default function ProjectorViewPage() {
 
             if (result.success) {
                 addToast({
-                    title: "ยกเลิกการจองสำเร็จ",
-                    description: `โต๊ะ ${selectedDesk.number} ถูกล้างแล้ว`,
+                    title: t("ยกเลิกการจองสำเร็จ", "Booking cancelled"),
+                    description: isEnglish
+                        ? `Desk ${selectedDesk.number} has been cleared.`
+                        : `โต๊ะ ${selectedDesk.number} ถูกล้างแล้ว`,
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -331,8 +345,8 @@ export default function ProjectorViewPage() {
                 fetchData();
             } else {
                 addToast({
-                    title: "ยกเลิกไม่สำเร็จ",
-                    description: result.error?.message || "เกิดข้อผิดพลาด",
+                    title: t("ยกเลิกไม่สำเร็จ", "Cancellation failed"),
+                    description: isEnglish ? "Unable to cancel the booking." : (result.error?.message || "เกิดข้อผิดพลาด"),
                     color: "danger",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -341,8 +355,8 @@ export default function ProjectorViewPage() {
         } catch (error) {
             console.error("Error cancelling booking:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถยกเลิกการจองได้",
+                title: t("เกิดข้อผิดพลาด", "Error"),
+                description: t("ไม่สามารถยกเลิกการจองได้", "Unable to cancel the booking."),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -409,6 +423,48 @@ export default function ProjectorViewPage() {
         return `${FRONTEND_URL}/queue/book?pin=${data?.session.pin_code}`;
     };
 
+    const formatQueueStatusLabel = (status: string) => {
+        switch (status) {
+            case "active":
+                return t("เปิดรับคิว", "Open for queue");
+            case "paused":
+                return t("หยุดรับคิว", "Queue paused");
+            case "closed":
+                return t("ปิดแล้ว", "Closed");
+            default:
+                return status;
+        }
+    };
+
+    const formatBookingTypeLabel = (bookingType: DeskBooking["booking_type"]) => {
+        return bookingType === "grading"
+            ? t("ตรวจงาน", "Grading")
+            : t("ขอความช่วยเหลือ", "Help request");
+    };
+
+    const formatBookingStatus = (status: string) => {
+        switch (status) {
+            case "waiting":
+                return t("รอคิว", "Waiting");
+            case "in_progress":
+                return t("กำลังดำเนินการ", "In progress");
+            case "completed":
+                return t("เสร็จสิ้น", "Completed");
+            case "cancelled":
+                return t("ยกเลิกแล้ว", "Cancelled");
+            default:
+                return status;
+        }
+    };
+
+    const formatClock = (date: Date) =>
+        date.toLocaleTimeString(isEnglish ? "en-US" : "th-TH", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+        });
+
     if (isLoading) {
         return (
             <div className="flex min-h-screen flex-col gap-4 bg-background p-4">
@@ -445,10 +501,10 @@ export default function ProjectorViewPage() {
             <div className="flex min-h-screen items-center justify-center bg-background">
                 <div className="text-center">
                     <Icon icon="solar:danger-triangle-bold" className="text-6xl text-red-400 mb-4" />
-                    <h2 className="mb-2 text-xl font-bold text-foreground">เกิดข้อผิดพลาด</h2>
-                    <p className="mb-4 text-default-500">{error || "ไม่สามารถโหลดข้อมูลได้"}</p>
+                    <h2 className="mb-2 text-xl font-bold text-foreground">{t("เกิดข้อผิดพลาด", "Error")}</h2>
+                    <p className="mb-4 text-default-500">{error || t("ไม่สามารถโหลดข้อมูลได้", "Unable to load the data.")}</p>
                     <Button color="primary" onPress={() => fetchData()}>
-                        ลองใหม่
+                        {t("ลองใหม่", "Try again")}
                     </Button>
                 </div>
             </div>
@@ -487,7 +543,7 @@ export default function ProjectorViewPage() {
                             variant="flat"
                             startContent={<Icon icon="solar:pause-circle-bold" />}
                         >
-                            หยุดรับคิว
+                            {t("หยุดรับคิว", "Queue paused")}
                         </Chip>
                     )}
                     {isClosed && (
@@ -497,7 +553,7 @@ export default function ProjectorViewPage() {
                             variant="flat"
                             startContent={<Icon icon="solar:stop-circle-bold" />}
                         >
-                            ปิดแล้ว
+                            {t("ปิดแล้ว", "Closed")}
                         </Chip>
                     )}
                     {isCutoffEnabled && (
@@ -507,7 +563,7 @@ export default function ProjectorViewPage() {
                             variant="flat"
                             startContent={<Icon icon="solar:danger-triangle-bold" />}
                         >
-                            Cutoff เปิดอยู่
+                            {t("Cutoff เปิดอยู่", "Cutoff enabled")}
                         </Chip>
                     )}
                 </div>
@@ -525,7 +581,7 @@ export default function ProjectorViewPage() {
                             }}
                             startContent={<Icon icon="solar:clipboard-check-bold" />}
                         >
-                            <p>รอตรวจ: {data.queueStats.grading_waiting}</p>
+                            <p>{isEnglish ? `Waiting for grading: ${data.queueStats.grading_waiting}` : `รอตรวจ: ${data.queueStats.grading_waiting}`}</p>
                         </Chip>
                         <Chip
                             size="lg"
@@ -537,7 +593,7 @@ export default function ProjectorViewPage() {
                             }}
                             startContent={<Icon icon="solar:hand-shake-bold" />}
                         >
-                            รอช่วยเหลือ: {data.queueStats.help_waiting}
+                            {isEnglish ? `Waiting for help: ${data.queueStats.help_waiting}` : `รอช่วยเหลือ: ${data.queueStats.help_waiting}`}
                         </Chip>
                     </div>
 
@@ -585,7 +641,7 @@ export default function ProjectorViewPage() {
                             }
                         />
                         <span className={`text-sm font-medium ${isClosed ? 'text-rose-600' : isPaused ? 'text-amber-600' : 'text-emerald-600'}`}>
-                            {isClosed ? 'ปิดแล้ว' : isPaused ? 'หยุดรับคิว' : 'เปิดรับคิว'}
+                            {formatQueueStatusLabel(isClosed ? 'closed' : isPaused ? 'paused' : 'active')}
                         </span>
                     </div>
 
@@ -601,7 +657,7 @@ export default function ProjectorViewPage() {
                         onPress={() => setIsCutoffConfirmOpen(true)}
                         startContent={<Icon icon={isCutoffEnabled ? "solar:lock-bold" : "solar:lock-unlocked-bold"} className="text-lg" />}
                     >
-                        {isCutoffEnabled ? 'ปิด Cutoff' : 'เปิด Cutoff'}
+                        {isCutoffEnabled ? t('ปิด Cutoff', 'Disable cutoff') : t('เปิด Cutoff', 'Enable cutoff')}
                     </Button>
 
                     {/* Layout Toggle */}
@@ -611,7 +667,9 @@ export default function ProjectorViewPage() {
                         variant="flat"
                         className="border border-default-200 bg-content1 text-default-700 shadow-sm"
                         onPress={() => setSidebarPosition((prev) => prev === 'right' ? 'bottom' : 'right')}
-                        title={sidebarPosition === 'right' ? 'ย้ายแถบข้อมูลไปด้านล่าง' : 'ย้ายแถบข้อมูลไปด้านขวา'}
+                        title={sidebarPosition === 'right'
+                            ? t('ย้ายแถบข้อมูลไปด้านล่าง', 'Move info panel to the bottom')
+                            : t('ย้ายแถบข้อมูลไปด้านขวา', 'Move info panel to the right')}
                     >
                         <Icon icon={sidebarPosition === 'right' ? "solar:align-bottom-bold" : "solar:align-right-bold"} className="text-xl" />
                     </Button>
@@ -663,11 +721,13 @@ export default function ProjectorViewPage() {
                                         width: isTeacher ? 120 : 60,
                                         height: isTeacher ? 50 : 60,
                                     }}
-                                    title={isTeacher ? `โต๊ะอาจารย์ ${desk.number}` : `โต๊ะ ${desk.number}${desk.label ? ` (${desk.label})` : ""}${hasActiveBooking ? ' - คลิกเพื่อจัดการ' : ''}`}
+                                    title={isTeacher
+                                        ? (isEnglish ? `Teacher desk ${desk.number}` : `โต๊ะอาจารย์ ${desk.number}`)
+                                        : `${isEnglish ? 'Desk' : 'โต๊ะ'} ${desk.number}${desk.label ? ` (${desk.label})` : ""}${hasActiveBooking ? (isEnglish ? ' - click to manage' : ' - คลิกเพื่อจัดการ') : ''}`}
                                     onClick={() => handleDeskClick(desk)}
                                 >
                                     <span className={`font-bold ${isTeacher ? "text-sm text-foreground" : "text-lg"} ${desk.status.grading_status === "not_started" && desk.status.help_status === "none" ? "text-default-700" : "text-white"}`}>
-                                        {isTeacher ? `อาจารย์ ${desk.number}` : desk.number}
+                                        {isTeacher ? `${t('อาจารย์', 'Teacher')} ${desk.number}` : desk.number}
                                     </span>
 
                                     {/* Status indicators */}
@@ -698,16 +758,16 @@ export default function ProjectorViewPage() {
                             <div className="flex items-center gap-3 text-rose-600 shrink-0">
                                 <Icon icon="solar:stop-circle-bold" className="text-3xl" />
                                 <div>
-                                    <p className="font-bold text-sm">ปิดแล้ว</p>
-                                    <p className="text-xs text-rose-500">การจองคิวถูกปิดแล้ว</p>
+                                    <p className="font-bold text-sm">{t('ปิดแล้ว', 'Closed')}</p>
+                                    <p className="text-xs text-rose-500">{t('การจองคิวถูกปิดแล้ว', 'Queue booking has been closed.')}</p>
                                 </div>
                             </div>
                         ) : isPaused ? (
                             <div className="flex items-center gap-3 text-amber-600 shrink-0">
                                 <Icon icon="solar:pause-circle-bold" className="text-3xl" />
                                 <div>
-                                    <p className="font-bold text-sm">หยุดรับคิว</p>
-                                    <p className="text-xs text-amber-500">ไม่รับการจองคิวใหม่ชั่วคราว</p>
+                                    <p className="font-bold text-sm">{t('หยุดรับคิว', 'Queue paused')}</p>
+                                    <p className="text-xs text-amber-500">{t('ไม่รับการจองคิวใหม่ชั่วคราว', 'New bookings are temporarily paused.')}</p>
                                 </div>
                             </div>
                         ) : (
@@ -730,38 +790,38 @@ export default function ProjectorViewPage() {
                         <div className="flex items-center gap-4 flex-wrap flex-1 min-w-0">
                             <div className="flex items-center gap-1.5">
                                 <div className="h-8 w-8 shrink-0 rounded border border-default-300 bg-content3" />
-                                <span className="text-md whitespace-nowrap text-default-500">ยังไม่ได้ตรวจ</span>
+                                <span className="text-md whitespace-nowrap text-default-500">{t('ยังไม่ได้ตรวจ', 'Not started')}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <div className="w-8 h-8 rounded bg-blue-300 border border-blue-400 shrink-0" />
-                                <span className="text-md whitespace-nowrap text-default-500">รอตรวจ</span>
+                                <span className="text-md whitespace-nowrap text-default-500">{t('รอตรวจ', 'Waiting for grading')}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <div className="w-8 h-8 rounded bg-blue-500 animate-pulse border border-blue-600 shrink-0" />
-                                <span className="text-md whitespace-nowrap text-default-500">กำลังตรวจ</span>
+                                <span className="text-md whitespace-nowrap text-default-500">{t('กำลังตรวจ', 'Grading in progress')}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <div className="w-8 h-8 rounded bg-emerald-500 border border-emerald-600 shrink-0" />
-                                <span className="text-md whitespace-nowrap text-default-500">ตรวจเสร็จ</span>
+                                <span className="text-md whitespace-nowrap text-default-500">{t('ตรวจเสร็จ', 'Completed')}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <div className="w-8 h-8 rounded bg-amber-300 border border-amber-400 shrink-0" />
-                                <span className="text-md whitespace-nowrap text-default-500">รอช่วยเหลือ</span>
+                                <span className="text-md whitespace-nowrap text-default-500">{t('รอช่วยเหลือ', 'Waiting for help')}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <div className="w-8 h-8 rounded bg-amber-500 animate-pulse border border-amber-600 shrink-0" />
-                                <span className="text-md whitespace-nowrap text-default-500">กำลังช่วยเหลือ</span>
+                                <span className="text-md whitespace-nowrap text-default-500">{t('กำลังช่วยเหลือ', 'Helping in progress')}</span>
                             </div>
 
                             {/* Desk types inline */}
                             <div className="h-12 w-px shrink-0 bg-divider" />
                             <div className="flex items-center gap-1.5">
                                 <div className="h-8 w-8 shrink-0 rounded border-2 border-cyan-400 bg-content3" />
-                                <span className="text-md whitespace-nowrap text-default-500">คอมฯ</span>
+                                <span className="text-md whitespace-nowrap text-default-500">{t('คอมฯ', 'Computer')}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <div className="h-8 w-8 shrink-0 rounded border-[3px] border-purple-400 bg-content3" />
-                                <span className="text-md whitespace-nowrap text-default-500">โต๊ะอาจารย์</span>
+                                <span className="text-md whitespace-nowrap text-default-500">{t('โต๊ะอาจารย์', 'Teacher desk')}</span>
                             </div>
 
                             <div className="h-12 w-px shrink-0 bg-divider" />
@@ -769,7 +829,7 @@ export default function ProjectorViewPage() {
                             <div className="flex max-w-full items-center justify-center gap-2 rounded-xl border border-default-200 bg-content1 px-4 py-2 shadow-sm">
                                 {/* <Icon icon="solar:clock-circle-bold" className="text-slate-400 text-lg" /> */}
                                 <span className="font-mono text-2xl font-semibold text-default-700 tabular-nums">
-                                    {currentTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+                                    {formatClock(currentTime)}
                                 </span>
                             </div>
                         </div>
@@ -782,17 +842,17 @@ export default function ProjectorViewPage() {
                         {isClosed ? (
                             <div className="bg-rose-50 rounded-2xl p-6 text-center border-2 border-rose-200">
                                 <Icon icon="solar:stop-circle-bold" className="text-6xl text-rose-500 mb-3" />
-                                <h3 className="text-lg font-bold text-rose-700 mb-1">ปิดแล้ว</h3>
+                                <h3 className="text-lg font-bold text-rose-700 mb-1">{t('ปิดแล้ว', 'Closed')}</h3>
                                 <p className="text-sm text-rose-600">
-                                    การจองคิวถูกปิดแล้ว
+                                    {t('การจองคิวถูกปิดแล้ว', 'Queue booking has been closed.')}
                                 </p>
                             </div>
                         ) : isPaused ? (
                             <div className="bg-amber-50 rounded-2xl p-6 text-center border-2 border-amber-200 justify-center">
                                 <Icon icon="solar:pause-circle-bold" className="text-6xl text-amber-500 mb-3 text-center w-full" />
-                                <h3 className="text-lg font-bold text-amber-700 mb-1">หยุดรับคิว</h3>
+                                <h3 className="text-lg font-bold text-amber-700 mb-1">{t('หยุดรับคิว', 'Queue paused')}</h3>
                                 <p className="text-sm text-amber-600">
-                                    ไม่รับการจองคิวใหม่ชั่วคราว
+                                    {t('ไม่รับการจองคิวใหม่ชั่วคราว', 'New bookings are temporarily paused.')}
                                 </p>
                             </div>
                         ) : (
@@ -819,47 +879,47 @@ export default function ProjectorViewPage() {
 
                         {/* Legend */}
                         <div className="rounded-2xl border border-default-200 bg-content1 p-4 shadow-sm">
-                            <h3 className="mb-3 font-semibold text-foreground">สัญลักษณ์</h3>
+                            <h3 className="mb-3 font-semibold text-foreground">{t('สัญลักษณ์', 'Legend')}</h3>
                             <div className="space-y-2 grid grid-cols-2">
                                 <div className="flex items-center gap-3">
                                     <div className="h-8 w-8 rounded border border-default-300 bg-content3" />
-                                    <span className="text-sm text-default-600">ยังไม่ได้ตรวจ</span>
+                                    <span className="text-sm text-default-600">{t('ยังไม่ได้ตรวจ', 'Not started')}</span>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded bg-emerald-500 border border-emerald-600" />
-                                    <span className="text-sm text-default-600">ตรวจเสร็จแล้ว</span>
+                                    <span className="text-sm text-default-600">{t('ตรวจเสร็จแล้ว', 'Completed')}</span>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded bg-blue-300 border border-blue-400" />
-                                    <span className="text-sm text-default-600">รอตรวจงาน</span>
+                                    <span className="text-sm text-default-600">{t('รอตรวจงาน', 'Waiting for grading')}</span>
                                 </div>
 
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded bg-amber-300 border border-amber-400" />
-                                    <span className="text-sm text-default-600">รอช่วยเหลือ</span>
+                                    <span className="text-sm text-default-600">{t('รอช่วยเหลือ', 'Waiting for help')}</span>
                                 </div>
 
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded bg-blue-500 animate-pulse border border-blue-600" />
-                                    <span className="text-sm text-default-600">กำลังตรวจ</span>
+                                    <span className="text-sm text-default-600">{t('กำลังตรวจ', 'Grading in progress')}</span>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded bg-amber-500 animate-pulse border border-amber-600" />
-                                    <span className="text-sm text-default-600">กำลังช่วยเหลือ</span>
+                                    <span className="text-sm text-default-600">{t('กำลังช่วยเหลือ', 'Helping in progress')}</span>
                                 </div>
                             </div>
 
                             {/* Desk types */}
                             <div className="mt-4 border-t border-divider pt-4">
-                                <h4 className="mb-2 text-sm text-default-500">ประเภทโต๊ะ</h4>
+                                <h4 className="mb-2 text-sm text-default-500">{t('ประเภทโต๊ะ', 'Desk types')}</h4>
                                 <div className="space-y-2 grid grid-cols-2">
                                     <div className="flex items-center gap-3">
                                         <div className="h-8 w-8 rounded border-2 border-cyan-400 bg-content3" />
-                                        <span className="text-sm text-default-600">คอมพิวเตอร์</span>
+                                        <span className="text-sm text-default-600">{t('คอมพิวเตอร์', 'Computer')}</span>
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <div className="h-8 w-8 rounded border-4 border-purple-400 bg-content3" />
-                                        <span className="text-sm text-default-600">โต๊ะอาจารย์</span>
+                                        <span className="text-sm text-default-600">{t('โต๊ะอาจารย์', 'Teacher desk')}</span>
                                     </div>
                                 </div>
                             </div>
@@ -868,7 +928,7 @@ export default function ProjectorViewPage() {
                         <div className="flex items-center justify-center gap-2 rounded-xl border border-default-200 bg-content1 px-4 py-2 shadow-sm">
                             {/* <Icon icon="solar:clock-circle-bold" className="text-slate-400 text-lg" /> */}
                             <span className="font-mono text-2xl font-semibold text-default-700 tabular-nums">
-                                {currentTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+                                {formatClock(currentTime)}
                             </span>
                         </div>
                         {/* Keyboard shortcuts */}
@@ -892,35 +952,35 @@ export default function ProjectorViewPage() {
                         <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
                             <Icon icon="solar:square-bold" className="text-xl text-white" />
                         </div>
-                        <span>โต๊ะ {selectedDesk?.number}</span>
+                        <span>{isEnglish ? `Desk ${selectedDesk?.number}` : `โต๊ะ ${selectedDesk?.number}`}</span>
                     </ModalHeader>
                     <ModalBody>
                         {selectedDesk?.booking && (
                             <div className="space-y-4">
                                 <div className="rounded-xl bg-content2 p-4">
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm text-default-600">คิวที่</span>
+                                        <span className="text-sm text-default-600">{t('คิวที่', 'Queue number')}</span>
                                         <span className="text-2xl font-bold text-blue-600">
                                             {selectedDesk.booking.queue_number}
                                         </span>
                                     </div>
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm text-default-600">ประเภท</span>
+                                        <span className="text-sm text-default-600">{t('ประเภท', 'Type')}</span>
                                         <Chip
                                             size="sm"
                                             color={selectedDesk.booking.booking_type === 'grading' ? 'primary' : 'warning'}
                                             variant="flat"
                                         >
-                                            {selectedDesk.booking.booking_type === 'grading' ? 'ตรวจงาน' : 'ขอความช่วยเหลือ'}
+                                            {formatBookingTypeLabel(selectedDesk.booking.booking_type)}
                                         </Chip>
                                     </div>
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm text-default-600">สถานะ</span>
-                                        <span className="font-medium text-foreground">{selectedDesk.booking.status}</span>
+                                        <span className="text-sm text-default-600">{t('สถานะ', 'Status')}</span>
+                                        <span className="font-medium text-foreground">{formatBookingStatus(selectedDesk.booking.status)}</span>
                                     </div>
                                     {selectedDesk.booking.student_name && (
                                         <div className="flex items-center justify-between">
-                                            <span className="text-sm text-default-600">นักศึกษา</span>
+                                            <span className="text-sm text-default-600">{t('นักศึกษา', 'Student')}</span>
                                             <span className="text-foreground">{selectedDesk.booking.student_name}</span>
                                         </div>
                                     )}
@@ -930,8 +990,8 @@ export default function ProjectorViewPage() {
                                     <div className="flex items-start gap-2">
                                         <Icon icon="solar:danger-triangle-bold" className="text-amber-600 text-lg mt-0.5" />
                                         <div className="text-sm text-amber-700">
-                                            <p className="font-medium">ยกเลิกการจองนี้?</p>
-                                            <p className="mt-1">ใช้เมื่อมีปัญหาหรือข้อผิดพลาดเท่านั้น โต๊ะจะว่างและนักศึกษาสามารถจองใหม่ได้</p>
+                                            <p className="font-medium">{t('ยกเลิกการจองนี้?', 'Cancel this booking?')}</p>
+                                            <p className="mt-1">{t('ใช้เมื่อมีปัญหาหรือข้อผิดพลาดเท่านั้น โต๊ะจะว่างและนักศึกษาสามารถจองใหม่ได้', 'Use this only when there is a problem or mistake. The desk will become available and the student can book again.')}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -940,7 +1000,7 @@ export default function ProjectorViewPage() {
                     </ModalBody>
                     <ModalFooter>
                         <Button variant="light" onPress={() => setIsDeskModalOpen(false)}>
-                            ปิด
+                            {t('ปิด', 'Close')}
                         </Button>
                         <Button
                             color="primary"
@@ -949,7 +1009,7 @@ export default function ProjectorViewPage() {
                             className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             startContent={<Icon icon="solar:trash-bin-trash-bold" />}
                         >
-                            ยกเลิกการจอง
+                            {t('ยกเลิกการจอง', 'Cancel booking')}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -961,25 +1021,25 @@ export default function ProjectorViewPage() {
                         <div className="p-2 bg-linear-to-br from-rose-400 to-pink-500 rounded-lg shadow-lg shadow-rose-500/30">
                             <Icon icon="solar:danger-triangle-bold" className="text-xl text-white" />
                         </div>
-                        <span>{nextCutoffEnabled ? "ยืนยันเปิด Cutoff" : "ยืนยันปิด Cutoff"}</span>
+                        <span>{nextCutoffEnabled ? t("ยืนยันเปิด Cutoff", "Confirm cutoff enable") : t("ยืนยันปิด Cutoff", "Confirm cutoff disable")}</span>
                     </ModalHeader>
                     <ModalBody>
                         <div className="space-y-3 text-sm text-default-700">
                             <p>
                                 {nextCutoffEnabled
-                                    ? "หลังจากนี้การจองใหม่ทั้งหมดจะถูกติดป้ายว่า Late Booking"
-                                    : "หลังจากนี้การจองใหม่จะไม่ถูกติดป้าย Late Booking"}
+                                    ? t("หลังจากนี้การจองใหม่ทั้งหมดจะถูกติดป้ายว่า Late Booking", "All new bookings from now on will be marked as Late Booking.")
+                                    : t("หลังจากนี้การจองใหม่จะไม่ถูกติดป้าย Late Booking", "New bookings from now on will not be marked as Late Booking.")}
                             </p>
                             {nextCutoffEnabled && (
                                 <p className="text-rose-600">
-                                    แจ้งนักศึกษาให้เรียบร้อยก่อนกดยืนยันเพื่อป้องกันความสับสน
+                                    {t("แจ้งนักศึกษาให้เรียบร้อยก่อนกดยืนยันเพื่อป้องกันความสับสน", "Inform students before confirming to avoid confusion.")}
                                 </p>
                             )}
                         </div>
                     </ModalBody>
                     <ModalFooter>
                         <Button variant="light" onPress={() => setIsCutoffConfirmOpen(false)}>
-                            ยกเลิก
+                            {t('ยกเลิก', 'Cancel')}
                         </Button>
                         <Button
                             color={nextCutoffEnabled ? "warning" : "success"}
@@ -990,7 +1050,7 @@ export default function ProjectorViewPage() {
                             isLoading={isTogglingCutoff}
                             startContent={<Icon icon={nextCutoffEnabled ? "solar:lock-bold" : "solar:lock-unlocked-bold"} />}
                         >
-                            {nextCutoffEnabled ? "ยืนยันเปิด Cutoff" : "ยืนยันปิด Cutoff"}
+                            {nextCutoffEnabled ? t("ยืนยันเปิด Cutoff", "Enable cutoff") : t("ยืนยันปิด Cutoff", "Disable cutoff")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>

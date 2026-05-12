@@ -9,6 +9,7 @@ import { Link } from "@heroui/link";
 import { Spinner } from "@heroui/spinner";
 import { Icon } from "@iconify/react";
 import { addToast } from "@heroui/toast";
+import { useI18n } from "@/hooks/useI18n";
 import { authService } from "@/services";
 
 const AUTH_PAGE_SHELL = "flex min-h-screen flex-col bg-background p-3 text-foreground sm:p-4";
@@ -18,6 +19,7 @@ const AUTH_PAGE_FOOTER = "mt-2 px-4 pb-2 text-center text-xs font-light text-sla
 function ResetPasswordContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const t = useI18n();
     const token = searchParams.get("token");
 
     const [isValidating, setIsValidating] = useState(true);
@@ -69,8 +71,8 @@ function ResetPasswordContent() {
     const handleResetPassword = async () => {
         if (!isPasswordValid) {
             addToast({
-                title: "รหัสผ่านไม่ผ่านเงื่อนไข",
-                description: "กรุณาตรวจสอบเงื่อนไขรหัสผ่าน",
+                title: t("passwordRequirementFailed"),
+                description: t("pleaseCheckPasswordRequirements"),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -80,8 +82,8 @@ function ResetPasswordContent() {
 
         if (newPassword !== confirmPassword) {
             addToast({
-                title: "รหัสผ่านไม่ตรงกัน",
-                description: "กรุณากรอกรหัสผ่านให้ตรงกันทั้ง 2 ช่อง",
+                title: t("passwordsDoNotMatch"),
+                description: t("pleaseEnterMatchingPasswords"),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -95,16 +97,16 @@ function ResetPasswordContent() {
             if (result.success) {
                 setResetSuccess(true);
                 addToast({
-                    title: "สำเร็จ",
-                    description: "รหัสผ่านถูกเปลี่ยนเรียบร้อยแล้ว",
+                    title: t("success"),
+                    description: t("passwordChangedSuccessfully"),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
                 });
             } else {
                 addToast({
-                    title: "เกิดข้อผิดพลาด",
-                    description: result.error || "ไม่สามารถรีเซ็ตรหัสผ่านได้",
+                    title: t("somethingWentWrong"),
+                    description: result.error || t("unableToResetPassword"),
                     color: "danger",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -112,8 +114,8 @@ function ResetPasswordContent() {
             }
         } catch (error) {
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้",
+                title: t("somethingWentWrong"),
+                description: t("cannotConnectToServer"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -131,7 +133,7 @@ function ResetPasswordContent() {
                     <Card className={AUTH_PAGE_CARD}>
                         <CardBody className="p-8 flex flex-col items-center justify-center gap-4">
                             <Spinner size="lg" color="primary" />
-                            <p className="text-slate-500">กำลังตรวจสอบลิงก์...</p>
+                            <p className="text-slate-500">{t("validatingResetLink")}</p>
                         </CardBody>
                     </Card>
                 </div>
@@ -152,10 +154,10 @@ function ResetPasswordContent() {
                                 </div>
                                 <div>
                                     <h1 className="text-2xl font-bold text-slate-800 mb-2">
-                                        ลิงก์ไม่ถูกต้องหรือหมดอายุ
+                                        {t("invalidOrExpiredResetLink")}
                                     </h1>
                                     <p className="text-slate-500 mb-6">
-                                        ลิงก์รีเซ็ตรหัสผ่านนี้ไม่ถูกต้อง ถูกใช้ไปแล้ว หรือหมดอายุแล้ว กรุณาขอลิงก์ใหม่
+                                        {t("invalidOrExpiredResetLinkDescription")}
                                     </p>
                                 </div>
                                 <Button
@@ -164,14 +166,14 @@ function ResetPasswordContent() {
                                     className="w-full font-medium bg-linear-to-r from-blue-400 to-indigo-500"
                                     startContent={<Icon icon="solar:arrow-left-bold" className="text-lg" />}
                                 >
-                                    กลับไปหน้าเข้าสู่ระบบ
+                                    {t("backToLoginPage")}
                                 </Button>
                             </div>
                         </CardBody>
                     </Card>
                 </div>
                 <div className={AUTH_PAGE_FOOTER}>
-                    © 2025 ITII Assist classroom. All Rights Reserved.
+                    © 2025 ITII Assist Classroom. {t("allRightsReserved")}
                 </div>
             </div>
         );
@@ -190,10 +192,10 @@ function ResetPasswordContent() {
                                 </div>
                                 <div>
                                     <h1 className="text-2xl font-bold text-slate-800 mb-2">
-                                        เปลี่ยนรหัสผ่านสำเร็จ!
+                                        {t("passwordChangedSuccessfully")}
                                     </h1>
                                     <p className="text-slate-500 mb-6">
-                                        รหัสผ่านของคุณถูกเปลี่ยนเรียบร้อยแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่
+                                        {t("signInAgainWithNewPassword")}
                                     </p>
                                 </div>
                                 <Button
@@ -202,14 +204,14 @@ function ResetPasswordContent() {
                                     className="w-full font-medium bg-linear-to-r from-blue-400 to-indigo-500"
                                     startContent={<Icon icon="solar:login-3-bold" className="text-lg" />}
                                 >
-                                    ไปหน้าเข้าสู่ระบบ
+                                    {t("backToLoginPage")}
                                 </Button>
                             </div>
                         </CardBody>
                     </Card>
                 </div>
                 <div className={AUTH_PAGE_FOOTER}>
-                    © 2025 ITII Assist classroom. All Rights Reserved.
+                    © 2025 ITII Assist Classroom. {t("allRightsReserved")}
                 </div>
             </div>
         );
@@ -228,10 +230,10 @@ function ResetPasswordContent() {
                             </div>
                             <div>
                                 <h1 className="text-2xl font-bold text-slate-800">
-                                    ตั้งรหัสผ่านใหม่
+                                    {t("resetPasswordTitle")}
                                 </h1>
                                 <p className="text-slate-500 mt-1">
-                                    กรอกรหัสผ่านใหม่สำหรับบัญชีของคุณ
+                                    {t("enterNewPasswordForAccount")}
                                 </p>
                             </div>
                         </div>
@@ -240,9 +242,9 @@ function ResetPasswordContent() {
                         <div className="space-y-4">
                             {/* New Password */}
                             <Input
-                                label="รหัสผ่านใหม่"
+                                label={t("newPassword")}
                                 labelPlacement="outside"
-                                placeholder="กรอกรหัสผ่านใหม่"
+                                placeholder={t("enterNewPassword")}
                                 variant="bordered"
                                 size="md"
                                 type={showNewPassword ? "text" : "password"}
@@ -270,9 +272,9 @@ function ResetPasswordContent() {
 
                             {/* Confirm Password */}
                             <Input
-                                label="ยืนยันรหัสผ่าน"
+                                label={t("confirmPassword")}
                                 labelPlacement="outside"
-                                placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
+                                placeholder={t("confirmNewPassword")}
                                 variant="bordered"
                                 size="md"
                                 type={showConfirmPassword ? "text" : "password"}
@@ -296,12 +298,12 @@ function ResetPasswordContent() {
                                     label: "text-slate-600 font-medium text-sm",
                                 }}
                                 isInvalid={confirmPassword !== "" && newPassword !== confirmPassword}
-                                errorMessage={confirmPassword !== "" && newPassword !== confirmPassword ? "รหัสผ่านไม่ตรงกัน" : ""}
+                                errorMessage={confirmPassword !== "" && newPassword !== confirmPassword ? t("passwordsDoNotMatch") : ""}
                             />
 
                             {/* Password Requirements */}
                             <div className="bg-slate-50 rounded-lg p-3 space-y-2">
-                                <p className="text-xs font-medium text-slate-600 mb-2">ข้อกำหนดรหัสผ่าน:</p>
+                                <p className="text-xs font-medium text-slate-600 mb-2">{t("passwordRequirements")}</p>
                                 <div className="space-y-1.5">
                                     <div className="flex items-center gap-2">
                                         <Icon 
@@ -309,7 +311,7 @@ function ResetPasswordContent() {
                                             className={passwordValidation.minLength ? "text-green-500" : "text-slate-400"} 
                                         />
                                         <span className={`text-xs ${passwordValidation.minLength ? "text-green-600" : "text-slate-500"}`}>
-                                            อย่างน้อย 8 ตัวอักษร
+                                            {t("atLeastEightCharacters")}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -318,7 +320,7 @@ function ResetPasswordContent() {
                                             className={passwordValidation.hasLowercase ? "text-green-500" : "text-slate-400"} 
                                         />
                                         <span className={`text-xs ${passwordValidation.hasLowercase ? "text-green-600" : "text-slate-500"}`}>
-                                            มีตัวอักษรพิมพ์เล็ก (a-z)
+                                            {t("containsLowercaseLetter")}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -327,7 +329,7 @@ function ResetPasswordContent() {
                                             className={passwordValidation.hasUppercase ? "text-green-500" : "text-slate-400"} 
                                         />
                                         <span className={`text-xs ${passwordValidation.hasUppercase ? "text-green-600" : "text-slate-500"}`}>
-                                            มีตัวอักษรพิมพ์ใหญ่ (A-Z)
+                                            {t("containsUppercaseLetter")}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -336,7 +338,7 @@ function ResetPasswordContent() {
                                             className={passwordValidation.hasSpecialChar ? "text-green-500" : "text-slate-400"} 
                                         />
                                         <span className={`text-xs ${passwordValidation.hasSpecialChar ? "text-green-600" : "text-slate-500"}`}>
-                                            มีอักขระพิเศษ (!@#$%^&* ฯลฯ)
+                                            {t("containsSpecialCharacter")}
                                         </span>
                                     </div>
                                 </div>
@@ -351,13 +353,13 @@ function ResetPasswordContent() {
                                 className="w-full font-medium mt-2 bg-linear-to-r from-blue-400 to-indigo-500"
                                 startContent={!isResetting && <Icon icon="solar:key-bold" className="text-lg" />}
                             >
-                                ตั้งรหัสผ่านใหม่
+                                {t("resetPasswordAction")}
                             </Button>
 
                             {/* Back to login */}
                             <div className="text-center mt-4">
                                 <Link href="/login" className="text-blue-400 hover:text-blue-500 text-sm">
-                                    ← กลับไปหน้าเข้าสู่ระบบ
+                                    {`\u2190 ${t("backToLoginPage")}`}
                                 </Link>
                             </div>
                         </div>
@@ -365,7 +367,7 @@ function ResetPasswordContent() {
                 </Card>
             </div>
             <div className={AUTH_PAGE_FOOTER}>
-                © 2025 ITII Assist classroom. All Rights Reserved.
+                © 2025 ITII Assist Classroom. {t("allRightsReserved")}
             </div>
         </div>
     );
@@ -373,6 +375,8 @@ function ResetPasswordContent() {
 
 
 export default function ResetPasswordPage() {
+    const t = useI18n();
+
     return (
         <Suspense fallback={
             <div data-auth-shell="true" className={AUTH_PAGE_SHELL}>
@@ -380,7 +384,7 @@ export default function ResetPasswordPage() {
                     <Card className={AUTH_PAGE_CARD}>
                         <CardBody className="p-8 flex flex-col items-center justify-center gap-4">
                             <Spinner size="lg" color="primary" />
-                            <p className="text-slate-500">กำลังโหลด...</p>
+                            <p className="text-slate-500">{t("loading")}</p>
                         </CardBody>
                     </Card>
                 </div>

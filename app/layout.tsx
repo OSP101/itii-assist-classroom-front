@@ -17,6 +17,7 @@ const SETTINGS_BOOTSTRAP_SCRIPT = `
     fontSize: "md",
     language: "th",
   };
+  const appearanceHintCookieName = "appearance-hint";
   const pendingPreferencesKey = "auth:pending-preferences";
   const bootstrapStyleId = "settings-bootstrap-surface";
   const palette = {
@@ -37,8 +38,25 @@ const SETTINGS_BOOTSTRAP_SCRIPT = `
   const normalizeLanguage = (value) =>
     value === "th" || value === "en" ? value : defaults.language;
 
+  const getAppearanceHint = () => {
+    const cookieEntry = document.cookie
+      .split("; ")
+      .find((cookie) => cookie.startsWith(appearanceHintCookieName + "="));
+
+    if (!cookieEntry) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(decodeURIComponent(cookieEntry.slice(appearanceHintCookieName.length + 1)));
+    } catch {
+      return null;
+    }
+  };
+
   let user = null;
   let pendingPreferences = null;
+  const appearanceHint = getAppearanceHint();
 
   try {
     const rawUser = window.localStorage.getItem("user");
@@ -57,6 +75,7 @@ const SETTINGS_BOOTSTRAP_SCRIPT = `
   }
 
   const preferences = {
+    ...(appearanceHint ?? {}),
     ...(user && user.preferences ? user.preferences : {}),
     ...(pendingPreferences ?? {}),
   };
@@ -99,17 +118,6 @@ const SETTINGS_BOOTSTRAP_SCRIPT = `
   }
 })();
 `;
-
-const ROOT_THEME_PALETTE = {
-  light: {
-    background: "#f4f7fb",
-    foreground: "#0f172a",
-  },
-  dark: {
-    background: "#0b1220",
-    foreground: "#e7edf7",
-  },
-} as const;
 
 export const metadata: Metadata = {
   title: {
@@ -155,13 +163,16 @@ export default async function RootLayout({
   );
 
   const initialResolvedTheme = appearanceHint?.resolvedTheme === "dark" ? "dark" : "light";
-  const initialPalette = ROOT_THEME_PALETTE[initialResolvedTheme];
   const initialLanguage = appearanceHint?.language === "en" ? "en" : "th";
   const initialFontSize =
     appearanceHint?.fontSize === "sm" || appearanceHint?.fontSize === "lg"
       ? appearanceHint.fontSize
       : "md";
   const initialThemeRole = appearanceHint?.themeRole === "staff" ? "staff" : undefined;
+  const initialTheme =
+    appearanceHint?.theme === "light" || appearanceHint?.theme === "dark" || appearanceHint?.theme === "system"
+      ? appearanceHint.theme
+      : "system";
 
   return (
     <html
@@ -171,11 +182,7 @@ export default async function RootLayout({
       data-theme={initialResolvedTheme}
       data-theme-role={initialThemeRole}
       data-font-size={initialFontSize}
-      style={{
-        colorScheme: initialResolvedTheme,
-        backgroundColor: initialPalette.background,
-        color: initialPalette.foreground,
-      }}
+      style={{ colorScheme: initialResolvedTheme }}
     >
       <head>
         <script id="settings-bootstrap" dangerouslySetInnerHTML={{ __html: SETTINGS_BOOTSTRAP_SCRIPT }} />
@@ -185,12 +192,17 @@ export default async function RootLayout({
           "min-h-screen text-foreground bg-background font-sans antialiased",
           fontSans.variable,
         )}
-        style={{
-          backgroundColor: initialPalette.background,
-          color: initialPalette.foreground,
-        }}
       >
-        <Providers>{children}</Providers>
+        <Providers
+          initialSettings={{
+            theme: initialTheme,
+            resolvedTheme: initialResolvedTheme,
+            fontSize: initialFontSize,
+            language: initialLanguage,
+          }}
+        >
+          {children}
+        </Providers>
       </body>
     </html>
   );

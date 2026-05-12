@@ -37,6 +37,7 @@ import queueService, {
 import { classroomService, type Classroom } from "@/services/classroom.service";
 import assignmentService, { type Assignment } from "@/services/assignment.service";
 import attendanceService, { type AttendanceSession } from "@/services/attendance.service";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 
 // Types for the component
 interface Section {
@@ -87,9 +88,9 @@ function QueueTableSkeleton() {
 }
 
 // Format date for display
-function formatDate(dateString: string): string {
+function formatDate(dateString: string, locale: string): string {
     const date = new Date(dateString);
-    return date.toLocaleDateString("th-TH", {
+    return date.toLocaleDateString(locale, {
         year: "numeric",
         month: "short",
         day: "numeric",
@@ -97,17 +98,26 @@ function formatDate(dateString: string): string {
 }
 
 // Format time for display
-function formatTime(dateString: string): string {
+function formatTime(dateString: string, locale: string): string {
     const date = new Date(dateString);
-    return date.toLocaleTimeString("th-TH", {
+    return date.toLocaleTimeString(locale, {
         hour: "2-digit",
         minute: "2-digit",
     });
 }
 
 // Format datetime for display
-function formatDateTime(dateString: string): string {
-    return `${formatDate(dateString)} ${formatTime(dateString)}`;
+function formatDateTime(dateString: string, locale: string): string {
+    return `${formatDate(dateString, locale)} ${formatTime(dateString, locale)}`;
+}
+
+function formatShortDate(dateString: string, locale: string): string {
+    const date = new Date(dateString);
+    return date.toLocaleDateString(locale, {
+        day: "numeric",
+        month: "short",
+        year: "2-digit",
+    });
 }
 
 function toLocalDateTimeInputValue(value?: string | null): string {
@@ -125,13 +135,19 @@ function localDateTimeInputToIso(value: string): string | null {
     return localDate.toISOString();
 }
 
+function containsThaiText(value: string): boolean {
+    return /[\u0E00-\u0E7F]/.test(value);
+}
+
 // Status display
-const statusDisplay: Record<string, { label: string; color: "default" | "primary" | "secondary" | "success" | "warning" | "danger"; icon: string }> = {
-    draft: { label: "ฉบับร่าง", color: "default", icon: "solar:document-bold" },
-    active: { label: "กำลังเปิด", color: "success", icon: "solar:play-circle-bold" },
-    paused: { label: "หยุดชั่วคราว", color: "warning", icon: "solar:pause-circle-bold" },
-    closed: { label: "ปิดแล้ว", color: "danger", icon: "solar:stop-circle-bold" },
-};
+function getStatusDisplay(isEnglish: boolean): Record<string, { label: string; color: "default" | "primary" | "secondary" | "success" | "warning" | "danger"; icon: string }> {
+    return {
+        draft: { label: isEnglish ? "Draft" : "ฉบับร่าง", color: "default", icon: "solar:document-bold" },
+        active: { label: isEnglish ? "Open" : "กำลังเปิด", color: "success", icon: "solar:play-circle-bold" },
+        paused: { label: isEnglish ? "Paused" : "หยุดชั่วคราว", color: "warning", icon: "solar:pause-circle-bold" },
+        closed: { label: isEnglish ? "Closed" : "ปิดแล้ว", color: "danger", icon: "solar:stop-circle-bold" },
+    };
+}
 
 export default function QueueTab({
     course,
@@ -143,6 +159,22 @@ export default function QueueTab({
     canManageQueueBookings = false,
 }: QueueTabProps) {
     const router = useRouter();
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
+    const locale = isEnglish ? "en-US" : "th-TH";
+    const localize = (thai: string, english: string) => (isEnglish ? english : thai);
+    const statusDisplay = getStatusDisplay(isEnglish);
+    const getErrorDescription = (error: unknown, fallbackThai: string, fallbackEnglish: string) => {
+        if (!(error instanceof Error) || !error.message) {
+            return isEnglish ? fallbackEnglish : fallbackThai;
+        }
+
+        if (isEnglish && containsThaiText(error.message)) {
+            return fallbackEnglish;
+        }
+
+        return error.message;
+    };
     const { emit, on, emitDataUpdate, onDataUpdate, subscribeToUpdates, unsubscribeFromUpdates } = useSocket();
     const [pendingQueueUpdate, setPendingQueueUpdate] = useState(false);
     const [sessions, setSessions] = useState<QueueSession[]>([]);
@@ -198,8 +230,8 @@ export default function QueueTab({
         } catch (error) {
             console.error("Error fetching queue sessions:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถโหลดข้อมูลการจองคิวได้",
+                title: localize("เกิดข้อผิดพลาด", "Error"),
+                description: localize("ไม่สามารถโหลดข้อมูลการจองคิวได้", "Unable to load queue sessions"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -354,8 +386,8 @@ export default function QueueTab({
     const handleCreateSession = async () => {
         if (!formData.title.trim()) {
             addToast({
-                title: "กรุณากรอกข้อมูล",
-                description: "กรุณากรอกชื่อการจองคิว",
+                title: localize("กรุณากรอกข้อมูล", "Required field"),
+                description: localize("กรุณากรอกชื่อการจองคิว", "Please enter a queue title"),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -365,8 +397,8 @@ export default function QueueTab({
 
         if (!formData.classroom_id || formData.classroom_id.length === 0) {
             addToast({
-                title: "กรุณาเลือกห้อง",
-                description: "กรุณาเลือกห้องเรียน",
+                title: localize("กรุณาเลือกห้อง", "Select a classroom"),
+                description: localize("กรุณาเลือกห้องเรียน", "Please select a classroom"),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -376,8 +408,8 @@ export default function QueueTab({
 
         if (formData.is_cutoff_enabled && !formData.cutoff_at) {
             addToast({
-                title: "กรุณาตั้งเวลา Cutoff",
-                description: "เมื่อเปิดใช้งาน cutoff ต้องระบุวันและเวลา",
+                title: localize("กรุณาตั้งเวลา Cutoff", "Set the cutoff time"),
+                description: localize("เมื่อเปิดใช้งาน cutoff ต้องระบุวันและเวลา", "A date and time are required when cutoff is enabled"),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -395,8 +427,8 @@ export default function QueueTab({
             });
             if (result) {
                 addToast({
-                    title: "สำเร็จ",
-                    description: "สร้างการจองคิวเรียบร้อยแล้ว",
+                    title: localize("สำเร็จ", "Success"),
+                    description: localize("สร้างการจองคิวเรียบร้อยแล้ว", "Queue created successfully"),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -409,8 +441,8 @@ export default function QueueTab({
         } catch (error: unknown) {
             console.error("Error creating queue session:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error instanceof Error ? error.message : "ไม่สามารถสร้างการจองคิวได้",
+                title: localize("เกิดข้อผิดพลาด", "Error"),
+                description: getErrorDescription(error, "ไม่สามารถสร้างการจองคิวได้", "Unable to create queue"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -426,8 +458,8 @@ export default function QueueTab({
 
         if (formData.is_cutoff_enabled && !formData.cutoff_at) {
             addToast({
-                title: "กรุณาตั้งเวลา Cutoff",
-                description: "เมื่อเปิดใช้งาน cutoff ต้องระบุวันและเวลา",
+                title: localize("กรุณาตั้งเวลา Cutoff", "Set the cutoff time"),
+                description: localize("เมื่อเปิดใช้งาน cutoff ต้องระบุวันและเวลา", "A date and time are required when cutoff is enabled"),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -448,8 +480,8 @@ export default function QueueTab({
                 cutoff_note: formData.is_cutoff_enabled ? formData.cutoff_note : "",
             });
             addToast({
-                title: "สำเร็จ",
-                description: "อัพเดทการจองคิวเรียบร้อยแล้ว",
+                title: localize("สำเร็จ", "Success"),
+                description: localize("อัพเดทการจองคิวเรียบร้อยแล้ว", "Queue updated successfully"),
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -460,8 +492,8 @@ export default function QueueTab({
         } catch (error: unknown) {
             console.error("Error updating queue session:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error instanceof Error ? error.message : "ไม่สามารถอัพเดทการจองคิวได้",
+                title: localize("เกิดข้อผิดพลาด", "Error"),
+                description: getErrorDescription(error, "ไม่สามารถอัพเดทการจองคิวได้", "Unable to update queue"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -479,8 +511,8 @@ export default function QueueTab({
         try {
             await queueService.deleteQueueSession(course.id, deleteTarget.id);
             addToast({
-                title: "สำเร็จ",
-                description: "ลบการจองคิวเรียบร้อยแล้ว",
+                title: localize("สำเร็จ", "Success"),
+                description: localize("ลบการจองคิวเรียบร้อยแล้ว", "Queue deleted successfully"),
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -492,8 +524,8 @@ export default function QueueTab({
         } catch (error: unknown) {
             console.error("Error deleting queue session:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error instanceof Error ? error.message : "ไม่สามารถลบการจองคิวได้",
+                title: localize("เกิดข้อผิดพลาด", "Error"),
+                description: getErrorDescription(error, "ไม่สามารถลบการจองคิวได้", "Unable to delete queue"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -508,8 +540,11 @@ export default function QueueTab({
         try {
             await queueService.updateQueueSessionStatus(course.id, session.id, newStatus);
             addToast({
-                title: "สำเร็จ",
-                description: `เปลี่ยนสถานะเป็น ${statusDisplay[newStatus].label} เรียบร้อยแล้ว`,
+                title: localize("สำเร็จ", "Success"),
+                description: localize(
+                    `เปลี่ยนสถานะเป็น ${statusDisplay[newStatus].label} เรียบร้อยแล้ว`,
+                    `Status changed to ${statusDisplay[newStatus].label}`
+                ),
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -518,8 +553,8 @@ export default function QueueTab({
         } catch (error: unknown) {
             console.error("Error changing status:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error instanceof Error ? error.message : "ไม่สามารถเปลี่ยนสถานะได้",
+                title: localize("เกิดข้อผิดพลาด", "Error"),
+                description: getErrorDescription(error, "ไม่สามารถเปลี่ยนสถานะได้", "Unable to change the queue status"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -544,8 +579,8 @@ export default function QueueTab({
         try {
             await queueService.updateQueueSessionStatus(course.id, startTarget.id, 'active');
             addToast({
-                title: "สำเร็จ",
-                description: "เริ่มการจองคิวเรียบร้อยแล้ว",
+                title: localize("สำเร็จ", "Success"),
+                description: localize("เริ่มการจองคิวเรียบร้อยแล้ว", "Queue started successfully"),
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -557,8 +592,8 @@ export default function QueueTab({
         } catch (error: unknown) {
             console.error("Error starting queue:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error instanceof Error ? error.message : "ไม่สามารถเริ่มการจองคิวได้",
+                title: localize("เกิดข้อผิดพลาด", "Error"),
+                description: getErrorDescription(error, "ไม่สามารถเริ่มการจองคิวได้", "Unable to start the queue"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -575,8 +610,10 @@ export default function QueueTab({
         try {
             await queueService.updateQueueSessionStatus(course.id, pauseTarget.id, pauseAction);
             addToast({
-                title: "สำเร็จ",
-                description: pauseAction === 'paused' ? "หยุดรับคิวเรียบร้อยแล้ว" : "เปิดรับคิวเรียบร้อยแล้ว",
+                title: localize("สำเร็จ", "Success"),
+                description: pauseAction === 'paused'
+                    ? localize("หยุดรับคิวเรียบร้อยแล้ว", "Queue paused successfully")
+                    : localize("เปิดรับคิวเรียบร้อยแล้ว", "Queue resumed successfully"),
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -588,8 +625,8 @@ export default function QueueTab({
         } catch (error: unknown) {
             console.error("Error changing status:", error);
             addToast({
-                title: "เกิดข้อผิดพลาด",
-                description: error instanceof Error ? error.message : "ไม่สามารถเปลี่ยนสถานะได้",
+                title: localize("เกิดข้อผิดพลาด", "Error"),
+                description: getErrorDescription(error, "ไม่สามารถเปลี่ยนสถานะได้", "Unable to change the queue status"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -618,8 +655,8 @@ export default function QueueTab({
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-lg font-semibold text-foreground">จองคิวตรวจงาน</h2>
-                    <p className="text-sm text-default-500">จัดการคิวตรวจงานและติดตามความคืบหน้า</p>
+                    <h2 className="text-lg font-semibold text-foreground">{localize("จองคิวตรวจงาน", "Assignment Queue")}</h2>
+                    <p className="text-sm text-default-500">{localize("จัดการคิวตรวจงานและติดตามความคืบหน้า", "Manage grading queues and track progress")}</p>
                 </div>
                 {canCreateQueueSessions && (
                     <Button
@@ -629,7 +666,7 @@ export default function QueueTab({
                         isDisabled={!isCourseActive}
                         className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
                     >
-                        สร้างการจองคิว
+                        {localize("สร้างการจองคิว", "Create queue")}
                     </Button>
                 )}
             </div>
@@ -666,7 +703,7 @@ export default function QueueTab({
                                         <Icon icon="solar:clipboard-list-bold" className="text-2xl text-blue-600" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-default-500">ทั้งหมด</p>
+                                        <p className="text-xs text-default-500">{localize("ทั้งหมด", "Total")}</p>
                                         <p className="text-2xl font-bold text-foreground">{stats.total}</p>
                                     </div>
                                 </div>
@@ -679,7 +716,7 @@ export default function QueueTab({
                                         <Icon icon="solar:play-circle-bold" className="text-2xl text-emerald-600" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-default-500">กำลังเปิด</p>
+                                        <p className="text-xs text-default-500">{localize("กำลังเปิด", "Open")}</p>
                                         <p className="text-2xl font-bold text-foreground">{stats.active}</p>
                                     </div>
                                 </div>
@@ -692,7 +729,7 @@ export default function QueueTab({
                                         <Icon icon="solar:pause-circle-bold" className="text-2xl text-amber-600" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-default-500">หยุดชั่วคราว</p>
+                                        <p className="text-xs text-default-500">{localize("หยุดชั่วคราว", "Paused")}</p>
                                         <p className="text-2xl font-bold text-foreground">{stats.paused}</p>
                                     </div>
                                 </div>
@@ -705,7 +742,7 @@ export default function QueueTab({
                                         <Icon icon="solar:document-bold" className="text-2xl text-default-600" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-default-500">ฉบับร่าง</p>
+                                        <p className="text-xs text-default-500">{localize("ฉบับร่าง", "Draft")}</p>
                                         <p className="text-2xl font-bold text-foreground">{stats.draft}</p>
                                     </div>
                                 </div>
@@ -718,7 +755,7 @@ export default function QueueTab({
                                         <Icon icon="solar:stop-circle-bold" className="text-2xl text-red-600" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-default-500">ปิดแล้ว</p>
+                                        <p className="text-xs text-default-500">{localize("ปิดแล้ว", "Closed")}</p>
                                         <p className="text-2xl font-bold text-foreground">{stats.closed}</p>
                                     </div>
                                 </div>
@@ -731,7 +768,7 @@ export default function QueueTab({
                         <CardBody className="p-4">
                             <div className="flex flex-col sm:flex-row gap-3">
                                 <Input
-                                    placeholder="ค้นหาชื่อการจองคิว..."
+                                    placeholder={localize("ค้นหาชื่อการจองคิว...", "Search queue titles...")}
                                     value={searchQuery}
                                     onValueChange={setSearchQuery}
                                     startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
@@ -739,17 +776,17 @@ export default function QueueTab({
                                     size="md"
                                 />
                                 <Select
-                                    placeholder="สถานะ"
+                                    placeholder={localize("สถานะ", "Status")}
                                     selectedKeys={[statusFilter]}
                                     onSelectionChange={(keys) => setStatusFilter(Array.from(keys)[0] as string)}
                                     className="w-full sm:w-40"
                                     size="md"
                                 >
-                                    <SelectItem key="all">ทุกสถานะ</SelectItem>
-                                    <SelectItem key="draft">ฉบับร่าง</SelectItem>
-                                    <SelectItem key="active">กำลังเปิด</SelectItem>
-                                    <SelectItem key="paused">หยุดชั่วคราว</SelectItem>
-                                    <SelectItem key="closed">ปิดแล้ว</SelectItem>
+                                    <SelectItem key="all">{localize("ทุกสถานะ", "All statuses")}</SelectItem>
+                                    <SelectItem key="draft">{localize("ฉบับร่าง", "Draft")}</SelectItem>
+                                    <SelectItem key="active">{localize("กำลังเปิด", "Open")}</SelectItem>
+                                    <SelectItem key="paused">{localize("หยุดชั่วคราว", "Paused")}</SelectItem>
+                                    <SelectItem key="closed">{localize("ปิดแล้ว", "Closed")}</SelectItem>
                                 </Select>
                             </div>
                         </CardBody>
@@ -766,9 +803,9 @@ export default function QueueTab({
                                         className="text-5xl text-blue-500"
                                     />
                                 </div>
-                                <h3 className="mb-2 text-lg font-semibold text-default-700">ยังไม่มีการจองคิว</h3>
+                                <h3 className="mb-2 text-lg font-semibold text-default-700">{localize("ยังไม่มีการจองคิว", "No queue sessions yet")}</h3>
                                 <p className="mx-auto mb-6 max-w-md text-default-500">
-                                    สร้างการจองคิวเพื่อให้นักศึกษาสามารถจองคิวตรวจงานได้
+                                    {localize("สร้างการจองคิวเพื่อให้นักศึกษาสามารถจองคิวตรวจงานได้", "Create a queue so students can book grading slots")}
                                 </p>
                                 {canCreateQueueSessions && (
                                     <Button
@@ -778,7 +815,7 @@ export default function QueueTab({
                                         isDisabled={!isCourseActive}
                                         className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
                                     >
-                                        สร้างการจองคิวแรก
+                                        {localize("สร้างการจองคิวแรก", "Create the first queue")}
                                     </Button>
                                 )}
                             </CardBody>
@@ -799,12 +836,12 @@ export default function QueueTab({
                                             }}
                                         >
                                             <TableHeader>
-                                                <TableColumn className="min-w-45">การจองคิว</TableColumn>
-                                                <TableColumn className="min-w-25">ห้อง</TableColumn>
-                                                <TableColumn className="min-w-35">หัวข้อลงคะแนน</TableColumn>
-                                                <TableColumn className="min-w-25">สถานะ</TableColumn>
-                                                <TableColumn className="min-w-30">คิวรอ/เสร็จ</TableColumn>
-                                                <TableColumn align="center" className="min-w-40">จัดการ</TableColumn>
+                                                <TableColumn className="min-w-45">{localize("การจองคิว", "Queue")}</TableColumn>
+                                                <TableColumn className="min-w-25">{localize("ห้อง", "Room")}</TableColumn>
+                                                <TableColumn className="min-w-35">{localize("หัวข้อลงคะแนน", "Assignment")}</TableColumn>
+                                                <TableColumn className="min-w-25">{localize("สถานะ", "Status")}</TableColumn>
+                                                <TableColumn className="min-w-30">{localize("คิวรอ/เสร็จ", "Waiting/Done")}</TableColumn>
+                                                <TableColumn align="center" className="min-w-40">{localize("จัดการ", "Actions")}</TableColumn>
                                             </TableHeader>
                                             <TableBody
                                                 emptyContent={
@@ -813,7 +850,7 @@ export default function QueueTab({
                                                             icon="solar:clipboard-list-linear"
                                                             className="mx-auto mb-3 text-5xl text-default-300"
                                                         />
-                                                        <p className="text-default-400">ยังไม่มีการจองคิว</p>
+                                                        <p className="text-default-400">{localize("ยังไม่มีการจองคิว", "No queue sessions yet")}</p>
                                                         {canCreateQueueSessions && (
                                                             <Button
                                                                 color="primary"
@@ -823,7 +860,7 @@ export default function QueueTab({
                                                                 onPress={handleOpenCreateModal}
                                                                 isDisabled={!isCourseActive}
                                                             >
-                                                                สร้างการจองคิวแรก
+                                                                {localize("สร้างการจองคิวแรก", "Create the first queue")}
                                                             </Button>
                                                         )}
                                                     </div>
@@ -836,7 +873,7 @@ export default function QueueTab({
                                                                 <p className="font-medium text-foreground">{session.title}</p>
                                                                 <p className="text-xs text-default-500">
                                                                     PIN: <span className="font-mono font-bold text-blue-600">{session.pin_code}</span>
-                                                                    {session.created_at && ` • ${formatDate(session.created_at)}`}
+                                                                    {session.created_at && ` • ${formatDate(session.created_at, locale)}`}
                                                                 </p>
                                                             </div>
                                                         </TableCell>
@@ -869,12 +906,12 @@ export default function QueueTab({
                                                         </TableCell>
                                                         <TableCell>
                                                             <div className="flex items-center gap-2">
-                                                                <Tooltip content="คิวรอ">
+                                                                <Tooltip content={localize("คิวรอ", "Waiting")}>
                                                                     <Chip size="sm" color="warning" variant="flat">
                                                                         {session.stats?.waiting || 0}
                                                                     </Chip>
                                                                 </Tooltip>
-                                                                <Tooltip content="เสร็จแล้ว">
+                                                                <Tooltip content={localize("เสร็จแล้ว", "Done")}>
                                                                     <Chip size="sm" color="success" variant="flat">
                                                                         {session.stats?.completed || 0}
                                                                     </Chip>
@@ -887,7 +924,7 @@ export default function QueueTab({
                                                                 {session.status === 'draft' && (
                                                                     <>
                                                                         {canUpdateQueueSessions && (
-                                                                            <Tooltip content="เริ่มการจองคิว">
+                                                                            <Tooltip content={localize("เริ่มการจองคิว", "Start queue")}>
                                                                                 <Button
                                                                                     isIconOnly
                                                                                     size="sm"
@@ -900,7 +937,7 @@ export default function QueueTab({
                                                                             </Tooltip>
                                                                         )}
                                                                         {canUpdateQueueSessions && (
-                                                                            <Tooltip content="แก้ไข">
+                                                                            <Tooltip content={localize("แก้ไข", "Edit")}>
                                                                                 <Button
                                                                                     isIconOnly
                                                                                     size="sm"
@@ -913,7 +950,7 @@ export default function QueueTab({
                                                                             </Tooltip>
                                                                         )}
                                                                         {canDeleteQueueSessions && (
-                                                                            <Tooltip content="ลบ" color="danger">
+                                                                            <Tooltip content={localize("ลบ", "Delete")} color="danger">
                                                                                 <Button
                                                                                     isIconOnly
                                                                                     size="sm"
@@ -935,11 +972,14 @@ export default function QueueTab({
                                                                 {session.status === 'active' && (() => {
                                                                     const hasPending = (session.stats?.waiting || 0) > 0 || (session.stats?.in_progress || 0) > 0;
                                                                     const deleteTooltip = hasPending
-                                                                        ? `ยังมีคิวค้างอยู่ (รอ ${session.stats?.waiting || 0} / กำลังตรวจ ${session.stats?.in_progress || 0})`
-                                                                        : "ต้องหยุดรับคิวก่อนจึงจะลบได้";
+                                                                        ? localize(
+                                                                            `ยังมีคิวค้างอยู่ (รอ ${session.stats?.waiting || 0} / กำลังตรวจ ${session.stats?.in_progress || 0})`,
+                                                                            `Pending bookings remain (waiting ${session.stats?.waiting || 0} / in progress ${session.stats?.in_progress || 0})`
+                                                                        )
+                                                                        : localize("ต้องหยุดรับคิวก่อนจึงจะลบได้", "Pause the queue before deleting it");
                                                                     return (
                                                                         <>
-                                                                            <Tooltip content="เปิดหน้าจอโปรเจคเตอร์">
+                                                                            <Tooltip content={localize("เปิดหน้าจอโปรเจคเตอร์", "Open projector view")}>
                                                                                 <Button
                                                                                     isIconOnly
                                                                                     size="sm"
@@ -951,7 +991,7 @@ export default function QueueTab({
                                                                                 </Button>
                                                                             </Tooltip>
                                                                             {canManageQueueBookings && (
-                                                                                <Tooltip content="เข้าหน้ารับคิว">
+                                                                                <Tooltip content={localize("เข้าหน้ารับคิว", "Open worker view")}>
                                                                                     <Button
                                                                                         isIconOnly
                                                                                         size="sm"
@@ -964,7 +1004,7 @@ export default function QueueTab({
                                                                                 </Tooltip>
                                                                             )}
                                                                             {canUpdateQueueSessions && (
-                                                                                <Tooltip content="หยุดรับคิว">
+                                                                                <Tooltip content={localize("หยุดรับคิว", "Pause queue")}>
                                                                                     <Button
                                                                                         isIconOnly
                                                                                         size="sm"
@@ -997,7 +1037,7 @@ export default function QueueTab({
                                                                     const hasPending = (session.stats?.waiting || 0) > 0 || (session.stats?.in_progress || 0) > 0;
                                                                     return (
                                                                         <>
-                                                                            <Tooltip content="เปิดหน้าจอโปรเจคเตอร์">
+                                                                            <Tooltip content={localize("เปิดหน้าจอโปรเจคเตอร์", "Open projector view")}>
                                                                                 <Button
                                                                                     isIconOnly
                                                                                     size="sm"
@@ -1009,7 +1049,7 @@ export default function QueueTab({
                                                                                 </Button>
                                                                             </Tooltip>
                                                                             {canManageQueueBookings && (
-                                                                                <Tooltip content="เข้าหน้ารับคิว">
+                                                                                <Tooltip content={localize("เข้าหน้ารับคิว", "Open worker view")}>
                                                                                     <Button
                                                                                         isIconOnly
                                                                                         size="sm"
@@ -1022,7 +1062,7 @@ export default function QueueTab({
                                                                                 </Tooltip>
                                                                             )}
                                                                             {canUpdateQueueSessions && (
-                                                                                <Tooltip content="เปิดรับคิว">
+                                                                                <Tooltip content={localize("เปิดรับคิว", "Resume queue")}>
                                                                                     <Button
                                                                                         isIconOnly
                                                                                         size="sm"
@@ -1037,8 +1077,11 @@ export default function QueueTab({
                                                                             {canDeleteQueueSessions && (
                                                                                 <Tooltip
                                                                                     content={hasPending
-                                                                                        ? `ยังมีคิวค้างอยู่ (รอ ${session.stats?.waiting || 0} / กำลังตรวจ ${session.stats?.in_progress || 0})`
-                                                                                        : "ลบ"
+                                                                                        ? localize(
+                                                                                            `ยังมีคิวค้างอยู่ (รอ ${session.stats?.waiting || 0} / กำลังตรวจ ${session.stats?.in_progress || 0})`,
+                                                                                            `Pending bookings remain (waiting ${session.stats?.waiting || 0} / in progress ${session.stats?.in_progress || 0})`
+                                                                                        )
+                                                                                        : localize("ลบ", "Delete")
                                                                                     }
                                                                                     color={hasPending ? "warning" : "danger"}
                                                                                 >
@@ -1066,9 +1109,9 @@ export default function QueueTab({
                                                                 })()}
                                                                 {session.status === 'closed' && (
                                                                     <>
-                                                                        <Chip size="sm" variant="flat" className="bg-content3 text-default-500">ปิดแล้ว</Chip>
+                                                                        <Chip size="sm" variant="flat" className="bg-content3 text-default-500">{localize("ปิดแล้ว", "Closed")}</Chip>
                                                                         {canDeleteQueueSessions && (
-                                                                            <Tooltip content="ลบ" color="danger">
+                                                                            <Tooltip content={localize("ลบ", "Delete")} color="danger">
                                                                                 <Button
                                                                                     isIconOnly
                                                                                     size="sm"
@@ -1135,9 +1178,9 @@ export default function QueueTab({
                                 <Icon icon="solar:clipboard-list-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-foreground">สร้างการจองคิว</h3>
+                                <h3 className="text-xl font-bold text-foreground">{localize("สร้างการจองคิว", "Create queue")}</h3>
                                 <p className="mt-1 text-sm font-normal text-default-500">
-                                    กำหนดรายละเอียดการจองคิวตรวจงาน
+                                    {localize("กำหนดรายละเอียดการจองคิวตรวจงาน", "Set up the grading queue details")}
                                 </p>
                             </div>
                         </div>
@@ -1145,8 +1188,8 @@ export default function QueueTab({
                     <ModalBody className="px-6 py-4">
                         <div className="space-y-5">
                             <Input
-                                label="ชื่อการจองคิว"
-                                placeholder="เช่น ตรวจ Lab 1"
+                                label={localize("ชื่อการจองคิว", "Queue title")}
+                                placeholder={localize("เช่น ตรวจ Lab 1", "e.g. Lab 1 review")}
                                 value={formData.title}
                                 onValueChange={(value) => setFormData({ ...formData, title: value })}
                                 isRequired
@@ -1160,8 +1203,8 @@ export default function QueueTab({
                             />
 
                             <Select
-                                label="เลือกห้องเรียน"
-                                placeholder="เลือกห้อง"
+                                label={localize("เลือกห้องเรียน", "Classroom")}
+                                placeholder={localize("เลือกห้อง", "Select a room")}
                                 isLoading={isOptionsLoading}
                                 selectedKeys={
                                     formData.classroom_id
@@ -1199,8 +1242,8 @@ export default function QueueTab({
 
 
                             <Input
-                                label="คำอธิบาย (ถ้ามี)"
-                                placeholder="รายละเอียดเพิ่มเติม"
+                                label={localize("คำอธิบาย (ถ้ามี)", "Description (optional)")}
+                                placeholder={localize("รายละเอียดเพิ่มเติม", "Additional details")}
                                 value={formData.description || ""}
                                 onValueChange={(value) => setFormData({ ...formData, description: value })}
                                 labelPlacement="outside"
@@ -1220,8 +1263,8 @@ export default function QueueTab({
                                             <Icon icon="solar:document-bold" className="text-lg text-amber-600" />
                                         </div>
                                         <div>
-                                            <span className="font-semibold text-default-700">ลิงก์กับหัวข้องาน</span>
-                                            <p className="text-xs text-default-500">เชื่อมโยงกับ Assignment เพื่อลงคะแนนอัตโนมัติ</p>
+                                            <span className="font-semibold text-default-700">{localize("ลิงก์กับหัวข้องาน", "Link assignment")}</span>
+                                            <p className="text-xs text-default-500">{localize("เชื่อมโยงกับ Assignment เพื่อลงคะแนนอัตโนมัติ", "Connect an assignment for automatic scoring")}</p>
                                         </div>
                                     </div>
                                     <Button
@@ -1240,13 +1283,13 @@ export default function QueueTab({
                                             />
                                         }
                                     >
-                                        {formData.linked_assignment_id ? "ลิงก์แล้ว" : "ไม่ลิงก์"}
+                                        {formData.linked_assignment_id ? localize("ลิงก์แล้ว", "Linked") : localize("ไม่ลิงก์", "Not linked")}
                                     </Button>
                                 </div>
 
                                 {assignments.length > 0 ? (
                                     <Select
-                                        placeholder="เลือกหัวข้องานที่ต้องการลิงก์"
+                                        placeholder={localize("เลือกหัวข้องานที่ต้องการลิงก์", "Select an assignment to link")}
                                         isLoading={isOptionsLoading}
                                         selectedKeys={formData.linked_assignment_id ? new Set([formData.linked_assignment_id.toString()]) : new Set([])}
                                         onSelectionChange={(keys) => {
@@ -1272,7 +1315,7 @@ export default function QueueTab({
                                                     <div>
                                                         <span className="font-medium">{assignment.name}</span>
                                                         <span className="ml-2 text-xs text-default-500">
-                                                            ({assignment.max_score} คะแนน)
+                                                            ({assignment.max_score} {localize("คะแนน", "pts")})
                                                         </span>
                                                     </div>
                                                 </div>
@@ -1282,7 +1325,7 @@ export default function QueueTab({
                                 ) : (
                                     <div className="rounded-lg bg-content3 p-3 text-center">
                                         <Icon icon="solar:document-linear" className="mb-1 text-xl text-default-400" />
-                                        <p className="text-sm text-default-500">ยังไม่มีหัวข้องาน</p>
+                                        <p className="text-sm text-default-500">{localize("ยังไม่มีหัวข้องาน", "No assignments yet")}</p>
                                     </div>
                                 )}
 
@@ -1291,7 +1334,7 @@ export default function QueueTab({
                                         <div className="flex items-center gap-2 text-amber-700">
                                             <Icon icon="solar:info-circle-bold" />
                                             <span className="text-sm font-medium">
-                                                เมื่อตรวจงานเสร็จ คะแนนจะถูกบันทึกไปยังหัวข้องานนี้โดยอัตโนมัติ
+                                                {localize("เมื่อตรวจงานเสร็จ คะแนนจะถูกบันทึกไปยังหัวข้องานนี้โดยอัตโนมัติ", "When grading is completed, scores will be saved to this assignment automatically")}
                                             </span>
                                         </div>
                                     </div>
@@ -1306,8 +1349,8 @@ export default function QueueTab({
                                             <Icon icon="solar:clipboard-check-bold" className="text-lg text-blue-600" />
                                         </div>
                                         <div>
-                                            <span className="font-semibold text-default-700">ลิงก์กับการเช็คชื่อ</span>
-                                            <p className="text-xs text-default-500">ถ้านักศึกษาขาดเรียน จะไม่อนุญาตให้จองคิว</p>
+                                            <span className="font-semibold text-default-700">{localize("ลิงก์กับการเช็คชื่อ", "Link attendance")}</span>
+                                            <p className="text-xs text-default-500">{localize("ถ้านักศึกษาขาดเรียน จะไม่อนุญาตให้จองคิว", "Students marked absent will not be allowed to book the queue")}</p>
                                         </div>
                                     </div>
                                     <Button
@@ -1326,13 +1369,13 @@ export default function QueueTab({
                                             />
                                         }
                                     >
-                                        {formData.linked_attendance_session_id ? "ลิงก์แล้ว" : "ไม่ลิงก์"}
+                                        {formData.linked_attendance_session_id ? localize("ลิงก์แล้ว", "Linked") : localize("ไม่ลิงก์", "Not linked")}
                                     </Button>
                                 </div>
 
                                 {attendanceSessions.length > 0 ? (
                                     <Select
-                                        placeholder="เลือกรอบเช็คชื่อที่ต้องการลิงก์"
+                                        placeholder={localize("เลือกรอบเช็คชื่อที่ต้องการลิงก์", "Select an attendance session to link")}
                                         isLoading={isOptionsLoading}
                                         selectedKeys={formData.linked_attendance_session_id ? [formData.linked_attendance_session_id.toString()] : undefined}
                                         onSelectionChange={(keys) => {
@@ -1361,11 +1404,7 @@ export default function QueueTab({
                                                     <div>
                                                         <span className="font-medium">{session.title}</span>
                                                         <span className="ml-2 text-xs text-default-500">
-                                                            {new Date(session.start_time).toLocaleDateString("th-TH", {
-                                                                day: "numeric",
-                                                                month: "short",
-                                                                year: "2-digit"
-                                                            })}
+                                                            {formatShortDate(session.start_time, locale)}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -1375,7 +1414,7 @@ export default function QueueTab({
                                 ) : (
                                     <div className="rounded-lg bg-content3 p-3 text-center">
                                         <Icon icon="solar:clipboard-list-linear" className="mb-1 text-xl text-default-400" />
-                                        <p className="text-sm text-default-500">ยังไม่มีรอบเช็คชื่อ</p>
+                                        <p className="text-sm text-default-500">{localize("ยังไม่มีรอบเช็คชื่อ", "No attendance sessions yet")}</p>
                                     </div>
                                 )}
 
@@ -1384,7 +1423,7 @@ export default function QueueTab({
                                         <div className="flex items-center gap-2 text-blue-700">
                                             <Icon icon="solar:info-circle-bold" />
                                             <span className="text-sm font-medium">
-                                                นักศึกษาที่ขาดเรียนในรอบเช็คชื่อนี้ จะไม่สามารถจองคิวได้
+                                                {localize("นักศึกษาที่ขาดเรียนในรอบเช็คชื่อนี้ จะไม่สามารถจองคิวได้", "Students absent in this attendance session will not be able to book the queue")}
                                             </span>
                                         </div>
                                     </div>
@@ -1400,7 +1439,7 @@ export default function QueueTab({
                                 resetForm();
                             }}
                         >
-                            ยกเลิก
+                            {localize("ยกเลิก", "Cancel")}
                         </Button>
                         <Button
                             color="primary"
@@ -1408,7 +1447,7 @@ export default function QueueTab({
                             isLoading={isSubmitting}
                             className="bg-linear-to-r from-blue-400 to-indigo-500"
                         >
-                            สร้างการจองคิว
+                            {localize("สร้างการจองคิว", "Create queue")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -1433,9 +1472,9 @@ export default function QueueTab({
                                 <Icon icon="solar:pen-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-foreground">แก้ไขการจองคิว</h3>
+                                <h3 className="text-xl font-bold text-foreground">{localize("แก้ไขการจองคิว", "Edit queue")}</h3>
                                 <p className="mt-1 text-sm font-normal text-default-500">
-                                    แก้ไขข้อมูลการจองคิวตรวจงาน
+                                    {localize("แก้ไขข้อมูลการจองคิวตรวจงาน", "Update the grading queue details")}
                                 </p>
                             </div>
                         </div>
@@ -1443,8 +1482,8 @@ export default function QueueTab({
                     <ModalBody className="px-6 py-4">
                         <div className="space-y-5">
                             <Input
-                                label="ชื่อการจองคิว"
-                                placeholder="เช่น ตรวจ Lab 1"
+                                label={localize("ชื่อการจองคิว", "Queue title")}
+                                placeholder={localize("เช่น ตรวจ Lab 1", "e.g. Lab 1 review")}
                                 value={formData.title}
                                 onValueChange={(value) => setFormData({ ...formData, title: value })}
                                 isRequired
@@ -1457,8 +1496,8 @@ export default function QueueTab({
                                 }}
                             />
                             <Input
-                                label="คำอธิบาย (ถ้ามี)"
-                                placeholder="รายละเอียดเพิ่มเติม"
+                                label={localize("คำอธิบาย (ถ้ามี)", "Description (optional)")}
+                                placeholder={localize("รายละเอียดเพิ่มเติม", "Additional details")}
                                 value={formData.description || ""}
                                 onValueChange={(value) => setFormData({ ...formData, description: value })}
                                 labelPlacement="outside"
@@ -1473,8 +1512,8 @@ export default function QueueTab({
                             <div className="p-4 bg-rose-50 rounded-xl border border-rose-200 space-y-3">
                                 <div className="flex items-start justify-between gap-3">
                                     <div>
-                                        <p className="font-semibold text-rose-700">Cutoff เวลาในการจอง</p>
-                                        <p className="text-xs text-rose-600">จองหลังเวลานี้จะถูกติดป้ายว่า Late Booking</p>
+                                        <p className="font-semibold text-rose-700">{localize("Cutoff เวลาในการจอง", "Booking cutoff")}</p>
+                                        <p className="text-xs text-rose-600">{localize("จองหลังเวลานี้จะถูกติดป้ายว่า Late Booking", "Bookings after this time will be tagged as Late Booking")}</p>
                                     </div>
                                     <Checkbox
                                         isSelected={Boolean(formData.is_cutoff_enabled)}
@@ -1487,14 +1526,14 @@ export default function QueueTab({
                                             }))
                                         }
                                     >
-                                        เปิดใช้งาน
+                                        {localize("เปิดใช้งาน", "Enable")}
                                     </Checkbox>
                                 </div>
 
                                 {formData.is_cutoff_enabled && (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         <div>
-                                            <label className="block mb-1 text-rose-700 font-medium text-sm">เวลา Cutoff</label>
+                                            <label className="block mb-1 text-rose-700 font-medium text-sm">{localize("เวลา Cutoff", "Cutoff time")}</label>
                                             <input
                                                 type="datetime-local"
                                                 value={toLocalDateTimeInputValue(formData.cutoff_at)}
@@ -1508,10 +1547,10 @@ export default function QueueTab({
                                             />
                                         </div>
                                         <div>
-                                            <label className="block mb-1 text-rose-700 font-medium text-sm">ข้อความเตือน (ถ้ามี)</label>
+                                            <label className="block mb-1 text-rose-700 font-medium text-sm">{localize("ข้อความเตือน (ถ้ามี)", "Warning message (optional)")}</label>
                                             <input
                                                 type="text"
-                                                placeholder="เช่น ส่งหลัง cutoff จะถูกหักคะแนน"
+                                                placeholder={localize("เช่น ส่งหลัง cutoff จะถูกหักคะแนน", "e.g. Late bookings will lose points")}
                                                 value={formData.cutoff_note || ""}
                                                 onChange={(event) =>
                                                     setFormData((prev) => ({
@@ -1534,8 +1573,8 @@ export default function QueueTab({
                                             <Icon icon="solar:document-bold" className="text-lg text-amber-600" />
                                         </div>
                                         <div>
-                                            <span className="font-semibold text-default-700">ลิงก์กับหัวข้องาน</span>
-                                            <p className="text-xs text-default-500">เชื่อมโยงกับ Assignment เพื่อลงคะแนนอัตโนมัติ</p>
+                                            <span className="font-semibold text-default-700">{localize("ลิงก์กับหัวข้องาน", "Link assignment")}</span>
+                                            <p className="text-xs text-default-500">{localize("เชื่อมโยงกับ Assignment เพื่อลงคะแนนอัตโนมัติ", "Connect an assignment for automatic scoring")}</p>
                                         </div>
                                     </div>
                                     <Button
@@ -1554,13 +1593,13 @@ export default function QueueTab({
                                             />
                                         }
                                     >
-                                        {formData.linked_assignment_id ? "ลิงก์แล้ว" : "ไม่ลิงก์"}
+                                        {formData.linked_assignment_id ? localize("ลิงก์แล้ว", "Linked") : localize("ไม่ลิงก์", "Not linked")}
                                     </Button>
                                 </div>
 
                                 {assignments.length > 0 ? (
                                     <Select
-                                        placeholder="เลือกหัวข้องานที่ต้องการลิงก์"
+                                        placeholder={localize("เลือกหัวข้องานที่ต้องการลิงก์", "Select an assignment to link")}
                                         isLoading={isOptionsLoading}
                                         selectedKeys={formData.linked_assignment_id ? new Set([formData.linked_assignment_id.toString()]) : new Set([])}
                                         onSelectionChange={(keys) => {
@@ -1586,7 +1625,7 @@ export default function QueueTab({
                                                     <div>
                                                         <span className="font-medium">{assignment.name}</span>
                                                         <span className="ml-2 text-xs text-default-500">
-                                                            ({assignment.max_score} คะแนน)
+                                                            ({assignment.max_score} {localize("คะแนน", "pts")})
                                                         </span>
                                                     </div>
                                                 </div>
@@ -1596,7 +1635,7 @@ export default function QueueTab({
                                 ) : (
                                     <div className="rounded-lg bg-content3 p-3 text-center">
                                         <Icon icon="solar:document-linear" className="mb-1 text-xl text-default-400" />
-                                        <p className="text-sm text-default-500">ยังไม่มีหัวข้องาน</p>
+                                        <p className="text-sm text-default-500">{localize("ยังไม่มีหัวข้องาน", "No assignments yet")}</p>
                                     </div>
                                 )}
 
@@ -1605,7 +1644,7 @@ export default function QueueTab({
                                         <div className="flex items-center gap-2 text-amber-700">
                                             <Icon icon="solar:info-circle-bold" />
                                             <span className="text-sm font-medium">
-                                                เมื่อตรวจงานเสร็จ คะแนนจะถูกบันทึกไปยังหัวข้องานนี้โดยอัตโนมัติ
+                                                {localize("เมื่อตรวจงานเสร็จ คะแนนจะถูกบันทึกไปยังหัวข้องานนี้โดยอัตโนมัติ", "When grading is completed, scores will be saved to this assignment automatically")}
                                             </span>
                                         </div>
                                     </div>
@@ -1620,8 +1659,8 @@ export default function QueueTab({
                                             <Icon icon="solar:clipboard-check-bold" className="text-lg text-blue-600" />
                                         </div>
                                         <div>
-                                            <span className="font-semibold text-default-700">ลิงก์กับการเช็คชื่อ</span>
-                                            <p className="text-xs text-default-500">ถ้านักศึกษาขาดเรียน จะไม่อนุญาตให้จองคิว</p>
+                                            <span className="font-semibold text-default-700">{localize("ลิงก์กับการเช็คชื่อ", "Link attendance")}</span>
+                                            <p className="text-xs text-default-500">{localize("ถ้านักศึกษาขาดเรียน จะไม่อนุญาตให้จองคิว", "Students marked absent will not be allowed to book the queue")}</p>
                                         </div>
                                     </div>
                                     <Button
@@ -1640,13 +1679,13 @@ export default function QueueTab({
                                             />
                                         }
                                     >
-                                        {formData.linked_attendance_session_id ? "ลิงก์แล้ว" : "ไม่ลิงก์"}
+                                        {formData.linked_attendance_session_id ? localize("ลิงก์แล้ว", "Linked") : localize("ไม่ลิงก์", "Not linked")}
                                     </Button>
                                 </div>
 
                                 {attendanceSessions.length > 0 ? (
                                     <Select
-                                        placeholder="เลือกรอบเช็คชื่อที่ต้องการลิงก์"
+                                        placeholder={localize("เลือกรอบเช็คชื่อที่ต้องการลิงก์", "Select an attendance session to link")}
                                         isLoading={isOptionsLoading}
                                         selectedKeys={formData.linked_attendance_session_id ? [formData.linked_attendance_session_id.toString()] : undefined}
                                         onSelectionChange={(keys) => {
@@ -1675,11 +1714,7 @@ export default function QueueTab({
                                                     <div>
                                                         <span className="font-medium">{session.title}</span>
                                                         <span className="ml-2 text-xs text-default-500">
-                                                            {new Date(session.start_time).toLocaleDateString("th-TH", {
-                                                                day: "numeric",
-                                                                month: "short",
-                                                                year: "2-digit"
-                                                            })}
+                                                            {formatShortDate(session.start_time, locale)}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -1689,7 +1724,7 @@ export default function QueueTab({
                                 ) : (
                                     <div className="rounded-lg bg-content3 p-3 text-center">
                                         <Icon icon="solar:clipboard-list-linear" className="mb-1 text-xl text-default-400" />
-                                        <p className="text-sm text-default-500">ยังไม่มีรอบเช็คชื่อ</p>
+                                        <p className="text-sm text-default-500">{localize("ยังไม่มีรอบเช็คชื่อ", "No attendance sessions yet")}</p>
                                     </div>
                                 )}
 
@@ -1698,7 +1733,7 @@ export default function QueueTab({
                                         <div className="flex items-center gap-2 text-blue-700">
                                             <Icon icon="solar:info-circle-bold" />
                                             <span className="text-sm font-medium">
-                                                นักศึกษาที่ขาดเรียนในรอบเช็คชื่อนี้ จะไม่สามารถจองคิวได้
+                                                {localize("นักศึกษาที่ขาดเรียนในรอบเช็คชื่อนี้ จะไม่สามารถจองคิวได้", "Students absent in this attendance session will not be able to book the queue")}
                                             </span>
                                         </div>
                                     </div>
@@ -1714,7 +1749,7 @@ export default function QueueTab({
                                 resetForm();
                             }}
                         >
-                            ยกเลิก
+                            {localize("ยกเลิก", "Cancel")}
                         </Button>
                         <Button
                             color="primary"
@@ -1722,7 +1757,7 @@ export default function QueueTab({
                             isLoading={isSubmitting}
                             className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                         >
-                            บันทึกการแก้ไข
+                            {localize("บันทึกการแก้ไข", "Save changes")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -1735,18 +1770,18 @@ export default function QueueTab({
                         <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
                             <Icon icon="solar:trash-bin-trash-bold" className="text-xl text-white" />
                         </div>
-                        <span className="text-lg font-bold text-foreground">ยืนยันการลบ</span>
+                        <span className="text-lg font-bold text-foreground">{localize("ยืนยันการลบ", "Confirm deletion")}</span>
                     </ModalHeader>
                     <ModalBody>
-                        <p>คุณต้องการลบการจองคิว <span className="font-semibold">{deleteTarget?.title}</span> ใช่หรือไม่?</p>
-                        <p className="text-sm text-default-500">การดำเนินการนี้ไม่สามารถย้อนกลับได้</p>
+                        <p>{localize("คุณต้องการลบการจองคิว", "Do you want to delete the queue")} <span className="font-semibold">{deleteTarget?.title}</span> {localize("ใช่หรือไม่?", "?")}</p>
+                        <p className="text-sm text-default-500">{localize("การดำเนินการนี้ไม่สามารถย้อนกลับได้", "This action cannot be undone")}</p>
                     </ModalBody>
                     <ModalFooter>
                         <Button variant="light" onPress={() => setIsDeleteModalOpen(false)}>
-                            ยกเลิก
+                            {localize("ยกเลิก", "Cancel")}
                         </Button>
                         <Button color="primary" onPress={handleDeleteSession} isLoading={isSubmitting} className="bg-linear-to-r from-blue-400 to-indigo-500 text-white">
-                            ลบ
+                            {localize("ลบ", "Delete")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -1759,19 +1794,19 @@ export default function QueueTab({
                         <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
                             <Icon icon="solar:play-circle-bold" className="text-xl text-white" />
                         </div>
-                        <span>ยืนยันเริ่มการจองคิว</span>
+                        <span>{localize("ยืนยันเริ่มการจองคิว", "Confirm queue start")}</span>
                     </ModalHeader>
                     <ModalBody>
-                        <p>คุณต้องการเริ่มการจองคิว <span className="font-semibold">{startTarget?.title}</span> ใช่หรือไม่?</p>
+                        <p>{localize("คุณต้องการเริ่มการจองคิว", "Do you want to start the queue")} <span className="font-semibold">{startTarget?.title}</span> {localize("ใช่หรือไม่?", "?")}</p>
                         <div className="mt-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
                             <div className="flex items-start gap-2">
                                 <Icon icon="solar:info-circle-bold" className="text-emerald-600 text-lg mt-0.5" />
                                 <div className="text-sm text-emerald-700">
-                                    <p>เมื่อเริ่มแล้ว:</p>
+                                    <p>{localize("เมื่อเริ่มแล้ว:", "Once started:")}</p>
                                     <ul className="list-disc list-inside mt-1 space-y-0.5">
-                                        <li>นักศึกษาจะสามารถจองคิวได้</li>
-                                        <li>QR Code และ PIN จะเปิดใช้งาน</li>
-                                        <li>TA สามารถเข้าหน้ารับคิวได้</li>
+                                        <li>{localize("นักศึกษาจะสามารถจองคิวได้", "Students will be able to book the queue")}</li>
+                                        <li>{localize("QR Code และ PIN จะเปิดใช้งาน", "The QR code and PIN will become active")}</li>
+                                        <li>{localize("TA สามารถเข้าหน้ารับคิวได้", "TAs will be able to open the worker view")}</li>
                                     </ul>
                                 </div>
                             </div>
@@ -1779,7 +1814,7 @@ export default function QueueTab({
                     </ModalBody>
                     <ModalFooter>
                         <Button variant="light" onPress={() => setIsStartModalOpen(false)}>
-                            ยกเลิก
+                            {localize("ยกเลิก", "Cancel")}
                         </Button>
                         <Button 
                             color="primary" 
@@ -1788,7 +1823,7 @@ export default function QueueTab({
                             className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             startContent={<Icon icon="solar:play-bold" />}
                         >
-                            เริ่มการจองคิว
+                            {localize("เริ่มการจองคิว", "Start queue")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -1804,24 +1839,24 @@ export default function QueueTab({
                                 className="text-xl text-white" 
                             />
                         </div>
-                        <span>{pauseAction === 'paused' ? 'ยืนยันหยุดรับคิว' : 'ยืนยันเปิดรับคิว'}</span>
+                        <span>{pauseAction === 'paused' ? localize('ยืนยันหยุดรับคิว', 'Confirm queue pause') : localize('ยืนยันเปิดรับคิว', 'Confirm queue resume')}</span>
                     </ModalHeader>
                     <ModalBody>
                         <p>
-                            คุณต้องการ{pauseAction === 'paused' ? 'หยุดรับคิว' : 'เปิดรับคิว'} 
-                            <span className="font-semibold"> {pauseTarget?.title}</span> ใช่หรือไม่?
+                            {pauseAction === 'paused' ? localize('คุณต้องการหยุดรับคิว', 'Do you want to pause the queue') : localize('คุณต้องการเปิดรับคิว', 'Do you want to resume the queue')} 
+                            <span className="font-semibold"> {pauseTarget?.title}</span> {localize('ใช่หรือไม่?', '?')}
                         </p>
                         {pauseAction === 'paused' ? (
                             <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
                                 <div className="flex items-start gap-2">
                                     <Icon icon="solar:info-circle-bold" className="text-amber-600 text-lg mt-0.5" />
                                     <div className="text-sm text-amber-700">
-                                        <p>เมื่อหยุดรับคิว:</p>
+                                        <p>{localize("เมื่อหยุดรับคิว:", "When paused:")}</p>
                                         <ul className="list-disc list-inside mt-1 space-y-0.5">
-                                            <li>นักศึกษาจะไม่สามารถจองคิวใหม่ได้</li>
-                                            <li>QR Code และ PIN จะถูกซ่อน</li>
-                                            <li>คิวที่จองไว้แล้วยังสามารถทำงานต่อได้</li>
-                                            <li>สามารถเปิดรับคิวใหม่ได้ทุกเมื่อ</li>
+                                            <li>{localize("นักศึกษาจะไม่สามารถจองคิวใหม่ได้", "Students will not be able to create new bookings")}</li>
+                                            <li>{localize("QR Code และ PIN จะถูกซ่อน", "The QR code and PIN will be hidden")}</li>
+                                            <li>{localize("คิวที่จองไว้แล้วยังสามารถทำงานต่อได้", "Existing bookings can still continue")}</li>
+                                            <li>{localize("สามารถเปิดรับคิวใหม่ได้ทุกเมื่อ", "You can resume the queue at any time")}</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -1831,10 +1866,10 @@ export default function QueueTab({
                                 <div className="flex items-start gap-2">
                                     <Icon icon="solar:info-circle-bold" className="text-emerald-600 text-lg mt-0.5" />
                                     <div className="text-sm text-emerald-700">
-                                        <p>เมื่อเปิดรับคิว:</p>
+                                        <p>{localize("เมื่อเปิดรับคิว:", "When resumed:")}</p>
                                         <ul className="list-disc list-inside mt-1 space-y-0.5">
-                                            <li>นักศึกษาจะสามารถจองคิวได้อีกครั้ง</li>
-                                            <li>QR Code และ PIN จะแสดงอีกครั้ง</li>
+                                            <li>{localize("นักศึกษาจะสามารถจองคิวได้อีกครั้ง", "Students will be able to book the queue again")}</li>
+                                            <li>{localize("QR Code และ PIN จะแสดงอีกครั้ง", "The QR code and PIN will be shown again")}</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -1843,7 +1878,7 @@ export default function QueueTab({
                     </ModalBody>
                     <ModalFooter>
                         <Button variant="light" onPress={() => setIsPauseModalOpen(false)}>
-                            ยกเลิก
+                            {localize("ยกเลิก", "Cancel")}
                         </Button>
                         <Button 
                             color="primary" 
@@ -1852,7 +1887,7 @@ export default function QueueTab({
                             className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             startContent={<Icon icon={pauseAction === 'paused' ? "solar:pause-bold" : "solar:play-bold"} />}
                         >
-                            {pauseAction === 'paused' ? 'หยุดรับคิว' : 'เปิดรับคิว'}
+                            {pauseAction === 'paused' ? localize('หยุดรับคิว', 'Pause queue') : localize('เปิดรับคิว', 'Resume queue')}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -1866,8 +1901,8 @@ export default function QueueTab({
                             <Icon icon="solar:bell-bing-bold" className="text-xl text-white animate-bounce" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-foreground">มีคิวอัปเดตใหม่</p>
-                            <p className="mt-0.5 text-xs text-default-500">มีการเปลี่ยนแปลงข้อมูลคิวในชั้นเรียนนี้</p>
+                            <p className="text-sm font-bold text-foreground">{localize("มีคิวอัปเดตใหม่", "Queue updated")}</p>
+                            <p className="mt-0.5 text-xs text-default-500">{localize("มีการเปลี่ยนแปลงข้อมูลคิวในชั้นเรียนนี้", "Queue data changed in this classroom")}</p>
                         </div>
                         <Button
                             size="sm"
@@ -1876,7 +1911,7 @@ export default function QueueTab({
                             startContent={<Icon icon="solar:refresh-bold" />}
                             onPress={() => { setPendingQueueUpdate(false); fetchSessions(true); }}
                         >
-                            โหลดใหม่
+                            {localize("โหลดใหม่", "Reload")}
                         </Button>
                     </div>
                 </div>

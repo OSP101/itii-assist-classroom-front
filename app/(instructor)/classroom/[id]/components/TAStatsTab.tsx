@@ -20,6 +20,7 @@ import { Pagination } from "@heroui/pagination";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import {
   getTAStats,
   getTADetail,
@@ -37,9 +38,9 @@ interface TAStatsTabProps {
 }
 
 // Helper to format date
-function formatDateTime(dateStr: string | null) {
+function formatDateTime(dateStr: string | null, isEnglish: boolean) {
   if (!dateStr) return "-";
-  return new Date(dateStr).toLocaleDateString("th-TH", {
+  return new Date(dateStr).toLocaleDateString(isEnglish ? "en-US" : "th-TH", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -63,24 +64,27 @@ function getScoreBgColor(score: number): string {
   return "bg-rose-50";
 }
 
-function getScoreLabel(score: number): string {
-  if (score >= 80) return "ดีมาก";
-  if (score >= 60) return "ดี";
-  if (score >= 40) return "ปานกลาง";
-  return "ต้องปรับปรุง";
+function getScoreLabel(score: number, isEnglish: boolean): string {
+  if (score >= 80) return isEnglish ? "Excellent" : "ดีมาก";
+  if (score >= 60) return isEnglish ? "Good" : "ดี";
+  if (score >= 40) return isEnglish ? "Fair" : "ปานกลาง";
+  return isEnglish ? "Needs improvement" : "ต้องปรับปรุง";
 }
 
-function getConfidenceChip(level: string) {
+function getConfidenceChip(level: string, isEnglish: boolean) {
   const map: Record<string, { label: string; className: string }> = {
-    high: { label: "สูง", className: "bg-emerald-50 text-emerald-600" },
-    medium: { label: "ปานกลาง", className: "bg-amber-50 text-amber-600" },
-    low: { label: "ต่ำ", className: "bg-content3 text-default-500" },
+    high: { label: isEnglish ? "High" : "สูง", className: "bg-emerald-50 text-emerald-600" },
+    medium: { label: isEnglish ? "Medium" : "ปานกลาง", className: "bg-amber-50 text-amber-600" },
+    low: { label: isEnglish ? "Low" : "ต่ำ", className: "bg-content3 text-default-500" },
   };
   return map[level] || map.low;
 }
 
 // Anomaly Flags Card Component
 function AnomalyFlagsCard({ anomalies }: { anomalies: AnomalyFlag[] }) {
+  const { language } = useGlobalSettings();
+  const isEnglish = language === "en";
+
   if (anomalies.length === 0) return null;
   return (
     <Card className="shadow-sm border border-amber-200">
@@ -90,8 +94,8 @@ function AnomalyFlagsCard({ anomalies }: { anomalies: AnomalyFlag[] }) {
             <Icon icon="solar:danger-triangle-bold" className="text-lg text-amber-600" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-foreground">ข้อสังเกต</h3>
-            <p className="text-xs text-default-500">{anomalies.length} รายการ</p>
+            <h3 className="text-base font-semibold text-foreground">{isEnglish ? "Flags" : "ข้อสังเกต"}</h3>
+            <p className="text-xs text-default-500">{anomalies.length} {isEnglish ? "items" : "รายการ"}</p>
           </div>
         </div>
         <div className="space-y-2">
@@ -118,16 +122,18 @@ function AnomalyFlagsCard({ anomalies }: { anomalies: AnomalyFlag[] }) {
 
 // KPI Breakdown Card Component
 function KPIBreakdownCard({ kpi, confidenceLevel }: { kpi: KPIBreakdown; confidenceLevel?: string }) {
+  const { language } = useGlobalSettings();
+  const isEnglish = language === "en";
   const items = [
-    { key: "workload", icon: "solar:case-round-bold", color: "text-blue-600", bg: "bg-blue-100", ...kpi.workload },
-    { key: "coverage", icon: "solar:clipboard-check-bold", color: "text-indigo-600", bg: "bg-indigo-100", ...kpi.coverage },
-    { key: "consistency", icon: "solar:scale-bold", color: "text-emerald-600", bg: "bg-emerald-100", ...kpi.consistency },
-    { key: "spread", icon: "solar:chart-bold", color: "text-violet-600", bg: "bg-violet-100", ...kpi.spread },
-    { key: "queue", icon: "solar:sort-by-time-bold", color: "text-amber-600", bg: "bg-amber-100", ...kpi.queue },
-    { key: "anomaly", icon: "solar:shield-check-bold", color: "text-rose-600", bg: "bg-rose-100", ...kpi.anomaly },
+    { key: "workload", icon: "solar:case-round-bold", color: "text-blue-600", bg: "bg-blue-100", ...kpi.workload, label: isEnglish ? "Workload" : kpi.workload.label },
+    { key: "coverage", icon: "solar:clipboard-check-bold", color: "text-indigo-600", bg: "bg-indigo-100", ...kpi.coverage, label: isEnglish ? "Coverage" : kpi.coverage.label },
+    { key: "consistency", icon: "solar:scale-bold", color: "text-emerald-600", bg: "bg-emerald-100", ...kpi.consistency, label: isEnglish ? "Consistency" : kpi.consistency.label },
+    { key: "spread", icon: "solar:chart-bold", color: "text-violet-600", bg: "bg-violet-100", ...kpi.spread, label: isEnglish ? "Score spread" : kpi.spread.label },
+    { key: "queue", icon: "solar:sort-by-time-bold", color: "text-amber-600", bg: "bg-amber-100", ...kpi.queue, label: isEnglish ? "Queue" : kpi.queue.label },
+    { key: "anomaly", icon: "solar:shield-check-bold", color: "text-rose-600", bg: "bg-rose-100", ...kpi.anomaly, label: isEnglish ? "Anomalies" : kpi.anomaly.label },
   ];
 
-  const confidenceInfo = getConfidenceChip(confidenceLevel || 'low');
+  const confidenceInfo = getConfidenceChip(confidenceLevel || 'low', isEnglish);
 
   return (
     <Card className="border border-default-200 shadow-sm">
@@ -139,12 +145,12 @@ function KPIBreakdownCard({ kpi, confidenceLevel }: { kpi: KPIBreakdown; confide
             </div>
             <div>
               <h3 className="text-base font-semibold text-foreground">KPI Breakdown</h3>
-              <p className="text-xs text-default-500">รายละเอียดแต่ละมิติ</p>
+              <p className="text-xs text-default-500">{isEnglish ? "Breakdown by scoring dimension" : "รายละเอียดแต่ละมิติ"}</p>
             </div>
           </div>
-          <Tooltip content="ระดับความน่าเชื่อถือขึ้นอยู่กับจำนวนข้อมูลที่มี">
+          <Tooltip content={isEnglish ? "Confidence depends on the amount of available data." : "ระดับความน่าเชื่อถือขึ้นอยู่กับจำนวนข้อมูลที่มี"}>
             <Chip size="sm" variant="flat" className={confidenceInfo.className}>
-              ความน่าเชื่อถือ: {confidenceInfo.label}
+              {isEnglish ? "Confidence" : "ความน่าเชื่อถือ"}: {confidenceInfo.label}
             </Chip>
           </Tooltip>
         </div>
@@ -157,7 +163,7 @@ function KPIBreakdownCard({ kpi, confidenceLevel }: { kpi: KPIBreakdown; confide
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="truncate text-xs text-default-500">{item.label}</p>
-                  <p className="text-[10px] text-default-400">น้ำหนัก {(item.weight * 100).toFixed(0)}%</p>
+                  <p className="text-[10px] text-default-400">{isEnglish ? "Weight" : "น้ำหนัก"} {(item.weight * 100).toFixed(0)}%</p>
                 </div>
                 <span className={`text-lg font-bold ${getScoreColor(item.score)}`}>
                   {item.score}
@@ -244,6 +250,8 @@ function SuspiciousAlert({
   taStats: TAStat[];
   assignments: { assignmentId: number; assignmentName: string; maxScore: number; avgScore: number | null }[];
 }) {
+  const { language } = useGlobalSettings();
+  const isEnglish = language === "en";
   const alerts: { taName: string; message: string; severity: "warning" | "danger" }[] = [];
 
   for (const ta of taStats) {
@@ -256,7 +264,9 @@ function SuspiciousAlert({
       if (diff > threshold && pa.totalGraded >= 3) {
         alerts.push({
           taName: ta.fullName,
-          message: `ค่าเฉลี่ยคะแนนงาน "${pa.assignmentName}" (${pa.avgScore}) ต่างจากค่าเฉลี่ยรวม (${overallAssignment.avgScore}) มากกว่า 30%`,
+          message: isEnglish
+            ? `Average score for "${pa.assignmentName}" (${pa.avgScore}) differs from the overall average (${overallAssignment.avgScore}) by more than 30%.`
+            : `ค่าเฉลี่ยคะแนนงาน "${pa.assignmentName}" (${pa.avgScore}) ต่างจากค่าเฉลี่ยรวม (${overallAssignment.avgScore}) มากกว่า 30%`,
           severity: diff > overallAssignment.maxScore * 0.5 ? "danger" : "warning",
         });
       }
@@ -266,7 +276,9 @@ function SuspiciousAlert({
         if (maxBucket / pa.totalGraded > 0.8) {
           alerts.push({
             taName: ta.fullName,
-            message: `ตรวจงาน "${pa.assignmentName}" มีคะแนนซ้ำกันมากผิดปกติ (${maxBucket}/${pa.totalGraded} อยู่ในช่วงเดียวกัน)`,
+            message: isEnglish
+              ? `Scores for "${pa.assignmentName}" are clustered unusually in the same range (${maxBucket}/${pa.totalGraded} in one bucket).`
+              : `ตรวจงาน "${pa.assignmentName}" มีคะแนนซ้ำกันมากผิดปกติ (${maxBucket}/${pa.totalGraded} อยู่ในช่วงเดียวกัน)`,
             severity: "warning",
           });
         }
@@ -284,8 +296,8 @@ function SuspiciousAlert({
             <Icon icon="solar:danger-triangle-bold" className="text-xl text-amber-600" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-foreground">สิ่งที่ควรตรวจสอบ</h3>
-            <p className="text-xs text-default-500">{alerts.length} รายการที่ตรวจพบ</p>
+            <h3 className="text-base font-semibold text-foreground">{isEnglish ? "Things to review" : "สิ่งที่ควรตรวจสอบ"}</h3>
+            <p className="text-xs text-default-500">{alerts.length} {isEnglish ? "flags found" : "รายการที่ตรวจพบ"}</p>
           </div>
         </div>
         <div className="space-y-2">
@@ -328,6 +340,8 @@ function TADetailView({
   allAssignments: { assignmentId: number; assignmentName: string }[];
   onClose: () => void;
 }) {
+  const { language } = useGlobalSettings();
+  const isEnglish = language === "en";
   const [detail, setDetail] = useState<TADetailData | null>(null);
   const [loading, setLoading] = useState(false);
   const [filterAssignment, setFilterAssignment] = useState("");
@@ -343,12 +357,12 @@ function TADetailView({
       });
       setDetail(data);
     } catch {
-      addToast({ title: "เกิดข้อผิดพลาด", description: "ไม่สามารถโหลดข้อมูลรายละเอียด TA ได้", color: "danger",timeout: 3000,
+      addToast({ title: isEnglish ? "Error" : "เกิดข้อผิดพลาด", description: isEnglish ? "Unable to load TA details." : "ไม่สามารถโหลดข้อมูลรายละเอียด TA ได้", color: "danger",timeout: 3000,
                 shouldShowTimeoutProgress: true, });
     } finally {
       setLoading(false);
     }
-  }, [courseId, ta.userId, filterAssignment, page]);
+  }, [courseId, filterAssignment, isEnglish, page, ta.userId]);
 
   useEffect(() => {
     fetchDetail();
@@ -407,7 +421,7 @@ function TADetailView({
       <Card className="border border-default-200 shadow-sm">
         <CardBody className="p-2">
           <div className="px-3 py-2">
-            <h3 className="text-base font-semibold text-foreground">สถิติตามงาน</h3>
+            <h3 className="text-base font-semibold text-foreground">{isEnglish ? "Assignment statistics" : "สถิติตามงาน"}</h3>
           </div>
           <div className="overflow-x-auto">
             <Table
@@ -419,19 +433,19 @@ function TADetailView({
               }}
             >
               <TableHeader>
-                <TableColumn>ชื่องาน</TableColumn>
-                <TableColumn align="center">คะแนนเต็ม</TableColumn>
-                <TableColumn align="center">ตรวจแล้ว</TableColumn>
-                <TableColumn align="center">เฉลี่ย</TableColumn>
-                <TableColumn align="center">ต่ำสุด</TableColumn>
-                <TableColumn align="center">สูงสุด</TableColumn>
-                <TableColumn align="center">การกระจาย</TableColumn>
+                <TableColumn>{isEnglish ? "Assignment" : "ชื่องาน"}</TableColumn>
+                <TableColumn align="center">{isEnglish ? "Full score" : "คะแนนเต็ม"}</TableColumn>
+                <TableColumn align="center">{isEnglish ? "Graded" : "ตรวจแล้ว"}</TableColumn>
+                <TableColumn align="center">{isEnglish ? "Average" : "เฉลี่ย"}</TableColumn>
+                <TableColumn align="center">{isEnglish ? "Lowest" : "ต่ำสุด"}</TableColumn>
+                <TableColumn align="center">{isEnglish ? "Highest" : "สูงสุด"}</TableColumn>
+                <TableColumn align="center">{isEnglish ? "Distribution" : "การกระจาย"}</TableColumn>
               </TableHeader>
               <TableBody
                 emptyContent={
                   <div className="py-10 text-center">
                     <Icon icon="solar:clipboard-list-linear" className="mx-auto mb-3 text-5xl text-default-300" />
-                    <p className="text-default-400">TA ยังไม่มีการตรวจงาน</p>
+                    <p className="text-default-400">{isEnglish ? "This TA has not graded any work yet." : "TA ยังไม่มีการตรวจงาน"}</p>
                   </div>
                 }
               >
@@ -470,7 +484,7 @@ function TADetailView({
                             const maxCount = Math.max(...a.scoreDistribution.map((b) => b.count));
                             const height = maxCount > 0 ? (bucket.count / maxCount) * 100 : 0;
                             return (
-                              <Tooltip key={idx} content={`${bucket.range}: ${bucket.count} คน`}>
+                              <Tooltip key={idx} content={`${bucket.range}: ${bucket.count} ${isEnglish ? "students" : "คน"}`}>
                                 <div
                                   className="w-2.5 bg-blue-400 rounded-t transition-all cursor-help"
                                   style={{ height: `${Math.max(height, 8)}%` }}
@@ -569,7 +583,7 @@ function TADetailView({
       <Card className="border border-default-200 shadow-sm">
         <CardBody className="p-2">
           <div className="flex items-center justify-between px-3 py-2">
-            <h3 className="text-base font-semibold text-foreground">ประวัติการตรวจ</h3>
+            <h3 className="text-base font-semibold text-foreground">{isEnglish ? "Grading history" : "ประวัติการตรวจ"}</h3>
             <Dropdown>
               <DropdownTrigger>
                 <Button
@@ -579,8 +593,8 @@ function TADetailView({
                   endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-default-400 text-sm" />}
                 >
                   {filterAssignment
-                    ? allAssignments.find((a) => String(a.assignmentId) === filterAssignment)?.assignmentName || "งาน"
-                    : "ทุกงาน"}
+                    ? allAssignments.find((a) => String(a.assignmentId) === filterAssignment)?.assignmentName || (isEnglish ? "Assignment" : "งาน")
+                    : (isEnglish ? "All assignments" : "ทุกงาน")}
                 </Button>
               </DropdownTrigger>
               <DropdownMenu
@@ -591,7 +605,7 @@ function TADetailView({
                   setPage(1);
                 }}
                 items={[
-                  { key: "", label: "ทุกงาน" },
+                  { key: "", label: isEnglish ? "All assignments" : "ทุกงาน" },
                   ...allAssignments.map((a) => ({
                     key: String(a.assignmentId),
                     label: a.assignmentName,
@@ -617,7 +631,7 @@ function TADetailView({
                     detail && detail.pagination.totalPages > 1 ? (
                       <div className="flex flex-col gap-2 px-1 py-2 sm:flex-row sm:items-center sm:justify-between">
                         <p className="text-xs text-default-400">
-                          หน้า {page} จาก {detail.pagination.totalPages}
+                          {isEnglish ? `Page ${page} of ${detail.pagination.totalPages}` : `หน้า ${page} จาก ${detail.pagination.totalPages}`}
                         </p>
                         <Pagination
                           page={page}
@@ -641,17 +655,17 @@ function TADetailView({
                   }}
                 >
                   <TableHeader>
-                    <TableColumn>งาน</TableColumn>
-                    <TableColumn>รายการย่อย</TableColumn>
-                    <TableColumn>นักศึกษา</TableColumn>
-                    <TableColumn align="end">คะแนน</TableColumn>
-                    <TableColumn>วันที่ตรวจ</TableColumn>
+                    <TableColumn>{isEnglish ? "Assignment" : "งาน"}</TableColumn>
+                    <TableColumn>{isEnglish ? "Sub-item" : "รายการย่อย"}</TableColumn>
+                    <TableColumn>{isEnglish ? "Student" : "นักศึกษา"}</TableColumn>
+                    <TableColumn align="end">{isEnglish ? "Score" : "คะแนน"}</TableColumn>
+                    <TableColumn>{isEnglish ? "Graded on" : "วันที่ตรวจ"}</TableColumn>
                   </TableHeader>
                   <TableBody
                     emptyContent={
                       <div className="py-10 text-center">
                         <Icon icon="solar:clipboard-list-linear" className="mx-auto mb-3 text-5xl text-default-300" />
-                        <p className="text-default-400">ไม่พบประวัติการตรวจ</p>
+                        <p className="text-default-400">{isEnglish ? "No grading history found." : "ไม่พบประวัติการตรวจ"}</p>
                       </div>
                     }
                   >
@@ -681,7 +695,7 @@ function TADetailView({
                         </TableCell>
                         <TableCell>
                           <span className="whitespace-nowrap text-sm text-default-500">
-                            {formatDateTime(score.graded_at)}
+                            {formatDateTime(score.graded_at, isEnglish)}
                           </span>
                         </TableCell>
                       </TableRow>
@@ -733,6 +747,8 @@ function TADetailView({
 // ============================================
 
 export default function TAStatsTab({ courseId }: TAStatsTabProps) {
+  const { language } = useGlobalSettings();
+  const isEnglish = language === "en";
   const [data, setData] = useState<TAStatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedTA, setSelectedTA] = useState<TAStat | null>(null);
@@ -745,12 +761,12 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
       const result = await getTAStats(courseId);
       setData(result);
     } catch {
-      addToast({ title: "เกิดข้อผิดพลาด", description: "ไม่สามารถโหลดสถิติ TA ได้", color: "danger",timeout: 3000,
+      addToast({ title: isEnglish ? "Error" : "เกิดข้อผิดพลาด", description: isEnglish ? "Unable to load TA statistics." : "ไม่สามารถโหลดสถิติ TA ได้", color: "danger",timeout: 3000,
                 shouldShowTimeoutProgress: true, });
     } finally {
       setLoading(false);
     }
-  }, [courseId]);
+  }, [courseId, isEnglish]);
 
   useEffect(() => {
     fetchData();
@@ -803,12 +819,12 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
           va = a.totalScoresGraded; vb = b.totalScoresGraded; break;
         default:
           return sortDir === 'asc'
-            ? a.fullName.localeCompare(b.fullName, 'th')
-            : b.fullName.localeCompare(a.fullName, 'th');
+            ? a.fullName.localeCompare(b.fullName, isEnglish ? 'en' : 'th')
+            : b.fullName.localeCompare(a.fullName, isEnglish ? 'en' : 'th');
       }
       return sortDir === 'asc' ? va - vb : vb - va;
     });
-  }, [data, sortField, sortDir]);
+  }, [data, isEnglish, sortField, sortDir]);
 
   // If a TA is selected, show detail view
   if (selectedTA && data) {
@@ -832,8 +848,8 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">สถิติการทำงานของ TA</h2>
-          <p className="text-sm text-default-500">ดูภาพรวมการตรวจงานและให้คะแนนของผู้ช่วยสอน</p>
+          <h2 className="text-lg font-semibold text-foreground">{isEnglish ? "TA stats" : "สถิติการทำงานของ TA"}</h2>
+          <p className="text-sm text-default-500">{isEnglish ? "Review grading and work distribution for teaching assistants." : "ดูภาพรวมการตรวจงานและให้คะแนนของผู้ช่วยสอน"}</p>
         </div>
         <Button
           size="sm"
@@ -843,7 +859,7 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
           isDisabled={loading}
           className="bg-content2 text-default-600 hover:bg-content3"
         >
-          รีเฟรช
+          {isEnglish ? "Refresh" : "รีเฟรช"}
         </Button>
       </div>
 
@@ -859,9 +875,9 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
             <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-linear-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
               <Icon icon="solar:chart-2-bold-duotone" className="text-5xl text-blue-500" />
             </div>
-            <h3 className="mb-2 text-lg font-semibold text-default-700">ไม่สามารถโหลดข้อมูลได้</h3>
+            <h3 className="mb-2 text-lg font-semibold text-default-700">{isEnglish ? "Unable to load data" : "ไม่สามารถโหลดข้อมูลได้"}</h3>
             <p className="mx-auto mb-6 max-w-md text-default-500">
-              กรุณาลองรีเฟรชอีกครั้ง
+              {isEnglish ? "Please refresh and try again." : "กรุณาลองรีเฟรชอีกครั้ง"}
             </p>
             <Button
               color="primary"
@@ -869,7 +885,7 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
               onPress={fetchData}
               className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
             >
-              ลองอีกครั้ง
+              {isEnglish ? "Try again" : "ลองอีกครั้ง"}
             </Button>
           </CardBody>
         </Card>
@@ -1005,7 +1021,7 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
           <Card className="border border-default-200 bg-content1 shadow-sm">
             <CardBody className="p-2">
               <div className="flex items-center justify-between px-3 py-2">
-                <h3 className="text-base font-semibold text-foreground">สถิติรายบุคคล</h3>
+                <h3 className="text-base font-semibold text-foreground">{isEnglish ? "Per-person statistics" : "สถิติรายบุคคล"}</h3>
                 <Dropdown>
                   <DropdownTrigger>
                     <Button
@@ -1015,7 +1031,7 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                       startContent={<Icon icon="solar:sort-linear" width={14} />}
                       endContent={<Icon icon={sortDir === 'desc' ? "solar:alt-arrow-down-linear" : "solar:alt-arrow-up-linear"} width={12} className="text-default-400" />}
                     >
-                      {sortField === 'score' ? 'คะแนน' : sortField === 'workload' ? 'ปริมาณงาน' : 'ชื่อ'}
+                      {sortField === 'score' ? (isEnglish ? 'Score' : 'คะแนน') : sortField === 'workload' ? (isEnglish ? 'Workload' : 'ปริมาณงาน') : (isEnglish ? 'Name' : 'ชื่อ')}
                     </Button>
                   </DropdownTrigger>
                   <DropdownMenu
@@ -1031,9 +1047,9 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                       }
                     }}
                   >
-                    <DropdownItem key="score">คะแนนประเมิน</DropdownItem>
-                    <DropdownItem key="workload">ปริมาณงาน</DropdownItem>
-                    <DropdownItem key="name">ชื่อ-นามสกุล</DropdownItem>
+                    <DropdownItem key="score">{isEnglish ? "Evaluation score" : "คะแนนประเมิน"}</DropdownItem>
+                    <DropdownItem key="workload">{isEnglish ? "Workload" : "ปริมาณงาน"}</DropdownItem>
+                    <DropdownItem key="name">{isEnglish ? "Full name" : "ชื่อ-นามสกุล"}</DropdownItem>
                   </DropdownMenu>
                 </Dropdown>
               </div>
@@ -1043,8 +1059,8 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                     <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-linear-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
                       <Icon icon="solar:users-group-rounded-bold-duotone" className="text-4xl text-blue-500" />
                     </div>
-                    <h3 className="mb-1 text-base font-semibold text-default-700">ยังไม่มี TA</h3>
-                    <p className="text-sm text-default-500">เพิ่มผู้ช่วยสอนในหน้าบุคลากรก่อน</p>
+                    <h3 className="mb-1 text-base font-semibold text-default-700">{isEnglish ? "No teaching assistants yet" : "ยังไม่มี TA"}</h3>
+                    <p className="text-sm text-default-500">{isEnglish ? "Add teaching assistants in the People tab first." : "เพิ่มผู้ช่วยสอนในหน้าบุคลากรก่อน"}</p>
                   </CardBody>
                 </Card>
               ) : (
@@ -1058,13 +1074,13 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                     }}
                   >
                     <TableHeader>
-                      <TableColumn>ชื่อ-นามสกุล</TableColumn>
+                      <TableColumn>{isEnglish ? "Full name" : "ชื่อ-นามสกุล"}</TableColumn>
                       {/* <TableColumn align="center">คะแนนประเมิน</TableColumn> */}
-                      <TableColumn align="center">ตรวจทั้งหมด</TableColumn>
-                      <TableColumn align="center">งานที่ตรวจ</TableColumn>
-                      <TableColumn align="center">คิวสำเร็จ</TableColumn>
+                      <TableColumn align="center">{isEnglish ? "Total graded" : "ตรวจทั้งหมด"}</TableColumn>
+                      <TableColumn align="center">{isEnglish ? "Assignments graded" : "งานที่ตรวจ"}</TableColumn>
+                      <TableColumn align="center">{isEnglish ? "Queue completed" : "คิวสำเร็จ"}</TableColumn>
                       {/* <TableColumn align="center">คะแนนเฉลี่ย (คิว)</TableColumn> */}
-                      <TableColumn align="center">จัดการ</TableColumn>
+                      <TableColumn align="center">{isEnglish ? "Actions" : "จัดการ"}</TableColumn>
                     </TableHeader>
                     <TableBody>
                       {sortedTAs.map((ta) => (
@@ -1132,7 +1148,7 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                             <div className="flex flex-col items-center gap-0.5">
                               <span className="text-sm font-bold text-blue-600">{ta.totalScoresGraded}</span>
                               {analytics && analytics.expectedShare > 0 && (
-                                <Tooltip content={`${Math.round(ta.totalScoresGraded / analytics.expectedShare * 100)}% ของส่วนแบ่งที่คาดหวัง`}>
+                                <Tooltip content={isEnglish ? `${Math.round(ta.totalScoresGraded / analytics.expectedShare * 100)}% of expected share` : `${Math.round(ta.totalScoresGraded / analytics.expectedShare * 100)}% ของส่วนแบ่งที่คาดหวัง`}>
                                   <div className="h-1 w-10 cursor-help rounded-full bg-content3">
                                     <div
                                       className={`h-1 rounded-full ${ta.totalScoresGraded / analytics.expectedShare >= 0.7 ? 'bg-blue-500' : 'bg-amber-500'}`}
@@ -1162,7 +1178,7 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                           </TableCell> */}
                           <TableCell>
                             <div className="flex items-center justify-center">
-                              <Tooltip content="ดูรายละเอียดการตรวจ">
+                              <Tooltip content={isEnglish ? "View grading details" : "ดูรายละเอียดการตรวจ"}>
                                 <Button
                                   size="sm"
                                   variant="flat"
@@ -1170,7 +1186,7 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                                   className="bg-blue-50 text-blue-600 hover:bg-blue-100"
                                   startContent={<Icon icon="solar:eye-bold" width={14} />}
                                 >
-                                  ดูรายละเอียด
+                                  {isEnglish ? "View details" : "ดูรายละเอียด"}
                                 </Button>
                               </Tooltip>
                             </div>
@@ -1188,12 +1204,12 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
           <Card className="border border-default-200 bg-content1 shadow-sm">
             <CardBody className="p-2">
               <div className="px-3 py-2">
-                <h3 className="text-base font-semibold text-foreground">เปรียบเทียบ TA ตามงาน</h3>
+                <h3 className="text-base font-semibold text-foreground">{isEnglish ? "TA comparison by assignment" : "เปรียบเทียบ TA ตามงาน"}</h3>
               </div>
               {data.assignments.filter((a) => a.totalGraded > 0).length === 0 ? (
                 <div className="text-center py-12 px-3">
                   <Icon icon="solar:chart-2-linear" className="mx-auto mb-3 text-5xl text-default-300" />
-                  <p className="text-default-400">ยังไม่มีข้อมูลคะแนน</p>
+                  <p className="text-default-400">{isEnglish ? "No score data yet." : "ยังไม่มีข้อมูลคะแนน"}</p>
                 </div>
               ) : (
                 <div className="space-y-3 px-3 pb-3">
@@ -1214,7 +1230,7 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                           <div className="flex items-center justify-between mb-2">
                             <h4 className="text-sm font-medium text-foreground">{assignment.assignmentName}</h4>
                             <Chip size="sm" variant="flat" className="bg-blue-50 text-blue-600">
-                              ค่าเฉลี่ยรวม: {assignment.avgScore ?? "-"} / {assignment.maxScore}
+                              {isEnglish ? "Overall average" : "ค่าเฉลี่ยรวม"}: {assignment.avgScore ?? "-"} / {assignment.maxScore}
                             </Chip>
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -1225,7 +1241,7 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                               >
                                 <span className="text-sm text-default-700">{ta_a.taName}</span>
                                 <div className="flex items-center gap-1.5">
-                                  <span className="text-xs text-default-400">{ta_a.totalGraded} รายการ</span>
+                                  <span className="text-xs text-default-400">{ta_a.totalGraded} {isEnglish ? "items" : "รายการ"}</span>
                                   <Chip
                                     size="sm"
                                     variant="flat"

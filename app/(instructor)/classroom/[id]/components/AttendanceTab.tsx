@@ -20,6 +20,7 @@
 import { createPortal } from "react-dom";
 import { Button } from "@heroui/button";
 import { Icon } from "@iconify/react";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { useAttendanceTab, AttendanceTabView, type Course } from "./attendance";
 
 interface AttendanceTabProps {
@@ -42,6 +43,8 @@ export default function AttendanceTab({
     canDeleteAttendanceSessions = false,
 }: AttendanceTabProps) {
     // All state and logic handled by custom hook
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
     const hook = useAttendanceTab(course, onAttendanceChanged);
 
     return (
@@ -66,8 +69,8 @@ export default function AttendanceTab({
                                 <Icon icon="solar:bell-bing-bold" className="text-xl text-white animate-bounce" />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold text-foreground">มีรอบเช็คชื่อใหม่</p>
-                                <p className="mt-0.5 text-xs text-default-500">มีการเพิ่มหรือแก้ไขรอบเช็คชื่อในชั้นเรียนนี้</p>
+                                <p className="text-sm font-bold text-foreground">{isEnglish ? "Attendance updated" : "มีรอบเช็คชื่อใหม่"}</p>
+                                <p className="mt-0.5 text-xs text-default-500">{isEnglish ? "A session was added or updated in this classroom." : "มีการเพิ่มหรือแก้ไขรอบเช็คชื่อในชั้นเรียนนี้"}</p>
                             </div>
                             <Button
                                 size="sm"
@@ -76,7 +79,7 @@ export default function AttendanceTab({
                                 startContent={<Icon icon="solar:refresh-bold" />}
                                 onPress={() => hook.ackAttendanceUpdate()}
                             >
-                                โหลดใหม่
+                                {isEnglish ? "Refresh" : "โหลดใหม่"}
                             </Button>
                         </div>
                     </div>

@@ -11,6 +11,7 @@ import { Select, SelectItem } from "@heroui/select";
 import { Avatar } from "@heroui/avatar";
 import { Card, CardBody } from "@heroui/card";
 import { Icon } from "@iconify/react";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { useSectionsTab, SectionsTabView } from "./sections";
 
 interface SectionsTabProps {
@@ -23,6 +24,10 @@ interface SectionsTabProps {
     canCreateTeams?: boolean;
     canUpdateTeams?: boolean;
     canDeleteTeams?: boolean;
+}
+
+function formatCount(count: number, singular: string, plural: string) {
+    return `${count} ${count === 1 ? singular : plural}`;
 }
 
 /**
@@ -51,6 +56,8 @@ export default function SectionsTab({
     canDeleteTeams = false,
 }: SectionsTabProps) {
     const hook = useSectionsTab(courseId);
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
     
     const {
         // Data
@@ -221,17 +228,17 @@ export default function SectionsTab({
                             <div className="p-3 bg-linear-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/30">
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-foreground">เพิ่มกลุ่มเรียน</h3>
-                                <p className="mt-1 text-sm font-normal text-default-500">สร้างกลุ่มเรียนใหม่สำหรับรายวิชานี้</p>
+                                <h3 className="text-xl font-bold text-foreground">{isEnglish ? "Add section" : "เพิ่มกลุ่มเรียน"}</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">{isEnglish ? "Create a new section for this course." : "สร้างกลุ่มเรียนใหม่สำหรับรายวิชานี้"}</p>
                             </div>
                         </div>
                     </ModalHeader>
                     <ModalBody className="px-6 py-4">
                         <div className="space-y-5">
                             <Input
-                                label="หมายเลขกลุ่มเรียน"
+                                label={isEnglish ? "Section number" : "หมายเลขกลุ่มเรียน"}
                                 labelPlacement="outside"
-                                placeholder="เช่น 1, 2, 801"
+                                placeholder={isEnglish ? "For example: 1, 2, 801" : "เช่น 1, 2, 801"}
                                 variant="bordered"
                                 size="md"
                                 type="number"
@@ -245,9 +252,9 @@ export default function SectionsTab({
                                 }}
                             />
                             <Input
-                                label="หมายเหตุ (ถ้ามี)"
+                                label={isEnglish ? "Note (optional)" : "หมายเหตุ (ถ้ามี)"}
                                 labelPlacement="outside"
-                                placeholder="เช่น ภาคปกติ ภาคพิเศษ ฯลฯ"
+                                placeholder={isEnglish ? "For example: Regular section, special program, etc." : "เช่น ภาคปกติ ภาคพิเศษ ฯลฯ"}
                                 variant="bordered"
                                 size="md"
                                 value={sectionModal.note}
@@ -261,7 +268,7 @@ export default function SectionsTab({
                     </ModalBody>
                     <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button variant="light" onPress={sectionModal.reset}>
-                            ยกเลิก
+                            {isEnglish ? "Cancel" : "ยกเลิก"}
                         </Button>
                         <Button 
                             onPress={handleAddSection}
@@ -269,7 +276,7 @@ export default function SectionsTab({
                             className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-400/25"
                             startContent={!isSubmitting && <Icon icon="solar:add-circle-bold" />}
                         >
-                            เพิ่มกลุ่มเรียน
+                            {isEnglish ? "Add section" : "เพิ่มกลุ่มเรียน"}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -289,17 +296,17 @@ export default function SectionsTab({
                                 <Icon icon="solar:pen-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-foreground">แก้ไขกลุ่มเรียน</h3>
-                                <p className="mt-1 text-sm font-normal text-default-500">แก้ไขข้อมูลกลุ่มเรียน</p>
+                                <h3 className="text-xl font-bold text-foreground">{isEnglish ? "Edit section" : "แก้ไขกลุ่มเรียน"}</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">{isEnglish ? "Update section details." : "แก้ไขข้อมูลกลุ่มเรียน"}</p>
                             </div>
                         </div>
                     </ModalHeader>
                     <ModalBody className="px-6 py-4">
                         <div className="space-y-5">
                             <Input
-                                label="หมายเลขกลุ่มเรียน"
+                                label={isEnglish ? "Section number" : "หมายเลขกลุ่มเรียน"}
                                 labelPlacement="outside"
-                                placeholder="เช่น 1, 2, 801"
+                                placeholder={isEnglish ? "For example: 1, 2, 801" : "เช่น 1, 2, 801"}
                                 variant="bordered"
                                 size="md"
                                 value={editSectionModal.sectionNo}
@@ -312,9 +319,9 @@ export default function SectionsTab({
                                 }}
                             />
                             <Input
-                                label="หมายเหตุ (ถ้ามี)"
+                                label={isEnglish ? "Note (optional)" : "หมายเหตุ (ถ้ามี)"}
                                 labelPlacement="outside"
-                                placeholder="เช่น ภาคปกติ ภาคพิเศษ ฯลฯ"
+                                placeholder={isEnglish ? "For example: Regular section, special program, etc." : "เช่น ภาคปกติ ภาคพิเศษ ฯลฯ"}
                                 variant="bordered"
                                 size="md"
                                 value={editSectionModal.note}
@@ -328,7 +335,7 @@ export default function SectionsTab({
                     </ModalBody>
                     <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button variant="light" onPress={editSectionModal.reset}>
-                            ยกเลิก
+                            {isEnglish ? "Cancel" : "ยกเลิก"}
                         </Button>
                         <Button 
                             onPress={handleEditSection}
@@ -337,7 +344,7 @@ export default function SectionsTab({
                             className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-400/25"
                             startContent={!isSubmitting && <Icon icon="solar:diskette-bold" />}
                         >
-                            บันทึก
+                            {isEnglish ? "Save" : "บันทึก"}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -358,9 +365,11 @@ export default function SectionsTab({
                                 <Icon icon="solar:user-plus-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-foreground">เพิ่มนักศึกษา</h3>
+                                <h3 className="text-xl font-bold text-foreground">{isEnglish ? "Add student" : "เพิ่มนักศึกษา"}</h3>
                                 <p className="mt-1 text-sm font-normal text-default-500">
-                                    กลุ่มเรียน Section {course.sections?.find(s => s.id === studentModal.sectionId)?.section_no}
+                                    {isEnglish
+                                        ? `Section ${course.sections?.find(s => s.id === studentModal.sectionId)?.section_no}`
+                                        : `กลุ่มเรียน Section ${course.sections?.find(s => s.id === studentModal.sectionId)?.section_no}`}
                                 </p>
                             </div>
                         </div>
@@ -378,7 +387,7 @@ export default function SectionsTab({
                                     }`}
                                 >
                                     <Icon icon="solar:user-bold" />
-                                    เลือกทีละคน
+                                    {isEnglish ? "Select one" : "เลือกทีละคน"}
                                 </button>
                                 <button
                                     onClick={() => studentModal.setMode("bulk")}
@@ -389,14 +398,14 @@ export default function SectionsTab({
                                     }`}
                                 >
                                     <Icon icon="solar:clipboard-list-bold" />
-                                    วางจาก Excel
+                                    {isEnglish ? "Paste from Excel" : "วางจาก Excel"}
                                 </button>
                             </div>
 
                             {studentModal.mode === "single" ? (
                                 <>
                                     <Input
-                                        placeholder="ค้นหานักศึกษา..."
+                                        placeholder={isEnglish ? "Search students..." : "ค้นหานักศึกษา..."}
                                         value={studentModal.searchQuery}
                                         onValueChange={studentModal.setSearchQuery}
                                         variant="bordered"
@@ -436,7 +445,7 @@ export default function SectionsTab({
                                             {filteredStudents().length === 0 && (
                                                 <div className="text-center py-8">
                                                     <Icon icon="solar:users-group-rounded-linear" className="mx-auto mb-2 text-4xl text-default-300" />
-                                                    <p className="text-default-400">ไม่พบนักศึกษาที่ค้นหา</p>
+                                                    <p className="text-default-400">{isEnglish ? "No students matched your search." : "ไม่พบนักศึกษาที่ค้นหา"}</p>
                                                 </div>
                                             )}
                                         </div>
@@ -447,13 +456,13 @@ export default function SectionsTab({
                                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
                                         <p className="text-sm text-amber-700">
                                             <Icon icon="solar:info-circle-bold" className="inline mr-1" />
-                                            วางรหัสนักศึกษา (1 รหัสต่อบรรทัด) จาก Excel หรือ Text
+                                            {isEnglish ? "Paste one student ID per line from Excel or plain text." : "วางรหัสนักศึกษา (1 รหัสต่อบรรทัด) จาก Excel หรือ Text"}
                                         </p>
                                     </div>
                                     <Textarea
-                                        label="รหัสนักศึกษา"
+                                        label={isEnglish ? "Student IDs" : "รหัสนักศึกษา"}
                                         labelPlacement="outside"
-                                        placeholder={"วางรหัสนักศึกษาที่นี่\n65010001\n65010002\n65010003"}
+                                        placeholder={isEnglish ? "Paste student IDs here\n65010001\n65010002\n65010003" : "วางรหัสนักศึกษาที่นี่\n65010001\n65010002\n65010003"}
                                         value={studentModal.pasteData}
                                         onValueChange={(value) => {
                                             studentModal.setPasteData(value);
@@ -469,16 +478,16 @@ export default function SectionsTab({
                                     {studentModal.parsedStudents.length > 0 && (
                                         <div className="overflow-hidden rounded-xl border border-default-200">
                                             <div className="flex items-center justify-between border-b border-divider bg-content2 px-4 py-2">
-                                                <p className="text-sm text-default-600">ผลการตรวจสอบ</p>
+                                                <p className="text-sm text-default-600">{isEnglish ? "Validation results" : "ผลการตรวจสอบ"}</p>
                                                 <div className="flex gap-2 text-xs">
                                                     <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
-                                                        พบ {studentModal.parsedStudents.filter(p => p.status === "matched").length}
+                                                        {isEnglish ? "Found" : "พบ"} {studentModal.parsedStudents.filter(p => p.status === "matched").length}
                                                     </span>
                                                     <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-full">
-                                                        ลงทะเบียนแล้ว {studentModal.parsedStudents.filter(p => p.status === "already_enrolled").length}
+                                                        {isEnglish ? "Already enrolled" : "ลงทะเบียนแล้ว"} {studentModal.parsedStudents.filter(p => p.status === "already_enrolled").length}
                                                     </span>
                                                     <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full">
-                                                        ไม่พบ {studentModal.parsedStudents.filter(p => p.status === "not_found").length}
+                                                        {isEnglish ? "Not found" : "ไม่พบ"} {studentModal.parsedStudents.filter(p => p.status === "not_found").length}
                                                     </span>
                                                 </div>
                                             </div>
@@ -494,8 +503,8 @@ export default function SectionsTab({
                                                         <span className="font-medium">{result.inputValue}</span>
                                                         <span className="text-xs">
                                                             {result.status === "matched" && result.matchedStudent?.full_name}
-                                                            {result.status === "already_enrolled" && "ลงทะเบียนแล้ว"}
-                                                            {result.status === "not_found" && "ไม่พบ"}
+                                                            {result.status === "already_enrolled" && (isEnglish ? "Already enrolled" : "ลงทะเบียนแล้ว")}
+                                                            {result.status === "not_found" && (isEnglish ? "Not found" : "ไม่พบ")}
                                                         </span>
                                                     </div>
                                                 ))}
@@ -508,7 +517,7 @@ export default function SectionsTab({
                     </ModalBody>
                     <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button variant="light" onPress={studentModal.reset}>
-                            ยกเลิก
+                            {isEnglish ? "Cancel" : "ยกเลิก"}
                         </Button>
                         {studentModal.mode === "single" ? (
                             <Button 
@@ -518,7 +527,7 @@ export default function SectionsTab({
                                 className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-400/25"
                                 startContent={!isSubmitting && <Icon icon="solar:user-plus-bold" />}
                             >
-                                เพิ่มนักศึกษา
+                                {isEnglish ? "Add student" : "เพิ่มนักศึกษา"}
                             </Button>
                         ) : (
                             <Button 
@@ -528,7 +537,9 @@ export default function SectionsTab({
                                 className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-400/25"
                                 startContent={!isSubmitting && <Icon icon="solar:users-group-rounded-bold" />}
                             >
-                                เพิ่มนักศึกษา ({studentModal.parsedStudents.filter(p => p.status === "matched").length})
+                                {isEnglish
+                                    ? `Add students (${studentModal.parsedStudents.filter(p => p.status === "matched").length})`
+                                    : `เพิ่มนักศึกษา (${studentModal.parsedStudents.filter(p => p.status === "matched").length})`}
                             </Button>
                         )}
                     </ModalFooter>
@@ -552,16 +563,22 @@ export default function SectionsTab({
                             <div>
                                 <h3 className="text-xl font-bold text-foreground">
                                     {teamModal.formationMethod === "random"
-                                        ? "สุ่มกลุ่มอัตโนมัติ"
-                                        : `สร้าง${teamModal.type === "permanent" ? "กลุ่มโปรเจกต์" : "กลุ่มโปรเจกต์รายสัปดาห์"}ใหม่`
+                                        ? (isEnglish ? "Auto-generate teams" : "สุ่มกลุ่มอัตโนมัติ")
+                                        : isEnglish
+                                            ? `Create a new ${teamModal.type === "permanent" ? "project team" : "weekly team"}`
+                                            : `สร้าง${teamModal.type === "permanent" ? "กลุ่มโปรเจกต์" : "กลุ่มโปรเจกต์รายสัปดาห์"}ใหม่`
                                     }
                                 </h3>
                                 <p className="mt-1 text-sm font-normal text-default-500">
                                     {teamModal.formationMethod === "random"
-                                        ? `สุ่มจับกลุ่ม${teamModal.type === "permanent" ? "โปรเจกต์" : `สัปดาห์ที่ ${selectedWeek}`}`
+                                        ? isEnglish
+                                            ? teamModal.type === "permanent"
+                                                ? "Randomly group students into project teams."
+                                                : `Randomly group students for week ${selectedWeek}.`
+                                            : `สุ่มจับกลุ่ม${teamModal.type === "permanent" ? "โปรเจกต์" : `สัปดาห์ที่ ${selectedWeek}`}`
                                         : teamModal.type === "permanent"
-                                            ? "กลุ่มที่ใช้ตลอดทั้งเทอม"
-                                            : `กลุ่มสำหรับสัปดาห์ที่ ${selectedWeek}`
+                                            ? (isEnglish ? "Teams used throughout the semester." : "กลุ่มที่ใช้ตลอดทั้งเทอม")
+                                            : (isEnglish ? `Team for week ${selectedWeek}.` : `กลุ่มสำหรับสัปดาห์ที่ ${selectedWeek}`)
                                     }
                                 </p>
                             </div>
@@ -573,7 +590,7 @@ export default function SectionsTab({
                                 <>
                                     {/* Random Formation Settings */}
                                     <div>
-                                        <label className="mb-2 block text-sm font-medium text-default-600">จำนวนสมาชิกต่อกลุ่ม</label>
+                                        <label className="mb-2 block text-sm font-medium text-default-600">{isEnglish ? "Members per team" : "จำนวนสมาชิกต่อกลุ่ม"}</label>
                                         <div className="flex items-center gap-3">
                                             <Button
                                                 isIconOnly
@@ -592,7 +609,7 @@ export default function SectionsTab({
                                                     teamModal.type === "permanent" ? "text-purple-500" : "text-emerald-500"
                                                 } />
                                                 <span className="text-lg font-bold text-foreground">{teamModal.size}</span>
-                                                <span className="text-sm text-default-500">คน</span>
+                                                <span className="text-sm text-default-500">{isEnglish ? "members" : "คน"}</span>
                                             </div>
                                             <Button
                                                 isIconOnly
@@ -624,20 +641,22 @@ export default function SectionsTab({
                                                     <div className="space-y-2">
                                                         <p className={`font-medium ${
                                                             teamModal.type === "permanent" ? "text-purple-800" : "text-emerald-800"
-                                                        }`}>ตัวอย่างการจับกลุ่ม</p>
+                                                        }`}>{isEnglish ? "Grouping preview" : "ตัวอย่างการจับกลุ่ม"}</p>
                                                         <div className={`text-sm space-y-1 ${
                                                             teamModal.type === "permanent" ? "text-purple-600" : "text-emerald-600"
                                                         }`}>
-                                                            <p>• นักศึกษาที่ยังไม่มีกลุ่ม: <span className="font-semibold">{totalStudents}</span> คน</p>
-                                                            <p>• จำนวนกลุ่มที่จะสร้าง: <span className="font-semibold">{groupCount}</span> กลุ่ม (กลุ่มละ {teamModal.size} คน)</p>
+                                                            <p>{isEnglish ? "Unassigned students" : "นักศึกษาที่ยังไม่มีกลุ่ม"}: <span className="font-semibold">{isEnglish ? formatCount(totalStudents, "student", "students") : totalStudents}</span>{!isEnglish && " คน"}</p>
+                                                            <p>{isEnglish ? "Teams to create" : "จำนวนกลุ่มที่จะสร้าง"}: <span className="font-semibold">{isEnglish ? formatCount(groupCount, "team", "teams") : groupCount}</span> {isEnglish ? `(${formatCount(teamModal.size, "member", "members")} each)` : `กลุ่ม (กลุ่มละ ${teamModal.size} คน)`}</p>
                                                             {remainder > 0 && totalStudents > 0 && (
                                                                 <p className={`${teamModal.type === "permanent" ? "text-purple-700" : "text-emerald-700"} font-medium`}>
-                                                                    • กลุ่มสุดท้าย (กลุ่มที่ {groupCount}) จะมี <span className="font-semibold">{lastGroupSize}</span> คน
+                                                                    {isEnglish
+                                                                        ? <>The last team (Team {groupCount}) will have <span className="font-semibold">{formatCount(lastGroupSize, "member", "members")}</span>.</>
+                                                                        : <>• กลุ่มสุดท้าย (กลุ่มที่ {groupCount}) จะมี <span className="font-semibold">{lastGroupSize}</span> คน</>}
                                                                 </p>
                                                             )}
                                                             {remainder === 0 && totalStudents > 0 && (
                                                                 <p className={`${teamModal.type === "permanent" ? "text-purple-700" : "text-emerald-700"}`}>
-                                                                    • ทุกกลุ่มจะมีจำนวนสมาชิกเท่ากัน ✓
+                                                                    {isEnglish ? "All teams will have the same number of members." : "• ทุกกลุ่มจะมีจำนวนสมาชิกเท่ากัน ✓"}
                                                                 </p>
                                                             )}
                                                         </div>
@@ -651,9 +670,9 @@ export default function SectionsTab({
                                 <>
                                     {/* Team Name */}
                                     <Input
-                                        label="ชื่อกลุ่ม"
+                                        label={isEnglish ? "Team name" : "ชื่อกลุ่ม"}
                                         labelPlacement="outside"
-                                        placeholder="เช่น กลุ่ม 1, กลุ่ม A, ทีม Alpha"
+                                        placeholder={isEnglish ? "For example: Team 1, Team A, Alpha Team" : "เช่น กลุ่ม 1, กลุ่ม A, ทีม Alpha"}
                                         variant="bordered"
                                         size="md"
                                         value={teamModal.name}
@@ -680,7 +699,7 @@ export default function SectionsTab({
                                             }`}
                                         >
                                             <Icon icon="solar:checklist-linear" />
-                                            เลือกจากรายชื่อ
+                                            {isEnglish ? "Select from roster" : "เลือกจากรายชื่อ"}
                                         </button>
                                         <button
                                             onClick={() => {
@@ -694,7 +713,7 @@ export default function SectionsTab({
                                             }`}
                                         >
                                             <Icon icon="solar:clipboard-list-linear" />
-                                            วางจาก Excel
+                                            {isEnglish ? "Paste from Excel" : "วางจาก Excel"}
                                         </button>
                                     </div>
 
@@ -703,7 +722,7 @@ export default function SectionsTab({
                                         <div>
                                             <div className="flex items-center justify-between mb-2">
                                                 <label className="text-sm font-medium text-default-600">
-                                                    เลือกสมาชิก ({teamModal.members.length} คน)
+                                                    {isEnglish ? `Select members (${teamModal.members.length})` : `เลือกสมาชิก (${teamModal.members.length} คน)`}
                                                 </label>
                                                 {teamModal.members.length > 0 && (
                                                     <Button
@@ -712,14 +731,16 @@ export default function SectionsTab({
                                                         color="danger"
                                                         onPress={() => teamModal.setMembers([])}
                                                     >
-                                                        ล้างทั้งหมด
+                                                        {isEnglish ? "Clear all" : "ล้างทั้งหมด"}
                                                     </Button>
                                                 )}
                                             </div>
                                             <div className="overflow-hidden rounded-xl border border-default-200">
                                                 <div className="border-b border-divider bg-content2 px-4 py-2">
                                                     <p className="text-sm text-default-600">
-                                                        นักศึกษาที่ยังไม่อยู่ในกลุ่ม: {getUnassignedStudents(teamModal.type, teamModal.type === "weekly" ? selectedWeek : undefined).length} คน
+                                                        {isEnglish
+                                                            ? `Unassigned students: ${formatCount(getUnassignedStudents(teamModal.type, teamModal.type === "weekly" ? selectedWeek : undefined).length, "student", "students")}`
+                                                            : `นักศึกษาที่ยังไม่อยู่ในกลุ่ม: ${getUnassignedStudents(teamModal.type, teamModal.type === "weekly" ? selectedWeek : undefined).length} คน`}
                                                     </p>
                                                 </div>
                                                 <div className="max-h-52 overflow-y-auto">
@@ -761,7 +782,7 @@ export default function SectionsTab({
                                                     ) : (
                                                         <div className="text-center py-8">
                                                             <Icon icon="solar:users-group-rounded-linear" className="mx-auto mb-2 text-4xl text-default-300" />
-                                                            <p className="text-default-400">นักศึกษาทั้งหมดอยู่ในกลุ่มแล้ว</p>
+                                                            <p className="text-default-400">{isEnglish ? "All students are already assigned to teams." : "นักศึกษาทั้งหมดอยู่ในกลุ่มแล้ว"}</p>
                                                         </div>
                                                     )}
                                                 </div>
@@ -775,10 +796,10 @@ export default function SectionsTab({
                                         <>
                                             <div>
                                                 <label className="mb-2 block text-sm font-medium text-default-600">
-                                                    วางรหัสนักศึกษาจาก Excel
+                                                    {isEnglish ? "Paste student IDs from Excel" : "วางรหัสนักศึกษาจาก Excel"}
                                                 </label>
                                                 <p className="mb-2 text-xs text-default-400">
-                                                    คัดลอกคอลัมน์รหัสนักศึกษาจาก Excel แล้ววางที่นี่ (หนึ่งรหัสต่อหนึ่งบรรทัด)
+                                                    {isEnglish ? "Copy a column of student IDs from Excel and paste it here, one per line." : "คัดลอกคอลัมน์รหัสนักศึกษาจาก Excel แล้ววางที่นี่ (หนึ่งรหัสต่อหนึ่งบรรทัด)"}
                                                 </p>
                                                 <Textarea
                                                     placeholder={"64070001\n64070002\n64070003\n..."}
@@ -803,7 +824,7 @@ export default function SectionsTab({
                                             {teamModal.isParsing && (
                                                 <div className="flex items-center justify-center py-4">
                                                     <Spinner size="sm" color={teamModal.type === "permanent" ? "secondary" : "success"} />
-                                                    <span className="ml-2 text-default-500">กำลังค้นหานักศึกษา...</span>
+                                                    <span className="ml-2 text-default-500">{isEnglish ? "Searching students..." : "กำลังค้นหานักศึกษา..."}</span>
                                                 </div>
                                             )}
 
@@ -812,7 +833,7 @@ export default function SectionsTab({
                                                 <div className="overflow-hidden rounded-xl border border-default-200">
                                                     <div className="flex items-center justify-between border-b border-divider bg-content2 px-4 py-2">
                                                         <p className="text-sm text-default-600">
-                                                            ผลการตรวจสอบ ({teamModal.parsedMembers.length} รายการ)
+                                                            {isEnglish ? `Validation results (${teamModal.parsedMembers.length} items)` : `ผลการตรวจสอบ (${teamModal.parsedMembers.length} รายการ)`}
                                                         </p>
                                                         <div className="flex gap-2 text-xs">
                                                             <span className={`px-2 py-1 rounded-full ${
@@ -820,13 +841,13 @@ export default function SectionsTab({
                                                                     ? "bg-purple-100 text-purple-700"
                                                                     : "bg-emerald-100 text-emerald-700"
                                                             }`}>
-                                                                พบ {teamModal.parsedMembers.filter(p => p.status === "matched").length}
+                                                                {isEnglish ? "Found" : "พบ"} {teamModal.parsedMembers.filter(p => p.status === "matched").length}
                                                             </span>
                                                             <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-full">
-                                                                มีกลุ่มแล้ว {teamModal.parsedMembers.filter(p => p.status === "already_in_team").length}
+                                                                {isEnglish ? "Already in a team" : "มีกลุ่มแล้ว"} {teamModal.parsedMembers.filter(p => p.status === "already_in_team").length}
                                                             </span>
                                                             <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full">
-                                                                ไม่พบ {teamModal.parsedMembers.filter(p => p.status === "not_found").length}
+                                                                {isEnglish ? "Not found" : "ไม่พบ"} {teamModal.parsedMembers.filter(p => p.status === "not_found").length}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -860,7 +881,7 @@ export default function SectionsTab({
                                                                             </div>
                                                                             <div>
                                                                                 <p className="font-medium text-foreground">{result.inputValue}</p>
-                                                                                <p className="text-sm text-red-500">ไม่พบในระบบ</p>
+                                                                                <p className="text-sm text-red-500">{isEnglish ? "Not found in the system" : "ไม่พบในระบบ"}</p>
                                                                             </div>
                                                                         </>
                                                                     )}
@@ -873,19 +894,19 @@ export default function SectionsTab({
                                                                                 : "bg-emerald-200 text-emerald-700"
                                                                         }`}>
                                                                             <Icon icon="solar:check-circle-bold" className="text-sm" />
-                                                                            พร้อมเพิ่ม
+                                                                            {isEnglish ? "Ready to add" : "พร้อมเพิ่ม"}
                                                                         </span>
                                                                     )}
                                                                     {result.status === "already_in_team" && (
                                                                         <span className="text-xs px-2 py-1 bg-amber-200 text-amber-700 rounded-full flex items-center gap-1">
                                                                             <Icon icon="solar:info-circle-bold" className="text-sm" />
-                                                                            มีกลุ่มแล้ว
+                                                                            {isEnglish ? "Already in a team" : "มีกลุ่มแล้ว"}
                                                                         </span>
                                                                     )}
                                                                     {result.status === "not_found" && (
                                                                         <span className="text-xs px-2 py-1 bg-red-200 text-red-700 rounded-full flex items-center gap-1">
                                                                             <Icon icon="solar:close-circle-bold" className="text-sm" />
-                                                                            ไม่พบ
+                                                                            {isEnglish ? "Not found" : "ไม่พบ"}
                                                                         </span>
                                                                     )}
                                                                 </div>
@@ -902,7 +923,7 @@ export default function SectionsTab({
                     </ModalBody>
                     <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button variant="light" onPress={teamModal.reset}>
-                            ยกเลิก
+                            {isEnglish ? "Cancel" : "ยกเลิก"}
                         </Button>
                         <Button 
                             onPress={handleCreateTeam}
@@ -916,8 +937,10 @@ export default function SectionsTab({
                             startContent={!isSubmitting && <Icon icon={teamModal.formationMethod === "random" ? "solar:shuffle-bold" : "solar:add-circle-bold"} />}
                         >
                             {teamModal.formationMethod === "random"
-                                ? "สุ่มกลุ่ม"
-                                : `สร้างกลุ่ม${teamModal.members.length > 0 ? ` (${teamModal.members.length} คน)` : ""}`
+                                ? (isEnglish ? "Randomize teams" : "สุ่มกลุ่ม")
+                                : isEnglish
+                                    ? `Create team${teamModal.members.length > 0 ? ` (${teamModal.members.length})` : ""}`
+                                    : `สร้างกลุ่ม${teamModal.members.length > 0 ? ` (${teamModal.members.length} คน)` : ""}`
                             }
                         </Button>
                     </ModalFooter>
@@ -939,8 +962,8 @@ export default function SectionsTab({
                                 <Icon icon="solar:pen-new-square-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-foreground">แก้ไขกลุ่ม</h3>
-                                <p className="mt-1 text-sm font-normal text-default-500">แก้ไขชื่อและสมาชิกในกลุ่ม</p>
+                                <h3 className="text-xl font-bold text-foreground">{isEnglish ? "Edit team" : "แก้ไขกลุ่ม"}</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">{isEnglish ? "Update the team name and members." : "แก้ไขชื่อและสมาชิกในกลุ่ม"}</p>
                             </div>
                         </div>
                     </ModalHeader>
@@ -948,9 +971,9 @@ export default function SectionsTab({
                         <div className="space-y-5">
                             {/* Team Name */}
                             <Input
-                                label="ชื่อกลุ่ม"
+                                label={isEnglish ? "Team name" : "ชื่อกลุ่ม"}
                                 labelPlacement="outside"
-                                placeholder="เช่น กลุ่ม 1, กลุ่ม A, ทีม Alpha"
+                                placeholder={isEnglish ? "For example: Team 1, Team A, Alpha Team" : "เช่น กลุ่ม 1, กลุ่ม A, ทีม Alpha"}
                                 variant="bordered"
                                 size="md"
                                 value={editTeamModal.name}
@@ -966,7 +989,7 @@ export default function SectionsTab({
                             {/* Current Members */}
                             <div>
                                 <label className="mb-2 block text-sm font-medium text-default-600">
-                                    สมาชิกปัจจุบัน ({editTeamModal.members.length} คน)
+                                    {isEnglish ? `Current members (${editTeamModal.members.length})` : `สมาชิกปัจจุบัน (${editTeamModal.members.length} คน)`}
                                 </label>
                                 <div className="overflow-hidden rounded-xl border border-default-200">
                                     <div className="max-h-40 overflow-y-auto">
@@ -1005,7 +1028,7 @@ export default function SectionsTab({
                                         ) : (
                                             <div className="text-center py-6">
                                                 <Icon icon="solar:users-group-rounded-linear" className="mx-auto mb-2 text-3xl text-default-300" />
-                                                <p className="text-sm text-default-400">ยังไม่มีสมาชิกในกลุ่ม</p>
+                                                <p className="text-sm text-default-400">{isEnglish ? "No members in this team yet." : "ยังไม่มีสมาชิกในกลุ่ม"}</p>
                                             </div>
                                         )}
                                     </div>
@@ -1015,12 +1038,14 @@ export default function SectionsTab({
                             {/* Add Members */}
                             <div>
                                 <label className="mb-2 block text-sm font-medium text-default-600">
-                                    เพิ่มสมาชิก
+                                    {isEnglish ? "Add members" : "เพิ่มสมาชิก"}
                                 </label>
                                 <div className="overflow-hidden rounded-xl border border-default-200">
                                     <div className="border-b border-divider bg-content2 px-4 py-2">
                                         <p className="text-sm text-default-600">
-                                            นักศึกษาที่ยังไม่อยู่ในกลุ่ม: {getAvailableStudentsForEdit().filter(s => !editTeamModal.members.includes(s.id)).length} คน
+                                            {isEnglish
+                                                ? `Available students: ${formatCount(getAvailableStudentsForEdit().filter(s => !editTeamModal.members.includes(s.id)).length, "student", "students")}`
+                                                : `นักศึกษาที่ยังไม่อยู่ในกลุ่ม: ${getAvailableStudentsForEdit().filter(s => !editTeamModal.members.includes(s.id)).length} คน`}
                                         </p>
                                     </div>
                                     <div className="max-h-48 overflow-y-auto">
@@ -1048,7 +1073,7 @@ export default function SectionsTab({
                                         ) : (
                                             <div className="text-center py-6">
                                                 <Icon icon="solar:users-group-rounded-linear" className="mx-auto mb-2 text-3xl text-default-300" />
-                                                <p className="text-sm text-default-400">นักศึกษาทั้งหมดอยู่ในกลุ่มแล้ว</p>
+                                                <p className="text-sm text-default-400">{isEnglish ? "All students are already assigned to teams." : "นักศึกษาทั้งหมดอยู่ในกลุ่มแล้ว"}</p>
                                             </div>
                                         )}
                                     </div>
@@ -1058,7 +1083,7 @@ export default function SectionsTab({
                     </ModalBody>
                     <ModalFooter className="border-t border-divider px-6 py-4">
                         <Button variant="light" onPress={editTeamModal.reset}>
-                            ยกเลิก
+                            {isEnglish ? "Cancel" : "ยกเลิก"}
                         </Button>
                         <Button 
                             onPress={handleSaveEditedTeam}
@@ -1067,7 +1092,7 @@ export default function SectionsTab({
                             className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-400/25"
                             startContent={!isSubmitting && <Icon icon="solar:diskette-bold" />}
                         >
-                            บันทึก
+                            {isEnglish ? "Save" : "บันทึก"}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -1089,12 +1114,12 @@ export default function SectionsTab({
                             </div>
                             <div>
                                 <h3 className="text-xl font-bold text-foreground">
-                                    {deleteModal.target?.type === "section" && "ลบกลุ่มเรียน"}
-                                    {deleteModal.target?.type === "student" && "นำนักศึกษาออก"}
-                                    {deleteModal.target?.type === "team" && "ลบกลุ่ม"}
+                                    {deleteModal.target?.type === "section" && (isEnglish ? "Delete section" : "ลบกลุ่มเรียน")}
+                                    {deleteModal.target?.type === "student" && (isEnglish ? "Remove student" : "นำนักศึกษาออก")}
+                                    {deleteModal.target?.type === "team" && (isEnglish ? "Delete team" : "ลบกลุ่ม")}
                                 </h3>
                                 <p className="mt-1 text-sm font-normal text-default-500">
-                                    กรุณาตรวจสอบข้อมูลก่อนดำเนินการ
+                                    {isEnglish ? "Please review the details before continuing." : "กรุณาตรวจสอบข้อมูลก่อนดำเนินการ"}
                                 </p>
                             </div>
                         </div>
@@ -1113,13 +1138,13 @@ export default function SectionsTab({
                                                 <p className="text-lg font-semibold text-foreground">Section {deleteModal.target.sectionNo}</p>
                                                 <div className="flex items-center gap-2 mt-1">
                                                     <Chip size="sm" variant="flat" className="bg-blue-100 text-blue-700">
-                                                        กลุ่มเรียน
+                                                        {isEnglish ? "Section" : "กลุ่มเรียน"}
                                                     </Chip>
                                                 </div>
                                                 <div className="mt-2 flex items-center gap-3 text-sm text-default-500">
                                                     <span className="flex items-center gap-1">
                                                         <Icon icon="solar:users-group-rounded-linear" className="text-blue-500" />
-                                                        {deleteModal.target.sectionStudentCount || 0} คน
+                                                        {deleteModal.target.sectionStudentCount || 0} {isEnglish ? "students" : "คน"}
                                                     </span>
                                                 </div>
                                             </div>
@@ -1166,13 +1191,15 @@ export default function SectionsTab({
                                                             ? "bg-purple-100 text-purple-700"
                                                             : "bg-emerald-100 text-emerald-700"
                                                     }>
-                                                        {deleteModal.target.teamType === "permanent" ? "กลุ่มโปรเจกต์" : "กลุ่มสัปดาห์"}
+                                                        {deleteModal.target.teamType === "permanent"
+                                                            ? (isEnglish ? "Project team" : "กลุ่มโปรเจกต์")
+                                                            : (isEnglish ? "Weekly team" : "กลุ่มสัปดาห์")}
                                                     </Chip>
                                                 </div>
                                                 <div className="mt-2 flex items-center gap-3 text-sm text-default-500">
                                                     <span className="flex items-center gap-1">
                                                         <Icon icon="solar:users-group-rounded-linear" className="text-default-400" />
-                                                        {deleteModal.target.teamMembers?.length || 0} สมาชิก
+                                                        {deleteModal.target.teamMembers?.length || 0} {isEnglish ? "members" : "สมาชิก"}
                                                     </span>
                                                 </div>
                                             </div>
@@ -1187,11 +1214,11 @@ export default function SectionsTab({
                                     <div className="flex items-start gap-3">
                                         <Icon icon="solar:info-circle-bold" className="text-xl text-amber-600 mt-0.5" />
                                         <div>
-                                            <p className="font-medium text-amber-800">สิ่งที่จะเกิดขึ้น</p>
+                                            <p className="font-medium text-amber-800">{isEnglish ? "What will happen" : "สิ่งที่จะเกิดขึ้น"}</p>
                                             <p className="text-sm text-amber-700 mt-1">
-                                                {deleteModal.target?.type === "section" && "นักศึกษาทั้งหมดในกลุ่มเรียนนี้จะถูกลบออกจากรายวิชา"}
-                                                {deleteModal.target?.type === "student" && "นักศึกษาจะถูกลบออกจากกลุ่มเรียนนี้"}
-                                                {deleteModal.target?.type === "team" && "สมาชิกทั้งหมดจะถูกลบออกจากกลุ่มนี้"}
+                                                {deleteModal.target?.type === "section" && (isEnglish ? "All students in this section will be removed from the course." : "นักศึกษาทั้งหมดในกลุ่มเรียนนี้จะถูกลบออกจากรายวิชา")}
+                                                {deleteModal.target?.type === "student" && (isEnglish ? "The student will be removed from this section." : "นักศึกษาจะถูกลบออกจากกลุ่มเรียนนี้")}
+                                                {deleteModal.target?.type === "team" && (isEnglish ? "All members will be removed from this team." : "สมาชิกทั้งหมดจะถูกลบออกจากกลุ่มนี้")}
                                             </p>
                                         </div>
                                     </div>
@@ -1206,16 +1233,18 @@ export default function SectionsTab({
                                             <Icon icon="solar:shield-warning-bold" className="text-2xl text-red-600 mt-0.5" />
                                             <div>
                                                 <p className="font-semibold text-red-800">
-                                                    พิมพ์ &quot;{deleteModal.target.sectionNo}&quot; เพื่อยืนยันการลบ
+                                                    {isEnglish
+                                                        ? `Type "${deleteModal.target.sectionNo}" to confirm deletion`
+                                                        : `พิมพ์ "${deleteModal.target.sectionNo}" เพื่อยืนยันการลบ`}
                                                 </p>
                                                 <p className="text-sm text-red-600 mt-1">
-                                                    การลบกลุ่มเรียนจะลบนักศึกษาทั้งหมดออกจากรายวิชา
+                                                    {isEnglish ? "Deleting a section removes all students from the course." : "การลบกลุ่มเรียนจะลบนักศึกษาทั้งหมดออกจากรายวิชา"}
                                                 </p>
                                             </div>
                                         </div>
                                     </div>
                                     <Input
-                                        placeholder={`พิมพ์ "${deleteModal.target.sectionNo}" เพื่อยืนยัน`}
+                                        placeholder={isEnglish ? `Type "${deleteModal.target.sectionNo}" to confirm` : `พิมพ์ "${deleteModal.target.sectionNo}" เพื่อยืนยัน`}
                                         value={deleteModal.confirmInput}
                                         onValueChange={deleteModal.setConfirmInput}
                                         variant="bordered"
@@ -1233,10 +1262,10 @@ export default function SectionsTab({
                                         <Icon icon="solar:shield-warning-bold" className="text-2xl text-red-600" />
                                         <div>
                                             <p className="font-semibold text-red-800">
-                                                คุณต้องการดำเนินการต่อหรือไม่?
+                                                {isEnglish ? "Do you want to continue?" : "คุณต้องการดำเนินการต่อหรือไม่?"}
                                             </p>
                                             <p className="text-sm text-red-600">
-                                                การดำเนินการนี้ไม่สามารถย้อนกลับได้
+                                                {isEnglish ? "This action cannot be undone." : "การดำเนินการนี้ไม่สามารถย้อนกลับได้"}
                                             </p>
                                         </div>
                                     </div>
@@ -1250,7 +1279,7 @@ export default function SectionsTab({
                             onPress={deleteModal.reset}
                             isDisabled={isSubmitting}
                         >
-                            ยกเลิก
+                            {isEnglish ? "Cancel" : "ยกเลิก"}
                         </Button>
                         <Button 
                             color="primary"
@@ -1271,9 +1300,9 @@ export default function SectionsTab({
                             }
                             className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                         >
-                            {deleteModal.target?.type === "section" && "ลบกลุ่มเรียน"}
-                            {deleteModal.target?.type === "student" && "นำออก"}
-                            {deleteModal.target?.type === "team" && "ลบกลุ่ม"}
+                            {deleteModal.target?.type === "section" && (isEnglish ? "Delete section" : "ลบกลุ่มเรียน")}
+                            {deleteModal.target?.type === "student" && (isEnglish ? "Remove" : "นำออก")}
+                            {deleteModal.target?.type === "team" && (isEnglish ? "Delete team" : "ลบกลุ่ม")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -1294,9 +1323,9 @@ export default function SectionsTab({
                                 <Icon icon="solar:restart-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-foreground">กู้คืนนักศึกษา</h3>
+                                <h3 className="text-xl font-bold text-foreground">{isEnglish ? "Restore student" : "กู้คืนนักศึกษา"}</h3>
                                 <p className="mt-1 text-sm font-normal text-default-500">
-                                    กรุณาตรวจสอบข้อมูลก่อนดำเนินการ
+                                    {isEnglish ? "Please review the details before continuing." : "กรุณาตรวจสอบข้อมูลก่อนดำเนินการ"}
                                 </p>
                             </div>
                         </div>
@@ -1322,7 +1351,7 @@ export default function SectionsTab({
                                                     Section {restoreModal.target?.section_no}
                                                 </Chip>
                                                 <Chip size="sm" variant="flat" className="bg-amber-100 text-amber-700">
-                                                    เหลือ {restoreModal.target?.remaining_days} วัน
+                                                    {isEnglish ? `${restoreModal.target?.remaining_days} days left` : `เหลือ ${restoreModal.target?.remaining_days} วัน`}
                                                 </Chip>
                                             </div>
                                         </div>
@@ -1336,9 +1365,11 @@ export default function SectionsTab({
                                     <div className="flex items-start gap-3">
                                         <Icon icon="solar:info-circle-bold" className="text-xl text-green-600 mt-0.5" />
                                         <div>
-                                            <p className="font-medium text-green-800">สิ่งที่จะเกิดขึ้น</p>
+                                            <p className="font-medium text-green-800">{isEnglish ? "What will happen" : "สิ่งที่จะเกิดขึ้น"}</p>
                                             <p className="text-sm text-green-700 mt-1">
-                                                นักศึกษาจะถูกเพิ่มกลับเข้ากลุ่ม Section {restoreModal.target?.section_no} ตามเดิม
+                                                {isEnglish
+                                                    ? `The student will be restored to Section ${restoreModal.target?.section_no}.`
+                                                    : `นักศึกษาจะถูกเพิ่มกลับเข้ากลุ่ม Section ${restoreModal.target?.section_no} ตามเดิม`}
                                             </p>
                                         </div>
                                     </div>
@@ -1352,7 +1383,7 @@ export default function SectionsTab({
                             onPress={restoreModal.reset}
                             isDisabled={isSubmitting}
                         >
-                            ยกเลิก
+                            {isEnglish ? "Cancel" : "ยกเลิก"}
                         </Button>
                         <Button
                             onPress={confirmRestoreStudent}
@@ -1360,7 +1391,7 @@ export default function SectionsTab({
                             className="bg-linear-to-r from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-500/25"
                             startContent={!isSubmitting && <Icon icon="solar:restart-bold" />}
                         >
-                            กู้คืนนักศึกษา
+                            {isEnglish ? "Restore student" : "กู้คืนนักศึกษา"}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
@@ -1381,9 +1412,9 @@ export default function SectionsTab({
                                 <Icon icon="solar:danger-triangle-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-foreground">ลบกลุ่มทั้งหมด</h3>
+                                <h3 className="text-xl font-bold text-foreground">{isEnglish ? "Delete all teams" : "ลบกลุ่มทั้งหมด"}</h3>
                                 <p className="mt-1 text-sm font-normal text-default-500">
-                                    กรุณาตรวจสอบข้อมูลก่อนดำเนินการ
+                                    {isEnglish ? "Please review the details before continuing." : "กรุณาตรวจสอบข้อมูลก่อนดำเนินการ"}
                                 </p>
                             </div>
                         </div>
@@ -1398,16 +1429,16 @@ export default function SectionsTab({
                                             <Icon icon="solar:calendar-bold" className="text-2xl text-white" />
                                         </div>
                                         <div className="flex-1">
-                                            <p className="text-lg font-semibold text-foreground">สัปดาห์ที่ {selectedWeek}</p>
+                                            <p className="text-lg font-semibold text-foreground">{isEnglish ? `Week ${selectedWeek}` : `สัปดาห์ที่ ${selectedWeek}`}</p>
                                             <div className="flex items-center gap-2 mt-1">
                                                 <Chip size="sm" variant="flat" className="bg-emerald-100 text-emerald-700">
-                                                    กลุ่มสัปดาห์
+                                                    {isEnglish ? "Weekly teams" : "กลุ่มสัปดาห์"}
                                                 </Chip>
                                             </div>
                                             <div className="mt-2 flex items-center gap-3 text-sm text-default-500">
                                                 <span className="flex items-center gap-1">
                                                     <Icon icon="solar:users-group-rounded-linear" className="text-emerald-500" />
-                                                    {weeklyTeams[selectedWeek]?.length || 0} กลุ่ม
+                                                    {weeklyTeams[selectedWeek]?.length || 0} {isEnglish ? "teams" : "กลุ่ม"}
                                                 </span>
                                             </div>
                                         </div>
@@ -1421,10 +1452,11 @@ export default function SectionsTab({
                                     <div className="flex items-start gap-3">
                                         <Icon icon="solar:info-circle-bold" className="text-xl text-amber-600 mt-0.5" />
                                         <div>
-                                            <p className="font-medium text-amber-800">สิ่งที่จะเกิดขึ้น</p>
+                                            <p className="font-medium text-amber-800">{isEnglish ? "What will happen" : "สิ่งที่จะเกิดขึ้น"}</p>
                                             <p className="text-sm text-amber-700 mt-1">
-                                                กลุ่มทั้งหมดในสัปดาห์ที่ {selectedWeek} จะถูกลบออก
-                                                สมาชิกทั้งหมดจะไม่มีกลุ่มในสัปดาห์นี้
+                                                {isEnglish
+                                                    ? `All teams in week ${selectedWeek} will be deleted. All members will become unassigned for this week.`
+                                                    : `กลุ่มทั้งหมดในสัปดาห์ที่ ${selectedWeek} จะถูกลบออก สมาชิกทั้งหมดจะไม่มีกลุ่มในสัปดาห์นี้`}
                                             </p>
                                         </div>
                                     </div>
@@ -1437,10 +1469,10 @@ export default function SectionsTab({
                                     <Icon icon="solar:shield-warning-bold" className="text-2xl text-red-600" />
                                     <div>
                                         <p className="font-semibold text-red-800">
-                                            คุณต้องการลบกลุ่มทั้งหมดหรือไม่?
+                                            {isEnglish ? "Do you want to delete all teams?" : "คุณต้องการลบกลุ่มทั้งหมดหรือไม่?"}
                                         </p>
                                         <p className="text-sm text-red-600">
-                                            การดำเนินการนี้ไม่สามารถย้อนกลับได้
+                                            {isEnglish ? "This action cannot be undone." : "การดำเนินการนี้ไม่สามารถย้อนกลับได้"}
                                         </p>
                                     </div>
                                 </div>
@@ -1453,7 +1485,7 @@ export default function SectionsTab({
                             onPress={() => bulkDeleteModal.setIsOpen(false)}
                             isDisabled={isSubmitting}
                         >
-                            ยกเลิก
+                            {isEnglish ? "Cancel" : "ยกเลิก"}
                         </Button>
                         <Button 
                             color="primary"
@@ -1461,7 +1493,7 @@ export default function SectionsTab({
                             isLoading={isSubmitting}
                             className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                         >
-                            ลบทั้งหมด
+                            {isEnglish ? "Delete all" : "ลบทั้งหมด"}
                         </Button>
                     </ModalFooter>
                 </ModalContent>

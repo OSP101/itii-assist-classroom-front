@@ -66,15 +66,24 @@ export interface BulkSaveResult {
 }
 
 // Helper functions
-export const getExamTypeLabel = (type: 'midterm' | 'final'): string => {
+export const getExamTypeLabel = (type: 'midterm' | 'final', isEnglish = false): string => {
+    if (isEnglish) {
+        return type === 'midterm' ? 'Midterm' : 'Final';
+    }
     return type === 'midterm' ? 'กลางภาค' : 'ปลายภาค';
 };
 
-export const getComponentLabel = (component: 'lecture' | 'lab'): string => {
+export const getComponentLabel = (component: 'lecture' | 'lab', isEnglish = false): string => {
+    if (isEnglish) {
+        return component === 'lecture' ? 'Lecture' : 'Lab';
+    }
     return component === 'lecture' ? 'บรรยาย' : 'ปฏิบัติการ';
 };
 
-export const getExamName = (setting: ExamSetting): string => {
+export const getExamName = (setting: ExamSetting, isEnglish = false): string => {
+    if (isEnglish) {
+        return `${getExamTypeLabel(setting.exam_type, true)} (${getComponentLabel(setting.component, true)})`;
+    }
     return `สอบ${getExamTypeLabel(setting.exam_type)} (${getComponentLabel(setting.component)})`;
 };
 

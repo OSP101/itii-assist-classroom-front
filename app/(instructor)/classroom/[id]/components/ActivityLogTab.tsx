@@ -21,6 +21,7 @@ import { Pagination } from "@heroui/pagination";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import {
   getActivityLogs,
   getActivityStats,
@@ -39,15 +40,17 @@ interface ActivityLogTabProps {
 // Category/Action Display Helpers
 // ============================================
 
-const categoryConfig: Record<string, { label: string; icon: string; bgClass: string; iconClass: string }> = {
-  course: { label: "รายวิชา", icon: "solar:book-bold", bgClass: "bg-blue-100", iconClass: "text-blue-600" },
-  member: { label: "สมาชิก", icon: "solar:users-group-rounded-bold", bgClass: "bg-indigo-100", iconClass: "text-indigo-600" },
-  assignment: { label: "งาน", icon: "solar:clipboard-list-bold", bgClass: "bg-emerald-100", iconClass: "text-emerald-600" },
-  score: { label: "คะแนน", icon: "solar:chart-square-bold", bgClass: "bg-amber-100", iconClass: "text-amber-600" },
-  attendance: { label: "เช็คชื่อ", icon: "solar:user-check-bold", bgClass: "bg-rose-100", iconClass: "text-rose-600" },
-  queue: { label: "คิว", icon: "solar:sort-by-time-bold", bgClass: "bg-content3", iconClass: "text-default-600" },
-  general: { label: "ทั่วไป", icon: "solar:info-circle-bold", bgClass: "bg-content3", iconClass: "text-default-600" },
-};
+function getCategoryConfig(isEnglish: boolean): Record<string, { label: string; icon: string; bgClass: string; iconClass: string }> {
+  return {
+    course: { label: isEnglish ? "Course" : "รายวิชา", icon: "solar:book-bold", bgClass: "bg-blue-100", iconClass: "text-blue-600" },
+    member: { label: isEnglish ? "People" : "สมาชิก", icon: "solar:users-group-rounded-bold", bgClass: "bg-indigo-100", iconClass: "text-indigo-600" },
+    assignment: { label: isEnglish ? "Classwork" : "งาน", icon: "solar:clipboard-list-bold", bgClass: "bg-emerald-100", iconClass: "text-emerald-600" },
+    score: { label: isEnglish ? "Scores" : "คะแนน", icon: "solar:chart-square-bold", bgClass: "bg-amber-100", iconClass: "text-amber-600" },
+    attendance: { label: isEnglish ? "Attendance" : "เช็คชื่อ", icon: "solar:user-check-bold", bgClass: "bg-rose-100", iconClass: "text-rose-600" },
+    queue: { label: isEnglish ? "Queue" : "คิว", icon: "solar:sort-by-time-bold", bgClass: "bg-content3", iconClass: "text-default-600" },
+    general: { label: isEnglish ? "General" : "ทั่วไป", icon: "solar:info-circle-bold", bgClass: "bg-content3", iconClass: "text-default-600" },
+  };
+}
 
 const categoryChipColor: Record<string, "primary" | "secondary" | "success" | "warning" | "danger" | "default"> = {
   course: "primary",
@@ -59,47 +62,49 @@ const categoryChipColor: Record<string, "primary" | "secondary" | "success" | "w
   general: "default",
 };
 
-const actionLabels: Record<string, string> = {
-  create_course: "สร้างรายวิชา",
-  update_course: "แก้ไขรายวิชา",
-  delete_course: "ลบรายวิชา",
-  activate_course: "เปิดใช้งานรายวิชา",
-  deactivate_course: "ปิดใช้งานรายวิชา",
-  add_section: "เพิ่มกลุ่มเรียน",
-  remove_section: "ลบกลุ่มเรียน",
-  update_section: "แก้ไขกลุ่มเรียน",
-  add_ta: "เพิ่มผู้ช่วยสอน",
-  bulk_add_tas: "เพิ่มผู้ช่วยสอน (จำนวนมาก)",
-  remove_ta: "นำผู้ช่วยสอนออก",
-  add_instructor: "เพิ่มอาจารย์",
-  bulk_add_instructors: "เพิ่มอาจารย์ (จำนวนมาก)",
-  remove_instructor: "นำอาจารย์ออก",
-  add_student: "เพิ่มนักศึกษา",
-  bulk_add_students: "เพิ่มนักศึกษา (จำนวนมาก)",
-  remove_student: "นำนักศึกษาออก",
-  create_assignment: "สร้างงาน",
-  update_assignment: "แก้ไขงาน",
-  delete_assignment: "ลบงาน",
-  submit_score: "ให้คะแนน",
-  submit_bulk_scores: "ให้คะแนน (จำนวนมาก)",
-  submit_group_score: "ให้คะแนนกลุ่ม",
-  request_score_edit: "ขอแก้ไขคะแนน",
-  approve_score_edit: "อนุมัติแก้ไขคะแนน",
-  reject_score_edit: "ปฏิเสธแก้ไขคะแนน",
-  create_attendance: "สร้างเช็คชื่อ",
-  update_attendance: "แก้ไขเช็คชื่อ",
-  activate_attendance: "เปิดเช็คชื่อ",
-  close_attendance: "ปิดเช็คชื่อ",
-  delete_attendance: "ลบเช็คชื่อ",
-  create_queue_session: "สร้างคิว",
-  update_queue_session: "แก้ไขคิว",
-  delete_queue_session: "ลบคิว",
-  queue_session_active: "เปิดคิว",
-  queue_session_paused: "หยุดคิวชั่วคราว",
-  queue_session_closed: "ปิดคิว",
-};
+function getActionLabels(isEnglish: boolean): Record<string, string> {
+  return {
+    create_course: isEnglish ? "Create course" : "สร้างรายวิชา",
+    update_course: isEnglish ? "Update course" : "แก้ไขรายวิชา",
+    delete_course: isEnglish ? "Delete course" : "ลบรายวิชา",
+    activate_course: isEnglish ? "Activate course" : "เปิดใช้งานรายวิชา",
+    deactivate_course: isEnglish ? "Close course" : "ปิดใช้งานรายวิชา",
+    add_section: isEnglish ? "Add section" : "เพิ่มกลุ่มเรียน",
+    remove_section: isEnglish ? "Remove section" : "ลบกลุ่มเรียน",
+    update_section: isEnglish ? "Update section" : "แก้ไขกลุ่มเรียน",
+    add_ta: isEnglish ? "Add teaching assistant" : "เพิ่มผู้ช่วยสอน",
+    bulk_add_tas: isEnglish ? "Bulk add teaching assistants" : "เพิ่มผู้ช่วยสอน (จำนวนมาก)",
+    remove_ta: isEnglish ? "Remove teaching assistant" : "นำผู้ช่วยสอนออก",
+    add_instructor: isEnglish ? "Add instructor" : "เพิ่มอาจารย์",
+    bulk_add_instructors: isEnglish ? "Bulk add instructors" : "เพิ่มอาจารย์ (จำนวนมาก)",
+    remove_instructor: isEnglish ? "Remove instructor" : "นำอาจารย์ออก",
+    add_student: isEnglish ? "Add student" : "เพิ่มนักศึกษา",
+    bulk_add_students: isEnglish ? "Bulk add students" : "เพิ่มนักศึกษา (จำนวนมาก)",
+    remove_student: isEnglish ? "Remove student" : "นำนักศึกษาออก",
+    create_assignment: isEnglish ? "Create assignment" : "สร้างงาน",
+    update_assignment: isEnglish ? "Update assignment" : "แก้ไขงาน",
+    delete_assignment: isEnglish ? "Delete assignment" : "ลบงาน",
+    submit_score: isEnglish ? "Submit score" : "ให้คะแนน",
+    submit_bulk_scores: isEnglish ? "Submit scores in bulk" : "ให้คะแนน (จำนวนมาก)",
+    submit_group_score: isEnglish ? "Submit group score" : "ให้คะแนนกลุ่ม",
+    request_score_edit: isEnglish ? "Request score edit" : "ขอแก้ไขคะแนน",
+    approve_score_edit: isEnglish ? "Approve score edit" : "อนุมัติแก้ไขคะแนน",
+    reject_score_edit: isEnglish ? "Reject score edit" : "ปฏิเสธแก้ไขคะแนน",
+    create_attendance: isEnglish ? "Create attendance" : "สร้างเช็คชื่อ",
+    update_attendance: isEnglish ? "Update attendance" : "แก้ไขเช็คชื่อ",
+    activate_attendance: isEnglish ? "Open attendance" : "เปิดเช็คชื่อ",
+    close_attendance: isEnglish ? "Close attendance" : "ปิดเช็คชื่อ",
+    delete_attendance: isEnglish ? "Delete attendance" : "ลบเช็คชื่อ",
+    create_queue_session: isEnglish ? "Create queue" : "สร้างคิว",
+    update_queue_session: isEnglish ? "Update queue" : "แก้ไขคิว",
+    delete_queue_session: isEnglish ? "Delete queue" : "ลบคิว",
+    queue_session_active: isEnglish ? "Open queue" : "เปิดคิว",
+    queue_session_paused: isEnglish ? "Pause queue" : "หยุดคิวชั่วคราว",
+    queue_session_closed: isEnglish ? "Close queue" : "ปิดคิว",
+  };
+}
 
-function formatDate(dateStr: string) {
+function formatDate(dateStr: string, isEnglish: boolean) {
   const date = new Date(dateStr);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -107,12 +112,12 @@ function formatDate(dateStr: string) {
   const diffHour = Math.floor(diffMs / 3600000);
   const diffDay = Math.floor(diffMs / 86400000);
 
-  if (diffMin < 1) return "เมื่อสักครู่";
-  if (diffMin < 60) return `${diffMin} นาทีที่แล้ว`;
-  if (diffHour < 24) return `${diffHour} ชั่วโมงที่แล้ว`;
-  if (diffDay < 7) return `${diffDay} วันที่แล้ว`;
+  if (diffMin < 1) return isEnglish ? "Just now" : "เมื่อสักครู่";
+  if (diffMin < 60) return isEnglish ? `${diffMin} min ago` : `${diffMin} นาทีที่แล้ว`;
+  if (diffHour < 24) return isEnglish ? `${diffHour} hr ago` : `${diffHour} ชั่วโมงที่แล้ว`;
+  if (diffDay < 7) return isEnglish ? `${diffDay} day${diffDay === 1 ? "" : "s"} ago` : `${diffDay} วันที่แล้ว`;
 
-  return date.toLocaleDateString("th-TH", {
+  return date.toLocaleDateString(isEnglish ? "en-US" : "th-TH", {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -121,13 +126,13 @@ function formatDate(dateStr: string) {
   });
 }
 
-function getDetailText(detail: Record<string, unknown> | null | undefined): string {
+function getDetailText(detail: Record<string, unknown> | null | undefined, isEnglish: boolean): string {
   if (!detail || typeof detail !== "object") return "";
   const parts: string[] = [];
-  if (detail.score !== undefined) parts.push(`คะแนน: ${String(detail.score)}`);
-  if (detail.created !== undefined) parts.push(`สร้าง: ${String(detail.created)}`);
-  if (detail.updated !== undefined) parts.push(`อัปเดต: ${String(detail.updated)}`);
-  if (detail.count !== undefined) parts.push(`จำนวน: ${String(detail.count)}`);
+  if (detail.score !== undefined) parts.push(`${isEnglish ? "Score" : "คะแนน"}: ${String(detail.score)}`);
+  if (detail.created !== undefined) parts.push(`${isEnglish ? "Created" : "สร้าง"}: ${String(detail.created)}`);
+  if (detail.updated !== undefined) parts.push(`${isEnglish ? "Updated" : "อัปเดต"}: ${String(detail.updated)}`);
+  if (detail.count !== undefined) parts.push(`${isEnglish ? "Count" : "จำนวน"}: ${String(detail.count)}`);
   return parts.join(", ");
 }
 
@@ -136,6 +141,10 @@ function getDetailText(detail: Record<string, unknown> | null | undefined): stri
 // ============================================
 
 export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
+  const { language } = useGlobalSettings();
+  const isEnglish = language === "en";
+  const categoryConfig = useMemo(() => getCategoryConfig(isEnglish), [isEnglish]);
+  const actionLabels = useMemo(() => getActionLabels(isEnglish), [isEnglish]);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [pagination, setPagination] = useState<PaginationData>({ total: 0, page: 1, limit: 30, totalPages: 0 });
   const [stats, setStats] = useState<ActivityLogStats | null>(null);
@@ -166,13 +175,13 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
         setLogs(data.logs);
         setPagination(data.pagination);
       } catch {
-        addToast({ title: "เกิดข้อผิดพลาด", description: "ไม่สามารถโหลดข้อมูลได้", color: "danger", timeout: 3000,
+        addToast({ title: isEnglish ? "Error" : "เกิดข้อผิดพลาด", description: isEnglish ? "Unable to load activity logs." : "ไม่สามารถโหลดข้อมูลได้", color: "danger", timeout: 3000,
                 shouldShowTimeoutProgress: true, });
       } finally {
         setLoading(false);
       }
     },
-    [courseId, category, action, actorId, searchText],
+    [action, actorId, category, courseId, isEnglish, searchText],
   );
 
   // Fetch stats
@@ -214,13 +223,19 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
     return filters.actions.filter((a) => a.category === category);
   }, [filters, category]);
 
+  const getRoleLabel = useCallback((role?: string | null) => {
+    if (role === "instructor") return isEnglish ? "Instructor" : "อาจารย์";
+    if (role === "ta") return "TA";
+    return role || "";
+  }, [isEnglish]);
+
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">บันทึกกิจกรรม</h2>
-          <p className="text-sm text-default-500">ติดตามการเปลี่ยนแปลงทั้งหมดภายในรายวิชา</p>
+          <h2 className="text-lg font-semibold text-foreground">{isEnglish ? "Activity log" : "บันทึกกิจกรรม"}</h2>
+          <p className="text-sm text-default-500">{isEnglish ? "Track changes made across this course." : "ติดตามการเปลี่ยนแปลงทั้งหมดภายในรายวิชา"}</p>
         </div>
         <Button
           size="sm"
@@ -229,7 +244,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
           onPress={() => { fetchLogs(1); fetchStats(); fetchFilters(); }}
           className="bg-content2 text-default-600 hover:bg-content3"
         >
-          รีเฟรช
+          {isEnglish ? "Refresh" : "รีเฟรช"}
         </Button>
       </div>
 
@@ -250,7 +265,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
           title={
             <div className="flex items-center gap-2">
               <Icon icon="solar:clock-circle-bold" className="text-base" />
-              <span>ไทม์ไลน์กิจกรรม</span>
+              <span>{isEnglish ? "Activity timeline" : "ไทม์ไลน์กิจกรรม"}</span>
               {pagination.total > 0 && (
                 <Chip size="sm" variant="flat" color="primary" className="h-5 px-1.5 text-xs">
                   {pagination.total}
@@ -264,7 +279,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
           title={
             <div className="flex items-center gap-2">
               <Icon icon="solar:chart-2-bold" className="text-base" />
-              <span>สรุปภาพรวม</span>
+              <span>{isEnglish ? "Overview summary" : "สรุปภาพรวม"}</span>
             </div>
           }
         />
@@ -279,7 +294,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
               <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
                 <div className="flex gap-2 items-center flex-1">
                   <Input
-                    placeholder="ค้นหา..."
+                    placeholder={isEnglish ? "Search..." : "ค้นหา..."}
                     value={searchText}
                     onValueChange={setSearchText}
                     startContent={<Icon icon="solar:magnifer-linear" className="text-blue-400 text-sm" />}
@@ -304,7 +319,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                         className="min-w-28 justify-between border-default-200"
                         endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-default-400 text-sm" />}
                       >
-                        {category ? (categoryConfig[category]?.label || category) : "ทุกหมวดหมู่"}
+                        {category ? (categoryConfig[category]?.label || category) : (isEnglish ? "All categories" : "ทุกหมวดหมู่")}
                       </Button>
                     </DropdownTrigger>
                     <DropdownMenu
@@ -316,7 +331,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                         setAction("");
                       }}
                       items={[
-                        { key: "", label: "ทุกหมวดหมู่" },
+                        { key: "", label: isEnglish ? "All categories" : "ทุกหมวดหมู่" },
                         ...(filters?.categories || []).map((cat) => ({
                           key: cat,
                           label: categoryConfig[cat]?.label || cat,
@@ -336,7 +351,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                         className="min-w-28 justify-between border-default-200"
                         endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-default-400 text-sm" />}
                       >
-                        {action ? (actionLabels[action] || action) : "ทุกการกระทำ"}
+                        {action ? (actionLabels[action] || action) : (isEnglish ? "All actions" : "ทุกการกระทำ")}
                       </Button>
                     </DropdownTrigger>
                     <DropdownMenu
@@ -344,7 +359,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                       selectedKeys={action ? new Set([action]) : new Set([])}
                       onSelectionChange={(keys) => setAction(Array.from(keys)[0] as string || "")}
                       items={[
-                        { key: "", label: "ทุกการกระทำ" },
+                        { key: "", label: isEnglish ? "All actions" : "ทุกการกระทำ" },
                         ...filteredActions.map((a) => ({
                           key: a.action,
                           label: actionLabels[a.action] || a.action,
@@ -365,8 +380,8 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                         endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-default-400 text-sm" />}
                       >
                         {actorId
-                          ? (filters?.actors.find((a) => String(a.id) === actorId)?.fullName || "ผู้ดำเนินการ")
-                          : "ทุกคน"}
+                          ? (filters?.actors.find((a) => String(a.id) === actorId)?.fullName || (isEnglish ? "Actor" : "ผู้ดำเนินการ"))
+                          : (isEnglish ? "Everyone" : "ทุกคน")}
                       </Button>
                     </DropdownTrigger>
                     <DropdownMenu
@@ -374,10 +389,10 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                       selectedKeys={actorId ? new Set([actorId]) : new Set([])}
                       onSelectionChange={(keys) => setActorId(Array.from(keys)[0] as string || "")}
                       items={[
-                        { key: "", label: "ทุกคน" },
+                        { key: "", label: isEnglish ? "Everyone" : "ทุกคน" },
                         ...(filters?.actors || []).map((actor) => ({
                           key: String(actor.id),
-                          label: `${actor.fullName} (${actor.role === "instructor" ? "อาจารย์" : actor.role === "ta" ? "TA" : actor.role})`,
+                          label: `${actor.fullName} (${getRoleLabel(actor.role)})`,
                         })),
                       ]}
                     >
@@ -399,7 +414,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
               ) : logs.length === 0 ? (
                 <div className="text-center py-20">
                   <Icon icon="solar:clipboard-list-linear" className="mx-auto mb-3 text-5xl text-default-300" />
-                  <p className="text-default-500">ยังไม่มีบันทึกกิจกรรม</p>
+                  <p className="text-default-500">{isEnglish ? "No activity logs yet." : "ยังไม่มีบันทึกกิจกรรม"}</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -410,7 +425,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                     pagination.totalPages > 1 ? (
                       <div className="flex flex-col gap-2 px-1 py-2 sm:flex-row sm:items-center sm:justify-between">
                         <p className="text-xs text-default-400">
-                          หน้า {pagination.page} จาก {pagination.totalPages}
+                          {isEnglish ? `Page ${pagination.page} of ${pagination.totalPages}` : `หน้า ${pagination.page} จาก ${pagination.totalPages}`}
                         </p>
                         <Pagination
                           total={pagination.totalPages}
@@ -437,18 +452,18 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                   }}
                 >
                   <TableHeader>
-                    <TableColumn className="min-w-40">ผู้ดำเนินการ</TableColumn>
-                    <TableColumn className="min-w-35">การกระทำ</TableColumn>
-                    <TableColumn className="min-w-25">หมวดหมู่</TableColumn>
-                    <TableColumn className="min-w-37.5">เป้าหมาย</TableColumn>
-                    <TableColumn className="min-w-35">รายละเอียด</TableColumn>
-                    <TableColumn className="min-w-30">เวลา</TableColumn>
+                    <TableColumn className="min-w-40">{isEnglish ? "Actor" : "ผู้ดำเนินการ"}</TableColumn>
+                    <TableColumn className="min-w-35">{isEnglish ? "Action" : "การกระทำ"}</TableColumn>
+                    <TableColumn className="min-w-25">{isEnglish ? "Category" : "หมวดหมู่"}</TableColumn>
+                    <TableColumn className="min-w-37.5">{isEnglish ? "Target" : "เป้าหมาย"}</TableColumn>
+                    <TableColumn className="min-w-35">{isEnglish ? "Details" : "รายละเอียด"}</TableColumn>
+                    <TableColumn className="min-w-30">{isEnglish ? "Time" : "เวลา"}</TableColumn>
                   </TableHeader>
                   <TableBody>
                     {logs.map((log) => {
                       const catConf = categoryConfig[log.category] || categoryConfig.general;
                       const chipColor = categoryChipColor[log.category] || "default";
-                      const detailText = getDetailText(log.detail as Record<string, unknown>);
+                      const detailText = getDetailText(log.detail as Record<string, unknown>, isEnglish);
 
                       return (
                         <TableRow key={log.id}>
@@ -465,7 +480,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                                   {log.actor?.full_name || "Unknown"}
                                 </p>
                                 <p className="text-xs text-default-400">
-                                  {log.actor?.role === "instructor" ? "อาจารย์" : log.actor?.role === "ta" ? "TA" : log.actor?.role || ""}
+                                  {getRoleLabel(log.actor?.role)}
                                 </p>
                               </div>
                             </div>
@@ -500,9 +515,9 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                             )}
                           </TableCell>
                           <TableCell>
-                            <Tooltip content={new Date(log.created_at).toLocaleString("th-TH")}>
+                            <Tooltip content={new Date(log.created_at).toLocaleString(isEnglish ? "en-US" : "th-TH")}>
                               <span className="whitespace-nowrap text-sm text-default-500">
-                                {formatDate(log.created_at)}
+                                {formatDate(log.created_at, isEnglish)}
                               </span>
                             </Tooltip>
                           </TableCell>
@@ -536,7 +551,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                         <Icon icon="solar:clipboard-list-bold" className="text-2xl text-blue-600" />
                       </div>
                       <div>
-                        <p className="text-xs text-default-500">กิจกรรมทั้งหมด</p>
+                        <p className="text-xs text-default-500">{isEnglish ? "Total activities" : "กิจกรรมทั้งหมด"}</p>
                         <p className="text-2xl font-bold text-foreground">{stats.total}</p>
                       </div>
                     </div>
@@ -549,7 +564,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                         <Icon icon="solar:widget-bold" className="text-2xl text-emerald-600" />
                       </div>
                       <div>
-                        <p className="text-xs text-default-500">หมวดหมู่</p>
+                        <p className="text-xs text-default-500">{isEnglish ? "Categories" : "หมวดหมู่"}</p>
                         <p className="text-2xl font-bold text-foreground">{stats.categoryStats.length}</p>
                       </div>
                     </div>
@@ -562,7 +577,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                         <Icon icon="solar:users-group-rounded-bold" className="text-2xl text-amber-600" />
                       </div>
                       <div>
-                        <p className="text-xs text-default-500">ผู้ดำเนินการ</p>
+                        <p className="text-xs text-default-500">{isEnglish ? "Actors" : "ผู้ดำเนินการ"}</p>
                         <p className="text-2xl font-bold text-foreground">{stats.actorStats.length}</p>
                       </div>
                     </div>
@@ -574,7 +589,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
               <Card className="border border-default-200 shadow-sm">
                 <CardBody className="p-2">
                   <div className="px-3 py-2">
-                    <h3 className="text-base font-semibold text-foreground">กิจกรรมตามหมวดหมู่ (30 วันล่าสุด)</h3>
+                    <h3 className="text-base font-semibold text-foreground">{isEnglish ? "Activity by category (last 30 days)" : "กิจกรรมตามหมวดหมู่ (30 วันล่าสุด)"}</h3>
                   </div>
                   <Table
                     aria-label="Category stats"
@@ -585,9 +600,9 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                     }}
                   >
                     <TableHeader>
-                      <TableColumn>หมวดหมู่</TableColumn>
-                      <TableColumn>สัดส่วน</TableColumn>
-                      <TableColumn align="end">จำนวน</TableColumn>
+                      <TableColumn>{isEnglish ? "Category" : "หมวดหมู่"}</TableColumn>
+                      <TableColumn>{isEnglish ? "Share" : "สัดส่วน"}</TableColumn>
+                      <TableColumn align="end">{isEnglish ? "Count" : "จำนวน"}</TableColumn>
                     </TableHeader>
                     <TableBody>
                       {stats.categoryStats.map((cat) => {
@@ -630,7 +645,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
               <Card className="border border-default-200 shadow-sm">
                 <CardBody className="p-2">
                   <div className="px-3 py-2">
-                    <h3 className="text-base font-semibold text-foreground">การกระทำที่พบบ่อย (30 วันล่าสุด)</h3>
+                    <h3 className="text-base font-semibold text-foreground">{isEnglish ? "Most frequent actions (last 30 days)" : "การกระทำที่พบบ่อย (30 วันล่าสุด)"}</h3>
                   </div>
                   <Table
                     aria-label="Top actions"
@@ -642,8 +657,8 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                   >
                     <TableHeader>
                       <TableColumn width={40}>#</TableColumn>
-                      <TableColumn>การกระทำ</TableColumn>
-                      <TableColumn align="end">จำนวนครั้ง</TableColumn>
+                      <TableColumn>{isEnglish ? "Action" : "การกระทำ"}</TableColumn>
+                      <TableColumn align="end">{isEnglish ? "Times" : "จำนวนครั้ง"}</TableColumn>
                     </TableHeader>
                     <TableBody>
                       {stats.actionStats.slice(0, 10).map((a, idx) => (
@@ -656,7 +671,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                           </TableCell>
                           <TableCell>
                             <Chip size="sm" variant="flat" color="primary">
-                              {a.count} ครั้ง
+                              {a.count} {isEnglish ? "times" : "ครั้ง"}
                             </Chip>
                           </TableCell>
                         </TableRow>
@@ -670,7 +685,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
               <Card className="border border-default-200 shadow-sm">
                 <CardBody className="p-2">
                   <div className="px-3 py-2">
-                    <h3 className="text-base font-semibold text-foreground">ผู้ดำเนินการ (30 วันล่าสุด)</h3>
+                    <h3 className="text-base font-semibold text-foreground">{isEnglish ? "Active people (last 30 days)" : "ผู้ดำเนินการ (30 วันล่าสุด)"}</h3>
                   </div>
                   <Table
                     aria-label="Active users"
@@ -681,9 +696,9 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                     }}
                   >
                     <TableHeader>
-                      <TableColumn>ชื่อ-นามสกุล</TableColumn>
-                      <TableColumn>บทบาท</TableColumn>
-                      <TableColumn align="end">จำนวนกิจกรรม</TableColumn>
+                      <TableColumn>{isEnglish ? "Full name" : "ชื่อ-นามสกุล"}</TableColumn>
+                      <TableColumn>{isEnglish ? "Role" : "บทบาท"}</TableColumn>
+                      <TableColumn align="end">{isEnglish ? "Activities" : "จำนวนกิจกรรม"}</TableColumn>
                     </TableHeader>
                     <TableBody>
                       {stats.actorStats.map((actor) => (
@@ -701,11 +716,11 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                           </TableCell>
                           <TableCell>
                             <Chip size="sm" variant="flat" color={actor.role === "instructor" ? "primary" : "secondary"}>
-                              {actor.role === "instructor" ? "อาจารย์" : actor.role === "ta" ? "TA" : actor.role}
+                              {getRoleLabel(actor.role)}
                             </Chip>
                           </TableCell>
                           <TableCell>
-                            <span className="text-sm font-semibold text-foreground">{actor.count} ครั้ง</span>
+                            <span className="text-sm font-semibold text-foreground">{actor.count} {isEnglish ? "times" : "ครั้ง"}</span>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -719,7 +734,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
               <CardBody className="py-16">
                 <div className="text-center">
                   <Icon icon="solar:chart-2-linear" className="mx-auto mb-3 text-5xl text-default-300" />
-                  <p className="text-default-500">ไม่มีข้อมูลสถิติ</p>
+                  <p className="text-default-500">{isEnglish ? "No statistics available." : "ไม่มีข้อมูลสถิติ"}</p>
                 </div>
               </CardBody>
             </Card>
