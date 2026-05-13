@@ -21,6 +21,7 @@ import { Pagination } from "@heroui/pagination";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
+import { instructorFlatButtonClass } from "@/components/ui/instructor-button-styles";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import {
   getActivityLogs,
@@ -240,9 +241,8 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
         <Button
           size="sm"
           variant="flat"
-          startContent={<Icon icon="solar:refresh-bold" width={16} />}
           onPress={() => { fetchLogs(1); fetchStats(); fetchFilters(); }}
-          className="bg-content2 text-default-600 hover:bg-content3"
+          className={instructorFlatButtonClass("bg-content2 text-default-600 hover:bg-content3")}
         >
           {isEnglish ? "Refresh" : "รีเฟรช"}
         </Button>
@@ -264,7 +264,6 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
           key="timeline"
           title={
             <div className="flex items-center gap-2">
-              <Icon icon="solar:clock-circle-bold" className="text-base" />
               <span>{isEnglish ? "Activity timeline" : "ไทม์ไลน์กิจกรรม"}</span>
               {pagination.total > 0 && (
                 <Chip size="sm" variant="flat" color="primary" className="h-5 px-1.5 text-xs">
@@ -278,7 +277,6 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
           key="summary"
           title={
             <div className="flex items-center gap-2">
-              <Icon icon="solar:chart-2-bold" className="text-base" />
               <span>{isEnglish ? "Overview summary" : "สรุปภาพรวม"}</span>
             </div>
           }
@@ -317,7 +315,6 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                         variant="bordered"
                         size="md"
                         className="min-w-28 justify-between border-default-200"
-                        endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-default-400 text-sm" />}
                       >
                         {category ? (categoryConfig[category]?.label || category) : (isEnglish ? "All categories" : "ทุกหมวดหมู่")}
                       </Button>
@@ -349,7 +346,6 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                         variant="bordered"
                         size="md"
                         className="min-w-28 justify-between border-default-200"
-                        endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-default-400 text-sm" />}
                       >
                         {action ? (actionLabels[action] || action) : (isEnglish ? "All actions" : "ทุกการกระทำ")}
                       </Button>

@@ -238,6 +238,7 @@ export default function PeopleTab({
     const [currentPage, setCurrentPage] = useState(1);
     const [editingMember, setEditingMember] = useState<EditableMember | null>(null);
     const [draftPermissions, setDraftPermissions] = useState<CourseMemberPermissions | null>(null);
+    const [originalDraftPermissions, setOriginalDraftPermissions] = useState<CourseMemberPermissions | null>(null);
     const [isSavingPermissions, setIsSavingPermissions] = useState(false);
     const permissionSections = useMemo(() => getPermissionSections(isEnglish), [isEnglish]);
     const permissionPresets = useMemo(() => getPermissionPresets(isEnglish), [isEnglish]);
@@ -287,8 +288,10 @@ export default function PeopleTab({
     useEffect(() => {
         if (editingMember) {
             setDraftPermissions(editingMember.permissions);
+            setOriginalDraftPermissions(editingMember.permissions);
         } else {
             setDraftPermissions(null);
+            setOriginalDraftPermissions(null);
         }
     }, [editingMember]);
 
@@ -362,6 +365,11 @@ export default function PeopleTab({
         });
     };
 
+    const hasPermissionChanges = () => {
+        if (!originalDraftPermissions || !draftPermissions) return false;
+        return JSON.stringify(draftPermissions) !== JSON.stringify(originalDraftPermissions);
+    };
+
     const handleSavePermissions = async () => {
         if (!editingMember || !draftPermissions) return;
         setIsSavingPermissions(true);
@@ -414,7 +422,6 @@ export default function PeopleTab({
                             <Button
                                 color="secondary"
                                 variant="flat"
-                                startContent={<Icon icon="solar:user-plus-bold" />}
                                 onPress={onOpenAddInstructorModal}
                                 isDisabled={isPeopleLoading || !isCourseActive}
                                 className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
@@ -425,7 +432,6 @@ export default function PeopleTab({
                         {canAddTA && (
                             <Button
                                 color="primary"
-                                startContent={<Icon icon="solar:user-plus-bold" />}
                                 onPress={onOpenAddTAModal}
                                 isDisabled={isPeopleLoading || !isCourseActive}
                                 className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
@@ -715,7 +721,6 @@ export default function PeopleTab({
                                             <Button
                                                 color="secondary"
                                                 variant="flat"
-                                                startContent={<Icon icon="solar:user-plus-bold" />}
                                                 onPress={onOpenAddInstructorModal}
                                                 className="bg-indigo-100 text-indigo-700"
                                             >
@@ -725,7 +730,6 @@ export default function PeopleTab({
                                         {canAddTA && (
                                             <Button
                                                 color="primary"
-                                                startContent={<Icon icon="solar:user-plus-bold" />}
                                                 onPress={onOpenAddTAModal}
                                                 className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
                                             >
@@ -836,7 +840,13 @@ export default function PeopleTab({
                         <Button variant="light" onPress={() => setEditingMember(null)}>
                             {isEnglish ? "Cancel" : "ยกเลิก"}
                         </Button>
-                        <Button color="primary" onPress={handleSavePermissions} isLoading={isSavingPermissions}>
+                        <Button
+                            color="primary"
+                            onPress={handleSavePermissions}
+                            isLoading={isSavingPermissions}
+                            isDisabled={!hasPermissionChanges()}
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
+                        >
                             {isEnglish ? "Save permissions" : "บันทึกสิทธิ์"}
                         </Button>
                     </ModalFooter>

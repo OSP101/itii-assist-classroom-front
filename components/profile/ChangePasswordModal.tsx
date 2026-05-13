@@ -307,7 +307,6 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
             onPress={handleChangePassword}
             isLoading={isChangingPassword}
             isDisabled={!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword || !isPasswordValid}
-            startContent={!isChangingPassword && <Icon icon="solar:key-linear" />}
           >
             {copy.submit}
           </Button>

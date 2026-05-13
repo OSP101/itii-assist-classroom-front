@@ -4,7 +4,6 @@ import { useState, useEffect, memo } from "react";
 import { Chip } from "@heroui/chip";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
-import { Switch } from "@heroui/switch";
 import { Select, SelectItem } from "@heroui/select";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { addToast } from "@heroui/toast";
@@ -14,6 +13,10 @@ import type { AttendanceSession } from "@/services/attendance.service";
 import assignmentService from "@/services/assignment.service";
 import attendanceService from "@/services/attendance.service";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import {
+    instructorFlatButtonClass,
+    instructorPrimaryButtonClass,
+} from "@/components/ui/instructor-button-styles";
 
 function formatCount(count: number, singular: string, plural: string): string {
     return `${count} ${count === 1 ? singular : plural}`;
@@ -69,6 +72,7 @@ interface AssignmentModalProps {
     editingAssignment: AssignmentType | null;
     onSuccess: () => void;
     weeklyTeams?: Record<number, any[]>;
+    isCourseActive?: boolean;
 }
 
 const initialFormData: AssignmentFormData = {
@@ -94,15 +98,22 @@ function AssignmentModalComponent({
     editingAssignment,
     onSuccess,
     weeklyTeams = {},
+    isCourseActive = true,
 }: AssignmentModalProps) {
     const { language } = useGlobalSettings();
     const isEnglish = language === "en";
 
     // Form state
     const [formData, setFormData] = useState<AssignmentFormData>(initialFormData);
+    const [originalFormData, setOriginalFormData] = useState<AssignmentFormData | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [attendanceSessions, setAttendanceSessions] = useState<AttendanceSession[]>([]);
     const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+
+    const hasFormChanges = () => {
+        if (!originalFormData) return false;
+        return JSON.stringify(formData) !== JSON.stringify(originalFormData);
+    };
 
     // Fetch attendance sessions when modal opens
     useEffect(() => {
@@ -126,7 +137,7 @@ function AssignmentModalComponent({
         if (isOpen) {
             if (editingAssignment) {
                 // Populate form with existing assignment data
-                setFormData({
+                const populated: AssignmentFormData = {
                     name: editingAssignment.name,
                     assignment_type: editingAssignment.assignment_type,
                     week_number: editingAssignment.week_number,
@@ -147,10 +158,13 @@ function AssignmentModalComponent({
                     publishAt: editingAssignment.publish_at
                         ? new Date(editingAssignment.publish_at).toISOString().slice(0, 16)
                         : "",
-                });
+                };
+                setFormData(populated);
+                setOriginalFormData(populated);
             } else {
                 // Reset to initial form data
                 setFormData(initialFormData);
+                setOriginalFormData(null);
             }
         }
     }, [isOpen, editingAssignment]);
@@ -159,7 +173,7 @@ function AssignmentModalComponent({
     const totalSubItemScore = formData.subItems.reduce((sum, item) => sum + (item.max_score || 0), 0);
 
     // Handle form submit
-    const handleSubmit = async () => {
+    const handleSubmit = async (draftOverride?: boolean) => {
         // Validation
         if (!formData.name.trim()) {
             addToast({
@@ -197,6 +211,8 @@ function AssignmentModalComponent({
         setIsSubmitting(true);
 
         try {
+            const isDraft = draftOverride ?? formData.isDraft;
+
             const payload = {
                 course_id: courseId,
                 name: formData.name.trim(),
@@ -220,11 +236,11 @@ function AssignmentModalComponent({
                     : undefined,
                 due_date: formData.dueDate || undefined,
                 is_score_visible: formData.isScoreVisible,
-                is_draft: formData.isDraft,
-                publish_at: formData.isDraft && formData.publishAt
+                is_draft: isDraft,
+                publish_at: isDraft && formData.publishAt
                     ? new Date(formData.publishAt).toISOString()
                     : undefined,
-                clear_publish_at: formData.isDraft && !formData.publishAt && editingAssignment?.publish_at
+                clear_publish_at: isDraft && !formData.publishAt && editingAssignment?.publish_at
                     ? true
                     : undefined,
             };
@@ -240,8 +256,12 @@ function AssignmentModalComponent({
                 addToast({
                     title: isEnglish ? "Success" : "สำเร็จ",
                     description: editingAssignment
-                        ? (isEnglish ? "Assignment updated." : "แก้ไขงานเรียบร้อย")
-                        : (isEnglish ? "Assignment created." : "สร้างงานใหม่เรียบร้อย"),
+                        ? (isDraft
+                            ? (isEnglish ? "Draft saved." : "บันทึกร่างเรียบร้อย")
+                            : (isEnglish ? "Assignment updated." : "แก้ไขงานเรียบร้อย"))
+                        : (isDraft
+                            ? (isEnglish ? "Draft created." : "สร้างฉบับร่างเรียบร้อย")
+                            : (isEnglish ? "Assignment created." : "สร้างงานใหม่เรียบร้อย")),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -263,6 +283,14 @@ function AssignmentModalComponent({
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handleSaveDraft = async () => {
+        await handleSubmit(true);
+    };
+
+    const handleSaveChanges = async () => {
+        await handleSubmit();
     };
 
     return (
@@ -800,12 +828,6 @@ function AssignmentModalComponent({
                                     variant={formData.isScoreVisible ? "solid" : "bordered"}
                                     color={formData.isScoreVisible ? "success" : "warning"}
                                     onPress={() => setFormData(prev => ({ ...prev, isScoreVisible: !prev.isScoreVisible }))}
-                                    startContent={
-                                        <Icon 
-                                            icon={formData.isScoreVisible ? "solar:eye-bold" : "solar:eye-closed-bold"} 
-                                            className="text-lg" 
-                                        />
-                                    }
                                 >
                                     {formData.isScoreVisible ? (isEnglish ? "Show" : "แสดง") : (isEnglish ? "Hidden" : "ซ่อน")}
                                 </Button>
@@ -823,75 +845,27 @@ function AssignmentModalComponent({
                                 </div>
                             )}
                         </div>
-                        {/* Draft Mode Section */}
-                        <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-200">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className={`p-2 rounded-lg ${formData.isDraft ? "bg-yellow-200" : "bg-content3"}`}>
-                                        <Icon
-                                            icon={formData.isDraft ? "solar:pen-new-square-bold" : "solar:global-bold"}
-                                            className={`text-lg ${formData.isDraft ? "text-yellow-700" : "text-default-500"}`}
-                                        />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-medium text-default-700">{isEnglish ? "Draft mode" : "โหมดฉบับร่าง"}</p>
-                                        <p className="text-xs text-default-500">
-                                            {formData.isDraft
-                                                ? (isEnglish ? "This assignment is a draft - students cannot see it yet" : "งานนี้เป็นฉบับร่าง — นักศึกษายังไม่เห็น")
-                                                : (isEnglish ? "Publish immediately - students can see it right away" : "เผยแพร่ทันที — นักศึกษาเห็นได้เลย")}
-                                        </p>
-                                    </div>
-                                </div>
-                                <Switch
-                                    isSelected={formData.isDraft}
-                                    onValueChange={(v) => setFormData(prev => ({ ...prev, isDraft: v, publishAt: v ? prev.publishAt : "" }))}
-                                    color="warning"
-                                />
-                            </div>
-                            {formData.isDraft && (
-                                <div className="mt-3 space-y-3">
-                                    <Input
-                                        type="datetime-local"
-                                        label={isEnglish ? "Scheduled publish date and time (optional)" : "วันที่และเวลาเผยแพร่อัตโนมัติ (ไม่บังคับ)"}
-                                        labelPlacement="outside"
-                                        size="md"
-                                        variant="bordered"
-                                        value={formData.publishAt}
-                                        onValueChange={(val) => setFormData(prev => ({ ...prev, publishAt: val }))}
-                                        classNames={{
-                                            inputWrapper: "bg-content1 border-yellow-300 hover:border-yellow-400 focus-within:!border-yellow-500",
-                                            label: "text-sm font-medium text-default-600",
-                                        }}
-                                    />
-                                    <div className="p-3 bg-yellow-100 rounded-lg border border-yellow-300">
-                                        <p className="text-xs text-yellow-800 flex items-start gap-2">
-                                            <Icon icon="solar:info-circle-bold" className="mt-0.5 shrink-0 text-yellow-600" />
-                                            <span>
-                                                {formData.publishAt
-                                                    ? (isEnglish
-                                                        ? `This assignment will publish automatically on ${formatLocalizedPublishDateTime(formData.publishAt, true)}.`
-                                                        : `งานนี้จะเผยแพร่อัตโนมัติในวันที่ ${formatLocalizedPublishDateTime(formData.publishAt, false)}`)
-                                                    : (isEnglish ? "No date set - publish manually." : "ไม่ระบุวันที่ — ต้องกดเผยแพร่ด้วยตนเอง")}
-                                            </span>
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
                     </div>
                 </ModalBody>
 
                 <ModalFooter className="border-t border-divider px-6 py-4">
                     <div className="flex items-center justify-between w-full">
-                        <div className="text-sm text-default-500">
-                            {formData.hasSubItems
-                                ? (isEnglish
-                                    ? `Total score: ${formatPoints(Number.isInteger(totalSubItemScore) ? totalSubItemScore : Number(totalSubItemScore.toFixed(2)), true)}`
-                                    : `คะแนนรวม: ${Number.isInteger(totalSubItemScore) ? totalSubItemScore : totalSubItemScore.toFixed(2)} คะแนน`)
-                                : (isEnglish
-                                    ? `Max score: ${formatPoints(formData.maxScore, true)}`
-                                    : `คะแนนเต็ม: ${formData.maxScore} คะแนน`)
-                            }
+                        <div className="flex items-center gap-3 text-sm text-default-500">
+                            {(!editingAssignment || editingAssignment.is_draft) && (
+                                <Button
+                                    size="md"
+                                    variant="flat"
+                                    color="warning"
+                                    onPress={handleSaveDraft}
+                                    isLoading={isSubmitting}
+                                    isDisabled={!isCourseActive}
+                                    className={instructorFlatButtonClass("bg-yellow-100/70 text-yellow-700 opacity-70 hover:bg-yellow-100 hover:opacity-100")}
+                                >
+                                    {editingAssignment
+                                        ? (isEnglish ? "Save draft" : "บันทึกร่าง")
+                                        : (isEnglish ? "Create draft" : "สร้างฉบับร่าง")}
+                                </Button>
+                            )}
                         </div>
                         <div className="flex gap-2">
                             <Button
@@ -902,16 +876,12 @@ function AssignmentModalComponent({
                             </Button>
                             <Button
                                 color={formData.isDraft ? "warning" : "primary"}
-                                onPress={handleSubmit}
+                                onPress={handleSaveChanges}
                                 isLoading={isSubmitting}
-                                className={formData.isDraft ? "bg-yellow-500 text-white" : "bg-blue-500 text-white"}
-                                startContent={!isSubmitting && <Icon icon={
-                                    formData.isDraft
-                                        ? "solar:pen-new-square-bold"
-                                        : editingAssignment
-                                            ? "solar:pen-bold"
-                                            : "solar:add-circle-bold"
-                                } />}
+                                isDisabled={!isCourseActive || (editingAssignment ? !hasFormChanges() : !formData.name.trim())}
+                                className={formData.isDraft
+                                    ? instructorFlatButtonClass("bg-yellow-500 text-white")
+                                    : instructorPrimaryButtonClass()}
                             >
                                 {formData.isDraft
                                     ? (editingAssignment

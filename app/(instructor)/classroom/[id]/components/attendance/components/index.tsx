@@ -5,7 +5,7 @@
 
 "use client";
 
-import React, { memo, Suspense, lazy, useState, useMemo } from "react";
+import React, { memo, Suspense, lazy, useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { Card, CardBody } from "@heroui/card";
 import { Button } from "@heroui/button";
@@ -347,10 +347,11 @@ export const FiltersCard = memo(function FiltersCard({
 
 interface EmptyStateProps {
     onCreateClick: () => void;
+    isCourseActive?: boolean;
     canCreateAttendanceSessions?: boolean;
 }
 
-export const EmptyState = memo(function EmptyState({ onCreateClick, canCreateAttendanceSessions = false }: EmptyStateProps) {
+export const EmptyState = memo(function EmptyState({ onCreateClick, isCourseActive = true, canCreateAttendanceSessions = false }: EmptyStateProps) {
     const { language } = useGlobalSettings();
     const isEnglish = language === "en";
 
@@ -372,6 +373,7 @@ export const EmptyState = memo(function EmptyState({ onCreateClick, canCreateAtt
                         color="primary"
                         startContent={<Icon icon="solar:add-circle-bold" />}
                         onPress={onCreateClick}
+                        isDisabled={!isCourseActive}
                         className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
                     >
                         {isEnglish ? "Create first attendance session" : "สร้างรอบเช็คชื่อแรก"}
@@ -548,6 +550,7 @@ export const QRPreviewModal = memo(function QRPreviewModal({
 interface SessionRowActionsProps {
     session: SessionWithComputedStatus;
     courseId: string;
+    isCourseActive?: boolean;
     onActivate: (session: AttendanceSession) => void;
     onEdit: (session: AttendanceSession) => void;
     onDelete: (session: AttendanceSession) => void;
@@ -560,6 +563,7 @@ interface SessionRowActionsProps {
 const SessionRowActions = memo(function SessionRowActions({
     session,
     courseId,
+    isCourseActive = true,
     onActivate,
     onEdit,
     onDelete,
@@ -592,6 +596,7 @@ const SessionRowActions = memo(function SessionRowActions({
                             size="sm"
                             variant="light"
                             color="success"
+                            isDisabled={!isCourseActive}
                             onPress={() => onActivate(session)}
                         >
                             <Icon icon="solar:play-bold" className="text-lg" />
@@ -605,6 +610,7 @@ const SessionRowActions = memo(function SessionRowActions({
                             size="sm"
                             variant="light"
                             color="primary"
+                            isDisabled={!isCourseActive}
                             onPress={() => onEdit(session)}
                         >
                             <Icon icon="solar:pen-bold" className="text-lg" />
@@ -618,6 +624,7 @@ const SessionRowActions = memo(function SessionRowActions({
                             size="sm"
                             variant="light"
                             color="danger"
+                            isDisabled={!isCourseActive}
                             onPress={() => onDelete(session)}
                         >
                             <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
@@ -656,6 +663,7 @@ const SessionRowActions = memo(function SessionRowActions({
                             size="sm"
                             variant="light"
                             color="primary"
+                            isDisabled={!isCourseActive}
                             onPress={() => onEdit(session)}
                         >
                             <Icon icon="solar:pen-bold" className="text-lg" />
@@ -669,6 +677,7 @@ const SessionRowActions = memo(function SessionRowActions({
                             size="sm"
                             variant="light"
                             color="danger"
+                            isDisabled={!isCourseActive}
                             onPress={() => onClose(session)}
                         >
                             <Icon icon="solar:stop-bold" className="text-lg" />
@@ -708,6 +717,7 @@ const SessionRowActions = memo(function SessionRowActions({
                         size="sm"
                         variant="light"
                         color="danger"
+                        isDisabled={!isCourseActive}
                         onPress={() => onDelete(session)}
                     >
                         <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
@@ -725,6 +735,7 @@ const SessionRowActions = memo(function SessionRowActions({
 interface SessionsTableProps {
     sessions: SessionWithComputedStatus[];
     courseId: string;
+    isCourseActive?: boolean;
     onCreateClick: () => void;
     onActivate: (session: AttendanceSession) => void;
     onEdit: (session: AttendanceSession) => void;
@@ -738,6 +749,7 @@ interface SessionsTableProps {
 export const SessionsTable = memo(function SessionsTable({
     sessions,
     courseId,
+    isCourseActive = true,
     onCreateClick,
     onActivate,
     onEdit,
@@ -800,6 +812,7 @@ export const SessionsTable = memo(function SessionsTable({
                                                 variant="flat"
                                                 size="sm"
                                                 className="mt-3"
+                                                isDisabled={!isCourseActive}
                                                 onPress={onCreateClick}
                                             >
                                                 {isEnglish ? "Create attendance session" : "สร้างรอบเช็คชื่อ"}
@@ -905,6 +918,7 @@ export const SessionsTable = memo(function SessionsTable({
                                                 <SessionRowActions
                                                     session={session}
                                                     courseId={courseId}
+                                                    isCourseActive={isCourseActive}
                                                     onActivate={onActivate}
                                                     onEdit={onEdit}
                                                     onDelete={onDelete}
@@ -1179,6 +1193,7 @@ export const LocationCheckCard = memo(function LocationCheckCard({
 interface CreateSessionModalProps {
     isOpen: boolean;
     onClose: () => void;
+    isCourseActive?: boolean;
     formData: CreateAttendanceData;
     setFormData: React.Dispatch<React.SetStateAction<CreateAttendanceData>>;
     startDateTime: DateValue;
@@ -1198,6 +1213,7 @@ interface CreateSessionModalProps {
 export const CreateSessionModal = memo(function CreateSessionModal({
     isOpen,
     onClose,
+    isCourseActive = true,
     formData,
     setFormData,
     startDateTime,
@@ -1379,6 +1395,7 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                         color="primary"
                         onPress={onSubmit}
                         isLoading={isSubmitting}
+                        isDisabled={!isCourseActive || !formData.title?.trim()}
                         className="bg-linear-to-r from-blue-400 to-indigo-500"
                     >
                         {isEnglish ? "Create attendance session" : "สร้างรอบเช็คชื่อ"}
@@ -1396,6 +1413,7 @@ export const CreateSessionModal = memo(function CreateSessionModal({
 interface EditSessionModalProps {
     isOpen: boolean;
     onClose: () => void;
+    isCourseActive?: boolean;
     editTarget: AttendanceSession | null;
     formData: CreateAttendanceData;
     setFormData: React.Dispatch<React.SetStateAction<CreateAttendanceData>>;
@@ -1417,6 +1435,7 @@ interface EditSessionModalProps {
 export const EditSessionModal = memo(function EditSessionModal({
     isOpen,
     onClose,
+    isCourseActive = true,
     editTarget,
     formData,
     setFormData,
@@ -1436,6 +1455,40 @@ export const EditSessionModal = memo(function EditSessionModal({
 }: EditSessionModalProps) {
     const { language } = useGlobalSettings();
     const isEnglish = language === "en";
+    const [originalFormData, setOriginalFormData] = useState<CreateAttendanceData | null>(null);
+
+    useEffect(() => {
+        if (!isOpen || !editTarget) {
+            setOriginalFormData(null);
+            return;
+        }
+
+        setOriginalFormData({
+            ...formData,
+            course_section_ids: [...(formData.course_section_ids || [])].sort((a, b) => a - b),
+            start_time: toDateTimeLocalStr(startDateTime),
+            end_time: toDateTimeLocalStr(endDateTime),
+            late_threshold_time: toDateTimeLocalStr(lateThresholdTime),
+        });
+    }, [isOpen, editTarget]);
+
+    const hasFormChanges = () => {
+        if (!originalFormData) return false;
+
+        const currentSectionIds = [...(formData.course_section_ids || [])].sort((a, b) => a - b);
+        const originalSectionIds = [...(originalFormData.course_section_ids || [])].sort((a, b) => a - b);
+
+        return JSON.stringify({
+            ...formData,
+            course_section_ids: currentSectionIds,
+            start_time: toDateTimeLocalStr(startDateTime),
+            end_time: toDateTimeLocalStr(endDateTime),
+            late_threshold_time: toDateTimeLocalStr(lateThresholdTime),
+        }) !== JSON.stringify({
+            ...originalFormData,
+            course_section_ids: originalSectionIds,
+        });
+    };
 
     return (
         <Modal
@@ -1661,7 +1714,8 @@ export const EditSessionModal = memo(function EditSessionModal({
                         color="primary"
                         onPress={onSubmit}
                         isLoading={isSubmitting}
-                        className="bg-linear-to-r from-amber-400 to-orange-500"
+                        isDisabled={!isCourseActive || !formData.title?.trim() || !hasFormChanges()}
+                        className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                     >
                         {isEnglish ? "Save changes" : "บันทึกการแก้ไข"}
                     </Button>
@@ -1678,6 +1732,7 @@ export const EditSessionModal = memo(function EditSessionModal({
 interface DeleteConfirmModalProps {
     isOpen: boolean;
     onClose: () => void;
+    isCourseActive?: boolean;
     targetTitle: string | undefined;
     isSubmitting: boolean;
     onConfirm: () => Promise<void>;
@@ -1686,6 +1741,7 @@ interface DeleteConfirmModalProps {
 export const DeleteConfirmModal = memo(function DeleteConfirmModal({
     isOpen,
     onClose,
+    isCourseActive = true,
     targetTitle,
     isSubmitting,
     onConfirm,
@@ -1726,7 +1782,7 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
                     <Button variant="light" onPress={onClose}>
                         {isEnglish ? "Cancel" : "ยกเลิก"}
                     </Button>
-                    <Button color="danger" onPress={onConfirm} isLoading={isSubmitting}>
+                    <Button color="danger" onPress={onConfirm} isLoading={isSubmitting} isDisabled={!isCourseActive}>
                         {isEnglish ? "Delete permanently" : "ลบถาวร"}
                     </Button>
                 </ModalFooter>
@@ -1742,6 +1798,7 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
 interface CloseSessionModalProps {
     isOpen: boolean;
     onClose: () => void;
+    isCourseActive?: boolean;
     targetTitle: string | undefined;
     isSubmitting: boolean;
     onConfirm: () => Promise<void>;
@@ -1750,6 +1807,7 @@ interface CloseSessionModalProps {
 export const CloseSessionModal = memo(function CloseSessionModal({
     isOpen,
     onClose,
+    isCourseActive = true,
     targetTitle,
     isSubmitting,
     onConfirm,
@@ -1790,8 +1848,7 @@ export const CloseSessionModal = memo(function CloseSessionModal({
                     <Button variant="light" onPress={onClose}>
                         {isEnglish ? "Cancel" : "ยกเลิก"}
                     </Button>
-                    <Button color="danger" onPress={onConfirm} isLoading={isSubmitting}>
-                        <Icon icon="solar:stop-bold" className="text-lg" />
+                    <Button color="danger" onPress={onConfirm} isLoading={isSubmitting} isDisabled={!isCourseActive}>
                         {isEnglish ? "Close attendance session" : "ปิดรอบเช็คชื่อ"}
                     </Button>
                 </ModalFooter>
@@ -2294,7 +2351,6 @@ export const SectionChangeWarningModal = memo(function SectionChangeWarningModal
                         onPress={onConfirm}
                         isLoading={isSubmitting}
                         className="bg-red-500"
-                        startContent={!isSubmitting ? <Icon icon="solar:shield-warning-bold" /> : undefined}
                     >
                         {isEnglish ? "Confirm section removal" : 'ยืนยันการนำกลุ่มออก'}
                     </Button>

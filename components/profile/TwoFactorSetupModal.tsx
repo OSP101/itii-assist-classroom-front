@@ -645,7 +645,11 @@ function TwoFactorSetupModal({
                 </div>
             </ModalBody>
             <ModalFooter>
-                <Button color="primary" onPress={handleComplete} className="w-full">
+                <Button 
+                    color="primary" 
+                    onPress={handleComplete} 
+                    className="w-full bg-linear-to-r from-blue-400 to-indigo-500 text-white"
+                >
                     {copy.finish}
                 </Button>
             </ModalFooter>

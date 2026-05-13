@@ -462,7 +462,6 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                     key="pending"
                     title={
                         <div className="flex items-center gap-2">
-                            <Icon icon="solar:hourglass-bold" className="text-base" />
                             <span>{isEnglish ? "Pending" : "รออนุมัติ"}</span>
                             {counts.pending > 0 && (
                                 <Chip size="sm" color="warning" variant="flat" className="h-5 px-1.5 text-xs">
@@ -476,7 +475,6 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                     key="approved"
                     title={
                         <div className="flex items-center gap-2">
-                            <Icon icon="solar:check-circle-bold" className="text-base" />
                             <span>{isEnglish ? "Approved" : "อนุมัติแล้ว"}</span>
                             {counts.approved > 0 && (
                                 <Chip size="sm" color="success" variant="flat" className="h-5 px-1.5 text-xs">
@@ -490,7 +488,6 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                     key="rejected"
                     title={
                         <div className="flex items-center gap-2">
-                            <Icon icon="solar:close-circle-bold" className="text-base" />
                             <span>{isEnglish ? "Rejected" : "ปฏิเสธ"}</span>
                             {counts.rejected > 0 && (
                                 <Chip size="sm" color="danger" variant="flat" className="h-5 px-1.5 text-xs">
@@ -526,6 +523,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                 <Accordion
                     variant="splitted"
                     selectionMode="multiple"
+                    hideIndicator
                     className="px-0 gap-3"
                     itemClasses={{
                         base: "rounded-xl border border-default-200 bg-content1 shadow-sm",
@@ -799,7 +797,6 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                     color="success"
                                                     variant="flat"
                                                     size="sm"
-                                                    startContent={<Icon icon="solar:check-circle-bold" />}
                                                     onPress={() => isGroup 
                                                         ? openGroupActionModal("approve", group)
                                                         : openSingleActionModal("approve", firstRequest)
@@ -813,7 +810,6 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                     color="danger"
                                                     variant="flat"
                                                     size="sm"
-                                                    startContent={<Icon icon="solar:close-circle-bold" />}
                                                     onPress={() => isGroup 
                                                         ? openGroupActionModal("reject", group)
                                                         : openSingleActionModal("reject", firstRequest)
@@ -836,7 +832,6 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                                 color="warning"
                                                                 variant="flat"
                                                                 size="sm"
-                                                                startContent={<Icon icon="solar:close-square-bold" />}
                                                                 isLoading={cancellingRequestId === req.id}
                                                                 onPress={() => setCancelModalRequest(req)}
                                                             >
@@ -849,7 +844,6 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                         color="warning"
                                                         variant="flat"
                                                         size="sm"
-                                                        startContent={<Icon icon="solar:close-square-bold" />}
                                                         isLoading={cancellingRequestId === firstRequest.id}
                                                         onPress={() => setCancelModalRequest(firstRequest)}
                                                     >

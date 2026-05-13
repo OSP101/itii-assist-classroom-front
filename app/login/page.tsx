@@ -843,7 +843,6 @@ export default function LoginPage() {
                                     isLoading={isSendingResetEmail}
                                     isDisabled={!forgotPasswordEmail}
                                     className="flex-1 font-medium bg-linear-to-r from-blue-400 to-indigo-500 text-white"
-                                    startContent={!isSendingResetEmail && <Icon icon="solar:letter-bold" className="text-lg" />}
                                 >
                                     {t("sendResetLink")}
                                 </Button>

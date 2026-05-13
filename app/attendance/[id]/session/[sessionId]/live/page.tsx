@@ -133,6 +133,8 @@ export default function LiveAttendancePage() {
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
     const [newStatus, setNewStatus] = useState<string>("");
     const [statusNote, setStatusNote] = useState("");
+    const [originalStatus, setOriginalStatus] = useState<string>("");
+    const [originalNote, setOriginalNote] = useState<string>("");
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
     // QR Modal
@@ -258,6 +260,16 @@ export default function LiveAttendancePage() {
             ? "Live Attendance - ITII Assist Classroom"
             : "เช็คชื่อ Live - ITII Assist Classroom";
     }, [isEnglish]);
+
+    // Capture original status when modal opens
+    useEffect(() => {
+        if (isStatusModalOpen && selectedRecord) {
+            setOriginalStatus(selectedRecord.status);
+            setOriginalNote(selectedRecord.note || "");
+            setNewStatus(selectedRecord.status);
+            setStatusNote(selectedRecord.note || "");
+        }
+    }, [isStatusModalOpen, selectedRecord]);
 
     // Countdown timer
     useEffect(() => {
@@ -951,6 +963,8 @@ export default function LiveAttendancePage() {
                             color="primary"
                             onPress={handleUpdateStatus}
                             isLoading={isUpdatingStatus}
+                            isDisabled={newStatus === originalStatus && statusNote === originalNote}
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                         >
                             {t("บันทึก", "Save")}
                         </Button>

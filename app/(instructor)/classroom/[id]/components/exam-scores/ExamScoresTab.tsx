@@ -403,7 +403,6 @@ export default function ExamScoresTab({
                 </div>
                 <Button
                     className="font-medium bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-md hover:shadow-lg"
-                    startContent={<Icon icon="solar:settings-bold" />}
                     onPress={() => {
                         // Initialize settings data
                         const data: {[id: number]: Partial<ExamSetting>} = {};
@@ -453,7 +452,6 @@ export default function ExamScoresTab({
                             key="midterm"
                             title={
                                 <div className="flex items-center gap-2">
-                                    <Icon icon="solar:notebook-bold" className="text-lg" />
                                     <span>{isEnglish ? "Midterm" : "สอบกลางภาค"}</span>
                                 </div>
                             }
@@ -462,7 +460,6 @@ export default function ExamScoresTab({
                             key="final"
                             title={
                                 <div className="flex items-center gap-2">
-                                    <Icon icon="solar:diploma-bold" className="text-lg" />
                                     <span>{isEnglish ? "Final" : "สอบปลายภาค"}</span>
                                 </div>
                             }
@@ -543,7 +540,6 @@ export default function ExamScoresTab({
                                             <Button
                                                 size="sm"
                                                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-md"
-                                                startContent={<Icon icon="solar:document-add-bold" />}
                                                 isDisabled={!isCourseActive || !canCreateExamScores}
                                                 onPress={() => {
                                                     setBulkSettingId(setting.id);
@@ -721,7 +717,6 @@ export default function ExamScoresTab({
                                                     </div>
                                                 );
                                             })}
-
                                         {filteredStudents.length === 0 && (
                                             <div className="py-8 text-center text-default-500">
                                                 {isEnglish ? "No students found" : "ไม่พบนักศึกษา"}
@@ -903,7 +898,6 @@ export default function ExamScoresTab({
                             onPress={handleBulkImport}
                             isLoading={isBulkSaving}
                             isDisabled={parsedBulkData.filter(p => p.status === "valid").length === 0}
-                            startContent={!isBulkSaving && <Icon icon="solar:import-bold" />}
                         >
                             {isEnglish ? "Import data" : "นำเข้าข้อมูล"}
                         </Button>

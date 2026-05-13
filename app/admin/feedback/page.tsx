@@ -783,11 +783,10 @@ export default function FeedbackPage() {
                                     ยกเลิก
                                 </Button>
                                 <Button
-                                    color="primary"
+                                    color="danger"
                                     onPress={handleDelete}
                                     isLoading={isSubmitting}
-                                    className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
-                                    startContent={!isSubmitting && <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />}
+                                    className="font-medium px-6"
                                 >
                                     ลบ
                                 </Button>

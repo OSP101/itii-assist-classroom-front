@@ -1504,6 +1504,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                     }}
                     assignment={scoreModalAssignment}
                     courseId={courseId}
+                    isCourseActive={course?.is_active ?? false}
                     canGradeAssignments={currentCoursePermissions.grade_assignments}
                     canEditScores={currentCoursePermissions.edit_scores}
                     onScoreSubmitted={() => {
@@ -1521,6 +1522,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                     isOpen={modals.scoreModals.isBonusScoreModalOpen}
                     onClose={() => modals.scoreModals.setIsBonusScoreModalOpen(false)}
                     courseId={courseId}
+                    isCourseActive={course?.is_active ?? false}
                 />
             )}
 
@@ -1580,7 +1582,6 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             isLoading={modals.isSubmitting}
                             isDisabled={!modals.sectionModal.sectionNo.trim()}
                             className="bg-linear-to-r from-blue-400 to-indigo-500"
-                            startContent={!modals.isSubmitting && <Icon icon="solar:add-circle-bold" />}
                         >
                             เพิ่มกลุ่มเรียน
                         </Button>
@@ -1777,7 +1778,6 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             onPress={handleAddTA}
                             isLoading={modals.isSubmitting}
                             isDisabled={modals.taModal.selectedIds.length === 0}
-                            startContent={!modals.isSubmitting && <Icon icon="solar:add-circle-bold" />}
                             className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
                         >
                             เพิ่มผู้ช่วยสอน {modals.taModal.selectedIds.length > 0 ? `(${modals.taModal.selectedIds.length} คน)` : ""}
@@ -1963,7 +1963,6 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             onPress={handleAddInstructors}
                             isLoading={modals.isSubmitting}
                             isDisabled={modals.instructorModal.selectedIds.length === 0}
-                            startContent={!modals.isSubmitting && <Icon icon="solar:add-circle-bold" />}
                             className="bg-linear-to-r from-indigo-400 to-purple-500 shadow-lg shadow-indigo-400/25"
                         >
                             เพิ่มอาจารย์ {modals.instructorModal.selectedIds.length > 0 ? `(${modals.instructorModal.selectedIds.length} คน)` : ""}
@@ -2003,7 +2002,6 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                     color={modals.studentModal.mode === "select" ? "primary" : "default"}
                                     onPress={() => modals.studentModal.setMode("select")}
                                     className={modals.studentModal.mode === "select" ? "bg-linear-to-r from-cyan-400 to-blue-500" : ""}
-                                    startContent={<Icon icon="solar:user-check-bold" />}
                                 >
                                     เลือกจากรายชื่อ
                                 </Button>
@@ -2013,7 +2011,6 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                     color={modals.studentModal.mode === "paste" ? "primary" : "default"}
                                     onPress={() => modals.studentModal.setMode("paste")}
                                     className={modals.studentModal.mode === "paste" ? "bg-linear-to-r from-emerald-400 to-teal-500" : ""}
-                                    startContent={<Icon icon="solar:clipboard-text-bold" />}
                                 >
                                     วางจาก Excel
                                 </Button>
@@ -2161,7 +2158,6 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                 onPress={handleAddStudent}
                                 isLoading={modals.isSubmitting}
                                 isDisabled={!modals.studentModal.studentId}
-                                startContent={!modals.isSubmitting && <Icon icon="solar:add-circle-bold" />}
                                 className="bg-linear-to-r from-cyan-400 to-blue-500 shadow-lg shadow-cyan-400/25"
                             >
                                 เพิ่มนักศึกษา
@@ -2172,7 +2168,6 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                 onPress={handleBulkAddStudents}
                                 isLoading={modals.isSubmitting}
                                 isDisabled={modals.studentModal.parsedStudents.filter(p => p.status === "matched").length === 0}
-                                startContent={!modals.isSubmitting && <Icon icon="solar:users-group-rounded-bold" />}
                                 className="bg-linear-to-r from-emerald-400 to-teal-500 shadow-lg shadow-emerald-400/25"
                             >
                                 เพิ่ม {modals.studentModal.parsedStudents.filter(p => p.status === "matched").length} คน
@@ -3204,7 +3199,6 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             }}
                             isLoading={scores.isSaving}
                             isDisabled={!scores.selectedGroup}
-                            startContent={!scores.isSaving && <Icon icon="solar:diskette-bold" />}
                             className="bg-linear-to-r from-indigo-400 to-purple-500 shadow-lg shadow-indigo-400/25"
                         >
                             บันทึกคะแนน
@@ -3230,7 +3224,6 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                 size="sm"
                                 color="primary"
                                 className="shrink-0 bg-linear-to-r from-blue-500 to-indigo-600 text-white"
-                                startContent={<Icon icon="solar:refresh-bold" />}
                                 onPress={() => ackAssignmentUpdate()}
                             >
                                 โหลดงานใหม่

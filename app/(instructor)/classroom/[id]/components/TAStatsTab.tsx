@@ -854,7 +854,6 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
         <Button
           size="sm"
           variant="flat"
-          startContent={<Icon icon="solar:refresh-bold" width={16} />}
           onPress={fetchData}
           isDisabled={loading}
           className="bg-content2 text-default-600 hover:bg-content3"
@@ -881,7 +880,6 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
             </p>
             <Button
               color="primary"
-              startContent={<Icon icon="solar:refresh-bold" />}
               onPress={fetchData}
               className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
             >
@@ -1028,8 +1026,6 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                       size="sm"
                       variant="flat"
                       className="min-w-25 justify-between bg-content3 text-default-600"
-                      startContent={<Icon icon="solar:sort-linear" width={14} />}
-                      endContent={<Icon icon={sortDir === 'desc' ? "solar:alt-arrow-down-linear" : "solar:alt-arrow-up-linear"} width={12} className="text-default-400" />}
                     >
                       {sortField === 'score' ? (isEnglish ? 'Score' : 'คะแนน') : sortField === 'workload' ? (isEnglish ? 'Workload' : 'ปริมาณงาน') : (isEnglish ? 'Name' : 'ชื่อ')}
                     </Button>
@@ -1184,7 +1180,6 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                                   variant="flat"
                                   onPress={() => setSelectedTA(ta)}
                                   className="bg-blue-50 text-blue-600 hover:bg-blue-100"
-                                  startContent={<Icon icon="solar:eye-bold" width={14} />}
                                 >
                                   {isEnglish ? "View details" : "ดูรายละเอียด"}
                                 </Button>

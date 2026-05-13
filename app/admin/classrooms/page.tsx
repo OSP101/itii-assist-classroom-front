@@ -169,6 +169,7 @@ export default function ClassroomsPage() {
         floor: "",
         description: "",
     });
+    const [originalEditFormData, setOriginalEditFormData] = useState<{ name: string; building: string; floor: string; description: string } | null>(null);
     const [editingClassroomId, setEditingClassroomId] = useState<string | null>(null);
 
     // Undo/Redo history (stores desk snapshots)
@@ -602,13 +603,20 @@ export default function ClassroomsPage() {
     // Open edit classroom modal
     const openEditClassroom = (classroom: Classroom) => {
         setEditingClassroomId(classroom.id);
-        setEditFormData({
+        const data = {
             name: classroom.name,
             building: classroom.building,
             floor: classroom.floor,
             description: classroom.description || "",
-        });
+        };
+        setEditFormData(data);
+        setOriginalEditFormData(data);
         setShowEditModal(true);
+    };
+
+    const hasEditFormChanges = () => {
+        if (!originalEditFormData) return false;
+        return JSON.stringify(editFormData) !== JSON.stringify(originalEditFormData);
     };
 
     // Save edited classroom info
@@ -1411,6 +1419,8 @@ export default function ClassroomsPage() {
                             color="primary" 
                             onPress={handleCreate}
                             isLoading={isSaving}
+                            isDisabled={!formData.name.trim() || !formData.building.trim() || !formData.floor.trim()}
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white font-medium"
                         >
                             สร้างและจัดผัง
                         </Button>
@@ -2026,7 +2036,13 @@ export default function ClassroomsPage() {
                         <Button variant="light" onPress={() => setShowEditModal(false)} isDisabled={isSaving}>
                             ยกเลิก
                         </Button>
-                        <Button color="primary" onPress={handleEditClassroom} isLoading={isSaving}>
+                        <Button
+                            color="primary"
+                            onPress={handleEditClassroom}
+                            isLoading={isSaving}
+                            isDisabled={!hasEditFormChanges()}
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white font-medium"
+                        >
                             บันทึก
                         </Button>
                     </ModalFooter>

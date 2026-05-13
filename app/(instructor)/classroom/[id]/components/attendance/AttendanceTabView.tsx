@@ -8,6 +8,10 @@
 import React, { memo } from "react";
 import { Button } from "@heroui/button";
 import { Icon } from "@iconify/react";
+import {
+    instructorFlatButtonClass,
+    instructorPrimaryButtonClass,
+} from "@/components/ui/instructor-button-styles";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 
 import {
@@ -75,7 +79,7 @@ const Header = memo(function Header({
                 {canLaunchAttendanceDisplay && (
                     <Button
                         variant="flat"
-                        startContent={<Icon icon="solar:monitor-smartphone-bold" />}
+                        className={instructorFlatButtonClass()}
                         onPress={() => window.open("/d", "_blank", "noopener,noreferrer")}
                     >
                         {isEnglish ? "Open attendance display" : "เปิดหน้าจอเช็คชื่อ"}
@@ -84,10 +88,9 @@ const Header = memo(function Header({
                 {canCreateAttendanceSessions && (
                     <Button
                         color="primary"
-                        startContent={<Icon icon="solar:add-circle-bold" />}
                         onPress={onCreateClick}
                         isDisabled={!isCourseActive}
-                        className="bg-linear-to-r from-blue-400 to-indigo-500"
+                        className={instructorPrimaryButtonClass()}
                     >
                         {isEnglish ? "Create attendance session" : "สร้างรอบเช็คชื่อ"}
                     </Button>
@@ -119,6 +122,7 @@ interface ContentProps {
     filteredSessions: SessionWithComputedStatus[];
     stats: AttendanceStats;
     courseId: string;
+    isCourseActive?: boolean;
     searchQuery: string;
     statusFilter: string;
     typeFilter: string;
@@ -140,6 +144,7 @@ const Content = memo(function Content({
     filteredSessions,
     stats,
     courseId,
+    isCourseActive = true,
     searchQuery,
     statusFilter,
     typeFilter,
@@ -172,6 +177,7 @@ const Content = memo(function Content({
                 <SessionsTable
                     sessions={filteredSessions}
                     courseId={courseId}
+                    isCourseActive={isCourseActive}
                     onCreateClick={onCreateClick}
                     onActivate={onActivate}
                     onEdit={onEdit}
@@ -284,6 +290,7 @@ function AttendanceTabViewComponent({
                     filteredSessions={filteredSessions}
                     stats={stats}
                     courseId={courseId}
+                    isCourseActive={isCourseActive}
                     searchQuery={filters.searchQuery}
                     statusFilter={filters.statusFilter}
                     typeFilter={filters.typeFilter}
@@ -305,6 +312,7 @@ function AttendanceTabViewComponent({
             <CreateSessionModal
                 isOpen={modals.isCreateModalOpen}
                 onClose={closeCreateModal}
+                isCourseActive={isCourseActive}
                 formData={formData}
                 setFormData={setFormData}
                 startDateTime={startDateTime}
@@ -324,6 +332,7 @@ function AttendanceTabViewComponent({
             <EditSessionModal
                 isOpen={modals.isEditModalOpen}
                 onClose={closeEditModal}
+                isCourseActive={isCourseActive}
                 editTarget={targets.editTarget}
                 formData={formData}
                 setFormData={setFormData}
@@ -345,6 +354,7 @@ function AttendanceTabViewComponent({
             <DeleteConfirmModal
                 isOpen={modals.isDeleteModalOpen}
                 onClose={closeDeleteModal}
+                isCourseActive={isCourseActive}
                 targetTitle={targets.deleteTarget?.title}
                 isSubmitting={isSubmitting}
                 onConfirm={handleDeleteSession}
@@ -353,6 +363,7 @@ function AttendanceTabViewComponent({
             <CloseSessionModal
                 isOpen={modals.isCloseModalOpen}
                 onClose={closeCloseSessionModal}
+                isCourseActive={isCourseActive}
                 targetTitle={targets.closeTarget?.title}
                 isSubmitting={isSubmitting}
                 onConfirm={confirmCloseSession}

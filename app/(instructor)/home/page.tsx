@@ -21,6 +21,10 @@ import { courseService, Course, Instructor } from "@/services/course.service";
 import { twoFactorService } from "@/services/twoFactor.service";
 import { useSocket } from "@/contexts/SocketContext";
 import { CourseListSkeleton } from "@/components/loading-skeletons";
+import {
+    instructorFlatButtonClass,
+    instructorPrimaryButtonClass,
+} from "@/components/ui/instructor-button-styles";
 import { useI18n } from "@/hooks/useI18n";
 import Link from "next/link";
 import { IoSchool, IoBook, IoPeople, IoPersonAdd } from "react-icons/io5";
@@ -77,6 +81,9 @@ export default function HomePage() {
         instructor_ids: [] as number[],
         attention_threshold: 60,
     });
+
+    // Track original form data for change detection (edit mode)
+    const [originalFormData, setOriginalFormData] = useState<typeof formData | null>(null);
 
     // Filters
     const [search, setSearch] = useState("");
@@ -377,7 +384,14 @@ export default function HomePage() {
             instructor_ids: [],
             attention_threshold: 60,
         });
+        setOriginalFormData(null);
         setImagePreview(null);
+    };
+
+    // Check if form has changes
+    const hasFormChanges = () => {
+        if (!originalFormData) return false;
+        return JSON.stringify(formData) !== JSON.stringify(originalFormData);
     };
 
     const handleCreate = async () => {
@@ -450,7 +464,7 @@ export default function HomePage() {
         setSelectedCourse(course);
         // Get instructor IDs from the instructors array (exclude self)
         const instructorIdList = course.instructors?.map(i => i.id).filter(id => id !== currentUserId) || [];
-        setFormData({
+        const courseData = {
             code: course.code,
             name: course.name,
             year: course.year,
@@ -459,7 +473,9 @@ export default function HomePage() {
             image: course.image || "",
             instructor_ids: instructorIdList,
             attention_threshold: course.attention_threshold ?? 60,
-        });
+        };
+        setFormData(courseData);
+        setOriginalFormData(courseData);
         setImagePreview(course.image || null);
         setIsEditModalOpen(true);
     };
@@ -625,8 +641,7 @@ export default function HomePage() {
                             size="sm"
                             color="warning"
                             variant="solid"
-                            className="bg-amber-500 text-white"
-                            startContent={<Icon icon="solar:lock-keyhole-bold" className="text-lg" />}
+                            className={instructorFlatButtonClass("bg-amber-500 text-white")}
                         >
                             {t("enableNow")}
                         </Button>
@@ -678,7 +693,6 @@ export default function HomePage() {
                     <Button
                         color="default"
                         variant="bordered"
-                        startContent={<Icon icon="solar:archive-bold" className="text-xl" />}
                         onPress={() => router.push('/home/closed')}
                     >
                         {t("disabledCourses")}
@@ -693,9 +707,8 @@ export default function HomePage() {
                     ) : userRole === "instructor" && (
                         <Button
                             color="primary"
-                            startContent={<Icon icon="solar:add-circle-bold" className="text-xl" />}
                             onPress={handleCreateCourse}
-                            className="bg-linear-to-r from-blue-400 to-indigo-500"
+                            className={instructorPrimaryButtonClass()}
                         >
                             {t("createNewCourse")}
                         </Button>
@@ -765,6 +778,7 @@ export default function HomePage() {
                                 className="w-full sm:w-36"
                                 size="md"
                                 variant="bordered"
+                                selectorIcon={<span className="hidden" />}
                             >
                                 {yearOptions.map((option) => (
                                     <SelectItem key={option.value}>{option.label}</SelectItem>
@@ -779,6 +793,7 @@ export default function HomePage() {
                                 className="w-full sm:w-32"
                                 size="md"
                                 variant="bordered"
+                                selectorIcon={<span className="hidden" />}
                             >
                                 {semesterOptions.map((option) => (
                                     <SelectItem key={option.value}>{option.label}</SelectItem>
@@ -791,7 +806,6 @@ export default function HomePage() {
                                     color="danger"
                                     size="md"
                                     onPress={clearFilters}
-                                    startContent={<Icon icon="solar:close-circle-linear" />}
                                 >
                                     {t("clear")}
                                 </Button>
@@ -1147,7 +1161,6 @@ export default function HomePage() {
                                                         as="span"
                                                         size="sm"
                                                         color="primary"
-                                                        startContent={<Icon icon="solar:camera-bold" />}
                                                     >
                                                         {t("changeImage")}
                                                     </Button>
@@ -1155,7 +1168,6 @@ export default function HomePage() {
                                                 <Button
                                                     size="sm"
                                                     color="danger"
-                                                    startContent={<Icon icon="solar:trash-bin-trash-bold" />}
                                                     onPress={handleRemoveImage}
                                                 >
                                                     {t("removeImage")}
@@ -1364,8 +1376,8 @@ export default function HomePage() {
                             color="primary"
                             onPress={handleCreate}
                             isLoading={isSubmitting}
-                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500"
-                            startContent={!isSubmitting && <Icon icon="solar:add-circle-bold" className="text-lg" />}
+                            isDisabled={!formData.code.trim() || !formData.name.trim()}
+                            className={instructorPrimaryButtonClass("font-medium px-6")}
                         >
                             {t("createCourse")}
                         </Button>
@@ -1430,7 +1442,6 @@ export default function HomePage() {
                                                         as="span"
                                                         size="sm"
                                                         color="primary"
-                                                        startContent={<Icon icon="solar:camera-bold" />}
                                                     >
                                                         {t("changeImage")}
                                                     </Button>
@@ -1438,7 +1449,6 @@ export default function HomePage() {
                                                 <Button
                                                     size="sm"
                                                     color="danger"
-                                                    startContent={<Icon icon="solar:trash-bin-trash-bold" />}
                                                     onPress={handleRemoveImage}
                                                 >
                                                     {t("removeImage")}
@@ -1647,8 +1657,8 @@ export default function HomePage() {
                             color="primary"
                             onPress={handleUpdate}
                             isLoading={isSubmitting}
-                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
-                            startContent={!isSubmitting && <Icon icon="solar:diskette-bold" className="text-lg" />}
+                            isDisabled={!hasFormChanges()}
+                            className={instructorPrimaryButtonClass("font-medium px-6")}
                         >
                             {t("saveChanges")}
                         </Button>
@@ -1711,8 +1721,7 @@ export default function HomePage() {
                             color="primary"
                             onPress={handleToggleStatus}
                             isLoading={isSubmitting}
-                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
-                            startContent={!isSubmitting && <Icon icon={courseToToggle?.is_active ? "solar:eye-closed-bold" : "solar:eye-bold"} className="text-lg" />}
+                            className={instructorPrimaryButtonClass("font-medium px-6")}
                         >
                             {courseToToggle?.is_active ? t("disableAction") : t("enableAction")}
                         </Button>
@@ -1772,7 +1781,7 @@ export default function HomePage() {
                                 setDuplicateCourse(null);
                                 setCourseToToggle(null);
                             }}
-                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
+                            className={instructorPrimaryButtonClass("font-medium px-6")}
                         >
                             {t("acknowledged")}
                         </Button>

@@ -18,6 +18,7 @@ interface BonusScoreModalProps {
     isOpen: boolean;
     onClose: () => void;
     courseId: string;
+    isCourseActive?: boolean;
 }
 
 const BONUS_SEARCH_AUTOCOMPLETE_CLASSNAMES = {
@@ -43,7 +44,7 @@ const BONUS_SEARCH_LISTBOX_PROPS = {
     },
 };
 
-export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScoreModalProps) {
+export default function BonusScoreModal({ isOpen, onClose, courseId, isCourseActive = true }: BonusScoreModalProps) {
     const [activeTab, setActiveTab] = useState<"give" | "history">("give");
     const [searchQuery, setSearchQuery] = useState("");
     const [students, setStudents] = useState<StudentWithBonus[]>([]);
@@ -113,7 +114,7 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
 
     // Handle autocomplete selection - give bonus immediately
     const handleSelectStudent = async (key: React.Key | null) => {
-        if (!key) return;
+        if (!isCourseActive || !key) return;
         const studentId = Number(key);
         const student = students.find(s => s.id === studentId);
         if (student) {
@@ -124,6 +125,17 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
 
     // Give bonus score
     const handleGiveBonus = async (studentId: number, studentName: string) => {
+        if (!isCourseActive) {
+            addToast({
+                title: "รายวิชาถูกปิดแล้ว",
+                description: "วิชาที่ปิดแล้วจะดูข้อมูลได้อย่างเดียว ไม่สามารถให้คะแนนพิเศษได้",
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+
         setGivingTo(studentId);
         try {
             const response = await bonusScoreService.giveBonusScore({
@@ -182,6 +194,17 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
 
     // Delete bonus record
     const handleDeleteBonus = async (recordId: number) => {
+        if (!isCourseActive) {
+            addToast({
+                title: "รายวิชาถูกปิดแล้ว",
+                description: "วิชาที่ปิดแล้วจะดูข้อมูลได้อย่างเดียว ไม่สามารถลบคะแนนพิเศษได้",
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+
         try {
             const response = await bonusScoreService.deleteBonusScore(recordId);
             if (response.success) {
@@ -234,17 +257,24 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
                             <Spinner size="lg" color="primary" />
                         </div>
                     ) : (
-                        <Tabs
-                            selectedKey={activeTab}
-                            onSelectionChange={(key) => setActiveTab(key as "give" | "history")}
-                            variant="underlined"
-                            classNames={{
-                                tabList: "gap-6",
-                                cursor: "bg-blue-500",
-                                tab: "px-0 h-10",
-                                tabContent: "group-data-[selected=true]:text-blue-600 text-default-500 font-medium",
-                            }}
-                        >
+                        <>
+                            {!isCourseActive && (
+                                <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-800">
+                                    รายวิชานี้ถูกปิดแล้ว สามารถดูประวัติคะแนนพิเศษได้อย่างเดียว
+                                </div>
+                            )}
+
+                            <Tabs
+                                selectedKey={activeTab}
+                                onSelectionChange={(key) => setActiveTab(key as "give" | "history")}
+                                variant="underlined"
+                                classNames={{
+                                    tabList: "gap-6",
+                                    cursor: "bg-blue-500",
+                                    tab: "px-0 h-10",
+                                    tabContent: "group-data-[selected=true]:text-blue-600 text-default-500 font-medium",
+                                }}
+                            >
                             {/* Give Score Tab */}
                             <Tab
                                 key="give"
@@ -265,7 +295,7 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
                                             onInputChange={setSearchQuery}
                                             selectedKey={null}
                                             onSelectionChange={handleSelectStudent}
-                                            isDisabled={givingTo !== null}
+                                            isDisabled={givingTo !== null || !isCourseActive}
                                             startContent={<Icon icon="solar:magnifer-linear" className="text-amber-500" />}
                                             variant="bordered"
                                             classNames={BONUS_SEARCH_AUTOCOMPLETE_CLASSNAMES}
@@ -374,6 +404,7 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
                                                                         color="warning"
                                                                         variant="flat"
                                                                         isLoading={givingTo === item.student.id}
+                                                                        isDisabled={!isCourseActive}
                                                                         onPress={() => handleGiveBonus(item.student.id, item.student.full_name)}
                                                                     >
                                                                         {givingTo !== item.student.id && (
@@ -481,6 +512,7 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
                                                                                 size="sm"
                                                                                 variant="light"
                                                                                 color="danger"
+                                                                                isDisabled={!isCourseActive}
                                                                                 onPress={() => handleDeleteBonus(record.id)}
                                                                             >
                                                                                 <Icon icon="solar:trash-bin-trash-linear" className="text-sm" />
@@ -507,7 +539,8 @@ export default function BonusScoreModal({ isOpen, onClose, courseId }: BonusScor
                                     )}
                                 </div>
                             </Tab>
-                        </Tabs>
+                            </Tabs>
+                        </>
                     )}
                 </ModalBody>
 

@@ -19,6 +19,10 @@ import {
 } from "@heroui/table";
 import { Icon } from "@iconify/react";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import {
+    instructorFlatButtonClass,
+    instructorPrimaryButtonClass,
+} from "@/components/ui/instructor-button-styles";
 import type { Course, SectionStudent, RemovedSectionStudent } from "@/services/course.service";
 import { TeamsGridSkeleton } from "../Skeletons";
 import type {
@@ -203,6 +207,7 @@ interface TeamCardProps {
     index: number;
     type: TeamType;
     weekNumber?: number;
+    isCourseActive?: boolean;
     onEdit: () => void;
     onDelete: () => void;
     canUpdateTeams?: boolean;
@@ -213,6 +218,7 @@ const TeamCard = React.memo(function TeamCard({
     team,
     index,
     type,
+    isCourseActive = true,
     onEdit,
     onDelete,
     canUpdateTeams = false,
@@ -256,6 +262,7 @@ const TeamCard = React.memo(function TeamCard({
                                     isIconOnly
                                     size="sm"
                                     variant="flat"
+                                    isDisabled={!isCourseActive}
                                     className="bg-white/20 text-white hover:bg-white/40"
                                     onPress={onEdit}
                                 >
@@ -269,6 +276,7 @@ const TeamCard = React.memo(function TeamCard({
                                     isIconOnly
                                     size="sm"
                                     variant="flat"
+                                    isDisabled={!isCourseActive}
                                     className="bg-white/20 text-white hover:bg-red-500"
                                     onPress={onDelete}
                                 >
@@ -573,9 +581,8 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                         <div className="flex items-center gap-2 w-full sm:w-auto">
                             <Button
                                 variant="flat"
-                                startContent={<Icon icon="solar:history-bold" />}
                                 endContent={removedStudents.length > 0 ? <Chip size="sm" className="bg-amber-100 text-amber-700">{removedStudents.length}</Chip> : undefined}
-                                className={`border ${showHistory ? "bg-amber-100 text-amber-800 border-amber-300" : "bg-amber-50 text-amber-700 border-amber-200"}`}
+                                className={instructorFlatButtonClass(`border ${showHistory ? "bg-amber-100 text-amber-800 border-amber-300" : "bg-amber-50 text-amber-700 border-amber-200"}`)}
                                 isDisabled={removedStudents.length === 0}
                                 onPress={() => setShowHistory(v => !v)}
                             >
@@ -585,10 +592,9 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                             {canCreateSections && (
                                 <Button
                                     color="primary"
-                                    startContent={<Icon icon="solar:add-circle-bold" />}
                                     onPress={onOpenAddSectionModal}
                                     isDisabled={!isCourseActive}
-                                    className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25 w-full sm:w-auto"
+                                    className={instructorPrimaryButtonClass("w-full sm:w-auto")}
                                 >
                                     {isEnglish ? "Add section" : "เพิ่มกลุ่มเรียน"}
                                 </Button>
@@ -794,6 +800,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                                                             size="sm"
                                                                             variant="light"
                                                                             color="danger"
+                                                                            isDisabled={!isCourseActive}
                                                                             onPress={() => onOpenDeleteStudentModal(section.id, student)}
                                                                         >
                                                                             <Icon icon="solar:user-minus-bold" className="text-lg" />
@@ -825,9 +832,8 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                                 <Button
                                                     color="primary"
                                                     variant="flat"
-                                                    startContent={<Icon icon="solar:user-plus-bold" />}
                                                     onPress={() => onOpenAddStudentModal(section.id)}
-                                                    className="text-amber-700"
+                                                    className={instructorFlatButtonClass("bg-amber-100 text-amber-700")}
                                                 >
                                                     {isEnglish ? "Add student" : "เพิ่มนักศึกษา"}
                                                 </Button>
@@ -853,10 +859,9 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                             <Button
                                 color="primary"
                                 size="md"
-                                startContent={<Icon icon="solar:add-circle-bold" />}
                                 onPress={onOpenAddSectionModal}
                                 isDisabled={!isCourseActive}
-                                className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25"
+                                className={instructorPrimaryButtonClass()}
                             >
                                 {isEnglish ? "Add the first section" : "เพิ่มกลุ่มเรียนแรก"}
                             </Button>
@@ -963,9 +968,8 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                             <Button
                                 color="secondary"
                                 variant="flat"
-                                startContent={<Icon icon="solar:shuffle-bold" />}
                                 onPress={() => onOpenCreateTeamModal("permanent", "random")}
-                                className="bg-purple-100 text-purple-700 shrink-0 hidden md:flex"
+                                className={instructorFlatButtonClass("bg-purple-100 text-purple-700 shrink-0 hidden md:flex")}
                                 size="md"
                                 isDisabled={isTeamsLoading || !isCourseActive || !canCreateTeams}
                             >
@@ -985,9 +989,8 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                             </Tooltip>
                             <Button
                                 color="primary"
-                                startContent={<Icon icon="solar:add-circle-bold" />}
                                 onPress={() => onOpenCreateTeamModal("permanent", "manual")}
-                                className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 shrink-0 hidden md:flex"
+                                className={instructorPrimaryButtonClass("shrink-0 hidden md:flex")}
                                 size="md"
                                 isDisabled={isTeamsLoading || !isCourseActive || !canCreateTeams}
                             >
@@ -1009,6 +1012,7 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                             team={team}
                             index={permanentTeams.findIndex(t => t.id === team.id)}
                             type="permanent"
+                            isCourseActive={isCourseActive}
                             onEdit={() => onOpenEditTeamModal(team.id, "permanent")}
                             onDelete={() => onOpenDeleteTeamModal(team.id, "permanent")}
                             canUpdateTeams={canUpdateTeams}
@@ -1040,9 +1044,9 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                             {canCreateTeams && (
                                 <Button
                                     variant="flat"
-                                    startContent={<Icon icon="solar:shuffle-bold" />}
                                     onPress={() => onOpenCreateTeamModal("permanent", "random")}
-                                    className="bg-purple-100 text-purple-700"
+                                    isDisabled={!isCourseActive}
+                                    className={instructorFlatButtonClass("bg-purple-100 text-purple-700")}
                                 >
                                     {isEnglish ? "Auto-generate teams" : "สุ่มกลุ่มอัตโนมัติ"}
                                 </Button>
@@ -1050,9 +1054,9 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                             {canCreateTeams && (
                                 <Button
                                     color="primary"
-                                    startContent={<Icon icon="solar:add-circle-bold" />}
                                     onPress={() => onOpenCreateTeamModal("permanent", "manual")}
-                                    className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
+                                    isDisabled={!isCourseActive}
+                                    className={instructorPrimaryButtonClass()}
                                 >
                                     {isEnglish ? "Create manually" : "สร้างกลุ่มเอง"}
                                 </Button>
@@ -1167,6 +1171,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                             variant="flat"
                                             size="md"
                                             isIconOnly
+                                            isDisabled={!isCourseActive}
                                             className="bg-content3 text-default-600 shrink-0 md:hidden"
                                         >
                                             <Icon icon="solar:copy-bold" className="text-lg" />
@@ -1197,7 +1202,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                         <Button
                                             variant="flat"
                                             size="md"
-                                            startContent={<Icon icon="solar:copy-bold" />}
+                                            isDisabled={!isCourseActive}
                                             className="bg-content3 text-default-600 shrink-0 hidden md:flex"
                                         >
                                             {isEnglish ? "Copy" : "คัดลอก"}
@@ -1231,6 +1236,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                             size="md"
                                             color="danger"
                                             isIconOnly
+                                            isDisabled={!isCourseActive}
                                             onPress={onOpenBulkDeleteModal}
                                             className="shrink-0"
                                         >
@@ -1255,10 +1261,9 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                             <Button
                                 variant="flat"
                                 size="md"
-                                startContent={<Icon icon="solar:shuffle-bold" />}
                                 isDisabled={!isCourseActive || !canCreateTeams}
                                 onPress={() => onOpenCreateTeamModal("weekly", "random")}
-                                className="bg-emerald-100 text-emerald-700 shrink-0 hidden md:flex"
+                                className={instructorFlatButtonClass("bg-emerald-100 text-emerald-700 shrink-0 hidden md:flex")}
                             >
                                 {isEnglish ? "Randomize" : "สุ่มกลุ่ม"}
                             </Button>
@@ -1278,10 +1283,9 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                             <Button
                                 color="primary"
                                 size="md"
-                                startContent={<Icon icon="solar:add-circle-bold" />}
                                 isDisabled={!isCourseActive || !canCreateTeams}
                                 onPress={() => onOpenCreateTeamModal("weekly", "manual")}
-                                className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25 shrink-0 hidden md:flex"
+                                className={instructorPrimaryButtonClass("shrink-0 hidden md:flex")}
                             >
                                 {isEnglish ? "Create team" : "สร้างกลุ่ม"}
                             </Button>
@@ -1327,6 +1331,7 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                             index={currentWeekTeams.findIndex(t => t.id === team.id)}
                             type="weekly"
                             weekNumber={selectedWeek}
+                            isCourseActive={isCourseActive}
                             onEdit={() => onOpenEditTeamModal(team.id, "weekly", selectedWeek)}
                             onDelete={() => onOpenDeleteTeamModal(team.id, "weekly", selectedWeek)}
                             canUpdateTeams={canUpdateTeams}
@@ -1360,9 +1365,8 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                     <DropdownTrigger>
                                         <Button
                                             variant="flat"
-                                            startContent={<Icon icon="solar:copy-bold" />}
-                                            endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-sm" />}
-                                            className="bg-content3 text-default-600"
+                                            isDisabled={!isCourseActive}
+                                            className={instructorFlatButtonClass("bg-content3 text-default-600")}
                                         >
                                             {isEnglish ? "Copy from another week" : "คัดลอกจากสัปดาห์อื่น"}
                                         </Button>
@@ -1389,9 +1393,9 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                             {canCreateTeams && (
                                 <Button
                                     variant="flat"
-                                    startContent={<Icon icon="solar:shuffle-bold" />}
                                     onPress={() => onOpenCreateTeamModal("weekly", "random")}
-                                    className="bg-emerald-100 text-emerald-700"
+                                    isDisabled={!isCourseActive}
+                                    className={instructorFlatButtonClass("bg-emerald-100 text-emerald-700")}
                                 >
                                     {isEnglish ? "Auto-generate teams" : "สุ่มกลุ่มอัตโนมัติ"}
                                 </Button>
@@ -1399,9 +1403,9 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                             {canCreateTeams && (
                                 <Button
                                     color="primary"
-                                    startContent={<Icon icon="solar:add-circle-bold" />}
                                     onPress={() => onOpenCreateTeamModal("weekly", "manual")}
-                                    className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
+                                    isDisabled={!isCourseActive}
+                                    className={instructorPrimaryButtonClass()}
                                 >
                                     {isEnglish ? "Create manually" : "สร้างกลุ่มเอง"}
                                 </Button>

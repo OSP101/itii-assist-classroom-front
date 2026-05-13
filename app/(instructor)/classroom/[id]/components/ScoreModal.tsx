@@ -58,6 +58,7 @@ interface ScoreModalProps {
     onClose: () => void;
     assignment: AssignmentType | null;
     courseId: string;
+    isCourseActive?: boolean;
     onScoreSubmitted?: () => void;
     canGradeAssignments?: boolean;
     canEditScores?: boolean;
@@ -132,6 +133,7 @@ export default function ScoreModal({
     onClose,
     assignment,
     courseId,
+    isCourseActive = true,
     onScoreSubmitted,
     canGradeAssignments = true,
     canEditScores = true,
@@ -1226,6 +1228,7 @@ export default function ScoreModal({
     };
 
     const canSubmitGrade = useMemo(() => {
+        if (!isCourseActive) return false;
         if (!assignment) return false;
         if (isCheckingScore) return false; // Disable while checking
         if (!isGroupAssignment && !selectedStudent) return false;
@@ -1304,9 +1307,20 @@ export default function ScoreModal({
         } else {
             return mainScore !== "" && validateScore(mainScore, assignment.max_score);
         }
-    }, [assignment, selectedStudent, selectedGroup, mainScore, subItemScores, hasSubItems, isGroupAssignment, existingScore, subItemExistingScores, isCheckingScore, canScoreSelected, gradeGroupMode, selectedGradeMembers, allMembersHaveScores, gradeGroupMemberScores, gradeGroupMemberSubItemScores, scoresData, gradeGroupMembers]);
+    }, [assignment, selectedStudent, selectedGroup, mainScore, subItemScores, hasSubItems, isCourseActive, isGroupAssignment, existingScore, subItemExistingScores, isCheckingScore, canScoreSelected, gradeGroupMode, selectedGradeMembers, allMembersHaveScores, gradeGroupMemberScores, gradeGroupMemberSubItemScores, scoresData, gradeGroupMembers]);
 
     const handleSubmitGrade = async () => {
+        if (!isCourseActive) {
+            addToast({
+                title: t("รายวิชาถูกปิดแล้ว", "Course is closed"),
+                description: t("วิชาที่ปิดแล้วจะดูข้อมูลได้อย่างเดียว ไม่สามารถบันทึกคะแนนได้", "Closed courses are read-only. Saving scores is disabled."),
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+
         if (!assignment || !canSubmitGrade) return;
 
         setIsSubmitting(true);
@@ -1737,6 +1751,7 @@ export default function ScoreModal({
     }, [groups, editGroupSearchQuery]);
 
     const canSubmitEdit = useMemo(() => {
+        if (!isCourseActive) return false;
         // Check if reason is valid
         const hasValidReason = editReasonType !== "" && (editReasonType !== "other" || editReasonCustom.trim() !== "");
 
@@ -1841,7 +1856,7 @@ export default function ScoreModal({
         if (!currentScore || !hasValidReason) return false;
         if (newScore === "" || !validateScore(newScore, assignment?.max_score || 0)) return false;
         return true;
-    }, [currentScore, newScore, editReasonType, editReasonCustom, assignment, hasSubItems, selectedEditSubItemId, editSubItemScores, isGroupAssignment, editSelectedGroup, groupMemberScores, groupMemberSubItemScores, editGroupMode, editGroupMemberScores, editGroupMemberSubItemScores, pendingEditSubItemByStudent]);
+    }, [currentScore, newScore, editReasonType, editReasonCustom, assignment, hasSubItems, selectedEditSubItemId, editSubItemScores, isCourseActive, isGroupAssignment, editSelectedGroup, groupMemberScores, groupMemberSubItemScores, editGroupMode, editGroupMemberScores, editGroupMemberSubItemScores, pendingEditSubItemByStudent]);
 
     const handleSubItemNewScoreChange = (subItemId: number, value: string) => {
         setEditSubItemScores(prev => prev.map(s =>
@@ -1974,6 +1989,17 @@ export default function ScoreModal({
     };
 
     const handleSubmitEdit = async () => {
+        if (!isCourseActive) {
+            addToast({
+                title: t("รายวิชาถูกปิดแล้ว", "Course is closed"),
+                description: t("วิชาที่ปิดแล้วจะดูข้อมูลได้อย่างเดียว ไม่สามารถส่งคำขอแก้ไขคะแนนได้", "Closed courses are read-only. Score edit requests are disabled."),
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             const finalReason = getFinalEditReason();
@@ -2363,9 +2389,9 @@ export default function ScoreModal({
                             <div className="flex items-center gap-2">
                                 <h3 className="text-xl font-bold text-slate-800">{assignment.name}</h3>
                                 {assignment.is_score_visible === false && (
-                                    <Tooltip content={t("คะแนนงานนี้ถูกซ่อนจากนักศึกษา", "Scores for this assignment are hidden from students")}>
+                                    <Tooltip content={t("ไม่แสดงคะแนนให้นักศึกษารู้", "Scores are not shown to students")}>
                                         <Chip size="sm" variant="flat" className="bg-amber-50 text-amber-600 gap-1" startContent={<Icon icon="solar:eye-closed-linear" width={14} />}>
-                                            {t("ซ่อนคะแนน", "Hidden score")}
+                                            {t("ไม่แสดงคะแนน", "No student score")}
                                         </Chip>
                                     </Tooltip>
                                 )}
@@ -4148,6 +4174,11 @@ export default function ScoreModal({
 
                 <ModalFooter className="px-6 py-4 border-t border-slate-200">
                     <div className="w-full space-y-3">
+                        {!isCourseActive && (
+                            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-medium text-amber-800">
+                                {t("รายวิชานี้ถูกปิดแล้ว สามารถดูข้อมูลคะแนนได้อย่างเดียว", "This course is closed. Scores are view-only.")}
+                            </div>
+                        )}
                         {activeTab === "edit" && editConfirmationLines.length > 0 && (
                             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
                                 <p className="text-xs font-semibold text-amber-800 mb-2">{t("สรุปรายการที่จะส่งแก้ไข", "Summary of edits to submit")}</p>
@@ -4167,10 +4198,9 @@ export default function ScoreModal({
                                 <Button
                                     color="primary"
                                     onPress={handleSubmitGrade}
-                                    isDisabled={!canSubmitGrade}
+                                    isDisabled={!canSubmitGrade || !isCourseActive}
                                     isLoading={isSubmitting}
-                                    className="bg-blue-500"
-                                    startContent={!isSubmitting && <Icon icon="solar:check-circle-bold" />}
+                                    className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                                 >
                                     {t("บันทึกคะแนน", "Save score")}
                                 </Button>
@@ -4178,9 +4208,8 @@ export default function ScoreModal({
                                 <Button
                                     color="warning"
                                     onPress={handleSubmitEdit}
-                                    isDisabled={!canSubmitEdit}
+                                    isDisabled={!canSubmitEdit || !isCourseActive}
                                     isLoading={isSubmitting}
-                                    startContent={!isSubmitting && <Icon icon="solar:pen-2-bold" />}
                                 >
                                     {t("ส่งคำขอแก้ไข", "Submit edit request")}
                                 </Button>

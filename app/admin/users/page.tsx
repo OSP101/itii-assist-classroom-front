@@ -142,6 +142,9 @@ export default function UsersPage() {
         avatar: "",
     });
 
+    // Track original form data for change detection (edit mode)
+    const [originalFormData, setOriginalFormData] = useState<CreateUserDto | null>(null);
+
     // Avatar preview
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
@@ -425,8 +428,15 @@ export default function UsersPage() {
             role: "ta",
             avatar: "",
         });
+        setOriginalFormData(null);
         setAvatarPreview(null);
         setSelectedUser(null);
+    };
+
+    // Check if form has changes
+    const hasFormChanges = () => {
+        if (!originalFormData) return false;
+        return JSON.stringify(formData) !== JSON.stringify(originalFormData);
     };
 
     // Copy to clipboard
@@ -454,13 +464,15 @@ export default function UsersPage() {
     // Open edit modal
     const openEditModal = (user: User) => {
         setSelectedUser(user);
-        setFormData({
+        const userData = {
             username: user.username,
             full_name: user.full_name,
             email: user.email || "",
             role: user.role,
             avatar: user.avatar || "",
-        });
+        };
+        setFormData(userData);
+        setOriginalFormData(userData);
         setAvatarPreview(user.avatar || null);
         setIsEditModalOpen(true);
     };
@@ -1016,8 +1028,8 @@ export default function UsersPage() {
                             color="primary"
                             onPress={handleCreate}
                             isLoading={isSubmitting}
+                            isDisabled={!formData.username.trim() || !formData.full_name.trim()}
                             className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500"
-                            startContent={!isSubmitting && <Icon icon="solar:add-circle-bold" className="text-lg" />}
                         >
                             {t("addUser")}
                         </Button>
@@ -1189,8 +1201,8 @@ export default function UsersPage() {
                             color="primary"
                             onPress={handleUpdate}
                             isLoading={isSubmitting}
+                            isDisabled={!hasFormChanges()}
                             className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
-                            startContent={!isSubmitting && <Icon icon="solar:diskette-bold" className="text-lg" />}
                         >
                             {t("saveChanges")}
                         </Button>
@@ -1244,7 +1256,6 @@ export default function UsersPage() {
                             color="primary"
                             onPress={handleToggleStatus}
                             className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
-                            startContent={<Icon icon={userToToggle?.is_active ? "solar:eye-closed-bold" : "solar:eye-bold"} className="text-lg" />}
                         >
                             {userToToggle?.is_active ? t("disableAction") : t("enableAction")}
                         </Button>
@@ -1292,7 +1303,6 @@ export default function UsersPage() {
                             onPress={handleDelete}
                             isLoading={isSubmitting}
                             className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
-                            startContent={!isSubmitting && <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />}
                         >
                             {t("deleteUser")}
                         </Button>

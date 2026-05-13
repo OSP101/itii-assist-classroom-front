@@ -30,6 +30,7 @@ import {
 } from "@heroui/modal";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
+import { instructorPrimaryButtonClass } from "@/components/ui/instructor-button-styles";
 import queueService, {
     type QueueSession,
     type CreateQueueSessionData,
@@ -220,6 +221,22 @@ export default function QueueTab({
         cutoff_at: null,
         cutoff_note: "",
     });
+    const [originalFormData, setOriginalFormData] = useState<CreateQueueSessionData | null>(null);
+
+    const showCourseClosedReadOnlyToast = () => {
+        addToast({
+            title: localize("รายวิชาถูกปิดแล้ว", "Course is closed"),
+            description: localize("วิชาที่ปิดแล้วดูข้อมูลได้อย่างเดียว ไม่สามารถแก้ไขข้อมูลคิวได้", "Closed courses are read-only. Queue changes are disabled."),
+            color: "warning",
+            timeout: 3000,
+            shouldShowTimeoutProgress: true,
+        });
+    };
+
+    const hasFormChanges = () => {
+        if (!originalFormData) return false;
+        return JSON.stringify(formData) !== JSON.stringify(originalFormData);
+    };
 
     // Fetch sessions
     const fetchSessions = useCallback(async (silent = false) => {
@@ -327,10 +344,15 @@ export default function QueueTab({
             cutoff_at: null,
             cutoff_note: "",
         });
+        setOriginalFormData(null);
     };
 
     // Open create modal
     const handleOpenCreateModal = () => {
+        if (!isCourseActive) {
+            showCourseClosedReadOnlyToast();
+            return;
+        }
         resetForm();
         fetchOptions();
         setIsCreateModalOpen(true);
@@ -338,8 +360,12 @@ export default function QueueTab({
 
     // Open edit modal
     const handleOpenEditModal = (session: QueueSession) => {
+        if (!isCourseActive) {
+            showCourseClosedReadOnlyToast();
+            return;
+        }
         setEditTarget(session);
-        setFormData({
+        const editData: CreateQueueSessionData = {
             title: session.title,
             description: session.description || "",
             classroom_id: session.classroom_id,
@@ -349,7 +375,9 @@ export default function QueueTab({
             is_cutoff_enabled: Boolean(session.is_cutoff_enabled),
             cutoff_at: session.cutoff_at || null,
             cutoff_note: session.cutoff_note || "",
-        });
+        };
+        setFormData(editData);
+        setOriginalFormData(editData);
         fetchOptions();
         setIsEditModalOpen(true);
     };
@@ -384,6 +412,11 @@ export default function QueueTab({
 
     // Handle create session
     const handleCreateSession = async () => {
+        if (!isCourseActive) {
+            showCourseClosedReadOnlyToast();
+            return;
+        }
+
         if (!formData.title.trim()) {
             addToast({
                 title: localize("กรุณากรอกข้อมูล", "Required field"),
@@ -454,6 +487,11 @@ export default function QueueTab({
 
     // Handle update session
     const handleUpdateSession = async () => {
+        if (!isCourseActive) {
+            showCourseClosedReadOnlyToast();
+            return;
+        }
+
         if (!editTarget) return;
 
         if (formData.is_cutoff_enabled && !formData.cutoff_at) {
@@ -505,6 +543,11 @@ export default function QueueTab({
 
     // Handle delete session
     const handleDeleteSession = async () => {
+        if (!isCourseActive) {
+            showCourseClosedReadOnlyToast();
+            return;
+        }
+
         if (!deleteTarget) return;
 
         setIsSubmitting(true);
@@ -537,6 +580,11 @@ export default function QueueTab({
 
     // Handle status change
     const handleStatusChange = async (session: QueueSession, newStatus: 'active' | 'paused' | 'closed') => {
+        if (!isCourseActive) {
+            showCourseClosedReadOnlyToast();
+            return;
+        }
+
         try {
             await queueService.updateQueueSessionStatus(course.id, session.id, newStatus);
             addToast({
@@ -574,6 +622,11 @@ export default function QueueTab({
 
     // Handle start queue with confirmation
     const handleStartQueue = async () => {
+        if (!isCourseActive) {
+            showCourseClosedReadOnlyToast();
+            return;
+        }
+
         if (!startTarget) return;
         setIsSubmitting(true);
         try {
@@ -605,6 +658,11 @@ export default function QueueTab({
 
     // Handle pause/resume queue with confirmation
     const handlePauseResumeQueue = async () => {
+        if (!isCourseActive) {
+            showCourseClosedReadOnlyToast();
+            return;
+        }
+
         if (!pauseTarget) return;
         setIsSubmitting(true);
         try {
@@ -638,12 +696,20 @@ export default function QueueTab({
 
     // Open start modal
     const handleOpenStartModal = (session: QueueSession) => {
+        if (!isCourseActive) {
+            showCourseClosedReadOnlyToast();
+            return;
+        }
         setStartTarget(session);
         setIsStartModalOpen(true);
     };
 
     // Open pause modal
     const handleOpenPauseModal = (session: QueueSession, action: 'paused' | 'active') => {
+        if (!isCourseActive) {
+            showCourseClosedReadOnlyToast();
+            return;
+        }
         setPauseTarget(session);
         setPauseAction(action);
         setIsPauseModalOpen(true);
@@ -661,10 +727,9 @@ export default function QueueTab({
                 {canCreateQueueSessions && (
                     <Button
                         color="primary"
-                        startContent={<Icon icon="solar:add-circle-bold" />}
                         onPress={handleOpenCreateModal}
                         isDisabled={!isCourseActive}
-                        className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
+                        className={instructorPrimaryButtonClass("shadow-lg shadow-blue-400/25")}
                     >
                         {localize("สร้างการจองคิว", "Create queue")}
                     </Button>
@@ -810,10 +875,9 @@ export default function QueueTab({
                                 {canCreateQueueSessions && (
                                     <Button
                                         color="primary"
-                                        startContent={<Icon icon="solar:add-circle-bold" />}
                                         onPress={handleOpenCreateModal}
                                         isDisabled={!isCourseActive}
-                                        className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
+                                        className={instructorPrimaryButtonClass("shadow-lg shadow-blue-400/25")}
                                     >
                                         {localize("สร้างการจองคิวแรก", "Create the first queue")}
                                     </Button>
@@ -930,6 +994,7 @@ export default function QueueTab({
                                                                                     size="sm"
                                                                                     variant="light"
                                                                                     color="success"
+                                                                                    isDisabled={!isCourseActive}
                                                                                     onPress={() => handleOpenStartModal(session)}
                                                                                 >
                                                                                     <Icon icon="solar:play-bold" className="text-lg" />
@@ -943,6 +1008,7 @@ export default function QueueTab({
                                                                                     size="sm"
                                                                                     variant="light"
                                                                                     color="primary"
+                                                                                    isDisabled={!isCourseActive}
                                                                                     onPress={() => handleOpenEditModal(session)}
                                                                                 >
                                                                                     <Icon icon="solar:pen-bold" className="text-lg" />
@@ -1010,6 +1076,7 @@ export default function QueueTab({
                                                                                         size="sm"
                                                                                         variant="light"
                                                                                         color="warning"
+                                                                                        isDisabled={!isCourseActive}
                                                                                         onPress={() => handleOpenPauseModal(session, 'paused')}
                                                                                     >
                                                                                         <Icon icon="solar:pause-bold" className="text-lg" />
@@ -1068,6 +1135,7 @@ export default function QueueTab({
                                                                                         size="sm"
                                                                                         variant="light"
                                                                                         color="success"
+                                                                                        isDisabled={!isCourseActive}
                                                                                         onPress={() => handleOpenPauseModal(session, 'active')}
                                                                                     >
                                                                                         <Icon icon="solar:play-bold" className="text-lg" />
@@ -1276,12 +1344,6 @@ export default function QueueTab({
                                                 setFormData({ ...formData, linked_assignment_id: null });
                                             }
                                         }}
-                                        startContent={
-                                            <Icon
-                                                icon={formData.linked_assignment_id ? "solar:link-bold" : "solar:link-broken-bold"}
-                                                className="text-lg"
-                                            />
-                                        }
                                     >
                                         {formData.linked_assignment_id ? localize("ลิงก์แล้ว", "Linked") : localize("ไม่ลิงก์", "Not linked")}
                                     </Button>
@@ -1362,12 +1424,6 @@ export default function QueueTab({
                                                 setFormData({ ...formData, require_attendance: false, linked_attendance_session_id: null });
                                             }
                                         }}
-                                        startContent={
-                                            <Icon
-                                                icon={formData.linked_attendance_session_id ? "solar:link-bold" : "solar:link-broken-bold"}
-                                                className="text-lg"
-                                            />
-                                        }
                                     >
                                         {formData.linked_attendance_session_id ? localize("ลิงก์แล้ว", "Linked") : localize("ไม่ลิงก์", "Not linked")}
                                     </Button>
@@ -1445,7 +1501,8 @@ export default function QueueTab({
                             color="primary"
                             onPress={handleCreateSession}
                             isLoading={isSubmitting}
-                            className="bg-linear-to-r from-blue-400 to-indigo-500"
+                            isDisabled={!isCourseActive || !formData.title.trim() || !formData.classroom_id}
+                            className={instructorPrimaryButtonClass()}
                         >
                             {localize("สร้างการจองคิว", "Create queue")}
                         </Button>
@@ -1586,12 +1643,6 @@ export default function QueueTab({
                                                 setFormData({ ...formData, linked_assignment_id: null });
                                             }
                                         }}
-                                        startContent={
-                                            <Icon
-                                                icon={formData.linked_assignment_id ? "solar:link-bold" : "solar:link-broken-bold"}
-                                                className="text-lg"
-                                            />
-                                        }
                                     >
                                         {formData.linked_assignment_id ? localize("ลิงก์แล้ว", "Linked") : localize("ไม่ลิงก์", "Not linked")}
                                     </Button>
@@ -1672,12 +1723,6 @@ export default function QueueTab({
                                                 setFormData({ ...formData, require_attendance: false, linked_attendance_session_id: null });
                                             }
                                         }}
-                                        startContent={
-                                            <Icon
-                                                icon={formData.linked_attendance_session_id ? "solar:link-bold" : "solar:link-broken-bold"}
-                                                className="text-lg"
-                                            />
-                                        }
                                     >
                                         {formData.linked_attendance_session_id ? localize("ลิงก์แล้ว", "Linked") : localize("ไม่ลิงก์", "Not linked")}
                                     </Button>
@@ -1755,7 +1800,8 @@ export default function QueueTab({
                             color="primary"
                             onPress={handleUpdateSession}
                             isLoading={isSubmitting}
-                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
+                            isDisabled={!isCourseActive || !hasFormChanges()}
+                            className={instructorPrimaryButtonClass()}
                         >
                             {localize("บันทึกการแก้ไข", "Save changes")}
                         </Button>
@@ -1780,7 +1826,7 @@ export default function QueueTab({
                         <Button variant="light" onPress={() => setIsDeleteModalOpen(false)}>
                             {localize("ยกเลิก", "Cancel")}
                         </Button>
-                        <Button color="primary" onPress={handleDeleteSession} isLoading={isSubmitting} className="bg-linear-to-r from-blue-400 to-indigo-500 text-white">
+                        <Button color="primary" onPress={handleDeleteSession} isLoading={isSubmitting} isDisabled={!isCourseActive} className={instructorPrimaryButtonClass()}>
                             {localize("ลบ", "Delete")}
                         </Button>
                     </ModalFooter>
@@ -1820,8 +1866,8 @@ export default function QueueTab({
                             color="primary" 
                             onPress={handleStartQueue} 
                             isLoading={isSubmitting}
-                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
-                            startContent={<Icon icon="solar:play-bold" />}
+                            isDisabled={!isCourseActive}
+                            className={instructorPrimaryButtonClass()}
                         >
                             {localize("เริ่มการจองคิว", "Start queue")}
                         </Button>
@@ -1884,8 +1930,8 @@ export default function QueueTab({
                             color="primary" 
                             onPress={handlePauseResumeQueue} 
                             isLoading={isSubmitting}
-                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
-                            startContent={<Icon icon={pauseAction === 'paused' ? "solar:pause-bold" : "solar:play-bold"} />}
+                            isDisabled={!isCourseActive}
+                            className={instructorPrimaryButtonClass()}
                         >
                             {pauseAction === 'paused' ? localize('หยุดรับคิว', 'Pause queue') : localize('เปิดรับคิว', 'Resume queue')}
                         </Button>
@@ -1907,8 +1953,7 @@ export default function QueueTab({
                         <Button
                             size="sm"
                             color="primary"
-                            className="shrink-0 bg-linear-to-r from-blue-500 to-indigo-600 text-white"
-                            startContent={<Icon icon="solar:refresh-bold" />}
+                            className={instructorPrimaryButtonClass("shrink-0")}
                             onPress={() => { setPendingQueueUpdate(false); fetchSessions(true); }}
                         >
                             {localize("โหลดใหม่", "Reload")}

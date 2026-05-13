@@ -28,6 +28,7 @@ import { Select, SelectItem } from "@heroui/select";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import { courseService } from "@/services/course.service";
 import attendanceService, {
     type AttendanceSession,
     type AttendanceRecord,
@@ -108,6 +109,7 @@ export default function AttendanceSummaryPage() {
     // State
     const [session, setSession] = useState<AttendanceSession | null>(null);
     const [records, setRecords] = useState<AttendanceRecord[]>([]);
+    const [isCourseActive, setIsCourseActive] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -150,6 +152,11 @@ export default function AttendanceSummaryPage() {
                 attendanceService.getSession(sessionId),
                 attendanceService.getRecords(sessionId),
             ]);
+
+            const courseResponse = await courseService.getCourseById(courseId);
+            if (courseResponse.success && courseResponse.data) {
+                setIsCourseActive(courseResponse.data.is_active);
+            }
 
             if (sessionData) {
                 setSession(sessionData);
@@ -538,6 +545,7 @@ export default function AttendanceSummaryPage() {
                                                     isIconOnly
                                                     size="sm"
                                                     variant="light"
+                                                    isDisabled={!isCourseActive}
                                                     onPress={() => {
                                                         setSelectedRecord(record);
                                                         setNewStatus(record.status);
@@ -637,6 +645,7 @@ export default function AttendanceSummaryPage() {
                             color="primary"
                             onPress={handleUpdateStatus}
                             isLoading={isUpdatingStatus}
+                            isDisabled={!isCourseActive}
                         >
                             {t("บันทึก", "Save")}
                         </Button>

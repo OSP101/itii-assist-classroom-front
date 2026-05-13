@@ -153,7 +153,6 @@ function ConfirmPasswordModal({
             isLoading={isLoading}
             isDisabled={!password.trim()}
             className="bg-linear-to-br from-blue-400 to-indigo-500"
-            startContent={!isLoading && <Icon icon="solar:check-circle-linear" />}
           >
             {copy.confirm}
           </Button>

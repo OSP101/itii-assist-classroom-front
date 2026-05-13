@@ -20,6 +20,7 @@ import {
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket";
+import { courseService } from "@/services/course.service";
 import queueService, {
     type QueueSession,
     type QueueWorker,
@@ -308,8 +309,19 @@ export default function WorkerDashboardPage() {
     const t = (thai: string, english: string) => (isEnglish ? english : thai);
 
     const [session, setSession] = useState<QueueSession | null>(null);
+    const [isCourseActive, setIsCourseActive] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<{ id: number; full_name: string } | null>(null);
+
+    const showCourseClosedReadOnlyToast = useCallback(() => {
+        addToast({
+            title: t("รายวิชาถูกปิดแล้ว", "Course is closed"),
+            description: t("วิชาที่ปิดแล้วดูข้อมูลได้อย่างเดียว ไม่สามารถจัดการคิวได้", "Closed courses are read-only. Queue actions are disabled."),
+            color: "warning",
+            timeout: 3000,
+            shouldShowTimeoutProgress: true,
+        });
+    }, [t]);
 
     // Worker states
     const [isWorkerOnline, setIsWorkerOnline] = useState(false);
@@ -422,8 +434,12 @@ export default function WorkerDashboardPage() {
     const fetchSession = useCallback(async () => {
         setIsLoading(true);
         try {
-            const data = await queueService.getQueueSession(courseId, sessionId);
+            const [data, courseResponse] = await Promise.all([
+                queueService.getQueueSession(courseId, sessionId),
+                courseService.getCourseById(courseId),
+            ]);
             setSession(data);
+            setIsCourseActive(Boolean(courseResponse.success && courseResponse.data?.is_active));
 
             // Always check for existing booking assigned to current user (even if offline)
             // This handles reconnection after page refresh
@@ -477,7 +493,7 @@ export default function WorkerDashboardPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [courseId, sessionId, currentUser, isEnglish]);
+    }, [courseId, sessionId, currentUser, isEnglish, t]);
 
     useEffect(() => {
         if (currentUser) {
@@ -631,6 +647,11 @@ export default function WorkerDashboardPage() {
 
     // Join as worker
     const handleJoinAsWorker = async () => {
+        if (!isCourseActive) {
+            showCourseClosedReadOnlyToast();
+            return;
+        }
+
         if (!workerPreferences.accept_grading && !workerPreferences.accept_help) {
             addToast({
                 title: t("กรุณาเลือก", "Select a task type"),
@@ -696,6 +717,11 @@ export default function WorkerDashboardPage() {
 
     // Leave as worker
     const handleLeaveAsWorker = async () => {
+        if (!isCourseActive) {
+            showCourseClosedReadOnlyToast();
+            return;
+        }
+
         setIsLeaving(true);
         try {
             await queueService.leaveAsWorker(courseId, sessionId);
@@ -740,6 +766,11 @@ export default function WorkerDashboardPage() {
 
     // Complete booking
     const handleCompleteBooking = async () => {
+        if (!isCourseActive) {
+            showCourseClosedReadOnlyToast();
+            return;
+        }
+
         if (!currentBooking) return;
 
         setIsCompleting(true);
@@ -833,6 +864,11 @@ export default function WorkerDashboardPage() {
 
     // Skip booking
     const handleSkipBooking = async () => {
+        if (!isCourseActive) {
+            showCourseClosedReadOnlyToast();
+            return;
+        }
+
         if (!currentBooking) return;
 
         setIsSkipping(true);
@@ -890,6 +926,11 @@ export default function WorkerDashboardPage() {
 
     // Initialize sub-item scores when opening modal - fetch existing scores first
     const initializeCompleteForm = async () => {
+        if (!isCourseActive) {
+            showCourseClosedReadOnlyToast();
+            return;
+        }
+
         setIsCompleteModalOpen(true);
         
         if (currentBooking?.booking_type === "grading" && session?.linkedAssignment) {
@@ -1051,6 +1092,19 @@ export default function WorkerDashboardPage() {
                         </div>
                     </div>
                 )}
+                {!isCourseActive && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-xl bg-amber-100 shrink-0">
+                                <Icon icon="solar:lock-keyhole-bold" className="text-amber-600 text-xl" />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-semibold text-amber-800">{t("รายวิชานี้ถูกปิดแล้ว", "This course is closed")}</h3>
+                                <p className="text-sm text-amber-700">{t("หน้านี้อยู่ในโหมดดูข้อมูลอย่างเดียว ไม่สามารถรับงาน เปลี่ยนสถานะ หรือบันทึกผลได้", "This page is read-only. Receiving tasks, changing status, and saving results are disabled.")}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
@@ -1100,6 +1154,7 @@ export default function WorkerDashboardPage() {
                                 <div className="flex flex-col gap-3">
                                     <Checkbox
                                         isSelected={workerPreferences.accept_grading}
+                                        isDisabled={!isCourseActive}
                                         onValueChange={(value) =>
                                             setWorkerPreferences({ ...workerPreferences, accept_grading: value })
                                         }
@@ -1114,6 +1169,7 @@ export default function WorkerDashboardPage() {
                                     </Checkbox>
                                     <Checkbox
                                         isSelected={workerPreferences.accept_help}
+                                        isDisabled={!isCourseActive}
                                         onValueChange={(value) =>
                                             setWorkerPreferences({ ...workerPreferences, accept_help: value })
                                         }
@@ -1164,6 +1220,7 @@ export default function WorkerDashboardPage() {
                                     startContent={<Icon icon="solar:play-bold" className="text-lg" />}
                                     onPress={handleJoinAsWorker}
                                     isLoading={isJoining}
+                                    isDisabled={!isCourseActive}
                                 >
                                     {t("เริ่มรับงาน", "Start receiving tasks")}
                                 </Button>
@@ -1201,7 +1258,7 @@ export default function WorkerDashboardPage() {
                                         startContent={<Icon icon={isPausedAfterComplete ? "solar:pause-bold" : "solar:logout-2-bold"} />}
                                         onPress={handleLeaveAsWorker}
                                         isLoading={isLeaving}
-                                        isDisabled={isPausedAfterComplete}
+                                        isDisabled={isPausedAfterComplete || !isCourseActive}
                                     >
                                         {isPausedAfterComplete ? t("รอเครียร์งาน...", "Finishing task...") : t("หยุดรับงาน", "Stop receiving tasks")}
                                     </Button>
@@ -1368,6 +1425,7 @@ export default function WorkerDashboardPage() {
                                                 className="flex-1"
                                                 startContent={<Icon icon="solar:check-circle-bold" className="text-xl" />}
                                                 onPress={initializeCompleteForm}
+                                                isDisabled={!isCourseActive}
                                             >
                                                 {t("เสร็จสิ้น", "Complete")}
                                             </Button>
@@ -1377,6 +1435,7 @@ export default function WorkerDashboardPage() {
                                                 size="lg"
                                                 startContent={<Icon icon="solar:skip-next-bold" className="text-xl" />}
                                                 onPress={() => setIsSkipModalOpen(true)}
+                                                isDisabled={!isCourseActive}
                                             >
                                                 {t("ข้าม", "Skip")}
                                             </Button>
@@ -1510,6 +1569,7 @@ export default function WorkerDashboardPage() {
                                                                                     placeholder="0"
                                                                                     size="sm"
                                                                                     value={currentScore}
+                                                                                    isDisabled={!isCourseActive}
                                                                                     onValueChange={(value) => {
                                                                                         setCompleteForm(prev => ({
                                                                                             ...prev,
@@ -1543,6 +1603,7 @@ export default function WorkerDashboardPage() {
                                                                                             size="sm"
                                                                                             variant={currentScore === score.toString() ? "solid" : "flat"}
                                                                                             color={currentScore === score.toString() ? "primary" : "default"}
+                                                                                            isDisabled={!isCourseActive}
                                                                                             className={`min-w-10 h-7 text-xs ${currentScore === score.toString() 
                                                                                                 ? "bg-blue-500 text-white font-semibold" 
                                                                                                 : "bg-content3 text-default-700 font-medium"
@@ -1597,6 +1658,7 @@ export default function WorkerDashboardPage() {
                                                         type="number"
                                                         placeholder="0"
                                                         value={completeForm.score}
+                                                        isDisabled={!isCourseActive}
                                                         onValueChange={(value) => setCompleteForm({ ...completeForm, score: value })}
                                                         min={0}
                                                         max={maxScore}
@@ -1623,6 +1685,7 @@ export default function WorkerDashboardPage() {
                                                             size="sm"
                                                             variant={completeForm.score === score.toString() ? "solid" : "flat"}
                                                             color={completeForm.score === score.toString() ? "primary" : "default"}
+                                                            isDisabled={!isCourseActive}
                                                             className={completeForm.score === score.toString() 
                                                                 ? "bg-blue-500 text-white font-semibold min-w-12" 
                                                                 : "bg-content1 border border-default-200 text-default-700 font-medium min-w-12"
@@ -1653,6 +1716,7 @@ export default function WorkerDashboardPage() {
                                 label={t("ความคิดเห็น/หมายเหตุ (ถ้ามี)", "Comment / note (optional)")}
                                 placeholder={t("เพิ่มความคิดเห็นหรือหมายเหตุ...", "Add a comment or note...")}
                                 value={completeForm.score_comment}
+                                isDisabled={!isCourseActive}
                                 onValueChange={(value) => setCompleteForm({ ...completeForm, score_comment: value })}
                             />
                         </div>
@@ -1665,6 +1729,7 @@ export default function WorkerDashboardPage() {
                             color="success" 
                             onPress={handleCompleteBooking}
                             isLoading={isCompleting}
+                            isDisabled={!isCourseActive}
                         >
                             {t("บันทึกผล", "Save result")}
                         </Button>
@@ -1691,6 +1756,7 @@ export default function WorkerDashboardPage() {
                             labelPlacement="outside"
                             variant="bordered"
                             value={skipReason}
+                            isDisabled={!isCourseActive}
                             onValueChange={setSkipReason}
                         />
                     </ModalBody>
@@ -1702,6 +1768,7 @@ export default function WorkerDashboardPage() {
                             color="warning" 
                             onPress={handleSkipBooking}
                             isLoading={isSkipping}
+                            isDisabled={!isCourseActive}
                         >
                             {t("ข้ามคิว", "Skip queue")}
                         </Button>

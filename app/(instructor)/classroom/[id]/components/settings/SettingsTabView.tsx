@@ -9,6 +9,10 @@ import { Switch } from "@heroui/switch";
 import { Slider } from "@heroui/slider";
 import { Divider } from "@heroui/divider";
 import { Icon } from "@iconify/react";
+import {
+    instructorLightButtonClass,
+    instructorPrimaryButtonClass,
+} from "@/components/ui/instructor-button-styles";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import type { Course } from "@/services/course.service";
 import type { SettingsFormData, UseSettingsTabReturn } from "./useSettingsTab";
@@ -102,6 +106,14 @@ function SettingsTabViewComponent({
         formData.attention_threshold < 50 ? "danger" : formData.attention_threshold < 70 ? "warning" : "success";
     const thresholdBarColor =
         formData.attention_threshold < 50 ? "bg-red-500" : formData.attention_threshold < 70 ? "bg-amber-500" : "bg-emerald-500";
+    const hasPendingChanges =
+        formData.code !== (course.code || "") ||
+        formData.name !== (course.name || "") ||
+        formData.year !== (course.year || formData.year) ||
+        formData.semester !== (course.semester || 1) ||
+        formData.description !== (course.description || "") ||
+        formData.attention_threshold !== (course.attention_threshold ?? 60) ||
+        formData.is_active !== (course.is_active ?? true);
 
     return (
         <div className="space-y-5">
@@ -138,10 +150,10 @@ function SettingsTabViewComponent({
                         {/* Action buttons */}
                         {!isEditing ? (
                             <Button
-                                className="bg-white/15 border border-white/25 text-white hover:bg-white/25 backdrop-blur-sm"
-                                startContent={<Icon icon="solar:pen-bold" />}
+                                className={instructorLightButtonClass("bg-white/15 border border-white/25 text-white hover:bg-white/25 backdrop-blur-sm")}
                                 onPress={onStartEditing}
                                 size="sm"
+                                isDisabled={!course.is_active}
                             >
                                 {isEnglish ? "Edit details" : "แก้ไขข้อมูล"}
                             </Button>
@@ -149,16 +161,16 @@ function SettingsTabViewComponent({
                             <div className="flex gap-2">
                                 <Button
                                     size="sm"
-                                    className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                                    className={instructorLightButtonClass("bg-white/10 border border-white/20 text-white hover:bg-white/20")}
                                     onPress={onCancel}
                                 >
                                     {isEnglish ? "Cancel" : "ยกเลิก"}
                                 </Button>
                                 <Button
                                     size="sm"
-                                    className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg"
+                                    className={instructorPrimaryButtonClass()}
                                     isLoading={isSaving}
-                                    startContent={!isSaving && <Icon icon="solar:check-circle-bold" />}
+                                    isDisabled={!hasPendingChanges || !formData.code.trim() || !formData.name.trim()}
                                     onPress={onSave}
                                 >
                                     {isEnglish ? "Save" : "บันทึก"}
@@ -186,6 +198,14 @@ function SettingsTabViewComponent({
                             {stats.tasCount} {isEnglish ? "teaching assistants" : "ผู้ช่วยสอน"}
                         </div>
                     </div>
+
+                    {!course.is_active && (
+                        <div className="mt-4 rounded-xl border border-amber-300/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-50">
+                            {isEnglish
+                                ? "This course is closed. Settings are read-only here until the course is reopened."
+                                : "รายวิชานี้ถูกปิดอยู่ ตอนนี้หน้า settings จะดูข้อมูลได้อย่างเดียวจนกว่าจะเปิดวิชากลับ"}
+                        </div>
+                    )}
                 </CardBody>
             </Card>
 
@@ -467,7 +487,6 @@ function SettingsTabViewComponent({
                     <Button
                         className="w-full bg-linear-to-r from-emerald-400 to-teal-500 text-white shadow-lg shadow-emerald-500/20"
                         size="md"
-                        startContent={!isExporting && <Icon icon="solar:file-download-bold" className="text-lg" />}
                         isLoading={isExporting}
                         onPress={onExportAll}
                     >

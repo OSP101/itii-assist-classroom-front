@@ -334,7 +334,8 @@ export function FeedbackModal({ isOpen, onClose, userEmail }: FeedbackFormProps)
                                 color="primary"
                                 onPress={handleSubmit}
                                 isLoading={isSubmitting}
-                                startContent={!isSubmitting && <Icon icon="solar:plain-bold" />}
+                                isDisabled={!title.trim() || !description.trim()}
+                                className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                             >
                                 ส่ง Feedback
                             </Button>

@@ -109,6 +109,9 @@ export default function StudentsPage() {
         email: "",
     });
 
+    // Track original form data for change detection (edit mode)
+    const [originalFormData, setOriginalFormData] = useState<CreateStudentDto | null>(null);
+
     // Import data
     const [importText, setImportText] = useState("");
 
@@ -192,6 +195,13 @@ export default function StudentsPage() {
             full_name: "",
             email: "",
         });
+        setOriginalFormData(null);
+    };
+
+    // Check if form has changes
+    const hasFormChanges = () => {
+        if (!originalFormData) return false;
+        return JSON.stringify(formData) !== JSON.stringify(originalFormData);
     };
 
     // Handle create student
@@ -485,11 +495,13 @@ export default function StudentsPage() {
     // Open edit modal
     const openEditModal = (student: Student) => {
         setSelectedStudent(student);
-        setFormData({
+        const studentData = {
             student_id: student.student_id,
             full_name: student.full_name,
             email: student.email || "",
-        });
+        };
+        setFormData(studentData);
+        setOriginalFormData(studentData);
         setIsEditModalOpen(true);
     };
 
@@ -908,8 +920,8 @@ export default function StudentsPage() {
                             color="primary"
                             onPress={handleCreate}
                             isLoading={isSubmitting}
+                            isDisabled={!formData.student_id.trim() || !formData.full_name.trim() || !(formData.email || "").trim()}
                             className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500"
-                            startContent={!isSubmitting && <Icon icon="solar:add-circle-bold" className="text-lg" />}
                         >
                             {t("addStudent")}
                         </Button>
@@ -1002,8 +1014,8 @@ export default function StudentsPage() {
                             color="primary"
                             onPress={handleUpdate}
                             isLoading={isSubmitting}
+                            isDisabled={!hasFormChanges()}
                             className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
-                            startContent={!isSubmitting && <Icon icon="solar:diskette-bold" className="text-lg" />}
                         >
                             {t("saveChanges")}
                         </Button>
@@ -1057,7 +1069,6 @@ export default function StudentsPage() {
                             color="primary"
                             onPress={confirmToggleStatus}
                             className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
-                            startContent={<Icon icon={studentToToggle?.is_active ? "solar:eye-closed-bold" : "solar:eye-bold"} className="text-lg" />}
                         >
                             {studentToToggle?.is_active ? t("disableAction") : t("enableAction")}
                         </Button>
@@ -1102,7 +1113,6 @@ export default function StudentsPage() {
                             onPress={handleDelete}
                             isLoading={isSubmitting}
                             className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
-                            startContent={!isSubmitting && <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />}
                         >
                             {t("deleteStudent")}
                         </Button>
@@ -1181,7 +1191,6 @@ export default function StudentsPage() {
                             onPress={handleImport}
                             isLoading={isSubmitting}
                             className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
-                            startContent={!isSubmitting && <Icon icon="solar:import-bold" className="text-lg" />}
                         >
                             {t("importStudents")}
                         </Button>

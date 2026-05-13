@@ -1007,7 +1007,6 @@ export default function ProjectorViewPage() {
                             onPress={handleCancelDeskBooking}
                             isLoading={isCancelling}
                             className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
-                            startContent={<Icon icon="solar:trash-bin-trash-bold" />}
                         >
                             {t('ยกเลิกการจอง', 'Cancel booking')}
                         </Button>
@@ -1042,13 +1041,13 @@ export default function ProjectorViewPage() {
                             {t('ยกเลิก', 'Cancel')}
                         </Button>
                         <Button
-                            color={nextCutoffEnabled ? "warning" : "success"}
+                            color="primary"
                             onPress={async () => {
                                 setIsCutoffConfirmOpen(false);
                                 await handleToggleCutoff();
                             }}
                             isLoading={isTogglingCutoff}
-                            startContent={<Icon icon={nextCutoffEnabled ? "solar:lock-bold" : "solar:lock-unlocked-bold"} />}
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                         >
                             {nextCutoffEnabled ? t("ยืนยันเปิด Cutoff", "Enable cutoff") : t("ยืนยันปิด Cutoff", "Disable cutoff")}
                         </Button>

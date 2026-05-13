@@ -199,7 +199,6 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                     key="lab"
                     title={
                         <div className="flex items-center gap-2">
-                            <Icon icon="solar:monitor-bold" className="text-base" />
                             <span>Laboratory</span>
                             {labCount > 0 && (
                                 <Chip size="sm" variant="flat" className="bg-indigo-100 text-indigo-600 h-5 px-1.5 text-xs">
@@ -213,7 +212,6 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                     key="assignment"
                     title={
                         <div className="flex items-center gap-2">
-                            <Icon icon="solar:document-text-bold" className="text-base" />
                             <span>Assignment</span>
                             {assignmentCount > 0 && (
                                 <Chip size="sm" variant="flat" className="bg-amber-100 text-amber-600 h-5 px-1.5 text-xs">
@@ -227,7 +225,6 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                     key="group"
                     title={
                         <div className="flex items-center gap-2">
-                            <Icon icon="solar:users-group-rounded-bold" className="text-base" />
                             <span>{isEnglish ? "Group work" : "งานกลุ่ม"}</span>
                             {groupCount > 0 && (
                                 <Chip size="sm" variant="flat" className="bg-emerald-100 text-emerald-600 h-5 px-1.5 text-xs">
@@ -265,7 +262,6 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                         variant="bordered"
                                         size="md"
                                         className="min-w-28 justify-between border-default-200 bg-content1 text-default-700"
-                                        endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-default-400 text-sm" />}
                                     >
                                         {selectedSection === "all"
                                             ? (isEnglish ? "All sections" : "ทุกกลุ่ม")

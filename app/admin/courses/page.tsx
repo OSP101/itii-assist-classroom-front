@@ -129,6 +129,9 @@ export default function CoursesPage() {
         image: "",
     });
 
+    // Track original form data for change detection (edit mode)
+    const [originalFormData, setOriginalFormData] = useState<CreateCourseDto | null>(null);
+
     // Image upload state
     const [imagePreview, setImagePreview] = useState<string | null>(null);
 
@@ -287,7 +290,14 @@ export default function CoursesPage() {
             description: "",
             image: "",
         });
+        setOriginalFormData(null);
         setImagePreview(null);
+    };
+
+    // Check if form has changes
+    const hasFormChanges = () => {
+        if (!originalFormData) return false;
+        return JSON.stringify(formData) !== JSON.stringify(originalFormData);
     };
 
     // Handle image upload
@@ -341,7 +351,7 @@ export default function CoursesPage() {
         // Get instructor IDs from the instructors array
         const instructorIdList = course.instructors?.map(i => i.id) || 
             (course.instructor_id ? [course.instructor_id] : []);
-        setFormData({
+        const courseData = {
             code: course.code,
             name: course.name,
             year: course.year,
@@ -350,7 +360,9 @@ export default function CoursesPage() {
             instructor_ids: instructorIdList,
             description: course.description || "",
             image: course.image || "",
-        });
+        };
+        setFormData(courseData);
+        setOriginalFormData(courseData);
         setImagePreview(course.image || null);
         setIsEditModalOpen(true);
     };
@@ -1249,8 +1261,8 @@ export default function CoursesPage() {
                             color="primary"
                             onPress={handleCreate}
                             isLoading={isSubmitting}
+                            isDisabled={!formData.code.trim() || !formData.name.trim()}
                             className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500"
-                            startContent={!isSubmitting && <Icon icon="solar:add-circle-bold" className="text-lg" />}
                         >
                             {t("createCourse")}
                         </Button>
@@ -1496,8 +1508,8 @@ export default function CoursesPage() {
                             color="primary"
                             onPress={handleUpdate}
                             isLoading={isSubmitting}
+                            isDisabled={!hasFormChanges()}
                             className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
-                            startContent={!isSubmitting && <Icon icon="solar:pen-bold" className="text-lg" />}
                         >
                             {t("saveChanges")}
                         </Button>
@@ -1544,7 +1556,6 @@ export default function CoursesPage() {
                             onPress={handleDelete}
                             isLoading={isSubmitting}
                             className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
-                            startContent={!isSubmitting && <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />}
                         >
                             {t("deleteCourse")}
                         </Button>
@@ -1607,7 +1618,6 @@ export default function CoursesPage() {
                             onPress={handleToggleStatus}
                             isLoading={isSubmitting}
                             className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
-                            startContent={!isSubmitting && <Icon icon={selectedCourse?.is_active ? "solar:eye-closed-bold" : "solar:eye-bold"} className="text-lg" />}
                         >
                             {selectedCourse?.is_active ? t("disableAction") : t("enableAction")}
                         </Button>

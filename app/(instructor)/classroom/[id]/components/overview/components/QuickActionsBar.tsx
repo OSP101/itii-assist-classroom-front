@@ -34,7 +34,6 @@ function QuickActionsBarComponent({ onNavigate }: QuickActionsBarProps) {
           size="sm"
           color="default"
           variant="flat"
-          startContent={<Icon icon={action.icon} className="text-sm text-slate-500 dark:text-zinc-400" />}
           onPress={() => action.tab && onNavigate?.(action.tab)}
           className="rounded-xl text-xs h-8 bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-700 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-150"
         >

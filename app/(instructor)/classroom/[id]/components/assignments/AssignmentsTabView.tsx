@@ -150,6 +150,7 @@ function AssignmentsTabViewComponent({
     const { language } = useGlobalSettings();
     const isEnglish = language === "en";
     const deleteTypeInfo = deleteTarget ? getTypeInfo(deleteTarget.assignment_type, isEnglish) : null;
+    const canReorderAssignments = canUpdateAssignments && isCourseActive;
 
     const getUngradedTooltipContent = (assignment: AssignmentType) => {
         const info = ungradedSummary[assignment.id];
@@ -216,7 +217,7 @@ function AssignmentsTabViewComponent({
             <Chip
                 size="sm"
                 variant="flat"
-                className="bg-yellow-100 text-yellow-700 gap-1"
+                className="bg-yellow-100 text-yellow-700 gap-1 border border-yellow-200"
                 startContent={<Icon icon={isScheduled ? "solar:calendar-date-bold" : "solar:pen-new-square-bold"} width={13} />}
             >
                 {isScheduled
@@ -231,24 +232,25 @@ function AssignmentsTabViewComponent({
         const typeInfo = getTypeInfo(assignment.assignment_type, isEnglish);
         const isDragging = draggingId === assignment.id;
         const isDragOver = dragOverId === assignment.id;
+        const canOpenScoreModal = !assignment.is_draft && (canGradeAssignments || canEditScores);
         return (
             <Card
                 key={assignment.id}
                 as="div"
-                isPressable={canGradeAssignments || canEditScores}
-                className={`border shadow-sm transition-all ${isDragging ? "opacity-40 scale-95" : ""} ${isDragOver ? "border-blue-400 border-2 shadow-lg" : "border-default-200 hover:shadow-md"} ${assignment.is_draft ? "bg-yellow-50/60" : "bg-content1"}`}
-                onPress={() => (canGradeAssignments || canEditScores) && onOpenScoreModal(assignment)}
-                draggable={canUpdateAssignments}
-                onDragStart={canUpdateAssignments ? () => onDragStart(assignment.id) : undefined}
-                onDragOver={canUpdateAssignments ? (e) => { e.preventDefault(); onDragOver(assignment.id); } : undefined}
-                onDrop={canUpdateAssignments ? (e) => { e.preventDefault(); onDrop(assignment.id); } : undefined}
-                onDragEnd={canUpdateAssignments ? onDragEnd : undefined}
+                isPressable={canOpenScoreModal}
+                className={`border shadow-sm transition-all ${isDragging ? "opacity-40 scale-95" : ""} ${isDragOver ? "border-blue-400 border-2 shadow-lg" : "border-default-200 hover:shadow-md"} ${assignment.is_draft ? "bg-yellow-50/70 opacity-80" : "bg-content1"}`}
+                onPress={() => canOpenScoreModal && onOpenScoreModal(assignment)}
+                draggable={canReorderAssignments}
+                onDragStart={canReorderAssignments ? () => onDragStart(assignment.id) : undefined}
+                onDragOver={canReorderAssignments ? (e) => { e.preventDefault(); onDragOver(assignment.id); } : undefined}
+                onDrop={canReorderAssignments ? (e) => { e.preventDefault(); onDrop(assignment.id); } : undefined}
+                onDragEnd={canReorderAssignments ? onDragEnd : undefined}
             >
                 <CardBody className="p-4">
                     {/* Header with Actions */}
                     <div className="flex items-start justify-between gap-2 mb-3">
                         <div className="flex items-center gap-2">
-                            {canUpdateAssignments && (
+                            {canReorderAssignments && (
                                 <div className="cursor-grab text-default-300 transition-colors hover:text-default-500 active:cursor-grabbing" title={isEnglish ? "Drag to reorder" : "ลากเพื่อจัดเรียง"}>
                                     <Icon icon="solar:reorder-bold" className="text-lg" />
                                 </div>
@@ -266,6 +268,7 @@ function AssignmentsTabViewComponent({
                                             size="sm"
                                             variant="light"
                                             color="default"
+                                            isDisabled={!isCourseActive}
                                             aria-label={isEnglish ? "Edit assignment" : "แก้ไขงาน"}
                                             onPress={() => onOpenEditModal(assignment)}
                                         >
@@ -280,6 +283,7 @@ function AssignmentsTabViewComponent({
                                             size="sm"
                                             variant="light"
                                             color="danger"
+                                            isDisabled={!isCourseActive}
                                             aria-label={isEnglish ? "Delete assignment" : "ลบงาน"}
                                             onPress={() => onDeleteAssignment(assignment)}
                                         >
@@ -292,7 +296,7 @@ function AssignmentsTabViewComponent({
                     </div>
 
                     {/* Title */}
-                    <p className="mb-2 line-clamp-2 font-semibold text-foreground">{assignment.name}</p>
+                    <p className={`mb-2 line-clamp-2 font-semibold ${assignment.is_draft ? "text-default-500" : "text-foreground"}`}>{assignment.name}</p>
 
                     {/* Chips */}
                     <div className="flex flex-wrap items-center gap-1.5 mb-3">
@@ -308,9 +312,9 @@ function AssignmentsTabViewComponent({
                             </Chip>
                         )}
                         {assignment.is_score_visible === false && (
-                            <Tooltip content={isEnglish ? "Hide scores from students" : "ซ่อนคะแนนจากนักศึกษา"}>
+                            <Tooltip content={isEnglish ? "Scores are not shown to students" : "ไม่แสดงคะแนนให้นักศึกษารู้"}>
                                 <Chip size="sm" variant="flat" className="bg-amber-50 text-amber-600 gap-1" startContent={<Icon icon="solar:eye-closed-linear" width={14} />}>
-                                    {isEnglish ? "Hidden" : "ซ่อน"}
+                                    {isEnglish ? "No student score" : "ไม่แสดงคะแนน"}
                                 </Chip>
                             </Tooltip>
                         )}
@@ -319,7 +323,7 @@ function AssignmentsTabViewComponent({
 
                     {/* Footer Info */}
                     <div className="flex items-center justify-between border-t border-divider pt-2 text-sm text-default-500">
-                        <span className="flex items-center gap-1">
+                        <span className={`flex items-center gap-1 ${assignment.is_draft ? "text-default-400" : ""}`}>
                             <Icon icon="solar:medal-star-bold" className="text-amber-500" />
                             <span className="font-medium text-default-700">{assignment.max_score}</span> {isEnglish ? (Number(assignment.max_score) === 1 ? "point" : "points") : "คะแนน"}
                         </span>
@@ -329,7 +333,7 @@ function AssignmentsTabViewComponent({
                                     size="sm"
                                     color="success"
                                     variant="flat"
-                                    startContent={<Icon icon="solar:eye-bold" className="text-sm" />}
+                                    isDisabled={!isCourseActive}
                                     onPress={async () => {
                                         await assignmentService.publishAssignment(assignment.id);
                                         onAssignmentSaved();
@@ -353,26 +357,27 @@ function AssignmentsTabViewComponent({
         const typeInfo = getTypeInfo(assignment.assignment_type, isEnglish);
         const isDragging = draggingId === assignment.id;
         const isDragOver = dragOverId === assignment.id;
+        const canOpenScoreModal = !assignment.is_draft && (canGradeAssignments || canEditScores);
         return (
             <div
                 key={assignment.id}
-                draggable={canUpdateAssignments}
-                onDragStart={canUpdateAssignments ? () => onDragStart(assignment.id) : undefined}
-                onDragOver={canUpdateAssignments ? (e) => { e.preventDefault(); onDragOver(assignment.id); } : undefined}
-                onDrop={canUpdateAssignments ? (e) => { e.preventDefault(); onDrop(assignment.id); } : undefined}
-                onDragEnd={canUpdateAssignments ? onDragEnd : undefined}
-                className={`transition-all ${isDragging ? "opacity-40" : ""} ${isDragOver ? "scale-[1.01]" : ""}`}
+                draggable={canReorderAssignments}
+                onDragStart={canReorderAssignments ? () => onDragStart(assignment.id) : undefined}
+                onDragOver={canReorderAssignments ? (e) => { e.preventDefault(); onDragOver(assignment.id); } : undefined}
+                onDrop={canReorderAssignments ? (e) => { e.preventDefault(); onDrop(assignment.id); } : undefined}
+                onDragEnd={canReorderAssignments ? onDragEnd : undefined}
+                className={`transition-all ${isDragging ? "opacity-40" : ""} ${isDragOver ? "scale-[1.01]" : ""} ${assignment.is_draft ? "opacity-80" : ""}`}
             >
             <Card
                 as="div"
-                isPressable={canGradeAssignments || canEditScores}
-                className={`w-full border shadow-sm transition-all ${isDragOver ? "border-blue-400 border-2 shadow-md" : "border-default-200 hover:shadow-md"} ${assignment.is_draft ? "bg-yellow-50/60" : "bg-content1"}`}
-                onPress={() => (canGradeAssignments || canEditScores) && onOpenScoreModal(assignment)}
+                isPressable={canOpenScoreModal}
+                className={`w-full border shadow-sm transition-all ${isDragOver ? "border-blue-400 border-2 shadow-md" : "border-default-200 hover:shadow-md"} ${assignment.is_draft ? "bg-yellow-50/70 opacity-80" : "bg-content1"}`}
+                onPress={() => canOpenScoreModal && onOpenScoreModal(assignment)}
             >
                 <CardBody className="p-3 sm:p-4">
                     <div className="flex items-center gap-3 sm:gap-4">
                         {/* Drag Handle */}
-                        {canUpdateAssignments && (
+                        {canReorderAssignments && (
                             <div className="shrink-0 cursor-grab text-default-300 transition-colors hover:text-default-500 active:cursor-grabbing" title={isEnglish ? "Drag to reorder" : "ลากเพื่อจัดเรียง"}>
                                 <Icon icon="solar:reorder-bold" className="text-xl" />
                             </div>
@@ -386,23 +391,23 @@ function AssignmentsTabViewComponent({
                         {/* Content */}
                         <div className="flex-1 min-w-0">
                             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-                                <p className="truncate font-semibold text-foreground">{assignment.name}</p>
+                                <p className={`truncate font-semibold ${assignment.is_draft ? "text-default-500" : "text-foreground"}`}>{assignment.name}</p>
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                     <Chip size="sm" className={typeInfo.color}>{typeInfo.label}</Chip>
                                     {assignment.week_number && (
                                         <Chip size="sm" variant="flat" className="bg-blue-50 text-blue-600">W{assignment.week_number}</Chip>
                                     )}
                                     {assignment.is_score_visible === false && (
-                                        <Tooltip content={isEnglish ? "Hide scores from students" : "ซ่อนคะแนนจากนักศึกษา"}>
+                                        <Tooltip content={isEnglish ? "Scores are not shown to students" : "ไม่แสดงคะแนนให้นักศึกษารู้"}>
                                             <Chip size="sm" variant="flat" className="bg-amber-50 text-amber-600 gap-1" startContent={<Icon icon="solar:eye-closed-linear" width={14} />}>
-                                                {isEnglish ? "Hidden" : "ซ่อน"}
+                                                {isEnglish ? "No student score" : "ไม่แสดงคะแนน"}
                                             </Chip>
                                         </Tooltip>
                                     )}
                                     {renderDraftBadge(assignment)}
                                 </div>
                             </div>
-                            <div className="mt-1 flex items-center gap-3 text-sm text-default-500">
+                            <div className={`mt-1 flex items-center gap-3 text-sm ${assignment.is_draft ? "text-default-400" : "text-default-500"}`}>
                                 <span className="flex items-center gap-1">
                                     <Icon icon="solar:medal-star-linear" className="text-amber-500" />
                                     {formatPoints(assignment.max_score, isEnglish)}
@@ -441,6 +446,7 @@ function AssignmentsTabViewComponent({
                                             size="sm"
                                             variant="flat"
                                             color="success"
+                                            isDisabled={!isCourseActive}
                                             onPress={async () => {
                                                 await assignmentService.publishAssignment(assignment.id);
                                                 onAssignmentSaved();
@@ -452,14 +458,14 @@ function AssignmentsTabViewComponent({
                                 )}
                                 {canUpdateAssignments && (
                                     <Tooltip content={isEnglish ? "Edit" : "แก้ไข"}>
-                                        <Button isIconOnly size="sm" variant="light" color="default" onPress={() => onOpenEditModal(assignment)}>
+                                        <Button isIconOnly size="sm" variant="light" color="default" isDisabled={!isCourseActive} onPress={() => onOpenEditModal(assignment)}>
                                             <Icon icon="solar:pen-linear" className="text-lg" />
                                         </Button>
                                     </Tooltip>
                                 )}
                                 {canDeleteAssignments && (
                                     <Tooltip content={isEnglish ? "Delete" : "ลบ"} color="danger">
-                                        <Button isIconOnly size="sm" variant="light" color="danger" onPress={() => onDeleteAssignment(assignment)}>
+                                        <Button isIconOnly size="sm" variant="light" color="danger" isDisabled={!isCourseActive} onPress={() => onDeleteAssignment(assignment)}>
                                             <Icon icon="solar:trash-bin-trash-linear" className="text-lg" />
                                         </Button>
                                     </Tooltip>
@@ -505,7 +511,6 @@ function AssignmentsTabViewComponent({
                                 key="lab"
                                 title={
                                     <div className="flex items-center gap-2">
-                                        <Icon icon="solar:monitor-bold" className="text-lg" />
                                         <span>Laboratory</span>
                                         {labAssignments.length > 0 && (
                                             <Chip size="sm" variant="flat" className="bg-indigo-100 text-indigo-700 h-5 min-w-5 px-1">
@@ -519,7 +524,6 @@ function AssignmentsTabViewComponent({
                                 key="assignment"
                                 title={
                                     <div className="flex items-center gap-2">
-                                        <Icon icon="solar:document-text-bold" className="text-lg" />
                                         <span>Assignment</span>
                                         {homeworkAssignments.length > 0 && (
                                             <Chip size="sm" variant="flat" className="bg-amber-100 text-amber-700 h-5 min-w-5 px-1">
@@ -533,7 +537,6 @@ function AssignmentsTabViewComponent({
                                 key="group"
                                 title={
                                     <div className="flex items-center gap-2">
-                                        <Icon icon="solar:users-group-rounded-bold" className="text-lg" />
                                         <span className="hidden sm:inline">{isEnglish ? "Group work" : "งานกลุ่ม"}</span>
                                         <span className="sm:hidden">{isEnglish ? "Groups" : "กลุ่ม"}</span>
                                         {groupAssignments.length > 0 && (
@@ -616,7 +619,6 @@ function AssignmentsTabViewComponent({
                                             <Button
                                                 color="warning"
                                                 variant="flat"
-                                                startContent={<Icon icon="solar:star-bold" />}
                                                 onPress={onOpenBonusScoreModal}
                                                 className="hidden sm:flex"
                                                 isDisabled={!isCourseActive}
@@ -644,7 +646,6 @@ function AssignmentsTabViewComponent({
                                     {canCreateAssignments && (
                                         <Button
                                             color="primary"
-                                            startContent={<Icon icon="solar:add-circle-bold" />}
                                             onPress={onOpenCreateModal}
                                             className="hidden sm:flex bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25"
                                             isDisabled={!isCourseActive}
@@ -708,7 +709,6 @@ function AssignmentsTabViewComponent({
                                             <Button
                                                 color="primary"
                                                 size="lg"
-                                                startContent={<Icon icon="solar:add-circle-bold" />}
                                                 onPress={onOpenCreateModal}
                                                 className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-indigo-500/25"
                                                 isDisabled={!isCourseActive}
@@ -837,6 +837,7 @@ function AssignmentsTabViewComponent({
                             color="danger" 
                             onPress={onConfirmDelete}
                             isLoading={isDeleting}
+                            isDisabled={!isCourseActive}
                             className="bg-red-500"
                         >
                             {isEnglish ? "Delete assignment" : "ลบงาน"}
@@ -853,6 +854,7 @@ function AssignmentsTabViewComponent({
                 editingAssignment={editingAssignment}
                 onSuccess={onAssignmentSaved}
                 weeklyTeams={weeklyTeams}
+                isCourseActive={isCourseActive}
             />
         </div>
     );

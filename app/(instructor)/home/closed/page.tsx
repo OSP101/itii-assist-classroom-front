@@ -20,6 +20,7 @@ import { authService } from "@/services/auth.service";
 import { courseService, Course } from "@/services/course.service";
 import { useSocket } from "@/contexts/SocketContext";
 import { CourseListSkeleton } from "@/components/loading-skeletons";
+import { instructorFlatButtonClass } from "@/components/ui/instructor-button-styles";
 import { useI18n } from "@/hooks/useI18n";
 import { IoSchool, IoBook, IoPeople, IoPersonAdd } from "react-icons/io5";
 
@@ -484,6 +485,7 @@ export default function ClosedCoursesPage() {
                                 className="w-full sm:w-36"
                                 size="md"
                                 variant="bordered"
+                                selectorIcon={<span className="hidden" />}
                             >
                                 {yearOptions.map((option) => (
                                     <SelectItem key={option.value}>{option.label}</SelectItem>
@@ -498,6 +500,7 @@ export default function ClosedCoursesPage() {
                                 className="w-full sm:w-32"
                                 size="md"
                                 variant="bordered"
+                                selectorIcon={<span className="hidden" />}
                             >
                                 {semesterOptions.map((option) => (
                                     <SelectItem key={option.value}>{option.label}</SelectItem>
@@ -510,7 +513,7 @@ export default function ClosedCoursesPage() {
                                     color="danger"
                                     size="md"
                                     onPress={clearFilters}
-                                    startContent={<Icon icon="solar:close-circle-linear" />}
+                                    className={instructorFlatButtonClass()}
                                 >
                                     {t("clear")}
                                 </Button>
@@ -544,7 +547,7 @@ export default function ClosedCoursesPage() {
                                 <Button
                                     color="primary"
                                     variant="flat"
-                                    startContent={<Icon icon="solar:close-circle-linear" />}
+                                    className={instructorFlatButtonClass()}
                                     onPress={clearFilters}
                                 >
                                     {t("clearFilters")}
@@ -628,14 +631,12 @@ export default function ClosedCoursesPage() {
                                                     >
                                                         <DropdownItem
                                                             key="restore"
-                                                            startContent={<Icon icon="solar:refresh-bold" className="text-lg" />}
                                                             color="success"
                                                         >
                                                             {t("enableCourse")}
                                                         </DropdownItem>
                                                         <DropdownItem
                                                             key="delete"
-                                                            startContent={<Icon icon="solar:trash-bin-trash-bold" className="text-lg" />}
                                                             color="danger"
                                                             className="text-danger"
                                                         >
@@ -769,14 +770,12 @@ export default function ClosedCoursesPage() {
                                                         >
                                                             <DropdownItem
                                                                 key="restore"
-                                                                startContent={<Icon icon="solar:refresh-bold" className="text-lg" />}
                                                                 color="success"
                                                             >
                                                                 {t("enableCourse")}
                                                             </DropdownItem>
                                                             <DropdownItem
                                                                 key="delete"
-                                                                startContent={<Icon icon="solar:trash-bin-trash-bold" className="text-lg" />}
                                                                 color="danger"
                                                                 className="text-danger"
                                                             >
@@ -872,7 +871,6 @@ export default function ClosedCoursesPage() {
                             onPress={handleRestoreCourse}
                             isLoading={isSubmitting}
                             className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
-                            startContent={!isSubmitting && <Icon icon="solar:eye-bold" className="text-lg" />}
                         >
                             {t("enableAction")}
                         </Button>

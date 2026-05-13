@@ -273,8 +273,8 @@ export default function SectionsTab({
                         <Button 
                             onPress={handleAddSection}
                             isLoading={isSubmitting}
+                            isDisabled={!isCourseActive || !sectionModal.sectionNo.trim()}
                             className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-400/25"
-                            startContent={!isSubmitting && <Icon icon="solar:add-circle-bold" />}
                         >
                             {isEnglish ? "Add section" : "เพิ่มกลุ่มเรียน"}
                         </Button>
@@ -340,9 +340,8 @@ export default function SectionsTab({
                         <Button 
                             onPress={handleEditSection}
                             isLoading={isSubmitting}
-                            isDisabled={!editSectionModal.sectionNo.trim()}
+                            isDisabled={!isCourseActive || !editSectionModal.sectionNo.trim()}
                             className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-400/25"
-                            startContent={!isSubmitting && <Icon icon="solar:diskette-bold" />}
                         >
                             {isEnglish ? "Save" : "บันทึก"}
                         </Button>
@@ -523,9 +522,8 @@ export default function SectionsTab({
                             <Button 
                                 onPress={handleAddStudent}
                                 isLoading={isSubmitting}
-                                isDisabled={!studentModal.studentId}
+                                isDisabled={!isCourseActive || !studentModal.studentId}
                                 className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-400/25"
-                                startContent={!isSubmitting && <Icon icon="solar:user-plus-bold" />}
                             >
                                 {isEnglish ? "Add student" : "เพิ่มนักศึกษา"}
                             </Button>
@@ -533,9 +531,8 @@ export default function SectionsTab({
                             <Button 
                                 onPress={handleBulkAddStudents}
                                 isLoading={isSubmitting}
-                                isDisabled={studentModal.parsedStudents.filter(p => p.status === "matched").length === 0}
+                                isDisabled={!isCourseActive || studentModal.parsedStudents.filter(p => p.status === "matched").length === 0}
                                 className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-400/25"
-                                startContent={!isSubmitting && <Icon icon="solar:users-group-rounded-bold" />}
                             >
                                 {isEnglish
                                     ? `Add students (${studentModal.parsedStudents.filter(p => p.status === "matched").length})`
@@ -929,12 +926,11 @@ export default function SectionsTab({
                             onPress={handleCreateTeam}
                             isLoading={isSubmitting}
                             isDisabled={
-                                teamModal.formationMethod === "manual" 
+                                !isCourseActive || teamModal.formationMethod === "manual" 
                                     ? !teamModal.name.trim() || teamModal.members.length === 0
                                     : getUnassignedStudents(teamModal.type, teamModal.type === "weekly" ? selectedWeek : undefined).length === 0
                             }
                             className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-500/25"
-                            startContent={!isSubmitting && <Icon icon={teamModal.formationMethod === "random" ? "solar:shuffle-bold" : "solar:add-circle-bold"} />}
                         >
                             {teamModal.formationMethod === "random"
                                 ? (isEnglish ? "Randomize teams" : "สุ่มกลุ่ม")
@@ -1088,9 +1084,8 @@ export default function SectionsTab({
                         <Button 
                             onPress={handleSaveEditedTeam}
                             isLoading={isSubmitting}
-                            isDisabled={!editTeamModal.name.trim() || editTeamModal.members.length === 0}
+                            isDisabled={!isCourseActive || !editTeamModal.name.trim() || editTeamModal.members.length === 0}
                             className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-400/25"
-                            startContent={!isSubmitting && <Icon icon="solar:diskette-bold" />}
                         >
                             {isEnglish ? "Save" : "บันทึก"}
                         </Button>
@@ -1294,9 +1289,9 @@ export default function SectionsTab({
                             }}
                             isLoading={isSubmitting}
                             isDisabled={
-                                deleteModal.target?.type === "section" 
+                                !isCourseActive || (deleteModal.target?.type === "section" 
                                     ? deleteModal.confirmInput !== deleteModal.target?.sectionNo
-                                    : false
+                                    : false)
                             }
                             className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                         >
@@ -1388,8 +1383,8 @@ export default function SectionsTab({
                         <Button
                             onPress={confirmRestoreStudent}
                             isLoading={isSubmitting}
+                            isDisabled={!isCourseActive}
                             className="bg-linear-to-r from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-500/25"
-                            startContent={!isSubmitting && <Icon icon="solar:restart-bold" />}
                         >
                             {isEnglish ? "Restore student" : "กู้คืนนักศึกษา"}
                         </Button>
@@ -1491,6 +1486,7 @@ export default function SectionsTab({
                             color="primary"
                             onPress={handleBulkDeleteTeams}
                             isLoading={isSubmitting}
+                            isDisabled={!isCourseActive}
                             className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                         >
                             {isEnglish ? "Delete all" : "ลบทั้งหมด"}

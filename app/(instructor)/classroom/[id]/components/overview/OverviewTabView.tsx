@@ -13,6 +13,7 @@ import {
 } from "@heroui/table";
 import { Icon } from "@iconify/react";
 import { OverviewSkeleton } from "../Skeletons";
+import { instructorPrimaryButtonClass } from "@/components/ui/instructor-button-styles";
 import type {
   Course, CourseOverview, AssignmentTypeStats, OverviewAssignment, OverviewStudent,
 } from "@/services/course.service";
@@ -553,8 +554,12 @@ function OverviewTabViewComponent({
                 <div className="py-12 text-center">
                   <Icon icon="solar:document-add-linear" className="text-3xl text-slate-300 mx-auto mb-2" />
                   <p className="text-sm text-slate-500 mb-3">{t("noAssignmentsYet")}</p>
-                  <Button size="sm" color="primary" variant="flat" onPress={onNavigateToAssignments}
-                    startContent={<Icon icon="solar:add-circle-bold" />}>
+                  <Button
+                    size="sm"
+                    color="primary"
+                    onPress={onNavigateToAssignments}
+                    className={instructorPrimaryButtonClass()}
+                  >
                     {t("createAssignment")}
                   </Button>
                 </div>
