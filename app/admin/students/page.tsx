@@ -717,6 +717,7 @@ export default function StudentsPage() {
                 <div className="p-3 sm:p-4">
                     <div className="flex flex-col md:flex-row gap-3 pb-3 sm:pb-4">
                         <Input
+                            aria-label={t("searchStudents")}
                             placeholder={t("searchStudents")}
                             value={searchInput}
                             onValueChange={(value) => {
@@ -735,6 +736,7 @@ export default function StudentsPage() {
                             }}
                         />
                         <Select
+                            aria-label={t("statusPlaceholder")}
                             placeholder={t("statusPlaceholder")}
                             selectedKeys={[statusFilter]}
                             onSelectionChange={(keys) => {

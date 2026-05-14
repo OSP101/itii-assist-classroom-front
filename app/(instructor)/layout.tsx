@@ -13,6 +13,7 @@ import { courseService, Course } from "@/services/course.service";
 import { useNotification } from "@/contexts/NotificationContext";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { useSettingsMenuItems } from "@/components/SettingsPanel";
+import { AuthLoadingScreen } from "@/components/ui/auth-loading-screen";
 import { useI18n } from "@/hooks/useI18n";
 import { getNotificationHeadline, getNotificationMessage } from "@/lib/notification-display";
 import Link from "next/link";
@@ -327,32 +328,12 @@ export default function InstructorLayout({
     const isClassroomPage = pathname.includes("/classroom/");
 
     if (isLoading) {
-        return (
-            <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-15 h-15 bg-linear-to-br from-blue-400 to-indigo-500 rounded flex items-center justify-center text-white text-4xl">
-                        <IoSchool />
-                    </div>
-                    <p className="text-xl text-default-700">{t("loadingUser")}</p>
-                    <Skeleton className="h-2 w-40 rounded-full bg-default-200" />
-                </div>
-            </div>
-        );
+        return <AuthLoadingScreen message={t("loadingUser")} />;
     }
 
     // Don't render content if user is not authenticated (will be redirected by useEffect)
     if (!user && !isLoading) {
-        return (
-            <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-15 h-15 bg-linear-to-br from-blue-400 to-indigo-500 rounded flex items-center justify-center text-white text-4xl">
-                        <IoSchool />
-                    </div>
-                    <p className="text-xl text-default-700">{t("redirectingToLogin")}</p>
-                        <Skeleton className="h-2 w-40 rounded-full bg-default-200" />
-                </div>
-            </div>
-        );
+        return <AuthLoadingScreen message={t("redirectingToLogin")} />;
     }
 
     return (

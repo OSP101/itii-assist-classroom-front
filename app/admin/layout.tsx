@@ -4,7 +4,6 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Button } from "@heroui/button";
-import { Spinner } from "@heroui/spinner";
 import { Avatar } from "@heroui/avatar";
 import { Tooltip } from "@heroui/tooltip";
 import { Chip } from "@heroui/chip";
@@ -13,6 +12,7 @@ import { Icon } from "@iconify/react";
 import { IoSchool } from "react-icons/io5";
 import { AdminProvider, useAdmin } from "@/contexts/AdminContext";
 import { AppFooter } from "@/components/Footer";
+import { AuthLoadingScreen } from "@/components/ui/auth-loading-screen";
 import { NetworkMetricsPanel } from "@/components/dev/network-metrics-panel";
 import { useSettingsMenuItems } from "@/components/SettingsPanel";
 import { useI18n } from "@/hooks/useI18n";
@@ -146,32 +146,12 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     }, [isMobileSidebarOpen]);
 
     if (isLoading) {
-        return (
-            <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-15 h-15 bg-linear-to-br from-blue-400 to-indigo-500 rounded flex items-center justify-center text-white text-4xl">
-                        <IoSchool />
-                    </div>
-                    <p className="text-xl text-default-700">{t("loadingUser")}</p>
-                    <Spinner size="lg" color="primary" />
-                </div>
-            </div>
-        );
+        return <AuthLoadingScreen message={t("loadingUser")} />;
     }
 
     // Don't render content if user is not authenticated (will be redirected by AdminContext)
     if (!user && !isLoading) {
-        return (
-            <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-15 h-15 bg-linear-to-br from-blue-400 to-indigo-500 rounded flex items-center justify-center text-white text-4xl">
-                        <IoSchool />
-                    </div>
-                    <p className="text-xl text-default-700">{t("redirectingToLogin")}</p>
-                    <Spinner size="lg" color="primary" />
-                </div>
-            </div>
-        );
+        return <AuthLoadingScreen message={t("redirectingToLogin")} />;
     }
 
     return (

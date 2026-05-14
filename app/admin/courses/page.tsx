@@ -870,6 +870,7 @@ export default function CoursesPage() {
                 <div className="p-3 sm:p-4">
                     <div className="flex flex-col md:flex-row gap-3 pb-3 sm:pb-4">
                         <Input
+                            aria-label={t("searchCoursesByCodeOrName")}
                             placeholder={t("searchCoursesByCodeOrName")}
                             value={searchInput}
                             onValueChange={(value) => {
@@ -889,6 +890,7 @@ export default function CoursesPage() {
                         />
                         <div className="flex gap-2 flex-wrap md:flex-nowrap">
                             <Select
+                                aria-label={t("academicYear")}
                                 placeholder={t("academicYear")}
                                 selectedKeys={[yearFilter]}
                                 onSelectionChange={(keys) => {
@@ -906,6 +908,7 @@ export default function CoursesPage() {
                                 ))}
                             </Select>
                             <Select
+                                aria-label={t("semesterLabel")}
                                 placeholder={t("semesterLabel")}
                                 selectedKeys={[semesterFilter]}
                                 onSelectionChange={(keys) => {
@@ -923,6 +926,7 @@ export default function CoursesPage() {
                                 ))}
                             </Select>
                             <Select
+                                aria-label={t("statusPlaceholder")}
                                 placeholder={t("statusPlaceholder")}
                                 selectedKeys={[statusFilter]}
                                 onSelectionChange={(keys) => {

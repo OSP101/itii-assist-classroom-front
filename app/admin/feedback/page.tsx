@@ -481,6 +481,7 @@ export default function FeedbackPage() {
             <div className="rounded-xl border border-default-200 bg-content1 p-4 shadow-sm">
                 <div className="flex flex-col md:flex-row gap-3 pb-3 sm:pb-4">
                     <Input
+                        aria-label="ค้นหา Feedback"
                         placeholder="ค้นหา..."
                         value={searchInput}
                         onValueChange={(value) => {
@@ -501,6 +502,7 @@ export default function FeedbackPage() {
                     />
                     <div className="flex gap-2 flex-wrap md:flex-nowrap">
                         <Select
+                            aria-label="กรองตามประเภท"
                             placeholder="ประเภท"
                             selectedKeys={[typeFilter]}
                             onSelectionChange={(keys) => {
@@ -518,6 +520,7 @@ export default function FeedbackPage() {
                             ))}
                         </Select>
                         <Select
+                            aria-label="กรองตามสถานะ"
                             placeholder="สถานะ"
                             selectedKeys={[statusFilter]}
                             onSelectionChange={(keys) => {
@@ -535,6 +538,7 @@ export default function FeedbackPage() {
                             ))}
                         </Select>
                         <Select
+                            aria-label="กรองตามความสำคัญ"
                             placeholder="ความสำคัญ"
                             selectedKeys={[priorityFilter]}
                             onSelectionChange={(keys) => {

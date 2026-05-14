@@ -523,6 +523,7 @@ export default function SystemLogsPage() {
           <div className="flex flex-col gap-3 pb-3 sm:pb-4">
             <Input
               className="w-full"
+              aria-label="ค้นหา Log"
               placeholder="ค้นหา action, URL, IP..."
               value={searchInput}
               onValueChange={(value) => {
@@ -542,6 +543,7 @@ export default function SystemLogsPage() {
             <div className="flex gap-2 flex-wrap">
               <Select
                 className="flex-1 min-w-25"
+                aria-label="กรองตามประเภท Log"
                 placeholder="ประเภท"
                 selectedKeys={new Set([logTypeFilter])}
                 onSelectionChange={(keys) => {
@@ -560,6 +562,7 @@ export default function SystemLogsPage() {
               </Select>
               <Select
                 className="flex-1 min-w-22.5"
+                aria-label="กรองตามระดับความรุนแรง"
                 placeholder="ระดับ"
                 selectedKeys={new Set([severityFilter])}
                 onSelectionChange={(keys) => {
@@ -578,6 +581,7 @@ export default function SystemLogsPage() {
               </Select>
               <Select
                 className="flex-1 min-w-25"
+                aria-label="กรองตามช่วงเวลา"
                 placeholder="ช่วงเวลา"
                 selectedKeys={new Set([timeRange])}
                 onSelectionChange={(keys) => {

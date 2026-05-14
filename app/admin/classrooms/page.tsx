@@ -1191,6 +1191,7 @@ export default function ClassroomsPage() {
                         />
                         <div className="flex gap-2 flex-wrap">
                             <Select
+                                aria-label="เลือกชั้น"
                                 placeholder="เลือกชั้น"
                                 selectedKeys={[floorFilter]}
                                 onSelectionChange={(keys) => {
@@ -1204,9 +1205,9 @@ export default function ClassroomsPage() {
                                 }}
                             >
                                 {[
-                                    <SelectItem key="all">ทุกชั้น</SelectItem>,
+                                    <SelectItem key="all" textValue="ทุกชั้น">ทุกชั้น</SelectItem>,
                                     ...uniqueFloors.map((floor) => (
-                                        <SelectItem key={floor}>ชั้น {floor}</SelectItem>
+                                        <SelectItem key={floor} textValue={`ชั้น ${floor}`}>ชั้น {floor}</SelectItem>
                                     ))
                                 ]}
                             </Select>
@@ -1876,6 +1877,7 @@ export default function ClassroomsPage() {
                                 >
                                     <SelectItem
                                         key="computer"
+                                        textValue="โต๊ะคอม"
                                         startContent={
                                             <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center">
                                                 <Icon
@@ -1889,6 +1891,7 @@ export default function ClassroomsPage() {
                                     </SelectItem>
                                     <SelectItem
                                         key="normal"
+                                        textValue="โต๊ะเรียนปกติ"
                                         startContent={
                                             <div className="w-6 h-6 bg-emerald-500 rounded flex items-center justify-center">
                                                 <Icon
@@ -1902,6 +1905,7 @@ export default function ClassroomsPage() {
                                     </SelectItem>
                                     <SelectItem
                                         key="teacher"
+                                        textValue="โต๊ะอาจารย์"
                                         startContent={
                                             <div className="w-8 h-6 bg-amber-500 rounded flex items-center justify-center">
                                                 <Icon

@@ -727,6 +727,7 @@ export default function UsersPage() {
                     <div className="flex flex-col md:flex-row gap-3 pb-3 sm:pb-4">
                         <Input
                             className="w-full md:flex-1"
+                            aria-label={t("searchUsers")}
                             placeholder={t("searchUsers")}
                             value={searchInput}
                             onValueChange={(value) => {
@@ -748,6 +749,7 @@ export default function UsersPage() {
                         <div className="flex gap-2 flex-wrap md:flex-nowrap">
                             <Select
                                 className="flex-1 min-w-37.5 sm:w-48"
+                                aria-label={t("rolePlaceholder")}
                                 placeholder={t("rolePlaceholder")}
                                 selectedKeys={[roleFilter]}
                                 onSelectionChange={(keys) => {
@@ -765,6 +767,7 @@ export default function UsersPage() {
                             </Select>
                             <Select
                                 className="flex-1 min-w-37.5 sm:w-48"
+                                aria-label={t("statusPlaceholder")}
                                 placeholder={t("statusPlaceholder")}
                                 selectedKeys={[statusFilter]}
                                 onSelectionChange={(keys) => {
