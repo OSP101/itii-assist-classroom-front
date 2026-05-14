@@ -263,7 +263,7 @@ function OverviewTabViewComponent({
                     <span className="text-[10px] text-slate-500 dark:text-zinc-400">{c.label}</span>
                     <span className="text-[10px] font-semibold text-slate-600 dark:text-zinc-300">{c.value}%</span>
                   </div>
-                  <Progress value={c.value} size="sm" color={c.value >= 70 ? "success" : c.value >= 50 ? "warning" : "danger"} />
+                  <Progress value={c.value} size="sm" aria-label={c.label} color={c.value >= 70 ? "success" : c.value >= 50 ? "warning" : "danger"} />
                 </div>
               ))}
             </div>
@@ -307,7 +307,7 @@ function OverviewTabViewComponent({
                     <div key={c.label} className="flex items-center gap-2">
                       <span className="text-[11px] text-slate-500 dark:text-zinc-400 w-16 shrink-0">{c.label}</span>
                       <Progress
-                        value={c.value} size="sm" className="flex-1"
+                        value={c.value} size="sm" className="flex-1" aria-label={c.label}
                         color={c.value >= 70 ? "success" : c.value >= 50 ? "warning" : "danger"}
                       />
                       <span className="text-[11px] font-semibold text-slate-600 dark:text-zinc-300 w-7 text-right shrink-0">{c.value}%</span>
@@ -530,7 +530,7 @@ function OverviewTabViewComponent({
                             {!isGroup ? (
                               <div className="flex items-center gap-1.5 justify-center tabular-nums">
                                 <Progress
-                                  value={assignment.submittedRate} size="sm" className="w-14"
+                                  value={assignment.submittedRate} size="sm" className="w-14" aria-label={assignment.name}
                                   color={assignment.submittedRate >= 80 ? "success" : assignment.submittedRate >= 50 ? "warning" : "danger"}
                                 />
                                 <span className="text-[11px] text-slate-500 w-8 text-right shrink-0">{assignment.submittedRate}%</span>

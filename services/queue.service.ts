@@ -125,6 +125,32 @@ export interface QueueBooking {
     };
 }
 
+export type QueueBookingType = QueueBooking["booking_type"];
+export type QueueBookingStatus = QueueBooking["status"];
+
+export function getQueueBookingTypeLabel(type: QueueBookingType, isEnglish: boolean): string {
+    if (type === 'grading') return isEnglish ? 'Grading' : 'ตรวจงาน';
+    if (type === 'help') return isEnglish ? 'Help' : 'ช่วยเหลือ';
+    return type;
+}
+
+export function getQueueBookingStatusLabel(status: QueueBookingStatus, isEnglish: boolean): string {
+    switch (status) {
+        case 'waiting':
+            return isEnglish ? 'Waiting' : 'รอคิว';
+        case 'in_progress':
+            return isEnglish ? 'In Progress' : 'กำลังตรวจ';
+        case 'completed':
+            return isEnglish ? 'Completed' : 'เสร็จสิ้น';
+        case 'cancelled':
+            return isEnglish ? 'Cancelled' : 'ยกเลิก';
+        case 'no_show':
+            return isEnglish ? 'No Show' : 'ไม่มา';
+        default:
+            return status;
+    }
+}
+
 export interface QueueDeskStatus {
     id: number;
     queue_session_id: number;
@@ -203,6 +229,59 @@ export interface CompleteBookingData {
 export interface WorkerBookingActionResult {
     booking: QueueBooking;
     next_booking: QueueBooking | null;
+}
+
+export interface QueueReportWorkerStat {
+    user_id: number;
+    full_name?: string;
+    total_completed: number;
+    grading_completed: number;
+    help_completed: number;
+    percent: number;
+    opened_count?: number;
+    closed_count?: number;
+    first_opened_at?: string | null;
+    last_opened_at?: string | null;
+    last_closed_at?: string | null;
+    total_active_duration?: string;
+}
+
+export interface QueueReportBooking {
+    id: number;
+    created_at: string;
+    queue_number: number;
+    desk_number: number;
+    booking_type: 'grading' | 'help';
+    status: 'waiting' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
+    wait_duration?: string;
+    service_duration?: string;
+    worker_note?: string;
+    booking_ip?: string;
+    booking_user_agent?: string;
+    booking_device?: string;
+    student?: {
+        id: number;
+        student_id: string;
+        full_name: string;
+    };
+    assigned_worker?: {
+        id: number;
+        full_name: string;
+    } | null;
+}
+
+export interface QueueSessionReport {
+    course?: {
+        id: string;
+        code: string;
+        name: string;
+    };
+    session?: {
+        id: string;
+        title: string;
+    };
+    worker_stats: QueueReportWorkerStat[];
+    bookings: QueueReportBooking[];
 }
 
 export interface ProjectorViewData {
@@ -516,6 +595,17 @@ const queueService = {
             { pin_code: pinCode }
         );
         if (!response.data) throw new Error('PIN ไม่ถูกต้อง');
+        return response.data;
+    },
+
+    /**
+     * Get session report (Instructor/TA)
+     */
+    async getSessionReport(courseId: string, sessionId: string): Promise<QueueSessionReport> {
+        const response = await api.get<QueueSessionReport>(
+            `/courses/${courseId}/queue/sessions/${sessionId}/report`
+        );
+        if (!response.data) throw new Error('ไม่พบข้อมูลรีพอร์ต');
         return response.data;
     },
 };

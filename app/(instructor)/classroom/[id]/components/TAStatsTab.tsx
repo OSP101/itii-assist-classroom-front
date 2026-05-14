@@ -16,11 +16,11 @@ import {
   TableRow,
   TableCell,
 } from "@heroui/table";
-import { Pagination } from "@heroui/pagination";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import TablePaginationFooter from "@/components/ui/table-pagination-footer";
 import {
   getTAStats,
   getTADetail,
@@ -346,6 +346,7 @@ function TADetailView({
   const [loading, setLoading] = useState(false);
   const [filterAssignment, setFilterAssignment] = useState("");
   const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(30);
 
   const fetchDetail = useCallback(async () => {
     setLoading(true);
@@ -353,7 +354,7 @@ function TADetailView({
       const data = await getTADetail(courseId, ta.userId, {
         assignmentId: filterAssignment ? parseInt(filterAssignment) : undefined,
         page,
-        limit: 30,
+        limit: rowsPerPage,
       });
       setDetail(data);
     } catch {
@@ -362,7 +363,7 @@ function TADetailView({
     } finally {
       setLoading(false);
     }
-  }, [courseId, filterAssignment, isEnglish, page, ta.userId]);
+  }, [courseId, filterAssignment, isEnglish, page, rowsPerPage, ta.userId]);
 
   useEffect(() => {
     fetchDetail();
@@ -627,27 +628,6 @@ function TADetailView({
                 <Table
                   aria-label="Score history table"
                   removeWrapper
-                  bottomContent={
-                    detail && detail.pagination.totalPages > 1 ? (
-                      <div className="flex flex-col gap-2 px-1 py-2 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="text-xs text-default-400">
-                          {isEnglish ? `Page ${page} of ${detail.pagination.totalPages}` : `หน้า ${page} จาก ${detail.pagination.totalPages}`}
-                        </p>
-                        <Pagination
-                          page={page}
-                          total={detail.pagination.totalPages}
-                          onChange={setPage}
-                          showControls
-                          isCompact
-                          size="sm"
-                          classNames={{
-                            cursor: "bg-blue-500 text-white",
-                          }}
-                        />
-                      </div>
-                    ) : null
-                  }
-                  bottomContentPlacement="outside"
                   classNames={{
                     th: "bg-content2 text-default-600 font-semibold text-sm",
                     td: "py-3",
@@ -703,6 +683,23 @@ function TADetailView({
                   </TableBody>
                 </Table>
               </div>
+
+              <TablePaginationFooter
+                totalItems={detail?.pagination.total || 0}
+                currentPage={page}
+                rowsPerPage={rowsPerPage}
+                totalPages={Math.max(1, detail?.pagination.totalPages || 0)}
+                isEnglish={isEnglish}
+                nounEnglish="history entry"
+                nounEnglishPlural="history entries"
+                nounThai="รายการ"
+                rowsPerPageOptions={[10, 20, 30, 50]}
+                onPageChange={setPage}
+                onRowsPerPageChange={(nextRows) => {
+                  setRowsPerPage(nextRows);
+                  setPage(1);
+                }}
+              />
 
             </>
           )}

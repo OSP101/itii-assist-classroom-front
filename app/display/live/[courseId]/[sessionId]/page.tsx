@@ -354,7 +354,7 @@ export default function DisplayLivePage() {
             <div className="flex justify-center items-center min-h-screen bg-slate-50">
                 <Card className="max-w-sm shadow-xl">
                     <CardBody className="text-center py-12">
-                        <Icon icon="solar:clock-circle-bold-duotone" className="text-6xl text-amber-400 mx-auto mb-4" />
+                        <Icon icon="solar:clock-circle-bold-duotone" className="text-6xl text-amber-400 mx-auto mb-4" aria-label="หมดเวลาการเช็คชื่อ" />
                         <p className="text-lg font-semibold text-slate-700 mb-2">หมดเวลาการเช็คชื่อ</p>
                         <p className="text-sm text-slate-400">สิทธิ์การแสดงผลสิ้นสุดแล้ว</p>
                     </CardBody>
@@ -368,7 +368,7 @@ export default function DisplayLivePage() {
             <div className="flex justify-center items-center min-h-screen bg-slate-50 p-4">
                 <Card className="max-w-md w-full shadow-xl border border-red-100">
                     <CardBody className="text-center py-12">
-                        <Icon icon="solar:shield-cross-bold-duotone" className="text-6xl text-red-400 mx-auto mb-4" />
+                        <Icon icon="solar:shield-cross-bold-duotone" className="text-6xl text-red-400 mx-auto mb-4" aria-label="ไม่มีสิทธิ์เข้าถึง" />
                         <p className="text-xl font-semibold text-slate-800 mb-2">ไม่มีสิทธิ์เข้าถึง</p>
                         <p className="text-sm text-slate-500 mb-6">{accessDeniedMessage}</p>
                         <div className="flex justify-center gap-3">
@@ -384,7 +384,7 @@ export default function DisplayLivePage() {
         return (
             <div className="flex justify-center items-center min-h-screen bg-slate-50">
                 <div className="text-center">
-                    <Icon icon="solar:refresh-circle-bold-duotone" className="text-5xl text-blue-400 mx-auto mb-3 animate-spin" />
+                    <Icon icon="solar:refresh-circle-bold-duotone" className="text-5xl text-blue-400 mx-auto mb-3 animate-spin" aria-label="กำลังโหลด" />
                     <p className="text-slate-500">กำลังโหลด...</p>
                 </div>
             </div>
@@ -601,6 +601,7 @@ export default function DisplayLivePage() {
                                 </div>
                                 <Progress
                                     value={stats.total > 0 ? (stats.checkedIn / stats.total) * 100 : 0}
+                                    aria-label="ความคืบหน้าการเช็คชื่อ"
                                     color="success"
                                     className="h-2"
                                 />

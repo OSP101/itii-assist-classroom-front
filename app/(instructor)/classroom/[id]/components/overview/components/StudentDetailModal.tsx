@@ -262,6 +262,7 @@ export function StudentDetailModal({ isOpen, onClose, student, courseId }: Stude
                                                                     <Progress
                                                                         value={percentage}
                                                                         size="sm"
+                                                                        aria-label={assignment.name}
                                                                         color={percentage >= 80 ? "success" : percentage >= 50 ? "primary" : "warning"}
                                                                         className="max-w-full"
                                                                     />

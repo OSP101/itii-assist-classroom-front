@@ -20,7 +20,6 @@ import {
     TableRow,
     TableCell,
 } from "@heroui/table";
-import { Pagination } from "@heroui/pagination";
 import {
     Modal,
     ModalContent,
@@ -39,6 +38,7 @@ import { classroomService, type Classroom } from "@/services/classroom.service";
 import assignmentService, { type Assignment } from "@/services/assignment.service";
 import attendanceService, { type AttendanceSession } from "@/services/attendance.service";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import TablePaginationFooter, { DEFAULT_TABLE_ROWS_PER_PAGE } from "@/components/ui/table-pagination-footer";
 
 // Types for the component
 interface Section {
@@ -185,7 +185,7 @@ export default function QueueTab({
     
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10;
+    const [rowsPerPage, setRowsPerPage] = useState(DEFAULT_TABLE_ROWS_PER_PAGE);
 
     // Modal states
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -390,16 +390,26 @@ export default function QueueTab({
     });
 
     // Pagination logic
-    const totalPages = Math.ceil(filteredSessions.length / itemsPerPage);
+    const totalPages = Math.max(1, Math.ceil(filteredSessions.length / rowsPerPage));
     const paginatedSessions = filteredSessions.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
+        (currentPage - 1) * rowsPerPage,
+        currentPage * rowsPerPage
     );
 
     // Reset to page 1 when filter changes
     React.useEffect(() => {
         setCurrentPage(1);
     }, [searchQuery, statusFilter]);
+
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [rowsPerPage]);
+
+    React.useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
 
     // Stats
     const stats = {
@@ -842,6 +852,7 @@ export default function QueueTab({
                                 />
                                 <Select
                                     placeholder={localize("สถานะ", "Status")}
+                                    aria-label={localize("กรองตามสถานะ", "Filter by status")}
                                     selectedKeys={[statusFilter]}
                                     onSelectionChange={(keys) => setStatusFilter(Array.from(keys)[0] as string)}
                                     className="w-full sm:w-40"
@@ -984,6 +995,18 @@ export default function QueueTab({
                                                         </TableCell>
                                                         <TableCell>
                                                             <div className="flex items-center justify-center gap-1">
+                                                                {/* ปุ่มดูรีพอร์ต (ทุกสถานะ) */}
+                                                                <Tooltip content={localize("ดูรีพอร์ตคิว", "View queue report")}>
+                                                                    <Button
+                                                                        isIconOnly
+                                                                        size="sm"
+                                                                        variant="light"
+                                                                        color="secondary"
+                                                                        onPress={() => window.open(`/classroom/${course.id}/queue/${session.id}/report`, "_blank")}
+                                                                    >
+                                                                        <Icon icon="solar:chart-2-bold" className="text-lg" />
+                                                                    </Button>
+                                                                </Tooltip>
                                                                 {/* Draft status: Start, Edit, Delete */}
                                                                 {session.status === 'draft' && (
                                                                     <>
@@ -1205,21 +1228,18 @@ export default function QueueTab({
                                         </Table>
                                     </div>
 
-                                    {/* Pagination */}
-                                    {totalPages > 1 && (
-                                        <div className="flex justify-center border-t border-divider py-4">
-                                            <Pagination
-                                                total={totalPages}
-                                                page={currentPage}
-                                                onChange={setCurrentPage}
-                                                showControls
-                                                size="sm"
-                                                classNames={{
-                                                    cursor: "bg-blue-500",
-                                                }}
-                                            />
-                                        </div>
-                                    )}
+                                    <TablePaginationFooter
+                                        totalItems={filteredSessions.length}
+                                        currentPage={currentPage}
+                                        rowsPerPage={rowsPerPage}
+                                        totalPages={totalPages}
+                                        isEnglish={isEnglish}
+                                        nounEnglish="queue"
+                                        nounEnglishPlural="queues"
+                                        nounThai="รายการ"
+                                        onPageChange={setCurrentPage}
+                                        onRowsPerPageChange={setRowsPerPage}
+                                    />
                                 </CardBody>
                             </Card>
                         </>
@@ -1242,7 +1262,7 @@ export default function QueueTab({
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg">
+                            <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:clipboard-list-bold" className="text-2xl text-white" />
                             </div>
                             <div>
@@ -1352,6 +1372,7 @@ export default function QueueTab({
                                 {assignments.length > 0 ? (
                                     <Select
                                         placeholder={localize("เลือกหัวข้องานที่ต้องการลิงก์", "Select an assignment to link")}
+                                        aria-label={localize("เลือกหัวข้องาน", "Select assignment")}
                                         isLoading={isOptionsLoading}
                                         selectedKeys={formData.linked_assignment_id ? new Set([formData.linked_assignment_id.toString()]) : new Set([])}
                                         onSelectionChange={(keys) => {
@@ -1370,10 +1391,10 @@ export default function QueueTab({
                                         {assignments.map((assignment) => (
                                             <SelectItem key={assignment.id.toString()} textValue={assignment.name}>
                                                 <div className="flex items-center gap-3">
-                                                    {/* <Icon
+                                                    <Icon
                                                         icon={assignment.assignment_type === "individual" ? "solar:user-bold" : "solar:users-group-rounded-bold"}
                                                         className={assignment.assignment_type === "individual" ? "text-indigo-500" : "text-purple-500"}
-                                                    /> */}
+                                                    />
                                                     <div>
                                                         <span className="font-medium">{assignment.name}</span>
                                                         <span className="ml-2 text-xs text-default-500">
@@ -1432,6 +1453,7 @@ export default function QueueTab({
                                 {attendanceSessions.length > 0 ? (
                                     <Select
                                         placeholder={localize("เลือกรอบเช็คชื่อที่ต้องการลิงก์", "Select an attendance session to link")}
+                                        aria-label={localize("เลือกรอบเช็คชื่อ", "Select attendance session")}
                                         isLoading={isOptionsLoading}
                                         selectedKeys={formData.linked_attendance_session_id ? [formData.linked_attendance_session_id.toString()] : undefined}
                                         onSelectionChange={(keys) => {
@@ -1451,12 +1473,12 @@ export default function QueueTab({
                                         {attendanceSessions.map((session) => (
                                             <SelectItem key={session.id.toString()} textValue={session.title}>
                                                 <div className="flex items-center gap-3">
-                                                    {/* <Icon
+                                                    <Icon
                                                         icon={session.session_type === "lecture" ? "solar:presentation-graph-bold" :
                                                             session.session_type === "lab" ? "solar:test-tube-bold" : "solar:laptop-bold"}
                                                         className={session.session_type === "lecture" ? "text-blue-500" :
                                                             session.session_type === "lab" ? "text-emerald-500" : "text-violet-500"}
-                                                    /> */}
+                                                    />
                                                     <div>
                                                         <span className="font-medium">{session.title}</span>
                                                         <span className="ml-2 text-xs text-default-500">
@@ -1651,6 +1673,7 @@ export default function QueueTab({
                                 {assignments.length > 0 ? (
                                     <Select
                                         placeholder={localize("เลือกหัวข้องานที่ต้องการลิงก์", "Select an assignment to link")}
+                                        aria-label={localize("เลือกหัวข้องาน", "Select assignment")}
                                         isLoading={isOptionsLoading}
                                         selectedKeys={formData.linked_assignment_id ? new Set([formData.linked_assignment_id.toString()]) : new Set([])}
                                         onSelectionChange={(keys) => {
@@ -1731,6 +1754,7 @@ export default function QueueTab({
                                 {attendanceSessions.length > 0 ? (
                                     <Select
                                         placeholder={localize("เลือกรอบเช็คชื่อที่ต้องการลิงก์", "Select an attendance session to link")}
+                                        aria-label={localize("เลือกรอบเช็คชื่อ", "Select attendance session")}
                                         isLoading={isOptionsLoading}
                                         selectedKeys={formData.linked_attendance_session_id ? [formData.linked_attendance_session_id.toString()] : undefined}
                                         onSelectionChange={(keys) => {

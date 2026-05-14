@@ -15,11 +15,11 @@ import {
     TableRow,
     TableCell,
 } from "@heroui/table";
-import { Pagination } from "@heroui/pagination";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { Switch } from "@heroui/switch";
 import { Icon } from "@iconify/react";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import TablePaginationFooter, { DEFAULT_TABLE_ROWS_PER_PAGE } from "@/components/ui/table-pagination-footer";
 import {
     buildCoursePermissionPreset,
     resolveCourseMemberPermissions,
@@ -104,8 +104,6 @@ function PeopleTableSkeleton() {
         </Card>
     );
 }
-
-const ITEMS_PER_PAGE = 10;
 
 function getPermissionSections(isEnglish: boolean): Array<{
     title: string;
@@ -236,6 +234,7 @@ export default function PeopleTab({
     const { language } = useGlobalSettings();
     const isEnglish = language === "en";
     const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(DEFAULT_TABLE_ROWS_PER_PAGE);
     const [editingMember, setEditingMember] = useState<EditableMember | null>(null);
     const [draftPermissions, setDraftPermissions] = useState<CourseMemberPermissions | null>(null);
     const [originalDraftPermissions, setOriginalDraftPermissions] = useState<CourseMemberPermissions | null>(null);
@@ -273,17 +272,21 @@ export default function PeopleTab({
         })) || []),
     ], [course.tas, instructorsList]);
 
-    const totalPages = Math.ceil(allPeople.length / ITEMS_PER_PAGE);
+    const totalPages = Math.max(1, Math.ceil(allPeople.length / rowsPerPage));
     const paginatedPeople = useMemo(() => {
-        const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        return allPeople.slice(start, start + ITEMS_PER_PAGE);
-    }, [allPeople, currentPage]);
+        const start = (currentPage - 1) * rowsPerPage;
+        return allPeople.slice(start, start + rowsPerPage);
+    }, [allPeople, currentPage, rowsPerPage]);
 
     useEffect(() => {
         if (currentPage > totalPages && totalPages > 0) {
             setCurrentPage(totalPages);
         }
     }, [currentPage, totalPages]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [rowsPerPage]);
 
     useEffect(() => {
         if (editingMember) {
@@ -687,22 +690,19 @@ export default function PeopleTab({
                                 </Table>
                             </div>
 
-                            {totalPages > 1 && (
-                                <div className="flex justify-center border-t border-divider py-4">
-                                    <Pagination
-                                        total={totalPages}
-                                        page={currentPage}
-                                        onChange={setCurrentPage}
-                                        showControls
-                                        size="sm"
-                                        color="primary"
-                                        classNames={{
-                                            wrapper: "gap-1",
-                                            item: "bg-transparent",
-                                            cursor: "bg-blue-500 text-white shadow-md",
-                                        }}
-                                    />
-                                </div>
+                            {allPeople.length > 0 && (
+                                <TablePaginationFooter
+                                    totalItems={allPeople.length}
+                                    currentPage={currentPage}
+                                    rowsPerPage={rowsPerPage}
+                                    totalPages={totalPages}
+                                    isEnglish={isEnglish}
+                                    nounEnglish="person"
+                                    nounEnglishPlural="people"
+                                    nounThai="คน"
+                                    onPageChange={setCurrentPage}
+                                    onRowsPerPageChange={setRowsPerPage}
+                                />
                             )}
                         </CardBody>
                     </Card>

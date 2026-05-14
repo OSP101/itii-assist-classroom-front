@@ -17,6 +17,7 @@ import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket
 
 import { API_BASE_URL } from "@/config/api";
 import { useNotification } from "@/contexts/NotificationContext";
+import { getQueueBookingStatusLabel, getQueueBookingTypeLabel } from "@/services/queue.service";
 
 const STORAGE_KEY = "queue_booking_state";
 
@@ -781,11 +782,11 @@ function BookQueueContent() {
     // Get status display
     const getStatusDisplay = (status: string) => {
         const statusMap: Record<string, { label: string; color: "default" | "primary" | "secondary" | "success" | "warning" | "danger"; icon: string }> = {
-            waiting: { label: "รอคิว", color: "primary", icon: "solar:hourglass-bold" },
-            in_progress: { label: "กำลังตรวจ", color: "warning", icon: "solar:clipboard-check-bold" },
-            completed: { label: "เสร็จสิ้น", color: "success", icon: "solar:check-circle-bold" },
-            cancelled: { label: "ยกเลิก", color: "danger", icon: "solar:close-circle-bold" },
-            no_show: { label: "ไม่พบ", color: "default", icon: "solar:user-cross-bold" },
+            waiting: { label: getQueueBookingStatusLabel("waiting", false), color: "primary", icon: "solar:hourglass-bold" },
+            in_progress: { label: getQueueBookingStatusLabel("in_progress", false), color: "warning", icon: "solar:clipboard-check-bold" },
+            completed: { label: getQueueBookingStatusLabel("completed", false), color: "success", icon: "solar:check-circle-bold" },
+            cancelled: { label: getQueueBookingStatusLabel("cancelled", false), color: "danger", icon: "solar:close-circle-bold" },
+            no_show: { label: getQueueBookingStatusLabel("no_show", false), color: "default", icon: "solar:user-cross-bold" },
         };
         return statusMap[status] || { label: status, color: "default", icon: "solar:question-circle-bold" };
     };
@@ -1270,7 +1271,7 @@ function BookQueueContent() {
                                         color={status.booking_type === "grading" ? "success" : "warning"}
                                         variant="flat"
                                     >
-                                        {status.booking_type === "grading" ? "ตรวจงาน" : "ช่วยเหลือ"}
+                                        {getQueueBookingTypeLabel(status.booking_type as "grading" | "help", false)}
                                     </Chip>
                                 </div>
                                 {bookingStatus && isWaiting && (

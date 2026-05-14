@@ -11,7 +11,6 @@ import {
     getKeyValue,
 } from "@heroui/table";
 import { useSocket } from "@/contexts/SocketContext";
-import { Pagination } from "@heroui/pagination";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
@@ -31,8 +30,10 @@ import { userService } from "@/services/user.service";
 import type { User, CreateUserDto, UpdateUserDto, UserStats } from "@/services/user.service";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useTableParams } from "@/lib/table/use-table-params";
+import TablePaginationFooter, { DEFAULT_TABLE_ROWS_PER_PAGE } from "@/components/ui/table-pagination-footer";
 import { MetricCardSkeleton, TableRowsSkeleton } from "@/components/ui/resource-loading";
 import { useI18n } from "@/hooks/useI18n";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 
 // Column definitions
 const columnDefs = [
@@ -72,6 +73,8 @@ const roleColors: Record<string, "primary" | "secondary" | "success" | "warning"
 
 export default function UsersPage() {
     const t = useI18n();
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
     const { user: authUser } = useAdmin();
     const { emitDataUpdate, onDataUpdate, subscribeToUpdates, unsubscribeFromUpdates, isConnected } = useSocket();
     const isUpdatingRef = useRef(false);
@@ -85,10 +88,11 @@ export default function UsersPage() {
         params,
         setSearch,
         setPage,
+        setLimit,
         setSort,
         setFilter,
     } = useTableParams({
-        defaultLimit: 7,
+        defaultLimit: DEFAULT_TABLE_ROWS_PER_PAGE,
         defaultSort: "created_at",
         defaultOrder: "desc",
         searchDebounceMs: 300,
@@ -96,7 +100,7 @@ export default function UsersPage() {
     const [searchInput, setSearchInput] = useState(String(params.search ?? ""));
 
     const page = Number(params.page) || 1;
-    const limit = Number(params.limit) || 7;
+    const limit = Number(params.limit) || DEFAULT_TABLE_ROWS_PER_PAGE;
     const search = String(params.search ?? "");
     const roleFilter = String(params.role ?? "all");
     const statusFilter = String(params.status ?? "all");
@@ -833,27 +837,17 @@ export default function UsersPage() {
                     </div>
                 </div>
 
-                {/* Pagination */}
-                {totalPages > 1 && (
-                    <div className="flex flex-col items-center justify-between gap-3 border-t border-divider px-3 py-3 sm:flex-row sm:px-4">
-                        <span className="order-2 text-xs text-default-500 sm:order-1 sm:text-sm">
-                            {t("showingRangeOfTotal", {
-                                start: ((page - 1) * limit) + 1,
-                                end: Math.min(page * limit, totalItems),
-                                total: totalItems,
-                            })}
-                        </span>
-                        <Pagination
-                            total={totalPages}
-                            page={page}
-                            onChange={setPage}
-                            showControls
-                            size="sm"
-                            color="primary"
-                            className="order-1 sm:order-2"
-                        />
-                    </div>
-                )}
+                <TablePaginationFooter
+                    totalItems={totalItems}
+                    currentPage={page}
+                    rowsPerPage={limit}
+                    totalPages={totalPages}
+                    isEnglish={isEnglish}
+                    nounEnglish="user"
+                    nounThai="ผู้ใช้"
+                    onPageChange={setPage}
+                    onRowsPerPageChange={setLimit}
+                />
             </div>
 
             {/* Create Modal */}

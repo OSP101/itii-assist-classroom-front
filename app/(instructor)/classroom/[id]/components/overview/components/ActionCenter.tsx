@@ -37,7 +37,7 @@ function ActionCenterComponent({ items, onNavigate }: ActionCenterProps) {
               )}
             </div>
             <div className={`w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center shrink-0`}>
-              <Icon icon={item.icon} className={`text-base ${s.text}`} />
+              <Icon icon={item.icon} className={`text-base ${s.text}`} aria-label={item.title} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">

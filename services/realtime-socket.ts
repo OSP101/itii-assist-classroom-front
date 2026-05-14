@@ -123,19 +123,38 @@ export function io(url?: string, options?: SocketOptions): Socket {
 }
 
 export function getRealtimeSocketBaseUrl(): string {
-    if (process.env.NEXT_PUBLIC_SOCKET_URL) {
-        return process.env.NEXT_PUBLIC_SOCKET_URL;
-    }
-
-    if (process.env.NEXT_PUBLIC_API_URL) {
-        return process.env.NEXT_PUBLIC_API_URL;
-    }
+    const configuredUrl =
+        process.env.NEXT_PUBLIC_SOCKET_URL ||
+        process.env.NEXT_PUBLIC_API_URL;
 
     if (typeof window !== "undefined") {
-        return window.location.origin;
+        if (!configuredUrl) {
+            return window.location.origin;
+        }
+
+        try {
+            const runtimeOrigin = new URL(window.location.origin);
+            const parsed = new URL(configuredUrl, window.location.origin);
+            const isConfiguredLocalHost =
+                parsed.hostname === "localhost" ||
+                parsed.hostname === "127.0.0.1" ||
+                parsed.hostname === "0.0.0.0";
+            const isRuntimeLocalHost =
+                runtimeOrigin.hostname === "localhost" ||
+                runtimeOrigin.hostname === "127.0.0.1";
+
+            // In LAN/dev access, avoid pointing the browser to its own localhost.
+            if (isConfiguredLocalHost && !isRuntimeLocalHost) {
+                parsed.hostname = runtimeOrigin.hostname;
+            }
+
+            return parsed.toString();
+        } catch {
+            return window.location.origin;
+        }
     }
 
-    return "http://localhost:3001";
+    return configuredUrl || "http://localhost:3001";
 }
 
 export function getRealtimeWebSocketUrl(endpoint = "/ws"): string {

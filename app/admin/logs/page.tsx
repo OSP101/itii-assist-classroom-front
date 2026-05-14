@@ -9,7 +9,6 @@ import {
   TableRow,
   TableCell,
 } from "@heroui/table";
-import { Pagination } from "@heroui/pagination";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
@@ -27,6 +26,7 @@ import { Card, CardBody, CardHeader } from "@heroui/card";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { useTableParams } from "@/lib/table/use-table-params";
+import TablePaginationFooter from "@/components/ui/table-pagination-footer";
 import { MetricCardSkeleton, TableRowsSkeleton } from "@/components/ui/resource-loading";
 import {
   getLogs,
@@ -100,6 +100,7 @@ export default function SystemLogsPage() {
     params,
     setSearch,
     setPage,
+    setLimit,
     setSort,
     setFilter,
   } = useTableParams({
@@ -685,23 +686,17 @@ export default function SystemLogsPage() {
           </div>
         </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex flex-col items-center justify-between gap-3 border-t border-divider px-3 py-3 sm:flex-row sm:px-4">
-            <span className="order-2 text-xs text-default-500 sm:order-1 sm:text-sm">
-              แสดง {((page - 1) * limit) + 1} - {Math.min(page * limit, totalItems)} จาก {totalItems.toLocaleString()} รายการ
-            </span>
-            <Pagination
-              total={totalPages}
-              page={page}
-              onChange={setPage}
-              showControls
-              size="sm"
-              color="primary"
-              className="order-1 sm:order-2"
-            />
-          </div>
-        )}
+        <TablePaginationFooter
+          totalItems={totalItems}
+          currentPage={page}
+          rowsPerPage={limit}
+          totalPages={totalPages}
+          isEnglish={false}
+          nounEnglish="log entry"
+          nounThai="รายการ"
+          onPageChange={setPage}
+          onRowsPerPageChange={setLimit}
+        />
       </div>
 
       {/* Log Detail Modal */}

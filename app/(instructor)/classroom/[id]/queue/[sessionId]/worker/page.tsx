@@ -22,6 +22,7 @@ import { Icon } from "@iconify/react";
 import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket";
 import { courseService } from "@/services/course.service";
 import queueService, {
+    getQueueBookingStatusLabel,
     type QueueSession,
     type QueueWorker,
     type QueueBooking,
@@ -167,7 +168,7 @@ function MiniRoomMap({
                 if (desk.type === "teacher") {
                     const rw = 26, rh = 10;
                     return (
-                        <g key={desk.id}>
+                        <g key={`desk-teacher-${desk.number}-${desk.position_x}-${desk.position_y}`}>
                             <rect
                                 x={x - rw / 2} y={y - rh / 2}
                                 width={rw} height={rh} rx={3}
@@ -182,7 +183,7 @@ function MiniRoomMap({
                 if (isCurrent)       fill = "#FBBF24"; // amber
                 else if (isPrevious) fill = "#93C5FD"; // light-blue
                 return (
-                    <g key={desk.id}>
+                    <g key={`desk-${desk.number}-${desk.position_x}-${desk.position_y}`}>
                         {isCurrent && (
                             <circle cx={x} cy={y} r={R + 5} fill="#FDE68A" opacity={0.5}>
                                 <animate
@@ -279,15 +280,15 @@ function formatDistanceLabel(distance: "ใกล้" | "ปานกลาง" 
 function formatBookingStatusLabel(status: string, isEnglish = false): string {
     switch (status) {
         case "waiting":
-            return isEnglish ? "Waiting" : "รอคิว";
+            return getQueueBookingStatusLabel("waiting", isEnglish);
         case "assigned":
             return isEnglish ? "Assigned" : "มอบหมายแล้ว";
         case "in_progress":
-            return isEnglish ? "In progress" : "กำลังดำเนินการ";
+            return getQueueBookingStatusLabel("in_progress", isEnglish);
         case "completed":
-            return isEnglish ? "Completed" : "เสร็จสิ้น";
+            return getQueueBookingStatusLabel("completed", isEnglish);
         case "cancelled":
-            return isEnglish ? "Cancelled" : "ยกเลิกแล้ว";
+            return getQueueBookingStatusLabel("cancelled", isEnglish);
         case "skipped":
             return isEnglish ? "Skipped" : "ข้ามแล้ว";
         default:
@@ -306,7 +307,7 @@ export default function WorkerDashboardPage() {
     const isEnglish = language === "en";
     const courseId = params.id as string;
     const sessionId = params.sessionId as string;
-    const t = (thai: string, english: string) => (isEnglish ? english : thai);
+    const t = useCallback((thai: string, english: string) => (isEnglish ? english : thai), [isEnglish]);
 
     const [session, setSession] = useState<QueueSession | null>(null);
     const [isCourseActive, setIsCourseActive] = useState(false);
@@ -1530,7 +1531,7 @@ export default function WorkerDashboardPage() {
                                                         
                                                         return (
                                                             <div 
-                                                                key={item.id} 
+                                                                key={`sub-item-${index}-${item.id}`} 
                                                                 className={`flex items-center gap-3 p-3 rounded-lg border ${
                                                                     isLocked 
                                                                         ? 'bg-amber-50 border-amber-200' 
@@ -1594,12 +1595,13 @@ export default function WorkerDashboardPage() {
                                                                             {/* Quick score buttons */}
                                                                             <div className="flex justify-end gap-1">
                                                                                 {(() => {
-                                                                                    const max = item.max_score;
+                                                                                    const rawMax = Number(item.max_score);
+                                                                                    const max = Number.isFinite(rawMax) ? rawMax : 0;
                                                                                     const half = Math.floor(max / 2);
                                                                                     const options = [0, half, max];
-                                                                                    return options.map(score => (
+                                                                                    return options.map((score, idx) => (
                                                                                         <Button
-                                                                                            key={score}
+                                                                                            key={`sub-score-${item.id}-${idx}-${score}`}
                                                                                             size="sm"
                                                                                             variant={currentScore === score.toString() ? "solid" : "flat"}
                                                                                             color={currentScore === score.toString() ? "primary" : "default"}
@@ -1676,12 +1678,13 @@ export default function WorkerDashboardPage() {
                                             {/* Quick score buttons */}
                                             <div className="flex justify-end gap-2">
                                                 {(() => {
-                                                    const max = maxScore;
+                                                    const rawMax = Number(maxScore);
+                                                    const max = Number.isFinite(rawMax) ? rawMax : 0;
                                                     const half = Math.floor(max / 2);
                                                     const options = [0, half, max];
-                                                    return options.map(score => (
+                                                    return options.map((score, idx) => (
                                                         <Button
-                                                            key={score}
+                                                            key={`total-score-${idx}-${score}`}
                                                             size="sm"
                                                             variant={completeForm.score === score.toString() ? "solid" : "flat"}
                                                             color={completeForm.score === score.toString() ? "primary" : "default"}

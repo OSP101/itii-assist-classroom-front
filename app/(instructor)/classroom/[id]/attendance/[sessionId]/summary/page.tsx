@@ -259,7 +259,7 @@ export default function AttendanceSummaryPage() {
     if (!session && !isLoading) {
         return (
             <div className="flex min-h-screen flex-col items-center justify-center bg-background text-foreground">
-                <Icon icon="solar:clipboard-remove-bold-duotone" className="mb-4 text-6xl text-default-300" />
+                <Icon icon="solar:clipboard-remove-bold-duotone" className="mb-4 text-6xl text-default-300" aria-label={t("ไม่พบรอบการเช็คชื่อ", "Attendance session not found")} />
                 <h2 className="text-xl font-semibold text-default-700">{t("ไม่พบรอบการเช็คชื่อ", "Attendance session not found")}</h2>
                 <Button
                     color="primary"
@@ -323,7 +323,7 @@ export default function AttendanceSummaryPage() {
                     <CardBody className="p-4">
                         <div className="flex items-center gap-3">
                             <div className="p-2.5 bg-blue-100 rounded-xl">
-                                <Icon icon="solar:users-group-rounded-bold" className="text-2xl text-blue-600" />
+                                <Icon icon="solar:users-group-rounded-bold" className="text-2xl text-blue-600" aria-label={t("ทั้งหมด", "Total")} />
                             </div>
                             <div>
                                 <p className="text-xs text-default-500">{t("ทั้งหมด", "Total")}</p>
@@ -336,7 +336,7 @@ export default function AttendanceSummaryPage() {
                     <CardBody className="p-4">
                         <div className="flex items-center gap-3">
                             <div className="p-2.5 bg-emerald-100 rounded-xl">
-                                <Icon icon="solar:check-circle-bold" className="text-2xl text-emerald-600" />
+                                <Icon icon="solar:check-circle-bold" className="text-2xl text-emerald-600" aria-label={t("มา", "Present")} />
                             </div>
                             <div>
                                 <p className="text-xs text-default-500">{t("มา", "Present")}</p>
@@ -349,7 +349,7 @@ export default function AttendanceSummaryPage() {
                     <CardBody className="p-4">
                         <div className="flex items-center gap-3">
                             <div className="p-2.5 bg-amber-100 rounded-xl">
-                                <Icon icon="solar:clock-circle-bold" className="text-2xl text-amber-600" />
+                                <Icon icon="solar:clock-circle-bold" className="text-2xl text-amber-600" aria-label={t("สาย", "Late")} />
                             </div>
                             <div>
                                 <p className="text-xs text-default-500">{t("สาย", "Late")}</p>
@@ -362,7 +362,7 @@ export default function AttendanceSummaryPage() {
                     <CardBody className="p-4">
                         <div className="flex items-center gap-3">
                             <div className="rounded-xl bg-content3 p-2.5">
-                                <Icon icon="solar:document-bold" className="text-2xl text-default-600" />
+                                <Icon icon="solar:document-bold" className="text-2xl text-default-600" aria-label={t("ลา", "On leave")} />
                             </div>
                             <div>
                                 <p className="text-xs text-default-500">{t("ลา", "On leave")}</p>
@@ -375,7 +375,7 @@ export default function AttendanceSummaryPage() {
                     <CardBody className="p-4">
                         <div className="flex items-center gap-3">
                             <div className="p-2.5 bg-red-100 rounded-xl">
-                                <Icon icon="solar:close-circle-bold" className="text-2xl text-red-600" />
+                                <Icon icon="solar:close-circle-bold" className="text-2xl text-red-600" aria-label={t("ขาด", "Absent")} />
                             </div>
                             <div>
                                 <p className="text-xs text-default-500">{t("ขาด", "Absent")}</p>
@@ -395,6 +395,7 @@ export default function AttendanceSummaryPage() {
                     </div>
                     <Progress
                         value={attendanceRate}
+                        aria-label={t("อัตราการเข้าเรียน", "Attendance rate")}
                         color={attendanceRate >= 80 ? "success" : attendanceRate >= 60 ? "warning" : "danger"}
                         size="lg"
                     />
@@ -417,6 +418,7 @@ export default function AttendanceSummaryPage() {
                         />
                         <Select
                             placeholder={t("สถานะ", "Status")}
+                            aria-label={t("กรองตามสถานะ", "Filter by status")}
                             selectedKeys={[statusFilter]}
                             onSelectionChange={(keys) => setStatusFilter(Array.from(keys)[0] as string)}
                             className="w-full sm:w-32"
@@ -454,6 +456,7 @@ export default function AttendanceSummaryPage() {
                                         <Icon
                                             icon="solar:users-group-rounded-linear"
                                             className="mx-auto mb-3 text-5xl text-default-300"
+                                            aria-label={t("ไม่พบรายการที่ตรงกับการค้นหา", "No records match your search")}
                                         />
                                         <p className="text-default-400">{t("ไม่พบรายการที่ตรงกับการค้นหา", "No records match your search")}</p>
                                     </div>

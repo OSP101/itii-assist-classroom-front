@@ -27,7 +27,7 @@ function StatsCardComponent({
             <div className="relative flex items-start justify-between">
                 <div>
                     <div className={`w-12 h-12 ${iconBg} rounded-xl flex items-center justify-center mb-3`}>
-                        <Icon icon={icon} className="text-2xl text-white" />
+                        <Icon icon={icon} className="text-2xl text-white" aria-label={label} />
                     </div>
                     <p className="text-sm text-slate-500 mb-1">{label}</p>
                     <div className="flex items-baseline gap-1">

@@ -15,7 +15,6 @@ import { Skeleton } from "@heroui/skeleton";
 import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
 import { Divider } from "@heroui/divider";
-import { Pagination } from "@heroui/pagination";
 import { addToast } from "@heroui/toast";
 import {
     Table,
@@ -36,6 +35,7 @@ import { Icon } from "@iconify/react";
 import { type DateValue, getLocalTimeZone, parseDateTime, CalendarDateTime } from "@internationalized/date";
 import { QRCodeSVG } from "qrcode.react";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import TablePaginationFooter, { DEFAULT_TABLE_ROWS_PER_PAGE } from "@/components/ui/table-pagination-footer";
 
 import {
     type SessionWithComputedStatus,
@@ -251,7 +251,7 @@ export const StatsCards = memo(function StatsCards({ stats }: StatsCardsProps) {
                     <CardBody className="p-4">
                         <div className="flex items-center gap-3">
                             <div className={`p-2.5 ${item.bgClass} rounded-xl`}>
-                                <Icon icon={item.icon} className={`text-2xl ${item.iconClass}`} />
+                                <Icon icon={item.icon} className={`text-2xl ${item.iconClass}`} aria-label={item.label} />
                             </div>
                             <div>
                                 <p className="text-xs text-default-500">{item.label}</p>
@@ -310,6 +310,7 @@ export const FiltersCard = memo(function FiltersCard({
                     <div className="flex gap-2">
                         <Select
                             placeholder={isEnglish ? "Status" : "สถานะ"}
+                            aria-label={isEnglish ? "Filter by status" : "กรองตามสถานะ"}
                             selectedKeys={[statusFilter]}
                             onSelectionChange={(keys) => onStatusChange(Array.from(keys)[0] as string)}
                             className="w-full sm:w-40"
@@ -323,6 +324,7 @@ export const FiltersCard = memo(function FiltersCard({
                         </Select>
                         <Select
                             placeholder={isEnglish ? "Type" : "ประเภท"}
+                            aria-label={isEnglish ? "Filter by type" : "กรองตามประเภท"}
                             selectedKeys={[typeFilter]}
                             onSelectionChange={(keys) => onTypeChange(Array.from(keys)[0] as string)}
                             className="w-full sm:w-40"
@@ -362,6 +364,7 @@ export const EmptyState = memo(function EmptyState({ onCreateClick, isCourseActi
                     <Icon
                         icon="solar:clipboard-check-bold-duotone"
                         className="text-5xl text-blue-500"
+                        aria-label={isEnglish ? "No attendance sessions" : "ยังไม่มีรอบการเช็คชื่อ"}
                     />
                 </div>
                 <h3 className="mb-2 text-lg font-semibold text-default-700">{isEnglish ? "No attendance sessions yet" : "ยังไม่มีรอบการเช็คชื่อ"}</h3>
@@ -767,13 +770,23 @@ export const SessionsTable = memo(function SessionsTable({
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
-    const ITEMS_PER_PAGE = 10;
+    const [rowsPerPage, setRowsPerPage] = useState(DEFAULT_TABLE_ROWS_PER_PAGE);
 
-    const totalPages = Math.ceil(sessions.length / ITEMS_PER_PAGE);
+    const totalPages = Math.max(1, Math.ceil(sessions.length / rowsPerPage));
     const paginatedSessions = useMemo(() => {
-        const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        return sessions.slice(start, start + ITEMS_PER_PAGE);
-    }, [sessions, currentPage]);
+        const start = (currentPage - 1) * rowsPerPage;
+        return sessions.slice(start, start + rowsPerPage);
+    }, [sessions, currentPage, rowsPerPage]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [rowsPerPage, sessions]);
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
 
     return (
         <>
@@ -936,24 +949,18 @@ export const SessionsTable = memo(function SessionsTable({
                         </Table>
                     </div>
 
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                        <div className="flex justify-center border-t border-divider py-4">
-                            <Pagination
-                                total={totalPages}
-                                page={currentPage}
-                                onChange={setCurrentPage}
-                                showControls
-                                size="sm"
-                                color="primary"
-                                classNames={{
-                                    wrapper: "gap-1",
-                                    item: "bg-transparent",
-                                    cursor: "bg-blue-500 text-white shadow-md",
-                                }}
-                            />
-                        </div>
-                    )}
+                    <TablePaginationFooter
+                        totalItems={sessions.length}
+                        currentPage={currentPage}
+                        rowsPerPage={rowsPerPage}
+                        totalPages={totalPages}
+                        isEnglish={isEnglish}
+                        nounEnglish="session"
+                        nounEnglishPlural="sessions"
+                        nounThai="รอบ"
+                        onPageChange={setCurrentPage}
+                        onRowsPerPageChange={setRowsPerPage}
+                    />
                 </CardBody>
             </Card>
 

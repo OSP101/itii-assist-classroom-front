@@ -10,7 +10,6 @@ import {
     TableCell,
 } from "@heroui/table";
 import { useSocket } from "@/contexts/SocketContext";
-import { Pagination } from "@heroui/pagination";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
@@ -29,6 +28,7 @@ import { Icon } from "@iconify/react";
 import { studentService } from "@/services/student.service";
 import type { Student, CreateStudentDto, UpdateStudentDto, StudentStats } from "@/services/student.service";
 import { useTableParams } from "@/lib/table/use-table-params";
+import TablePaginationFooter, { DEFAULT_TABLE_ROWS_PER_PAGE } from "@/components/ui/table-pagination-footer";
 import { MetricCardSkeleton, TableRowsSkeleton } from "@/components/ui/resource-loading";
 import { useI18n } from "@/hooks/useI18n";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
@@ -67,10 +67,11 @@ export default function StudentsPage() {
         params,
         setSearch,
         setPage,
+        setLimit,
         setSort,
         setFilter,
     } = useTableParams({
-        defaultLimit: 10,
+        defaultLimit: DEFAULT_TABLE_ROWS_PER_PAGE,
         defaultSort: "created_at",
         defaultOrder: "desc",
         searchDebounceMs: 300,
@@ -78,7 +79,8 @@ export default function StudentsPage() {
     const [searchInput, setSearchInput] = useState(String(params.search ?? ""));
 
     const page = Number(params.page) || 1;
-    const limit = Number(params.limit) || 10;
+    const limit = Number(params.limit) || DEFAULT_TABLE_ROWS_PER_PAGE;
+    const isEnglish = language === "en";
     const search = String(params.search ?? "");
     const statusFilter = String(params.status ?? "all");
     const sortBy = String(params.sort ?? "created_at");
@@ -803,27 +805,17 @@ export default function StudentsPage() {
                     </div>
                 </div>
 
-                {/* Pagination */}
-                {totalPages > 1 && (
-                    <div className="flex flex-col items-center justify-between gap-3 border-t border-divider px-3 py-3 sm:flex-row sm:px-4">
-                        <p className="order-2 text-xs text-default-500 sm:order-1 sm:text-sm">
-                            {t("showingRangeOfTotal", {
-                                start: ((page - 1) * limit) + 1,
-                                end: Math.min(page * limit, totalItems),
-                                total: totalItems,
-                            })}
-                        </p>
-                        <Pagination
-                            total={totalPages}
-                            page={page}
-                            onChange={setPage}
-                            showControls
-                            size="sm"
-                            color="primary"
-                            className="order-1 sm:order-2"
-                        />
-                    </div>
-                )}
+                <TablePaginationFooter
+                    totalItems={totalItems}
+                    currentPage={page}
+                    rowsPerPage={limit}
+                    totalPages={totalPages}
+                    isEnglish={isEnglish}
+                    nounEnglish="student"
+                    nounThai="นักศึกษา"
+                    onPageChange={setPage}
+                    onRowsPerPageChange={setLimit}
+                />
             </div>
 
             {/* Create Modal */}

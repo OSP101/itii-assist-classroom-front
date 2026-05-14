@@ -17,12 +17,12 @@ import {
   TableRow,
   TableCell,
 } from "@heroui/table";
-import { Pagination } from "@heroui/pagination";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { instructorFlatButtonClass } from "@/components/ui/instructor-button-styles";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import TablePaginationFooter from "@/components/ui/table-pagination-footer";
 import {
   getActivityLogs,
   getActivityStats,
@@ -152,6 +152,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
   const [filters, setFilters] = useState<ActivityLogFilters | null>(null);
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [rowsPerPage, setRowsPerPage] = useState(30);
 
   // Filter state
   const [category, setCategory] = useState("");
@@ -162,12 +163,12 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
 
   // Fetch logs
   const fetchLogs = useCallback(
-    async (page = 1) => {
+    async (page = 1, limit = rowsPerPage) => {
       setLoading(true);
       try {
         const data = await getActivityLogs(courseId, {
           page,
-          limit: 30,
+          limit,
           category,
           action,
           actorId,
@@ -182,7 +183,7 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
         setLoading(false);
       }
     },
-    [action, actorId, category, courseId, isEnglish, searchText],
+    [action, actorId, category, courseId, isEnglish, rowsPerPage, searchText],
   );
 
   // Fetch stats
@@ -417,29 +418,6 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                 <Table
                   aria-label="Activity log table"
                   removeWrapper
-                  bottomContent={
-                    pagination.totalPages > 1 ? (
-                      <div className="flex flex-col gap-2 px-1 py-2 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="text-xs text-default-400">
-                          {isEnglish ? `Page ${pagination.page} of ${pagination.totalPages}` : `หน้า ${pagination.page} จาก ${pagination.totalPages}`}
-                        </p>
-                        <Pagination
-                          total={pagination.totalPages}
-                          page={pagination.page}
-                          onChange={(nextPage) => {
-                            void fetchLogs(nextPage);
-                          }}
-                          showControls
-                          isCompact
-                          size="sm"
-                          classNames={{
-                            cursor: "bg-blue-500 text-white",
-                          }}
-                        />
-                      </div>
-                    ) : null
-                  }
-                  bottomContentPlacement="outside"
                   classNames={{
                     base: "min-w-225",
                     th: "bg-content2 text-default-600 font-semibold text-sm whitespace-nowrap",
@@ -522,6 +500,25 @@ export default function ActivityLogTab({ courseId }: ActivityLogTabProps) {
                     })}
                   </TableBody>
                 </Table>
+
+                <TablePaginationFooter
+                  totalItems={pagination.total}
+                  currentPage={pagination.page}
+                  rowsPerPage={rowsPerPage}
+                  totalPages={Math.max(1, pagination.totalPages)}
+                  isEnglish={isEnglish}
+                  nounEnglish="activity"
+                  nounEnglishPlural="activities"
+                  nounThai="รายการ"
+                  rowsPerPageOptions={[10, 20, 30, 50]}
+                  onPageChange={(nextPage) => {
+                    void fetchLogs(nextPage);
+                  }}
+                  onRowsPerPageChange={(nextRows) => {
+                    setRowsPerPage(nextRows);
+                    void fetchLogs(1, nextRows);
+                  }}
+                />
                 </div>
               )}
             </CardBody>

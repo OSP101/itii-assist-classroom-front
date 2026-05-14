@@ -65,6 +65,7 @@ function RiskTableComponent({ students, onSelectStudent }: RiskTableProps) {
                 <Progress
                   value={pct}
                   size="sm"
+                  aria-label={student.full_name}
                   color={pct >= 60 ? "success" : pct >= 40 ? "warning" : "danger"}
                   className="flex-1"
                 />
@@ -135,6 +136,7 @@ function RiskTableComponent({ students, onSelectStudent }: RiskTableProps) {
                     <Progress
                       value={pct}
                       size="sm"
+                      aria-label={student.full_name}
                       color={pct >= 60 ? "success" : pct >= 40 ? "warning" : "danger"}
                       className="w-16"
                     />

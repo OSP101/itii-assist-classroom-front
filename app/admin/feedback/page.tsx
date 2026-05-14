@@ -9,7 +9,6 @@ import {
     TableRow,
     TableCell,
 } from "@heroui/table";
-import { Pagination } from "@heroui/pagination";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
@@ -30,6 +29,7 @@ import { Icon } from "@iconify/react";
 import { feedbackService } from "@/services/feedback.service";
 import type { Feedback, FeedbackStats, UpdateFeedbackDto } from "@/services/feedback.service";
 import { useTableParams } from "@/lib/table/use-table-params";
+import TablePaginationFooter, { DEFAULT_TABLE_ROWS_PER_PAGE } from "@/components/ui/table-pagination-footer";
 
 // Column definitions
 const columns = [
@@ -130,9 +130,10 @@ export default function FeedbackPage() {
         params,
         setSearch,
         setPage,
+        setLimit,
         setFilter,
     } = useTableParams({
-        defaultLimit: 10,
+        defaultLimit: DEFAULT_TABLE_ROWS_PER_PAGE,
         defaultSort: "created_at",
         defaultOrder: "desc",
         searchDebounceMs: 300,
@@ -140,7 +141,7 @@ export default function FeedbackPage() {
     const [searchInput, setSearchInput] = useState(String(params.search ?? ""));
 
     const page = Number(params.page) || 1;
-    const limit = Number(params.limit) || 10;
+    const limit = Number(params.limit) || DEFAULT_TABLE_ROWS_PER_PAGE;
     const search = String(params.search ?? "");
     const typeFilter = String(params.type ?? "all");
     const statusFilter = String(params.status ?? "all");
@@ -559,20 +560,6 @@ export default function FeedbackPage() {
                         <Table
                             aria-label="Feedback table"
                             removeWrapper
-                            bottomContent={
-                                totalPages > 1 ? (
-                                    <div className="flex justify-center py-3">
-                                        <Pagination
-                                            total={totalPages}
-                                            page={page}
-                                            onChange={setPage}
-                                            showControls
-                                            size="sm"
-                                        />
-                                    </div>
-                                ) : null
-                            }
-
                             classNames={{
                                 th: "bg-content2 text-default-600 font-semibold text-xs sm:text-sm",
                                 td: "py-2 sm:py-3",
@@ -602,6 +589,17 @@ export default function FeedbackPage() {
                         </Table>
                     </div>
                 </div>
+                <TablePaginationFooter
+                    totalItems={totalItems}
+                    currentPage={page}
+                    rowsPerPage={limit}
+                    totalPages={totalPages}
+                    isEnglish={false}
+                    nounEnglish="feedback item"
+                    nounThai="รายการ"
+                    onPageChange={setPage}
+                    onRowsPerPageChange={setLimit}
+                />
             </div>
 
 

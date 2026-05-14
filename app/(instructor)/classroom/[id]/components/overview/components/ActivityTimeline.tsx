@@ -19,7 +19,7 @@ function ActivityTimelineComponent({ activities }: ActivityTimelineProps) {
   if (activities.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-10 gap-2">
-        <Icon icon="solar:history-2-linear" className="text-4xl text-slate-300" />
+        <Icon icon="solar:history-2-linear" className="text-4xl text-slate-300" aria-label={t("noActivityYet")} />
         <p className="text-sm text-slate-400">{t("noActivityYet")}</p>
       </div>
     );

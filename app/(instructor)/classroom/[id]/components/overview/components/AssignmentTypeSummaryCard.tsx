@@ -41,6 +41,7 @@ function AssignmentTypeSummaryCardComponent({
                         value={stats.progressRate}
                         color={config.color}
                         size="sm"
+                        aria-label={config.shortLabel}
                         className="h-2"
                     />
                     <div className="flex justify-between items-center">

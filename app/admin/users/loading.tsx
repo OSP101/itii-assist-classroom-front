@@ -1,5 +1,6 @@
 import { Skeleton } from "@heroui/skeleton";
 import { Card, CardBody } from "@heroui/card";
+import TablePaginationFooterSkeleton from "@/components/ui/table-pagination-footer-skeleton";
 
 export default function UsersLoading() {
   return (
@@ -74,15 +75,7 @@ export default function UsersLoading() {
         </CardBody>
       </Card>
 
-      {/* Pagination */}
-      <div className="flex justify-between items-center">
-        <Skeleton className="w-40 h-4 rounded-lg" />
-        <div className="flex gap-2">
-          {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="w-8 h-8 rounded-lg" />
-          ))}
-        </div>
-      </div>
+      <TablePaginationFooterSkeleton />
     </div>
   );
 }
