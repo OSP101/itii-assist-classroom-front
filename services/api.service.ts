@@ -3,6 +3,7 @@
  */
 
 import { API_BASE_URL } from '@/config/api';
+import { buildPreferredLoginHref } from '@/lib/auth-resume';
 
 interface ApiResponse<T = unknown> {
   success: boolean;
@@ -180,7 +181,8 @@ class ApiService {
         
         // Redirect to login if refresh failed (but not if already on login)
         if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-          window.location.href = '/login';
+          const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+          window.location.href = buildPreferredLoginHref(currentPath);
         }
         return { success: false, error: 'Session expired. Please login again.' };
       }

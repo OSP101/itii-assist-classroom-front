@@ -72,7 +72,13 @@ const menuItems: MenuItem[] = [
         labelKey: "monitoring",
         icon: "solar:monitor-smartphone-bold",
         href: "/admin/monitoring",
-    }
+    },
+    {
+        key: "settings",
+        labelKey: "settings",
+        icon: "solar:settings-bold",
+        href: "/admin/settings",
+    },
 ];
 
 // Page titles mapping

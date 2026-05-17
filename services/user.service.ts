@@ -4,14 +4,15 @@
 
 import { apiService } from './api.service';
 import { API_ENDPOINTS } from '@/config/api';
+import type { AppRole } from '@/lib/auth-routing';
 
 // Types
 export interface User {
-  ID: number;
+  id: number;
   username: string;
   full_name: string;
   email: string | null;
-  role: 'admin' | 'instructor' | 'ta';
+  role: AppRole;
   is_active: boolean;
   provider: 'local' | 'google';
   google_id: string | null;
@@ -24,7 +25,7 @@ export interface CreateUserDto {
   username: string;
   full_name: string;
   email?: string;
-  role: 'admin' | 'instructor' | 'ta';
+  role: AppRole;
   avatar?: string;
 }
 
@@ -41,9 +42,16 @@ export interface UpdateUserDto {
   password?: string;
   full_name?: string;
   email?: string;
-  role?: 'admin' | 'instructor' | 'ta';
   is_active?: boolean;
   avatar?: string;
+}
+
+export interface UserConflict {
+  username: string;
+  conflict_field?: "username" | "email";
+  conflict_value?: string;
+  conflict_user: User;
+  target_user: User;
 }
 
 export interface UserListParams {
@@ -73,6 +81,7 @@ export interface UserStats {
     admin: number;
     instructor: number;
     ta: number;
+    student?: number;
   };
   byStatus: {
     active: number;
@@ -134,10 +143,12 @@ class UserService {
   }
 
   /**
-   * Toggle user active status
+   * Toggle user active status.
+   * Pass force=true to resolve a username conflict (disables the conflicting active user).
    */
-  async toggleStatus(id: number) {
-    return apiService.patch<User>(`${API_ENDPOINTS.USERS}/${id}/status`);
+  async toggleStatus(id: number, force?: boolean) {
+    const options = force ? { params: { force: 'true' } } : undefined;
+    return apiService.patch<User>(`${API_ENDPOINTS.USERS}/${id}/status`, undefined, options);
   }
 }
 

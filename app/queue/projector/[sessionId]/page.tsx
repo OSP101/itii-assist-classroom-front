@@ -772,10 +772,12 @@ export default function ProjectorViewPage() {
                             </div>
                         ) : (
                             <div className="flex items-center gap-4 shrink-0">
-                                <QRCode value={getBookingUrl()} size={200} bgColor="#ffffff" fgColor="#000000" level="L" />
-                                <div className="bg-blue-100 rounded-xl px-4 py-2">
+                                <div className="bg-white p-2 rounded-xl inline-block">
+                                    <QRCode value={getBookingUrl()} size={200} bgColor="#ffffff" fgColor="#000000" level="L" />
+                                </div>
+                                <div className="bg-blue-100 dark:bg-blue-900/40 rounded-xl px-4 py-2">
                                     <span className="text-sm text-default-600">PIN Code</span>
-                                    <p className="text-4xl font-mono font-bold text-blue-700 text-center">{data.session.pin_code}</p>
+                                    <p className="text-4xl font-mono font-bold text-blue-700 dark:text-blue-300 text-center">{data.session.pin_code}</p>
 
                                     <Divider className="my-3" />
                                     <p className="font-mono text-foreground">{`itii.osp101.dev/queue/book`}</p>
@@ -857,23 +859,21 @@ export default function ProjectorViewPage() {
                             </div>
                         ) : (
                             <div className="rounded-2xl border border-default-200 bg-content1 p-6 text-center shadow-sm">
-                                <div className="mb-3">
-                                    <QRCode
-                                        value={getBookingUrl()}
-                                        size={180}
-                                        className="mx-auto"
-                                        bgColor="#ffffff" fgColor="#000000" level="L"
-                                    />
+                                <div className="mb-3 flex justify-center">
+                                    <div className="bg-white p-2 rounded-xl inline-block">
+                                        <QRCode
+                                            value={getBookingUrl()}
+                                            size={180}
+                                            bgColor="#ffffff" fgColor="#000000" level="L"
+                                        />
+                                    </div>
                                 </div>
-                                <div className="bg-blue-100 rounded-xl px-4 py-2">
+                                <div className="bg-blue-100 dark:bg-blue-900/40 rounded-xl px-4 py-2">
                                     <span className="text-sm text-default-600">PIN Code</span>
 
-                                    <p className="text-4xl font-mono font-bold text-blue-700">{data.session.pin_code}</p>
+                                    <p className="text-4xl font-mono font-bold text-blue-700 dark:text-blue-300">{data.session.pin_code}</p>
                                 </div>
-                                <div>
-                                    <Divider className="my-3" />
-                                    <p className="font-mono text-foreground">{`${process.env.NEXT_PUBLIC_FRONTEND_URL}/queue/book`}</p>
-                                </div>
+
                             </div>
                         )}
 

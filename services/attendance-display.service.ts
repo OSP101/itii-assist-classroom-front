@@ -31,6 +31,8 @@ export interface AttendanceDisplaySessionInfo {
     session_type: string;
     check_location: boolean;
     pin_code: string;
+    pin_issued_at?: string | null;
+    pin_rotates_at?: string | null;
     late_threshold_minutes: number;
     late_threshold_time: string;
     start_time: string;
@@ -129,6 +131,12 @@ const attendanceDisplayService = {
     async bootstrap(): Promise<AttendanceDisplayBootstrap> {
         return publicRequest<AttendanceDisplayBootstrap>("/attendance/display/bootstrap", {
             method: "POST",
+        });
+    },
+
+    async getPairingStatus(pairingId: string): Promise<{ status: string }> {
+        return publicRequest<{ status: string }>(`/attendance/display/pairing-status?pairing_id=${encodeURIComponent(pairingId)}`, {
+            method: "GET",
         });
     },
 

@@ -345,6 +345,24 @@ function AssignmentsTabViewComponent({
                                 </Button>
                             </Tooltip>
                         )}
+                        {!assignment.is_draft && canUpdateAssignments && (
+                            <Tooltip content={isEnglish ? "Move back to draft" : "ย้ายกลับเป็นร่าง"}>
+                                <Button
+                                    size="sm"
+                                    color="warning"
+                                    variant="flat"
+                                    isDisabled={!isCourseActive}
+                                    onPress={async () => {
+                                        await assignmentService.unpublishAssignment(assignment.id);
+                                        onAssignmentSaved();
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="h-7 px-2 text-xs"
+                                >
+                                    {isEnglish ? "Unpublish" : "ย้ายเป็นร่าง"}
+                                </Button>
+                            </Tooltip>
+                        )}
                     </div>
                     {renderUngradedInfo(assignment)}
                 </CardBody>
@@ -453,6 +471,23 @@ function AssignmentsTabViewComponent({
                                             }}
                                         >
                                             <Icon icon="solar:eye-bold" className="text-lg" />
+                                        </Button>
+                                    </Tooltip>
+                                )}
+                                {!assignment.is_draft && canUpdateAssignments && (
+                                    <Tooltip content={isEnglish ? "Move back to draft" : "ย้ายกลับเป็นร่าง"}>
+                                        <Button
+                                            isIconOnly
+                                            size="sm"
+                                            variant="light"
+                                            color="warning"
+                                            isDisabled={!isCourseActive}
+                                            onPress={async () => {
+                                                await assignmentService.unpublishAssignment(assignment.id);
+                                                onAssignmentSaved();
+                                            }}
+                                        >
+                                            <Icon icon="solar:eye-closed-linear" className="text-lg" />
                                         </Button>
                                     </Tooltip>
                                 )}

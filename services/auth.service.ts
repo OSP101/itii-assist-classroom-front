@@ -1,6 +1,7 @@
 import apiService from './api.service';
 import { API_ENDPOINTS } from '@/config/api';
 import { clearAppearanceHintCookieString } from '@/lib/appearance-hint';
+import type { AppRole } from '@/lib/auth-routing';
 
 export const AUTH_USER_UPDATED_EVENT = 'auth:user-updated';
 export const PENDING_PREFERENCES_STORAGE_KEY = 'auth:pending-preferences';
@@ -19,9 +20,10 @@ export interface UserPreferences {
 export interface User {
   id: number;
   username: string;
+  student_id?: string;
   email: string;
   full_name: string;
-  role: 'admin' | 'instructor' | 'ta';
+  role: AppRole;
   avatar: string | null;
   preferences?: UserPreferences;
   is_active: boolean;
@@ -458,8 +460,12 @@ class AuthService {
   /**
    * Get Google OAuth URL
    */
-  getGoogleAuthUrl(): string {
+  getGoogleAuthUrl(audience?: 'student'): string {
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+    if (audience === 'student') {
+      return `${apiBaseUrl}/auth/google?audience=student`;
+    }
+
     return `${apiBaseUrl}/auth/google`;
   }
 

@@ -140,6 +140,10 @@ export default function LiveAttendancePage() {
     // QR Modal
     const [isQRModalOpen, setIsQRModalOpen] = useState(false);
 
+    // PIN rotation countdown
+    const [pinCountdown, setPinCountdown] = useState<number | null>(null);
+    const [pinTotal, setPinTotal] = useState<number | null>(null);
+
     // Search filter
     const [searchQuery, setSearchQuery] = useState("");
 
@@ -155,11 +159,19 @@ export default function LiveAttendancePage() {
     };
 
     // Fetch session and records
+    const refreshSession = useCallback(async () => {
+        const sessionData = await attendanceService.getSession(sessionId);
+        if (sessionData) {
+            setSession(sessionData);
+        }
+        return sessionData;
+    }, [sessionId]);
+
     const fetchData = useCallback(async () => {
         setIsLoading(true);
         try {
             const [sessionData, recordsData] = await Promise.all([
-                attendanceService.getSession(sessionId),
+                refreshSession(),
                 attendanceService.getRecords(sessionId),
             ]);
 
@@ -180,7 +192,7 @@ export default function LiveAttendancePage() {
         } finally {
             setIsLoading(false);
         }
-    }, [sessionId, isEnglish]);
+    }, [refreshSession, sessionId, isEnglish]);
 
     // Initialize socket connection
     useEffect(() => {
@@ -230,6 +242,18 @@ export default function LiveAttendancePage() {
             );
         });
 
+        socket.on("attendance-pin-updated", (data: { pin_code?: string; pin_issued_at?: string | null; pin_rotates_at?: string | null; status?: AttendanceSession["status"] }) => {
+            setSession((prev) => prev
+                ? {
+                    ...prev,
+                    pin_code: data.pin_code ?? "",
+                    pin_issued_at: data.pin_issued_at ?? null,
+                    pin_rotates_at: data.pin_rotates_at ?? null,
+                    status: data.status ?? prev.status,
+                }
+                : prev);
+        });
+
         // Listen for session closed
         socket.on("session-closed", () => {
             addToast({
@@ -256,6 +280,16 @@ export default function LiveAttendancePage() {
     }, [fetchData]);
 
     useEffect(() => {
+        const interval = window.setInterval(() => {
+            refreshSession().catch((error) => {
+                console.error("Error refreshing attendance session:", error);
+            });
+        }, 15000);
+
+        return () => window.clearInterval(interval);
+    }, [refreshSession]);
+
+    useEffect(() => {
         document.title = isEnglish
             ? "Live Attendance - ITII Assist Classroom"
             : "เช็คชื่อ Live - ITII Assist Classroom";
@@ -270,6 +304,26 @@ export default function LiveAttendancePage() {
             setStatusNote(selectedRecord.note || "");
         }
     }, [isStatusModalOpen, selectedRecord]);
+
+    // PIN rotation countdown
+    useEffect(() => {
+        if (!session?.pin_rotates_at || session.status !== "active") {
+            setPinCountdown(null);
+            setPinTotal(null);
+            return;
+        }
+        if (session.pin_issued_at && session.pin_rotates_at) {
+            const total = Math.round((new Date(session.pin_rotates_at).getTime() - new Date(session.pin_issued_at).getTime()) / 1000);
+            setPinTotal(total > 0 ? total : null);
+        }
+        const tick = () => {
+            const diff = Math.floor((new Date(session.pin_rotates_at!).getTime() - Date.now()) / 1000);
+            setPinCountdown(diff > 0 ? diff : 0);
+        };
+        tick();
+        const id = setInterval(tick, 1000);
+        return () => clearInterval(id);
+    }, [session?.pin_rotates_at, session?.pin_issued_at, session?.status]);
 
     // Countdown timer
     useEffect(() => {
@@ -348,7 +402,7 @@ export default function LiveAttendancePage() {
         try {
             const result = await attendanceService.closeSession(session.id);
             if (result) {
-                setSession({ ...session, status: "closed" });
+                setSession(result);
                 addToast({
                     title: t("สำเร็จ", "Success"),
                     description: t("ปิดรอบการเช็คชื่อเรียบร้อยแล้ว", "The attendance session was closed successfully."),
@@ -445,6 +499,13 @@ export default function LiveAttendancePage() {
     const sessionOpen = isSessionOpen();
     const now = new Date();
     const notStarted = session ? now < new Date(session.start_time) : false;
+    const pinAvailabilityMessage = !session
+        ? ""
+        : session.status === "closed"
+            ? t("PIN ถูกคืนเข้าระบบแล้ว", "PIN has been released.")
+            : notStarted
+                ? t("PIN จะออกเมื่อเริ่มรอบเช็คชื่อ", "PIN will be issued when check-in opens.")
+                : t("กำลังออกรหัสใหม่...", "Refreshing PIN...");
 
     // Total students count (should be fetched from course enrollment)
     const totalStudents = (session?.course as { enrollment_count?: number } | undefined)?.enrollment_count || records.length || 0;
@@ -541,12 +602,41 @@ export default function LiveAttendancePage() {
                         <CardBody className="text-center pt-2">
                             {/* PIN CODE */}
                             <p className="mb-1 text-xs uppercase tracking-wider text-default-400">PIN CODE</p>
-                            <div
-                                className="text-5xl font-bold text-blue-500 tracking-[0.2em] mb-6 cursor-pointer hover:text-blue-600 transition-colors"
-                                onClick={copyPIN}
-                            >
-                                {session.pin_code}
-                            </div>
+                            {session.pin_code ? (
+                                <div
+                                    className="text-5xl font-bold text-blue-500 tracking-[0.2em] mb-3 cursor-pointer hover:text-blue-600 transition-colors"
+                                    onClick={copyPIN}
+                                >
+                                    {session.pin_code}
+                                </div>
+                            ) : (
+                                <div className="mb-3 rounded-2xl border border-dashed border-default-300 bg-content2 px-4 py-6 text-sm text-default-500">
+                                    {pinAvailabilityMessage}
+                                </div>
+                            )}
+                            {/* PIN rotation progress bar */}
+                            {session.status === "active" && pinCountdown !== null && pinTotal !== null ? (
+                                <div className="mb-4 w-full">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <span className="text-xs text-default-400">{t("PIN เปลี่ยนทุก 1 นาที", "PIN rotates every minute")}</span>
+                                        <span className={`text-xs font-mono font-semibold tabular-nums ${
+                                            pinCountdown <= 10 ? "text-red-500" :
+                                            pinCountdown <= 20 ? "text-amber-500" : "text-blue-400"
+                                        }`}>{pinCountdown}s</span>
+                                    </div>
+                                    <div className="relative h-2 w-full overflow-hidden rounded-full bg-default-200">
+                                        <div
+                                            className={`h-full rounded-full transition-[width] duration-1000 ease-linear ${
+                                                pinCountdown <= 10 ? "bg-red-500" :
+                                                pinCountdown <= 20 ? "bg-amber-400" : "bg-blue-500"
+                                            }`}
+                                            style={{ width: `${Math.max(0, (pinCountdown / pinTotal) * 100)}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="mb-4 text-xs text-default-400">{t("PIN เปลี่ยนทุก 1 นาที", "PIN rotates every minute")}</p>
+                            )}
 
                             {/* QR CODE */}
                             <p className="mb-3 text-xs uppercase tracking-wider text-default-400">{t("QR CODE (คลิกเพื่อขยาย)", "QR CODE (click to expand)")}</p>
@@ -573,7 +663,7 @@ export default function LiveAttendancePage() {
                                     <Icon icon="solar:clock-circle-linear" className="text-base" />
                                     <span className="text-xs">{t("เวลาที่เหลือ", "Time remaining")}</span>
                                 </div>
-                                <div className={`inline-block px-6 py-3 rounded-xl ${isPastLateThreshold ? 'bg-amber-500' : 'bg-slate-700'}`}>
+                                <div className={`inline-block px-6 py-3 rounded-xl ${isPastLateThreshold ? 'bg-amber-500 dark:bg-amber-600' : 'bg-slate-700 dark:bg-slate-600'}`}>
                                     <span className="text-2xl font-mono font-bold text-white">
                                         {timeRemaining
                                             ? `${String(timeRemaining.hours).padStart(2, "0")}:${String(timeRemaining.minutes).padStart(2, "0")}:${String(timeRemaining.seconds).padStart(2, "0")}`
@@ -604,14 +694,14 @@ export default function LiveAttendancePage() {
                         <CardBody>
                             {/* Late threshold info */}
                             {lateThresholdDisplay && (
-                                <div className={`mb-4 p-3 rounded-xl flex items-center gap-3 ${isPastLateThreshold ? 'bg-amber-100 border border-amber-300' : 'bg-amber-50 border border-amber-200'}`}>
-                                    <Icon icon="solar:clock-circle-bold" className={`text-2xl ${isPastLateThreshold ? 'text-amber-600' : 'text-amber-500'}`} />
+                                <div className={`mb-4 p-3 rounded-xl flex items-center gap-3 ${isPastLateThreshold ? 'bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800'}`}>
+                                    <Icon icon="solar:clock-circle-bold" className={`text-2xl ${isPastLateThreshold ? 'text-amber-600 dark:text-amber-400' : 'text-amber-500 dark:text-amber-400'}`} />
                                     <div>
-                                        <p className={`text-sm font-medium ${isPastLateThreshold ? 'text-amber-800' : 'text-amber-700'}`}>
+                                        <p className={`text-sm font-medium ${isPastLateThreshold ? 'text-amber-800 dark:text-amber-200' : 'text-amber-700 dark:text-amber-300'}`}>
                                             {t("เกณฑ์เวลาสาย", "Late threshold")}: <span className="font-bold">{isEnglish ? lateThresholdDisplay : `${lateThresholdDisplay} น.`}</span>
-                                            {isPastLateThreshold && <span className="ml-2 text-red-600"> {t("(เลยเวลาตัดสายแล้ว)", "(late threshold passed)")}</span>}
+                                            {isPastLateThreshold && <span className="ml-2 text-red-600 dark:text-red-400"> {t("(เลยเวลาตัดสายแล้ว)", "(late threshold passed)")}</span>}
                                         </p>
-                                        <p className="text-xs text-amber-600">
+                                        <p className="text-xs text-amber-600 dark:text-amber-400">
                                             {isEnglish
                                                 ? `Check-ins after ${lateThresholdDisplay} are marked as "Late"`
                                                 : `เช็คชื่อหลัง ${lateThresholdDisplay} น. จะถือว่า "สาย"`}
@@ -622,36 +712,36 @@ export default function LiveAttendancePage() {
 
                             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                                 {/* นักศึกษาทั้งหมด */}
-                                <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
+                                <div className="p-3 bg-blue-50 dark:bg-blue-950/40 rounded-xl border border-blue-100 dark:border-blue-900/50">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <div className="p-1.5 bg-blue-100 rounded-lg">
-                                            <Icon icon="solar:users-group-rounded-bold" className="text-lg text-blue-500" />
+                                        <div className="p-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+                                            <Icon icon="solar:users-group-rounded-bold" className="text-lg text-blue-500 dark:text-blue-400" />
                                         </div>
-                                        <p className="text-xs text-blue-600 font-medium">{t("เช็คชื่อแล้ว", "Checked in")}</p>
+                                        <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">{t("เช็คชื่อแล้ว", "Checked in")}</p>
                                     </div>
-                                    <p className="text-2xl font-bold text-blue-600">{stats.checkedIn}</p>
+                                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.checkedIn}</p>
                                 </div>
 
                                 {/* มาเรียน (Present) */}
-                                <div className="p-3 bg-green-50 rounded-xl border border-green-100">
+                                <div className="p-3 bg-green-50 dark:bg-green-950/40 rounded-xl border border-green-100 dark:border-green-900/50">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <div className="p-1.5 bg-green-100 rounded-lg">
-                                            <Icon icon="solar:check-circle-bold" className="text-lg text-green-500" />
+                                        <div className="p-1.5 bg-green-100 dark:bg-green-900/50 rounded-lg">
+                                            <Icon icon="solar:check-circle-bold" className="text-lg text-green-500 dark:text-green-400" />
                                         </div>
-                                        <p className="text-xs text-green-600 font-medium">{t("มาเรียน", "Present")}</p>
+                                        <p className="text-xs text-green-600 dark:text-green-400 font-medium">{t("มาเรียน", "Present")}</p>
                                     </div>
-                                    <p className="text-2xl font-bold text-green-600">{stats.present}</p>
+                                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.present}</p>
                                 </div>
 
                                 {/* สาย (Late) */}
-                                <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
+                                <div className="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl border border-amber-100 dark:border-amber-900/50">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <div className="p-1.5 bg-amber-100 rounded-lg">
-                                            <Icon icon="solar:clock-circle-bold" className="text-lg text-amber-500" />
+                                        <div className="p-1.5 bg-amber-100 dark:bg-amber-900/50 rounded-lg">
+                                            <Icon icon="solar:clock-circle-bold" className="text-lg text-amber-500 dark:text-amber-400" />
                                         </div>
-                                        <p className="text-xs text-amber-600 font-medium">{t("สาย", "Late")}</p>
+                                        <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">{t("สาย", "Late")}</p>
                                     </div>
-                                    <p className="text-2xl font-bold text-amber-600">{stats.late}</p>
+                                    <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{stats.late}</p>
                                 </div>
 
                                 {/* ลา (Leave) */}
@@ -666,14 +756,14 @@ export default function LiveAttendancePage() {
                                 </div>
 
                                 {/* ขาด (Absent) */}
-                                <div className="p-3 bg-red-50 rounded-xl border border-red-100">
+                                <div className="p-3 bg-red-50 dark:bg-red-950/40 rounded-xl border border-red-100 dark:border-red-900/50">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <div className="p-1.5 bg-red-100 rounded-lg">
-                                            <Icon icon="solar:close-circle-bold" className="text-lg text-red-500" />
+                                        <div className="p-1.5 bg-red-100 dark:bg-red-900/50 rounded-lg">
+                                            <Icon icon="solar:close-circle-bold" className="text-lg text-red-500 dark:text-red-400" />
                                         </div>
-                                        <p className="text-xs text-red-600 font-medium">{t("ขาด", "Absent")}</p>
+                                        <p className="text-xs text-red-600 dark:text-red-400 font-medium">{t("ขาด", "Absent")}</p>
                                     </div>
-                                    <p className="text-2xl font-bold text-red-600">{stats.absent}</p>
+                                    <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.absent}</p>
                                 </div>
                             </div>
                         </CardBody>
@@ -845,16 +935,23 @@ export default function LiveAttendancePage() {
 
                                 <div className="mt-6 text-center">
                                     {/* <p className="text-sm text-slate-400 mb-3">หรือใส่รหัส PIN</p> */}
-                                    <div className="inline-block px-10 py-5 bg-slate-800 rounded-2xl shadow-lg">
-                                        <p className="text-6xl font-bold tracking-[0.4em] text-white font-mono">
-                                            {session.pin_code}
-                                        </p>
-                                    </div>
+                                    {session.pin_code ? (
+                                        <div className="inline-block px-10 py-5 bg-slate-800 dark:bg-slate-700 rounded-2xl shadow-lg">
+                                            <p className="text-6xl font-bold tracking-[0.4em] text-white font-mono">
+                                                {session.pin_code}
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="inline-block rounded-2xl border border-dashed border-default-300 bg-content2 px-8 py-6 text-sm text-default-500">
+                                            {pinAvailabilityMessage}
+                                        </div>
+                                    )}
+                                    <p className="mt-3 text-xs text-default-400">{t("PIN เปลี่ยนทุก 1 นาที", "PIN rotates every minute")}</p>
                                 </div>
 
                                 {/* Late threshold info */}
                                 {session.late_threshold_minutes > 0 && (
-                                    <div className="mt-6 flex items-center gap-2 text-amber-600 bg-amber-50 px-4 py-2 rounded-lg">
+                                    <div className="mt-6 flex items-center gap-2 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-4 py-2 rounded-lg">
                                         <Icon icon="solar:clock-circle-bold" className="text-xl" />
                                         <span className="text-sm">{isEnglish ? `Check-ins after ${session.late_threshold_minutes} minutes are marked as late` : `เช็คชื่อหลัง ${session.late_threshold_minutes} นาที ถือว่าสาย`}</span>
                                     </div>

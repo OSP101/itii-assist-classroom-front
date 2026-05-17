@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Spinner } from "@heroui/spinner";
 import { IoSchool } from "react-icons/io5";
 import { authService } from "@/services/auth.service";
+import { getDefaultRouteForRole } from "@/lib/auth-routing";
 
 export default function Home() {
   const router = useRouter();
@@ -25,17 +26,7 @@ export default function Home() {
           return;
         }
 
-        switch (user.role) {
-          case "admin":
-            router.push("/admin/dashboard");
-            break;
-          case "instructor":
-          case "ta":
-            router.push("/home");
-            break;
-          default:
-            router.push("/login");
-        }
+        router.push(getDefaultRouteForRole(user.role));
       } catch (error) {
         console.error("Auth check failed:", error);
         router.push("/login");

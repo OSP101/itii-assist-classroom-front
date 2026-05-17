@@ -197,6 +197,13 @@ export function useClassroomActions({
                 emitUpdate("user", "create");
                 return true;
             }
+            addToast({
+                title: "เกิดข้อผิดพลาด",
+                description: response.message || "ไม่สามารถเพิ่มผู้ช่วยสอนได้",
+                color: "danger",
+                timeout: 5000,
+                shouldShowTimeoutProgress: true,
+            });
             return false;
         } catch (error: unknown) {
             const err = error as { message?: string };
@@ -447,6 +454,13 @@ export function useClassroomActions({
                 emitUpdate("student", "create", studentId);
                 return true;
             }
+            addToast({
+                title: "เกิดข้อผิดพลาด",
+                description: response.message || "ไม่สามารถเพิ่มนักศึกษาได้",
+                color: "danger",
+                timeout: 5000,
+                shouldShowTimeoutProgress: true,
+            });
             return false;
         } catch (error: unknown) {
             const err = error as { message?: string };
@@ -480,6 +494,13 @@ export function useClassroomActions({
                 emitUpdate("student", "bulk");
                 return true;
             }
+            addToast({
+                title: "เกิดข้อผิดพลาด",
+                description: response.message || "ไม่สามารถเพิ่มนักศึกษาได้",
+                color: "danger",
+                timeout: 5000,
+                shouldShowTimeoutProgress: true,
+            });
             return false;
         } catch (error: unknown) {
             const err = error as { message?: string };

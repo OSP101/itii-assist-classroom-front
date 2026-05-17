@@ -7,6 +7,8 @@ import { Card, CardBody } from "@heroui/card";
 import { Icon } from "@iconify/react";
 import { addToast } from "@heroui/toast";
 import { authService } from "@/services";
+import { getDefaultRouteForRole } from "@/lib/auth-routing";
+import { consumeOAuthReturnPath, storePendingAuthReturnPath } from "@/lib/auth-resume";
 
 const AUTH_PAGE_SHELL = "flex min-h-screen items-center justify-center bg-background p-4 text-foreground";
 const AUTH_PAGE_CARD = "w-full max-w-md border border-default-200 bg-content1 shadow-2xl shadow-slate-200/40 dark:shadow-zinc-950/50";
@@ -63,9 +65,8 @@ function AuthCallbackContent() {
                 shouldShowTimeoutProgress: true,
                 });
                 // If it was a link action, go back to profile
-                const returnUrl = sessionStorage.getItem("oauth_return_url");
-                sessionStorage.removeItem("oauth_return_url");
-                setTimeout(() => router.replace(returnUrl || "/login"), 3000);
+                const returnPath = consumeOAuthReturnPath();
+                setTimeout(() => router.replace(returnPath || "/login"), 3000);
                 return;
             }
 
@@ -75,6 +76,7 @@ function AuthCallbackContent() {
                 try {
                     const twoFactorData = JSON.parse(decodeURIComponent(twoFactor));
                     sessionStorage.setItem("twoFactorData", JSON.stringify(twoFactorData));
+                    storePendingAuthReturnPath(consumeOAuthReturnPath());
                     router.replace("/auth/verify-2fa");
                     return;
                 } catch {
@@ -168,18 +170,11 @@ function AuthCallbackContent() {
                         });
 
                         // Get return URL from sessionStorage or default to profile page
-                        const returnUrl = sessionStorage.getItem("oauth_return_url");
-                        sessionStorage.removeItem("oauth_return_url");
+                        const returnPath = consumeOAuthReturnPath();
                         
                         setTimeout(() => {
-                            if (returnUrl) {
-                                // Extract path from URL
-                                try {
-                                    const url = new URL(returnUrl);
-                                    router.replace(url.pathname);
-                                } catch {
-                                    router.replace("/permissions?tab=authentication");
-                                }
+                            if (returnPath) {
+                                router.replace(returnPath);
                             } else {
                                 router.replace("/permissions?tab=authentication");
                             }
@@ -200,17 +195,7 @@ function AuthCallbackContent() {
 
                     // Redirect based on role
                     setTimeout(() => {
-                        switch (userResult.user?.role) {
-                            case "admin":
-                                router.replace("/admin/dashboard");
-                                break;
-                            case "instructor":
-                            case "ta":
-                                router.replace("/home");
-                                break;
-                            default:
-                                router.replace("/");
-                        }
+                        router.replace(consumeOAuthReturnPath() || getDefaultRouteForRole(userResult.user?.role));
                     }, 1500);
                 } else {
                     throw new Error("ไม่สามารถดึงข้อมูลผู้ใช้ได้");

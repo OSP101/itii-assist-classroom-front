@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
@@ -15,6 +15,8 @@ import { authService } from "@/services";
 import { AppFooter } from "@/components/Footer";
 import { loginPolicyLinks } from "@/config/public-links";
 import { useI18n } from "@/hooks/useI18n";
+import { getDefaultRouteForRole } from "@/lib/auth-routing";
+import { normalizeAppReturnPath, storeOAuthReturnPath, storePendingAuthReturnPath } from "@/lib/auth-resume";
 
 // Dynamic import Turnstile - completely skip SSR
 const Turnstile = dynamic(
@@ -46,6 +48,7 @@ function SocialIconGoogle() {
 
 export default function LoginPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const t = useI18n();
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
     const [isVisible, setIsVisible] = useState(false);
@@ -73,6 +76,12 @@ export default function LoginPage() {
     const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
     const [isSendingResetEmail, setIsSendingResetEmail] = useState(false);
     const [resetEmailSent, setResetEmailSent] = useState(false);
+    const nextPath = normalizeAppReturnPath(searchParams.get("next"));
+    const isStudentLoginMode = !!nextPath && (
+        nextPath.startsWith("/student") ||
+        nextPath.startsWith("/check-in/") ||
+        nextPath.startsWith("/queue/book")
+    );
 
     // Password validation helpers - memoized
     const passwordValidation = useMemo(() => ({
@@ -96,17 +105,7 @@ export default function LoginPage() {
                 const result = await authService.getMe();
                 if (result.success && result.user) {
                     // User is already logged in, redirect based on role
-                    switch (result.user.role) {
-                        case 'admin':
-                            router.replace('/admin/dashboard');
-                            break;
-                        case 'instructor':
-                        case 'ta':
-                            router.replace('/home');
-                            break;
-                        default:
-                            router.replace('/');
-                    }
+                    router.replace(nextPath || getDefaultRouteForRole(result.user.role));
                     return; // Don't set isCheckingAuth to false, we're redirecting
                 }
             } catch (error) {
@@ -115,7 +114,7 @@ export default function LoginPage() {
             setIsCheckingAuth(false);
         };
         checkAuth();
-    }, [router]);
+    }, [nextPath, router]);
 
     // Get Turnstile key only on client side to avoid hydration mismatch
     useEffect(() => {
@@ -158,6 +157,7 @@ export default function LoginPage() {
                 if (result.requiresTwoFactor && result.twoFactorData) {
                     // Store 2FA data in sessionStorage and redirect
                     sessionStorage.setItem("twoFactorData", JSON.stringify(result.twoFactorData));
+                    storePendingAuthReturnPath(nextPath);
                     router.push("/auth/verify-2fa");
                     setIsLoading(false);
                     return;
@@ -181,19 +181,7 @@ export default function LoginPage() {
                     });
 
                     // Redirect based on role
-                    switch (result.user.role) {
-                        case 'admin':
-                            router.push('/admin/dashboard');
-                            break;
-                        case 'instructor':
-                            router.push('/home');
-                            break;
-                        case 'ta':
-                            router.push('/home');
-                            break;
-                        default:
-                            router.push('/');
-                    }
+                    router.push(nextPath || getDefaultRouteForRole(result.user.role));
                 }
             } else {
                 // Handle error - might be string or object
@@ -290,11 +278,13 @@ export default function LoginPage() {
 
     const handleGoogleLogin = () => {
         // Redirect to Google OAuth
+        storeOAuthReturnPath(nextPath);
         window.location.href = authService.getGoogleAuthUrl();
     };
 
     const handleGitHubLogin = () => {
         // Redirect to GitHub OAuth
+        storeOAuthReturnPath(nextPath);
         window.location.href = authService.getGitHubAuthUrl();
     };
 
@@ -376,11 +366,18 @@ export default function LoginPage() {
 
             <main className="flex w-full flex-1 flex-col items-center justify-start px-5 pb-6 pt-4 sm:min-h-[calc(100vh-128px)] sm:justify-center sm:px-6 sm:pb-16 sm:pt-10">
                 <section className="w-full max-w-112.5 px-2 py-4 sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white sm:px-12 sm:py-12 sm:shadow-sm sm:shadow-slate-200/60 dark:sm:shadow-zinc-950/50">
+                    {nextPath ? (
+                        <div className="mb-5 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+                            {isStudentLoginMode
+                                ? <>Student access continues with <span className="font-medium">Google Sign-In</span> to <span className="font-medium">{nextPath}</span></>
+                                : <>Sign in to continue to <span className="font-medium">{nextPath}</span></>}
+                        </div>
+                    ) : null}
                     <h1 className="mb-7 text-[25px] font-semibold leading-tight tracking-[-0.01em] text-slate-800">
                         {t("signInToITIIAssistClassroom")}
                     </h1>
 
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className={`grid gap-2 ${isStudentLoginMode ? "grid-cols-1" : "grid-cols-3"}`}>
                         <Button
                             type="button"
                             variant="bordered"
@@ -391,26 +388,30 @@ export default function LoginPage() {
                         >
                             Google
                         </Button>
-                        <Button
-                            type="button"
-                            variant="bordered"
-                            radius="sm"
-                            className="h-10.5 border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50"
-                            onPress={() => handleUnavailableLogin("Apple")}
-                            startContent={<Icon icon="fa6-brands:apple" className="text-[17px] text-slate-700" />}
-                        >
-                            Apple
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="bordered"
-                            radius="sm"
-                            className="h-10.5 border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50"
-                            onPress={handleGitHubLogin}
-                            startContent={<Icon icon="fa6-brands:github" className="text-[16px] text-slate-700" />}
-                        >
-                            GitHub
-                        </Button>
+                        {!isStudentLoginMode ? (
+                            <>
+                                <Button
+                                    type="button"
+                                    variant="bordered"
+                                    radius="sm"
+                                    className="h-10.5 border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50"
+                                    onPress={() => handleUnavailableLogin("Apple")}
+                                    startContent={<Icon icon="fa6-brands:apple" className="text-[17px] text-slate-700" />}
+                                >
+                                    Apple
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="bordered"
+                                    radius="sm"
+                                    className="h-10.5 border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50"
+                                    onPress={handleGitHubLogin}
+                                    startContent={<Icon icon="fa6-brands:github" className="text-[16px] text-slate-700" />}
+                                >
+                                    GitHub
+                                </Button>
+                            </>
+                        ) : null}
                     </div>
 
                     {/* <Button
@@ -424,136 +425,144 @@ export default function LoginPage() {
                         เข้าสู่ระบบด้วย SSO
                     </Button> */}
 
-                    <div className="my-5 flex items-center gap-3">
-                        <div className="h-px flex-1 bg-slate-200" />
-                        <span className="text-sm text-slate-400">{t("or")}</span>
-                        <div className="h-px flex-1 bg-slate-200" />
-                    </div>
-
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <Input
-                            label={t("username")}
-                            labelPlacement="outside"
-                            placeholder={t("enterUsername")}
-                            type="text"
-                            variant="bordered"
-                            radius="sm"
-                            size="md"
-                            value={formData.username}
-                            onChange={(e) =>
-                                setFormData({ ...formData, username: e.target.value })
-                            }
-                            startContent={
-                                <Icon
-                                    icon="solar:user-linear"
-                                    className="text-lg text-blue-400"
-                                />
-                            }
-                            classNames={{
-                                base: "gap-1",
-                                label: "text-[14px] font-medium text-slate-600",
-                                inputWrapper: "h-10.5 min-h-10.5 rounded-md border-blue-200 bg-white shadow-none data-[hover=true]:border-blue-300 group-data-[focus=true]:!border-blue-400 group-data-[focus=true]:ring-1 group-data-[focus=true]:ring-blue-300",
-                                input: "text-[15px] text-slate-800 placeholder:text-slate-400",
-                            }}
-                        />
-
-                        <div className="space-y-1">
-                            <div className="flex items-center justify-between">
-                                <label className="text-[14px] font-medium text-slate-600">{t("password")}</label>
-                                <button
-                                    type="button"
-                                    onClick={() => setIsForgotPasswordModalOpen(true)}
-                                    className="text-[13px] text-blue-400 underline-offset-2 hover:text-blue-500 hover:underline"
-                                >
-                                    {t("forgotPassword")}
-                                </button>
+                    {!isStudentLoginMode ? (
+                        <>
+                            <div className="my-5 flex items-center gap-3">
+                                <div className="h-px flex-1 bg-slate-200" />
+                                <span className="text-sm text-slate-400">{t("or")}</span>
+                                <div className="h-px flex-1 bg-slate-200" />
                             </div>
 
-                            <Input
-                                aria-label={t("password")}
-                                placeholder={t("enterPassword")}
-                                variant="bordered"
-                                radius="sm"
-                                size="md"
-                                value={formData.password}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, password: e.target.value })
-                                }
-                                startContent={
-                                    <Icon
-                                        icon="solar:lock-password-linear"
-                                        className="text-lg text-blue-400"
-                                    />
-                                }
-                                endContent={
-                                    <button
-                                        className="flex h-6 w-6 items-center justify-center text-blue-400 hover:text-blue-500"
-                                        type="button"
-                                        onClick={toggleVisibility}
-                                        aria-label={isVisible ? t("hidePassword") : t("showPassword")}
-                                    >
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <Input
+                                    label={t("username")}
+                                    labelPlacement="outside"
+                                    placeholder={t("enterUsername")}
+                                    type="text"
+                                    variant="bordered"
+                                    radius="sm"
+                                    size="md"
+                                    value={formData.username}
+                                    onChange={(e) =>
+                                        setFormData({ ...formData, username: e.target.value })
+                                    }
+                                    startContent={
                                         <Icon
-                                            icon={isVisible ? "solar:eye-linear" : "solar:eye-closed-linear"}
-                                            className="text-[17px]"
+                                            icon="solar:user-linear"
+                                            className="text-lg text-blue-400"
                                         />
-                                    </button>
-                                }
-                                type={isVisible ? "text" : "password"}
-                                classNames={{
-                                    inputWrapper: "h-10.5 min-h-10.5 rounded-md border-blue-200 bg-white shadow-none data-[hover=true]:border-blue-300 group-data-[focus=true]:!border-blue-400 group-data-[focus=true]:ring-1 group-data-[focus=true]:ring-blue-300",
-                                    input: "text-[15px] text-slate-800 placeholder:text-slate-400",
-                                }}
-                            />
-                        </div>
+                                    }
+                                    classNames={{
+                                        base: "gap-1",
+                                        label: "text-[14px] font-medium text-slate-600",
+                                        inputWrapper: "h-10.5 min-h-10.5 rounded-md border-blue-200 bg-white shadow-none data-[hover=true]:border-blue-300 group-data-[focus=true]:!border-blue-400 group-data-[focus=true]:ring-1 group-data-[focus=true]:ring-blue-300",
+                                        input: "text-[15px] text-slate-800 placeholder:text-slate-400",
+                                    }}
+                                />
 
-                        <div className="pt-1">
-                            <p className="mb-2 text-[14px] text-slate-600">{t("verifyYouAreNotABot")}</p>
-                            <div className="w-full" suppressHydrationWarning>
-                                {turnstileKey ? (
-                                    <Turnstile
-                                        id='turnstile-1'
-                                        ref={refTurnstile}
-                                        siteKey={turnstileKey ?? ""}
-                                        onSuccess={() => {
-                                            setCanSubmit(true);
-                                            setTurnstileReady(true);
-                                        }}
-                                        onError={() => {
-                                            setCanSubmit(true);
-                                            setTurnstileReady(true);
-                                        }}
-                                        onExpire={() => {
-                                            setCanSubmit(true);
-                                        }}
-                                        onWidgetLoad={() => {
-                                            setTurnstileReady(true);
-                                        }}
-                                        options={{
-                                            theme: 'auto',
-                                            size: 'flexible',
+                                <div className="space-y-1">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[14px] font-medium text-slate-600">{t("password")}</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsForgotPasswordModalOpen(true)}
+                                            className="text-[13px] text-blue-400 underline-offset-2 hover:text-blue-500 hover:underline"
+                                        >
+                                            {t("forgotPassword")}
+                                        </button>
+                                    </div>
+
+                                    <Input
+                                        aria-label={t("password")}
+                                        placeholder={t("enterPassword")}
+                                        variant="bordered"
+                                        radius="sm"
+                                        size="md"
+                                        value={formData.password}
+                                        onChange={(e) =>
+                                            setFormData({ ...formData, password: e.target.value })
+                                        }
+                                        startContent={
+                                            <Icon
+                                                icon="solar:lock-password-linear"
+                                                className="text-lg text-blue-400"
+                                            />
+                                        }
+                                        endContent={
+                                            <button
+                                                className="flex h-6 w-6 items-center justify-center text-blue-400 hover:text-blue-500"
+                                                type="button"
+                                                onClick={toggleVisibility}
+                                                aria-label={isVisible ? t("hidePassword") : t("showPassword")}
+                                            >
+                                                <Icon
+                                                    icon={isVisible ? "solar:eye-linear" : "solar:eye-closed-linear"}
+                                                    className="text-[17px]"
+                                                />
+                                            </button>
+                                        }
+                                        type={isVisible ? "text" : "password"}
+                                        classNames={{
+                                            inputWrapper: "h-10.5 min-h-10.5 rounded-md border-blue-200 bg-white shadow-none data-[hover=true]:border-blue-300 group-data-[focus=true]:!border-blue-400 group-data-[focus=true]:ring-1 group-data-[focus=true]:ring-blue-300",
+                                            input: "text-[15px] text-slate-800 placeholder:text-slate-400",
                                         }}
                                     />
-                                ) : !turnstileReady ? (
-                                    <div className="flex h-16.25 w-full items-center justify-between border border-blue-100 bg-blue-50/40 px-3">
-                                        <div className="flex items-center gap-3">
-                                            <span className="h-6 w-6 rounded-sm border-2 border-blue-300 bg-white" />
-                                            <span className="text-[14px] text-slate-700">{t("verifyYouAreNotABot")}</span>
-                                        </div>
-                                        <AppMark className="scale-75" />
-                                    </div>
-                                ) : null}
-                            </div>
-                        </div>
+                                </div>
 
-                        <Button
-                            type="submit"
-                            radius="sm"
-                            className="h-10.5 w-full bg-linear-to-r from-blue-400 to-indigo-500 text-[15px] font-semibold text-white shadow-lg shadow-blue-300/40 data-[hover=true]:from-blue-500 data-[hover=true]:to-indigo-600"
-                            isLoading={isLoading}
-                        >
-                            {t("signIn")}
-                        </Button>
-                    </form>
+                                <div className="pt-1">
+                                    <p className="mb-2 text-[14px] text-slate-600">{t("verifyYouAreNotABot")}</p>
+                                    <div className="w-full" suppressHydrationWarning>
+                                        {turnstileKey ? (
+                                            <Turnstile
+                                                id='turnstile-1'
+                                                ref={refTurnstile}
+                                                siteKey={turnstileKey ?? ""}
+                                                onSuccess={() => {
+                                                    setCanSubmit(true);
+                                                    setTurnstileReady(true);
+                                                }}
+                                                onError={() => {
+                                                    setCanSubmit(true);
+                                                    setTurnstileReady(true);
+                                                }}
+                                                onExpire={() => {
+                                                    setCanSubmit(true);
+                                                }}
+                                                onWidgetLoad={() => {
+                                                    setTurnstileReady(true);
+                                                }}
+                                                options={{
+                                                    theme: 'auto',
+                                                    size: 'flexible',
+                                                }}
+                                            />
+                                        ) : !turnstileReady ? (
+                                            <div className="flex h-16.25 w-full items-center justify-between border border-blue-100 bg-blue-50/40 px-3">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="h-6 w-6 rounded-sm border-2 border-blue-300 bg-white" />
+                                                    <span className="text-[14px] text-slate-700">{t("verifyYouAreNotABot")}</span>
+                                                </div>
+                                                <AppMark className="scale-75" />
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                </div>
+
+                                <Button
+                                    type="submit"
+                                    radius="sm"
+                                    className="h-10.5 w-full bg-linear-to-r from-blue-400 to-indigo-500 text-[15px] font-semibold text-white shadow-lg shadow-blue-300/40 data-[hover=true]:from-blue-500 data-[hover=true]:to-indigo-600"
+                                    isLoading={isLoading}
+                                >
+                                    {t("signIn")}
+                                </Button>
+                            </form>
+                        </>
+                    ) : (
+                        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-600">
+                            Student accounts use Google as the identity source for classroom access. Username/password and GitHub sign-in are disabled for student routes.
+                        </div>
+                    )}
 
                 </section>
 

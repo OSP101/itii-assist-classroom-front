@@ -21,12 +21,16 @@ export interface ActivityLog {
   id: number;
   course_id: string;
   actor_user_id: number;
+  actor_email?: string;
+  actor_role?: string;
   action: string;
   category: string;
   target_type: string | null;
   target_id: string | null;
   target_name: string | null;
   detail: Record<string, unknown> | null;
+  ip_address?: string;
+  user_agent?: string;
   created_at: string;
   actor?: ActivityLogActor;
 }
@@ -204,6 +208,30 @@ export interface TADetailData {
 // ============================================
 
 /**
+ * Export all activity logs for a course (up to 10 000 rows, no pagination cap)
+ */
+export const exportActivityLogs = async (
+  courseId: string,
+  params: {
+    category?: string;
+    action?: string;
+    actorId?: string;
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+  } = {},
+): Promise<ActivityLog[]> => {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') query.set(key, String(value));
+  });
+  const qs = query.toString();
+  const response = await api.get(`/courses/${courseId}/activity-logs/export${qs ? `?${qs}` : ''}`);
+  const data = response.data as { logs: ActivityLog[]; total: number };
+  return data.logs;
+};
+
+/**
  * Get activity logs for a course
  */
 export const getActivityLogs = async (
@@ -280,6 +308,7 @@ export const getTADetail = async (
 
 export default {
   getActivityLogs,
+  exportActivityLogs,
   getActivityStats,
   getActivityFilters,
   getTAStats,

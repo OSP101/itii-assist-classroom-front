@@ -407,6 +407,7 @@ export interface Course {
   tas?: TA[];
   taCount?: number;
   studentCount?: number;
+  my_section_no?: string;
   instructors?: Instructor[];
 }
 
@@ -465,6 +466,22 @@ export interface CourseStats {
   };
   thisYear: number;
   years: number[];
+}
+
+export interface CourseActivationConflict {
+  conflict_type: string;
+  course_code: string;
+  year: number;
+  semester: number;
+  active_course_id: string;
+  active_course_name: string;
+  inactive_course_id: string;
+  inactive_course_name: string;
+}
+
+export interface CourseConflictListResponse {
+  items: CourseActivationConflict[];
+  total: number;
 }
 
 export interface SectionStudent {
@@ -668,6 +685,63 @@ class CourseService {
    */
   async getStats() {
     return apiService.get<CourseStats>(API_ENDPOINTS.COURSES.STATS);
+  }
+
+  /**
+   * Get activation conflicts where inactive courses collide with active ones
+   */
+  async getConflicts(params?: { search?: string; year?: number; semester?: number; limit?: number }) {
+    const queryParams: Record<string, string> = {};
+
+    if (params?.search && params.search.trim()) queryParams.search = params.search.trim();
+    if (params?.year && !isNaN(params.year)) queryParams.year = params.year.toString();
+    if (params?.semester && !isNaN(params.semester)) queryParams.semester = params.semester.toString();
+    if (params?.limit && !isNaN(params.limit)) queryParams.limit = params.limit.toString();
+
+    return apiService.get<CourseConflictListResponse>(API_ENDPOINTS.COURSES.CONFLICTS, { params: queryParams });
+  }
+
+  async bulkToggle(courseIds: string[], action: 'enable' | 'disable') {
+    return apiService.patch<{ toggled: number; skipped: number }>(
+      API_ENDPOINTS.COURSES.BULK_TOGGLE,
+      { course_ids: courseIds, action },
+    );
+  }
+
+  async bulkDelete(courseIds: string[]) {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const url = `${API_BASE}${API_ENDPOINTS.COURSES.BULK_DELETE}`;
+    const res = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ course_ids: courseIds }),
+    });
+    if (!res.ok) throw new Error('Bulk delete failed');
+    const data = await res.json();
+    return data as { success: boolean; data?: { deleted: number } };
+  }
+
+  async exportCSV(params?: { search?: string; year?: number; semester?: number; status?: string }) {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const query = new URLSearchParams();
+    if (params?.search) query.set('search', params.search);
+    if (params?.year) query.set('year', String(params.year));
+    if (params?.semester) query.set('semester', String(params.semester));
+    if (params?.status && params.status !== 'all') query.set('status', params.status);
+    const url = `${API_BASE}${API_ENDPOINTS.COURSES.EXPORT}${query.toString() ? '?' + query.toString() : ''}`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error('Export failed');
+    const blob = await res.blob();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `courses_export_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
   }
 
   /**

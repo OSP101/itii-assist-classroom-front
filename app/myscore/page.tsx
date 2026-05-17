@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { Card, CardBody } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
@@ -19,14 +20,17 @@ import { useI18n } from "@/hooks/useI18n";
 export default function MyScorePage() {
     const { language } = useGlobalSettings();
     const t = useI18n();
+    const searchParams = useSearchParams();
     const locale = language === "en" ? "en-US" : "th-TH";
-    const [studentId, setStudentId] = useState("");
+    const autoId = searchParams.get("id") || "";
+    const [studentId, setStudentId] = useState(autoId);
     const [isLoading, setIsLoading] = useState(false);
     const [data, setData] = useState<StudentScoreLookupResponse | null>(null);
     const [hasSearched, setHasSearched] = useState(false);
     const [cooldown, setCooldown] = useState(0);
     const [searchHistory, setSearchHistory] = useState<Array<{ id: string, name: string }>>([]);
     const [showHistory, setShowHistory] = useState(false);
+    const autoSearched = useRef(false);
 
     // Load search history from localStorage on mount
     useEffect(() => {
@@ -62,6 +66,31 @@ export default function MyScorePage() {
         setSearchHistory([]);
         localStorage.removeItem("myscore_search_history");
     };
+
+    // Auto-search when ?id= param is present
+    useEffect(() => {
+        if (autoId && !autoSearched.current) {
+            autoSearched.current = true;
+            // slight delay so history loads first
+            const timer = setTimeout(() => {
+                void (async () => {
+                    setIsLoading(true);
+                    setHasSearched(true);
+                    try {
+                        const response = await studentService.lookupStudentScores(autoId.trim());
+                        if (response.success && response.data) {
+                            setData(response.data);
+                            saveToHistory(autoId.trim(), response.data.student.full_name);
+                        }
+                    } catch { /* silent */ } finally {
+                        setIsLoading(false);
+                    }
+                })();
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [autoId]);
 
     // Cooldown timer
     useEffect(() => {

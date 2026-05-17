@@ -6,8 +6,8 @@ import { Card, CardBody } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { InputOtp } from "@heroui/input-otp";
 import { Chip } from "@heroui/chip";
-import { Divider } from "@heroui/divider";
 import { addToast } from "@heroui/toast";
+import { Modal, ModalContent, ModalBody } from "@heroui/modal";
 import { Icon } from "@iconify/react";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -66,6 +66,7 @@ export default function AttendanceDisplayPage() {
     const [verificationCode, setVerificationCode] = useState("");
     const [isSubmittingCode, setIsSubmittingCode] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [showPinModal, setShowPinModal] = useState(false);
     const [, setTick] = useState(0);
     const socketRef = useRef<Socket | null>(null);
 
@@ -154,6 +155,27 @@ export default function AttendanceDisplayPage() {
         const id = setInterval(() => setTick((n) => n + 1), 1000);
         return () => clearInterval(id);
     }, [pageState]);
+
+    // Poll pairing status every 3s — auto-open PIN modal when instructor scans QR
+    useEffect(() => {
+        if (pageState !== "pairing" || !bootstrap || showPinModal) return;
+
+        const id = setInterval(async () => {
+            try {
+                const { status } = await attendanceDisplayService.getPairingStatus(bootstrap.pairing_id);
+                if (status === "claimed") {
+                    setVerificationCode("");
+                    setShowPinModal(true);
+                } else if (status === "expired" || status === "cancelled") {
+                    clearInterval(id);
+                }
+            } catch {
+                // Silently ignore poll errors (network hiccup, etc.)
+            }
+        }, 3000);
+
+        return () => clearInterval(id);
+    }, [pageState, bootstrap, showPinModal]);
 
     useEffect(() => {
         if (pageState !== "active") {
@@ -268,6 +290,7 @@ export default function AttendanceDisplayPage() {
             setCurrent(result);
             setBootstrap(null);
             setVerificationCode("");
+            setShowPinModal(false);
             addToast({
                 title: "จับคู่สำเร็จ",
                 description: "กำลังเปิดหน้าเช็คชื่อ...",
@@ -286,6 +309,7 @@ export default function AttendanceDisplayPage() {
                 shouldShowTimeoutProgress: true,
             });
             if (error instanceof AttendanceDisplayError && error.status === 410) {
+                setShowPinModal(false);
                 await bootstrapPairing();
             }
         } finally {
@@ -307,21 +331,6 @@ export default function AttendanceDisplayPage() {
     return (
         <div className="min-h-screen bg-[radial-gradient(circle_at_top,#dbeafe,transparent_34%),linear-gradient(180deg,#f8fafc_0%,#eff6ff_100%)] px-4 py-6 text-slate-900 lg:px-8">
             <div className="mx-auto max-w-6xl space-y-6">
-                <Card className="overflow-hidden border border-sky-100 bg-white/90 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
-                    <CardBody className="gap-4 p-6 lg:flex-row lg:items-end lg:justify-between">
-                        <div className="space-y-3">
-                            <Chip className="bg-sky-100 px-3 text-sky-700">Attendance Display</Chip>
-                            <div>
-                                <h1 className="text-3xl font-black tracking-tight text-slate-900 lg:text-4xl">หน้าจอเช็คชื่อห้องเรียน</h1>
-                                <p className="mt-2 max-w-2xl text-sm text-slate-600 lg:text-base">
-                                    เปิดลิงก์นี้บนจอหน้าห้อง สแกน QR ด้วยมือถืออาจารย์หรือ TA แล้วกรอกรหัสยืนยันบนจอนี้เพื่อเริ่มแสดงการเช็คชื่อ
-                                </p>
-                            </div>
-                        </div>
-                        
-                    </CardBody>
-                </Card>
-
                 {pageState === "loading" && (
                     <Card className="border border-slate-200 bg-white/80">
                         <CardBody className="flex min-h-105 items-center justify-center gap-4">
@@ -352,92 +361,200 @@ export default function AttendanceDisplayPage() {
                 )}
 
                 {pageState === "pairing" && bootstrap && (
-                    <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-                        <Card className="border border-slate-200 bg-white/95 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
-                            <CardBody className="items-center gap-5 p-6 text-center lg:p-8">
-                                <div className="space-y-2">
-                                    <Chip className="bg-sky-100 px-3 text-sky-700">Step 1</Chip>
-                                    <h2 className="text-2xl font-bold text-slate-900">สแกน QR ด้วยมือถือที่ล็อกอินอยู่แล้ว</h2>
-                                    <p className="text-sm text-slate-500">
-                                        มือถืออาจารย์หรือ TA จะใช้หน้านี้เพื่อเลือกรอบเช็คชื่อ แล้วระบบจะสร้างรหัสยืนยันสำหรับหน้าจอนี้โดยเฉพาะ
-                                    </p>
-                                </div>
+                    <>
+                        {/* ── QR-only pairing card ── */}
+                        <Card className="overflow-hidden border border-slate-200 bg-white/95 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
+                            <CardBody className="flex flex-col items-center gap-0 p-0">
 
-                                <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-inner">
-                                    <QRCodeSVG value={pairUrl} size={250} bgColor="#ffffff" fgColor="#0f172a" level="M" />
-                                </div>
-
-                                {/* Device Code — must match the badge on mobile */}
-                                <div className="flex w-full items-center gap-3 rounded-2xl bg-slate-950 px-5 py-4">
-                                    <div className="flex-1 text-left">
-                                        <p className="text-xs font-medium uppercase tracking-widest text-sky-300">Device Code</p>
-                                        <p className="mt-0.5 text-xs text-slate-400">ต้องตรงกับในมือถือ</p>
+                                {/* Sky gradient header */}
+                                <div className="relative w-full overflow-hidden bg-linear-to-br from-sky-700 via-sky-600 to-cyan-500 px-8 py-7 text-center">
+                                    <span className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
+                                    <span className="pointer-events-none absolute -bottom-10 -left-10 h-36 w-36 rounded-full bg-cyan-300/20 blur-2xl" />
+                                    <div className="relative space-y-2">
+                                        <div className="flex justify-center">
+                                            <span className="flex h-14 w-14 items-center justify-center rounded-3xl bg-white/20 ring-2 ring-white/30">
+                                                <Icon icon="solar:qr-code-bold-duotone" className="text-3xl text-white" />
+                                            </span>
+                                        </div>
+                                        <h2 className="text-2xl font-black text-white">สแกน QR เพื่อเชื่อมต่อหน้าจอ</h2>
+                                        <p className="mx-auto max-w-lg text-sm text-sky-100/80">
+                                            ใช้มือถืออาจารย์หรือ TA ที่ล็อกอินแล้วสแกน QR นี้ เพื่อเลือกรอบเช็คชื่อและสร้างรหัสยืนยันสำหรับจอนี้
+                                        </p>
                                     </div>
-                                    <span className="font-mono text-3xl font-black tracking-[0.18em] text-white">
-                                        {bootstrap.pairing_id.slice(-4).toUpperCase()}
-                                    </span>
                                 </div>
+
+                                {/* QR code + device code */}
+                                <div className="flex flex-col items-center gap-6 px-8 py-8 w-full max-w-sm mx-auto">
+
+                                    {/* QR frame */}
+                                    <div className="relative">
+                                        <div className="rounded-[32px] border-2 border-slate-200 bg-white p-6 shadow-[0_8px_40px_rgba(15,23,42,0.10)]">
+                                            <QRCodeSVG value={pairUrl} size={240} bgColor="#ffffff" fgColor="#0f172a" level="M" />
+                                        </div>
+                                        {/* Corner accent marks */}
+                                        <span className="absolute -left-1 -top-1 h-6 w-6 rounded-tl-xl border-l-[3px] border-t-[3px] border-sky-500" />
+                                        <span className="absolute -right-1 -top-1 h-6 w-6 rounded-tr-xl border-r-[3px] border-t-[3px] border-sky-500" />
+                                        <span className="absolute -bottom-1 -left-1 h-6 w-6 rounded-bl-xl border-b-[3px] border-l-[3px] border-sky-500" />
+                                        <span className="absolute -bottom-1 -right-1 h-6 w-6 rounded-br-xl border-b-[3px] border-r-[3px] border-sky-500" />
+                                    </div>
+
+                                    {/* Device code */}
+                                    <div className="flex w-full items-center justify-between gap-4 rounded-2xl bg-slate-950 px-5 py-4">
+                                        <div>
+                                            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-sky-400">Device Code</p>
+                                            <p className="mt-0.5 text-xs text-slate-400">ต้องตรงกับในมือถือ</p>
+                                        </div>
+                                        <span className="font-mono text-3xl font-black tracking-[0.2em] text-white">
+                                            {bootstrap.pairing_id.slice(-4).toUpperCase()}
+                                        </span>
+                                    </div>
+
+                                    {/* Expiry + waiting status */}
+                                    <div className="flex w-full items-center justify-between gap-3 rounded-2xl border border-default-100 bg-default-50 px-4 py-3">
+                                        <div className="flex items-center gap-2 text-sm text-default-500">
+                                            <Icon icon="solar:clock-circle-bold-duotone" className="text-base text-amber-500" />
+                                            หมดอายุใน
+                                        </div>
+                                        <Chip className="bg-amber-100 font-mono text-amber-700">{getCountdownLabel(bootstrap.expires_at)}</Chip>
+                                    </div>
+
+                                    {/* Pulse waiting indicator */}
+                                    <div className="flex items-center gap-2.5 rounded-full border border-sky-100 bg-sky-50 px-4 py-2">
+                                        <span className="relative flex h-2 w-2">
+                                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75" />
+                                            <span className="relative inline-flex h-2 w-2 rounded-full bg-sky-500" />
+                                        </span>
+                                        <p className="text-xs font-medium text-sky-700">รอให้อาจารย์หรือ TA สแกน QR…</p>
+                                    </div>
+
+                                    {/* Enter code button */}
+                                    <Button
+                                        color="primary"
+                                        className="w-full h-12 bg-sky-600 text-base font-semibold"
+                                        onPress={() => { setVerificationCode(""); setShowPinModal(true); }}
+                                    >
+                                        <Icon icon="solar:key-bold-duotone" className="text-lg" />
+                                        ได้รับรหัสแล้ว — กรอกยืนยัน
+                                    </Button>
+
+                                    <button
+                                        onClick={bootstrapPairing}
+                                        className="text-xs text-default-400 underline-offset-2 hover:text-default-600 hover:underline"
+                                    >
+                                        สร้าง QR ใหม่
+                                    </button>
+                                </div>
+
                             </CardBody>
                         </Card>
 
-                        <div className="space-y-6">
-                            <Card className="border border-slate-200 bg-white/95">
-                                <CardBody className="gap-4 p-6">
-                                    <div className="space-y-2">
-                                        <Chip className="bg-sky-100 px-3 text-sky-700">Step 2</Chip>
-                                        <h3 className="text-xl font-bold text-slate-900">กรอกรหัส 6 หลักจากมือถือ</h3>
-                                        <p className="text-sm text-slate-500">
-                                            วิธีนี้ช่วยยืนยันว่าคนที่อนุมัติอยู่หน้าเครื่องจริง ไม่ใช่สแกน QR จากระยะไกล
-                                        </p>
+                        {/* ── PIN entry modal ── */}
+                        <Modal
+                            isOpen={showPinModal}
+                            onClose={() => { setShowPinModal(false); setVerificationCode(""); }}
+                            size="sm"
+                            classNames={{ base: "max-w-sm overflow-hidden", body: "p-0" }}
+                        >
+                            <ModalContent>
+                                <ModalBody>
+                                    {/* Modal header */}
+                                    <div className="relative overflow-hidden rounded-t-xl bg-linear-to-br from-sky-700 via-sky-600 to-cyan-500 px-5 py-5">
+                                        <span className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/10 blur-3xl" />
+                                        <span className="pointer-events-none absolute -bottom-8 -left-8 h-28 w-28 rounded-full bg-cyan-300/20 blur-2xl" />
+                                        <div className="relative flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/20 ring-2 ring-white/30">
+                                                    <Icon icon="solar:key-bold-duotone" className="text-xl text-white" />
+                                                </span>
+                                                <div>
+                                                    <p className="text-[10px] font-semibold uppercase tracking-widest text-sky-200/80">ยืนยันการเชื่อมต่อ</p>
+                                                    <p className="text-base font-bold text-white">กรอกรหัส 6 หลัก</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => { setShowPinModal(false); setVerificationCode(""); }}
+                                                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25"
+                                            >
+                                                <Icon icon="solar:close-circle-bold" className="text-lg" />
+                                            </button>
+                                        </div>
                                     </div>
 
-                                    <div className="flex justify-center py-2">
-                                        <InputOtp
-                                            length={6}
-                                            value={verificationCode}
-                                            onValueChange={setVerificationCode}
-                                            onComplete={handleConfirm}
-                                            variant="bordered"
+                                    {/* Modal body */}
+                                    <div className="p-5 space-y-5">
+                                        {/* OTP input */}
+                                        <div className="flex flex-col items-center gap-3">
+                                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-default-400">
+                                                รหัสจากมือถืออาจารย์ / TA
+                                            </p>
+                                            <InputOtp
+                                                length={6}
+                                                value={verificationCode}
+                                                onValueChange={setVerificationCode}
+                                                onComplete={handleConfirm}
+                                                variant="bordered"
+                                                color="primary"
+                                                classNames={{
+                                                    segment: "h-14 w-11 text-2xl font-bold bg-slate-900 text-white border-slate-700 data-[active=true]:border-sky-500",
+                                                    segmentWrapper: "gap-2",
+                                                }}
+                                            />
+                                        </div>
+
+                                        {/* Ref / detail card */}
+                                        <div className="rounded-2xl border border-default-200 bg-default-50 overflow-hidden divide-y divide-default-100">
+                                            <div className="flex items-center justify-between px-4 py-2.5 bg-default-100/60">
+                                                <span className="text-[11px] font-semibold uppercase tracking-widest text-default-400">รายละเอียดการจับคู่</span>
+                                            </div>
+                                            <div className="flex items-center justify-between px-4 py-3">
+                                                <div className="flex items-center gap-2">
+                                                    <Icon icon="solar:monitor-bold-duotone" className="text-base text-default-400 shrink-0" />
+                                                    <span className="text-sm text-default-500">Device Code (Ref.)</span>
+                                                </div>
+                                                <span className="font-mono text-sm font-bold tracking-[0.2em] text-foreground">
+                                                    {bootstrap.pairing_id.slice(-4).toUpperCase()}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between px-4 py-3">
+                                                <div className="flex items-center gap-2">
+                                                    <Icon icon="solar:lock-keyhole-bold-duotone" className="text-base text-default-400 shrink-0" />
+                                                    <span className="text-sm text-default-500">ใช้งานได้ครั้งเดียว</span>
+                                                </div>
+                                                <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-semibold text-sky-700">Single use</span>
+                                            </div>
+                                            <div className="flex items-center justify-between px-4 py-3">
+                                                <div className="flex items-center gap-2">
+                                                    <Icon icon="solar:clock-circle-bold-duotone" className="text-base text-default-400 shrink-0" />
+                                                    <span className="text-sm text-default-500">หมดอายุใน</span>
+                                                </div>
+                                                <span className="font-mono text-sm font-semibold text-amber-600">{getCountdownLabel(bootstrap.expires_at)}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Security notice */}
+                                        <div className="flex gap-3 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
+                                            <Icon icon="solar:shield-warning-bold-duotone" className="mt-0.5 shrink-0 text-xl text-amber-500" />
+                                            <p className="text-xs leading-relaxed text-amber-700">
+                                                ตรวจสอบว่า Device Code ตรงกับที่แสดงในมือถือของอาจารย์ เพื่อป้องกันการจับคู่ผิดจอ
+                                            </p>
+                                        </div>
+
+                                        {/* Confirm button */}
+                                        <Button
                                             color="primary"
-                                            classNames={{
-                                                segment: "h-14 w-11 text-xl font-bold",
-                                                segmentWrapper: "gap-2",
-                                            }}
-                                        />
+                                            className="w-full h-12 bg-sky-600 text-base font-semibold"
+                                            isDisabled={verificationCode.length !== 6}
+                                            isLoading={isSubmittingCode}
+                                            onPress={handleConfirm}
+                                        >
+                                            <Icon icon="solar:check-circle-bold-duotone" className="text-lg" />
+                                            ยืนยันหน้าจอนี้
+                                        </Button>
                                     </div>
-
-                                    <Button
-                                        color="primary"
-                                        className="h-12 bg-sky-600 text-base font-semibold"
-                                        isDisabled={verificationCode.length !== 6}
-                                        isLoading={isSubmittingCode}
-                                        onPress={handleConfirm}
-                                    >
-                                        ยืนยันหน้าจอนี้
-                                    </Button>
-                                </CardBody>
-                            </Card>
-
-                            <Card className="border border-slate-200 bg-white/95">
-                                <CardBody className="gap-4 p-6">
-                                    <div className="flex items-center gap-2">
-                                        <Icon icon="solar:clock-circle-bold" className="text-amber-500" />
-                                        <span className="flex-1 text-sm font-medium text-slate-700">หมดอายุใน</span>
-                                        <Chip className="bg-amber-100 text-amber-700">{getCountdownLabel(bootstrap.expires_at)}</Chip>
-                                    </div>
-                                    <Divider />
-                                    <div className="space-y-2 text-sm text-slate-600">
-                                        <p className="flex items-start gap-2"><Icon icon="solar:smartphone-bold" className="mt-0.5 text-sky-500" /> ใช้มือถือที่ล็อกอินแล้วสแกน QR</p>
-                                        <p className="flex items-start gap-2"><Icon icon="solar:shield-check-bold" className="mt-0.5 text-sky-500" /> เลือกรอบเช็คชื่อที่ต้องการแสดงบนจอนี้</p>
-                                        <p className="flex items-start gap-2"><Icon icon="solar:key-bold" className="mt-0.5 text-sky-500" /> กรอกรหัสจากมือถือบนจอนี้เพื่อเปิดใช้งาน</p>
-                                    </div>
-                                    <Button variant="flat" onPress={bootstrapPairing}>
-                                        สร้าง QR ใหม่
-                                    </Button>
-                                </CardBody>
-                            </Card>
-                        </div>
-                    </div>
+                                </ModalBody>
+                            </ModalContent>
+                        </Modal>
+                    </>
                 )}
 
                 {pageState === "active" && current && (

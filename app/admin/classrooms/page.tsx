@@ -25,6 +25,7 @@ import {
 } from "@heroui/modal";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
+import { QRCodeSVG } from "qrcode.react";
 import dynamic from "next/dynamic";
 import classroomService, {
     Classroom as APIClassroom,
@@ -52,6 +53,11 @@ interface Desk {
     type: "computer" | "normal" | "teacher";
     isEnabled: boolean;
     number: number;
+    hostname: string;
+    ipAddress: string;
+    brand: string;
+    os: string;
+    notes: string;
 }
 
 interface Zone {
@@ -84,6 +90,11 @@ const transformDeskFromAPI = (desk: APIDesk): Desk => ({
     type: desk.type,
     isEnabled: desk.is_enabled,
     number: desk.number,
+    hostname: desk.hostname ?? '',
+    ipAddress: desk.ip_address ?? '',
+    brand: desk.brand ?? '',
+    os: desk.os ?? '',
+    notes: desk.notes ?? '',
 });
 
 const transformDeskToAPI = (desk: Desk): Omit<APIDesk, "classroom_id"> => ({
@@ -93,6 +104,11 @@ const transformDeskToAPI = (desk: Desk): Omit<APIDesk, "classroom_id"> => ({
     type: desk.type,
     is_enabled: desk.isEnabled,
     number: desk.number,
+    hostname: desk.hostname,
+    ip_address: desk.ipAddress,
+    brand: desk.brand,
+    os: desk.os,
+    notes: desk.notes,
 });
 
 const transformClassroomFromAPI = (classroom: APIClassroom): Classroom => ({
@@ -198,6 +214,11 @@ export default function ClassroomsPage() {
     const [showToggleStatusModal, setShowToggleStatusModal] = useState(false);
     const [toggleTarget, setToggleTarget] = useState<Classroom | null>(null);
     const [isToggling, setIsToggling] = useState(false);
+
+    // QR print modal state
+    const [showQRModal, setShowQRModal] = useState(false);
+    const [qrClassroom, setQRClassroom] = useState<Classroom | null>(null);
+    const qrGridRef = useRef<HTMLDivElement>(null);
 
     // Search and filter state (URL-synced)
     const {
@@ -600,6 +621,57 @@ export default function ClassroomsPage() {
         }
     };
 
+    // Open QR print modal
+    const openQRPrint = useCallback(async (classroom: Classroom) => {
+        if (classroom.desks && classroom.desks.length > 0) {
+            setQRClassroom(classroom);
+            setShowQRModal(true);
+            return;
+        }
+        try {
+            const res = await classroomService.getClassroom(classroom.id);
+            if (res.success && res.data) {
+                setQRClassroom(transformClassroomFromAPI(res.data));
+            } else {
+                setQRClassroom(classroom);
+            }
+        } catch {
+            setQRClassroom(classroom);
+        }
+        setShowQRModal(true);
+    }, []);
+
+    const handlePrintQR = useCallback(() => {
+        if (!qrGridRef.current || !qrClassroom) return;
+        const gridHtml = qrGridRef.current.innerHTML;
+        const printWindow = window.open("", "_blank");
+        if (!printWindow) return;
+        printWindow.document.write(`<!DOCTYPE html><html lang="th"><head>
+<meta charset="utf-8">
+<title>QR — ${qrClassroom.name}</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: sans-serif; background: #fff; padding: 24px; }
+.header { margin-bottom: 20px; }
+.header h1 { font-size: 20px; font-weight: 700; color: #1e293b; }
+.header p { font-size: 12px; color: #64748b; margin-top: 4px; }
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.card { border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 16px 12px; text-align: center; page-break-inside: avoid; break-inside: avoid; }
+.card svg { display: block; margin: 0 auto 8px; }
+.num { font-size: 28px; font-weight: 800; color: #0f172a; line-height: 1; margin-top: 4px; }
+.type { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }
+.room { font-size: 10px; color: #64748b; margin-top: 6px; }
+@media print { @page { size: A4 portrait; margin: 1cm; } body { padding: 0; } }
+</style></head><body>
+<div class="header"><h1>QR Code: ${qrClassroom.name}</h1>
+<p>อาคาร ${qrClassroom.building} ชั้น ${qrClassroom.floor}</p></div>
+<div class="grid">${gridHtml}</div>
+</body></html>`);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => { printWindow.print(); }, 300);
+    }, [qrClassroom]);
+
     // Open edit classroom modal
     const openEditClassroom = (classroom: Classroom) => {
         setEditingClassroomId(classroom.id);
@@ -673,6 +745,11 @@ export default function ClassroomsPage() {
                 type,
                 isEnabled: true,
                 number: nextNumber++,
+                hostname: '',
+                ipAddress: '',
+                brand: '',
+                os: '',
+                notes: '',
             });
         }
 
@@ -820,6 +897,11 @@ export default function ClassroomsPage() {
                 y: desk.y,
                 type: desk.type,
                 isEnabled: desk.isEnabled,
+                hostname: desk.hostname,
+                ipAddress: desk.ipAddress,
+                brand: desk.brand,
+                os: desk.os,
+                notes: desk.notes,
             }));
 
             // Transform zones to API format
@@ -1022,6 +1104,16 @@ export default function ClassroomsPage() {
                                         onPress={() => openLayoutEditor(classroom)}
                                     >
                                         <Icon icon="solar:pen-linear" className="text-lg text-default-500" />
+                                    </Button>
+                                </Tooltip>
+                                <Tooltip content="พิมพ์ QR โต๊ะ">
+                                    <Button
+                                        isIconOnly
+                                        size="sm"
+                                        variant="light"
+                                        onPress={() => openQRPrint(classroom)}
+                                    >
+                                        <Icon icon="solar:qr-code-linear" className="text-lg text-default-500" />
                                     </Button>
                                 </Tooltip>
                                 <Tooltip content="ลบ" color="danger">
@@ -1831,127 +1923,216 @@ export default function ClassroomsPage() {
                     setShowDeskModal(false);
                     setSelectedDesk(null);
                 }}
-                size="md"
+                size="lg"
                 scrollBehavior="inside"
                 classNames={{
                     base: "mx-2 sm:mx-4",
                 }}
             >
                 <ModalContent>
-                    <ModalHeader>
-                        <div className="flex items-center gap-2 sm:gap-3">
-                            <div className="p-1.5 sm:p-2 rounded-xl bg-linear-to-br from-blue-400 to-indigo-500 shadow-lg shadow-blue-500/30">
+                    <ModalHeader className="pb-0">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-xl shadow-lg ${
+                                selectedDesk?.type === "computer"
+                                    ? "bg-linear-to-br from-indigo-400 to-blue-600 shadow-indigo-500/30"
+                                    : selectedDesk?.type === "teacher"
+                                    ? "bg-linear-to-br from-amber-400 to-orange-500 shadow-amber-500/30"
+                                    : "bg-linear-to-br from-emerald-400 to-teal-500 shadow-emerald-500/30"
+                            }`}>
                                 <Icon
                                     icon={
                                         selectedDesk?.type === "computer"
                                             ? "solar:monitor-bold"
                                             : selectedDesk?.type === "teacher"
                                             ? "solar:user-speak-bold"
-                                            : "solar:document-bold"
+                                            : "solar:chair-bold"
                                     }
-                                    className="text-xl sm:text-2xl text-white"
+                                    className="text-2xl text-white"
                                 />
                             </div>
-                            <h3 className="text-lg sm:text-xl font-bold text-foreground">
-                                แก้ไขโต๊ะ #{selectedDesk?.number}
-                            </h3>
+                            <div>
+                                <h3 className="text-xl font-bold text-foreground">โต๊ะ #{selectedDesk?.number}</h3>
+                                <p className="text-xs font-normal text-default-500 mt-0.5">แก้ไขข้อมูลและรายละเอียดของโต๊ะ</p>
+                            </div>
                         </div>
                     </ModalHeader>
-                    <ModalBody className="px-4 sm:px-6 py-4">
+                    <ModalBody className="px-5 py-5">
                         {selectedDesk && (
-                            <div className="space-y-4">
-                                <Select
-                                    label="ประเภทโต๊ะ"
-                                    labelPlacement="outside"
-                                    variant="bordered"
-                                    selectedKeys={[selectedDesk.type]}
-                                    onChange={(e) =>
-                                        setSelectedDesk({
-                                            ...selectedDesk,
-                                            type: e.target.value as
-                                                | "computer"
-                                                | "normal"
-                                                | "teacher",
-                                        })
-                                    }
-                                >
-                                    <SelectItem
-                                        key="computer"
-                                        textValue="โต๊ะคอม"
-                                        startContent={
-                                            <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center">
-                                                <Icon
-                                                    icon="solar:monitor-bold"
-                                                    className="text-white text-sm"
-                                                />
-                                            </div>
-                                        }
-                                    >
-                                        โต๊ะคอม
-                                    </SelectItem>
-                                    <SelectItem
-                                        key="normal"
-                                        textValue="โต๊ะเรียนปกติ"
-                                        startContent={
-                                            <div className="w-6 h-6 bg-emerald-500 rounded flex items-center justify-center">
-                                                <Icon
-                                                    icon="solar:document-bold"
-                                                    className="text-white text-sm"
-                                                />
-                                            </div>
-                                        }
-                                    >
-                                        โต๊ะเรียนปกติ
-                                    </SelectItem>
-                                    <SelectItem
-                                        key="teacher"
-                                        textValue="โต๊ะอาจารย์"
-                                        startContent={
-                                            <div className="w-8 h-6 bg-amber-500 rounded flex items-center justify-center">
-                                                <Icon
-                                                    icon="solar:user-speak-bold"
-                                                    className="text-white text-sm"
-                                                />
-                                            </div>
-                                        }
-                                    >
-                                        โต๊ะอาจารย์
-                                    </SelectItem>
-                                </Select>
+                            <div className="space-y-5">
 
-                                <div className="flex items-center justify-between rounded-lg border border-default-200 p-4">
-                                    <div>
-                                        <p className="font-semibold text-foreground">
-                                            สถานะการใช้งาน
-                                        </p>
-                                        <p className="text-sm text-default-500">
-                                            {selectedDesk.isEnabled
-                                                ? "โต๊ะนี้สามารถใช้งานได้"
-                                                : "โต๊ะนี้ถูกปิดใช้งาน"}
-                                        </p>
-                                    </div>
-                                    <Switch
-                                        isSelected={selectedDesk.isEnabled}
-                                        onValueChange={(val) =>
+                                {/* ── ประเภท + สถานะ ───────────────────────────────── */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <Select
+                                        label="ประเภทโต๊ะ"
+                                        labelPlacement="outside"
+                                        variant="bordered"
+                                        selectedKeys={[selectedDesk.type]}
+                                        onChange={(e) =>
                                             setSelectedDesk({
                                                 ...selectedDesk,
-                                                isEnabled: val,
+                                                type: e.target.value as "computer" | "normal" | "teacher",
+                                                brand: e.target.value !== "computer" ? "" : selectedDesk.brand,
+                                                os: e.target.value !== "computer" ? "" : selectedDesk.os,
+                                                hostname: e.target.value !== "computer" ? "" : selectedDesk.hostname,
+                                                ipAddress: e.target.value !== "computer" ? "" : selectedDesk.ipAddress,
                                             })
                                         }
-                                        color="success"
-                                    />
+                                        startContent={
+                                            <Icon
+                                                icon={
+                                                    selectedDesk.type === "computer"
+                                                        ? "solar:monitor-bold"
+                                                        : selectedDesk.type === "teacher"
+                                                        ? "solar:user-speak-bold"
+                                                        : "solar:chair-bold"
+                                                }
+                                                className="text-default-400 text-base shrink-0"
+                                            />
+                                        }
+                                    >
+                                        <SelectItem
+                                            key="computer"
+                                            textValue="โต๊ะคอม"
+                                            startContent={
+                                                <div className="w-6 h-6 bg-indigo-500 rounded-md flex items-center justify-center shrink-0">
+                                                    <Icon icon="solar:monitor-bold" className="text-white text-xs" />
+                                                </div>
+                                            }
+                                        >
+                                            โต๊ะคอม
+                                        </SelectItem>
+                                        <SelectItem
+                                            key="normal"
+                                            textValue="โต๊ะเรียนปกติ"
+                                            startContent={
+                                                <div className="w-6 h-6 bg-emerald-500 rounded-md flex items-center justify-center shrink-0">
+                                                    <Icon icon="solar:chair-bold" className="text-white text-xs" />
+                                                </div>
+                                            }
+                                        >
+                                            โต๊ะเรียนปกติ
+                                        </SelectItem>
+                                        <SelectItem
+                                            key="teacher"
+                                            textValue="โต๊ะอาจารย์"
+                                            startContent={
+                                                <div className="w-6 h-6 bg-amber-500 rounded-md flex items-center justify-center shrink-0">
+                                                    <Icon icon="solar:user-speak-bold" className="text-white text-xs" />
+                                                </div>
+                                            }
+                                        >
+                                            โต๊ะอาจารย์
+                                        </SelectItem>
+                                    </Select>
+
+                                    <div className="flex flex-col gap-1.5">
+                                        <p className="text-sm font-medium text-foreground">สถานะการใช้งาน</p>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedDesk({ ...selectedDesk, isEnabled: !selectedDesk.isEnabled })}
+                                            className={`flex items-center justify-between rounded-xl border px-3 h-10 w-full transition-colors cursor-pointer ${
+                                                selectedDesk.isEnabled
+                                                    ? "border-success-300 bg-success-50 dark:bg-success-900/20 dark:border-success-700"
+                                                    : "border-default-200 bg-default-50"
+                                            }`}
+                                        >
+                                            <span className={`text-sm font-medium ${selectedDesk.isEnabled ? "text-success-700 dark:text-success-400" : "text-default-500"}`}>
+                                                {selectedDesk.isEnabled ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+                                            </span>
+                                            <Switch
+                                                isSelected={selectedDesk.isEnabled}
+                                                onValueChange={(val) => setSelectedDesk({ ...selectedDesk, isEnabled: val })}
+                                                color="success"
+                                                size="sm"
+                                            />
+                                        </button>
+                                    </div>
                                 </div>
+
+                                {/* ── ข้อมูลคอมพิวเตอร์ (computer only) ───────────── */}
+                                {selectedDesk.type === "computer" && (
+                                    <div className="rounded-xl border border-default-200 overflow-hidden">
+                                        <div className="flex items-center gap-2 px-4 py-2.5 bg-default-50 dark:bg-default-100/50 border-b border-default-200">
+                                            <Icon icon="solar:monitor-bold-duotone" className="text-indigo-500 text-base shrink-0" />
+                                            <p className="text-sm font-semibold text-foreground">ข้อมูลคอมพิวเตอร์</p>
+                                        </div>
+                                        <div className="p-4 space-y-4">
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <Input
+                                                    label="ชื่อเครื่อง (Hostname)"
+                                                    labelPlacement="outside"
+                                                    placeholder="เช่น PC-308-01"
+                                                    variant="bordered"
+                                                    value={selectedDesk.hostname}
+                                                    onValueChange={(val) => setSelectedDesk({ ...selectedDesk, hostname: val })}
+                                                    startContent={<Icon icon="solar:monitor-linear" className="text-default-400 text-base" />}
+                                                />
+                                                <Input
+                                                    label="หมายเลข IP"
+                                                    labelPlacement="outside"
+                                                    placeholder="เช่น 192.168.1.10"
+                                                    variant="bordered"
+                                                    value={selectedDesk.ipAddress}
+                                                    onValueChange={(val) => setSelectedDesk({ ...selectedDesk, ipAddress: val })}
+                                                    startContent={<Icon icon="solar:server-linear" className="text-default-400 text-base" />}
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <Select
+                                                    label="ยี่ห้อเครื่อง"
+                                                    labelPlacement="outside"
+                                                    variant="bordered"
+                                                    placeholder="เลือกยี่ห้อ"
+                                                    selectedKeys={selectedDesk.brand ? [selectedDesk.brand] : []}
+                                                    onChange={(e) => setSelectedDesk({ ...selectedDesk, brand: e.target.value })}
+                                                >
+                                                    <SelectItem key="Acer">Acer</SelectItem>
+                                                    <SelectItem key="Lenovo">Lenovo</SelectItem>
+                                                    <SelectItem key="HP">HP</SelectItem>
+                                                    <SelectItem key="Dell">Dell</SelectItem>
+                                                    <SelectItem key="Apple">Apple</SelectItem>
+                                                    <SelectItem key="ASUS">ASUS</SelectItem>
+                                                    <SelectItem key="MSI">MSI</SelectItem>
+                                                    <SelectItem key="อื่นๆ">อื่นๆ</SelectItem>
+                                                </Select>
+                                                <Select
+                                                    label="ระบบปฏิบัติการ"
+                                                    labelPlacement="outside"
+                                                    variant="bordered"
+                                                    placeholder="เลือก OS"
+                                                    selectedKeys={selectedDesk.os ? [selectedDesk.os] : []}
+                                                    onChange={(e) => setSelectedDesk({ ...selectedDesk, os: e.target.value })}
+                                                >
+                                                    <SelectItem key="Windows 10">Windows 10</SelectItem>
+                                                    <SelectItem key="Windows 11">Windows 11</SelectItem>
+                                                    <SelectItem key="macOS">macOS</SelectItem>
+                                                    <SelectItem key="Linux">Linux</SelectItem>
+                                                    <SelectItem key="อื่นๆ">อื่นๆ</SelectItem>
+                                                </Select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ── หมายเหตุ ─────────────────────────────────────── */}
+                                <Textarea
+                                    label="หมายเหตุ"
+                                    labelPlacement="outside"
+                                    placeholder="บันทึกเพิ่มเติม เช่น ปัญหาที่พบ, อุปกรณ์เสริม..."
+                                    variant="bordered"
+                                    minRows={2}
+                                    value={selectedDesk.notes}
+                                    onValueChange={(val) => setSelectedDesk({ ...selectedDesk, notes: val })}
+                                />
                             </div>
                         )}
                     </ModalBody>
-                    <ModalFooter>
+                    <ModalFooter className="border-t border-default-100 pt-4">
                         <Button
                             color="danger"
                             variant="flat"
                             onPress={handleDeleteDesk}
-                            startContent={
-                                <Icon icon="solar:trash-bin-trash-linear" />
-                            }
+                            startContent={<Icon icon="solar:trash-bin-trash-linear" />}
                         >
                             ลบโต๊ะ
                         </Button>
@@ -1965,7 +2146,11 @@ export default function ClassroomsPage() {
                         >
                             ยกเลิก
                         </Button>
-                        <Button color="primary" onPress={handleUpdateDesk}>
+                        <Button
+                            color="primary"
+                            onPress={handleUpdateDesk}
+                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white font-medium"
+                        >
                             บันทึก
                         </Button>
                     </ModalFooter>
@@ -2236,6 +2421,75 @@ export default function ClassroomsPage() {
                             startContent={!isToggling && <Icon icon={toggleTarget?.isActive ? "solar:eye-closed-bold" : "solar:eye-bold"} className="text-lg" />}
                         >
                             {toggleTarget?.isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+            {/* QR Print Modal */}
+            <Modal
+                isOpen={showQRModal}
+                onClose={() => setShowQRModal(false)}
+                size="4xl"
+                scrollBehavior="inside"
+            >
+                <ModalContent>
+                    <ModalHeader className="px-6 pt-5 pb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-purple-500/30">
+                                <Icon icon="solar:qr-code-bold" className="text-2xl text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-foreground">QR Code โต๊ะ</h3>
+                                <p className="text-sm text-default-500">
+                                    {qrClassroom?.name} · อาคาร {qrClassroom?.building} ชั้น {qrClassroom?.floor}
+                                </p>
+                            </div>
+                        </div>
+                    </ModalHeader>
+                    <ModalBody className="px-6 py-4">
+                        {qrClassroom && (
+                            <div
+                                ref={qrGridRef}
+                                className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
+                            >
+                                {qrClassroom.desks
+                                    .filter(d => d.isEnabled)
+                                    .sort((a, b) => a.number - b.number)
+                                    .map(desk => {
+                                        const origin = typeof window !== "undefined" ? window.location.origin : "";
+                                        const url = `${origin}/desk/${desk.id}`;
+                                        const typeLabel =
+                                            desk.type === "teacher" ? "อาจารย์" :
+                                            desk.type === "computer" ? "คอมพิวเตอร์" : "ทั่วไป";
+                                        return (
+                                            <div key={desk.id} className="card border border-divider rounded-xl p-4 text-center">
+                                                <div className="qr-wrap flex justify-center mb-2">
+                                                    <QRCodeSVG value={url} size={100} />
+                                                </div>
+                                                <p className="num text-2xl font-black text-foreground leading-tight">{desk.number}</p>
+                                                <p className="type text-[10px] text-default-400 uppercase tracking-wide mt-0.5">{typeLabel}</p>
+                                                <p className="room text-[10px] text-default-500 mt-1.5">{qrClassroom.name}</p>
+                                            </div>
+                                        );
+                                    })
+                                }
+                                {qrClassroom.desks.filter(d => d.isEnabled).length === 0 && (
+                                    <div className="col-span-4 py-12 text-center text-default-400">
+                                        <Icon icon="solar:qr-code-linear" className="text-4xl mb-2 mx-auto block" />
+                                        <p>ไม่มีโต๊ะที่เปิดใช้งาน</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </ModalBody>
+                    <ModalFooter className="gap-3 border-t border-divider px-6 py-4">
+                        <Button variant="light" onPress={() => setShowQRModal(false)}>ปิด</Button>
+                        <Button
+                            color="primary"
+                            startContent={<Icon icon="solar:printer-minimalistic-bold" className="text-lg" />}
+                            onPress={handlePrintQR}
+                        >
+                            พิมพ์ QR Code
                         </Button>
                     </ModalFooter>
                 </ModalContent>

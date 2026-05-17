@@ -38,6 +38,10 @@ export const API_ENDPOINTS = {
   COURSES: {
     LIST: '/courses',
     STATS: '/courses/stats',
+    CONFLICTS: '/courses/conflicts',
+    BULK_TOGGLE: '/courses/bulk-toggle',
+    BULK_DELETE: '/courses/bulk',
+    EXPORT: '/courses/export',
     MY_COURSES: '/courses/my-courses',
     MY_COURSES_STATS: '/courses/my-courses/stats',
     BY_ID: (id: string) => `/courses/${id}`,

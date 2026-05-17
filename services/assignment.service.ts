@@ -151,6 +151,16 @@ const assignmentService = {
         });
         return response.data || null;
     },
+
+    /**
+     * Revert a published assignment back to draft
+     */
+    async unpublishAssignment(id: number): Promise<Assignment | null> {
+        const response = await api.put<Assignment>(`/assignments/${id}`, {
+            is_draft: true,
+        });
+        return response.data || null;
+    },
 };
 
 export default assignmentService;

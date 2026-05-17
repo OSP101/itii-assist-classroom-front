@@ -378,7 +378,7 @@ export default function InstructorLayout({
                                         <Icon icon="solar:alt-arrow-down-linear" className="text-sm text-default-400" />
                                     </button>
                                 </DropdownTrigger>
-                                <DropdownMenu aria-label={t("userMenu")} className="max-h-80 overflow-visible">
+                                <DropdownMenu aria-label={t("userMenu")} className="overflow-visible">
                                     <DropdownSection title={t("activeCourses")} showDivider>
                                         {isCoursesLoading ? (
                                             [0, 1, 2].map((item) => (
@@ -401,7 +401,7 @@ export default function InstructorLayout({
                                                     onPress={() => router.push(`/classroom/${course.id}`)}
                                                     className={course.id === courseId ? "bg-primary/10" : ""}
                                                 >
-                                                    {course.code} - {course.name}
+                                                    <span className="truncate block max-w-[180px]">{course.code} - {course.name}</span>
                                                 </DropdownItem>
                                             ))
                                         ) : (

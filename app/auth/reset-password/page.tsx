@@ -173,7 +173,7 @@ function ResetPasswordContent() {
                     </Card>
                 </div>
                 <div className={AUTH_PAGE_FOOTER}>
-                    © 2025 ITII Assist Classroom. {t("allRightsReserved")}
+                    © 2026 ITII Assist Classroom v1.2.90. สงวนลิขสิทธิ์
                 </div>
             </div>
         );
@@ -211,7 +211,7 @@ function ResetPasswordContent() {
                     </Card>
                 </div>
                 <div className={AUTH_PAGE_FOOTER}>
-                    © 2025 ITII Assist Classroom. {t("allRightsReserved")}
+                    © 2026 ITII Assist Classroom v1.2.90. สงวนลิขสิทธิ์
                 </div>
             </div>
         );
@@ -367,7 +367,7 @@ function ResetPasswordContent() {
                 </Card>
             </div>
             <div className={AUTH_PAGE_FOOTER}>
-                © 2025 ITII Assist Classroom. {t("allRightsReserved")}
+                © 2026 ITII Assist Classroom v1.2.90. สงวนลิขสิทธิ์
             </div>
         </div>
     );

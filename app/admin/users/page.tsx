@@ -27,7 +27,7 @@ import { Select, SelectItem } from "@heroui/select";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { userService } from "@/services/user.service";
-import type { User, CreateUserDto, UpdateUserDto, UserStats } from "@/services/user.service";
+import type { User, CreateUserDto, UpdateUserDto, UserStats, UserConflict } from "@/services/user.service";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useTableParams } from "@/lib/table/use-table-params";
 import TablePaginationFooter, { DEFAULT_TABLE_ROWS_PER_PAGE } from "@/components/ui/table-pagination-footer";
@@ -132,10 +132,18 @@ export default function UsersPage() {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isToggleStatusModalOpen, setIsToggleStatusModalOpen] = useState(false);
     const [isCredentialsModalOpen, setIsCredentialsModalOpen] = useState(false);
+    const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
+    const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
+    const [conflictData, setConflictData] = useState<UserConflict | null>(null);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [userToToggle, setUserToToggle] = useState<User | null>(null);
+    const [userToResetPassword, setUserToResetPassword] = useState<User | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [newCredentials, setNewCredentials] = useState<{ username: string; password: string } | null>(null);
+    const [credentialsModalContext, setCredentialsModalContext] = useState<"create" | "reset">("create");
+    const [resetNewPassword, setResetNewPassword] = useState("");
+    const [resetConfirmPassword, setResetConfirmPassword] = useState("");
+    const [showResetPwd, setShowResetPwd] = useState(false);
 
     // Form data
     const [formData, setFormData] = useState<CreateUserDto>({
@@ -248,6 +256,7 @@ export default function UsersPage() {
                 resetForm();
                 
                 // Show credentials modal
+                setCredentialsModalContext("create");
                 setNewCredentials(response.data.credentials);
                 setIsCredentialsModalOpen(true);
                 
@@ -255,13 +264,13 @@ export default function UsersPage() {
                 fetchStats();
                 emitDataUpdate("user", "create");
             } else {
-                const errorMessage = (response as { error?: { message?: string } }).error?.message || t("somethingWentWrong");
+                const errorMessage = response.message || t("somethingWentWrong");
                 addToast({
                     title: t("createUserFailed"),
                     description: errorMessage,
                     color: "danger",
                     timeout: 3000,
-                shouldShowTimeoutProgress: true,
+                    shouldShowTimeoutProgress: true,
                 });
             }
         } catch (error) {
@@ -286,14 +295,12 @@ export default function UsersPage() {
         isUpdatingRef.current = true;
         try {
             const updateData: UpdateUserDto = {
-                username: formData.username,
                 full_name: formData.full_name,
                 email: formData.email || undefined,
-                role: formData.role,
                 avatar: formData.avatar,
             };
 
-            const response = await userService.updateUser(selectedUser.ID, updateData);
+            const response = await userService.updateUser(selectedUser.id, updateData);
             if (response.success) {
                 addToast({
                     title: t("updateUserSuccess"),
@@ -305,15 +312,15 @@ export default function UsersPage() {
                 setIsEditModalOpen(false);
                 resetForm();
                 fetchUsers();
-                emitDataUpdate("user", "update", selectedUser.ID);
+                emitDataUpdate("user", "update", selectedUser.id);
             } else {
-                const errorMessage = (response as { error?: { message?: string } }).error?.message || t("somethingWentWrong");
+                const errorMessage = response.message || t("somethingWentWrong");
                 addToast({
                     title: t("updateUserFailed"),
                     description: errorMessage,
                     color: "danger",
                     timeout: 3000,
-                shouldShowTimeoutProgress: true,
+                    shouldShowTimeoutProgress: true,
                 });
             }
         } catch (error) {
@@ -337,7 +344,7 @@ export default function UsersPage() {
         setIsSubmitting(true);
         isUpdatingRef.current = true;
         try {
-            const response = await userService.deleteUser(selectedUser.ID);
+            const response = await userService.deleteUser(selectedUser.id);
             if (response.success) {
                 addToast({
                     title: t("deleteUserSuccess"),
@@ -350,7 +357,7 @@ export default function UsersPage() {
                 setSelectedUser(null);
                 fetchUsers();
                 fetchStats();
-                emitDataUpdate("user", "delete", selectedUser.ID);
+                emitDataUpdate("user", "delete", selectedUser.id);
             } else {
                 addToast({
                     title: t("deleteUserFailed"),
@@ -387,7 +394,7 @@ export default function UsersPage() {
         isUpdatingRef.current = true;
         setIsToggleStatusModalOpen(false);
         try {
-            const response = await userService.toggleStatus(user.ID);
+            const response = await userService.toggleStatus(user.id);
             if (response.success) {
                 addToast({
                     title: user.is_active ? t("disableUserSuccess") : t("enableUserSuccess"),
@@ -396,24 +403,71 @@ export default function UsersPage() {
                         : t("userEnabledForUsername", { username: user.username }),
                     color: "success",
                     timeout: 3000,
-                shouldShowTimeoutProgress: true,
+                    shouldShowTimeoutProgress: true,
                 });
                 fetchUsers();
                 fetchStats();
-                emitDataUpdate("user", "toggle", user.ID);
+                emitDataUpdate("user", "toggle", user.id);
             } else {
-                addToast({
-                    title: t("somethingWentWrong"),
-                    description: response.message || t("toggleUserStatusFailed"),
-                    color: "danger",
-                    timeout: 3000,
-                shouldShowTimeoutProgress: true,
-                });
+                const conflict = (response as { conflict?: UserConflict }).conflict;
+                if (conflict) {
+                    setConflictData(conflict);
+                    setIsConflictModalOpen(true);
+                } else {
+                    addToast({
+                        title: t("somethingWentWrong"),
+                        description: response.message || t("toggleUserStatusFailed"),
+                        color: "danger",
+                        timeout: 3000,
+                        shouldShowTimeoutProgress: true,
+                    });
+                }
             }
         } catch (error) {
             addToast({
                 title: t("somethingWentWrong"),
                 description: t("toggleUserStatusFailed"),
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } finally {
+            isUpdatingRef.current = false;
+        }
+    };
+
+    // Handle force-enable: disable the conflicting active user, re-enable the original
+    const handleForceEnable = async () => {
+        if (!conflictData) return;
+        setIsConflictModalOpen(false);
+        isUpdatingRef.current = true;
+        try {
+            const response = await userService.toggleStatus(conflictData.target_user.id, true);
+            if (response.success) {
+                addToast({
+                    title: t("enableUserSuccess"),
+                    description: t("userEnabledForUsername", { username: conflictData.target_user.username }),
+                    color: "success",
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+                });
+                setConflictData(null);
+                fetchUsers();
+                fetchStats();
+                emitDataUpdate("user", "toggle", conflictData.target_user.id);
+            } else {
+                addToast({
+                    title: t("somethingWentWrong"),
+                    description: response.message || t("resolveConflictFailed"),
+                    color: "danger",
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+                });
+            }
+        } catch (error) {
+            addToast({
+                title: t("somethingWentWrong"),
+                description: t("resolveConflictFailed"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -516,6 +570,56 @@ export default function UsersPage() {
         setIsDeleteModalOpen(true);
     };
 
+    // Generate a random 12-character password
+    const generateRandomPassword = () => {
+        const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$";
+        return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+    };
+
+    // Open reset password modal
+    const openResetPasswordModal = (user: User) => {
+        setUserToResetPassword(user);
+        setResetNewPassword("");
+        setResetConfirmPassword("");
+        setShowResetPwd(false);
+        setIsResetPasswordModalOpen(true);
+    };
+
+    // Handle reset password
+    const handleResetPassword = async () => {
+        if (!userToResetPassword) return;
+        if (!resetNewPassword) {
+            addToast({ title: t("pleaseFillRequiredFields"), description: t("newPassword"), color: "warning", timeout: 3000, shouldShowTimeoutProgress: true });
+            return;
+        }
+        if (resetNewPassword.length < 8) {
+            addToast({ title: t("passwordRequirementFailed"), description: t("pleaseCheckPasswordRequirements"), color: "warning", timeout: 3000, shouldShowTimeoutProgress: true });
+            return;
+        }
+        if (resetNewPassword !== resetConfirmPassword) {
+            addToast({ title: t("passwordsDoNotMatch"), description: t("pleaseEnterMatchingPasswords"), color: "warning", timeout: 3000, shouldShowTimeoutProgress: true });
+            return;
+        }
+        setIsSubmitting(true);
+        isUpdatingRef.current = true;
+        try {
+            const response = await userService.updateUser(userToResetPassword.id, { password: resetNewPassword });
+            if (response.success) {
+                setIsResetPasswordModalOpen(false);
+                setCredentialsModalContext("reset");
+                setNewCredentials({ username: userToResetPassword.username, password: resetNewPassword });
+                setIsCredentialsModalOpen(true);
+            } else {
+                addToast({ title: t("resetPasswordFailed"), description: response.message || t("somethingWentWrong"), color: "danger", timeout: 3000, shouldShowTimeoutProgress: true });
+            }
+        } catch {
+            addToast({ title: t("somethingWentWrong"), description: t("resetPasswordFailed"), color: "danger", timeout: 3000, shouldShowTimeoutProgress: true });
+        } finally {
+            setIsSubmitting(false);
+            isUpdatingRef.current = false;
+        }
+    };
+
     // Render cell content
     const renderCell = useCallback((user: User, columnKey: React.Key) => {
         switch (columnKey) {
@@ -530,7 +634,7 @@ export default function UsersPage() {
                         />
                         <div>
                             <p className="font-medium">{user.username}</p>
-                            <p className="text-xs text-default-400">ID: {user.ID}</p>
+                            <p className="text-xs text-default-400">ID: {user.id}</p>
                         </div>
                     </div>
                 );
@@ -585,6 +689,16 @@ export default function UsersPage() {
                                 onPress={() => openEditModal(user)}
                             >
                                 <Icon icon="solar:pen-linear" className="text-lg text-default-500" />
+                            </Button>
+                        </Tooltip>
+                        <Tooltip content={t("resetPassword")}>
+                            <Button
+                                isIconOnly
+                                size="sm"
+                                variant="light"
+                                onPress={() => openResetPasswordModal(user)}
+                            >
+                                <Icon icon="solar:key-bold-duotone" className="text-lg text-default-500" />
                             </Button>
                         </Tooltip>
                         <Tooltip content={user.is_active ? t("disableAction") : t("enableAction")}>
@@ -828,7 +942,7 @@ export default function UsersPage() {
                                     }
                                 >
                                     {(item) => (
-                                        <TableRow key={item.ID}>
+                                        <TableRow key={item.id}>
                                             {(columnKey) => (
                                                 <TableCell>{renderCell(item, columnKey)}</TableCell>
                                             )}
@@ -960,6 +1074,12 @@ export default function UsersPage() {
                                             label: "text-default-600 font-medium text-sm",
                                         }}
                                     />
+                                    {formData.email && (
+                                        <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 dark:border-primary-500/20 dark:bg-primary/10">
+                                            <Icon icon="flat-color-icons:google" className="text-base mt-0.5 shrink-0" />
+                                            <p className="text-xs text-blue-700 dark:text-blue-300">{t("googleAutoLinkHint")}</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -1136,53 +1256,54 @@ export default function UsersPage() {
                             </div>
 
                             {/* ข้อมูลบัญชี */}
-                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
+                            <div className="space-y-4 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:shield-user-bold" className="text-lg text-blue-500" />
                                     <span className="text-sm font-semibold text-default-700">{t("accountInformation")}</span>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 py-3">
-                                    <Input
-                                        label={t("username")}
-                                        labelPlacement="outside"
-                                        placeholder={t("enterUsername")}
-                                        variant="bordered"
-                                        size="md"
-                                        value={formData.username}
-                                        onValueChange={(value) => setFormData({ ...formData, username: value })}
-                                        isRequired
-                                        startContent={<Icon icon="solar:user-linear" className="text-blue-400 text-xl" />}
-                                        classNames={{
-                                            inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                            label: "text-default-600 font-medium text-sm",
-                                        }}
-                                    />
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-default-600 font-medium text-sm">{t("username")}</label>
+                                        <div className="flex items-center gap-2 h-10 px-3 rounded-xl border border-default-200 bg-content2">
+                                            <Icon icon="solar:user-linear" className="text-blue-400 text-xl shrink-0" />
+                                            <span className="flex-1 text-sm font-mono text-foreground truncate">{formData.username}</span>
+                                            <span className="text-xs text-default-400 shrink-0">{t("usernameCannotBeChanged")}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-default-600 font-medium text-sm">{t("role")}</label>
+                                        <div className="flex items-center gap-2 h-10 px-3 rounded-xl border border-default-200 bg-content1">
+                                            <Chip
+                                                color={roleColors[formData.role] ?? "default"}
+                                                size="sm"
+                                                variant="flat"
+                                                startContent={
+                                                    formData.role === "admin" ? <Icon icon="solar:shield-user-bold" className="text-xs" /> :
+                                                    formData.role === "instructor" ? <Icon icon="solar:user-check-bold" className="text-xs" /> :
+                                                    <Icon icon="solar:user-hand-up-bold" className="text-xs" />
+                                                }
+                                            >
+                                                {roleLabels[formData.role] ?? formData.role}
+                                            </Chip>
+                                            <span className="text-xs text-default-400">{t("roleCannotBeChanged")}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <Select
-                                    label={t("role")}
-                                    labelPlacement="outside"
-                                    placeholder={t("selectRole")}
-                                    variant="bordered"
-                                    size="md"
-                                    selectedKeys={[formData.role]}
-                                    onSelectionChange={(keys) => {
-                                        const value = Array.from(keys)[0] as "admin" | "instructor" | "ta";
-                                        setFormData({ ...formData, role: value });
-                                    }}
-                                    isRequired
-                                    isDisabled={selectedUser?.ID === authUser?.id}
-                                    classNames={{
-                                        trigger: "bg-content1 border-default-200 hover:border-blue-300 data-[focus=true]:border-blue-400",
-                                        label: "text-default-600 font-medium text-sm",
-                                    }}
-                                >
-                                    <SelectItem key="admin" startContent={<Icon icon="solar:shield-user-bold" className="text-red-500" />}>{t("roleAdmin")}</SelectItem>
-                                    <SelectItem key="instructor" startContent={<Icon icon="solar:user-check-bold" className="text-purple-500" />}>{t("roleInstructor")}</SelectItem>
-                                    <SelectItem key="ta" startContent={<Icon icon="solar:user-hand-up-bold" className="text-green-500" />}>{t("roleTa")}</SelectItem>
-                                </Select>
+                                {/* Google link status */}
+                                <div className="flex items-center gap-2 pt-1 pb-1">
+                                    <Icon icon="flat-color-icons:google" className="text-lg" />
+                                    <span className="text-sm text-default-600">Google:</span>
+                                    {selectedUser?.google_id ? (
+                                        <Chip color="success" size="sm" variant="flat" startContent={<Icon icon="solar:check-circle-bold" className="text-xs" />}>
+                                            {t("googleLinked")}
+                                        </Chip>
+                                    ) : (
+                                        <Chip color="default" size="sm" variant="flat" startContent={<Icon icon="solar:link-broken-bold" className="text-xs" />}>
+                                            {t("googleNotLinked")}
+                                        </Chip>
+                                    )}
+                                </div>
                             </div>
-
-                            
                         </div>
                     </ModalBody>
                     <ModalFooter className="gap-3 border-t border-divider px-6 py-4">
@@ -1260,6 +1381,111 @@ export default function UsersPage() {
                 </ModalContent>
             </Modal>
 
+            {/* Conflict Resolution Modal — shown when re-enabling a user whose username is taken by an active account */}
+            <Modal isOpen={isConflictModalOpen} onClose={() => { setIsConflictModalOpen(false); setConflictData(null); }} size="lg">
+                <ModalContent>
+                    <ModalHeader className="px-6 pt-6 pb-4">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 rounded-xl bg-amber-100 dark:bg-amber-500/15">
+                                <Icon icon="solar:users-group-two-rounded-bold" className="text-2xl text-amber-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-foreground">
+                                    {conflictData?.conflict_field === "email" ? t("emailConflictTitle") : t("usernameConflictTitle")}
+                                </h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">
+                                    {conflictData?.conflict_field === "email"
+                                        ? conflictData.conflict_value
+                                        : `@${conflictData?.username}`}
+                                </p>
+                            </div>
+                        </div>
+                    </ModalHeader>
+                    <ModalBody className="px-6 py-6 space-y-4">
+                        <p className="text-sm text-default-600">
+                            {conflictData
+                                ? conflictData.conflict_field === "email"
+                                    ? t("emailConflictBody", { email: conflictData.conflict_value || "" })
+                                    : t("usernameConflictBody", { username: conflictData.username })
+                                : ""}
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {/* Active (new) account */}
+                            {conflictData && (
+                                <div className="rounded-xl border-2 border-blue-200 bg-blue-50/50 p-4 dark:border-primary-500/30 dark:bg-primary/5">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Chip color="success" size="sm" variant="flat">{t("conflictAccountActive")}</Chip>
+                                        <span className="text-xs text-default-400">{t("conflictCurrentAccountLabel")}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <Avatar
+                                            src={conflictData.conflict_user.avatar || undefined}
+                                            name={conflictData.conflict_user.full_name || conflictData.conflict_user.username}
+                                            size="sm"
+                                            className="shrink-0"
+                                        />
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-sm text-foreground truncate">{conflictData.conflict_user.full_name || "-"}</p>
+                                            <p className="text-xs text-default-500">@{conflictData.conflict_user.username}</p>
+                                            {conflictData.conflict_user.email && (
+                                                <p className="text-xs text-default-400 truncate">{conflictData.conflict_user.email}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            {/* Disabled (original) account */}
+                            {conflictData && (
+                                <div className="rounded-xl border-2 border-amber-200 bg-amber-50/50 p-4 dark:border-amber-500/30 dark:bg-amber-500/5">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Chip color="warning" size="sm" variant="flat">{t("conflictAccountDisabled")}</Chip>
+                                        <span className="text-xs text-default-400">{t("conflictOriginalAccountLabel")}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <Avatar
+                                            src={conflictData.target_user.avatar || undefined}
+                                            name={conflictData.target_user.full_name || conflictData.target_user.username}
+                                            size="sm"
+                                            className="shrink-0"
+                                        />
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-sm text-foreground truncate">{conflictData.target_user.full_name || "-"}</p>
+                                            <p className="text-xs text-default-500">@{conflictData.target_user.username}</p>
+                                            {conflictData.target_user.email && (
+                                                <p className="text-xs text-default-400 truncate">{conflictData.target_user.email}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-500/20 dark:bg-amber-500/10">
+                            <div className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-300">
+                                <Icon icon="solar:danger-triangle-bold" className="text-amber-500 mt-0.5 shrink-0" />
+                                <span>{t("restoreOriginalAccountNote")}</span>
+                            </div>
+                        </div>
+                    </ModalBody>
+                    <ModalFooter className="gap-3 border-t border-divider px-6 py-4">
+                        <Button
+                            variant="flat"
+                            color="default"
+                            onPress={() => { setIsConflictModalOpen(false); setConflictData(null); }}
+                            className="font-medium px-6"
+                        >
+                            {t("keepNewAccount")}
+                        </Button>
+                        <Button
+                            color="warning"
+                            onPress={handleForceEnable}
+                            className="font-medium px-6"
+                        >
+                            {t("restoreOriginalAccount")}
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
             <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} size="md">
                 <ModalContent>
                     <ModalHeader className="px-6 pt-6 pb-4">
@@ -1307,6 +1533,93 @@ export default function UsersPage() {
                 </ModalContent>
             </Modal>
 
+            {/* Reset Password Modal */}
+            <Modal isOpen={isResetPasswordModalOpen} onClose={() => setIsResetPasswordModalOpen(false)} size="md">
+                <ModalContent>
+                    <ModalHeader className="px-6 pt-6 pb-4">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 rounded-xl bg-violet-100 dark:bg-violet-500/15">
+                                <Icon icon="solar:key-bold-duotone" className="text-2xl text-violet-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-foreground">{t("resetPassword")}</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">
+                                    {userToResetPassword ? t("resetPasswordFor", { username: userToResetPassword.username }) : ""}
+                                </p>
+                            </div>
+                        </div>
+                    </ModalHeader>
+                    <ModalBody className="px-6 py-6 space-y-4">
+                        <Input
+                            label={t("newPassword")}
+                            labelPlacement="outside"
+                            placeholder="••••••••"
+                            type={showResetPwd ? "text" : "password"}
+                            variant="bordered"
+                            size="md"
+                            value={resetNewPassword}
+                            onValueChange={setResetNewPassword}
+                            isRequired
+                            startContent={<Icon icon="solar:lock-password-linear" className="text-violet-400 text-xl" />}
+                            endContent={
+                                <Button isIconOnly size="sm" variant="light" onPress={() => setShowResetPwd(!showResetPwd)}>
+                                    <Icon icon={showResetPwd ? "solar:eye-closed-linear" : "solar:eye-linear"} className="text-default-400 text-lg" />
+                                </Button>
+                            }
+                            classNames={{
+                                inputWrapper: "bg-content1 border-default-200 hover:border-violet-300 focus-within:!border-violet-400",
+                                label: "text-default-600 font-medium text-sm",
+                            }}
+                        />
+                        <Input
+                            label={t("confirmNewPassword")}
+                            labelPlacement="outside"
+                            placeholder="••••••••"
+                            type="password"
+                            variant="bordered"
+                            size="md"
+                            value={resetConfirmPassword}
+                            onValueChange={setResetConfirmPassword}
+                            isRequired
+                            startContent={<Icon icon="solar:lock-password-linear" className="text-violet-400 text-xl" />}
+                            isInvalid={resetConfirmPassword.length > 0 && resetNewPassword !== resetConfirmPassword}
+                            errorMessage={resetConfirmPassword.length > 0 && resetNewPassword !== resetConfirmPassword ? t("passwordsDoNotMatch") : undefined}
+                            classNames={{
+                                inputWrapper: "bg-content1 border-default-200 hover:border-violet-300 focus-within:!border-violet-400",
+                                label: "text-default-600 font-medium text-sm",
+                            }}
+                        />
+                        <Button
+                            variant="flat"
+                            color="secondary"
+                            size="sm"
+                            startContent={<Icon icon="solar:refresh-bold" className="text-base" />}
+                            onPress={() => {
+                                const pwd = generateRandomPassword();
+                                setResetNewPassword(pwd);
+                                setResetConfirmPassword(pwd);
+                                setShowResetPwd(true);
+                            }}
+                        >
+                            {t("generateRandomPassword")}
+                        </Button>
+                    </ModalBody>
+                    <ModalFooter className="gap-3 border-t border-divider px-6 py-4">
+                        <Button variant="flat" color="default" onPress={() => setIsResetPasswordModalOpen(false)} className="font-medium px-6">
+                            {t("cancel")}
+                        </Button>
+                        <Button
+                            color="secondary"
+                            onPress={handleResetPassword}
+                            isLoading={isSubmitting}
+                            className="font-medium px-6"
+                        >
+                            {t("resetPassword")}
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
             {/* Credentials Modal - Show after user creation */}
             <Modal 
                 isOpen={isCredentialsModalOpen} 
@@ -1325,7 +1638,9 @@ export default function UsersPage() {
                                 <Icon icon="solar:check-circle-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-foreground">{t("createUserSuccessTitle")}</h3>
+                                <h3 className="text-xl font-bold text-foreground">
+                                    {credentialsModalContext === "reset" ? t("resetPasswordSuccessTitle") : t("createUserSuccessTitle")}
+                                </h3>
                                 <p className="mt-1 text-sm font-normal text-default-500">{t("saveCredentialsBelow")}</p>
                             </div>
                         </div>

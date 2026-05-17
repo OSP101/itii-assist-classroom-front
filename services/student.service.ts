@@ -88,6 +88,7 @@ export interface AssignmentScore {
   grader: string | null;
   graded_at: string | null;
   comment: string | null;
+  graded_via: 'queue' | 'direct' | null;
   sub_items: AssignmentSubItemScore[];
   is_group_assignment?: boolean;
   group_info?: {
@@ -137,13 +138,13 @@ export interface ExamScoreData {
 
 export interface CourseScoreData {
   course: {
-    id: number;
+    id: string;
     code: string;
     name: string;
     year: number;
     semester: number;
     is_active: boolean;
-    sections: Array<{ id: number; name: string; week_number: number | null }>;
+    sections: Array<{ id: number; section_no?: string; name?: string; week_number?: number | null }>;
   };
   assignments: AssignmentScore[];
   totalScore: number;
@@ -157,6 +158,51 @@ export interface CourseScoreData {
   examScores: ExamScoreData[];
 }
 
+export interface StudentQueueOverviewSession {
+  id: string;
+  title: string;
+  description?: string;
+  status: 'active' | 'paused';
+  require_attendance: boolean;
+  linked_assignment_id?: number | null;
+  linked_attendance_session_id?: number | null;
+  cutoff_at?: string | null;
+  cutoff_note?: string;
+  classroom?: {
+    id: string;
+    name: string;
+    building: string;
+    floor?: string;
+  } | null;
+  linkedAssignment?: {
+    id: number;
+    name: string;
+    max_score: string;
+  } | null;
+  linkedAttendanceSession?: {
+    id: number;
+    title: string;
+  } | null;
+  stats: {
+    total: number;
+    waiting: number;
+    in_progress: number;
+    completed: number;
+  };
+  my_booking?: {
+    id: number;
+    queue_number: number;
+    booking_type: 'grading' | 'help';
+    status: 'waiting' | 'in_progress';
+    desk_id: string;
+    desk_number: number;
+    note?: string;
+    assigned_at?: string | null;
+    started_at?: string | null;
+    created_at: string;
+  } | null;
+}
+
 export interface StudentScoreLookupResponse {
   student: {
     id: number;
@@ -165,6 +211,14 @@ export interface StudentScoreLookupResponse {
     email: string | null;
   };
   courses: CourseScoreData[];
+}
+
+export interface MyStudentCourseResponse {
+  student: StudentScoreLookupResponse['student'];
+  course: CourseScoreData;
+  queue: {
+    sessions: StudentQueueOverviewSession[];
+  };
 }
 
 class StudentService {
@@ -238,6 +292,10 @@ class StudentService {
    */
   async lookupStudentScores(studentId: string) {
     return apiService.get<StudentScoreLookupResponse>(`${API_ENDPOINTS.STUDENTS}/lookup/${studentId}`);
+  }
+
+  async getMyCourse(courseId: string) {
+    return apiService.get<MyStudentCourseResponse>(`${API_ENDPOINTS.STUDENTS}/me/courses/${courseId}`);
   }
 
   /**

@@ -1,5 +1,6 @@
 import { apiService } from "./api.service";
 import { API_ENDPOINTS } from "@/config/api";
+import type { User } from "@/services/auth.service";
 
 export interface TwoFactorStatus {
   enabled: boolean;
@@ -153,7 +154,7 @@ class TwoFactorService {
   async completeLogin(userId: number, code: string): Promise<{ 
     success: boolean; 
     data?: { 
-      user: unknown; 
+      user: User; 
       accessToken: string; 
       refreshToken: string;
       mustChangePassword: boolean;
@@ -162,7 +163,7 @@ class TwoFactorService {
     error?: string 
   }> {
     const response = await apiService.post<{ 
-      user: unknown; 
+      user: User; 
       accessToken: string; 
       refreshToken: string;
       mustChangePassword: boolean;

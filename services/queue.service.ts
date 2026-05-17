@@ -329,6 +329,27 @@ interface ApiResponse<T> {
 }
 
 // ============================================
+// Classroom Conflict Error
+// ============================================
+
+export interface ClassroomConflictInfo {
+    session_id: string;
+    session_title: string;
+    course_id: string;
+    course_name: string;
+    started_at?: string;
+}
+
+export class ClassroomConflictError extends Error {
+    conflict: ClassroomConflictInfo;
+    constructor(message: string, conflict: ClassroomConflictInfo) {
+        super(message);
+        this.name = 'ClassroomConflictError';
+        this.conflict = conflict;
+    }
+}
+
+// ============================================
 // Queue Service
 // ============================================
 
@@ -399,6 +420,17 @@ const queueService = {
             `/courses/${courseId}/queue/sessions/${sessionId}/status`,
             { status }
         );
+        if (!response.success) {
+            const raw = response as unknown as { classroom_conflict?: ClassroomConflictInfo; message?: string };
+            if (raw.classroom_conflict) {
+                throw new ClassroomConflictError(
+                    raw.message || 'ห้องเรียนนี้กำลังถูกใช้งานอยู่',
+                    raw.classroom_conflict
+                );
+            }
+            const errMsg = (response.error as unknown as { message?: string })?.message || response.message;
+            throw new Error(errMsg || 'เปลี่ยนสถานะไม่สำเร็จ');
+        }
         if (!response.data) throw new Error('เปลี่ยนสถานะไม่สำเร็จ');
         return response.data;
     },

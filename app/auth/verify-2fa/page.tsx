@@ -11,7 +11,10 @@ import { Spinner } from "@heroui/spinner";
 import { Icon } from "@iconify/react";
 import { addToast } from "@heroui/toast";
 import { twoFactorService, TwoFactorLoginData } from "@/services/twoFactor.service";
+import type { User } from "@/services/auth.service";
 import { useI18n } from "@/hooks/useI18n";
+import { getDefaultRouteForRole } from "@/lib/auth-routing";
+import { buildPreferredLoginHref, consumePendingAuthReturnPath, peekPendingAuthReturnPath } from "@/lib/auth-resume";
 
 type InputMode = "otp" | "recovery";
 
@@ -133,7 +136,7 @@ export default function VerifyTwoFactorPage() {
           localStorage.setItem("user", JSON.stringify(result.data.user));
         }
 
-        const user = result.data.user as { username: string; role: string };
+        const user = result.data.user as User;
 
         // Check if user must change password - store in sessionStorage and redirect
         if (result.data.mustChangePassword) {
@@ -152,17 +155,7 @@ export default function VerifyTwoFactorPage() {
         });
 
         // Redirect based on role
-        switch (user.role) {
-          case "admin":
-            router.push("/admin/dashboard");
-            break;
-          case "instructor":
-          case "ta":
-            router.push("/home");
-            break;
-          default:
-            router.push("/");
-        }
+        router.push(consumePendingAuthReturnPath() || getDefaultRouteForRole(user.role));
       } else {
         setError(result.error || t("invalidCodeTryAgain"));
         if (inputMode === "otp") {
@@ -185,7 +178,7 @@ export default function VerifyTwoFactorPage() {
 
   const handleBackToLogin = () => {
     sessionStorage.removeItem("twoFactorData");
-    router.push("/login");
+    router.push(buildPreferredLoginHref(peekPendingAuthReturnPath()));
   };
 
   // Show loading spinner while checking session

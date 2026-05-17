@@ -50,6 +50,8 @@ export interface LogsFilter {
   log_type?: LogType;
   severity?: SeverityLevel;
   user_id?: number;
+  action_group?: 'permission_changes' | 'member_changes' | 'feedback_actions' | 'course_governance';
+  privileged_only?: boolean;
   start_date?: string;
   end_date?: string;
   search?: string;
@@ -71,6 +73,7 @@ export interface LogStats {
   uniqueIps: number;
   byType: Array<{ log_type: LogType; count: number }>;
   bySeverity: Array<{ severity: SeverityLevel; count: number }>;
+  byActionGroup: Array<{ key: 'permission_changes' | 'member_changes' | 'feedback_actions' | 'course_governance'; count: number }>;
   byStatusCode: Array<{ status_code: number; count: number }>;
 }
 
@@ -102,6 +105,8 @@ export const getLogs = async (filters: LogsFilter = {}) => {
   if (filters.log_type) params.append('log_type', filters.log_type);
   if (filters.severity) params.append('severity', filters.severity);
   if (filters.user_id) params.append('user_id', String(filters.user_id));
+  if (filters.action_group) params.append('action_group', filters.action_group);
+  if (filters.privileged_only) params.append('privileged_only', 'true');
   if (filters.start_date) params.append('start_date', filters.start_date);
   if (filters.end_date) params.append('end_date', filters.end_date);
   if (filters.search) params.append('search', filters.search);
@@ -129,10 +134,11 @@ export const getLogById = async (id: number) => {
 /**
  * Get log statistics
  */
-export const getLogStats = async (startDate?: string, endDate?: string) => {
+export const getLogStats = async (startDate?: string, endDate?: string, privilegedOnly?: boolean) => {
   const params = new URLSearchParams();
   if (startDate) params.append('start_date', startDate);
   if (endDate) params.append('end_date', endDate);
+  if (privilegedOnly) params.append('privileged_only', 'true');
   
   const queryString = params.toString();
   const url = queryString ? `/logs/stats?${queryString}` : '/logs/stats';
@@ -147,13 +153,15 @@ export const getLogsTimeline = async (
   startDate?: string,
   endDate?: string,
   interval: 'hour' | 'day' | 'week' = 'hour',
-  logType?: LogType
+  logType?: LogType,
+  privilegedOnly?: boolean
 ) => {
   const params = new URLSearchParams();
   if (startDate) params.append('start_date', startDate);
   if (endDate) params.append('end_date', endDate);
   params.append('interval', interval);
   if (logType) params.append('log_type', logType);
+  if (privilegedOnly) params.append('privileged_only', 'true');
   
   return api.get<TimelineData>(`/logs/timeline?${params.toString()}`);
 };
@@ -174,6 +182,8 @@ export const exportLogs = async (filters: LogsFilter = {}) => {
   if (filters.log_type) params.append('log_type', filters.log_type);
   if (filters.severity) params.append('severity', filters.severity);
   if (filters.user_id) params.append('user_id', String(filters.user_id));
+  if (filters.action_group) params.append('action_group', filters.action_group);
+  if (filters.privileged_only) params.append('privileged_only', 'true');
   if (filters.start_date) params.append('start_date', filters.start_date);
   if (filters.end_date) params.append('end_date', filters.end_date);
   if (filters.search) params.append('search', filters.search);
@@ -224,6 +234,15 @@ export const cleanupLogs = async (retentionDays: number = 90) => {
   return api.post<{ deletedCount: number; cutoffDate: string }>('/logs/cleanup', { 
     retention_days: retentionDays 
   });
+};
+
+export const isPrivilegedSystemLog = (log: SystemLog): boolean => {
+  return Boolean(log.detail && log.detail.privileged_action === true);
+};
+
+export const getSystemLogRiskLevel = (log: SystemLog): string | null => {
+  const value = log.detail?.risk_level;
+  return typeof value === 'string' ? value : null;
 };
 
 // Helper functions

@@ -89,24 +89,19 @@ export function useTableParams(options: UseTableParamsOptions = {}): UseTablePar
   const abortRef = useRef(new AbortController());
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Sync params to URL (replaceState so back button works predictably)
-  const syncToUrl = useCallback(
-    (next: TableParams) => {
-      const sp = new URLSearchParams();
-      Object.entries(next).forEach(([k, v]) => {
-        if (v !== "" && v !== undefined && v !== null) {
-          sp.set(k, String(v));
-        }
-      });
-      router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
-    },
-    [router, pathname]
-  );
-
   // Mark initial load done after first render
   useEffect(() => {
     setIsInitialLoading(false);
   }, []);
+
+  useEffect(() => {
+    const current = new URLSearchParams(searchParams.toString()).toString();
+    const next = buildQueryString(params);
+    if (current === next) {
+      return;
+    }
+    router.replace(`${pathname}?${next}`, { scroll: false });
+  }, [params, pathname, router, searchParams]);
 
   const updateParams = useCallback(
     (updates: Partial<TableParams>) => {
@@ -114,13 +109,9 @@ export function useTableParams(options: UseTableParamsOptions = {}): UseTablePar
       abortRef.current.abort();
       abortRef.current = new AbortController();
 
-      setParams((prev) => {
-        const next = { ...prev, ...updates } as TableParams;
-        syncToUrl(next);
-        return next;
-      });
+	  setParams((prev) => ({ ...prev, ...updates } as TableParams));
     },
-    [syncToUrl]
+	[]
   );
 
   const setSearch = useCallback(

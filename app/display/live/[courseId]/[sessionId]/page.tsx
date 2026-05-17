@@ -83,12 +83,21 @@ export default function DisplayLivePage() {
     } | null>(null);
     const [isPastLateThreshold, setIsPastLateThreshold] = useState(false);
     const [lateThresholdDisplay, setLateThresholdDisplay] = useState<string | null>(null);
+    const [pinCountdown, setPinCountdown] = useState<number | null>(null);
+    const [pinTotal, setPinTotal] = useState<number | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
 
     const socketRef = useRef<Socket | null>(null);
     const socketUrl = getRealtimeSocketBaseUrl();
 
     const session = current?.session ?? null;
+    const pinAvailabilityMessage = !session
+        ? ""
+        : session.status === "closed"
+            ? "PIN ถูกคืนเข้าระบบแล้ว"
+            : new Date() < new Date(session.start_time)
+                ? "PIN จะออกเมื่อเริ่มรอบเช็คชื่อ"
+                : "กำลังออกรหัสใหม่...";
 
     const stats = {
         total: records.length,
@@ -185,6 +194,42 @@ export default function DisplayLivePage() {
         fetchData();
     }, [fetchData]);
 
+    useEffect(() => {
+        if (isExpired) return;
+
+        const interval = window.setInterval(() => {
+            Promise.all([
+                attendanceDisplayService.getCurrent(),
+                attendanceDisplayService.getRecords(),
+            ])
+                .then(([currentData, recordsData]) => {
+                    if (
+                        currentData.attendance_session_id !== sessionId ||
+                        currentData.course_id !== courseId
+                    ) {
+                        handleAccessDenied("ลิงก์นี้ไม่ตรงกับสิทธิ์ของอุปกรณ์ที่ยืนยันไว้");
+                        return;
+                    }
+                    setCurrent(currentData);
+                    setRecords(recordsData);
+                })
+                .catch((error) => {
+                    const status = error instanceof AttendanceDisplayError ? error.status : 0;
+                    if (status === 401 || status === 403) {
+                        handleAccessDenied("อุปกรณ์นี้ยังไม่ได้รับสิทธิ์ กรุณายืนยันสิทธิ์บนอุปกรณ์นี้ก่อน");
+                        return;
+                    }
+                    if (status === 410) {
+                        handleGrantExpired();
+                        return;
+                    }
+                    console.error("Display live refresh failed:", error);
+                });
+        }, 15000);
+
+        return () => window.clearInterval(interval);
+    }, [courseId, handleAccessDenied, handleGrantExpired, isExpired, sessionId]);
+
     // Socket connection
     useEffect(() => {
         if (!current || !socketUrl || isExpired) return;
@@ -225,6 +270,23 @@ export default function DisplayLivePage() {
                     const record = data?.record;
                     if (!record) return;
                     setRecords((prev) => upsertRecord(prev, record));
+                });
+
+                activeSocket.on("attendance-pin-updated", (data?: { pin_code?: string; pin_issued_at?: string | null; pin_rotates_at?: string | null; status?: "draft" | "active" | "closed" }) => {
+                    setCurrent((prev) => prev
+                        ? {
+                            ...prev,
+                            session: prev.session
+                                ? {
+                                    ...prev.session,
+                                    pin_code: data?.pin_code ?? "",
+                                    pin_issued_at: data?.pin_issued_at ?? null,
+                                    pin_rotates_at: data?.pin_rotates_at ?? null,
+                                    status: data?.status ?? prev.session.status,
+                                }
+                                : prev.session,
+                        }
+                        : prev);
                 });
 
                 activeSocket.on("session-closed", () => {
@@ -327,6 +389,27 @@ export default function DisplayLivePage() {
         const interval = setInterval(tick, 1000);
         return () => clearInterval(interval);
     }, [session, current, handleGrantExpired]);
+
+    // PIN rotation countdown
+    useEffect(() => {
+        const rotatesAt = session?.pin_rotates_at;
+        if (!rotatesAt || session?.status !== "active") {
+            setPinCountdown(null);
+            setPinTotal(null);
+            return;
+        }
+        if (session?.pin_issued_at && rotatesAt) {
+            const total = Math.round((new Date(rotatesAt).getTime() - new Date(session.pin_issued_at).getTime()) / 1000);
+            setPinTotal(total > 0 ? total : null);
+        }
+        const tick = () => {
+            const diff = Math.floor((new Date(rotatesAt).getTime() - Date.now()) / 1000);
+            setPinCountdown(diff > 0 ? diff : 0);
+        };
+        tick();
+        const id = setInterval(tick, 1000);
+        return () => clearInterval(id);
+    }, [session?.pin_rotates_at, session?.pin_issued_at, session?.status]);
 
     const checkInUrl = typeof window !== "undefined"
         ? `${window.location.origin}/check-in/${sessionId}`
@@ -452,9 +535,38 @@ export default function DisplayLivePage() {
                         </CardHeader>
                         <CardBody className="text-center pt-2">
                             <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">PIN CODE</p>
-                            <div className="text-5xl font-bold text-blue-500 tracking-[0.2em] mb-6">
-                                {session.pin_code}
-                            </div>
+                            {session.pin_code ? (
+                                <div className="text-5xl font-bold text-blue-500 tracking-[0.2em] mb-3">
+                                    {session.pin_code}
+                                </div>
+                            ) : (
+                                <div className="mb-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">
+                                    {pinAvailabilityMessage}
+                                </div>
+                            )}
+                            {/* PIN rotation progress bar */}
+                            {session.status === "active" && pinCountdown !== null && pinTotal !== null ? (
+                                <div className="mb-6 w-full">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <span className="text-xs text-slate-400">PIN เปลี่ยนทุก 1 นาที</span>
+                                        <span className={`text-xs font-mono font-semibold tabular-nums ${
+                                            pinCountdown <= 10 ? "text-red-500" :
+                                            pinCountdown <= 20 ? "text-amber-500" : "text-blue-400"
+                                        }`}>{pinCountdown}s</span>
+                                    </div>
+                                    <div className="relative h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                                        <div
+                                            className={`h-full rounded-full transition-[width] duration-1000 ease-linear ${
+                                                pinCountdown <= 10 ? "bg-red-500" :
+                                                pinCountdown <= 20 ? "bg-amber-400" : "bg-blue-500"
+                                            }`}
+                                            style={{ width: `${Math.max(0, (pinCountdown / pinTotal) * 100)}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="mb-6 text-xs text-slate-400">PIN เปลี่ยนทุก 1 นาที</p>
+                            )}
 
                             <p className="text-xs text-slate-400 uppercase tracking-wider mb-3">QR CODE</p>
                             <div className="flex justify-center p-4 bg-white rounded-xl border-2 border-slate-200 mb-4">

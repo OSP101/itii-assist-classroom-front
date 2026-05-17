@@ -33,8 +33,10 @@ interface CountResponse {
 }
 
 const userNotificationService = {
-    async getNotifications(limit = 20, offset = 0): Promise<{ items: UserNotificationItem[]; total: number }> {
-        const response = await api.get<ListResponse>(`/notifications?limit=${limit}&offset=${offset}`) as unknown as ListResponse;
+    async getNotifications(limit = 20, offset = 0, courseId?: string): Promise<{ items: UserNotificationItem[]; total: number }> {
+        let url = `/notifications?limit=${limit}&offset=${offset}`;
+        if (courseId) url += `&course_id=${encodeURIComponent(courseId)}`;
+        const response = await api.get<ListResponse>(url) as unknown as ListResponse;
         return {
             items: response.data ?? [],
             total: response.meta?.total ?? 0,

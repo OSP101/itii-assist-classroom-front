@@ -49,6 +49,7 @@ import {
     getStatusDisplay,
 } from "../config";
 import { type AttendanceSession, type TimeChangePreview, type TimeChangeRecord, type SectionChangePreview } from "@/services/attendance.service";
+import DisplayScannerModal from "./DisplayScannerModal";
 
 // Lazy load LocationPicker
 const LocationPicker = lazy(() => import("@/components/map/LocationPicker"));
@@ -450,7 +451,7 @@ export const QRPreviewModal = memo(function QRPreviewModal({
             ctx?.drawImage(img, 0, 0);
             const pngFile = canvas.toDataURL("image/png");
             const downloadLink = document.createElement("a");
-            downloadLink.download = `${isEnglish ? "attendance" : "check-in"}-${session.title}-${session.pin_code}.png`;
+            downloadLink.download = `${isEnglish ? "attendance" : "check-in"}-${session.title}-${session.pin_code || "rotating-pin"}.png`;
             downloadLink.href = pngFile;
             downloadLink.click();
         };
@@ -493,18 +494,24 @@ export const QRPreviewModal = memo(function QRPreviewModal({
                     {/* PIN Code */}
                     <div className="text-center mb-3">
                         <p className="mb-2 text-xs uppercase tracking-wider text-default-400">PIN CODE</p>
-                        <div
-                            className="inline-block px-8 py-4 bg-linear-to-r from-blue-500 to-indigo-500 rounded-2xl cursor-pointer hover:from-blue-600 hover:to-indigo-600 transition-colors"
-                            onClick={copyPIN}
-                        >
-                            <div className="flex gap-4 px-5">
-                                {session.pin_code.split('').map((digit, index) => (
-                                    <span key={index} className="text-4xl font-bold text-white font-mono">
-                                        {digit}
-                                    </span>
-                                ))}
+                        {session.pin_code ? (
+                            <div
+                                className="inline-block px-8 py-4 bg-linear-to-r from-blue-500 to-indigo-500 rounded-2xl cursor-pointer hover:from-blue-600 hover:to-indigo-600 transition-colors"
+                                onClick={copyPIN}
+                            >
+                                <div className="flex gap-4 px-5">
+                                    {session.pin_code.split("").map((digit, index) => (
+                                        <span key={index} className="text-4xl font-bold text-white font-mono">
+                                            {digit}
+                                        </span>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        ) : (
+                            <div className="inline-block rounded-2xl border border-dashed border-default-300 bg-content2 px-6 py-5 text-sm text-default-500">
+                                {isEnglish ? "PIN will appear when check-in opens and rotate every minute." : "PIN จะปรากฏเมื่อเริ่มรอบเช็คชื่อ และจะเปลี่ยนทุก 1 นาที"}
+                            </div>
+                        )}
                     </div>
 
                     {/* URL */}
@@ -559,6 +566,7 @@ interface SessionRowActionsProps {
     onDelete: (session: AttendanceSession) => void;
     onClose: (session: AttendanceSession) => void;
     onShowQR?: (session: SessionWithComputedStatus) => void;
+    onScanProjector?: (session: SessionWithComputedStatus) => void;
     canUpdateAttendanceSessions?: boolean;
     canDeleteAttendanceSessions?: boolean;
 }
@@ -572,6 +580,7 @@ const SessionRowActions = memo(function SessionRowActions({
     onDelete,
     onClose,
     onShowQR,
+    onScanProjector,
     canUpdateAttendanceSessions = false,
     canDeleteAttendanceSessions = false,
 }: SessionRowActionsProps) {
@@ -590,6 +599,17 @@ const SessionRowActions = memo(function SessionRowActions({
                         onPress={() => onShowQR?.(session)}
                     >
                         <Icon icon="solar:qr-code-bold" className="text-lg" />
+                    </Button>
+                </Tooltip>
+                <Tooltip content={isEnglish ? "Connect projector display" : "เชื่อมต่อหน้าจอฉาย"}>
+                    <Button
+                        isIconOnly
+                        size="sm"
+                        variant="light"
+                        color="primary"
+                        onPress={() => onScanProjector?.(session)}
+                    >
+                        <Icon icon="solar:camera-minimalistic-bold-duotone" className="text-lg" />
                     </Button>
                 </Tooltip>
                 {canUpdateAttendanceSessions && (
@@ -649,6 +669,17 @@ const SessionRowActions = memo(function SessionRowActions({
                     >
                         <Icon icon="solar:eye-bold" className="text-lg text-blue-600" />
                     </Link>
+                </Tooltip>
+                <Tooltip content={isEnglish ? "Connect projector display" : "เชื่อมต่อหน้าจอฉาย"}>
+                    <Button
+                        isIconOnly
+                        size="sm"
+                        variant="light"
+                        color="primary"
+                        onPress={() => onScanProjector?.(session)}
+                    >
+                        <Icon icon="solar:camera-minimalistic-bold-duotone" className="text-lg" />
+                    </Button>
                 </Tooltip>
                 <Tooltip content={isEnglish ? "View summary" : "ดูสรุป"}>
                     <Link
@@ -767,6 +798,9 @@ export const SessionsTable = memo(function SessionsTable({
 
     // QR Preview Modal State
     const [qrPreviewSession, setQRPreviewSession] = useState<SessionWithComputedStatus | null>(null);
+
+    // Display Scanner Modal State
+    const [scanProjectorSession, setScanProjectorSession] = useState<SessionWithComputedStatus | null>(null);
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -937,6 +971,7 @@ export const SessionsTable = memo(function SessionsTable({
                                                     onDelete={onDelete}
                                                     onClose={onClose}
                                                     onShowQR={setQRPreviewSession}
+                                                    onScanProjector={setScanProjectorSession}
                                                     canUpdateAttendanceSessions={canUpdateAttendanceSessions}
                                                     canDeleteAttendanceSessions={canDeleteAttendanceSessions}
                                                 />
@@ -969,6 +1004,13 @@ export const SessionsTable = memo(function SessionsTable({
                 isOpen={!!qrPreviewSession}
                 onClose={() => setQRPreviewSession(null)}
                 session={qrPreviewSession}
+            />
+
+            {/* Display Scanner Modal */}
+            <DisplayScannerModal
+                isOpen={!!scanProjectorSession}
+                onClose={() => setScanProjectorSession(null)}
+                session={scanProjectorSession}
             />
         </>
     );

@@ -29,7 +29,7 @@ import { Icon } from "@iconify/react";
 import { useRouter } from "next/navigation";
 import { courseService } from "@/services/course.service";
 import { useSocket } from "@/contexts/SocketContext";
-import type { Course, CreateCourseDto, UpdateCourseDto, CourseStats, Instructor } from "@/services/course.service";
+import type { Course, CreateCourseDto, UpdateCourseDto, CourseStats, Instructor, CourseActivationConflict } from "@/services/course.service";
 import { useTableParams } from "@/lib/table/use-table-params";
 import TablePaginationFooter, { DEFAULT_TABLE_ROWS_PER_PAGE } from "@/components/ui/table-pagination-footer";
 import { MetricCardSkeleton, TableRowsSkeleton } from "@/components/ui/resource-loading";
@@ -117,9 +117,17 @@ export default function CoursesPage() {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isToggleStatusModalOpen, setIsToggleStatusModalOpen] = useState(false);
     const [isDuplicateWarningModalOpen, setIsDuplicateWarningModalOpen] = useState(false);
+    const [isConflictCenterOpen, setIsConflictCenterOpen] = useState(false);
+    const [isConflictsLoading, setIsConflictsLoading] = useState(false);
+    const [conflictSearch, setConflictSearch] = useState("");
+    const [conflicts, setConflicts] = useState<CourseActivationConflict[]>([]);
+    const [conflictsTotal, setConflictsTotal] = useState(0);
     const [duplicateCourse, setDuplicateCourse] = useState<Course | null>(null);
     const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+    const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
+    const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
 
     // Form data
     const [formData, setFormData] = useState<CreateCourseDto>({
@@ -227,6 +235,31 @@ export default function CoursesPage() {
             console.error("Error fetching instructors:", error);
         }
     };
+
+    const fetchConflicts = useCallback(async (searchTerm?: string) => {
+        setIsConflictsLoading(true);
+        try {
+            const response = await courseService.getConflicts({
+                search: searchTerm?.trim() || undefined,
+                limit: 100,
+            });
+            if (response.success && response.data) {
+                setConflicts(response.data.items || []);
+                setConflictsTotal(response.data.total || 0);
+            }
+        } catch (error) {
+            console.error("Error fetching course conflicts:", error);
+            addToast({
+                title: t("somethingWentWrong"),
+                description: t("cannotLoadCourseConflicts"),
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } finally {
+            setIsConflictsLoading(false);
+        }
+    }, [t]);
 
     useEffect(() => {
         fetchCourses();
@@ -607,6 +640,59 @@ export default function CoursesPage() {
         }
     };
 
+    const handleBulkToggle = async (action: 'enable' | 'disable') => {
+        const ids = Array.from(selectedKeys);
+        if (ids.length === 0) return;
+        setIsBulkSubmitting(true);
+        try {
+            const response = await courseService.bulkToggle(ids, action);
+            if (response.success) {
+                addToast({
+                    title: t('success'),
+                    description: action === 'enable'
+                        ? t('bulkEnableSuccess', { count: response.data?.toggled ?? ids.length })
+                        : t('bulkDisableSuccess', { count: response.data?.toggled ?? ids.length }),
+                    color: 'success',
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+                });
+                setSelectedKeys(new Set());
+                fetchCourses();
+                fetchStats();
+            }
+        } catch {
+            addToast({ title: t('somethingWentWrong'), color: 'danger', timeout: 3000, shouldShowTimeoutProgress: true });
+        } finally {
+            setIsBulkSubmitting(false);
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        const ids = Array.from(selectedKeys);
+        if (ids.length === 0) return;
+        setIsBulkSubmitting(true);
+        try {
+            const response = await courseService.bulkDelete(ids);
+            if (response.success) {
+                addToast({
+                    title: t('success'),
+                    description: t('bulkDeleteSuccess', { count: response.data?.deleted ?? ids.length }),
+                    color: 'success',
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+                });
+                setSelectedKeys(new Set());
+                setIsBulkDeleteModalOpen(false);
+                fetchCourses();
+                fetchStats();
+            }
+        } catch {
+            addToast({ title: t('somethingWentWrong'), color: 'danger', timeout: 3000, shouldShowTimeoutProgress: true });
+        } finally {
+            setIsBulkSubmitting(false);
+        }
+    };
+
     // Navigate to course detail (opens in new tab with classroom layout)
     const handleViewCourse = (course: Course) => {
         window.open(`/classroom/${course.id}`, "_blank");
@@ -751,7 +837,7 @@ export default function CoursesPage() {
                                 />
                             </Button>
                         </Tooltip>
-                        {/* <Tooltip content={t("deleteCourse")} color="danger">
+                        <Tooltip content={t("deleteCourse")} color="danger">
                             <Button
                                 isIconOnly
                                 size="sm"
@@ -761,7 +847,7 @@ export default function CoursesPage() {
                             >
                                 <Icon icon="solar:trash-bin-trash-linear" className="text-lg" />
                             </Button>
-                        </Tooltip> */}
+                        </Tooltip>
                     </div>
                 );
             default:
@@ -946,6 +1032,54 @@ export default function CoursesPage() {
                         </div>
                     </div>
 
+                    {/* Bulk Action Toolbar */}
+                    {selectedKeys.size > 0 && (
+                        <div className="mb-3 flex items-center gap-2 rounded-xl border border-primary-200 bg-primary-50 dark:bg-primary-950/20 p-2.5">
+                            <Chip size="sm" color="primary" variant="flat">
+                                {t('selectedCount', { count: selectedKeys.size })}
+                            </Chip>
+                            <div className="flex items-center gap-1.5 ml-2">
+                                <Button
+                                    size="sm"
+                                    variant="flat"
+                                    color="success"
+                                    startContent={<Icon icon="solar:check-circle-bold" className="text-base" />}
+                                    isLoading={isBulkSubmitting}
+                                    onPress={() => handleBulkToggle('enable')}
+                                >
+                                    {t('enableAction')}
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="flat"
+                                    color="warning"
+                                    startContent={<Icon icon="solar:eye-closed-bold" className="text-base" />}
+                                    isLoading={isBulkSubmitting}
+                                    onPress={() => handleBulkToggle('disable')}
+                                >
+                                    {t('disableAction')}
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="flat"
+                                    color="danger"
+                                    startContent={<Icon icon="solar:trash-bin-trash-bold" className="text-base" />}
+                                    isLoading={isBulkSubmitting}
+                                    onPress={() => setIsBulkDeleteModalOpen(true)}
+                                >
+                                    {t('deleteAction')}
+                                </Button>
+                            </div>
+                            <Button
+                                size="sm"
+                                variant="light"
+                                className="ml-auto"
+                                onPress={() => setSelectedKeys(new Set())}
+                            >
+                                {t('clearSelection')}
+                            </Button>
+                        </div>
+                    )}
 
                     {/* Table with horizontal scroll */}
                     <div className="overflow-x-auto -mx-3 sm:-mx-4 px-3 sm:px-4">
@@ -953,6 +1087,15 @@ export default function CoursesPage() {
                             <Table
                                 aria-label={t("coursesTable")}
                                 removeWrapper
+                                selectionMode="multiple"
+                                selectedKeys={selectedKeys}
+                                onSelectionChange={(keys) => {
+                                    if (keys === 'all') {
+                                        setSelectedKeys(new Set(courses.map(c => c.id)));
+                                    } else {
+                                        setSelectedKeys(new Set(Array.from(keys as Set<string>)));
+                                    }
+                                }}
                                 classNames={{
                                     th: "bg-content2 text-default-600 font-semibold text-xs sm:text-sm",
                                     td: "py-2 sm:py-3 text-sm",
@@ -1561,6 +1704,37 @@ export default function CoursesPage() {
                 </ModalContent>
             </Modal>
 
+            {/* Bulk Delete Modal */}
+            <Modal isOpen={isBulkDeleteModalOpen} onClose={() => setIsBulkDeleteModalOpen(false)} size="md">
+                <ModalContent>
+                    <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-danger rounded-xl">
+                                <Icon icon="solar:trash-bin-trash-bold" className="text-2xl text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-foreground">{t('bulkDeleteConfirmTitle')}</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">{t('irreversibleAction')}</p>
+                            </div>
+                        </div>
+                    </ModalHeader>
+                    <ModalBody className="px-6 py-6">
+                        <div className="rounded-xl border border-danger-100 bg-danger-50/70 p-4 dark:border-danger/20 dark:bg-danger/10">
+                            <p className="text-foreground">{t('bulkDeleteConfirmDescription', { count: selectedKeys.size })}</p>
+                            <p className="mt-2 text-sm text-default-500">{t('deleteCourseRelatedDataWarning')}</p>
+                        </div>
+                    </ModalBody>
+                    <ModalFooter className="border-t border-divider px-6 py-4">
+                        <Button variant="light" onPress={() => setIsBulkDeleteModalOpen(false)} className="font-medium px-6">
+                            {t('cancel')}
+                        </Button>
+                        <Button color="danger" onPress={handleBulkDelete} isLoading={isBulkSubmitting} className="font-medium px-6">
+                            {t('deleteAction')}
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
             {/* Toggle Status Modal */}
             <Modal 
                 isOpen={isToggleStatusModalOpen} 
@@ -1680,6 +1854,92 @@ export default function CoursesPage() {
                             className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                         >
                             {t("acknowledged")}
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
+            {/* Conflict Center Modal */}
+            <Modal
+                isOpen={isConflictCenterOpen}
+                onClose={() => setIsConflictCenterOpen(false)}
+                size="4xl"
+                scrollBehavior="inside"
+            >
+                <ModalContent>
+                    <ModalHeader className="flex items-center justify-between gap-4 px-6 pt-6 pb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 rounded-xl bg-amber-100 text-amber-700">
+                                <Icon icon="solar:shield-warning-bold" className="text-2xl" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-foreground">{t("conflictCenter")}</h3>
+                                <p className="mt-1 text-sm text-default-500">
+                                    {t("conflictCenterDescription")}
+                                </p>
+                            </div>
+                        </div>
+                        <Chip size="sm" color={conflictsTotal > 0 ? "warning" : "success"} variant="flat">
+                            {t("totalConflictsCount", { count: conflictsTotal })}
+                        </Chip>
+                    </ModalHeader>
+                    <ModalBody className="px-6 py-4">
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <Input
+                                aria-label={t("searchConflicts")}
+                                placeholder={t("searchConflicts")}
+                                value={conflictSearch}
+                                onValueChange={setConflictSearch}
+                                startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
+                                className="flex-1"
+                            />
+                            <Button
+                                color="primary"
+                                onPress={() => fetchConflicts(conflictSearch)}
+                                isLoading={isConflictsLoading}
+                                className="bg-linear-to-r from-blue-400 to-indigo-500"
+                            >
+                                {t("refresh")}
+                            </Button>
+                        </div>
+
+                        <div className="mt-4 space-y-3">
+                            {!isConflictsLoading && conflicts.length === 0 ? (
+                                <div className="rounded-xl border border-default-200 bg-content2 p-6 text-center">
+                                    <Icon icon="solar:shield-check-bold" className="mx-auto mb-2 text-4xl text-success" />
+                                    <p className="font-medium text-foreground">{t("noCourseConflictsFound")}</p>
+                                    <p className="mt-1 text-sm text-default-500">{t("noCourseConflictsDescription")}</p>
+                                </div>
+                            ) : (
+                                conflicts.map((conflict) => (
+                                    <div key={`${conflict.inactive_course_id}-${conflict.active_course_id}`} className="rounded-xl border border-warning-200 bg-warning-50/50 p-4 dark:border-warning/20 dark:bg-warning/10">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div>
+                                                <p className="font-semibold text-foreground">
+                                                    {conflict.course_code} • {t("duplicateCourseSummary", {
+                                                        year: conflict.year,
+                                                        semester: getSemesterLabel(conflict.semester),
+                                                    })}
+                                                </p>
+                                                <p className="mt-1 text-sm text-default-600">
+                                                    {t("activeCourseLabel")}: {conflict.active_course_name}
+                                                </p>
+                                                <p className="text-sm text-default-600">
+                                                    {t("inactiveCourseLabel")}: {conflict.inactive_course_name}
+                                                </p>
+                                            </div>
+                                            <Chip size="sm" color="warning" variant="flat">
+                                                {t("duplicateActiveCourseFound")}
+                                            </Chip>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </ModalBody>
+                    <ModalFooter className="border-t border-divider px-6 py-4">
+                        <Button variant="light" color="default" onPress={() => setIsConflictCenterOpen(false)}>
+                            {t("close")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>

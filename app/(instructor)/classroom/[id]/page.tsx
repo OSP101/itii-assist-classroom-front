@@ -1481,7 +1481,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                     )}
 
                                     {activeTab === "activity-log" && userRole === "instructor" && (
-                                        <ActivityLogTab courseId={courseId} />
+                                        <ActivityLogTab courseId={courseId} courseCode={course.code} />
                                     )}
 
                                     {activeTab === "ta-stats" && userRole === "instructor" && (

@@ -31,6 +31,8 @@ import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { instructorPrimaryButtonClass } from "@/components/ui/instructor-button-styles";
 import queueService, {
+    ClassroomConflictError,
+    type ClassroomConflictInfo,
     type QueueSession,
     type CreateQueueSessionData,
 } from "@/services/queue.service";
@@ -198,6 +200,8 @@ export default function QueueTab({
     const [startTarget, setStartTarget] = useState<QueueSession | null>(null);
     const [pauseTarget, setPauseTarget] = useState<QueueSession | null>(null);
     const [pauseAction, setPauseAction] = useState<'paused' | 'active'>('paused');
+    const [classroomConflict, setClassroomConflict] = useState<ClassroomConflictInfo | null>(null);
+    const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Options for selects
@@ -654,13 +658,19 @@ export default function QueueTab({
             emitDataUpdate("queue" as any, "update", startTarget.id, { courseId: course.id });
         } catch (error: unknown) {
             console.error("Error starting queue:", error);
-            addToast({
-                title: localize("เกิดข้อผิดพลาด", "Error"),
-                description: getErrorDescription(error, "ไม่สามารถเริ่มการจองคิวได้", "Unable to start the queue"),
-                color: "danger",
-                timeout: 3000,
-                shouldShowTimeoutProgress: true,
-            });
+            if (error instanceof ClassroomConflictError) {
+                setClassroomConflict(error.conflict);
+                setIsConflictModalOpen(true);
+                setIsStartModalOpen(false);
+            } else {
+                addToast({
+                    title: localize("เกิดข้อผิดพลาด", "Error"),
+                    description: getErrorDescription(error, "ไม่สามารถเริ่มการจองคิวได้", "Unable to start the queue"),
+                    color: "danger",
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+                });
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -692,13 +702,19 @@ export default function QueueTab({
             emitDataUpdate("queue" as any, "update", pauseTarget.id, { courseId: course.id });
         } catch (error: unknown) {
             console.error("Error changing status:", error);
-            addToast({
-                title: localize("เกิดข้อผิดพลาด", "Error"),
-                description: getErrorDescription(error, "ไม่สามารถเปลี่ยนสถานะได้", "Unable to change the queue status"),
-                color: "danger",
-                timeout: 3000,
-                shouldShowTimeoutProgress: true,
-            });
+            if (error instanceof ClassroomConflictError) {
+                setClassroomConflict(error.conflict);
+                setIsConflictModalOpen(true);
+                setIsPauseModalOpen(false);
+            } else {
+                addToast({
+                    title: localize("เกิดข้อผิดพลาด", "Error"),
+                    description: getErrorDescription(error, "ไม่สามารถเปลี่ยนสถานะได้", "Unable to change the queue status"),
+                    color: "danger",
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+                });
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -1958,6 +1974,56 @@ export default function QueueTab({
                             className={instructorPrimaryButtonClass()}
                         >
                             {pauseAction === 'paused' ? localize('หยุดรับคิว', 'Pause queue') : localize('เปิดรับคิว', 'Resume queue')}
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
+            {/* Classroom Conflict Modal */}
+            <Modal isOpen={isConflictModalOpen} onClose={() => setIsConflictModalOpen(false)}>
+                <ModalContent>
+                    <ModalHeader className="flex items-center gap-2">
+                        <div className="p-2 bg-linear-to-br from-orange-400 to-red-500 rounded-lg shadow-lg shadow-red-500/30">
+                            <Icon icon="solar:lock-keyhole-bold" className="text-xl text-white" />
+                        </div>
+                        <span>{localize("ห้องเรียนถูกใช้งานอยู่", "Classroom In Use")}</span>
+                    </ModalHeader>
+                    <ModalBody>
+                        <div className="space-y-3">
+                            <p className="text-default-700">
+                                {localize("ห้องเรียนนี้กำลังถูกใช้งานโดย", "This classroom is currently in use by")}
+                                {" "}<span className="font-semibold">{classroomConflict?.course_name}</span>
+                            </p>
+                            {classroomConflict && (
+                                <div className="rounded-lg bg-danger-50 dark:bg-danger-900/20 p-3 border border-danger-200 dark:border-danger-800">
+                                    <div className="flex items-start gap-2">
+                                        <Icon icon="solar:play-circle-bold" className="text-danger-500 text-lg mt-0.5 shrink-0" />
+                                        <div className="text-sm text-danger-700 dark:text-danger-300 space-y-0.5">
+                                            <p><span className="font-medium">{localize("คิว", "Session")}:</span> {classroomConflict.session_title}</p>
+                                            <p><span className="font-medium">{localize("วิชา", "Course")}:</span> {classroomConflict.course_name}</p>
+                                            {classroomConflict.started_at && (
+                                                <p><span className="font-medium">{localize("เริ่มเมื่อ", "Started")}:</span> {formatDateTime(classroomConflict.started_at, locale)}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            <div className="rounded-lg bg-warning-50 dark:bg-warning-900/20 p-3 border border-warning-200 dark:border-warning-800">
+                                <div className="flex items-start gap-2">
+                                    <Icon icon="solar:info-circle-bold" className="text-warning-600 text-lg mt-0.5 shrink-0" />
+                                    <p className="text-sm text-warning-700 dark:text-warning-300">
+                                        {localize(
+                                            "กรุณาติดต่อแอดมินทาง Facebook หรือ LINE เพื่อขอให้ปิดคิวที่ค้างอยู่",
+                                            "Please contact an admin via Facebook or LINE to close the stale session."
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button color="primary" onPress={() => setIsConflictModalOpen(false)} className={instructorPrimaryButtonClass()}>
+                            {localize("ตกลง", "OK")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>

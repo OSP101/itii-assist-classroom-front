@@ -9,6 +9,11 @@ interface Desk {
     type: "computer" | "normal" | "teacher";
     isEnabled: boolean;
     number: number;
+    hostname: string;
+    ipAddress: string;
+    brand: string;
+    os: string;
+    notes: string;
 }
 
 interface Zone {

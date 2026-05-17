@@ -33,11 +33,13 @@ import {
   getLogStats,
   exportLogs,
   getLogById,
+  getSystemLogRiskLevel,
   getLogTypeBadgeColor,
   getSeverityBadgeColor,
   getLogTypeLabel,
   getSeverityLabel,
   getStatusCodeColor,
+  isPrivilegedSystemLog,
   formatBytes,
   type SystemLog,
   type LogType,
@@ -86,6 +88,112 @@ const timeRangeOptions = [
   { key: "custom", label: "กำหนดเอง" },
 ];
 
+const actionGroupOptions = [
+  { key: "all", label: "ทุก action" },
+  { key: "permission_changes", label: "Permission changes" },
+  { key: "member_changes", label: "Member changes" },
+  { key: "feedback_actions", label: "Feedback actions" },
+  { key: "course_governance", label: "Course governance" },
+];
+
+const privilegedAuditMetaKeys = new Set([
+  "audit_scope",
+  "privileged_action",
+  "risk_level",
+  "target_type",
+  "target_snapshot",
+  "filters",
+  "course_ids",
+  "applied_action",
+  "toggled_count",
+  "skipped_count",
+  "deleted_count",
+  "row_count",
+]);
+
+const isObjectRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+};
+
+const getPrivilegedDetailRecord = (log: SystemLog): Record<string, unknown> | null => {
+  if (!isPrivilegedSystemLog(log) || !isObjectRecord(log.detail)) {
+    return null;
+  }
+  return log.detail;
+};
+
+const getPrivilegedDetailSnapshot = (log: SystemLog): Record<string, unknown> | null => {
+  const detail = getPrivilegedDetailRecord(log);
+  if (!detail || !isObjectRecord(detail.target_snapshot)) {
+    return null;
+  }
+  return detail.target_snapshot;
+};
+
+const getPrivilegedDetailFilters = (log: SystemLog): Record<string, unknown> | null => {
+  const detail = getPrivilegedDetailRecord(log);
+  if (!detail || !isObjectRecord(detail.filters)) {
+    return null;
+  }
+  return detail.filters;
+};
+
+const getPrivilegedImpactedIds = (log: SystemLog): string[] => {
+  const detail = getPrivilegedDetailRecord(log);
+  if (!detail || !Array.isArray(detail.course_ids)) {
+    return [];
+  }
+  return detail.course_ids.filter((value): value is string => typeof value === "string" && value.length > 0);
+};
+
+const getPrivilegedExtraDetail = (log: SystemLog): Record<string, unknown> | null => {
+  if (!isObjectRecord(log.detail)) {
+    return log.detail && Object.keys(log.detail).length > 0 ? log.detail : null;
+  }
+
+  const entries = Object.entries(log.detail).filter(([key]) => !privilegedAuditMetaKeys.has(key));
+  if (entries.length === 0) {
+    return null;
+  }
+
+  return Object.fromEntries(entries);
+};
+
+const formatDetailLabel = (key: string): string => {
+  return key
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const formatDetailValue = (value: unknown): string => {
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+  if (typeof value === "number") {
+    return value.toLocaleString();
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  return JSON.stringify(value);
+};
+
+const getRiskChipColor = (riskLevel: string | null): "default" | "primary" | "warning" | "danger" => {
+  switch (riskLevel) {
+    case "critical":
+      return "danger";
+    case "warn":
+      return "warning";
+    case "info":
+      return "primary";
+    default:
+      return "default";
+  }
+};
+
 export default function SystemLogsPage() {
   const [logs, setLogs] = useState<SystemLog[]>([]);
   const [stats, setStats] = useState<LogStats | null>(null);
@@ -116,6 +224,8 @@ export default function SystemLogsPage() {
   const search = String(params.search ?? "");
   const logTypeFilter = String(params.logType ?? "all");
   const severityFilter = String(params.severity ?? "all");
+  const actionGroupFilter = String(params.actionGroup ?? "all");
+  const privilegedOnly = String(params.privilegedOnly ?? "false") === "true";
   const timeRange = String(params.timeRange ?? "24h");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
@@ -175,6 +285,8 @@ export default function SystemLogsPage() {
         search: search || undefined,
         log_type: logTypeFilter !== "all" ? (logTypeFilter as LogType) : undefined,
         severity: severityFilter !== "all" ? (severityFilter as SeverityLevel) : undefined,
+        action_group: actionGroupFilter !== "all" ? (actionGroupFilter as LogsFilter["action_group"]) : undefined,
+        privileged_only: privilegedOnly,
         start_date: dateRange.startDate,
         end_date: dateRange.endDate,
         sort_by: sortBy,
@@ -199,14 +311,14 @@ export default function SystemLogsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, limit, search, logTypeFilter, severityFilter, sortBy, sortOrder, getDateRange]);
+  }, [page, limit, search, logTypeFilter, severityFilter, actionGroupFilter, privilegedOnly, sortBy, sortOrder, getDateRange]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
     setIsStatsLoading(true);
     try {
       const dateRange = getDateRange();
-      const response = await getLogStats(dateRange.startDate, dateRange.endDate);
+      const response = await getLogStats(dateRange.startDate, dateRange.endDate, privilegedOnly);
       if (response.success && response.data) {
         setStats(response.data);
       }
@@ -215,7 +327,7 @@ export default function SystemLogsPage() {
     } finally {
       setIsStatsLoading(false);
     }
-  }, [getDateRange]);
+  }, [getDateRange, privilegedOnly]);
 
   // Initial load
   useEffect(() => {
@@ -252,6 +364,8 @@ export default function SystemLogsPage() {
       await exportLogs({
         log_type: logTypeFilter !== "all" ? (logTypeFilter as LogType) : undefined,
         severity: severityFilter !== "all" ? (severityFilter as SeverityLevel) : undefined,
+        action_group: actionGroupFilter !== "all" ? (actionGroupFilter as LogsFilter["action_group"]) : undefined,
+        privileged_only: privilegedOnly,
         start_date: dateRange.startDate,
         end_date: dateRange.endDate,
         search: search || undefined,
@@ -305,6 +419,17 @@ export default function SystemLogsPage() {
     return stats?.byType.find((t) => t.log_type === type)?.count || 0;
   };
 
+  const getActionGroupCount = (group: "permission_changes" | "member_changes" | "feedback_actions" | "course_governance") => {
+    return stats?.byActionGroup?.find((item) => item.key === group)?.count || 0;
+  };
+
+  const selectedPrivilegedDetail = selectedLog ? getPrivilegedDetailRecord(selectedLog) : null;
+  const selectedPrivilegedSnapshot = selectedLog ? getPrivilegedDetailSnapshot(selectedLog) : null;
+  const selectedPrivilegedFilters = selectedLog ? getPrivilegedDetailFilters(selectedLog) : null;
+  const selectedPrivilegedIds = selectedLog ? getPrivilegedImpactedIds(selectedLog) : [];
+  const selectedExtraDetail = selectedLog ? getPrivilegedExtraDetail(selectedLog) : null;
+  const selectedRiskLevel = selectedLog ? getSystemLogRiskLevel(selectedLog) : null;
+
   // Render cell
   const renderCell = (log: SystemLog, columnKey: string) => {
     switch (columnKey) {
@@ -340,6 +465,18 @@ export default function SystemLogsPage() {
             <span className="text-sm font-mono truncate block" title={log.action}>
               {log.action}
             </span>
+            {isPrivilegedSystemLog(log) && (
+              <div className="mt-1 flex items-center gap-2">
+                <Chip size="sm" color="warning" variant="flat">
+                  Privileged
+                </Chip>
+                {getSystemLogRiskLevel(log) && (
+                  <span className="text-[11px] uppercase tracking-wide text-warning-700">
+                    {getSystemLogRiskLevel(log)}
+                  </span>
+                )}
+              </div>
+            )}
             {log.url && (
               <span className="text-xs text-default-400 truncate block" title={log.url}>
                 {log.url}
@@ -414,7 +551,7 @@ export default function SystemLogsPage() {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold">System Logs</h1>
           <p className="text-sm text-default-500">
-            บันทึกการใช้งานระบบ
+            บันทึกการใช้งานระบบและ privileged admin actions
           </p>
         </div>
         <div className="flex gap-2">
@@ -449,61 +586,102 @@ export default function SystemLogsPage() {
 
       {/* Stats Cards */}
       {stats ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
-          <div className="rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:p-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
-                <Icon icon="solar:list-bold" className="text-xl sm:text-2xl text-blue-600" />
+        <div className="space-y-2 sm:space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
+            <div className="rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
+                  <Icon icon="solar:list-bold" className="text-xl sm:text-2xl text-blue-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-default-500">ทั้งหมด</p>
+                  <p className="text-lg sm:text-2xl font-bold text-foreground">{stats.total.toLocaleString()}</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm text-default-500">ทั้งหมด</p>
-                <p className="text-lg sm:text-2xl font-bold text-foreground">{stats.total.toLocaleString()}</p>
+            </div>
+            <div className="rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-cyan-100 rounded-lg">
+                  <Icon icon="solar:login-2-bold" className="text-xl sm:text-2xl text-cyan-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-default-500">การเข้าถึง</p>
+                  <p className="text-lg sm:text-2xl font-bold text-foreground">{getLogTypeCount("access").toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-red-100 rounded-lg">
+                  <Icon icon="solar:bug-bold" className="text-xl sm:text-2xl text-red-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-default-500">ผิดพลาด</p>
+                  <p className="text-lg sm:text-2xl font-bold text-foreground">{getLogTypeCount("error").toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-purple-100 rounded-lg">
+                  <Icon icon="solar:key-bold" className="text-xl sm:text-2xl text-purple-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-default-500">ยืนยันตัว</p>
+                  <p className="text-lg sm:text-2xl font-bold text-foreground">{getLogTypeCount("auth").toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+            <div className="col-span-2 rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:col-span-1 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-amber-100 rounded-lg">
+                  <Icon icon="solar:shield-bold" className="text-xl sm:text-2xl text-amber-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-default-500">ความปลอดภัย</p>
+                  <p className="text-lg sm:text-2xl font-bold text-foreground">{getLogTypeCount("security").toLocaleString()}</p>
+                </div>
               </div>
             </div>
           </div>
-          <div className="rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:p-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-cyan-100 rounded-lg">
-                <Icon icon="solar:login-2-bold" className="text-xl sm:text-2xl text-cyan-600" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm text-default-500">การเข้าถึง</p>
-                <p className="text-lg sm:text-2xl font-bold text-foreground">{getLogTypeCount("access").toLocaleString()}</p>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:p-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-red-100 rounded-lg">
-                <Icon icon="solar:bug-bold" className="text-xl sm:text-2xl text-red-600" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm text-default-500">ผิดพลาด</p>
-                <p className="text-lg sm:text-2xl font-bold text-foreground">{getLogTypeCount("error").toLocaleString()}</p>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:p-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-purple-100 rounded-lg">
-                <Icon icon="solar:key-bold" className="text-xl sm:text-2xl text-purple-600" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm text-default-500">ยืนยันตัว</p>
-                <p className="text-lg sm:text-2xl font-bold text-foreground">{getLogTypeCount("auth").toLocaleString()}</p>
-              </div>
-            </div>
-          </div>
-          <div className="col-span-2 rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:col-span-1 sm:p-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-amber-100 rounded-lg">
-                <Icon icon="solar:shield-bold" className="text-xl sm:text-2xl text-amber-600" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm text-default-500">ความปลอดภัย</p>
-                <p className="text-lg sm:text-2xl font-bold text-foreground">{getLogTypeCount("security").toLocaleString()}</p>
-              </div>
-            </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+            <Button
+              variant={actionGroupFilter === "permission_changes" ? "solid" : "flat"}
+              color={actionGroupFilter === "permission_changes" ? "danger" : "default"}
+              className="justify-between"
+              onPress={() => setFilter("actionGroup", actionGroupFilter === "permission_changes" ? "all" : "permission_changes")}
+            >
+              <span>Permission changes</span>
+              <span className="font-semibold">{getActionGroupCount("permission_changes").toLocaleString()}</span>
+            </Button>
+            <Button
+              variant={actionGroupFilter === "member_changes" ? "solid" : "flat"}
+              color={actionGroupFilter === "member_changes" ? "warning" : "default"}
+              className="justify-between"
+              onPress={() => setFilter("actionGroup", actionGroupFilter === "member_changes" ? "all" : "member_changes")}
+            >
+              <span>Member changes</span>
+              <span className="font-semibold">{getActionGroupCount("member_changes").toLocaleString()}</span>
+            </Button>
+            <Button
+              variant={actionGroupFilter === "feedback_actions" ? "solid" : "flat"}
+              color={actionGroupFilter === "feedback_actions" ? "secondary" : "default"}
+              className="justify-between"
+              onPress={() => setFilter("actionGroup", actionGroupFilter === "feedback_actions" ? "all" : "feedback_actions")}
+            >
+              <span>Feedback actions</span>
+              <span className="font-semibold">{getActionGroupCount("feedback_actions").toLocaleString()}</span>
+            </Button>
+            <Button
+              variant={actionGroupFilter === "course_governance" ? "solid" : "flat"}
+              color={actionGroupFilter === "course_governance" ? "primary" : "default"}
+              className="justify-between"
+              onPress={() => setFilter("actionGroup", actionGroupFilter === "course_governance" ? "all" : "course_governance")}
+            >
+              <span>Course governance</span>
+              <span className="font-semibold">{getActionGroupCount("course_governance").toLocaleString()}</span>
+            </Button>
           </div>
         </div>
       ) : isStatsLoading ? (
@@ -521,6 +699,40 @@ export default function SystemLogsPage() {
         <div className="p-3 sm:p-4">
           {/* Filters */}
           <div className="flex flex-col gap-3 pb-3 sm:pb-4">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant={actionGroupFilter === "permission_changes" ? "solid" : "flat"}
+                color={actionGroupFilter === "permission_changes" ? "danger" : "default"}
+                onPress={() => setFilter("actionGroup", actionGroupFilter === "permission_changes" ? "all" : "permission_changes")}
+              >
+                Permission changes
+              </Button>
+              <Button
+                size="sm"
+                variant={actionGroupFilter === "member_changes" ? "solid" : "flat"}
+                color={actionGroupFilter === "member_changes" ? "warning" : "default"}
+                onPress={() => setFilter("actionGroup", actionGroupFilter === "member_changes" ? "all" : "member_changes")}
+              >
+                Member changes
+              </Button>
+              <Button
+                size="sm"
+                variant={actionGroupFilter === "feedback_actions" ? "solid" : "flat"}
+                color={actionGroupFilter === "feedback_actions" ? "secondary" : "default"}
+                onPress={() => setFilter("actionGroup", actionGroupFilter === "feedback_actions" ? "all" : "feedback_actions")}
+              >
+                Feedback actions
+              </Button>
+              <Button
+                size="sm"
+                variant={actionGroupFilter === "course_governance" ? "solid" : "flat"}
+                color={actionGroupFilter === "course_governance" ? "primary" : "default"}
+                onPress={() => setFilter("actionGroup", actionGroupFilter === "course_governance" ? "all" : "course_governance")}
+              >
+                Course governance
+              </Button>
+            </div>
             <Input
               className="w-full"
               aria-label="ค้นหา Log"
@@ -598,6 +810,34 @@ export default function SystemLogsPage() {
                   <SelectItem key={option.key}>{option.label}</SelectItem>
                 ))}
               </Select>
+              <Select
+                className="flex-1 min-w-35"
+                aria-label="กรองตามกลุ่ม action"
+                placeholder="Action group"
+                selectedKeys={new Set([actionGroupFilter])}
+                onSelectionChange={(keys) => {
+                  const value = Array.from(keys)[0] as string;
+                  if (value) {
+                    setFilter("actionGroup", value);
+                  }
+                }}
+                classNames={{
+                  trigger: "bg-content2 border-default-200 hover:border-default-300",
+                }}
+              >
+                {actionGroupOptions.map((option) => (
+                  <SelectItem key={option.key}>{option.label}</SelectItem>
+                ))}
+              </Select>
+              <Button
+                variant={privilegedOnly ? "solid" : "flat"}
+                color={privilegedOnly ? "warning" : "default"}
+                startContent={<Icon icon="solar:shield-warning-linear" className="text-lg" />}
+                onPress={() => setFilter("privilegedOnly", privilegedOnly ? "false" : "true")}
+                className="min-w-40"
+              >
+                {privilegedOnly ? "Privileged only" : "ทุก action"}
+              </Button>
             </div>
           </div>
 
@@ -749,6 +989,11 @@ export default function SystemLogsPage() {
                       <Chip color={getSeverityBadgeColor(selectedLog.severity)} variant="dot" size="lg">
                         {getSeverityLabel(selectedLog.severity)}
                       </Chip>
+                      {isPrivilegedSystemLog(selectedLog) && (
+                        <Chip color="warning" variant="flat" size="lg">
+                          Privileged admin action
+                        </Chip>
+                      )}
                       {selectedLog.status_code && (
                         <Chip color={getStatusCodeColor(selectedLog.status_code)} variant="flat" size="lg">
                           HTTP {selectedLog.status_code}
@@ -799,6 +1044,92 @@ export default function SystemLogsPage() {
                         </div>
                       </CardBody>
                     </Card>
+
+                    {selectedLog && selectedPrivilegedDetail && (
+                      <Card className="border border-warning/30 bg-warning/5">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center gap-2">
+                            <Icon icon="solar:shield-warning-linear" className="text-warning" />
+                            <h4 className="font-semibold text-sm">Privileged Investigation Summary</h4>
+                          </div>
+                        </CardHeader>
+                        <CardBody className="pt-0 space-y-3">
+                          <div className="flex flex-wrap gap-2">
+                            <Chip color="warning" variant="flat" size="sm">
+                              {formatDetailValue(selectedPrivilegedDetail.target_type)}
+                            </Chip>
+                            <Chip color={getRiskChipColor(selectedRiskLevel)} variant="flat" size="sm">
+                              Risk: {selectedRiskLevel || "unknown"}
+                            </Chip>
+                            {selectedLog.resource_type && (
+                              <Chip variant="flat" size="sm">
+                                {selectedLog.resource_type}
+                              </Chip>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div className="bg-warning-50 px-3 py-2 rounded-lg border border-warning/20">
+                              <p className="text-xs text-default-500">Resource ID</p>
+                              <p className="text-sm font-mono break-all">{selectedLog.resource_id || "-"}</p>
+                            </div>
+                            <div className="bg-warning-50 px-3 py-2 rounded-lg border border-warning/20">
+                              <p className="text-xs text-default-500">Actor</p>
+                              <p className="text-sm">{selectedLog.actor_user?.full_name || "-"}</p>
+                            </div>
+                            <div className="bg-warning-50 px-3 py-2 rounded-lg border border-warning/20">
+                              <p className="text-xs text-default-500">Action</p>
+                              <p className="text-sm font-mono">{selectedLog.action}</p>
+                            </div>
+                            <div className="bg-warning-50 px-3 py-2 rounded-lg border border-warning/20">
+                              <p className="text-xs text-default-500">Occurred At</p>
+                              <p className="text-sm">{formatDate(selectedLog.created_at)}</p>
+                            </div>
+                          </div>
+
+                          {selectedPrivilegedIds.length > 0 && (
+                            <div>
+                              <p className="text-xs text-default-500 mb-2">Impacted IDs</p>
+                              <div className="flex flex-wrap gap-2">
+                                {selectedPrivilegedIds.map((value) => (
+                                  <Chip key={value} size="sm" variant="flat" color="warning">
+                                    {value}
+                                  </Chip>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {selectedPrivilegedSnapshot && Object.keys(selectedPrivilegedSnapshot).length > 0 && (
+                            <div>
+                              <p className="text-xs text-default-500 mb-2">Target Snapshot</p>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {Object.entries(selectedPrivilegedSnapshot).map(([key, value]) => (
+                                  <div key={key} className="bg-default-100 px-3 py-2 rounded-lg">
+                                    <p className="text-xs text-default-500">{formatDetailLabel(key)}</p>
+                                    <p className="text-sm break-all">{formatDetailValue(value)}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {selectedPrivilegedFilters && Object.keys(selectedPrivilegedFilters).length > 0 && (
+                            <div>
+                              <p className="text-xs text-default-500 mb-2">Applied Filters</p>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {Object.entries(selectedPrivilegedFilters).map(([key, value]) => (
+                                  <div key={key} className="bg-default-100 px-3 py-2 rounded-lg">
+                                    <p className="text-xs text-default-500">{formatDetailLabel(key)}</p>
+                                    <p className="text-sm break-all">{formatDetailValue(value)}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </CardBody>
+                      </Card>
+                    )}
 
                     {/* Client Info */}
                     <Card className="bg-default-50">
@@ -905,7 +1236,7 @@ export default function SystemLogsPage() {
                     )}
 
                     {/* Detail JSON */}
-                    {selectedLog.detail && Object.keys(selectedLog.detail).length > 0 && (
+                    {selectedExtraDetail && Object.keys(selectedExtraDetail).length > 0 && (
                       <Card className="bg-default-50">
                         <CardHeader className="pb-2">
                           <div className="flex items-center gap-2">
@@ -915,7 +1246,7 @@ export default function SystemLogsPage() {
                         </CardHeader>
                         <CardBody className="pt-0">
                           <pre className="text-xs bg-default-900 text-default-100 p-3 rounded-lg overflow-x-auto max-h-48">
-                            {JSON.stringify(selectedLog.detail, null, 2)}
+                            {JSON.stringify(selectedExtraDetail, null, 2)}
                           </pre>
                         </CardBody>
                       </Card>

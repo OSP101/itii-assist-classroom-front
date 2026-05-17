@@ -32,12 +32,14 @@ import TablePaginationFooter, { DEFAULT_TABLE_ROWS_PER_PAGE } from "@/components
 import { MetricCardSkeleton, TableRowsSkeleton } from "@/components/ui/resource-loading";
 import { useI18n } from "@/hooks/useI18n";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import * as XLSX from "xlsx";
 
 // Column definitions
 const columnDefs = [
     { key: "student_id", labelKey: "studentId", sortable: true },
     { key: "full_name", labelKey: "fullName", sortable: true },
     { key: "email", labelKey: "email", sortable: true },
+    { key: "program", labelKey: "program", sortable: false },
     { key: "status", labelKey: "status", sortable: true },
     { key: "created_at", labelKey: "createdAt", sortable: true },
     { key: "actions", labelKey: "actions", sortable: false },
@@ -116,6 +118,11 @@ export default function StudentsPage() {
 
     // Import data
     const [importText, setImportText] = useState("");
+    const [importMode, setImportMode] = useState<"paste" | "file">("file");
+    const [importFile, setImportFile] = useState<File | null>(null);
+    const [parsedStudents, setParsedStudents] = useState<CreateStudentDto[]>([]);
+    const [isDragging, setIsDragging] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Fetch students
     const fetchStudents = useCallback(async () => {
@@ -200,6 +207,108 @@ export default function StudentsPage() {
         setOriginalFormData(null);
     };
 
+    // Extract student rows from a parsed XLSX workbook (binary XLS/XLSX path)
+    const extractStudentsFromWorkbook = (workbook: XLSX.WorkBook): CreateStudentDto[] => {
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1, defval: "" });
+        const studentIdPattern = /^\d{9}-\d$/;
+        const results: CreateStudentDto[] = [];
+        for (const row of rows) {
+            const raw = String(row[1] ?? "").trim();
+            if (!studentIdPattern.test(raw)) continue;
+            const fullName = String(row[2] ?? "").trim();
+            if (!fullName) continue;
+            const email = String(row[3] ?? "").trim();
+            const program = String(row[4] ?? "").trim();
+            const dto: CreateStudentDto = { student_id: raw, full_name: fullName };
+            if (email) dto.email = email;
+            if (program) dto.extra = { program };
+            results.push(dto);
+        }
+        return results;
+    };
+
+    // Extract student rows from an HTML string (KKU HTML-as-XLS path)
+    // Uses browser DOMParser — much more reliable than SheetJS HTML mode for quirky legacy HTML
+    const extractStudentsFromHtml = (html: string): CreateStudentDto[] => {
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const rows = Array.from(doc.querySelectorAll("tr"));
+        const studentIdPattern = /^\d{9}-\d$/;
+        const results: CreateStudentDto[] = [];
+        for (const row of rows) {
+            const cells = Array.from(row.querySelectorAll("td")).map(td => td.textContent?.trim() ?? "");
+            if (cells.length < 3) continue;
+            const raw = cells[1].trim();
+            if (!studentIdPattern.test(raw)) continue;
+            const fullName = cells[2].trim();
+            if (!fullName) continue;
+            const email = cells[3]?.trim() ?? "";
+            const program = cells[4]?.trim() ?? "";
+            const dto: CreateStudentDto = { student_id: raw, full_name: fullName };
+            if (email) dto.email = email;
+            if (program) dto.extra = { program };
+            results.push(dto);
+        }
+        return results;
+    };
+
+    // Parse Excel/CSV file → CreateStudentDto[]
+    // KKU REG system exports "HTML-as-XLS" (Excel 2003 Publish-as-Web-Page, charset=windows-874).
+    // Strategy: sniff first 2 bytes to detect format
+    //   OLE2 magic (D0 CF) → true binary XLS  → ArrayBuffer + SheetJS
+    //   ZIP magic   (50 4B) → XLSX             → ArrayBuffer + SheetJS
+    //   Otherwise           → HTML-as-XLS      → readAsText("windows-874") + DOMParser
+    const parseExcelFile = (file: File): Promise<CreateStudentDto[]> => {
+        return new Promise((resolve, reject) => {
+            const sniffer = new FileReader();
+            sniffer.onerror = reject;
+            sniffer.onload = (sniff) => {
+                const header = new Uint8Array(sniff.target?.result as ArrayBuffer);
+                const isBinary =
+                    (header[0] === 0xD0 && header[1] === 0xCF) || // OLE2 binary XLS
+                    (header[0] === 0x50 && header[1] === 0x4B);   // ZIP / XLSX
+
+                const reader = new FileReader();
+                reader.onerror = reject;
+
+                if (isBinary) {
+                    reader.onload = (e) => {
+                        try {
+                            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+                            const workbook = XLSX.read(data, { type: "array" });
+                            resolve(extractStudentsFromWorkbook(workbook));
+                        } catch (err) { reject(err); }
+                    };
+                    reader.readAsArrayBuffer(file);
+                } else {
+                    // HTML-as-XLS: let the browser decode CP874 bytes → Unicode, then use DOMParser
+                    reader.onload = (e) => {
+                        try {
+                            resolve(extractStudentsFromHtml(e.target?.result as string));
+                        } catch (err) { reject(err); }
+                    };
+                    reader.readAsText(file, "windows-874");
+                }
+            };
+            sniffer.readAsArrayBuffer(file.slice(0, 4));
+        });
+    };
+
+    // Handle file selection (drag-drop or click)
+    const handleFileSelect = async (file: File) => {
+        try {
+            const students = await parseExcelFile(file);
+            setImportFile(file);
+            setParsedStudents(students);
+            if (students.length === 0) {
+                addToast({ title: t("noValidImportData"), description: t("checkImportFormatNeedsIdAndName"), color: "warning", timeout: 3000, shouldShowTimeoutProgress: true });
+            }
+        } catch {
+            addToast({ title: t("fileParseError"), color: "danger", timeout: 3000, shouldShowTimeoutProgress: true });
+        }
+    };
+
     // Check if form has changes
     const hasFormChanges = () => {
         if (!originalFormData) return false;
@@ -277,10 +386,12 @@ export default function StudentsPage() {
         setIsSubmitting(true);
         isUpdatingRef.current = true;
         try {
+            const program = formData.extra?.program as string | undefined;
             const updateData: UpdateStudentDto = {
                 student_id: formData.student_id,
                 full_name: formData.full_name,
                 email: formData.email || undefined,
+                extra: program ? { program } : undefined,
             };
 
             const response = await studentService.updateStudent(selectedStudent.id, updateData);
@@ -405,41 +516,52 @@ export default function StudentsPage() {
 
     // Handle import
     const handleImport = async () => {
-        if (!importText.trim()) {
-            addToast({
-                title: t("pleaseEnterImportData"),
-                description: t("enterStudentDataToImport"),
-                color: "warning",
-                timeout: 3000,
-                shouldShowTimeoutProgress: true,
-            });
-            return;
-        }
+        let studentsToImport: CreateStudentDto[] = [];
 
-        // Parse CSV/TSV format: student_id, full_name, email
-        const lines = importText.trim().split('\n');
-        const studentsToImport: CreateStudentDto[] = [];
-
-        for (const line of lines) {
-            const parts = line.split(/[,\t]/).map(p => p.trim());
-            if (parts.length >= 2 && parts[0] && parts[1]) {
-                studentsToImport.push({
-                    student_id: parts[0],
-                    full_name: parts[1],
-                    email: parts[2] || "",
+        if (importMode === "file") {
+            if (parsedStudents.length === 0) {
+                addToast({
+                    title: t("pleaseSelectFile"),
+                    description: t("selectFileToImport"),
+                    color: "warning",
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
                 });
+                return;
             }
-        }
-
-        if (studentsToImport.length === 0) {
-            addToast({
-                title: t("noValidImportData"),
-                description: t("checkImportFormatNeedsIdAndName"),
-                color: "warning",
-                timeout: 3000,
-                shouldShowTimeoutProgress: true,
-            });
-            return;
+            studentsToImport = parsedStudents;
+        } else {
+            if (!importText.trim()) {
+                addToast({
+                    title: t("pleaseEnterImportData"),
+                    description: t("enterStudentDataToImport"),
+                    color: "warning",
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+                });
+                return;
+            }
+            const lines = importText.trim().split('\n');
+            for (const line of lines) {
+                const parts = line.split(/[,\t]/).map(p => p.trim());
+                if (parts.length >= 2 && parts[0] && parts[1]) {
+                    studentsToImport.push({
+                        student_id: parts[0],
+                        full_name: parts[1],
+                        email: parts[2] || "",
+                    });
+                }
+            }
+            if (studentsToImport.length === 0) {
+                addToast({
+                    title: t("noValidImportData"),
+                    description: t("checkImportFormatNeedsIdAndName"),
+                    color: "warning",
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+                });
+                return;
+            }
         }
 
         setIsSubmitting(true);
@@ -476,6 +598,9 @@ export default function StudentsPage() {
 
                 setIsImportModalOpen(false);
                 setImportText("");
+                setImportFile(null);
+                setParsedStudents([]);
+                setImportMode("file");
                 fetchStudents();
                 fetchStats();
                 emitDataUpdate("student", "bulk");
@@ -497,10 +622,12 @@ export default function StudentsPage() {
     // Open edit modal
     const openEditModal = (student: Student) => {
         setSelectedStudent(student);
-        const studentData = {
+        const program = (student.extra as Record<string, unknown> | undefined)?.program as string | undefined;
+        const studentData: CreateStudentDto = {
             student_id: student.student_id,
             full_name: student.full_name,
             email: student.email || "",
+            ...(program ? { extra: { program } } : {}),
         };
         setFormData(studentData);
         setOriginalFormData(studentData);
@@ -555,6 +682,14 @@ export default function StudentsPage() {
                 ) : (
                     <span className="italic text-default-400">{t("noEmailSpecified")}</span>
                 );
+            case "program": {
+                const prog = student.extra?.program as string | undefined;
+                return prog ? (
+                    <Chip size="sm" variant="flat" color="secondary">{prog}</Chip>
+                ) : (
+                    <span className="italic text-default-400">{t("noProgramSpecified")}</span>
+                );
+            }
             case "status":
                 return (
                     <Chip
@@ -898,6 +1033,27 @@ export default function StudentsPage() {
                                         label: "text-sm font-medium text-default-600",
                                     }}
                                 />
+                                <Select
+                                    label={t("program")}
+                                    labelPlacement="outside"
+                                    placeholder={t("selectProgram")}
+                                    variant="bordered"
+                                    size="lg"
+                                    selectedKeys={formData.extra?.program ? [formData.extra.program as string] : []}
+                                    onSelectionChange={(keys) => {
+                                        const val = Array.from(keys)[0] as string | undefined;
+                                        setFormData({ ...formData, extra: val ? { program: val } : undefined });
+                                    }}
+                                    startContent={<Icon icon="solar:book-bookmark-linear" className="text-blue-400 text-xl" />}
+                                    classNames={{
+                                        trigger: "h-12 bg-content1 border-default-200 hover:border-blue-300 data-[open=true]:!border-blue-400",
+                                        label: "text-sm font-medium text-default-600",
+                                    }}
+                                >
+                                    {["SC-IT", "SC-CS", "CP-Cy", "CP-AI", "SC-GIS"].map((p) => (
+                                        <SelectItem key={p}>{p}</SelectItem>
+                                    ))}
+                                </Select>
                             </div>
                         </div>
                     </ModalBody>
@@ -992,6 +1148,27 @@ export default function StudentsPage() {
                                         label: "text-sm font-medium text-default-600",
                                     }}
                                 />
+                                <Select
+                                    label={t("program")}
+                                    labelPlacement="outside"
+                                    placeholder={t("selectProgram")}
+                                    variant="bordered"
+                                    size="lg"
+                                    selectedKeys={formData.extra?.program ? [formData.extra.program as string] : []}
+                                    onSelectionChange={(keys) => {
+                                        const val = Array.from(keys)[0] as string | undefined;
+                                        setFormData({ ...formData, extra: val ? { program: val } : undefined });
+                                    }}
+                                    startContent={<Icon icon="solar:book-bookmark-linear" className="text-blue-400 text-xl" />}
+                                    classNames={{
+                                        trigger: "h-12 bg-content1 border-default-200 hover:border-blue-300 data-[open=true]:!border-blue-400",
+                                        label: "text-sm font-medium text-default-600",
+                                    }}
+                                >
+                                    {["SC-IT", "SC-CS", "CP-Cy", "CP-AI", "SC-GIS"].map((p) => (
+                                        <SelectItem key={p}>{p}</SelectItem>
+                                    ))}
+                                </Select>
                             </div>
                         </div>
                     </ModalBody>
@@ -1115,11 +1292,21 @@ export default function StudentsPage() {
             </Modal>
 
             {/* Import Modal */}
-            <Modal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} size="2xl">
+            <Modal
+                isOpen={isImportModalOpen}
+                onClose={() => {
+                    setIsImportModalOpen(false);
+                    setImportText("");
+                    setImportFile(null);
+                    setParsedStudents([]);
+                    setImportMode("file");
+                }}
+                size="2xl"
+            >
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                            <div className="p-3 bg-linear-to-br from-emerald-400 to-teal-500 rounded-xl shadow-lg shadow-emerald-500/30">
                                 <Icon icon="solar:import-bold" className="text-2xl text-white" />
                             </div>
                             <div>
@@ -1128,45 +1315,143 @@ export default function StudentsPage() {
                             </div>
                         </div>
                     </ModalHeader>
-                    <ModalBody className="px-6 py-6">
-                        <div className="space-y-5">
-                            <div className="space-y-4 rounded-xl bg-content2/80 p-5">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Icon icon="solar:info-circle-bold" className="text-lg text-emerald-500" />
-                                    <span className="text-sm font-semibold text-default-700">{t("dataFormat")}</span>
+                    <ModalBody className="px-6 py-4 space-y-4">
+                        {/* Mode toggle */}
+                        <div className="flex gap-1 rounded-xl bg-content2 p-1">
+                            <button
+                                onClick={() => setImportMode("file")}
+                                className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm rounded-lg font-medium transition-all ${importMode === "file" ? "bg-content1 shadow-sm text-foreground" : "text-default-500 hover:text-default-700"}`}
+                            >
+                                <Icon icon="solar:upload-linear" className="text-base" />
+                                {t("uploadFileTab")}
+                            </button>
+                            <button
+                                onClick={() => setImportMode("paste")}
+                                className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm rounded-lg font-medium transition-all ${importMode === "paste" ? "bg-content1 shadow-sm text-foreground" : "text-default-500 hover:text-default-700"}`}
+                            >
+                                <Icon icon="solar:clipboard-text-linear" className="text-base" />
+                                {t("pasteTextTab")}
+                            </button>
+                        </div>
+
+                        {importMode === "file" ? (
+                            <div className="space-y-4">
+                                {/* Drop zone */}
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept=".xls,.xlsx,.csv"
+                                    className="hidden"
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) await handleFileSelect(file);
+                                        e.target.value = "";
+                                    }}
+                                />
+                                <div
+                                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                                    onDragLeave={() => setIsDragging(false)}
+                                    onDrop={async (e) => {
+                                        e.preventDefault();
+                                        setIsDragging(false);
+                                        const file = e.dataTransfer.files[0];
+                                        if (file) await handleFileSelect(file);
+                                    }}
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className={`cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-all ${isDragging ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-950/20" : importFile ? "border-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/10" : "border-default-300 hover:border-emerald-400 hover:bg-content2/50"}`}
+                                >
+                                    {importFile ? (
+                                        <div className="space-y-2">
+                                            <Icon icon="solar:file-check-bold" className="mx-auto text-4xl text-emerald-500" />
+                                            <p className="font-medium text-foreground">{importFile.name}</p>
+                                            <p className="text-sm text-emerald-600">{t("foundEntriesCount", { count: parsedStudents.length })}</p>
+                                            <p className="text-xs text-default-400">{t("dropExcelFileHere")}</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            <Icon icon="solar:cloud-upload-bold" className="mx-auto text-4xl text-default-400" />
+                                            <p className="text-sm font-medium text-default-600">{t("dropExcelFileHere")}</p>
+                                            <p className="text-xs text-default-400">{t("supportedFormatsHint")}</p>
+                                        </div>
+                                    )}
                                 </div>
+
+                                {/* Column format hint */}
                                 <div className="rounded-lg border border-default-200 bg-content1 p-4">
-                                    <p className="mb-2 text-sm text-default-600">{t("copyExcelColumnsHint")}</p>
+                                    <p className="mb-2 text-xs font-medium text-default-600">{t("copyExcelColumnsHint")}</p>
                                     <div className="flex gap-2 flex-wrap">
+                                        <Chip size="sm" color="default" variant="flat">ลำดับ</Chip>
                                         <Chip size="sm" color="primary" variant="flat">{t("columnAStudentId")}</Chip>
                                         <Chip size="sm" color="success" variant="flat">{t("columnBFullName")}</Chip>
                                         <Chip size="sm" color="warning" variant="flat">{t("columnCEmail")}</Chip>
+                                        <Chip size="sm" color="secondary" variant="flat">{t("columnDProgram")}</Chip>
                                     </div>
-                                    <p className="mt-3 text-xs text-default-500">
-                                        <Icon icon="solar:lightbulb-bolt-bold" className="text-amber-500 inline mr-1" />
-                                        {t("pasteFromExcelAutoSplit")}
-                                    </p>
                                 </div>
-                            </div>
-                            <div className="space-y-4 rounded-xl bg-content2/80 p-5">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Icon icon="solar:clipboard-text-bold" className="text-lg text-emerald-500" />
-                                    <span className="text-sm font-semibold text-default-700">{t("studentData")}</span>
-                                </div>
-                                <textarea
-                                    value={importText}
-                                    onChange={(e) => setImportText(e.target.value)}
-                                    placeholder={t("importStudentExample")}
-                                    className="h-52 w-full resize-none rounded-xl border border-default-200 bg-content1 px-4 py-3 text-sm text-foreground placeholder:text-default-400 focus:border-emerald-400 focus:outline-none"
-                                />
-                                {importText && (
-                                    <div className="flex items-center gap-2 text-sm text-default-500">
-                                        <Icon icon="solar:document-text-bold" className="text-emerald-500" />
-                                        <span>{t("foundEntriesCount", { count: importText.trim().split('\n').filter(line => line.trim()).length })}</span>
+
+                                {/* Preview */}
+                                {parsedStudents.length > 0 && (
+                                    <div className="rounded-xl bg-content2/80 p-4">
+                                        <p className="text-sm font-semibold text-default-700 mb-3">{t("previewImportData")}</p>
+                                        <div className="space-y-1 max-h-40 overflow-y-auto">
+                                            {parsedStudents.slice(0, 6).map((s, i) => (
+                                                <div key={i} className="flex items-center gap-3 rounded-lg bg-content1 px-3 py-2 text-xs">
+                                                    <span className="font-mono text-default-600 w-28 shrink-0">{s.student_id}</span>
+                                                    <span className="text-foreground flex-1 truncate">{s.full_name}</span>
+                                                    <span className="text-default-400 truncate hidden sm:block">{s.email || "-"}</span>
+                                                    {s.extra?.program != null && (
+                                                        <Chip size="sm" variant="flat" color="secondary" className="text-xs shrink-0">{String(s.extra.program)}</Chip>
+                                                    )}
+                                                </div>
+                                            ))}
+                                            {parsedStudents.length > 6 && (
+                                                <p className="text-xs text-center text-default-400 pt-1">
+                                                    +{parsedStudents.length - 6} {isEnglish ? "more" : "รายการอีก"}
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </div>
-                        </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="space-y-4 rounded-xl bg-content2/80 p-5">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Icon icon="solar:info-circle-bold" className="text-lg text-emerald-500" />
+                                        <span className="text-sm font-semibold text-default-700">{t("dataFormat")}</span>
+                                    </div>
+                                    <div className="rounded-lg border border-default-200 bg-content1 p-4">
+                                        <p className="mb-2 text-sm text-default-600">{t("copyExcelColumnsHint")}</p>
+                                        <div className="flex gap-2 flex-wrap">
+                                            <Chip size="sm" color="primary" variant="flat">{t("columnAStudentId")}</Chip>
+                                            <Chip size="sm" color="success" variant="flat">{t("columnBFullName")}</Chip>
+                                            <Chip size="sm" color="warning" variant="flat">{t("columnCEmail")}</Chip>
+                                        </div>
+                                        <p className="mt-3 text-xs text-default-500">
+                                            <Icon icon="solar:lightbulb-bolt-bold" className="text-amber-500 inline mr-1" />
+                                            {t("pasteFromExcelAutoSplit")}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="space-y-4 rounded-xl bg-content2/80 p-5">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Icon icon="solar:clipboard-text-bold" className="text-lg text-emerald-500" />
+                                        <span className="text-sm font-semibold text-default-700">{t("studentData")}</span>
+                                    </div>
+                                    <textarea
+                                        value={importText}
+                                        onChange={(e) => setImportText(e.target.value)}
+                                        placeholder={t("importStudentExample")}
+                                        className="h-52 w-full resize-none rounded-xl border border-default-200 bg-content1 px-4 py-3 text-sm text-foreground placeholder:text-default-400 focus:border-emerald-400 focus:outline-none"
+                                    />
+                                    {importText && (
+                                        <div className="flex items-center gap-2 text-sm text-default-500">
+                                            <Icon icon="solar:document-text-bold" className="text-emerald-500" />
+                                            <span>{t("foundEntriesCount", { count: importText.trim().split('\n').filter(line => line.trim()).length })}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </ModalBody>
                     <ModalFooter className="gap-3 border-t border-divider px-6 py-4">
                         <Button
@@ -1175,6 +1460,9 @@ export default function StudentsPage() {
                             onPress={() => {
                                 setIsImportModalOpen(false);
                                 setImportText("");
+                                setImportFile(null);
+                                setParsedStudents([]);
+                                setImportMode("file");
                             }}
                             className="font-medium px-6"
                         >
@@ -1184,7 +1472,8 @@ export default function StudentsPage() {
                             color="primary"
                             onPress={handleImport}
                             isLoading={isSubmitting}
-                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
+                            isDisabled={importMode === "file" ? parsedStudents.length === 0 : !importText.trim()}
+                            className="font-medium px-6 bg-linear-to-r from-emerald-400 to-teal-500 text-white"
                         >
                             {t("importStudents")}
                         </Button>

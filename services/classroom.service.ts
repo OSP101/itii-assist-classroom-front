@@ -11,6 +11,11 @@ export interface Desk {
   y: number;
   type: 'computer' | 'normal' | 'teacher';
   is_enabled: boolean;
+  hostname?: string;
+  ip_address?: string;
+  brand?: string;
+  os?: string;
+  notes?: string;
 }
 
 export interface ZoneData {
@@ -132,6 +137,11 @@ class ClassroomService {
     y: number;
     type: 'computer' | 'normal' | 'teacher';
     isEnabled: boolean;
+    hostname?: string;
+    ipAddress?: string;
+    brand?: string;
+    os?: string;
+    notes?: string;
   }[], zones?: {
     id: string;
     name: string;
@@ -141,7 +151,20 @@ class ClassroomService {
     height: number;
     color: string;
   }[]) {
-    return apiService.put<Classroom>(`/classrooms/${id}/layout`, { desks, zones });
+    const apiDesks = desks.map(d => ({
+      id: d.id,
+      number: d.number,
+      x: d.x,
+      y: d.y,
+      type: d.type,
+      is_enabled: d.isEnabled,
+      hostname: d.hostname ?? '',
+      ip_address: d.ipAddress ?? '',
+      brand: d.brand ?? '',
+      os: d.os ?? '',
+      notes: d.notes ?? '',
+    }));
+    return apiService.put<Classroom>(`/classrooms/${id}/layout`, { desks: apiDesks, zones });
   }
 
   /**

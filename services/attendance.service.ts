@@ -11,6 +11,8 @@ export interface AttendanceSession {
     course_section_ids?: number[]; // New: array of section IDs
     title: string;
     pin_code: string;
+    pin_issued_at?: string | null;
+    pin_rotates_at?: string | null;
     session_type: 'lecture' | 'lab' | 'online';
     check_location: boolean;
     location_lat: number | null;
@@ -306,8 +308,7 @@ const attendanceService = {
         
         // Check for error response
         if (!response.success) {
-            const errorResponse = response as unknown as { error?: { message?: string } };
-            throw new Error(errorResponse.error?.message || 'เช็คชื่อไม่สำเร็จ');
+            throw new Error(response.message || 'เช็คชื่อไม่สำเร็จ');
         }
         
         return response.data || null;
