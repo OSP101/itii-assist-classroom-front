@@ -640,6 +640,37 @@ const queueService = {
         if (!response.data) throw new Error('ไม่พบข้อมูลรีพอร์ต');
         return response.data;
     },
+
+    /**
+     * Force close a queue session (Admin)
+     */
+    async closeQueueSession(courseId: string, sessionId: string): Promise<QueueSession> {
+        const response = await api.post<QueueSession>(
+            `/courses/${courseId}/queue/sessions/${sessionId}/close`
+        );
+        if (!response.success) {
+            throw new Error((response.error as unknown as { message?: string })?.message || 'Failed to close session');
+        }
+        if (!response.data) throw new Error('Failed to close session');
+        return response.data;
+    },
+
+    /**
+     * Get all active queue sessions across all courses (Admin only)
+     */
+    async getActiveQueueSessionsAdmin() {
+        type ActiveSession = {
+            id: string; title: string; status: string; pin_code: string;
+            course_id: string; course_name: string; course_code: string;
+            classroom_id: string; classroom_name: string; classroom_building: string;
+            start_time: string | null; created_at: string;
+        };
+        const response = await api.get<ActiveSession[]>(
+            `/admin/queue/sessions/active`
+        );
+        if (!response.success) return [] as ActiveSession[];
+        return (response.data || []) as ActiveSession[];
+    },
 };
 
 export default queueService;

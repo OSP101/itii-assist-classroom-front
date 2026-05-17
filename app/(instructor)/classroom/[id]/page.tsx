@@ -277,11 +277,14 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
         return getCurrentCourseMemberPermissions(course, currentUserId, userRole);
     }, [course, currentUserId, userRole]);
 
-    const canViewPeople = currentCoursePermissions.view_people || currentCoursePermissions.add_people || currentCoursePermissions.remove_people || currentCoursePermissions.edit_member_permissions;
-    const canAddPeople = currentCoursePermissions.add_people;
-    const canRemovePeople = currentCoursePermissions.remove_people;
-    const canEditMemberPermissions = currentCoursePermissions.edit_member_permissions;
-    const canAccessSections = currentCoursePermissions.view_sections
+    const isAdminAccess = userRole === "admin";
+
+    const canViewPeople = isAdminAccess || currentCoursePermissions.view_people || currentCoursePermissions.add_people || currentCoursePermissions.remove_people || currentCoursePermissions.edit_member_permissions;
+    const canAddPeople = isAdminAccess || currentCoursePermissions.add_people;
+    const canRemovePeople = isAdminAccess || currentCoursePermissions.remove_people;
+    const canEditMemberPermissions = isAdminAccess || currentCoursePermissions.edit_member_permissions;
+    const canAccessSections = isAdminAccess
+        || currentCoursePermissions.view_sections
         || currentCoursePermissions.create_sections
         || currentCoursePermissions.update_sections
         || currentCoursePermissions.delete_sections
@@ -291,30 +294,34 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
         || currentCoursePermissions.update_teams
         || currentCoursePermissions.delete_teams
         || currentCoursePermissions.manage_team_members;
-    const canAccessAssignments = currentCoursePermissions.view_assignments
+    const canAccessAssignments = isAdminAccess
+        || currentCoursePermissions.view_assignments
         || currentCoursePermissions.create_assignments
         || currentCoursePermissions.update_assignments
         || currentCoursePermissions.delete_assignments
         || currentCoursePermissions.grade_assignments
         || currentCoursePermissions.edit_scores;
-    const canAccessScores = currentCoursePermissions.view_score_summary || currentCoursePermissions.grade_assignments || currentCoursePermissions.edit_scores;
-    const canAccessExamScores = currentCoursePermissions.view_exam_scores
+    const canAccessScores = isAdminAccess || currentCoursePermissions.view_score_summary || currentCoursePermissions.grade_assignments || currentCoursePermissions.edit_scores;
+    const canAccessExamScores = isAdminAccess
+        || currentCoursePermissions.view_exam_scores
         || currentCoursePermissions.create_exam_scores
         || currentCoursePermissions.update_exam_scores
         || currentCoursePermissions.delete_exam_scores
         || currentCoursePermissions.update_exam_settings;
-    const canAccessApproval = currentCoursePermissions.review_own_score_requests || currentCoursePermissions.review_all_score_requests;
-    const canAccessAttendance = currentCoursePermissions.view_attendance
+    const canAccessApproval = isAdminAccess || currentCoursePermissions.review_own_score_requests || currentCoursePermissions.review_all_score_requests;
+    const canAccessAttendance = isAdminAccess
+        || currentCoursePermissions.view_attendance
         || currentCoursePermissions.create_attendance_sessions
         || currentCoursePermissions.update_attendance_sessions
         || currentCoursePermissions.delete_attendance_sessions
         || currentCoursePermissions.update_attendance_status;
-    const canAccessQueue = currentCoursePermissions.view_queue
+    const canAccessQueue = isAdminAccess
+        || currentCoursePermissions.view_queue
         || currentCoursePermissions.create_queue_sessions
         || currentCoursePermissions.update_queue_sessions
         || currentCoursePermissions.delete_queue_sessions
         || currentCoursePermissions.manage_queue_bookings;
-    const approvalRole = currentCoursePermissions.review_all_score_requests ? "instructor" : "ta";
+    const approvalRole = currentCoursePermissions.review_all_score_requests || isAdminAccess ? "instructor" : "ta";
 
     const availableTAs = useMemo(() => {
         return tasList.filter(ta => !course?.tas?.some(courseTa => courseTa.id === ta.id));
@@ -1069,9 +1076,9 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
         }] : []),
         ...(canAccessAttendance ? [{ key: "attendance", label: t("attendance"), icon: "solar:user-check-bold" }] : []),
         ...(canAccessQueue ? [{ key: "queue", label: t("reviewQueue"), icon: "solar:sort-by-time-bold" }] : []),
-        ...(userRole === 'instructor' ? [{ key: "activity-log", label: t("activityLog"), icon: "solar:document-text-bold" }] : []),
-        ...(userRole === 'instructor' ? [{ key: "ta-stats", label: t("taStats"), icon: "solar:graph-new-up-bold" }] : []),
-        ...(userRole === 'instructor' ? [{ key: "settings", label: t("courseSettings"), icon: "solar:settings-bold" }] : []),
+        ...(userRole === 'instructor' || isAdminAccess ? [{ key: "activity-log", label: t("activityLog"), icon: "solar:document-text-bold" }] : []),
+        ...(userRole === 'instructor' || isAdminAccess ? [{ key: "ta-stats", label: t("taStats"), icon: "solar:graph-new-up-bold" }] : []),
+        ...(userRole === 'instructor' || isAdminAccess ? [{ key: "settings", label: t("courseSettings"), icon: "solar:settings-bold" }] : []),
     ], [approvalRole, canAccessApproval, canAccessAssignments, canAccessAttendance, canAccessExamScores, canAccessScores, canAccessSections, canViewPeople, t, userRole]);
 
     useEffect(() => {
@@ -1314,6 +1321,25 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                         {/* Content - Only show when course is loaded */}
                         {course && (
                             <>
+                                {/* Admin access banner */}
+                                {isAdminAccess && (
+                                    <div className="mb-4 rounded-xl border border-danger-200 bg-danger-50 dark:border-danger-700 dark:bg-danger-900/30 p-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="shrink-0">
+                                                <Icon icon="solar:shield-warning-bold" className="text-danger-600 dark:text-danger-400" width={24} />
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="font-semibold text-danger-800 dark:text-danger-300">
+                                                    {t("adminAccessWarning")}
+                                                </p>
+                                                <p className="text-sm text-danger-600 dark:text-danger-400">
+                                                    {t("adminAccessWarningDesc")}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Closed course banner */}
                                 {!course.is_active && (
                                     <div className="mb-4 rounded-xl border border-warning-200 bg-warning-50 dark:border-warning-700 dark:bg-warning-900/30 p-4">
@@ -1329,7 +1355,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                                     สามารถดูข้อมูลได้อย่างเดียว ต้องเปิดใช้งานรายวิชาก่อนถึงจะแก้ไขได้
                                                 </p>
                                             </div>
-                                            {userRole === "instructor" && (
+                                            {(userRole === "instructor" || isAdminAccess) && (
                                                 <Button
                                                     size="sm"
                                                     color="warning"
@@ -1368,13 +1394,13 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                         <SectionsTab
                                             courseId={courseId}
                                             isCourseActive={course.is_active}
-                                            canCreateSections={currentCoursePermissions.create_sections}
-                                            canUpdateSections={currentCoursePermissions.update_sections}
-                                            canDeleteSections={currentCoursePermissions.delete_sections}
-                                            canManageSectionStudents={currentCoursePermissions.manage_section_students}
-                                            canCreateTeams={currentCoursePermissions.create_teams}
-                                            canUpdateTeams={currentCoursePermissions.update_teams}
-                                            canDeleteTeams={currentCoursePermissions.delete_teams}
+                                            canCreateSections={isAdminAccess || currentCoursePermissions.create_sections}
+                                            canUpdateSections={isAdminAccess || currentCoursePermissions.update_sections}
+                                            canDeleteSections={isAdminAccess || currentCoursePermissions.delete_sections}
+                                            canManageSectionStudents={isAdminAccess || currentCoursePermissions.manage_section_students}
+                                            canCreateTeams={isAdminAccess || currentCoursePermissions.create_teams}
+                                            canUpdateTeams={isAdminAccess || currentCoursePermissions.update_teams}
+                                            canDeleteTeams={isAdminAccess || currentCoursePermissions.delete_teams}
                                         />
                                     )}
 
@@ -1417,11 +1443,11 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                             hasPendingUpdate={pendingAssignmentUpdate}
                                             onPendingUpdateAck={ackAssignmentUpdate}
                                             isCourseActive={course.is_active}
-                                            canCreateAssignments={currentCoursePermissions.create_assignments}
-                                            canUpdateAssignments={currentCoursePermissions.update_assignments}
-                                            canDeleteAssignments={currentCoursePermissions.delete_assignments}
-                                            canGradeAssignments={currentCoursePermissions.grade_assignments}
-                                            canEditScores={currentCoursePermissions.edit_scores}
+                                            canCreateAssignments={isAdminAccess || currentCoursePermissions.create_assignments}
+                                            canUpdateAssignments={isAdminAccess || currentCoursePermissions.update_assignments}
+                                            canDeleteAssignments={isAdminAccess || currentCoursePermissions.delete_assignments}
+                                            canGradeAssignments={isAdminAccess || currentCoursePermissions.grade_assignments}
+                                            canEditScores={isAdminAccess || currentCoursePermissions.edit_scores}
                                         />
                                     )}
 
@@ -1433,9 +1459,9 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                         <ExamScoresTab
                                             courseId={courseId}
                                             isCourseActive={course.is_active}
-                                            canCreateExamScores={currentCoursePermissions.create_exam_scores}
-                                            canUpdateExamScores={currentCoursePermissions.update_exam_scores}
-                                            canUpdateExamSettings={currentCoursePermissions.update_exam_settings}
+                                            canCreateExamScores={isAdminAccess || currentCoursePermissions.create_exam_scores}
+                                            canUpdateExamScores={isAdminAccess || currentCoursePermissions.update_exam_scores}
+                                            canUpdateExamSettings={isAdminAccess || currentCoursePermissions.update_exam_settings}
                                         />
                                     )}
 
@@ -1454,13 +1480,13 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                             isLoading={isOverviewLoading}
                                             onAttendanceChanged={() => fetchOverview(true)}
                                             isCourseActive={course.is_active}
-                                            canCreateAttendanceSessions={currentCoursePermissions.create_attendance_sessions}
-                                            canUpdateAttendanceSessions={currentCoursePermissions.update_attendance_sessions}
-                                            canDeleteAttendanceSessions={currentCoursePermissions.delete_attendance_sessions}
+                                            canCreateAttendanceSessions={isAdminAccess || currentCoursePermissions.create_attendance_sessions}
+                                            canUpdateAttendanceSessions={isAdminAccess || currentCoursePermissions.update_attendance_sessions}
+                                            canDeleteAttendanceSessions={isAdminAccess || currentCoursePermissions.delete_attendance_sessions}
                                         />
                                     )}
 
-                                    {activeTab === "settings" && userRole === "instructor" && (
+                                    {activeTab === "settings" && (userRole === "instructor" || isAdminAccess) && (
                                         <SettingsTab
                                             courseId={String(course.id)}
                                             course={course}
@@ -1473,18 +1499,18 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                             course={course}
                                             isLoading={isOverviewLoading}
                                             isCourseActive={course.is_active}
-                                            canCreateQueueSessions={currentCoursePermissions.create_queue_sessions}
-                                            canUpdateQueueSessions={currentCoursePermissions.update_queue_sessions}
-                                            canDeleteQueueSessions={currentCoursePermissions.delete_queue_sessions}
-                                            canManageQueueBookings={currentCoursePermissions.manage_queue_bookings}
+                                            canCreateQueueSessions={isAdminAccess || currentCoursePermissions.create_queue_sessions}
+                                            canUpdateQueueSessions={isAdminAccess || currentCoursePermissions.update_queue_sessions}
+                                            canDeleteQueueSessions={isAdminAccess || currentCoursePermissions.delete_queue_sessions}
+                                            canManageQueueBookings={isAdminAccess || currentCoursePermissions.manage_queue_bookings}
                                         />
                                     )}
 
-                                    {activeTab === "activity-log" && userRole === "instructor" && (
+                                    {activeTab === "activity-log" && (userRole === "instructor" || isAdminAccess) && (
                                         <ActivityLogTab courseId={courseId} courseCode={course.code} />
                                     )}
 
-                                    {activeTab === "ta-stats" && userRole === "instructor" && (
+                                    {activeTab === "ta-stats" && (userRole === "instructor" || isAdminAccess) && (
                                         <TAStatsTab courseId={courseId} />
                                     )}
                                 </div>

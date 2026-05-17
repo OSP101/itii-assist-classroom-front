@@ -789,10 +789,10 @@ function BookQueueContent() {
 
         socketRef.current = socket;
 
-        // Also poll every 10 seconds as backup
+        // Also poll every 30 seconds as backup - socket handles real-time updates
         intervalRef.current = setInterval(() => {
             fetchBookingStatus(bookingId);
-        }, 10000);
+        }, 30000);
 
         return () => {
             cleanupPolling();

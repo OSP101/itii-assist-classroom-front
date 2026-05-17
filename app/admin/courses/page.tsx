@@ -804,16 +804,16 @@ export default function CoursesPage() {
             case "actions":
                 return (
                     <div className="flex items-center gap-1 justify-center">
-                        {/* <Tooltip content={t("viewAll")}>
+                        <Tooltip content={t("enterCourse")}>
                             <Button
                                 isIconOnly
                                 size="sm"
                                 variant="light"
                                 onPress={() => handleViewCourse(course)}
                             >
-                                <Icon icon="solar:eye-linear" className="text-lg text-default-500" />
+                                <Icon icon="solar:login-3-bold" className="text-lg text-primary-500" />
                             </Button>
-                        </Tooltip> */}
+                        </Tooltip>
                         <Tooltip content={t("editAction")}>
                             <Button
                                 isIconOnly

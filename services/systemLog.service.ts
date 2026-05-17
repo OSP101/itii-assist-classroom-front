@@ -342,6 +342,55 @@ export const formatBytes = (bytes: number): string => {
   return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 };
 
+// ============================================================
+// Course Activity Logs (admin cross-course view)
+// Expected API: GET /logs/course-activity
+// Response shape: { logs: CourseActivityLog[]; pagination: Pagination }
+// ============================================================
+
+export interface CourseActivityLog {
+  id: number;
+  course_id: string;
+  actor_user_id: number;
+  actor_email: string;
+  actor_role: string;
+  action: string;
+  category: string;
+  target_type: string;
+  target_id: string;
+  description: string;
+  request_id: string;
+  ip_address: string;
+  created_at: string;
+}
+
+export interface CourseActivityLogFilters {
+  course_id?: string;
+  search?: string;
+  date_from?: string;
+  date_to?: string;
+  page?: number;
+  limit?: number;
+}
+
+export const getCourseActivityLogs = async (filters: CourseActivityLogFilters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.course_id) params.append('course_id', filters.course_id);
+  if (filters.search) params.append('search', filters.search);
+  if (filters.date_from) params.append('date_from', filters.date_from);
+  if (filters.date_to) params.append('date_to', filters.date_to);
+  if (filters.page) params.append('page', String(filters.page));
+  if (filters.limit) params.append('limit', String(filters.limit));
+
+  const queryString = params.toString();
+  const url = queryString ? `/logs/course-activity?${queryString}` : '/logs/course-activity';
+
+  return api.get<{
+    logs: CourseActivityLog[];
+    pagination: Pagination;
+  }>(url);
+};
+
 export default {
   getLogs,
   getLogById,

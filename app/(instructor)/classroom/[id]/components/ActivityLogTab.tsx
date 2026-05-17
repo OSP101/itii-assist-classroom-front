@@ -424,6 +424,7 @@ export default function ActivityLogTab({ courseId, courseCode }: ActivityLogTabP
   const getRoleLabel = useCallback((role?: string | null) => {
     if (role === "instructor") return isEnglish ? "Instructor" : "อาจารย์";
     if (role === "ta") return "TA";
+    if (role === "admin") return isEnglish ? "Admin" : "แอดมิน";
     return role || "";
   }, [isEnglish]);
 
@@ -742,9 +743,16 @@ export default function ActivityLogTab({ courseId, courseCode }: ActivityLogTabP
                                 <p className="text-sm font-medium text-foreground">
                                   {log.actor?.full_name || "Unknown"}
                                 </p>
-                                <p className="text-xs text-default-400">
-                                  {getRoleLabel(log.actor_role || log.actor?.role)}
-                                </p>
+                                {(log.actor_role || log.actor?.role) === "admin" ? (
+                                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-danger-600 dark:text-danger-400">
+                                        <Icon icon="solar:shield-warning-bold" width={12} />
+                                        {getRoleLabel(log.actor_role || log.actor?.role)}
+                                    </span>
+                                ) : (
+                                    <p className="text-xs text-default-400">
+                                        {getRoleLabel(log.actor_role || log.actor?.role)}
+                                    </p>
+                                )}
                                 {log.ip_address && (
                                   <p className="text-xs text-default-300 font-mono">{log.ip_address}</p>
                                 )}

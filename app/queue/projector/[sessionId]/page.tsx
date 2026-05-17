@@ -17,6 +17,7 @@ import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { IoSchool } from "react-icons/io5";
 import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket";
+import queueService from "@/services/queue.service";
 import QRCode from "react-qr-code";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 
@@ -52,6 +53,7 @@ interface DeskWithStatus {
 interface ProjectorViewData {
     session: {
         id: string;
+        course_id?: string;
         title: string;
         pin_code: string;
         status: string;
@@ -90,6 +92,10 @@ export default function ProjectorViewPage() {
     const [isDeskModalOpen, setIsDeskModalOpen] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
 	const [isCutoffConfirmOpen, setIsCutoffConfirmOpen] = useState(false);
+
+    // Close session confirmation
+    const [isCloseSessionOpen, setIsCloseSessionOpen] = useState(false);
+    const [isClosingSession, setIsClosingSession] = useState(false);
 
     // Status toggle states
     const [isTogglingStatus, setIsTogglingStatus] = useState(false);
@@ -137,6 +143,17 @@ export default function ProjectorViewPage() {
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
+    // Warn before closing tab when session is still active
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (data && data.session.status !== "closed") {
+                e.preventDefault();
+            }
+        };
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }, [data]);
 
     // Socket connection for real-time updates
     useEffect(() => {
@@ -305,6 +322,33 @@ export default function ProjectorViewPage() {
             });
         } finally {
             setIsTogglingCutoff(false);
+        }
+    };
+
+    const handleCloseSession = async () => {
+        if (!data?.session.course_id) return;
+        setIsClosingSession(true);
+        try {
+            await queueService.closeQueueSession(data.session.course_id, sessionId);
+            addToast({
+                title: t("ปิดเซสชันสำเร็จ", "Session closed"),
+                description: t("นักศึกษาจะไม่สามารถจองคิวได้อีก", "Students can no longer create bookings."),
+                color: "success",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            setIsCloseSessionOpen(false);
+            fetchData();
+        } catch (err: unknown) {
+            addToast({
+                title: t("เกิดข้อผิดพลาด", "Error"),
+                description: err instanceof Error ? err.message : t("ไม่สามารถปิดเซสชันได้", "Unable to close session"),
+                color: "danger",
+                timeout: 4000,
+                shouldShowTimeoutProgress: true,
+            });
+        } finally {
+            setIsClosingSession(false);
         }
     };
 
@@ -674,6 +718,21 @@ export default function ProjectorViewPage() {
                         <Icon icon={sidebarPosition === 'right' ? "solar:align-bottom-bold" : "solar:align-right-bold"} className="text-xl" />
                     </Button>
 
+                    {/* Close Session */}
+                    {!isClosed && (
+                        <Button
+                            isIconOnly
+                            size="lg"
+                            variant="flat"
+                            color="danger"
+                            className="border border-danger-200 shadow-sm"
+                            onPress={() => setIsCloseSessionOpen(true)}
+                            title={t("ปิดเซสชันคิว", "Close queue session")}
+                        >
+                            <Icon icon="solar:stop-circle-bold" className="text-xl" />
+                        </Button>
+                    )}
+
                     {/* Fullscreen */}
                     <Button
                         isIconOnly
@@ -1009,6 +1068,42 @@ export default function ProjectorViewPage() {
                             className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
                         >
                             {t('ยกเลิกการจอง', 'Cancel booking')}
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
+            {/* Close Session Confirmation Modal */}
+            <Modal isOpen={isCloseSessionOpen} onClose={() => setIsCloseSessionOpen(false)} size="sm">
+                <ModalContent>
+                    <ModalHeader className="text-danger">
+                        {t("ปิดเซสชันคิว", "Close Queue Session")}
+                    </ModalHeader>
+                    <ModalBody>
+                        <div className="space-y-3">
+                            <div className="flex items-start gap-3 rounded-lg bg-warning-50 border border-warning-200 p-3">
+                                <Icon icon="solar:danger-triangle-bold" className="text-warning-600 text-xl flex-shrink-0 mt-0.5" />
+                                <p className="text-sm text-warning-700">
+                                    {t(
+                                        "กรุณาปิดเซสชันก่อนปิดหน้าต่างนี้ เพื่อให้นักศึกษาทราบว่าการจองคิวสิ้นสุดแล้ว",
+                                        "Please close the session before closing this window so students know queue booking has ended."
+                                    )}
+                                </p>
+                            </div>
+                            <p className="text-sm text-default-600">
+                                {t(
+                                    "เมื่อปิดแล้ว นักศึกษาจะไม่สามารถจองคิวใหม่ได้ และเซสชันจะสิ้นสุด",
+                                    "Once closed, students cannot create new bookings and the session will end."
+                                )}
+                            </p>
+                        </div>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button variant="flat" onPress={() => setIsCloseSessionOpen(false)} isDisabled={isClosingSession}>
+                            {t("ยกเลิก", "Cancel")}
+                        </Button>
+                        <Button color="danger" onPress={handleCloseSession} isLoading={isClosingSession}>
+                            {t("ปิดเซสชัน", "Close Session")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>

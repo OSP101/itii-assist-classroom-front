@@ -626,14 +626,14 @@ export default function WorkerDashboardPage() {
 
         socketRef.current = socket;
 
-        // Start polling as fallback (every 3 seconds)
+        // Start polling as fallback (every 30 seconds) - socket handles real-time updates
         pollingRef.current = setInterval(() => {
             // Only poll if no current booking
             if (!currentBooking) {
                 skipPollingRef.current = false;
                 pollForBooking();
             }
-        }, 3000);
+        }, 30000);
 
         return () => {
             socket.emit("leave-queue", sessionId);

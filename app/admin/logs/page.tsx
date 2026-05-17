@@ -25,6 +25,7 @@ import { Select, SelectItem } from "@heroui/select";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
+import { Tabs, Tab } from "@heroui/tabs";
 import { useTableParams } from "@/lib/table/use-table-params";
 import TablePaginationFooter from "@/components/ui/table-pagination-footer";
 import { MetricCardSkeleton, TableRowsSkeleton } from "@/components/ui/resource-loading";
@@ -46,6 +47,8 @@ import {
   type SeverityLevel,
   type LogsFilter,
   type LogStats,
+  getCourseActivityLogs,
+  type CourseActivityLog,
 } from "@/services/systemLog.service";
 
 // Column definitions
@@ -94,6 +97,16 @@ const actionGroupOptions = [
   { key: "member_changes", label: "Member changes" },
   { key: "feedback_actions", label: "Feedback actions" },
   { key: "course_governance", label: "Course governance" },
+];
+
+const caColumns = [
+  { key: "created_at", label: "เวลา" },
+  { key: "course_id", label: "รายวิชา" },
+  { key: "actor", label: "ผู้กระทำ" },
+  { key: "action", label: "Action" },
+  { key: "target_type", label: "ประเภท" },
+  { key: "target_id", label: "รหัสเป้าหมาย" },
+  { key: "description", label: "คำอธิบาย" },
 ];
 
 const privilegedAuditMetaKeys = new Set([
@@ -237,6 +250,23 @@ export default function SystemLogsPage() {
   const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
+  // Tabs state
+  const [activeTab, setActiveTab] = useState("system_logs");
+
+  // Course Activity Tab state
+  const [caLogs, setCaLogs] = useState<CourseActivityLog[]>([]);
+  const [caIsLoading, setCaIsLoading] = useState(false);
+  const [caTotalItems, setCaTotalItems] = useState(0);
+  const [caTotalPages, setCaTotalPages] = useState(1);
+  const [caPage, setCaPage] = useState(1);
+  const [caLimit, setCaLimit] = useState(50);
+  const [caCourseIdInput, setCaCourseIdInput] = useState("");
+  const [caSearchInput, setCaSearchInput] = useState("");
+  const [caDateFrom, setCaDateFrom] = useState("");
+  const [caDateTo, setCaDateTo] = useState("");
+  const [caCourseId, setCaCourseId] = useState("");
+  const [caSearch, setCaSearch] = useState("");
+
   // Calculate date range based on timeRange
   const getDateRange = useCallback(() => {
     const now = new Date();
@@ -338,6 +368,54 @@ export default function SystemLogsPage() {
   useEffect(() => {
     setSearchInput(search);
   }, [search]);
+
+  // Debounce CA course id filter
+  useEffect(() => {
+    const t = setTimeout(() => { setCaCourseId(caCourseIdInput); setCaPage(1); }, 300);
+    return () => clearTimeout(t);
+  }, [caCourseIdInput]);
+
+  // Debounce CA search filter
+  useEffect(() => {
+    const t = setTimeout(() => { setCaSearch(caSearchInput); setCaPage(1); }, 300);
+    return () => clearTimeout(t);
+  }, [caSearchInput]);
+
+  const fetchCourseActivityLogs = useCallback(async () => {
+    setCaIsLoading(true);
+    try {
+      const response = await getCourseActivityLogs({
+        page: caPage,
+        limit: caLimit,
+        course_id: caCourseId || undefined,
+        search: caSearch || undefined,
+        date_from: caDateFrom || undefined,
+        date_to: caDateTo || undefined,
+      });
+      if (response.success && response.data) {
+        setCaLogs(response.data.logs);
+        setCaTotalItems(response.data.pagination.total);
+        setCaTotalPages(response.data.pagination.totalPages);
+      }
+    } catch (error) {
+      console.error("Failed to fetch course activity logs:", error);
+      addToast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถโหลดข้อมูลกิจกรรมรายวิชาได้",
+        color: "danger",
+        timeout: 3000,
+        shouldShowTimeoutProgress: true,
+      });
+    } finally {
+      setCaIsLoading(false);
+    }
+  }, [caPage, caLimit, caCourseId, caSearch, caDateFrom, caDateTo]);
+
+  useEffect(() => {
+    if (activeTab === "course_activity") {
+      fetchCourseActivityLogs();
+    }
+  }, [activeTab, fetchCourseActivityLogs]);
 
   // Handle view detail
   const handleViewDetail = async (log: SystemLog) => {
@@ -544,6 +622,50 @@ export default function SystemLogsPage() {
     }
   };
 
+  const renderCaCell = (log: CourseActivityLog, columnKey: string) => {
+    switch (columnKey) {
+      case "created_at":
+        return (
+          <span className="text-xs text-default-600 whitespace-nowrap">
+            {formatDate(log.created_at)}
+          </span>
+        );
+      case "course_id":
+        return (
+          <span className="text-sm font-mono text-default-700">{log.course_id || "–"}</span>
+        );
+      case "actor":
+        return (
+          <div className="flex flex-col">
+            <span className="text-sm">{log.actor_email || String(log.actor_user_id)}</span>
+            <span className="text-xs text-default-400">{log.actor_role}</span>
+          </div>
+        );
+      case "action":
+        return (
+          <span className="text-sm font-mono truncate block max-w-40" title={log.action}>
+            {log.action}
+          </span>
+        );
+      case "target_type":
+        return (
+          <Chip size="sm" variant="flat" color="default">
+            {log.target_type || "–"}
+          </Chip>
+        );
+      case "target_id":
+        return (
+          <span className="text-xs font-mono text-default-500">{log.target_id || "–"}</span>
+        );
+      case "description":
+        return (
+          <span className="text-sm text-default-600 line-clamp-2">{log.description || "–"}</span>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
@@ -584,9 +706,20 @@ export default function SystemLogsPage() {
         </div>
       </div>
 
+      {/* Tabs */}
+      <Tabs
+        aria-label="บันทึก tabs"
+        selectedKey={activeTab}
+        onSelectionChange={(key) => setActiveTab(String(key))}
+        variant="underlined"
+        classNames={{ tabList: "border-b border-divider" }}
+      >
+        <Tab key="system_logs" title="System Logs">
+          <div className="flex flex-col gap-4 sm:gap-6">
+
       {/* Stats Cards */}
       {stats ? (
-        <div className="space-y-2 sm:space-y-4">
+        <div key="stats-loaded" className="flex flex-col gap-2 sm:gap-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
             <div className="rounded-xl border border-default-200 bg-content1 p-3 shadow-sm sm:p-4">
               <div className="flex items-center gap-2 sm:gap-3">
@@ -617,7 +750,8 @@ export default function SystemLogsPage() {
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs sm:text-sm text-default-500">ผิดพลาด</p>
-                  <p className="text-lg sm:text-2xl font-bold text-foreground">{getLogTypeCount("error").toLocaleString()}</p>
+                  {/* severity === "error" count; falls back to log_type count if bySeverity is absent */}
+                  <p className="text-lg sm:text-2xl font-bold text-foreground">{(stats.bySeverity?.find(s => s.severity === "error")?.count ?? getLogTypeCount("error")).toLocaleString()}</p>
                 </div>
               </div>
             </div>
@@ -685,7 +819,7 @@ export default function SystemLogsPage() {
           </div>
         </div>
       ) : isStatsLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
+        <div key="stats-loading" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
           <MetricCardSkeleton iconClassName="bg-blue-100" />
           <MetricCardSkeleton iconClassName="bg-cyan-100" />
           <MetricCardSkeleton iconClassName="bg-red-100" />
@@ -943,6 +1077,122 @@ export default function SystemLogsPage() {
         />
       </div>
 
+          </div>
+        </Tab>
+
+        <Tab key="course_activity" title="กิจกรรมรายวิชา">
+          <div className="flex flex-col gap-4 pt-2">
+            <div className="overflow-hidden rounded-xl border border-default-200 bg-content1 shadow-sm">
+              <div className="p-3 sm:p-4">
+                <div className="flex flex-col gap-3 pb-3 sm:pb-4">
+                  <div className="flex flex-wrap gap-2">
+                    <Input
+                      className="flex-1 min-w-40"
+                      aria-label="รหัสรายวิชา"
+                      placeholder="รหัสรายวิชา..."
+                      value={caCourseIdInput}
+                      onValueChange={(v) => setCaCourseIdInput(v)}
+                      startContent={<Icon icon="solar:book-linear" className="text-default-400" />}
+                      isClearable
+                      onClear={() => setCaCourseIdInput("")}
+                      classNames={{ inputWrapper: "bg-content2 border-default-200 hover:border-default-300" }}
+                    />
+                    <Input
+                      className="flex-1 min-w-40"
+                      aria-label="ค้นหา action"
+                      placeholder="ค้นหา action..."
+                      value={caSearchInput}
+                      onValueChange={(v) => setCaSearchInput(v)}
+                      startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
+                      isClearable
+                      onClear={() => setCaSearchInput("")}
+                      classNames={{ inputWrapper: "bg-content2 border-default-200 hover:border-default-300" }}
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Input
+                      type="date"
+                      label="ตั้งแต่"
+                      value={caDateFrom}
+                      onValueChange={setCaDateFrom}
+                      className="flex-1 min-w-36"
+                      size="sm"
+                      classNames={{ inputWrapper: "bg-content2 border-default-200 hover:border-default-300" }}
+                    />
+                    <Input
+                      type="date"
+                      label="ถึง"
+                      value={caDateTo}
+                      onValueChange={setCaDateTo}
+                      className="flex-1 min-w-36"
+                      size="sm"
+                      classNames={{ inputWrapper: "bg-content2 border-default-200 hover:border-default-300" }}
+                    />
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto -mx-3 sm:-mx-4 px-3 sm:px-4">
+                  <div className="min-w-200">
+                    <Table
+                      aria-label="Course activity logs table"
+                      removeWrapper
+                      classNames={{
+                        th: "bg-content2 text-default-600 font-semibold text-xs sm:text-sm",
+                        td: "py-2 sm:py-3 text-sm",
+                      }}
+                    >
+                      <TableHeader columns={caColumns}>
+                        {(column) => (
+                          <TableColumn key={column.key} align="start">
+                            {column.label}
+                          </TableColumn>
+                        )}
+                      </TableHeader>
+                      <TableBody
+                        items={caLogs}
+                        isLoading={caIsLoading}
+                        loadingContent={
+                          <TableRowsSkeleton
+                            rows={Math.min(caLimit, 12)}
+                            columns={["w-24", "w-20", "w-28", "w-32", "w-20", "w-20", "w-40"]}
+                          />
+                        }
+                        emptyContent={
+                          <div className="py-10 text-center">
+                            <Icon icon="solar:document-text-linear" className="text-5xl text-default-300 mx-auto mb-3" />
+                            <p className="text-default-400">ไม่พบข้อมูลกิจกรรมรายวิชา</p>
+                          </div>
+                        }
+                      >
+                        {(log) => (
+                          <TableRow key={log.id}>
+                            {(columnKey) => (
+                              <TableCell>{renderCaCell(log, columnKey as string)}</TableCell>
+                            )}
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </div>
+
+              <TablePaginationFooter
+                totalItems={caTotalItems}
+                currentPage={caPage}
+                rowsPerPage={caLimit}
+                totalPages={caTotalPages}
+                isEnglish={false}
+                nounEnglish="log entry"
+                nounThai="รายการ"
+                onPageChange={setCaPage}
+                onRowsPerPageChange={setCaLimit}
+              />
+            </div>
+          </div>
+        </Tab>
+      </Tabs>
+
       {/* Log Detail Modal */}
       <Modal
         isOpen={isDetailModalOpen}
@@ -976,11 +1226,11 @@ export default function SystemLogsPage() {
               </ModalHeader>
               <ModalBody className="py-5">
                 {isLoadingDetail ? (
-                  <div className="flex justify-center py-8">
+                  <div key="modal-loading" className="flex justify-center py-8">
                     <Spinner label="กำลังโหลด..." />
                   </div>
                 ) : selectedLog ? (
-                  <div className="space-y-5">
+                  <div key="modal-content" className="flex flex-col gap-5">
                     {/* Basic Info */}
                     <div className="flex flex-wrap gap-3">
                       <Chip color={getLogTypeBadgeColor(selectedLog.log_type)} variant="flat" size="lg">
@@ -1015,7 +1265,7 @@ export default function SystemLogsPage() {
                           <h4 className="font-semibold text-sm">Request Information</h4>
                         </div>
                       </CardHeader>
-                      <CardBody className="pt-0 space-y-3">
+                      <CardBody className="pt-0 flex flex-col gap-3">
                         <div>
                           <p className="text-xs text-default-500 mb-1">Action</p>
                           <p className="font-mono text-sm bg-default-100 px-3 py-2 rounded-lg">{selectedLog.action}</p>
@@ -1053,7 +1303,7 @@ export default function SystemLogsPage() {
                             <h4 className="font-semibold text-sm">Privileged Investigation Summary</h4>
                           </div>
                         </CardHeader>
-                        <CardBody className="pt-0 space-y-3">
+                        <CardBody className="pt-0 flex flex-col gap-3">
                           <div className="flex flex-wrap gap-2">
                             <Chip color="warning" variant="flat" size="sm">
                               {formatDetailValue(selectedPrivilegedDetail.target_type)}
@@ -1211,7 +1461,7 @@ export default function SystemLogsPage() {
                             <h4 className="font-semibold text-sm text-danger">Error Information</h4>
                           </div>
                         </CardHeader>
-                        <CardBody className="pt-0 space-y-3">
+                        <CardBody className="pt-0 flex flex-col gap-3">
                           {selectedLog.error_code && (
                             <Chip color="danger" variant="flat" size="sm">
                               {selectedLog.error_code}
