@@ -32,7 +32,7 @@ import TablePaginationFooter, { DEFAULT_TABLE_ROWS_PER_PAGE } from "@/components
 import { MetricCardSkeleton, TableRowsSkeleton } from "@/components/ui/resource-loading";
 import { useI18n } from "@/hooks/useI18n";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
-import * as XLSX from "xlsx";
+import type ExcelJS from "exceljs";
 
 // Column definitions
 const columnDefs = [
@@ -207,25 +207,41 @@ export default function StudentsPage() {
         setOriginalFormData(null);
     };
 
-    // Extract student rows from a parsed XLSX workbook (binary XLS/XLSX path)
-    const extractStudentsFromWorkbook = (workbook: XLSX.WorkBook): CreateStudentDto[] => {
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1, defval: "" });
+    // Extract student rows from a parsed ExcelJS workbook (XLSX path)
+    const extractStudentsFromWorkbook = async (arrayBuffer: ArrayBuffer): Promise<CreateStudentDto[]> => {
+        const { default: ExcelJSLib } = await import("exceljs");
+        const workbook: ExcelJS.Workbook = new ExcelJSLib.Workbook();
+        await workbook.xlsx.load(arrayBuffer);
+        const worksheet = workbook.worksheets[0];
+        if (!worksheet) return [];
+        const getCellText = (cell: ExcelJS.Cell): string => {
+            const v = cell.value;
+            if (v == null) return "";
+            if (typeof v === "object" && "richText" in v) {
+                return (v as { richText: Array<{ text: string }> }).richText.map(r => r.text).join("");
+            }
+            if (typeof v === "object" && "result" in v) {
+                return String((v as { result: unknown }).result ?? "");
+            }
+            if (typeof v === "object" && "text" in v) {
+                return String((v as { text: unknown }).text ?? "");
+            }
+            return String(v);
+        };
         const studentIdPattern = /^\d{9}-\d$/;
         const results: CreateStudentDto[] = [];
-        for (const row of rows) {
-            const raw = String(row[1] ?? "").trim();
-            if (!studentIdPattern.test(raw)) continue;
-            const fullName = String(row[2] ?? "").trim();
-            if (!fullName) continue;
-            const email = String(row[3] ?? "").trim();
-            const program = String(row[4] ?? "").trim();
+        worksheet.eachRow({ includeEmpty: false }, (row) => {
+            const raw = getCellText(row.getCell(2)).trim();
+            if (!studentIdPattern.test(raw)) return;
+            const fullName = getCellText(row.getCell(3)).trim();
+            if (!fullName) return;
+            const email = getCellText(row.getCell(4)).trim();
+            const program = getCellText(row.getCell(5)).trim();
             const dto: CreateStudentDto = { student_id: raw, full_name: fullName };
             if (email) dto.email = email;
             if (program) dto.extra = { program };
             results.push(dto);
-        }
+        });
         return results;
     };
 
@@ -273,12 +289,14 @@ export default function StudentsPage() {
                 reader.onerror = reject;
 
                 if (isBinary) {
+                    if (header[0] === 0xD0 && header[1] === 0xCF) {
+                        // OLE2 binary .xls — not supported; ask user to convert
+                        return reject(new Error("binary_xls"));
+                    }
                     reader.onload = (e) => {
-                        try {
-                            const data = new Uint8Array(e.target?.result as ArrayBuffer);
-                            const workbook = XLSX.read(data, { type: "array" });
-                            resolve(extractStudentsFromWorkbook(workbook));
-                        } catch (err) { reject(err); }
+                        extractStudentsFromWorkbook(e.target?.result as ArrayBuffer)
+                            .then(resolve)
+                            .catch(reject);
                     };
                     reader.readAsArrayBuffer(file);
                 } else {
@@ -304,8 +322,12 @@ export default function StudentsPage() {
             if (students.length === 0) {
                 addToast({ title: t("noValidImportData"), description: t("checkImportFormatNeedsIdAndName"), color: "warning", timeout: 3000, shouldShowTimeoutProgress: true });
             }
-        } catch {
-            addToast({ title: t("fileParseError"), color: "danger", timeout: 3000, shouldShowTimeoutProgress: true });
+        } catch (err) {
+            if (err instanceof Error && err.message === "binary_xls") {
+                addToast({ title: t("fileParseError"), description: t("binaryXlsNotSupported"), color: "warning", timeout: 5000, shouldShowTimeoutProgress: true });
+            } else {
+                addToast({ title: t("fileParseError"), color: "danger", timeout: 3000, shouldShowTimeoutProgress: true });
+            }
         }
     };
 

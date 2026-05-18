@@ -101,10 +101,10 @@ export default function DeskScanPage() {
   // ── Loading ──────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-sky-500 via-sky-600 to-cyan-600 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-br from-sky-500 via-sky-600 to-cyan-600 flex items-center justify-center p-4">
         <Card className="w-full max-w-md shadow-2xl">
           <CardBody className="p-8 flex flex-col items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-sky-400 to-cyan-500 rounded-2xl flex items-center justify-center">
+            <div className="w-16 h-16 bg-linear-to-br from-sky-400 to-cyan-500 rounded-2xl flex items-center justify-center">
               <Icon icon="solar:qr-code-bold-duotone" className="text-3xl text-white" />
             </div>
             <Spinner size="lg" color="primary" />
@@ -118,7 +118,7 @@ export default function DeskScanPage() {
   // ── Error ─────────────────────────────────────────────────────────────────
   if (error || !info) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-sky-500 via-sky-600 to-cyan-600 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-br from-sky-500 via-sky-600 to-cyan-600 flex items-center justify-center p-4">
         <Card className="w-full max-w-md shadow-2xl">
           <CardBody className="p-8 flex flex-col items-center gap-4 text-center">
             <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center">
@@ -151,13 +151,13 @@ export default function DeskScanPage() {
   // ── Active session(s) found ───────────────────────────────────────────────
   if (hasActiveSessions) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-sky-500 via-sky-600 to-cyan-600 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-br from-sky-500 via-sky-600 to-cyan-600 flex items-center justify-center p-4">
         <div className="w-full max-w-md space-y-3">
           {/* Desk header card */}
           <Card className="shadow-2xl">
             <CardBody className="p-6">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-400 to-cyan-500 flex items-center justify-center shrink-0">
+                <div className="w-14 h-14 rounded-2xl bg-linear-to-br from-sky-400 to-cyan-500 flex items-center justify-center shrink-0">
                   <Icon
                     icon={deskTypeIcon[desk.type] ?? "solar:chair-bold-duotone"}
                     className="text-3xl text-white"
@@ -210,7 +210,7 @@ export default function DeskScanPage() {
                         {session.course.code} — {session.course.name}
                       </p>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 to-cyan-500 flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-linear-to-br from-sky-400 to-cyan-500 flex items-center justify-center shrink-0">
                       <Icon icon="solar:ticket-bold" className="text-xl text-white" />
                     </div>
                   </div>
@@ -220,7 +220,7 @@ export default function DeskScanPage() {
                   <Button
                     color="primary"
                     size="lg"
-                    className="w-full bg-gradient-to-r from-sky-500 to-cyan-500"
+                    className="w-full bg-linear-to-r from-sky-500 to-cyan-500"
                     isDisabled={session.status === "paused"}
                     onPress={() => handleBookSession(session)}
                     startContent={<Icon icon="solar:ticket-bold" className="text-lg" />}
@@ -255,7 +255,7 @@ export default function DeskScanPage() {
               <>
                 <ModalHeader className="flex flex-col gap-1 pb-2">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-400 to-cyan-500 flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-2xl bg-linear-to-br from-sky-400 to-cyan-500 flex items-center justify-center shrink-0">
                       <Icon icon="solar:ticket-bold-duotone" className="text-xl text-white" />
                     </div>
                     <div className="min-w-0">
@@ -312,7 +312,7 @@ export default function DeskScanPage() {
                     ยกเลิก
                   </Button>
                   <Button
-                    className="flex-1 bg-gradient-to-r from-sky-500 to-cyan-500 text-white font-semibold"
+                    className="flex-1 bg-linear-to-r from-sky-500 to-cyan-500 text-white font-semibold"
                     onPress={handleConfirmBooking}
                     startContent={<Icon icon="solar:ticket-bold" />}
                   >
@@ -329,13 +329,13 @@ export default function DeskScanPage() {
 
   // ── No active sessions – show desk info ──────────────────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-500 via-sky-600 to-cyan-600 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-sky-500 via-sky-600 to-cyan-600 flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-3">
         <Card className="shadow-2xl">
           <CardBody className="p-7">
             {/* Icon + desk number */}
             <div className="text-center mb-6">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-sky-400 to-cyan-500 flex items-center justify-center">
+              <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-linear-to-br from-sky-400 to-cyan-500 flex items-center justify-center">
                 <Icon
                   icon={deskTypeIcon[desk.type] ?? "solar:chair-bold-duotone"}
                   className="text-4xl text-white"
