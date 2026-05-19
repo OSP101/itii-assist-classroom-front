@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
   experimental: {
     useCache: true,
   },
+  compiler: {
+    removeConsole: true,
+  },
 };
 
 export default nextConfig;

@@ -1,0 +1,24 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
+    image: itii-assist-frontend:latest
+    container_name: itii-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_EXPOSE_PORT:-3000}:3000"
+    environment:
+      TZ: Asia/Bangkok
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
+    networks:
+      - itii-net
+
+networks:
+  itii-net:
+    name: itii-net
+    external: true

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { Icon } from "@iconify/react";
+import { useI18n } from "@/hooks/useI18n";
 import {
   studentService,
   type AttendanceRecordData,
@@ -13,21 +14,23 @@ import {
   type MyStudentCourseResponse,
 } from "@/services/student.service";
 import userNotificationService, { type UserNotificationItem } from "@/services/user-notification.service";
+import { getMyExamSeats, type MyExamSeat } from "@/services/examSeat.service";
 
 // ─── tabs ─────────────────────────────────────────────────────────────────────
 
-const tabs    = ["ภาพรวม", "คะแนน", "เช็กชื่อ", "อัปเดต"] as const;
-const tabKeys = ["Overview", "Scores", "Attendance", "Updates"] as const;
+const tabs    = ["ภาพรวม", "คะแนน", "เช็กชื่อ", "ที่นั่งสอบ", "อัปเดต"] as const;
+const tabKeys = ["Overview", "Scores", "Attendance", "ExamSeats", "Updates"] as const;
 type TabKey = (typeof tabKeys)[number];
 
 const TAB_MAP: Record<string, TabKey> = {
-  Overview: "Overview", Scores: "Scores", Attendance: "Attendance", Updates: "Updates",
+  Overview: "Overview", Scores: "Scores", Attendance: "Attendance", ExamSeats: "ExamSeats", Updates: "Updates",
 };
 
 const TAB_ICONS: Record<TabKey, string> = {
   Overview:   "solar:chart-square-bold-duotone",
   Scores:     "solar:medal-star-bold-duotone",
   Attendance: "solar:calendar-mark-bold-duotone",
+  ExamSeats:  "solar:armchair-bold-duotone",
   Updates:    "solar:bell-bing-bold-duotone",
 };
 
@@ -251,6 +254,7 @@ function NotifCard({ n }: { n: UserNotificationItem }) {
 export default function StudentCourseDetailPage() {
   const params = useParams<{ courseId: string }>();
   const searchParams = useSearchParams();
+  const t = useI18n();
   const requestedTab = searchParams.get("tab");
   const initialTabKey: TabKey = (requestedTab && TAB_MAP[requestedTab]) ? TAB_MAP[requestedTab] : "Overview";
   const [activeTab, setActiveTab] = useState<TabKey>(initialTabKey);
@@ -258,6 +262,8 @@ export default function StudentCourseDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [notifs, setNotifs] = useState<UserNotificationItem[]>([]);
+  const [examSeats, setExamSeats] = useState<MyExamSeat[]>([]);
+  const [isExamSeatsLoading, setIsExamSeatsLoading] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -293,6 +299,24 @@ export default function StudentCourseDetailPage() {
     const key = requestedTab && TAB_MAP[requestedTab] ? TAB_MAP[requestedTab] : "Overview";
     setActiveTab(key);
   }, [requestedTab]);
+
+  useEffect(() => {
+    if (activeTab !== "ExamSeats" || !params.courseId) return;
+    let active = true;
+    const loadSeats = async () => {
+      setIsExamSeatsLoading(true);
+      try {
+        const seats = await getMyExamSeats(params.courseId);
+        if (active) setExamSeats(seats);
+      } catch {
+        // silently ignore — seats may not be configured yet
+      } finally {
+        if (active) setIsExamSeatsLoading(false);
+      }
+    };
+    void loadSeats();
+    return () => { active = false; };
+  }, [activeTab, params.courseId]);
 
   // ── loading ──
   if (isLoading) {
@@ -335,6 +359,18 @@ export default function StudentCourseDetailPage() {
   const totalAttend = course.attendance.summary.present + course.attendance.summary.late + course.attendance.summary.leave + course.attendance.summary.absent;
   const attendPct = totalAttend > 0 ? Math.round((course.attendance.summary.present / totalAttend) * 100) : 0;
   const initials = course.course.code.replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase() || course.course.code.slice(0, 2).toUpperCase();
+  const tabLabels: Record<TabKey, string> = {
+    Overview: tabs[0],
+    Scores: tabs[1],
+    Attendance: tabs[2],
+    ExamSeats: t("examSeats"),
+    Updates: tabs[4],
+  };
+  const formatExamSeatType = (seat: MyExamSeat) => {
+    const examTypeLabel = seat.exam_type === "midterm" ? t("midtermExam") : t("finalExam");
+    const componentLabel = seat.component === "lab" ? t("practicalComponent") : t("lectureComponent");
+    return `${examTypeLabel} (${componentLabel})`;
+  };
 
   // group assignments by type
   const assignByType: Record<string, AssignmentScore[]> = {};
@@ -399,7 +435,7 @@ export default function StudentCourseDetailPage() {
             }`}
           >
             <Icon icon={TAB_ICONS[key]} className="text-sm" />
-            {tabs[i]}
+            {tabLabels[key] ?? tabs[i]}
           </button>
         ))}
       </div>
@@ -611,6 +647,51 @@ export default function StudentCourseDetailPage() {
               <Icon icon="solar:calendar-bold-duotone" className="text-3xl text-slate-300" />
               <p className="text-sm text-slate-400">ยังไม่มีบันทึกการเช็กชื่อ</p>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* ── EXAM SEATS tab ─────────────────────────────── */}
+      {activeTab === "ExamSeats" && (
+        <div className="space-y-3">
+          {isExamSeatsLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500" />
+            </div>
+          ) : examSeats.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 rounded-4xl border border-dashed border-slate-200 bg-white/60 py-12 text-center">
+              <Icon icon="solar:armchair-bold-duotone" className="text-3xl text-slate-300" />
+              <p className="text-sm text-slate-400">{t("studentExamSeatEmpty")}</p>
+            </div>
+          ) : (
+            examSeats.map((seat) => (
+              <div key={`${seat.session_id}-${seat.exam_type}-${seat.component}`} className="rounded-4xl border border-indigo-100 bg-white/90 p-4 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600">
+                    <Icon icon="solar:armchair-bold-duotone" />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-bold text-slate-900">{formatExamSeatType(seat)}</p>
+                      <span className="rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
+                        {seat.exam_date}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">{seat.start_time}–{seat.end_time}</p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="flex items-center gap-1.5 rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+                        <Icon icon="solar:buildings-bold" className="text-sky-500" />
+                        {seat.classroom_name}
+                      </span>
+                      <span className="flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                        <Icon icon="solar:chair-bold" className="text-emerald-500" />
+                        {t("studentExamSeatChip", { seat: seat.seat_label || `${seat.classroom_name}-${seat.desk_number}` })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
           )}
         </div>
       )}

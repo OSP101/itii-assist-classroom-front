@@ -101,6 +101,10 @@ const TAStatsTab = dynamic(() => import("./components/TAStatsTab"), {
     loading: () => <TabListSkeleton />,
 });
 
+const ExamSeatsTab = dynamic(() => import("./components/exam-seats/ExamSeatsTab"), {
+    loading: () => <TabListSkeleton />,
+});
+
 const preloadDynamic = (component: ComponentType<any>) => {
     (component as ComponentType<any> & { preload?: () => void }).preload?.();
 };
@@ -112,6 +116,7 @@ const TAB_PRELOADERS: Partial<Record<ClassroomTabKey, () => void>> = {
     assignments: () => preloadDynamic(AssignmentsTab),
     scores: () => preloadDynamic(ScoresTab),
     "exam-scores": () => preloadDynamic(ExamScoresTab),
+    "exam-seats": () => preloadDynamic(ExamSeatsTab),
     approval: () => preloadDynamic(ScoreApprovalTab),
     attendance: () => preloadDynamic(AttendanceTab),
     queue: () => preloadDynamic(QueueTab),
@@ -127,6 +132,7 @@ export type ClassroomTabKey =
     | "assignments"
     | "scores"
     | "exam-scores"
+    | "exam-seats"
     | "approval"
     | "attendance"
     | "queue"
@@ -141,6 +147,7 @@ const TAB_ROUTE_MAP: Record<ClassroomTabKey, string> = {
     assignments: "assignments",
     scores: "scores",
     "exam-scores": "exam-scores",
+    "exam-seats": "exam-seats",
     approval: "approval",
     attendance: "attendance",
     queue: "queue",
@@ -1462,6 +1469,13 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                             canCreateExamScores={isAdminAccess || currentCoursePermissions.create_exam_scores}
                                             canUpdateExamScores={isAdminAccess || currentCoursePermissions.update_exam_scores}
                                             canUpdateExamSettings={isAdminAccess || currentCoursePermissions.update_exam_settings}
+                                        />
+                                    )}
+
+                                    {activeTab === "exam-seats" && canAccessExamScores && (
+                                        <ExamSeatsTab
+                                            courseId={courseId}
+                                            isCourseActive={course.is_active}
                                         />
                                     )}
 

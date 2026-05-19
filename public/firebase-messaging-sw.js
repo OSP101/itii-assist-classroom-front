@@ -13,8 +13,6 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Background message received:', payload);
-
   const title =
     payload.notification?.title ||
     payload.data?.title ||
@@ -72,11 +70,9 @@ self.addEventListener('notificationclick', (event) => {
  * Service Worker lifecycle
  */
 self.addEventListener('install', () => {
-  console.log('[firebase-messaging-sw.js] Installed');
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('[firebase-messaging-sw.js] Activated');
   event.waitUntil(self.clients.claim());
 });

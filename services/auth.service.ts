@@ -443,6 +443,13 @@ class AuthService {
    * Get user info from API (for OAuth callback)
    */
   async getMe(): Promise<{ success: boolean; user?: User; error?: string }> {
+    if (!apiService.isAuthenticated()) {
+      return {
+        success: false,
+        error: 'Not authenticated',
+      };
+    }
+
     const response = await apiService.get<{ user: User }>(API_ENDPOINTS.ME);
 
     if (response.success && response.data) {
