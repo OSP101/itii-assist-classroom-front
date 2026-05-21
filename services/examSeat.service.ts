@@ -87,10 +87,44 @@ export interface MyExamSeat {
     exam_date: string;
     start_time: string;
     end_time: string;
+    classroom_id: string;
     classroom_name: string;
+    building: string;
+    floor: string;
     desk_number: number;
     seat_number: number;
     seat_label: string;
+}
+
+export interface MyExamSeatLayoutDesk {
+    desk_id: string;
+    desk_number: number;
+    desk_type: 'computer' | 'normal' | 'teacher' | string;
+    x: number;
+    y: number;
+    seat_number: number;
+    seat_label: string;
+    student_id: string;
+    student_name: string;
+    is_mine: boolean;
+}
+
+export interface MyExamSeatLayout {
+    session_id: number;
+    exam_type: string;
+    component: string;
+    exam_date: string;
+    start_time: string;
+    end_time: string;
+    classroom_id: string;
+    classroom_name: string;
+    building: string;
+    floor: string;
+    my_desk_id: string;
+    my_desk_number: number;
+    my_seat_number: number;
+    my_seat_label: string;
+    desks: MyExamSeatLayoutDesk[];
 }
 
 export interface ExportSeatRow {
@@ -119,7 +153,9 @@ export const getExamSessions = async (courseId: string): Promise<ExamSession[]> 
 export const createExamSession = async (
     courseId: string,
     payload: {
-        exam_setting_id: number;
+        exam_setting_id?: number;
+        exam_type: "midterm" | "final";
+        component: "lecture" | "lab";
         exam_date: string;
         start_time: string;
         end_time: string;
@@ -253,7 +289,9 @@ export const importExamSeatsPreview = async (
 export const importExamSeatsCommit = async (
     courseId: string,
     payload: {
-        exam_setting_id: number;
+        exam_setting_id?: number;
+        exam_type: "midterm" | "final";
+        component: "lecture" | "lab";
         exam_date: string;
         start_time: string;
         end_time: string;
@@ -273,5 +311,10 @@ export const importExamSeatsCommit = async (
 
 export const getMyExamSeats = async (courseId: string): Promise<MyExamSeat[]> => {
     const res = await apiService.get<MyExamSeat[]>(`/courses/${courseId}/my-exam-seats`);
+    return res.data ?? [];
+};
+
+export const getMyExamSeatLayouts = async (courseId: string): Promise<MyExamSeatLayout[]> => {
+    const res = await apiService.get<MyExamSeatLayout[]>(`/courses/${courseId}/my-exam-seats/layouts`);
     return res.data ?? [];
 };

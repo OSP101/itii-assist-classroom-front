@@ -1076,6 +1076,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
         ...(canAccessAssignments ? [{ key: "assignments", label: t("classwork"), icon: "solar:clipboard-list-bold" }] : []),
         ...(canAccessScores ? [{ key: "scores", label: t("classroomScores"), icon: "solar:chart-square-bold" }] : []),
         ...(canAccessExamScores ? [{ key: "exam-scores", label: t("examScores"), icon: "solar:diploma-bold" }] : []),
+        ...(canAccessExamScores ? [{ key: "exam-seats", label: t("examSeatManagement"), icon: "solar:armchair-bold" }] : []),
         ...(canAccessApproval ? [{
             key: "approval",
             label: approvalRole === "ta" ? t("scoreRequestStatus") : t("scoreApproval"),

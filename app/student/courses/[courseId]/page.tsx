@@ -14,7 +14,7 @@ import {
   type MyStudentCourseResponse,
 } from "@/services/student.service";
 import userNotificationService, { type UserNotificationItem } from "@/services/user-notification.service";
-import { getMyExamSeats, type MyExamSeat } from "@/services/examSeat.service";
+import { getMyExamSeatLayouts, type MyExamSeatLayout } from "@/services/examSeat.service";
 
 // ─── tabs ─────────────────────────────────────────────────────────────────────
 
@@ -88,6 +88,25 @@ function notifTypeColor(type: string) {
   if (type.startsWith("attendance")) return "bg-emerald-50 text-emerald-600";
   if (type.startsWith("score")) return "bg-amber-50 text-amber-600";
   return "bg-sky-50 text-sky-600";
+}
+
+function getSeatMapMetrics(desks: MyExamSeatLayout["desks"]) {
+  if (desks.length === 0) {
+    return { minX: 0, minY: 0, width: 100, height: 100 };
+  }
+
+  const padding = 40;
+  const minX = Math.min(...desks.map((desk) => desk.x));
+  const minY = Math.min(...desks.map((desk) => desk.y));
+  const maxX = Math.max(...desks.map((desk) => desk.x));
+  const maxY = Math.max(...desks.map((desk) => desk.y));
+
+  return {
+    minX: minX - padding,
+    minY: minY - padding,
+    width: Math.max(220, (maxX - minX) + (padding * 2)),
+    height: Math.max(160, (maxY - minY) + (padding * 2)),
+  };
 }
 
 // ─── sub-components ───────────────────────────────────────────────────────────
@@ -262,8 +281,13 @@ export default function StudentCourseDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [notifs, setNotifs] = useState<UserNotificationItem[]>([]);
-  const [examSeats, setExamSeats] = useState<MyExamSeat[]>([]);
+  const [examSeatLayouts, setExamSeatLayouts] = useState<MyExamSeatLayout[]>([]);
   const [isExamSeatsLoading, setIsExamSeatsLoading] = useState(false);
+  const [mapZoomPercent, setMapZoomPercent] = useState(100);
+  const [showSeatNames, setShowSeatNames] = useState(false);
+  const [printWithNames, setPrintWithNames] = useState(false);
+  const [mapDeskFilter, setMapDeskFilter] = useState<"all" | "computer" | "normal" | "teacher">("all");
+  const [showDeskNumbers, setShowDeskNumbers] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -306,8 +330,8 @@ export default function StudentCourseDetailPage() {
     const loadSeats = async () => {
       setIsExamSeatsLoading(true);
       try {
-        const seats = await getMyExamSeats(params.courseId);
-        if (active) setExamSeats(seats);
+        const layouts = await getMyExamSeatLayouts(params.courseId);
+        if (active) setExamSeatLayouts(layouts);
       } catch {
         // silently ignore — seats may not be configured yet
       } finally {
@@ -317,6 +341,68 @@ export default function StudentCourseDetailPage() {
     void loadSeats();
     return () => { active = false; };
   }, [activeTab, params.courseId]);
+
+  const seatMapPrefsKey = data
+    ? `student-exam-seat-map:${data.student.id}:${params.courseId}`
+    : "";
+
+  useEffect(() => {
+    if (!seatMapPrefsKey) return;
+
+    try {
+      const raw = window.localStorage.getItem(seatMapPrefsKey);
+      if (!raw) return;
+
+      const parsed = JSON.parse(raw) as {
+        mapZoomPercent?: number;
+        showSeatNames?: boolean;
+        mapDeskFilter?: "all" | "computer" | "normal" | "teacher";
+        printWithNames?: boolean;
+        showDeskNumbers?: boolean;
+      };
+
+      if (typeof parsed.mapZoomPercent === "number") {
+        setMapZoomPercent(Math.max(80, Math.min(180, parsed.mapZoomPercent)));
+      }
+      if (typeof parsed.showSeatNames === "boolean") {
+        setShowSeatNames(parsed.showSeatNames);
+      }
+      if (typeof parsed.printWithNames === "boolean") {
+        setPrintWithNames(parsed.printWithNames);
+      }
+      if (typeof parsed.showDeskNumbers === "boolean") {
+        setShowDeskNumbers(parsed.showDeskNumbers);
+      }
+      if (parsed.mapDeskFilter && ["all", "computer", "normal", "teacher"].includes(parsed.mapDeskFilter)) {
+        setMapDeskFilter(parsed.mapDeskFilter);
+      }
+    } catch {
+      // Ignore malformed preference payload
+    }
+  }, [seatMapPrefsKey]);
+
+  useEffect(() => {
+    if (!seatMapPrefsKey) return;
+
+    window.localStorage.setItem(
+      seatMapPrefsKey,
+      JSON.stringify({
+        mapZoomPercent,
+        showSeatNames,
+        mapDeskFilter,
+        printWithNames,
+        showDeskNumbers,
+      })
+    );
+  }, [mapDeskFilter, mapZoomPercent, printWithNames, seatMapPrefsKey, showDeskNumbers, showSeatNames]);
+
+  const resetSeatMapView = () => {
+    setMapZoomPercent(100);
+    setShowSeatNames(false);
+    setPrintWithNames(false);
+    setMapDeskFilter("all");
+    setShowDeskNumbers(false);
+  };
 
   // ── loading ──
   if (isLoading) {
@@ -366,10 +452,88 @@ export default function StudentCourseDetailPage() {
     ExamSeats: t("examSeats"),
     Updates: tabs[4],
   };
-  const formatExamSeatType = (seat: MyExamSeat) => {
+  const formatExamSeatType = (seat: MyExamSeatLayout) => {
     const examTypeLabel = seat.exam_type === "midterm" ? t("midtermExam") : t("finalExam");
     const componentLabel = seat.component === "lab" ? t("practicalComponent") : t("lectureComponent");
     return `${examTypeLabel} (${componentLabel})`;
+  };
+
+  const escapeHtml = (raw: string) => raw
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+
+  const handlePrintSeatLayout = (layout: MyExamSeatLayout) => {
+    const metrics = getSeatMapMetrics(layout.desks);
+    const printWindow = window.open("", "_blank", "noopener,noreferrer,width=1100,height=760");
+    if (!printWindow) {
+      window.alert(t("studentExamSeatPrintFailed"));
+      return;
+    }
+
+    const dotsHtml = layout.desks.map((desk) => {
+      const left = ((desk.x - metrics.minX) / metrics.width) * 100;
+      const top = ((desk.y - metrics.minY) / metrics.height) * 100;
+      const isTeacher = desk.desk_type === "teacher";
+      const isAssigned = Boolean(desk.student_id);
+      const bg = desk.is_mine
+        ? "#0284c7"
+        : isTeacher
+          ? "#f59e0b"
+          : isAssigned
+            ? "#10b981"
+            : "#94a3b8";
+      const size = desk.is_mine ? 14 : 10;
+      const label = desk.seat_label || `Desk ${desk.desk_number}`;
+      const studentName = desk.student_name ? ` - ${desk.student_name}` : "";
+
+      return `<div style="position:absolute;left:${left}%;top:${top}%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:2px;">
+        <span title="${escapeHtml(`${label}${studentName}`)}" style="display:block;width:${size}px;height:${size}px;border-radius:9999px;background:${bg};${desk.is_mine ? "box-shadow:0 0 0 6px rgba(14,165,233,0.2);" : ""}"></span>
+        ${printWithNames && desk.student_name ? `<span style="font-size:10px;line-height:1.1;color:#334155;background:#ffffffcc;padding:1px 4px;border-radius:9999px;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(desk.student_name)}</span>` : ""}
+      </div>`;
+    }).join("");
+
+    printWindow.document.write(`<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>${escapeHtml(layout.classroom_name)} - ${escapeHtml(layout.my_seat_label)}</title>
+  <style>
+    body { font-family: Segoe UI, Tahoma, sans-serif; margin: 24px; color: #0f172a; }
+    .meta { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+    .cell { border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px 10px; }
+    .label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+    .value { font-size: 14px; font-weight: 700; margin-top: 4px; }
+    .map { margin-top: 16px; border: 1px solid #e2e8f0; border-radius: 16px; padding: 10px; background: #f8fafc; }
+    .canvas { position: relative; width: 100%; aspect-ratio: ${metrics.width} / ${metrics.height}; border-radius: 12px; background: white; }
+    .legend { display: flex; gap: 14px; font-size: 11px; color: #475569; margin-top: 8px; }
+    .dot { width: 9px; height: 9px; border-radius: 9999px; display: inline-block; margin-right: 5px; }
+    @media print { body { margin: 10mm; } }
+  </style>
+</head>
+<body>
+  <h2 style="margin:0;">${escapeHtml(formatExamSeatType(layout))}</h2>
+  <div style="margin-top:6px;color:#475569;font-size:13px;">${escapeHtml(layout.exam_date)} · ${escapeHtml(layout.start_time)}-${escapeHtml(layout.end_time)}</div>
+  <div class="meta">
+    <div class="cell"><div class="label">${escapeHtml(t("studentExamSeatSeatNumber"))}</div><div class="value">${layout.my_seat_number}</div></div>
+    <div class="cell"><div class="label">${escapeHtml(t("studentExamSeatDeskNumber"))}</div><div class="value">#${layout.my_desk_number}</div></div>
+    <div class="cell"><div class="label">${escapeHtml(t("studentExamSeatRoomCapacity"))}</div><div class="value">${layout.desks.filter((desk) => desk.student_id).length}/${layout.desks.length}</div></div>
+    <div class="cell"><div class="label">${escapeHtml(t("classrooms"))}</div><div class="value">${escapeHtml(layout.classroom_name)} (${escapeHtml(layout.building)} ${escapeHtml(layout.floor)})</div></div>
+  </div>
+  <div class="map">
+    <div class="canvas">${dotsHtml}</div>
+    <div class="legend">
+      <span><span class="dot" style="background:#0284c7"></span>${escapeHtml(t("studentExamSeatMapMine"))}</span>
+      <span><span class="dot" style="background:#10b981"></span>${escapeHtml(t("studentExamSeatMapAssigned"))}</span>
+      <span><span class="dot" style="background:#94a3b8"></span>${escapeHtml(t("studentExamSeatMapOpen"))}</span>
+    </div>
+  </div>
+  <script>window.addEventListener('load', function(){ window.print(); });</script>
+</body>
+</html>`);
+    printWindow.document.close();
   };
 
   // group assignments by type
@@ -654,44 +818,264 @@ export default function StudentCourseDetailPage() {
       {/* ── EXAM SEATS tab ─────────────────────────────── */}
       {activeTab === "ExamSeats" && (
         <div className="space-y-3">
+          <div className="hidden items-center justify-between gap-3 rounded-3xl border border-slate-100 bg-white/80 px-4 py-3 shadow-sm md:flex">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Icon icon="solar:magnifer-zoom-in-bold-duotone" className="text-lg text-slate-500" />
+                <span className="text-xs font-semibold text-slate-600">{t("studentExamSeatMapZoom")}</span>
+                <input
+                  type="range"
+                  min={80}
+                  max={180}
+                  step={10}
+                  value={mapZoomPercent}
+                  onChange={(event) => setMapZoomPercent(Number(event.target.value))}
+                  className="h-1.5 w-36 accent-sky-600"
+                />
+                <span className="min-w-11 text-right text-xs font-bold text-slate-700">{mapZoomPercent}%</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-600">{t("studentExamSeatDeskFilter")}</span>
+                <select
+                  value={mapDeskFilter}
+                  onChange={(event) => setMapDeskFilter(event.target.value as "all" | "computer" | "normal" | "teacher")}
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700"
+                >
+                  <option value="all">{t("studentExamSeatFilterAll")}</option>
+                  <option value="computer">{t("studentExamSeatFilterComputer")}</option>
+                  <option value="normal">{t("studentExamSeatFilterNormal")}</option>
+                  <option value="teacher">{t("studentExamSeatFilterTeacher")}</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowSeatNames((current) => !current)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+              >
+                <Icon icon={showSeatNames ? "solar:eye-closed-bold" : "solar:eye-bold"} />
+                {showSeatNames ? t("studentExamSeatHideNames") : t("studentExamSeatShowNames")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDeskNumbers((current) => !current)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+              >
+                <Icon icon={showDeskNumbers ? "solar:hashtag-square-bold" : "solar:hashtag-square-linear"} />
+                {showDeskNumbers ? t("studentExamSeatHideDeskNumbers") : t("studentExamSeatShowDeskNumbers")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPrintWithNames((current) => !current)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+              >
+                <Icon icon={printWithNames ? "solar:check-circle-bold" : "solar:close-circle-bold"} />
+                {printWithNames ? t("studentExamSeatPrintWithNames") : t("studentExamSeatPrintWithoutNames")}
+              </button>
+              <button
+                type="button"
+                onClick={resetSeatMapView}
+                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+              >
+                <Icon icon="solar:restart-linear" />
+                {t("studentExamSeatResetView")}
+              </button>
+            </div>
+          </div>
+
           {isExamSeatsLoading ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500" />
             </div>
-          ) : examSeats.length === 0 ? (
+          ) : examSeatLayouts.length === 0 ? (
             <div className="flex flex-col items-center gap-3 rounded-4xl border border-dashed border-slate-200 bg-white/60 py-12 text-center">
               <Icon icon="solar:armchair-bold-duotone" className="text-3xl text-slate-300" />
               <p className="text-sm text-slate-400">{t("studentExamSeatEmpty")}</p>
             </div>
           ) : (
-            examSeats.map((seat) => (
-              <div key={`${seat.session_id}-${seat.exam_type}-${seat.component}`} className="rounded-4xl border border-indigo-100 bg-white/90 p-4 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600">
-                    <Icon icon="solar:armchair-bold-duotone" />
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-bold text-slate-900">{formatExamSeatType(seat)}</p>
-                      <span className="rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
-                        {seat.exam_date}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-slate-500">{seat.start_time}–{seat.end_time}</p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="flex items-center gap-1.5 rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
-                        <Icon icon="solar:buildings-bold" className="text-sky-500" />
-                        {seat.classroom_name}
-                      </span>
-                      <span className="flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                        <Icon icon="solar:chair-bold" className="text-emerald-500" />
-                        {t("studentExamSeatChip", { seat: seat.seat_label || `${seat.classroom_name}-${seat.desk_number}` })}
-                      </span>
+            examSeatLayouts.map((seatLayout) => {
+              const filteredDesks = seatLayout.desks.filter((desk) => {
+                if (mapDeskFilter === "all") {
+                  return true;
+                }
+
+                return desk.desk_type === mapDeskFilter;
+              });
+              const metrics = getSeatMapMetrics(filteredDesks);
+              const assignedCount = seatLayout.desks.filter((desk) => desk.student_id).length;
+              const mapContainerId = `seat-map-${seatLayout.session_id}-${seatLayout.classroom_id}`;
+
+              return (
+                <div key={`${seatLayout.session_id}-${seatLayout.classroom_id}`} className="rounded-4xl border border-indigo-100 bg-white/90 p-4 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600">
+                      <Icon icon="solar:armchair-bold-duotone" />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-bold text-slate-900">{formatExamSeatType(seatLayout)}</p>
+                        <span className="rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
+                          {seatLayout.exam_date}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-slate-500">{seatLayout.start_time}–{seatLayout.end_time}</p>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className="flex items-center gap-1.5 rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+                          <Icon icon="solar:buildings-bold" className="text-sky-500" />
+                          {seatLayout.classroom_name}
+                        </span>
+                        <span className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+                          <Icon icon="solar:home-2-bold" className="text-slate-500" />
+                          {seatLayout.building} · {seatLayout.floor}
+                        </span>
+                        <span className="flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                          <Icon icon="solar:chair-bold" className="text-emerald-500" />
+                          {t("studentExamSeatChip", { seat: seatLayout.my_seat_label || `${seatLayout.classroom_name}-${seatLayout.my_desk_number}` })}
+                        </span>
+                      </div>
                     </div>
                   </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="rounded-3xl border border-slate-100 bg-slate-50/80 px-3 py-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{t("studentExamSeatSeatNumber")}</p>
+                      <p className="mt-0.5 text-sm font-bold text-slate-800">{seatLayout.my_seat_number}</p>
+                    </div>
+                    <div className="rounded-3xl border border-slate-100 bg-slate-50/80 px-3 py-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{t("studentExamSeatDeskNumber")}</p>
+                      <p className="mt-0.5 text-sm font-bold text-slate-800">#{seatLayout.my_desk_number}</p>
+                    </div>
+                    <div className="rounded-3xl border border-slate-100 bg-slate-50/80 px-3 py-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{t("studentExamSeatOccupant")}</p>
+                      <p className="mt-0.5 text-sm font-bold text-slate-800">{data.student.full_name}</p>
+                    </div>
+                    <div className="rounded-3xl border border-slate-100 bg-slate-50/80 px-3 py-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{t("studentExamSeatRoomCapacity")}</p>
+                      <p className="mt-0.5 text-sm font-bold text-slate-800">{assignedCount}/{seatLayout.desks.length}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 hidden rounded-3xl border border-slate-100 bg-linear-to-br from-slate-50 to-white p-3 md:block">
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-500">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1 text-sky-700">
+                          <span className="h-2.5 w-2.5 rounded-full bg-sky-500" /> {t("studentExamSeatMapMine")}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-700">
+                          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> {t("studentExamSeatMapAssigned")}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">
+                          <span className="h-2.5 w-2.5 rounded-full bg-slate-400" /> {t("studentExamSeatMapOpen")}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handlePrintSeatLayout(seatLayout)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                      >
+                        <Icon icon="solar:printer-linear" />
+                        {t("studentExamSeatPrintMap")}
+                      </button>
+                    </div>
+
+                    {mapZoomPercent > 120 && (
+                      <div className="mb-2 rounded-2xl border border-slate-200 bg-white p-2">
+                        <p className="mb-1 text-[11px] font-semibold text-slate-600">{t("studentExamSeatMiniMap")}</p>
+                        <div
+                          className="relative h-20 w-full cursor-pointer rounded-xl bg-slate-50"
+                          onClick={(event) => {
+                            const container = document.getElementById(mapContainerId);
+                            if (!container) return;
+
+                            const rect = event.currentTarget.getBoundingClientRect();
+                            const xRatio = (event.clientX - rect.left) / rect.width;
+                            const yRatio = (event.clientY - rect.top) / rect.height;
+                            container.scrollLeft = Math.max(0, (container.scrollWidth * xRatio) - (container.clientWidth / 2));
+                            container.scrollTop = Math.max(0, (container.scrollHeight * yRatio) - (container.clientHeight / 2));
+                          }}
+                        >
+                          {filteredDesks.map((desk) => {
+                            const left = ((desk.x - metrics.minX) / metrics.width) * 100;
+                            const top = ((desk.y - metrics.minY) / metrics.height) * 100;
+                            const isTeacher = desk.desk_type === "teacher";
+                            const isAssigned = Boolean(desk.student_id);
+                            const bg = desk.is_mine
+                              ? "bg-sky-600"
+                              : isTeacher
+                                ? "bg-amber-400"
+                                : isAssigned
+                                  ? "bg-emerald-500"
+                                  : "bg-slate-400";
+
+                            return (
+                              <span
+                                key={`mini-${desk.desk_id}`}
+                                className={`absolute h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full ${bg}`}
+                                style={{ left: `${left}%`, top: `${top}%` }}
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <div id={mapContainerId} className="overflow-auto rounded-2xl border border-slate-100 bg-white p-2">
+                      <div style={{ minWidth: `${Math.max(560, metrics.width * (mapZoomPercent / 100))}px` }}>
+                        <div className="relative rounded-2xl bg-slate-50" style={{ aspectRatio: `${metrics.width} / ${metrics.height}` }}>
+                          {filteredDesks.map((desk) => {
+                            const left = ((desk.x - metrics.minX) / metrics.width) * 100;
+                            const top = ((desk.y - metrics.minY) / metrics.height) * 100;
+                            const isTeacher = desk.desk_type === "teacher";
+                            const isAssigned = Boolean(desk.student_id);
+                            const dotClass = desk.is_mine
+                              ? "bg-sky-600 ring-4 ring-sky-200"
+                              : isTeacher
+                                ? "bg-amber-400"
+                                : isAssigned
+                                  ? "bg-emerald-500"
+                                  : "bg-slate-400";
+                            const dotSizeClass = desk.is_mine ? "h-4 w-4" : "h-3 w-3";
+
+                            return (
+                              <div
+                                key={desk.desk_id}
+                                className="absolute -translate-x-1/2 -translate-y-1/2"
+                                style={{ left: `${left}%`, top: `${top}%` }}
+                                title={`${desk.seat_label || `โต๊ะ ${desk.desk_number}`} ${desk.student_name ? `· ${desk.student_name}` : ""}`}
+                              >
+                                <div className="flex flex-col items-center gap-1">
+                                  <span className={`block rounded-full ${dotSizeClass} ${dotClass}`} />
+                                  {(showDeskNumbers || (showSeatNames && desk.student_name)) && (
+                                    <div className="flex max-w-36 items-center gap-1 rounded-full bg-white/90 px-1.5 py-0.5 text-[10px] font-medium text-slate-700 shadow-sm">
+                                      {showDeskNumbers && (
+                                        <span className="rounded-full bg-slate-100 px-1 text-[9px] font-semibold text-slate-600">
+                                          #{desk.desk_number}
+                                        </span>
+                                      )}
+                                      {showSeatNames && desk.student_name && (
+                                        <span className="truncate">{desk.student_name}</span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="mt-2 text-[11px] text-slate-400 md:hidden">
+                    {t("studentExamSeatMapDesktopHint")}
+                  </p>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       )}

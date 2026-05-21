@@ -1,12 +1,7 @@
-import { redirect } from "next/navigation";
+"use client";
 
-interface ClassroomExamSeatsPageProps {
-    params: Promise<{
-        id: string;
-    }>;
-}
+import { ClassroomDetailPage } from "../page";
 
-export default async function ClassroomExamSeatsPage({ params }: ClassroomExamSeatsPageProps) {
-    const { id } = await params;
-    redirect(`/classroom/${id}/overview`);
+export default function ClassroomExamSeatsPage() {
+    return <ClassroomDetailPage initialTab="exam-seats" />;
 }

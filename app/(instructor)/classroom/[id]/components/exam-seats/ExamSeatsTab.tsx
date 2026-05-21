@@ -7,11 +7,11 @@ import { Chip } from "@heroui/chip";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
-import { Switch } from "@heroui/switch";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { useI18n } from "@/hooks/useI18n";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import { instructorPrimaryButtonClass } from "@/components/ui/instructor-button-styles";
 import classroomService, { type Classroom, type Desk } from "@/services/classroom.service";
 import { courseService } from "@/services/course.service";
 import {
@@ -64,6 +64,8 @@ type BulkOrderMode = "row" | "snake";
 type BulkPatternMode = "all" | "checkerboardA" | "checkerboardB";
 type BulkScopeMode = "current-room" | "all-rooms";
 type SelectionPresetMode = "all" | "currentRow" | "oddColumns" | "evenColumns" | "checkerboardA" | "checkerboardB";
+type ExamTypeOption = "midterm" | "final";
+type ExamComponentOption = "lecture" | "lab";
 
 interface PhysicalPlannerEntry {
     row: PlannerRow;
@@ -88,6 +90,8 @@ interface PlannerSaveValidation {
 
 const NORMAL_DESK_WIDTH = 48;
 const NORMAL_DESK_HEIGHT = 38;
+const EXAM_TYPE_OPTIONS: ExamTypeOption[] = ["midterm", "final"];
+const EXAM_COMPONENT_OPTIONS: ExamComponentOption[] = ["lecture", "lab"];
 const TEACHER_DESK_WIDTH = 76;
 const TEACHER_DESK_HEIGHT = 44;
 const ROOM_LAYOUT_PADDING = 32;
@@ -507,6 +511,8 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [createForm, setCreateForm] = useState({
         exam_setting_id: "",
+        exam_type: "",
+        component: "",
         exam_date: "",
         start_time: "09:00",
         end_time: "11:00",
@@ -522,6 +528,8 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
     const [isImporting, setIsImporting] = useState(false);
     const [importForm, setImportForm] = useState({
         exam_setting_id: "",
+        exam_type: "",
+        component: "",
         exam_date: "",
         start_time: "09:00",
         end_time: "11:00",
@@ -543,7 +551,17 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
     const [bulkScopeMode, setBulkScopeMode] = useState<BulkScopeMode>("current-room");
     const [seatNumberStart, setSeatNumberStart] = useState("1");
     const [seatNumberStep, setSeatNumberStep] = useState("1");
-    const [autoAdvanceCleanup, setAutoAdvanceCleanup] = useState(true);
+    const autoAdvanceCleanup = true;
+    const [showAdvanced, setShowAdvanced] = useState(false);
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        body: string;
+        confirmLabel: string;
+        color: "danger" | "warning";
+        pendingAction: (() => Promise<void>) | null;
+    }>({ isOpen: false, title: "", body: "", confirmLabel: "", color: "danger", pendingAction: null });
+    const [isConfirmLoading, setIsConfirmLoading] = useState(false);
     const classroomMap = new Map(availableClassrooms.map((classroom) => [classroom.id, classroom]));
     const deskMap = new Map(
         availableClassrooms.flatMap((classroom) =>
@@ -559,7 +577,7 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
                 examScoreService.getExamSettings(courseId),
             ]);
             setSessions(sessionsData);
-            setSettings(settingsData.filter((setting) => setting.is_active));
+            setSettings(settingsData);
             return sessionsData;
         } catch {
             addToast({
@@ -688,6 +706,17 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
             setActiveMapRoomId(selectedRoomIds[0]);
         }
     }, [activeMapRoomId, selectedRoomIds]);
+
+    const executeConfirmModal = async () => {
+        if (!confirmModal.pendingAction) return;
+        setIsConfirmLoading(true);
+        try {
+            await confirmModal.pendingAction();
+        } finally {
+            setIsConfirmLoading(false);
+            setConfirmModal((prev) => ({ ...prev, isOpen: false, pendingAction: null }));
+        }
+    };
 
     const focusPlannerDesk = useCallback((deskId: string, rows: PlannerRow[] = plannerRows) => {
         const nextRow = rows.find((row) => row.desk_id === deskId);
@@ -857,7 +886,7 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
     );
 
     const handleCreateSession = async () => {
-        if (!createForm.exam_setting_id || !createForm.exam_date) {
+        if (!createForm.exam_type || !createForm.component || !createForm.exam_date) {
             addToast({
                 title: t("examSeatRequiredFields"),
                 color: "warning",
@@ -870,8 +899,11 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
         setIsCreating(true);
 
         try {
+            const resolvedExamSettingId = resolveExamSettingId(createForm.exam_type, createForm.component);
             const session = await createExamSession(courseId, {
-                exam_setting_id: Number(createForm.exam_setting_id),
+                exam_type: createForm.exam_type as ExamTypeOption,
+                component: createForm.component as ExamComponentOption,
+                ...(resolvedExamSettingId ? { exam_setting_id: Number(resolvedExamSettingId) } : {}),
                 exam_date: createForm.exam_date,
                 start_time: createForm.start_time,
                 end_time: createForm.end_time,
@@ -882,6 +914,8 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
             setIsCreateOpen(false);
             setCreateForm({
                 exam_setting_id: "",
+                exam_type: "",
+                component: "",
                 exam_date: "",
                 start_time: "09:00",
                 end_time: "11:00",
@@ -913,37 +947,42 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
         }
     };
 
-    const handleDeleteSession = async (sessionId: number) => {
-        if (!confirm(t("examSeatDeleteConfirm"))) {
-            return;
-        }
+    const handleDeleteSession = (sessionId: number) => {
+        setConfirmModal({
+            isOpen: true,
+            title: t("examSeatDeleteConfirmTitle"),
+            body: t("examSeatDeleteConfirm"),
+            confirmLabel: t("examSeatDeleteConfirmTitle"),
+            color: "danger",
+            pendingAction: async () => {
+                try {
+                    await deleteExamSession(courseId, sessionId);
+                    await loadData();
 
-        try {
-            await deleteExamSession(courseId, sessionId);
-            await loadData();
+                    if (plannerSession?.id === sessionId) {
+                        setPlannerSession(null);
+                        setPlannerRows([]);
+                        setSelectedRoomIds([]);
+                        setSelectedDeskIds([]);
+                        setSelectedDeskId("");
+                    }
 
-            if (plannerSession?.id === sessionId) {
-                setPlannerSession(null);
-                setPlannerRows([]);
-                setSelectedRoomIds([]);
-                setSelectedDeskIds([]);
-                setSelectedDeskId("");
-            }
-
-            addToast({
-                title: t("examSeatDeleted"),
-                color: "success",
-                timeout: 3000,
-                shouldShowTimeoutProgress: true,
-            });
-        } catch {
-            addToast({
-                title: t("examSeatDeleteFailed"),
-                color: "danger",
-                timeout: 3000,
-                shouldShowTimeoutProgress: true,
-            });
-        }
+                    addToast({
+                        title: t("examSeatDeleted"),
+                        color: "success",
+                        timeout: 3000,
+                        shouldShowTimeoutProgress: true,
+                    });
+                } catch {
+                    addToast({
+                        title: t("examSeatDeleteFailed"),
+                        color: "danger",
+                        timeout: 3000,
+                        shouldShowTimeoutProgress: true,
+                    });
+                }
+            },
+        });
     };
 
     const handlePrint = (session: ExamSession) => {
@@ -1110,53 +1149,66 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
     };
 
     const handleResetPlanner = () => {
-        setPlannerRows((currentRows) =>
-            currentRows.map((row) => ({
-                ...row,
-                seat_id: undefined,
-                student_id: "",
-                seat_number: "",
-            }))
-        );
+        setConfirmModal({
+            isOpen: true,
+            title: t("examSeatResetPlannerConfirmTitle"),
+            body: t("examSeatResetPlannerConfirmBody"),
+            confirmLabel: t("examSeatConfirmAction"),
+            color: "warning",
+            pendingAction: async () => {
+                setPlannerRows((currentRows) =>
+                    currentRows.map((row) => ({
+                        ...row,
+                        seat_id: undefined,
+                        student_id: "",
+                        seat_number: "",
+                    }))
+                );
+            },
+        });
     };
 
-    const handleClearSavedSeats = async () => {
+    const handleClearSavedSeats = () => {
         if (!plannerSession) return;
 
-        if (!confirm(t("examSeatClearSavedConfirm"))) {
-            return;
-        }
+        setConfirmModal({
+            isOpen: true,
+            title: t("examSeatClearSavedConfirmTitle"),
+            body: t("examSeatClearSavedConfirm"),
+            confirmLabel: t("examSeatConfirmAction"),
+            color: "danger",
+            pendingAction: async () => {
+                setIsSavingPlan(true);
+                try {
+                    await clearExamSeats(courseId, plannerSession.id);
+                    setPlannerRows((currentRows) =>
+                        currentRows.map((row) => ({
+                            ...row,
+                            seat_id: undefined,
+                            student_id: "",
+                            seat_number: "",
+                        }))
+                    );
+                    await loadData();
 
-        setIsSavingPlan(true);
-
-        try {
-            await clearExamSeats(courseId, plannerSession.id);
-            setPlannerRows((currentRows) =>
-                currentRows.map((row) => ({
-                    ...row,
-                    seat_id: undefined,
-                    student_id: "",
-                    seat_number: "",
-                }))
-            );
-            await loadData();
-
-            addToast({
-                title: t("examSeatSavedCleared"),
-                color: "success",
-                timeout: 3000,
-                shouldShowTimeoutProgress: true,
-            });
-        } catch {
-            addToast({
-                title: t("examSeatClearFailed"),
-                color: "danger",
-                timeout: 3000,
-                shouldShowTimeoutProgress: true,
-            });
-        } finally {
-            setIsSavingPlan(false);
-        }
+                    addToast({
+                        title: t("examSeatSavedCleared"),
+                        color: "success",
+                        timeout: 3000,
+                        shouldShowTimeoutProgress: true,
+                    });
+                } catch {
+                    addToast({
+                        title: t("examSeatClearFailed"),
+                        color: "danger",
+                        timeout: 3000,
+                        shouldShowTimeoutProgress: true,
+                    });
+                } finally {
+                    setIsSavingPlan(false);
+                }
+            },
+        });
     };
 
     const handleSavePlanner = async () => {
@@ -1277,7 +1329,7 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
     };
 
     const handleImportCommit = async () => {
-        if (!importPreview || !importForm.exam_setting_id || !importForm.exam_date) {
+        if (!importPreview || !importForm.exam_type || !importForm.component || !importForm.exam_date) {
             addToast({
                 title: t("examSeatRequiredFields"),
                 color: "warning",
@@ -1301,8 +1353,11 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
         setIsImporting(true);
 
         try {
+            const resolvedExamSettingId = resolveExamSettingId(importForm.exam_type, importForm.component);
             const result = await importExamSeatsCommit(courseId, {
-                exam_setting_id: Number(importForm.exam_setting_id),
+                exam_type: importForm.exam_type as ExamTypeOption,
+                component: importForm.component as ExamComponentOption,
+                ...(resolvedExamSettingId ? { exam_setting_id: Number(resolvedExamSettingId) } : {}),
                 exam_date: importForm.exam_date,
                 start_time: importForm.start_time,
                 end_time: importForm.end_time,
@@ -1321,6 +1376,8 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
             setImportPreview(null);
             setImportForm({
                 exam_setting_id: "",
+                exam_type: "",
+                component: "",
                 exam_date: "",
                 start_time: "09:00",
                 end_time: "11:00",
@@ -1347,10 +1404,30 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
         }
     };
 
-    const settingOptions = settings.map((setting) => ({
-        value: String(setting.id),
-        label: getExamName(setting, isEnglish),
-    }));
+    const examTypeOptions = EXAM_TYPE_OPTIONS;
+
+    const getComponentOptionsByType = useCallback((examType: string) => {
+        if (!examType) {
+            return [] as string[];
+        }
+
+        return EXAM_COMPONENT_OPTIONS;
+    }, []);
+
+    const resolveExamSettingId = useCallback((examType: string, component: string) => {
+        if (!examType || !component) {
+            return "";
+        }
+
+        const matchedSetting = settings.find(
+            (setting) => setting.exam_type === examType && setting.component === component
+        );
+
+        return matchedSetting ? String(matchedSetting.id) : "";
+    }, [settings]);
+
+    const createComponentOptions = getComponentOptionsByType(createForm.exam_type);
+    const importComponentOptions = getComponentOptionsByType(importForm.exam_type);
 
     const seatNumberCounts = plannerRows.reduce((counts, row) => {
         if (!row.seat_number) return counts;
@@ -1769,11 +1846,13 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
         noSessionsTitle: t("examSeatNoSessionsTitle"),
         noSessionsDescription: t("examSeatNoSessionsDescription"),
         openPlanner: t("examSeatOpenPlanner"),
+        viewLayout: t("examSeatViewLayout"),
         openNow: t("examSeatOpenNow"),
         createSessionTitle: t("examSeatCreateSessionTitle"),
         defineExamStep: t("examSeatDefineExamStep"),
         defineExamDescription: t("examSeatDefineExamDescription"),
         examType: t("examSeatExamType"),
+        examComponent: t("examSeatExamComponent"),
         startTime: t("examSeatStartTime"),
         endTime: t("examSeatEndTime"),
         notes: t("examSeatNotes"),
@@ -1904,18 +1983,8 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
 
                 <div className="flex flex-wrap gap-2">
                     <Button
-                        variant="flat"
-                        isDisabled={!isCourseActive}
-                        onPress={() => {
-                            setIsImportOpen(true);
-                            setImportStep(1);
-                        }}
-                    >
-                        <Icon icon="solar:upload-linear" className="mr-1" />
-                        {labels.importKkuFile}
-                    </Button>
-                    <Button
-                        className="bg-linear-to-r from-sky-500 via-cyan-500 to-teal-500 text-white"
+                        color="primary"
+                        className={instructorPrimaryButtonClass()}
                         isDisabled={!isCourseActive}
                         onPress={async () => {
                             setIsCreateOpen(true);
@@ -1986,7 +2055,8 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
                                         {labels.clearSavedSeats}
                                     </Button>
                                     <Button
-                                        className="bg-linear-to-r from-sky-500 via-cyan-500 to-teal-500 text-white"
+                                        color="primary"
+                                        className={instructorPrimaryButtonClass()}
                                         isDisabled={!isCourseActive}
                                         isLoading={isSavingPlan}
                                         onPress={handleSavePlanner}
@@ -2004,39 +2074,26 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
                             </div>
                         ) : (
                             <div className="space-y-5 p-5">
-                                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                                    <Card className="border border-default-200 bg-content1 shadow-none">
-                                        <CardBody className="gap-1 p-4">
-                                            <span className="text-xs uppercase tracking-wide text-default-400">
-                                                {labels.roomsSummary}
-                                            </span>
-                                            <span className="text-2xl font-semibold text-foreground">{selectedRoomIds.length}</span>
-                                        </CardBody>
-                                    </Card>
-                                    <Card className="border border-default-200 bg-content1 shadow-none">
-                                        <CardBody className="gap-1 p-4">
-                                            <span className="text-xs uppercase tracking-wide text-default-400">
-                                                {labels.desksInPlan}
-                                            </span>
-                                            <span className="text-2xl font-semibold text-foreground">{plannerRows.length}</span>
-                                        </CardBody>
-                                    </Card>
-                                    <Card className="border border-default-200 bg-content1 shadow-none">
-                                        <CardBody className="gap-1 p-4">
-                                            <span className="text-xs uppercase tracking-wide text-default-400">
-                                                {labels.assignedStudents}
-                                            </span>
-                                            <span className="text-2xl font-semibold text-foreground">{assignedCount}</span>
-                                        </CardBody>
-                                    </Card>
-                                    <Card className="border border-default-200 bg-content1 shadow-none">
-                                        <CardBody className="gap-1 p-4">
-                                            <span className="text-xs uppercase tracking-wide text-default-400">
-                                                {labels.unassignedStudents}
-                                            </span>
-                                            <span className="text-2xl font-semibold text-foreground">{unassignedStudents.length}</span>
-                                        </CardBody>
-                                    </Card>
+                                <div className="flex flex-wrap gap-4 rounded-xl border border-default-200 bg-content2/30 px-4 py-3">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs text-default-500">{labels.roomsSummary}</span>
+                                        <span className="text-sm font-semibold text-foreground">{selectedRoomIds.length}</span>
+                                    </div>
+                                    <span className="select-none text-default-300">·</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs text-default-500">{labels.desksInPlan}</span>
+                                        <span className="text-sm font-semibold text-foreground">{plannerRows.length}</span>
+                                    </div>
+                                    <span className="select-none text-default-300">·</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs text-default-500">{labels.assignedStudents}</span>
+                                        <span className="text-sm font-semibold text-foreground">{assignedCount}</span>
+                                    </div>
+                                    <span className="select-none text-default-300">·</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs text-default-500">{labels.unassignedStudents}</span>
+                                        <span className={["text-sm font-semibold", unassignedStudents.length > 0 ? "text-warning" : "text-foreground"].join(" ")}>{unassignedStudents.length}</span>
+                                    </div>
                                 </div>
 
                                 <Card className="border border-default-200 bg-content1 shadow-none">
@@ -2044,7 +2101,7 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
                                         <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
                                             <div>
                                                 <h4 className="font-semibold text-foreground">
-                                                    {labels.chooseRoomsStep}
+                                                    {labels.examRooms}
                                                 </h4>
                                                 <p className="text-sm text-default-500">
                                                     {labels.chooseRoomsDescription}
@@ -2081,15 +2138,7 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
                                 <div className="grid gap-5 xl:grid-cols-[minmax(0,1.6fr)_360px]">
                                     <Card className="border border-default-200 bg-content1 shadow-none">
                                         <CardBody className="gap-4 p-4">
-                                            <div className="flex flex-col gap-3 2xl:flex-row 2xl:items-start 2xl:justify-between">
-                                                <div>
-                                                    <h4 className="font-semibold text-foreground">
-                                                        {labels.assignStep}
-                                                    </h4>
-                                                    <p className="text-sm text-default-500">
-                                                        {labels.assignDescription}
-                                                    </p>
-                                                </div>
+                                            <div className="flex flex-wrap items-center justify-between gap-2">
                                                 <div className="flex flex-wrap gap-2">
                                                     <Button
                                                         size="sm"
@@ -2110,148 +2159,15 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
                                                         {labels.listView}
                                                     </Button>
                                                 </div>
-                                            </div>
-
-                                            {/* ── Status bar ── */}
-                                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-default-200 bg-content2/50 px-4 py-2.5">
-                                                <span className="text-xs font-semibold text-default-600">{labels.bulkLayoutTitle}</span>
-                                                <span className="select-none text-default-300">·</span>
-                                                <Chip size="sm" variant="flat" color="primary">
-                                                    {labels.eligibleSeats}: {bulkContext.eligibleEntries.length}
-                                                </Chip>
-                                                <Chip size="sm" variant="flat" color={saveValidationIssues.length > 0 ? "danger" : "success"}>
-                                                    {labels.validationTitle}: {saveValidationIssues.length}
-                                                </Chip>
-                                                <Chip size="sm" variant="flat" color={plannerIssueRows.length > 0 ? "warning" : "success"}>
-                                                    {labels.statusColumn}: {plannerIssueRows.length}
-                                                </Chip>
                                                 {activeRoom && (
                                                     <Chip size="sm" variant="flat">
-                                                        {labels.activeRoom}: {activeRoom.name}
+                                                        {activeRoom.name}
                                                     </Chip>
                                                 )}
                                             </div>
 
-                                            {/* ── Two-panel: Numbering + Layout ── */}
-                                            <div className="grid gap-3 sm:grid-cols-2">
-                                                <div className="space-y-2.5 rounded-xl border border-default-200 bg-content2/20 p-3">
-                                                    <p className="text-xs font-semibold uppercase tracking-wide text-default-500">{labels.sectionNumbering}</p>
-                                                    <div className="flex gap-2">
-                                                        <Input
-                                                            type="number"
-                                                            min={1}
-                                                            size="sm"
-                                                            label={labels.startNumber}
-                                                            value={seatNumberStart}
-                                                            onValueChange={updateSeatNumberStartValue}
-                                                            isInvalid={!seatNumberStartValid}
-                                                            errorMessage={!seatNumberStartValid ? labels.startNumberPositive : undefined}
-                                                            className="flex-1"
-                                                        />
-                                                        <Input
-                                                            type="number"
-                                                            min={1}
-                                                            size="sm"
-                                                            label={labels.stepNumber}
-                                                            value={seatNumberStep}
-                                                            onValueChange={updateSeatNumberStepValue}
-                                                            isInvalid={!seatNumberStepValid}
-                                                            errorMessage={!seatNumberStepValid ? labels.stepNumberPositive : undefined}
-                                                            className="flex-1"
-                                                        />
-                                                    </div>
-                                                    <div className="flex flex-wrap gap-1.5">
-                                                        <Button
-                                                            size="sm"
-                                                            variant={seatNumberStart === "1" && seatNumberStep === "1" ? "solid" : "flat"}
-                                                            color={seatNumberStart === "1" && seatNumberStep === "1" ? "primary" : "default"}
-                                                            onPress={() => applyNumberingPreset("1", "1")}
-                                                        >
-                                                            {labels.numberingPresetSequential}
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant={seatNumberStart === "1" && seatNumberStep === "2" ? "solid" : "flat"}
-                                                            color={seatNumberStart === "1" && seatNumberStep === "2" ? "primary" : "default"}
-                                                            onPress={() => applyNumberingPreset("1", "2")}
-                                                        >
-                                                            {labels.numberingPresetOdd}
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant={seatNumberStart === "2" && seatNumberStep === "2" ? "solid" : "flat"}
-                                                            color={seatNumberStart === "2" && seatNumberStep === "2" ? "primary" : "default"}
-                                                            onPress={() => applyNumberingPreset("2", "2")}
-                                                        >
-                                                            {labels.numberingPresetEven}
-                                                        </Button>
-                                                    </div>
-                                                </div>
-
-                                                <div className="space-y-2.5 rounded-xl border border-default-200 bg-content2/20 p-3">
-                                                    <p className="text-xs font-semibold uppercase tracking-wide text-default-500">{labels.sectionLayout}</p>
-                                                    <Select
-                                                        size="sm"
-                                                        label={labels.bulkScope}
-                                                        selectedKeys={new Set([bulkScopeMode])}
-                                                        onSelectionChange={(keys) => {
-                                                            const nextValue = singleSelection(keys as "all" | Set<Key>);
-                                                            if (nextValue) {
-                                                                setBulkScopeMode(nextValue as BulkScopeMode);
-                                                            }
-                                                        }}
-                                                    >
-                                                        <SelectItem key="current-room" textValue={labels.bulkScopeCurrentRoom}>
-                                                            {labels.bulkScopeCurrentRoom}
-                                                        </SelectItem>
-                                                        <SelectItem key="all-rooms" textValue={labels.bulkScopeAllRooms}>
-                                                            {labels.bulkScopeAllRooms}
-                                                        </SelectItem>
-                                                    </Select>
-                                                    <Select
-                                                        size="sm"
-                                                        label={labels.bulkOrder}
-                                                        selectedKeys={new Set([bulkOrderMode])}
-                                                        onSelectionChange={(keys) => {
-                                                            const nextValue = singleSelection(keys as "all" | Set<Key>);
-                                                            if (nextValue) {
-                                                                setBulkOrderMode(nextValue as BulkOrderMode);
-                                                            }
-                                                        }}
-                                                    >
-                                                        <SelectItem key="row" textValue={labels.bulkOrderRow}>
-                                                            {labels.bulkOrderRow}
-                                                        </SelectItem>
-                                                        <SelectItem key="snake" textValue={labels.bulkOrderSnake}>
-                                                            {labels.bulkOrderSnake}
-                                                        </SelectItem>
-                                                    </Select>
-                                                    <Select
-                                                        size="sm"
-                                                        label={labels.bulkPattern}
-                                                        selectedKeys={new Set([bulkPatternMode])}
-                                                        onSelectionChange={(keys) => {
-                                                            const nextValue = singleSelection(keys as "all" | Set<Key>);
-                                                            if (nextValue) {
-                                                                setBulkPatternMode(nextValue as BulkPatternMode);
-                                                            }
-                                                        }}
-                                                    >
-                                                        <SelectItem key="all" textValue={labels.bulkPatternAll}>
-                                                            {labels.bulkPatternAll}
-                                                        </SelectItem>
-                                                        <SelectItem key="checkerboardA" textValue={labels.bulkPatternCheckerboardA}>
-                                                            {labels.bulkPatternCheckerboardA}
-                                                        </SelectItem>
-                                                        <SelectItem key="checkerboardB" textValue={labels.bulkPatternCheckerboardB}>
-                                                            {labels.bulkPatternCheckerboardB}
-                                                        </SelectItem>
-                                                    </Select>
-                                                </div>
-                                            </div>
-
-                                            {/* ── Bulk action buttons ── */}
-                                            <div className="flex flex-wrap gap-2">
+                                            {/* ── Bulk action row ── */}
+                                            <div className="flex flex-wrap items-center gap-2">
                                                 <Button size="sm" variant="flat" onPress={handleAutoNumber} isDisabled={plannerRows.length === 0}>
                                                     <Icon icon="solar:sort-linear" className="mr-1" />
                                                     {labels.bulkNumberSeats}
@@ -2264,7 +2180,135 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
                                                     <Icon icon="solar:restart-linear" className="mr-1" />
                                                     {labels.resetPlanner}
                                                 </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="flat"
+                                                    onPress={() => setShowAdvanced((v) => !v)}
+                                                >
+                                                    <Icon icon="solar:settings-linear" className="mr-1" />
+                                                    {isEnglish ? "Advanced" : "ขั้นสูง"}
+                                                    <Icon icon={showAdvanced ? "solar:alt-arrow-up-linear" : "solar:alt-arrow-down-linear"} className="ml-1" />
+                                                </Button>
                                             </div>
+
+                                            {showAdvanced && (
+                                                <div className="grid gap-3 sm:grid-cols-2">
+                                                    <div className="space-y-2.5 rounded-xl border border-default-200 bg-content2/20 p-3">
+                                                        <p className="text-xs font-semibold uppercase tracking-wide text-default-500">{labels.sectionNumbering}</p>
+                                                        <div className="flex gap-2">
+                                                            <Input
+                                                                type="number"
+                                                                min={1}
+                                                                size="sm"
+                                                                label={labels.startNumber}
+                                                                value={seatNumberStart}
+                                                                onValueChange={updateSeatNumberStartValue}
+                                                                isInvalid={!seatNumberStartValid}
+                                                                errorMessage={!seatNumberStartValid ? labels.startNumberPositive : undefined}
+                                                                className="flex-1"
+                                                            />
+                                                            <Input
+                                                                type="number"
+                                                                min={1}
+                                                                size="sm"
+                                                                label={labels.stepNumber}
+                                                                value={seatNumberStep}
+                                                                onValueChange={updateSeatNumberStepValue}
+                                                                isInvalid={!seatNumberStepValid}
+                                                                errorMessage={!seatNumberStepValid ? labels.stepNumberPositive : undefined}
+                                                                className="flex-1"
+                                                            />
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            <Button
+                                                                size="sm"
+                                                                variant={seatNumberStart === "1" && seatNumberStep === "1" ? "solid" : "flat"}
+                                                                color={seatNumberStart === "1" && seatNumberStep === "1" ? "primary" : "default"}
+                                                                onPress={() => applyNumberingPreset("1", "1")}
+                                                            >
+                                                                {labels.numberingPresetSequential}
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant={seatNumberStart === "1" && seatNumberStep === "2" ? "solid" : "flat"}
+                                                                color={seatNumberStart === "1" && seatNumberStep === "2" ? "primary" : "default"}
+                                                                onPress={() => applyNumberingPreset("1", "2")}
+                                                            >
+                                                                {labels.numberingPresetOdd}
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant={seatNumberStart === "2" && seatNumberStep === "2" ? "solid" : "flat"}
+                                                                color={seatNumberStart === "2" && seatNumberStep === "2" ? "primary" : "default"}
+                                                                onPress={() => applyNumberingPreset("2", "2")}
+                                                            >
+                                                                {labels.numberingPresetEven}
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-2.5 rounded-xl border border-default-200 bg-content2/20 p-3">
+                                                        <p className="text-xs font-semibold uppercase tracking-wide text-default-500">{labels.sectionLayout}</p>
+                                                        <Select
+                                                            size="sm"
+                                                            label={labels.bulkScope}
+                                                            selectedKeys={new Set([bulkScopeMode])}
+                                                            onSelectionChange={(keys) => {
+                                                                const nextValue = singleSelection(keys as "all" | Set<Key>);
+                                                                if (nextValue) {
+                                                                    setBulkScopeMode(nextValue as BulkScopeMode);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <SelectItem key="current-room" textValue={labels.bulkScopeCurrentRoom}>
+                                                                {labels.bulkScopeCurrentRoom}
+                                                            </SelectItem>
+                                                            <SelectItem key="all-rooms" textValue={labels.bulkScopeAllRooms}>
+                                                                {labels.bulkScopeAllRooms}
+                                                            </SelectItem>
+                                                        </Select>
+                                                        <Select
+                                                            size="sm"
+                                                            label={labels.bulkOrder}
+                                                            selectedKeys={new Set([bulkOrderMode])}
+                                                            onSelectionChange={(keys) => {
+                                                                const nextValue = singleSelection(keys as "all" | Set<Key>);
+                                                                if (nextValue) {
+                                                                    setBulkOrderMode(nextValue as BulkOrderMode);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <SelectItem key="row" textValue={labels.bulkOrderRow}>
+                                                                {labels.bulkOrderRow}
+                                                            </SelectItem>
+                                                            <SelectItem key="snake" textValue={labels.bulkOrderSnake}>
+                                                                {labels.bulkOrderSnake}
+                                                            </SelectItem>
+                                                        </Select>
+                                                        <Select
+                                                            size="sm"
+                                                            label={labels.bulkPattern}
+                                                            selectedKeys={new Set([bulkPatternMode])}
+                                                            onSelectionChange={(keys) => {
+                                                                const nextValue = singleSelection(keys as "all" | Set<Key>);
+                                                                if (nextValue) {
+                                                                    setBulkPatternMode(nextValue as BulkPatternMode);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <SelectItem key="all" textValue={labels.bulkPatternAll}>
+                                                                {labels.bulkPatternAll}
+                                                            </SelectItem>
+                                                            <SelectItem key="checkerboardA" textValue={labels.bulkPatternCheckerboardA}>
+                                                                {labels.bulkPatternCheckerboardA}
+                                                            </SelectItem>
+                                                            <SelectItem key="checkerboardB" textValue={labels.bulkPatternCheckerboardB}>
+                                                                {labels.bulkPatternCheckerboardB}
+                                                            </SelectItem>
+                                                        </Select>
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             {plannerRows.length === 0 ? (
                                                 <div className="rounded-2xl border border-dashed border-default-300 bg-content2/40 px-6 py-12 text-center">
@@ -2296,45 +2340,44 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
                                                         </div>
                                                     </div>
 
-                                                    <div className="rounded-2xl border border-default-200 bg-content2/30 p-3">
-                                                        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-                                                            <div>
-                                                                <p className="text-sm font-medium text-foreground">{labels.selectionTools}</p>
-                                                                <p className="text-xs text-default-500">{labels.multiSelectHint}</p>
-                                                            </div>
-                                                            <div className="flex flex-wrap gap-2">
-                                                                <Button size="sm" variant="flat" onPress={() => applySelectionPreset("all")}>
-                                                                    {labels.selectionAllRoom}
-                                                                </Button>
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="flat"
-                                                                    onPress={() => applySelectionPreset("currentRow")}
-                                                                    isDisabled={!selectedPhysicalEntry}
-                                                                >
-                                                                    {labels.selectionCurrentRow}
-                                                                </Button>
-                                                                <Button size="sm" variant="flat" onPress={() => applySelectionPreset("oddColumns")}>
-                                                                    {labels.selectionOddColumns}
-                                                                </Button>
-                                                                <Button size="sm" variant="flat" onPress={() => applySelectionPreset("evenColumns")}>
-                                                                    {labels.selectionEvenColumns}
-                                                                </Button>
-                                                                <Button size="sm" variant="flat" onPress={() => applySelectionPreset("checkerboardA")}>
-                                                                    {labels.selectionCheckerboardA}
-                                                                </Button>
-                                                                <Button size="sm" variant="flat" onPress={() => applySelectionPreset("checkerboardB")}>
-                                                                    {labels.selectionCheckerboardB}
-                                                                </Button>
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="flat"
-                                                                    color="warning"
-                                                                    onPress={() => setSelectedDeskIds(selectedDeskId ? [selectedDeskId] : [])}
-                                                                >
-                                                                    {labels.selectionReset}
-                                                                </Button>
-                                                            </div>
+                                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                                        <p className="text-xs text-default-500">{labels.multiSelectHint}</p>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            <Button size="sm" variant="flat" onPress={() => applySelectionPreset("all")}>
+                                                                {labels.selectionAllRoom}
+                                                            </Button>
+                                                            {showAdvanced && (
+                                                                <>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="flat"
+                                                                        onPress={() => applySelectionPreset("currentRow")}
+                                                                        isDisabled={!selectedPhysicalEntry}
+                                                                    >
+                                                                        {labels.selectionCurrentRow}
+                                                                    </Button>
+                                                                    <Button size="sm" variant="flat" onPress={() => applySelectionPreset("oddColumns")}>
+                                                                        {labels.selectionOddColumns}
+                                                                    </Button>
+                                                                    <Button size="sm" variant="flat" onPress={() => applySelectionPreset("evenColumns")}>
+                                                                        {labels.selectionEvenColumns}
+                                                                    </Button>
+                                                                    <Button size="sm" variant="flat" onPress={() => applySelectionPreset("checkerboardA")}>
+                                                                        {labels.selectionCheckerboardA}
+                                                                    </Button>
+                                                                    <Button size="sm" variant="flat" onPress={() => applySelectionPreset("checkerboardB")}>
+                                                                        {labels.selectionCheckerboardB}
+                                                                    </Button>
+                                                                </>
+                                                            )}
+                                                            <Button
+                                                                size="sm"
+                                                                variant="flat"
+                                                                color="warning"
+                                                                onPress={() => setSelectedDeskIds(selectedDeskId ? [selectedDeskId] : [])}
+                                                            >
+                                                                {labels.selectionReset}
+                                                            </Button>
                                                         </div>
                                                     </div>
 
@@ -2648,67 +2691,9 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
                                                     </Chip>
                                                 </div>
 
-                                                <div className="flex flex-wrap gap-2 text-xs">
-                                                    <Chip size="sm" variant="flat" color={invalidSeatNumberCount > 0 ? "warning" : "default"}>
-                                                        {labels.validationInvalidSeatNumber}: {invalidSeatNumberCount}
-                                                    </Chip>
-                                                    <Chip size="sm" variant="flat" color={duplicateStudentSaveCount > 0 ? "warning" : "default"}>
-                                                        {labels.validationDuplicateStudent}: {duplicateStudentSaveCount}
-                                                    </Chip>
-                                                    <Chip size="sm" variant="flat" color={duplicateSeatSaveCount > 0 ? "danger" : "default"}>
-                                                        {labels.validationDuplicateSeat}: {duplicateSeatSaveCount}
-                                                    </Chip>
-                                                </div>
-
-                                                {saveValidationIssues.length === 0 ? (
-                                                    <div className="rounded-2xl bg-emerald-500/10 px-4 py-6 text-center text-sm text-emerald-700 dark:text-emerald-300">
-                                                        {labels.validationReady}
-                                                    </div>
-                                                ) : (
-                                                    <div className="space-y-3">
-                                                        <div className="rounded-2xl border border-dashed border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger-700 dark:text-danger-300">
-                                                            {labels.validationFixBeforeSave}
-                                                        </div>
-                                                        <div className="max-h-72 space-y-2 overflow-auto pr-1">
-                                                            {saveValidationIssues.map((issue, index) => {
-                                                                const issueLabel = issue.code === "seat_number_invalid"
-                                                                    ? labels.validationInvalidSeatNumber
-                                                                    : issue.code === "student_duplicate"
-                                                                        ? labels.validationDuplicateStudent
-                                                                        : labels.validationDuplicateSeat;
-
-                                                                return (
-                                                                    <button
-                                                                        key={`${issue.row.desk_id}-${issue.code}-${index}`}
-                                                                        type="button"
-                                                                        className={[
-                                                                            "w-full rounded-2xl border px-3 py-3 text-left transition-colors",
-                                                                            issue.row.desk_id === selectedDeskId
-                                                                                ? "border-sky-300 bg-sky-500/10"
-                                                                                : "border-default-200 bg-content2/50 hover:border-sky-200 hover:bg-sky-500/5",
-                                                                        ].join(" ")}
-                                                                        onClick={() => focusPlannerDesk(issue.row.desk_id)}
-                                                                    >
-                                                                        <div className="flex items-start justify-between gap-3">
-                                                                            <div>
-                                                                                <p className="font-medium text-foreground">
-                                                                                    {issue.row.classroom_name} · {labels.deskColumn} {issue.row.desk_number}
-                                                                                </p>
-                                                                                <p className="text-xs text-default-500">
-                                                                                    {issue.row.seat_number ? `${labels.seatNo} ${issue.row.seat_number}` : labels.validationInvalidSeatNumber}
-                                                                                </p>
-                                                                            </div>
-                                                                            <Chip size="sm" variant="flat" color={issue.code === "seat_duplicate" ? "danger" : "warning"}>
-                                                                                {issueLabel}
-                                                                            </Chip>
-                                                                        </div>
-                                                                        <div className="mt-2 text-xs text-default-500">
-                                                                            {labels.validationJump}
-                                                                        </div>
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                        </div>
+                                                {saveValidationIssues.length > 0 && (
+                                                    <div className="rounded-2xl border border-dashed border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger-700 dark:text-danger-300">
+                                                        {labels.validationFixBeforeSave}
                                                     </div>
                                                 )}
                                             </CardBody>
@@ -2723,29 +2708,6 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
                                                     <p className="text-sm text-default-500">
                                                         {labels.editDeskDescription}
                                                     </p>
-                                                </div>
-
-                                                <div className="rounded-2xl border border-default-200 bg-content2/30 px-3 py-2">
-                                                    <Switch
-                                                        isSelected={autoAdvanceCleanup}
-                                                        onValueChange={setAutoAdvanceCleanup}
-                                                        color="secondary"
-                                                    >
-                                                        {labels.autoAdvanceCleanup}
-                                                    </Switch>
-                                                    <p className="mt-1 text-xs text-default-500">
-                                                        {labels.autoAdvanceCleanupDescription}
-                                                    </p>
-                                                </div>
-
-                                                <div className="rounded-2xl border border-default-200 bg-content2/30 p-3">
-                                                    <p className="text-sm font-medium text-foreground">{labels.hotkeysTitle}</p>
-                                                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-default-500">
-                                                        <Chip size="sm" variant="flat">J · {labels.hotkeyNextDesk}</Chip>
-                                                        <Chip size="sm" variant="flat">K · {labels.hotkeyNextIssue}</Chip>
-                                                        <Chip size="sm" variant="flat">/ · {labels.hotkeySearch}</Chip>
-                                                        <Chip size="sm" variant="flat">Ctrl/Cmd+S · {labels.hotkeySave}</Chip>
-                                                    </div>
                                                 </div>
 
                                                 {!selectedRow ? (
@@ -3162,18 +3124,19 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
 
                                             <div className="flex flex-wrap gap-2">
                                                 <Button size="sm" variant={isActivePlanner ? "solid" : "flat"} onPress={() => void openPlanner(session)}>
-                                                    <Icon icon="solar:chair-2-linear" className="mr-1" />
-                                                    {labels.openPlanner}
+                                                    <Icon icon="solar:pen-new-square-linear" className="mr-1" />
+                                                    {isActivePlanner ? labels.openNow : labels.openPlanner}
                                                 </Button>
                                                 <Button size="sm" variant="flat" onPress={() => handlePrint(session)}>
-                                                    <Icon icon="solar:printer-linear" />
+                                                    <Icon icon="solar:eye-linear" className="mr-1" />
+                                                    {labels.viewLayout}
                                                 </Button>
                                                 <Button
                                                     size="sm"
                                                     variant="flat"
                                                     color="danger"
                                                     isDisabled={!isCourseActive}
-                                                    onPress={() => void handleDeleteSession(session.id)}
+                                                    onPress={() => handleDeleteSession(session.id)}
                                                 >
                                                     <Icon icon="solar:trash-bin-minimalistic-linear" />
                                                 </Button>
@@ -3205,17 +3168,43 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
                         <Select
                             label={labels.examType}
                             placeholder={labels.examType}
-                            selectedKeys={createForm.exam_setting_id ? new Set([createForm.exam_setting_id]) : new Set()}
+                            selectedKeys={createForm.exam_type ? new Set([createForm.exam_type]) : new Set()}
                             onSelectionChange={(keys) =>
                                 setCreateForm((current) => ({
                                     ...current,
-                                    exam_setting_id: singleSelection(keys as "all" | Set<Key>),
+                                    exam_type: singleSelection(keys as "all" | Set<Key>),
+                                    component: "",
+                                    exam_setting_id: "",
                                 }))
                             }
                             isRequired
                         >
-                            {settingOptions.map((option) => (
-                                <SelectItem key={option.value}>{option.label}</SelectItem>
+                            {examTypeOptions.map((examType) => (
+                                <SelectItem key={examType}>
+                                    {examType === "midterm" ? t("midtermExam") : t("finalExam")}
+                                </SelectItem>
+                            ))}
+                        </Select>
+
+                        <Select
+                            label={labels.examComponent}
+                            placeholder={labels.examComponent}
+                            selectedKeys={createForm.component ? new Set([createForm.component]) : new Set()}
+                            isDisabled={!createForm.exam_type}
+                            onSelectionChange={(keys) => {
+                                const nextComponent = singleSelection(keys as "all" | Set<Key>);
+                                setCreateForm((current) => ({
+                                    ...current,
+                                    component: nextComponent,
+                                    exam_setting_id: resolveExamSettingId(current.exam_type, nextComponent),
+                                }));
+                            }}
+                            isRequired
+                        >
+                            {createComponentOptions.map((component) => (
+                                <SelectItem key={component}>
+                                    {component === "lab" ? t("practicalComponent") : t("lectureComponent")}
+                                </SelectItem>
                             ))}
                         </Select>
 
@@ -3272,7 +3261,7 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
                         <Button variant="flat" onPress={() => setIsCreateOpen(false)}>
                             {labels.cancel}
                         </Button>
-                        <Button className="bg-linear-to-r from-sky-500 via-cyan-500 to-teal-500 text-white" isLoading={isCreating} onPress={handleCreateSession}>
+                        <Button color="primary" className={instructorPrimaryButtonClass()} isLoading={isCreating} onPress={handleCreateSession}>
                             {labels.createAndContinue}
                         </Button>
                     </ModalFooter>
@@ -3311,9 +3300,6 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
                                     <p className="mt-1 text-sm text-default-400">
                                         {labels.officialKkuFormat}
                                     </p>
-                                    {importFile && (
-                                        <p className="mt-4 text-xs text-default-500">{importFile.name}</p>
-                                    )}
                                 </div>
                                 {isImporting && (
                                     <p className="mt-4 text-default-400">
@@ -3396,17 +3382,42 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
                                 </p>
                                 <Select
                                     label={labels.examType}
-                                    selectedKeys={importForm.exam_setting_id ? new Set([importForm.exam_setting_id]) : new Set()}
+                                    selectedKeys={importForm.exam_type ? new Set([importForm.exam_type]) : new Set()}
                                     onSelectionChange={(keys) =>
                                         setImportForm((current) => ({
                                             ...current,
-                                            exam_setting_id: singleSelection(keys as "all" | Set<Key>),
+                                            exam_type: singleSelection(keys as "all" | Set<Key>),
+                                            component: "",
+                                            exam_setting_id: "",
                                         }))
                                     }
                                     isRequired
                                 >
-                                    {settingOptions.map((option) => (
-                                        <SelectItem key={option.value}>{option.label}</SelectItem>
+                                    {examTypeOptions.map((examType) => (
+                                        <SelectItem key={examType}>
+                                            {examType === "midterm" ? t("midtermExam") : t("finalExam")}
+                                        </SelectItem>
+                                    ))}
+                                </Select>
+
+                                <Select
+                                    label={labels.examComponent}
+                                    selectedKeys={importForm.component ? new Set([importForm.component]) : new Set()}
+                                    isDisabled={!importForm.exam_type}
+                                    onSelectionChange={(keys) => {
+                                        const nextComponent = singleSelection(keys as "all" | Set<Key>);
+                                        setImportForm((current) => ({
+                                            ...current,
+                                            component: nextComponent,
+                                            exam_setting_id: resolveExamSettingId(current.exam_type, nextComponent),
+                                        }));
+                                    }}
+                                    isRequired
+                                >
+                                    {importComponentOptions.map((component) => (
+                                        <SelectItem key={component}>
+                                            {component === "lab" ? t("practicalComponent") : t("lectureComponent")}
+                                        </SelectItem>
                                     ))}
                                 </Select>
                                 <Input
@@ -3457,7 +3468,8 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
                                     {labels.back}
                                 </Button>
                                 <Button
-                                    className="bg-linear-to-r from-sky-500 via-cyan-500 to-teal-500 text-white"
+                                    color="primary"
+                                    className={instructorPrimaryButtonClass()}
                                     isDisabled={(importPreview?.matched ?? 0) === 0}
                                     onPress={() => setImportStep(3)}
                                 >
@@ -3470,11 +3482,46 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
                                 <Button variant="flat" onPress={() => setImportStep(2)}>
                                     {labels.back}
                                 </Button>
-                                <Button className="bg-emerald-500 text-white" isLoading={isImporting} onPress={handleImportCommit}>
+                                <Button color="primary" className={instructorPrimaryButtonClass()} isLoading={isImporting} onPress={handleImportCommit}>
                                     {labels.confirmImport}
                                 </Button>
                             </>
                         )}
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
+            <Modal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+                size="sm"
+            >
+                <ModalContent>
+                    <ModalHeader className="flex items-center gap-2">
+                        <Icon
+                            icon={confirmModal.color === "danger" ? "solar:danger-triangle-bold-duotone" : "solar:restart-bold-duotone"}
+                            className={confirmModal.color === "danger" ? "text-danger" : "text-warning"}
+                        />
+                        {confirmModal.title}
+                    </ModalHeader>
+                    <ModalBody>
+                        <p className="text-sm text-default-600">{confirmModal.body}</p>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button
+                            variant="flat"
+                            onPress={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+                            isDisabled={isConfirmLoading}
+                        >
+                            {t("cancel")}
+                        </Button>
+                        <Button
+                            color={confirmModal.color}
+                            isLoading={isConfirmLoading}
+                            onPress={() => void executeConfirmModal()}
+                        >
+                            {confirmModal.confirmLabel}
+                        </Button>
                     </ModalFooter>
                 </ModalContent>
             </Modal>
