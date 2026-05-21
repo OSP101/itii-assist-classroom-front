@@ -163,6 +163,7 @@ interface ClassroomDetailPageProps {
 }
 
 export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetailPageProps) {
+    const SHOW_EXAM_SEATS_MENU = false;
     const params = useParams();
     const pathname = usePathname();
     const courseId = params.id as string;
@@ -1076,7 +1077,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
         ...(canAccessAssignments ? [{ key: "assignments", label: t("classwork"), icon: "solar:clipboard-list-bold" }] : []),
         ...(canAccessScores ? [{ key: "scores", label: t("classroomScores"), icon: "solar:chart-square-bold" }] : []),
         ...(canAccessExamScores ? [{ key: "exam-scores", label: t("examScores"), icon: "solar:diploma-bold" }] : []),
-        ...(canAccessExamScores ? [{ key: "exam-seats", label: t("examSeatManagement"), icon: "solar:armchair-bold" }] : []),
+        ...(SHOW_EXAM_SEATS_MENU && canAccessExamScores ? [{ key: "exam-seats", label: t("examSeatManagement"), icon: "solar:armchair-bold" }] : []),
         ...(canAccessApproval ? [{
             key: "approval",
             label: approvalRole === "ta" ? t("scoreRequestStatus") : t("scoreApproval"),
@@ -1087,7 +1088,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
         ...(userRole === 'instructor' || isAdminAccess ? [{ key: "activity-log", label: t("activityLog"), icon: "solar:document-text-bold" }] : []),
         ...(userRole === 'instructor' || isAdminAccess ? [{ key: "ta-stats", label: t("taStats"), icon: "solar:graph-new-up-bold" }] : []),
         ...(userRole === 'instructor' || isAdminAccess ? [{ key: "settings", label: t("courseSettings"), icon: "solar:settings-bold" }] : []),
-    ], [approvalRole, canAccessApproval, canAccessAssignments, canAccessAttendance, canAccessExamScores, canAccessScores, canAccessSections, canViewPeople, t, userRole]);
+    ], [SHOW_EXAM_SEATS_MENU, approvalRole, canAccessApproval, canAccessAssignments, canAccessAttendance, canAccessExamScores, canAccessScores, canAccessSections, canViewPeople, t, userRole]);
 
     useEffect(() => {
         if (isLoading || !course) {

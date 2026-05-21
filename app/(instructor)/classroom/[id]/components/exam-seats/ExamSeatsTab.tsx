@@ -989,6 +989,10 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
         window.open(`/classroom/${courseId}/exam-sessions/${session.id}/print`, "_blank");
     };
 
+    const handleExportPdf = (session: ExamSession) => {
+        window.open(`/classroom/${courseId}/exam-sessions/${session.id}/print?view=list&output=pdf`, "_blank");
+    };
+
     const handlePlannerRoomChange = (roomIds: string[]) => {
         const nextRows = buildPlannerRows(
             roomIds,
@@ -2044,6 +2048,10 @@ export default function ExamSeatsTab({ courseId, isCourseActive = true }: ExamSe
                                     <Button variant="flat" onPress={() => handlePrint(plannerSession)}>
                                         <Icon icon="solar:printer-linear" className="mr-1" />
                                         {t("printExamSheet")}
+                                    </Button>
+                                    <Button variant="flat" onPress={() => handleExportPdf(plannerSession)}>
+                                        <Icon icon="solar:file-text-linear" className="mr-1" />
+                                        {t("examSeatExportPdf")}
                                     </Button>
                                     <Button
                                         variant="flat"

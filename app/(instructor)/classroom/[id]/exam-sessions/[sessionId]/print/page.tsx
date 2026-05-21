@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import { Button } from "@heroui/button";
 import { Icon } from "@iconify/react";
 import { useI18n } from "@/hooks/useI18n";
@@ -10,6 +10,7 @@ import { getExamSeatingExport, getExamSeats, type ExamSeatingExport, type ExamSe
 import { courseService } from "@/services/course.service";
 import classroomService, { type Classroom as ClassroomLayout, type Desk } from "@/services/classroom.service";
 import type { Course } from "@/services/course.service";
+import { ExamSeatPdfDocument, registerExamSeatPdfFonts } from "./exam-seat-pdf-document";
 
 // ─── Physical layout renderer (uses actual x,y coordinates from database) ────
 
@@ -101,6 +102,7 @@ function RoomLayoutGrid({ classroom, seats, zoom }: { classroom: ClassroomLayout
 
 export default function ExamSessionPrintPage() {
     const params = useParams<{ id: string; sessionId: string }>();
+    const searchParams = useSearchParams();
     const t = useI18n();
     const { language } = useGlobalSettings();
     const isEnglish = language === "en";
@@ -112,13 +114,21 @@ export default function ExamSessionPrintPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const initialViewMode = useMemo<"list" | "layout">(() => {
+        const requestedView = searchParams.get("view");
+        return requestedView === "list" ? "list" : "layout";
+    }, [searchParams]);
+    const shouldAutoDownloadPdf = searchParams.get("output") === "pdf";
+
     // Layout view state
-    const [viewMode, setViewMode] = useState<"list" | "layout">("layout");
+    const [viewMode, setViewMode] = useState<"list" | "layout">(initialViewMode);
     const [seats, setSeats] = useState<ExamSeat[]>([]);
     const [classroomLayouts, setClassroomLayouts] = useState<Map<string, ClassroomLayout>>(new Map());
     const [isLayoutLoading, setIsLayoutLoading] = useState(false);
     const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
     const [zoom, setZoom] = useState(1.0);
+    const [isPdfDownloading, setIsPdfDownloading] = useState(false);
+    const [hasAutoDownloaded, setHasAutoDownloaded] = useState(false);
 
     useEffect(() => {
         const load = async () => {
@@ -138,6 +148,80 @@ export default function ExamSessionPrintPage() {
         };
         void load();
     }, [courseId, sessionId, t]);
+
+    useEffect(() => {
+        setViewMode(initialViewMode);
+    }, [initialViewMode]);
+
+    const handleDownloadPdf = useCallback(async () => {
+        if (isPdfDownloading) {
+            return;
+        }
+
+        if (!data || !course) {
+            return;
+        }
+
+        setIsPdfDownloading(true);
+
+        try {
+            const session = data.session;
+            const rows = data.rows;
+            const examTypeLabel = session.exam_setting?.exam_type === "midterm" ? "กลางภาค" : "ปลายภาค";
+            const componentLabel = session.exam_setting?.component === "lab" ? "ปฏิบัติการ" : "บรรยาย";
+            const sectionLabel = course.sections && course.sections.length > 0
+                ? course.sections
+                    .map((section) => section.section_no)
+                    .filter(Boolean)
+                    .join(", ")
+                : "-";
+            const classrooms = Array.from(new Set(rows.map((row) => row.classroom_name))).sort();
+            const officialDate = (() => {
+                try {
+                    return new Date(session.exam_date).toLocaleDateString(isEnglish ? "en-GB" : "th-TH", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                    });
+                } catch {
+                    return session.exam_date;
+                }
+            })();
+
+            const { pdf } = await import("@react-pdf/renderer");
+            registerExamSeatPdfFonts(window.location.origin);
+
+            const pdfBlob = await pdf(
+                <ExamSeatPdfDocument
+                    logoSrc={`${window.location.origin}/images/official-logo-kku.png`}
+                    courseCode={course.code || "-"}
+                    courseName={course.name || "-"}
+                    semester={course.semester}
+                    year={course.year}
+                    sectionLabel={sectionLabel}
+                    examLabel={`${examTypeLabel} (${componentLabel})`}
+                    datetimeLabel={`${officialDate} เวลา ${session.start_time} - ${session.end_time} น.`}
+                    componentLabel={componentLabel}
+                    classroomLabel={classrooms.join(", ") || "-"}
+                    instructorName={course.instructor?.full_name || "-"}
+                    studentCount={rows.length}
+                    rows={rows}
+                />
+            ).toBlob();
+
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            const downloadLink = document.createElement("a");
+            downloadLink.href = pdfUrl;
+
+            const safeCourseCode = (course?.code || "exam-seating").replace(/[^a-zA-Z0-9_-]/g, "_");
+            const fileName = `${safeCourseCode}_session_${sessionId}.pdf`;
+            downloadLink.download = fileName;
+            downloadLink.click();
+            URL.revokeObjectURL(pdfUrl);
+        } finally {
+            setIsPdfDownloading(false);
+        }
+    }, [course, data, isEnglish, isPdfDownloading, sessionId]);
 
     // Load spatial layout data when layout mode is active
     useEffect(() => {
@@ -167,6 +251,33 @@ export default function ExamSessionPrintPage() {
         void loadLayout();
     }, [viewMode, data, courseId, sessionId, classroomLayouts.size]);
 
+    useEffect(() => {
+        if (!shouldAutoDownloadPdf || isLoading || !data || !course || hasAutoDownloaded) {
+            return;
+        }
+
+        if (viewMode !== "list") {
+            setViewMode("list");
+            return;
+        }
+
+        let isCancelled = false;
+
+        const timer = window.setTimeout(() => {
+            void (async () => {
+                await handleDownloadPdf();
+                if (!isCancelled) {
+                    setHasAutoDownloaded(true);
+                }
+            })();
+        }, 150);
+
+        return () => {
+            isCancelled = true;
+            window.clearTimeout(timer);
+        };
+    }, [course, data, handleDownloadPdf, hasAutoDownloaded, isLoading, shouldAutoDownloadPdf, viewMode]);
+
     if (isLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center">
@@ -190,9 +301,15 @@ export default function ExamSessionPrintPage() {
     const rows = data.rows;
 
     const examTypeLabel = session.exam_setting?.exam_type === "midterm" ? "กลางภาค" : "ปลายภาค";
-    const componentLabel = session.exam_setting?.component === "lab" ? "Lab" : "บรรยาย";
+    const componentLabel = session.exam_setting?.component === "lab" ? "ปฏิบัติการ" : "บรรยาย";
     const toolbarExamTypeLabel = session.exam_setting?.exam_type === "midterm" ? t("midtermExam") : t("finalExam");
     const toolbarComponentLabel = session.exam_setting?.component === "lab" ? t("practicalComponent") : t("lectureComponent");
+    const sectionLabel = course.sections && course.sections.length > 0
+        ? course.sections
+            .map((section) => section.section_no)
+            .filter(Boolean)
+            .join(", ")
+        : "-";
 
     const formatDate = (dateStr: string) => {
         try {
@@ -204,13 +321,32 @@ export default function ExamSessionPrintPage() {
         }
     };
 
-    // Group rows by classroom
+    const formatOfficialDate = (dateStr: string) => {
+        try {
+            return new Date(dateStr).toLocaleDateString(isEnglish ? "en-GB" : "th-TH", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+            });
+        } catch {
+            return dateStr;
+        }
+    };
+
+    const formatStudentCode = (studentCode: string) => {
+        const normalized = studentCode.trim();
+        if (normalized.includes("-") || !/^\d+$/.test(normalized) || normalized.length < 2) {
+            return normalized;
+        }
+        return `${normalized.slice(0, -1)}-${normalized.slice(-1)}`;
+    };
+
     const classrooms = Array.from(new Set(rows.map((r) => r.classroom_name))).sort();
-    const groupedByClassroom: Record<string, typeof rows> = {};
-    for (const row of rows) {
-        if (!groupedByClassroom[row.classroom_name]) groupedByClassroom[row.classroom_name] = [];
-        groupedByClassroom[row.classroom_name].push(row);
-    }
+    const rowsPerPage = 24;
+    const pageCount = Math.max(1, Math.ceil(rows.length / rowsPerPage));
+    const pagedRows = Array.from({ length: pageCount }, (_, index) =>
+        rows.slice(index * rowsPerPage, (index + 1) * rowsPerPage)
+    );
 
     return (
         <div className="min-h-screen bg-white">
@@ -236,6 +372,15 @@ export default function ExamSessionPrintPage() {
                         {t("examSeatListView")}
                     </button>
                 </div>
+                <Button
+                    variant="flat"
+                    isLoading={isPdfDownloading}
+                    isDisabled={viewMode !== "list"}
+                    onPress={() => void handleDownloadPdf()}
+                >
+                    <Icon icon="solar:file-download-linear" className="mr-1" />
+                    {t("examSeatExportPdf")}
+                </Button>
                 <Button
                     className="ml-auto bg-blue-600 text-white"
                     size="sm"
@@ -371,97 +516,287 @@ export default function ExamSessionPrintPage() {
 
                 {/* ── List / document view ── */}
                 {viewMode === "list" && (
-                    <div>
-                        {/* KKU Header */}
-                        <div className="text-center mb-4">
-                            <p className="text-base font-bold">มหาวิทยาลัยขอนแก่น</p>
-                            <p className="text-sm">ใบรายชื่อผู้เข้าสอบ</p>
-                        </div>
+                    <div className="official-paper">
+                        {pagedRows.map((pageRows, pageIndex) => {
+                            const isLastPage = pageIndex === pagedRows.length - 1;
+                            const blankRowCount = Math.max(0, rowsPerPage - pageRows.length);
 
-                        {/* Course info table */}
-                        <table className="w-full text-sm border border-slate-400 mb-1" style={{ borderCollapse: "collapse" }}>
-                            <tbody>
-                                <tr>
-                                    <td className="border border-slate-400 px-2 py-1 font-semibold w-36">รหัสวิชา</td>
-                                    <td className="border border-slate-400 px-2 py-1">{course.code}</td>
-                                    <td className="border border-slate-400 px-2 py-1 font-semibold w-28">ชื่อวิชา</td>
-                                    <td className="border border-slate-400 px-2 py-1" colSpan={3}>{course.name}</td>
-                                </tr>
-                                <tr>
-                                    <td className="border border-slate-400 px-2 py-1 font-semibold">ประเภทสอบ</td>
-                                    <td className="border border-slate-400 px-2 py-1">{examTypeLabel} ({componentLabel})</td>
-                                    <td className="border border-slate-400 px-2 py-1 font-semibold">วันสอบ</td>
-                                    <td className="border border-slate-400 px-2 py-1" colSpan={3}>{formatDate(session.exam_date)}</td>
-                                </tr>
-                                <tr>
-                                    <td className="border border-slate-400 px-2 py-1 font-semibold">เวลาสอบ</td>
-                                    <td className="border border-slate-400 px-2 py-1">{session.start_time} – {session.end_time} น.</td>
-                                    <td className="border border-slate-400 px-2 py-1 font-semibold">ห้องสอบ</td>
-                                    <td className="border border-slate-400 px-2 py-1">{classrooms.join(", ")}</td>
-                                    <td className="border border-slate-400 px-2 py-1 font-semibold">จำนวน</td>
-                                    <td className="border border-slate-400 px-2 py-1">{rows.length} คน</td>
-                                </tr>
-                                <tr>
-                                    <td className="border border-slate-400 px-2 py-1 font-semibold">ปีการศึกษา</td>
-                                    <td className="border border-slate-400 px-2 py-1">{course.year} เทอม {course.semester}</td>
-                                    <td className="border border-slate-400 px-2 py-1 font-semibold">อาจารย์</td>
-                                    <td className="border border-slate-400 px-2 py-1" colSpan={3}>
-                                        {course.instructor ? course.instructor.full_name : "—"}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                            return (
+                                <section key={`page-${pageIndex + 1}`} className="official-page">
+                                    <div className="official-header">
+                                        <p className="official-title-university">มหาวิทยาลัยขอนแก่น</p>
+                                        <p className="official-title-document">รายชื่อนศ.ในรายวิชาที่สอน</p>
+                                        <p className="official-title-level">วิทยาเขต ขอนแก่น ปีการศึกษา {course.semester}/{course.year}</p>
+                                        <p className="official-title-level">ระดับการศึกษา ปริญญาตรี โครงการพิเศษ</p>
+                                    </div>
 
-                        {/* Seat table */}
-                        <table className="w-full text-sm border border-slate-400 mt-3" style={{ borderCollapse: "collapse" }}>
-                            <thead>
-                                <tr className="bg-slate-100">
-                                    <th className="border border-slate-400 px-2 py-1.5 text-center w-10">ลำดับ</th>
-                                    <th className="border border-slate-400 px-2 py-1.5 text-left w-32">รหัสประจำตัว</th>
-                                    <th className="border border-slate-400 px-2 py-1.5 text-left">ชื่อ-สกุล</th>
-                                    <th className="border border-slate-400 px-2 py-1.5 text-center w-20">เอก</th>
-                                    <th className="border border-slate-400 px-2 py-1.5 text-center w-36">ห้อง-เลขที่นั่งสอบ</th>
-                                    <th className="border border-slate-400 px-2 py-1.5 text-center w-32">ลงชื่อเข้าสอบ</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {rows.map((row, idx) => (
-                                    <tr key={row.row_num} className={idx % 2 === 0 ? "" : "bg-slate-50"}>
-                                        <td className="border border-slate-400 px-2 py-1.5 text-center">{idx + 1}</td>
-                                        <td className="border border-slate-400 px-2 py-1.5 tabular-nums">{row.student_id}</td>
-                                        <td className="border border-slate-400 px-2 py-1.5">{row.full_name}</td>
-                                        <td className="border border-slate-400 px-2 py-1.5 text-center">{row.major || "—"}</td>
-                                        <td className="border border-slate-400 px-2 py-1.5 text-center font-semibold">{row.seat_label}</td>
-                                        <td className="border border-slate-400 px-2 py-1.5">&nbsp;</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                    <div className="official-info-grid">
+                                        <div className="official-info-col">
+                                            <p><strong>รายวิชา</strong> {course.code || "-"} {course.name || "-"}</p>
+                                            <p><strong>กลุ่มที่</strong> {sectionLabel} <strong>ห้องสอบ</strong> {classrooms.join(", ") || "-"}</p>
+                                            <p><strong>ภาคการสอน</strong> {componentLabel}</p>
+                                        </div>
+                                        <div className="official-info-col official-info-col-right">
+                                            <p><strong>อาจารย์ผู้สอน</strong> {course.instructor ? course.instructor.full_name : "-"}</p>
+                                            <p><strong>{examTypeLabel} ({componentLabel})</strong></p>
+                                            <p><strong>วันเวลาสอบ</strong> {formatOfficialDate(session.exam_date)} เวลา {session.start_time} - {session.end_time} น.</p>
+                                        </div>
+                                    </div>
 
-                        {/* Signature area */}
-                        <div className="mt-8 flex justify-end gap-16 text-sm print:mt-6">
-                            <div className="text-center">
-                                <div className="h-12" />
-                                <p>ลายมือชื่อผู้คุมสอบ</p>
-                                <p className="mt-1">(.......................................)</p>
-                                <p className="text-xs text-slate-500">วันที่ ...............</p>
-                            </div>
-                            <div className="text-center">
-                                <div className="h-12" />
-                                <p>ลายมือชื่อผู้ตรวจสอบ</p>
-                                <p className="mt-1">(.......................................)</p>
-                                <p className="text-xs text-slate-500">วันที่ ...............</p>
-                            </div>
-                        </div>
+                                    <table className="official-table official-seat-table">
+                                        <thead>
+                                            <tr>
+                                                <th>ลำดับ</th>
+                                                <th>รหัสประจำตัว</th>
+                                                <th>ชื่อ</th>
+                                                <th>เอก</th>
+                                                <th>ห้อง-เลขที่นั่งสอบ</th>
+                                                <th>ลงชื่อเข้าสอบ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {pageRows.map((row, idx) => (
+                                                <tr key={`${row.row_num}-${pageIndex}`}>
+                                                    <td>{(pageIndex * rowsPerPage) + idx + 1}.</td>
+                                                    <td className="student-id">{formatStudentCode(row.student_id)}</td>
+                                                    <td className="student-name">{row.full_name}</td>
+                                                    <td>{row.major || ""}</td>
+                                                    <td className="seat-label">{row.seat_label}</td>
+                                                    <td>&nbsp;</td>
+                                                </tr>
+                                            ))}
+                                            {Array.from({ length: blankRowCount }).map((_, blankIndex) => (
+                                                <tr key={`blank-${pageIndex}-${blankIndex}`} className="blank-row">
+                                                    <td>{(pageIndex * rowsPerPage) + pageRows.length + blankIndex + 1}.</td>
+                                                    <td>&nbsp;</td>
+                                                    <td>&nbsp;</td>
+                                                    <td>&nbsp;</td>
+                                                    <td>&nbsp;</td>
+                                                    <td>&nbsp;</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+
+                                    {isLastPage && (
+                                        <div className="official-signature-row">
+                                            <div className="official-signature-box">
+                                                <p>ลายมือชื่อผู้คุมสอบ</p>
+                                                <p>(..................................................)</p>
+                                                <p>วันที่ ............... / ............... / ...............</p>
+                                            </div>
+                                            <div className="official-signature-box">
+                                                <p>ลายมือชื่อผู้ตรวจสอบ</p>
+                                                <p>(..................................................)</p>
+                                                <p>วันที่ ............... / ............... / ...............</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </section>
+                            );
+                        })}
                     </div>
                 )}
             </div>
 
             {/* Print CSS */}
             <style jsx global>{`
+                :root {
+                    --official-border: #000;
+                }
+
+                @font-face {
+                    font-family: "TH Sarabun New";
+                    src: url("/fonts/THSarabunNew.ttf") format("truetype");
+                    font-style: normal;
+                    font-weight: 400;
+                    font-display: swap;
+                }
+
+                @font-face {
+                    font-family: "TH Sarabun New";
+                    src: url("/fonts/THSarabunNew-Bold.ttf") format("truetype");
+                    font-style: normal;
+                    font-weight: 700;
+                    font-display: swap;
+                }
+
+                .official-paper {
+                    color: #000;
+                    font-family: "TH Sarabun New";
+                    font-size: 16pt;
+                    line-height: 1.25;
+                }
+
+                .official-paper,
+                .official-paper * {
+                    font-family: "TH Sarabun New" !important;
+                }
+
+                .official-page {
+                    position: relative;
+                    min-height: calc(297mm - 18mm);
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .official-page + .official-page {
+                    margin-top: 20px;
+                }
+
+                .official-header {
+                    margin-bottom: 8px;
+                    text-align: center;
+                }
+
+                .official-title-university {
+                    font-size: 26px;
+                    font-weight: 700;
+                    line-height: 1.1;
+                }
+
+                .official-title-document {
+                    font-size: 26px;
+                    font-weight: 700;
+                    line-height: 1.1;
+                }
+
+                .official-title-level {
+                    margin-top: 4px;
+                    font-size: 14pt;
+                    text-align: right;
+                    line-height: 1.1;
+                }
+
+                .official-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    border: 1px solid var(--official-border);
+                }
+
+                .official-info-grid {
+                    margin-bottom: 8px;
+                    display: flex;
+                    justify-content: space-between;
+                    gap: 12px;
+                    font-size: 14pt;
+                    line-height: 1.1;
+                }
+
+                .official-info-col {
+                    width: 58%;
+                }
+
+                .official-info-col-right {
+                    width: 42%;
+                }
+
+                .official-info-col p {
+                    margin: 0 0 2px 0;
+                }
+
+                .official-table th,
+                .official-table td {
+                    border: 1px solid var(--official-border);
+                    padding: 3px 6px;
+                    vertical-align: middle;
+                }
+
+                .official-seat-table thead th {
+                    background: #d9d9d9;
+                    text-align: center;
+                    font-weight: 700;
+                    white-space: nowrap;
+                    font-size: 16pt;
+                }
+
+                .official-seat-table tbody td {
+                    height: 9mm;
+                    font-size: 16pt;
+                }
+
+                .official-seat-table .blank-row td {
+                    color: transparent;
+                }
+
+                .official-seat-table th:nth-child(1),
+                .official-seat-table td:nth-child(1) {
+                    width: 8%;
+                    text-align: center;
+                }
+
+                .official-seat-table th:nth-child(2),
+                .official-seat-table td:nth-child(2) {
+                    width: 17%;
+                }
+
+                .official-seat-table th:nth-child(3),
+                .official-seat-table td:nth-child(3) {
+                    width: 33%;
+                }
+
+                .official-seat-table th:nth-child(4),
+                .official-seat-table td:nth-child(4) {
+                    width: 10%;
+                    text-align: center;
+                }
+
+                .official-seat-table th:nth-child(5),
+                .official-seat-table td:nth-child(5) {
+                    width: 17%;
+                    text-align: center;
+                    font-weight: 700;
+                }
+
+                .official-seat-table th:nth-child(6),
+                .official-seat-table td:nth-child(6) {
+                    width: 15%;
+                }
+
+                .official-signature-row {
+                    margin-top: auto;
+                    padding-top: 14px;
+                    display: flex;
+                    justify-content: space-between;
+                    gap: 16px;
+                }
+
+                .official-signature-box {
+                    width: 48%;
+                    text-align: center;
+                    font-size: 16pt;
+                }
+
                 @media print {
-                    body { margin: 0; font-size: 11pt; }
+                    @page {
+                        size: A4 portrait;
+                        margin: 5mm 6mm 6mm 6mm;
+                    }
+
+                    body {
+                        margin: 0;
+                        font-size: 16px;
+                        color: #000;
+                        background: #fff;
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+
                     .print\\:hidden { display: none !important; }
+
+                    .official-page {
+                        min-height: calc(297mm - 18mm);
+                        page-break-after: always;
+                    }
+
+                    .official-info-grid {
+                        page-break-inside: avoid;
+                    }
+
+                    .official-page:last-child {
+                        page-break-after: auto;
+                    }
+
                     table { page-break-inside: auto; }
                     tr { page-break-inside: avoid; page-break-after: auto; }
                 }
