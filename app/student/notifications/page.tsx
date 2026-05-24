@@ -3,12 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
+import { addToast } from "@heroui/toast";
 
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { useNotification } from "@/contexts/NotificationContext";
 import { useI18n } from "@/hooks/useI18n";
 import { getNotificationHeadline, getNotificationMessage } from "@/lib/notification-display";
 import { resolveStudentNotificationLink } from "@/lib/student-notification-links";
+import userNotificationService, { type UserNotificationItem } from "@/services/user-notification.service";
 
 function formatRelativeTime(value: string): string {
   const diffMs = Date.now() - new Date(value).getTime();
@@ -35,6 +37,29 @@ function getNotifStyle(type: string | undefined) {
   return NOTIF_ICON_MAP[key ?? "default"];
 }
 
+function getAcknowledgeInfo(notification: UserNotificationItem): { announcementId: number | null; required: boolean } {
+  const data = notification.data;
+  if (!data || typeof data !== "object") {
+    return { announcementId: null, required: false };
+  }
+
+  const rawId = (data as Record<string, unknown>).announcement_id;
+  const rawRequired = (data as Record<string, unknown>).require_acknowledge;
+
+  const announcementId = typeof rawId === "number"
+    ? rawId
+    : typeof rawId === "string"
+      ? Number(rawId)
+      : NaN;
+  const required = rawRequired === true || rawRequired === "true";
+
+  if (!Number.isFinite(announcementId) || announcementId <= 0) {
+    return { announcementId: null, required };
+  }
+
+  return { announcementId, required };
+}
+
 type FilterTab = "all" | "unread" | "read";
 
 export default function StudentNotificationsPage() {
@@ -52,6 +77,7 @@ export default function StudentNotificationsPage() {
   } = useNotification();
 
   const [filter, setFilter] = useState<FilterTab>("all");
+  const [acknowledgingIds, setAcknowledgingIds] = useState<Set<number>>(new Set());
 
   // Run once on mount — refreshNotifications reference changes across renders
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -72,6 +98,32 @@ export default function StudentNotificationsPage() {
   const handleOpen = async (notificationId: number, href: string | null) => {
     await markNotificationRead(notificationId);
     if (href) router.push(href);
+  };
+
+  const handleAcknowledge = async (notificationId: number, announcementId: number) => {
+    setAcknowledgingIds((prev) => new Set([...prev, notificationId]));
+    await markNotificationRead(notificationId);
+    const ok = await userNotificationService.acknowledgeAnnouncement(announcementId);
+    setAcknowledgingIds((prev) => {
+      const next = new Set(prev);
+      next.delete(notificationId);
+      return next;
+    });
+
+    if (!ok) {
+      addToast({
+        title: t("error"),
+        description: t("adminSettingsUpdateFailed"),
+        color: "danger",
+      });
+      return;
+    }
+
+    addToast({
+      title: t("success"),
+      description: t("adminAnnouncementAcknowledged"),
+      color: "success",
+    });
   };
 
   return (
@@ -161,6 +213,9 @@ export default function StudentNotificationsPage() {
             const href = resolveStudentNotificationLink(notification);
             const style = getNotifStyle(notification.type);
             const isUnread = !notification.is_read;
+            const ackInfo = getAcknowledgeInfo(notification);
+            const showAcknowledge = ackInfo.required && isUnread && ackInfo.announcementId !== null;
+            const isAcking = acknowledgingIds.has(notification.id);
             return (
               <button
                 key={notification.id}
@@ -197,6 +252,32 @@ export default function StudentNotificationsPage() {
                     <p className="mt-2 flex items-center gap-1 text-xs font-semibold text-sky-600">
                       เปิดดู <Icon icon="solar:arrow-right-bold" className="text-xs" />
                     </p>
+                  )}
+                  {showAcknowledge && (
+                    <div className="mt-3">
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          if (ackInfo.announcementId !== null) {
+                            void handleAcknowledge(notification.id, ackInfo.announcementId);
+                          }
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key !== "Enter" && event.key !== " ") return;
+                          event.preventDefault();
+                          event.stopPropagation();
+                          if (ackInfo.announcementId !== null) {
+                            void handleAcknowledge(notification.id, ackInfo.announcementId);
+                          }
+                        }}
+                        className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700"
+                      >
+                        {isAcking ? t("loading") : t("adminAcknowledgeAction")}
+                      </span>
+                    </div>
                   )}
                 </div>
               </button>

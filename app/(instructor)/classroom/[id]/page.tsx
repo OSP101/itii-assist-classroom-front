@@ -22,6 +22,7 @@ import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useI18n } from "@/hooks/useI18n";
+import { GlobalAnnouncementLayer } from "@/components/system-announcements/global-announcement-layer";
 // Import custom hooks
 import {
     useClassroomData,
@@ -37,6 +38,7 @@ import {
 import type { Assignment as AssignmentType, AssignmentSubItem } from "@/services/assignment.service";
 import { getCurrentCourseMemberPermissions } from "@/services/course.service";
 import type { CourseMemberPermissions, SectionStudent } from "@/services/course.service";
+import apiService from "@/services/api.service";
 
 // Import Skeletons directly (they're small and used for loading states)
 import { OverviewSkeleton, TeamsGridSkeleton, SidebarMenuSkeleton, PeopleTableSkeleton, AssignmentsSkeleton, ScoresSkeleton, TabListSkeleton } from "./components/Skeletons";
@@ -162,6 +164,21 @@ interface ClassroomDetailPageProps {
     initialTab?: ClassroomTabKey;
 }
 
+function MaintenanceNotice({ label }: { label: string }) {
+    return (
+        <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center max-w-sm">
+                <div className="w-20 h-20 bg-warning-100 dark:bg-warning-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Icon icon="solar:lock-keyhole-bold" className="text-4xl text-warning-500" />
+                </div>
+                <h2 className="mb-2 text-xl font-semibold text-default-700">{label}</h2>
+                <p className="text-sm text-warning-600 dark:text-warning-400 font-medium mb-1">ปิดปรับปรุงชั่วคราว</p>
+                <p className="text-sm text-default-500">ฟีเจอร์นี้ถูกปิดใช้งานชั่วคราวโดยผู้ดูแลระบบ</p>
+            </div>
+        </div>
+    );
+}
+
 export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetailPageProps) {
     const SHOW_EXAM_SEATS_MENU = false;
     const params = useParams();
@@ -273,6 +290,9 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
     const [scoreModalAssignment, setScoreModalAssignment] = useState<AssignmentType | null>(null);
     const [scoreSearchQuery, setScoreSearchQuery] = useState("");
 
+    // Feature flag map — fetched once on mount, keyed by flag key
+    const [featureFlagMap, setFeatureFlagMap] = useState<Record<string, boolean>>({});
+
     // ============================================
     // Computed Values (Memoized)
     // ============================================
@@ -287,49 +307,120 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
 
     const isAdminAccess = userRole === "admin";
 
-    const canViewPeople = isAdminAccess || currentCoursePermissions.view_people || currentCoursePermissions.add_people || currentCoursePermissions.remove_people || currentCoursePermissions.edit_member_permissions;
+    const canViewPeople = isAdminAccess
+        || (featureFlagMap["menu.people"] !== false && (
+            currentCoursePermissions.view_people
+            || currentCoursePermissions.add_people
+            || currentCoursePermissions.remove_people
+            || currentCoursePermissions.edit_member_permissions
+        ));
     const canAddPeople = isAdminAccess || currentCoursePermissions.add_people;
     const canRemovePeople = isAdminAccess || currentCoursePermissions.remove_people;
     const canEditMemberPermissions = isAdminAccess || currentCoursePermissions.edit_member_permissions;
     const canAccessSections = isAdminAccess
-        || currentCoursePermissions.view_sections
-        || currentCoursePermissions.create_sections
-        || currentCoursePermissions.update_sections
-        || currentCoursePermissions.delete_sections
-        || currentCoursePermissions.manage_section_students
-        || currentCoursePermissions.view_teams
-        || currentCoursePermissions.create_teams
-        || currentCoursePermissions.update_teams
-        || currentCoursePermissions.delete_teams
-        || currentCoursePermissions.manage_team_members;
+        || (featureFlagMap["menu.teams"] !== false && (
+            currentCoursePermissions.view_sections
+            || currentCoursePermissions.create_sections
+            || currentCoursePermissions.update_sections
+            || currentCoursePermissions.delete_sections
+            || currentCoursePermissions.manage_section_students
+            || currentCoursePermissions.view_teams
+            || currentCoursePermissions.create_teams
+            || currentCoursePermissions.update_teams
+            || currentCoursePermissions.delete_teams
+            || currentCoursePermissions.manage_team_members
+        ));
     const canAccessAssignments = isAdminAccess
-        || currentCoursePermissions.view_assignments
-        || currentCoursePermissions.create_assignments
-        || currentCoursePermissions.update_assignments
-        || currentCoursePermissions.delete_assignments
-        || currentCoursePermissions.grade_assignments
-        || currentCoursePermissions.edit_scores;
-    const canAccessScores = isAdminAccess || currentCoursePermissions.view_score_summary || currentCoursePermissions.grade_assignments || currentCoursePermissions.edit_scores;
+        || (featureFlagMap["menu.assignments"] !== false && (
+            currentCoursePermissions.view_assignments
+            || currentCoursePermissions.create_assignments
+            || currentCoursePermissions.update_assignments
+            || currentCoursePermissions.delete_assignments
+            || currentCoursePermissions.grade_assignments
+            || currentCoursePermissions.edit_scores
+        ));
+    const canAccessScores = isAdminAccess
+        || (featureFlagMap["menu.scores"] !== false && (
+            currentCoursePermissions.view_score_summary
+            || currentCoursePermissions.grade_assignments
+            || currentCoursePermissions.edit_scores
+        ));
     const canAccessExamScores = isAdminAccess
-        || currentCoursePermissions.view_exam_scores
-        || currentCoursePermissions.create_exam_scores
-        || currentCoursePermissions.update_exam_scores
-        || currentCoursePermissions.delete_exam_scores
-        || currentCoursePermissions.update_exam_settings;
-    const canAccessApproval = isAdminAccess || currentCoursePermissions.review_own_score_requests || currentCoursePermissions.review_all_score_requests;
+        || (featureFlagMap["menu.exams"] !== false && (
+            currentCoursePermissions.view_exam_scores
+            || currentCoursePermissions.create_exam_scores
+            || currentCoursePermissions.update_exam_scores
+            || currentCoursePermissions.delete_exam_scores
+            || currentCoursePermissions.update_exam_settings
+        ));
+    const canAccessApproval = isAdminAccess
+        || (featureFlagMap["menu.scores"] !== false && (
+            currentCoursePermissions.review_own_score_requests
+            || currentCoursePermissions.review_all_score_requests
+        ));
     const canAccessAttendance = isAdminAccess
-        || currentCoursePermissions.view_attendance
-        || currentCoursePermissions.create_attendance_sessions
-        || currentCoursePermissions.update_attendance_sessions
-        || currentCoursePermissions.delete_attendance_sessions
-        || currentCoursePermissions.update_attendance_status;
+        || (featureFlagMap["menu.attendance"] !== false && (
+            currentCoursePermissions.view_attendance
+            || currentCoursePermissions.create_attendance_sessions
+            || currentCoursePermissions.update_attendance_sessions
+            || currentCoursePermissions.delete_attendance_sessions
+            || currentCoursePermissions.update_attendance_status
+        ));
     const canAccessQueue = isAdminAccess
-        || currentCoursePermissions.view_queue
-        || currentCoursePermissions.create_queue_sessions
-        || currentCoursePermissions.update_queue_sessions
-        || currentCoursePermissions.delete_queue_sessions
-        || currentCoursePermissions.manage_queue_bookings;
+        || (featureFlagMap["menu.queue"] !== false && (
+            currentCoursePermissions.view_queue
+            || currentCoursePermissions.create_queue_sessions
+            || currentCoursePermissions.update_queue_sessions
+            || currentCoursePermissions.delete_queue_sessions
+            || currentCoursePermissions.manage_queue_bookings
+        ));
     const approvalRole = currentCoursePermissions.review_all_score_requests || isAdminAccess ? "instructor" : "ta";
+
+    // Maintenance states: flag is explicitly off and user has underlying role permission (admin bypasses)
+    const isSectionsMaintenance = !isAdminAccess && featureFlagMap["menu.teams"] === false && (
+        currentCoursePermissions.view_sections || currentCoursePermissions.create_sections
+        || currentCoursePermissions.update_sections || currentCoursePermissions.delete_sections
+        || currentCoursePermissions.manage_section_students || currentCoursePermissions.view_teams
+        || currentCoursePermissions.create_teams || currentCoursePermissions.update_teams
+        || currentCoursePermissions.delete_teams || currentCoursePermissions.manage_team_members
+    );
+    const isAssignmentsMaintenance = !isAdminAccess && featureFlagMap["menu.assignments"] === false && (
+        currentCoursePermissions.view_assignments || currentCoursePermissions.create_assignments
+        || currentCoursePermissions.update_assignments || currentCoursePermissions.delete_assignments
+        || currentCoursePermissions.grade_assignments || currentCoursePermissions.edit_scores
+    );
+    const isScoresMaintenance = !isAdminAccess && featureFlagMap["menu.scores"] === false && (
+        currentCoursePermissions.view_score_summary || currentCoursePermissions.grade_assignments
+        || currentCoursePermissions.edit_scores
+    );
+    const isExamScoresMaintenance = !isAdminAccess && featureFlagMap["menu.exams"] === false && (
+        currentCoursePermissions.view_exam_scores || currentCoursePermissions.create_exam_scores
+        || currentCoursePermissions.update_exam_scores || currentCoursePermissions.delete_exam_scores
+        || currentCoursePermissions.update_exam_settings
+    );
+    const isApprovalMaintenance = !isAdminAccess && featureFlagMap["menu.scores"] === false && (
+        currentCoursePermissions.review_own_score_requests || currentCoursePermissions.review_all_score_requests
+    );
+    const isAttendanceMaintenance = !isAdminAccess && featureFlagMap["menu.attendance"] === false && (
+        currentCoursePermissions.view_attendance || currentCoursePermissions.create_attendance_sessions
+        || currentCoursePermissions.update_attendance_sessions || currentCoursePermissions.delete_attendance_sessions
+        || currentCoursePermissions.update_attendance_status
+    );
+    const isQueueMaintenance = !isAdminAccess && featureFlagMap["menu.queue"] === false && (
+        currentCoursePermissions.view_queue || currentCoursePermissions.create_queue_sessions
+        || currentCoursePermissions.update_queue_sessions || currentCoursePermissions.delete_queue_sessions
+        || currentCoursePermissions.manage_queue_bookings
+    );
+    const isPeopleMaintenance = !isAdminAccess && featureFlagMap["menu.people"] === false && (
+        currentCoursePermissions.view_people || currentCoursePermissions.add_people
+        || currentCoursePermissions.remove_people || currentCoursePermissions.edit_member_permissions
+    );
+    const canAccessActivityLog = isAdminAccess || (featureFlagMap["menu.activity-log"] !== false && userRole === "instructor");
+    const isActivityLogMaintenance = !isAdminAccess && featureFlagMap["menu.activity-log"] === false && userRole === "instructor";
+    const canAccessTaStats = isAdminAccess || (featureFlagMap["menu.ta-stats"] !== false && userRole === "instructor");
+    const isTaStatsMaintenance = !isAdminAccess && featureFlagMap["menu.ta-stats"] === false && userRole === "instructor";
+    const canAccessSettings = isAdminAccess || (featureFlagMap["menu.settings"] !== false && userRole === "instructor");
+    const isSettingsMaintenance = !isAdminAccess && featureFlagMap["menu.settings"] === false && userRole === "instructor";
 
     const availableTAs = useMemo(() => {
         return tasList.filter(ta => !course?.tas?.some(courseTa => courseTa.id === ta.id));
@@ -510,6 +601,17 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
     }, [activeTab, courseId]);
 
     // Initialize data on mount
+    useEffect(() => {
+        apiService.get<Array<{ key: string; enabled: boolean }>>("/system-settings/feature-flags")
+            .then(res => {
+                if (res.success && res.data) {
+                    const map: Record<string, boolean> = {};
+                    res.data.forEach(f => { map[f.key] = f.enabled; });
+                    setFeatureFlagMap(map);
+                }
+            });
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
     useEffect(() => {
         hasInitializedRef.current = false;
         let isCancelled = false;
@@ -1072,23 +1174,38 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
 
     const menuItems = useMemo(() => [
         { key: "overview", label: t("overview"), icon: "solar:chart-2-bold" },
-        ...(canAccessSections ? [{ key: "sections", label: t("sections"), icon: "solar:notebook-bold" }] : []),
-        ...(canViewPeople ? [{ key: "people", label: t("people"), icon: "solar:users-group-rounded-bold" }] : []),
-        ...(canAccessAssignments ? [{ key: "assignments", label: t("classwork"), icon: "solar:clipboard-list-bold" }] : []),
-        ...(canAccessScores ? [{ key: "scores", label: t("classroomScores"), icon: "solar:chart-square-bold" }] : []),
-        ...(canAccessExamScores ? [{ key: "exam-scores", label: t("examScores"), icon: "solar:diploma-bold" }] : []),
+        ...(canAccessSections    ? [{ key: "sections",    label: t("sections"),        icon: "solar:notebook-bold" }]
+            : isSectionsMaintenance ? [{ key: "sections", label: t("sections"),        icon: "solar:notebook-bold",    maintenance: true }] : []),
+        ...(canViewPeople ? [{ key: "people", label: t("people"), icon: "solar:users-group-rounded-bold" }]
+            : isPeopleMaintenance ? [{ key: "people", label: t("people"), icon: "solar:users-group-rounded-bold", maintenance: true }] : []),
+        ...(canAccessAssignments  ? [{ key: "assignments", label: t("classwork"),       icon: "solar:clipboard-list-bold" }]
+            : isAssignmentsMaintenance ? [{ key: "assignments", label: t("classwork"), icon: "solar:clipboard-list-bold", maintenance: true }] : []),
+        ...(canAccessScores       ? [{ key: "scores",      label: t("classroomScores"), icon: "solar:chart-square-bold" }]
+            : isScoresMaintenance ? [{ key: "scores",      label: t("classroomScores"), icon: "solar:chart-square-bold", maintenance: true }] : []),
+        ...(canAccessExamScores   ? [{ key: "exam-scores", label: t("examScores"),      icon: "solar:diploma-bold" }]
+            : isExamScoresMaintenance ? [{ key: "exam-scores", label: t("examScores"), icon: "solar:diploma-bold",      maintenance: true }] : []),
         ...(SHOW_EXAM_SEATS_MENU && canAccessExamScores ? [{ key: "exam-seats", label: t("examSeatManagement"), icon: "solar:armchair-bold" }] : []),
-        ...(canAccessApproval ? [{
+        ...(canAccessApproval     ? [{
             key: "approval",
             label: approvalRole === "ta" ? t("scoreRequestStatus") : t("scoreApproval"),
             icon: "solar:clipboard-check-bold",
+        }] : isApprovalMaintenance ? [{
+            key: "approval",
+            label: approvalRole === "ta" ? t("scoreRequestStatus") : t("scoreApproval"),
+            icon: "solar:clipboard-check-bold",
+            maintenance: true,
         }] : []),
-        ...(canAccessAttendance ? [{ key: "attendance", label: t("attendance"), icon: "solar:user-check-bold" }] : []),
-        ...(canAccessQueue ? [{ key: "queue", label: t("reviewQueue"), icon: "solar:sort-by-time-bold" }] : []),
-        ...(userRole === 'instructor' || isAdminAccess ? [{ key: "activity-log", label: t("activityLog"), icon: "solar:document-text-bold" }] : []),
-        ...(userRole === 'instructor' || isAdminAccess ? [{ key: "ta-stats", label: t("taStats"), icon: "solar:graph-new-up-bold" }] : []),
-        ...(userRole === 'instructor' || isAdminAccess ? [{ key: "settings", label: t("courseSettings"), icon: "solar:settings-bold" }] : []),
-    ], [SHOW_EXAM_SEATS_MENU, approvalRole, canAccessApproval, canAccessAssignments, canAccessAttendance, canAccessExamScores, canAccessScores, canAccessSections, canViewPeople, t, userRole]);
+        ...(canAccessAttendance   ? [{ key: "attendance",  label: t("attendance"),      icon: "solar:user-check-bold" }]
+            : isAttendanceMaintenance ? [{ key: "attendance", label: t("attendance"),   icon: "solar:user-check-bold",  maintenance: true }] : []),
+        ...(canAccessQueue        ? [{ key: "queue",       label: t("reviewQueue"),     icon: "solar:sort-by-time-bold" }]
+            : isQueueMaintenance ? [{ key: "queue",        label: t("reviewQueue"),     icon: "solar:sort-by-time-bold", maintenance: true }] : []),
+        ...(canAccessActivityLog ? [{ key: "activity-log", label: t("activityLog"), icon: "solar:document-text-bold" }]
+            : isActivityLogMaintenance ? [{ key: "activity-log", label: t("activityLog"), icon: "solar:document-text-bold", maintenance: true }] : []),
+        ...(canAccessTaStats ? [{ key: "ta-stats", label: t("taStats"), icon: "solar:graph-new-up-bold" }]
+            : isTaStatsMaintenance ? [{ key: "ta-stats", label: t("taStats"), icon: "solar:graph-new-up-bold", maintenance: true }] : []),
+        ...(canAccessSettings ? [{ key: "settings", label: t("courseSettings"), icon: "solar:settings-bold" }]
+            : isSettingsMaintenance ? [{ key: "settings", label: t("courseSettings"), icon: "solar:settings-bold", maintenance: true }] : []),
+    ], [SHOW_EXAM_SEATS_MENU, approvalRole, canAccessActivityLog, canAccessApproval, canAccessAssignments, canAccessAttendance, canAccessExamScores, canAccessScores, canAccessSections, canAccessSettings, canAccessTaStats, canViewPeople, isAdminAccess, isActivityLogMaintenance, isApprovalMaintenance, isAssignmentsMaintenance, isAttendanceMaintenance, isExamScoresMaintenance, isPeopleMaintenance, isQueueMaintenance, isScoresMaintenance, isSettingsMaintenance, isSectionsMaintenance, isTaStatsMaintenance, t, userRole]);
 
     useEffect(() => {
         if (isLoading || !course) {
@@ -1233,22 +1350,30 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                 menuItems.map((item) => (
                                 <button
                                     key={item.key}
-                                    onMouseEnter={() => preloadTab(item.key as ClassroomTabKey)}
-                                    onFocus={() => preloadTab(item.key as ClassroomTabKey)}
+                                    onMouseEnter={() => { if (!(item as any).maintenance) preloadTab(item.key as ClassroomTabKey); }}
+                                    onFocus={() => { if (!(item as any).maintenance) preloadTab(item.key as ClassroomTabKey); }}
                                     onClick={() => {
-                                        if ((item as any).status !== "coming_soon") {
+                                        if ((item as any).status !== "coming_soon" && !(item as any).maintenance) {
                                             navigateToTab(item.key as ClassroomTabKey);
                                             setIsMobileSidebarOpen(false);
                                         }
                                     }}
-                                    disabled={(item as any).status === "coming_soon"}
+                                    disabled={(item as any).status === "coming_soon" || (item as any).maintenance === true}
                                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-all ${activeTab === item.key
                                         ? "bg-primary/10 text-primary"
                                         : "text-default-600 hover:bg-content2"
-                                        } ${(item as any).status === "coming_soon" ? "cursor-not-allowed bg-content2 opacity-50" : "cursor-pointer"}`}
+                                        } ${(item as any).status === "coming_soon" || (item as any).maintenance ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                                 >
-                                    <Icon icon={item.icon} className="text-xl" />
-                                    <span className="font-medium">{item.label}</span>
+                                    <Icon
+                                        icon={(item as any).maintenance ? "solar:lock-keyhole-bold" : item.icon}
+                                        className={`text-xl shrink-0 ${(item as any).maintenance ? "text-warning-400" : ""}`}
+                                    />
+                                    <div className="flex-1 min-w-0 text-left">
+                                        <div className="font-medium truncate">{item.label}</div>
+                                        {(item as any).maintenance && (
+                                            <div className="text-xs text-warning-500">{t("featureUnderMaintenance")}</div>
+                                        )}
+                                    </div>
                                 </button>
                             ))
                             )}
@@ -1268,21 +1393,29 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             menuItems.map((item) => (
                             <button
                                 key={item.key}
-                                disabled={(item as any).status === "coming_soon"}
-                                onMouseEnter={() => preloadTab(item.key as ClassroomTabKey)}
-                                onFocus={() => preloadTab(item.key as ClassroomTabKey)}
+                                disabled={(item as any).status === "coming_soon" || (item as any).maintenance === true}
+                                onMouseEnter={() => { if (!(item as any).maintenance) preloadTab(item.key as ClassroomTabKey); }}
+                                onFocus={() => { if (!(item as any).maintenance) preloadTab(item.key as ClassroomTabKey); }}
                                 onClick={() => {
-                                    if ((item as any).status !== "coming_soon") {
+                                    if ((item as any).status !== "coming_soon" && !(item as any).maintenance) {
                                         navigateToTab(item.key as ClassroomTabKey);
                                     }
                                 }}
                                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-all ${activeTab === item.key
                                     ? "bg-primary/10 text-primary font-medium"
                                     : "text-default-600 hover:bg-content2"
-                                    } ${(item as any).status === "coming_soon" ? "cursor-not-allowed bg-content2 opacity-50" : "cursor-pointer"}`}
+                                    } ${(item as any).status === "coming_soon" || (item as any).maintenance ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                             >
-                                <Icon icon={item.icon} className={`text-lg ${activeTab === item.key ? "text-primary" : "text-default-400"}`} />
-                                <span className="text-sm">{item.label}</span>
+                                <Icon
+                                    icon={(item as any).maintenance ? "solar:lock-keyhole-bold" : item.icon}
+                                    className={`text-lg shrink-0 ${activeTab === item.key ? "text-primary" : (item as any).maintenance ? "text-warning-400" : "text-default-400"}`}
+                                />
+                                <div className="flex-1 min-w-0 text-left">
+                                    <div className="text-sm truncate">{item.label}</div>
+                                    {(item as any).maintenance && (
+                                        <div className="text-xs text-warning-500">{t("featureUnderMaintenance")}</div>
+                                    )}
+                                </div>
                             </button>
                         ))
                         )}
@@ -1292,6 +1425,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                 {/* Main Content Area - Add left margin for fixed sidebar */}
                 <main className="flex-1 lg:ml-64 overflow-x-hidden">
                     <div className="p-4 lg:p-6">
+                        <GlobalAnnouncementLayer />
                         {/* Error State - Course Not Found */}
                         {!isLoading && !course && (
                             <div className="flex items-center justify-center min-h-[60vh]">
@@ -1399,6 +1533,9 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                         />
                                     )}
 
+                                    {activeTab === "sections" && isSectionsMaintenance && (
+                                        <MaintenanceNotice label={t("sections")} />
+                                    )}
                                     {activeTab === "sections" && canAccessSections && (
                                         <SectionsTab
                                             courseId={courseId}
@@ -1413,6 +1550,9 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                         />
                                     )}
 
+                                    {activeTab === "people" && isPeopleMaintenance && (
+                                        <MaintenanceNotice label={t("people")} />
+                                    )}
                                     {activeTab === "people" && canViewPeople && (
                                         <PeopleTab
                                             course={course}
@@ -1433,6 +1573,9 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                         />
                                     )}
 
+                                    {activeTab === "assignments" && isAssignmentsMaintenance && (
+                                        <MaintenanceNotice label={t("classwork")} />
+                                    )}
                                     {activeTab === "assignments" && canAccessAssignments && (
                                         <AssignmentsTab
                                             assignments={assignments}
@@ -1460,10 +1603,16 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                         />
                                     )}
 
+                                    {activeTab === "scores" && isScoresMaintenance && (
+                                        <MaintenanceNotice label={t("classroomScores")} />
+                                    )}
                                     {activeTab === "scores" && canAccessScores && (
                                         <ScoresTab courseId={courseId} isCourseActive={course.is_active} />
                                     )}
 
+                                    {activeTab === "exam-scores" && isExamScoresMaintenance && (
+                                        <MaintenanceNotice label={t("examScores")} />
+                                    )}
                                     {activeTab === "exam-scores" && canAccessExamScores && (
                                         <ExamScoresTab
                                             courseId={courseId}
@@ -1481,6 +1630,9 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                         />
                                     )}
 
+                                    {activeTab === "approval" && isApprovalMaintenance && (
+                                        <MaintenanceNotice label={approvalRole === "ta" ? t("scoreRequestStatus") : t("scoreApproval")} />
+                                    )}
                                     {activeTab === "approval" && canAccessApproval && (
                                         <ScoreApprovalTab
                                             courseId={courseId}
@@ -1490,6 +1642,9 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                         />
                                     )}
 
+                                    {activeTab === "attendance" && isAttendanceMaintenance && (
+                                        <MaintenanceNotice label={t("attendance")} />
+                                    )}
                                     {activeTab === "attendance" && canAccessAttendance && (
                                         <AttendanceTab
                                             course={course}
@@ -1502,7 +1657,10 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                         />
                                     )}
 
-                                    {activeTab === "settings" && (userRole === "instructor" || isAdminAccess) && (
+                                    {activeTab === "settings" && isSettingsMaintenance && (
+                                        <MaintenanceNotice label={t("courseSettings")} />
+                                    )}
+                                    {activeTab === "settings" && canAccessSettings && (
                                         <SettingsTab
                                             courseId={String(course.id)}
                                             course={course}
@@ -1510,6 +1668,9 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                         />
                                     )}
 
+                                    {activeTab === "queue" && isQueueMaintenance && (
+                                        <MaintenanceNotice label={t("reviewQueue")} />
+                                    )}
                                     {activeTab === "queue" && canAccessQueue && (
                                         <QueueTab
                                             course={course}
@@ -1522,11 +1683,17 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                         />
                                     )}
 
-                                    {activeTab === "activity-log" && (userRole === "instructor" || isAdminAccess) && (
+                                    {activeTab === "activity-log" && isActivityLogMaintenance && (
+                                        <MaintenanceNotice label={t("activityLog")} />
+                                    )}
+                                    {activeTab === "activity-log" && canAccessActivityLog && (
                                         <ActivityLogTab courseId={courseId} courseCode={course.code} />
                                     )}
 
-                                    {activeTab === "ta-stats" && (userRole === "instructor" || isAdminAccess) && (
+                                    {activeTab === "ta-stats" && isTaStatsMaintenance && (
+                                        <MaintenanceNotice label={t("taStats")} />
+                                    )}
+                                    {activeTab === "ta-stats" && canAccessTaStats && (
                                         <TAStatsTab courseId={courseId} />
                                     )}
                                 </div>

@@ -237,6 +237,11 @@ class AuthService {
       this.persistUser(user);
       authChannel?.postMessage({ type: 'login' });
 
+      // Clear maintenance redirect cookie so whitelisted admins can navigate after login
+      if (typeof document !== 'undefined') {
+        document.cookie = 'maintenance_active=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+      }
+
       return { success: true, user, mustChangePassword };
     }
 
@@ -455,6 +460,10 @@ class AuthService {
     if (response.success && response.data) {
       const user = response.data.user;
       this.persistUser(user);
+      // Clear maintenance redirect cookie so admins can navigate freely
+      if (user.role === 'admin' && typeof document !== 'undefined') {
+        document.cookie = 'maintenance_active=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+      }
       return { success: true, user };
     }
 

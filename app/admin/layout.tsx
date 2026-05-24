@@ -16,6 +16,7 @@ import { AuthLoadingScreen } from "@/components/ui/auth-loading-screen";
 import { NetworkMetricsPanel } from "@/components/dev/network-metrics-panel";
 import { useSettingsMenuItems } from "@/components/SettingsPanel";
 import { useI18n } from "@/hooks/useI18n";
+import { GlobalAnnouncementLayer } from "@/components/system-announcements/global-announcement-layer";
 
 interface MenuItem {
     key: string;
@@ -151,6 +152,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         };
     }, [isMobileSidebarOpen]);
 
+    const visibleMenuItems = menuItems;
+
     if (isLoading) {
         return <AuthLoadingScreen message={t("loadingUser")} />;
     }
@@ -201,7 +204,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
                 {/* Navigation */}
                 <nav className="p-3 space-y-1 overflow-y-auto h-[calc(100vh-8rem)]">
-                    {menuItems.map((item) => (
+                    {visibleMenuItems.map((item) => (
                         <Tooltip key={item.key} content={t(item.labelKey)} placement="right" isDisabled={!sidebarCollapsed || isMobileSidebarOpen}>
                             <Link
                                 href={item.href || '#'}
@@ -298,6 +301,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
                 {/* Page Content - Responsive padding */}
                 <main className="flex-1 p-3 sm:p-4 lg:p-6">
+                    <GlobalAnnouncementLayer />
                     {children}
                 </main>
 

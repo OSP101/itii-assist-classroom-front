@@ -96,6 +96,7 @@ export interface QueueBooking {
     note?: string;
     assigned_worker_id?: number | null;
     assigned_at?: string | null;
+    offer_expires_at?: string | null;
     started_at?: string | null;
     completed_at?: string | null;
     score?: number | null;
@@ -231,6 +232,13 @@ export interface WorkerBookingActionResult {
     next_booking: QueueBooking | null;
 }
 
+export interface WorkerBookingActionData {
+    action: 'start' | 'complete' | 'no_show' | 'reject';
+    score?: number;
+    worker_note?: string;
+    reject_reason?: string;
+}
+
 export interface QueueReportWorkerStat {
     user_id: number;
     full_name?: string;
@@ -244,6 +252,12 @@ export interface QueueReportWorkerStat {
     last_opened_at?: string | null;
     last_closed_at?: string | null;
     total_active_duration?: string;
+    offer_accept_count?: number;
+    offer_reject_count?: number;
+    offer_timeout_count?: number;
+    offer_total_count?: number;
+    offer_accept_rate?: number;
+    offer_paused_until?: string | null;
 }
 
 export interface QueueReportBooking {
@@ -255,6 +269,8 @@ export interface QueueReportBooking {
     status: 'waiting' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
     wait_duration?: string;
     service_duration?: string;
+    timeout_count?: number;
+    reject_count?: number;
     worker_note?: string;
     booking_ip?: string;
     booking_user_agent?: string;
@@ -270,6 +286,13 @@ export interface QueueReportBooking {
     } | null;
 }
 
+export interface QueueRejectReasonStat {
+    code: string;
+    label_th: string;
+    label_en: string;
+    count: number;
+}
+
 export interface QueueSessionReport {
     course?: {
         id: string;
@@ -282,6 +305,7 @@ export interface QueueSessionReport {
     };
     worker_stats: QueueReportWorkerStat[];
     bookings: QueueReportBooking[];
+    reject_reason_stats?: QueueRejectReasonStat[];
 }
 
 export interface ProjectorViewData {
@@ -515,6 +539,23 @@ const queueService = {
             `/courses/${courseId}/queue/sessions/${sessionId}/workers/current-booking`
         );
         return response.data || { worker: null, currentBooking: null };
+    },
+
+    /**
+     * Worker booking action (accept/start/reject/complete/no-show)
+     */
+    async workerBookingAction(
+        courseId: string,
+        sessionId: string,
+        bookingId: number,
+        data: WorkerBookingActionData
+    ): Promise<WorkerBookingActionResult> {
+        const response = await api.put<WorkerBookingActionResult>(
+            `/courses/${courseId}/queue/sessions/${sessionId}/bookings/${bookingId}/action`,
+            data
+        );
+        if (!response.data) throw new Error('อัปเดตสถานะงานไม่สำเร็จ');
+        return response.data;
     },
 
     // ============================================

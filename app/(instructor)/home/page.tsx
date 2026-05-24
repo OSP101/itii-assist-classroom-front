@@ -18,7 +18,6 @@ import { Icon } from "@iconify/react";
 import { addToast } from "@heroui/toast";
 import { authService } from "@/services/auth.service";
 import { courseService, Course, Instructor } from "@/services/course.service";
-import { twoFactorService } from "@/services/twoFactor.service";
 import { useSocket } from "@/contexts/SocketContext";
 import { CourseListSkeleton } from "@/components/loading-skeletons";
 import {
@@ -90,9 +89,6 @@ export default function HomePage() {
     const [yearFilter, setYearFilter] = useState("");
     const [semesterFilter, setSemesterFilter] = useState("");
 
-    // 2FA reminder banner
-    const [show2FABanner, setShow2FABanner] = useState(false);
-    const [is2FAEnabled, setIs2FAEnabled] = useState(true); // Default true to hide banner initially
     const hasLoadedCoursesRef = useRef(false);
 
     // Get user role and ID
@@ -110,40 +106,6 @@ export default function HomePage() {
         };
         fetchUser();
     }, []);
-
-    // Check 2FA status and show banner if not enabled
-    useEffect(() => {
-        const check2FAStatus = async () => {
-            // Check if banner was dismissed
-            const dismissed = localStorage.getItem("2fa_banner_dismissed");
-            if (dismissed) {
-                // Check if dismissal is still valid (24 hours)
-                const dismissedTime = parseInt(dismissed, 10);
-                if (Date.now() - dismissedTime < 24 * 60 * 60 * 1000) {
-                    return;
-                }
-            }
-
-            try {
-                const response = await twoFactorService.getStatus();
-                if (response.success && response.data) {
-                    setIs2FAEnabled(response.data.enabled);
-                    // Show banner only if 2FA is not enabled
-                    if (!response.data.enabled) {
-                        setShow2FABanner(true);
-                    }
-                }
-            } catch (error) {
-                console.error("Failed to check 2FA status:", error);
-            }
-        };
-        check2FAStatus();
-    }, []);
-
-    const dismiss2FABanner = () => {
-        setShow2FABanner(false);
-        localStorage.setItem("2fa_banner_dismissed", Date.now().toString());
-    };
 
     // Fetch instructors for multi-select (exclude current user)
     const fetchInstructors = useCallback(async () => {
@@ -618,48 +580,6 @@ export default function HomePage() {
 
     return (
         <div className="w-full space-y-6">
-            {/* 2FA Reminder Banner */}
-            {show2FABanner && !is2FAEnabled && (
-                <div className="bg-linear-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="shrink-0 w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                            <Icon icon="solar:shield-warning-bold" className="text-xl text-amber-600" />
-                        </div>
-                        <div>
-                            <p className="font-medium text-amber-900">
-                                {t("enhanceAccountSecurity")}
-                            </p>
-                            <p className="text-sm text-amber-700">
-                                {t("enable2FARecommendation")}
-                            </p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                        <Button
-                            as={Link}
-                            href="/profile?tab=authentication"
-                            size="sm"
-                            color="warning"
-                            variant="solid"
-                            className={instructorFlatButtonClass("bg-amber-500 text-white")}
-                        >
-                            {t("enableNow")}
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="light"
-                            isIconOnly
-                            aria-label={t("dismiss")}
-                            onPress={dismiss2FABanner}
-                            className="text-amber-600 hover:bg-amber-100"
-                        >
-                            <Icon icon="solar:close-circle-linear" className="text-xl" />
-                        </Button>
-                    </div>
-                </div>
-            )}
-
-
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center gap-3">

@@ -87,6 +87,24 @@ export const API_ENDPOINTS = {
     // TODO: No backend endpoint confirmed — remove this TODO when backend adds the route
     WEBSITE: '/system/website',
   },
+
+  // System Settings (Admin)
+  SYSTEM_SETTINGS: {
+    BACKUPS: '/system-settings/backups',
+    BACKUPS_STATUS: '/system-settings/backups/status',
+    BACKUPS_RUN_NOW: '/system-settings/backups/run-now',
+    BACKUPS_RESTORE: '/system-settings/backups/restore',
+    BACKUP_DOWNLOAD_URL: (id: number) => `/system-settings/backups/${id}/download-url`,
+    ANNOUNCEMENTS: '/system-settings/announcements',
+    ANNOUNCEMENTS_ACTIVE: '/system-settings/announcements/active',
+    ANNOUNCEMENT_UPLOAD_IMAGE: '/system-settings/announcements/upload-image',
+    ANNOUNCEMENT_BY_ID: (id: number) => `/system-settings/announcements/${id}`,
+    ANNOUNCEMENT_ACK: (id: number) => `/system-settings/announcements/${id}/ack`,
+    FEATURE_FLAGS: '/system-settings/feature-flags',
+    FEATURE_FLAG_BY_KEY: (key: string) => `/system-settings/feature-flags/${key}`,
+    MAINTENANCE: '/system-settings/maintenance',
+    HEALTH: '/system-settings/health',
+  },
 };
 
 export default {

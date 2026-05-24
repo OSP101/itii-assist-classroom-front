@@ -199,6 +199,29 @@ class ApiService {
       }
 
       if (data) {
+        // Intercept maintenance mode responses and redirect to the maintenance page
+        if (
+          response.status === 503 &&
+          (data as { code?: string }).code === 'MAINTENANCE_MODE' &&
+          typeof window !== 'undefined' &&
+          !window.location.pathname.startsWith('/maintenance') &&
+          !window.location.pathname.startsWith('/login')
+        ) {
+          try {
+            const d = data as { message?: string; schedule_type?: string; start_time?: string; end_time?: string };
+            sessionStorage.setItem('maintenance_info', JSON.stringify({
+              active: true,
+              message: d.message,
+              schedule_type: d.schedule_type,
+              start_time: d.start_time,
+              end_time: d.end_time,
+            }));
+            // Set a cookie so Next.js middleware can redirect on the next navigation
+            document.cookie = 'maintenance_active=1; path=/; SameSite=Lax';
+          } catch { /* ignore */ }
+          window.location.href = '/maintenance';
+          return { success: false, error: 'maintenance' };
+        }
         return data;
       }
 

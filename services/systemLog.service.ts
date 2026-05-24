@@ -230,10 +230,14 @@ export const getRecentSecurityEvents = async (limit: number = 10) => {
 /**
  * Cleanup old logs (manual trigger)
  */
-export const cleanupLogs = async (retentionDays: number = 90) => {
-  return api.post<{ deletedCount: number; cutoffDate: string }>('/logs/cleanup', { 
-    retention_days: retentionDays 
-  });
+export const cleanupLogs = async (retentionDays: number = 90, stepUpToken?: string) => {
+  return api.post<{ deletedCount: number; cutoffDate: string }>(
+    '/logs/cleanup',
+    {
+      retention_days: retentionDays,
+    },
+    stepUpToken ? { headers: { 'X-Step-Up-Token': stepUpToken } } : undefined,
+  );
 };
 
 export const isPrivilegedSystemLog = (log: SystemLog): boolean => {

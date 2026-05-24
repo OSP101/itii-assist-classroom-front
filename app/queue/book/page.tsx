@@ -53,6 +53,7 @@ interface BookingStatus {
     booking_type: string;
     desk_number: string;
     status: string;
+    assigned_worker_id?: number | null;
     position_in_queue: number;
     is_late_booking?: boolean;
     late_reason?: string;
@@ -1318,11 +1319,19 @@ function BookQueueContent() {
                                     </span>
                                 </div>
                             )}
-                            {bookingStatus?.assignedWorker && (
+                            {bookingStatus?.assignedWorker && bookingStatus.status !== "waiting" && (
                                 <div className="flex items-center justify-between py-2.5">
                                     <span className="text-sm text-slate-500">ผู้ตรวจ</span>
                                     <span className="text-sm font-semibold text-slate-800">
                                         {bookingStatus.assignedWorker.full_name}
+                                    </span>
+                                </div>
+                            )}
+                            {bookingStatus?.status === "waiting" && bookingStatus.assigned_worker_id && (
+                                <div className="flex items-center justify-between py-2.5">
+                                    <span className="text-sm text-slate-500">ผู้ตรวจ</span>
+                                    <span className="text-sm font-semibold text-sky-600">
+                                        ผู้ตรวจกำลังรับงาน...รอสักครู่
                                     </span>
                                 </div>
                             )}

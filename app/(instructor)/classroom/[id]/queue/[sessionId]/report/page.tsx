@@ -134,6 +134,9 @@ export default function QueueSessionReportPage() {
             String(worker.total_completed),
             String(worker.opened_count || 0),
             String(worker.closed_count || 0),
+            String(worker.offer_accept_count || 0),
+            String(worker.offer_reject_count || 0),
+            String(worker.offer_timeout_count || 0),
         ].join(" ").toLowerCase();
         return haystack.includes(query);
     });
@@ -162,6 +165,10 @@ export default function QueueSessionReportPage() {
     const completedCount = filteredBookings.filter((booking) => booking.status === "completed").length;
     const waitingCount = filteredBookings.filter((booking) => booking.status === "waiting").length;
     const inProgressCount = filteredBookings.filter((booking) => booking.status === "in_progress").length;
+    const timeoutCount = filteredBookings.reduce((sum, booking) => sum + (booking.timeout_count || 0), 0);
+    const rejectCount = filteredBookings.reduce((sum, booking) => sum + (booking.reject_count || 0), 0);
+    const rejectReasonStats = report?.reject_reason_stats || [];
+    const totalRejectByReason = rejectReasonStats.reduce((sum, item) => sum + (item.count || 0), 0);
     const bookingPageSize = Number(bookingsPerPage);
     const totalBookingPages = Math.max(1, Math.ceil(filteredBookings.length / bookingPageSize));
     const currentBookingPage = Math.min(bookingPage, totalBookingPages);
@@ -300,23 +307,30 @@ export default function QueueSessionReportPage() {
             paintKpi("E4:F5", t("คิวสำเร็จ", "Completed"), completedCount, completedFill);
             paintKpi("A7:B8", t("กำลังรอ", "Waiting"), waitingCount, waitingFill);
             paintKpi("C7:D8", t("กำลังตรวจ", "In Progress"), inProgressCount, progressFill);
-            paintKpi("E7:F8", t("ส่งออกเมื่อ", "Exported At"), exportDate.toLocaleString(isEnglish ? "en-US" : "th-TH"), accentFill);
+            paintKpi("E7:F8", t("หมดเวลา/ปฏิเสธ", "Timeout/Decline"), `${timeoutCount}/${rejectCount}`, accentFill);
 
-            summarySheet.mergeCells("A10:B10");
-            summarySheet.mergeCells("C10:F10");
-            summarySheet.getCell("A10").value = t("Filter ที่ใช้", "Applied Filters");
-            summarySheet.getCell("C10").value = [
+            summarySheet.mergeCells("A9:F9");
+            summarySheet.getCell("A9").value = `${t("ส่งออกเมื่อ", "Exported At")}: ${exportDate.toLocaleString(isEnglish ? "en-US" : "th-TH")}`;
+            summarySheet.getCell("A9").alignment = { horizontal: "center", vertical: "middle" };
+            summarySheet.getCell("A9").font = { bold: true, size: 13, color: { argb: "FF0F172A" }, name: workbookFontName };
+            summarySheet.getCell("A9").fill = accentFill;
+            summarySheet.getCell("A9").border = thinBorder;
+
+            summarySheet.mergeCells("A11:B11");
+            summarySheet.mergeCells("C11:F11");
+            summarySheet.getCell("A11").value = t("Filter ที่ใช้", "Applied Filters");
+            summarySheet.getCell("C11").value = [
                 `${t("คำค้น", "Search")}: ${searchQuery || t("ทั้งหมด", "All")}`,
                 `${t("สถานะ", "Status")}: ${statusFilter === "all" ? t("ทั้งหมด", "All") : getQueueBookingStatusLabel(statusFilter as "waiting" | "in_progress" | "completed" | "cancelled" | "no_show", isEnglish)}`,
                 `${t("ประเภท", "Type")}: ${bookingTypeFilter === "all" ? t("ทั้งหมด", "All") : getQueueBookingTypeLabel(bookingTypeFilter as "grading" | "help", isEnglish)}`,
                 `${t("ผู้ตรวจ", "Worker")}: ${workerFilter === "all" ? t("ทั้งหมด", "All") : workerOptions.find((worker) => String(worker.user_id) === workerFilter)?.full_name || workerFilter}`,
             ].join(" | ");
-            ["A10", "C10"].forEach((address) => {
+            ["A11", "C11"].forEach((address) => {
                 const cell = summarySheet.getCell(address);
                 cell.fill = subHeaderFill;
                 cell.font = subHeaderFont;
                 cell.border = thinBorder;
-                cell.alignment = { vertical: "middle", horizontal: address === "A10" ? "center" : "left", wrapText: true };
+                cell.alignment = { vertical: "middle", horizontal: address === "A11" ? "center" : "left", wrapText: true };
             });
 
             const workerSheet = workbook.addWorksheet(t("สถิติผู้ตรวจ", "Worker Statistics"));
@@ -332,6 +346,11 @@ export default function QueueSessionReportPage() {
                 { header: t("เปิดกี่ครั้ง", "Open Count"), key: "opened_count", width: 12 },
                 { header: t("ปิดกี่ครั้ง", "Close Count"), key: "closed_count", width: 12 },
                 { header: t("เวลาที่เปิดรวม", "Total Active Time"), key: "total_active_duration", width: 18 },
+                { header: t("รับงาน", "Accepted"), key: "offer_accept_count", width: 10 },
+                { header: t("ปฏิเสธ", "Declined"), key: "offer_reject_count", width: 10 },
+                { header: t("หมดเวลา", "Timeout"), key: "offer_timeout_count", width: 10 },
+                { header: t("ตอบรับ", "Accept Rate"), key: "offer_accept_rate", width: 12 },
+                { header: t("พักถึง", "Paused Until"), key: "offer_paused_until", width: 22 },
             ];
             workerSheet.getRow(1).eachCell(applyHeader);
             filteredWorkers.forEach((worker) => {
@@ -347,11 +366,34 @@ export default function QueueSessionReportPage() {
                     opened_count: worker.opened_count || 0,
                     closed_count: worker.closed_count || 0,
                     total_active_duration: worker.total_active_duration || "-",
+                    offer_accept_count: worker.offer_accept_count || 0,
+                    offer_reject_count: worker.offer_reject_count || 0,
+                    offer_timeout_count: worker.offer_timeout_count || 0,
+                    offer_accept_rate: `${(worker.offer_accept_rate || 0).toFixed(1)}%`,
+                    offer_paused_until: formatDateTime(worker.offer_paused_until),
                 });
-                row.eachCell((cell, columnNumber) => applyBody(cell, columnNumber !== 1 && columnNumber !== 6 && columnNumber !== 7 && columnNumber !== 8 && columnNumber !== 11));
+                row.eachCell((cell, columnNumber) => applyBody(cell, columnNumber !== 1 && columnNumber !== 6 && columnNumber !== 7 && columnNumber !== 8 && columnNumber !== 11 && columnNumber !== 16));
                 if ((worker.percent || 0) >= 50) {
                     row.getCell(5).fill = completedFill;
                 }
+            });
+
+            const rejectReasonSheet = workbook.addWorksheet(t("เหตุผลการปฏิเสธ", "Decline Reasons"));
+            rejectReasonSheet.columns = [
+                { header: t("รหัสเหตุผล", "Reason Code"), key: "code", width: 24 },
+                { header: t("เหตุผล", "Reason"), key: "label", width: 40 },
+                { header: t("จำนวนครั้ง", "Count"), key: "count", width: 14 },
+                { header: t("สัดส่วน", "Share"), key: "percent", width: 14 },
+            ];
+            rejectReasonSheet.getRow(1).eachCell(applyHeader);
+            (report.reject_reason_stats || []).forEach((reason) => {
+                const row = rejectReasonSheet.addRow({
+                    code: reason.code,
+                    label: isEnglish ? reason.label_en : reason.label_th,
+                    count: reason.count,
+                    percent: `${((reason.count / Math.max(1, totalRejectByReason)) * 100).toFixed(1)}%`,
+                });
+                row.eachCell((cell, columnNumber) => applyBody(cell, columnNumber === 3 || columnNumber === 4));
             });
 
             const bookingSheet = workbook.addWorksheet(t("ประวัติคิว", "Booking History"));
@@ -368,6 +410,8 @@ export default function QueueSessionReportPage() {
                 { header: t("ผู้ตรวจ", "Worker"), key: "worker_name", width: 24 },
                 { header: t("เวลารอ", "Wait Time"), key: "wait_duration", width: 16 },
                 { header: t("เวลาตรวจ", "Service Time"), key: "service_duration", width: 16 },
+                { header: t("หมดเวลา", "Timeout"), key: "timeout_count", width: 10 },
+                { header: t("ปฏิเสธ", "Declined"), key: "reject_count", width: 10 },
                 { header: t("หมายเหตุ", "Note"), key: "worker_note", width: 30 },
             ];
             bookingSheet.getRow(1).eachCell(applyHeader);
@@ -385,16 +429,18 @@ export default function QueueSessionReportPage() {
                     worker_name: booking.assigned_worker?.full_name || "-",
                     wait_duration: booking.wait_duration || "-",
                     service_duration: booking.service_duration || "-",
+                    timeout_count: booking.timeout_count || 0,
+                    reject_count: booking.reject_count || 0,
                     worker_note: booking.worker_note || "-",
                 });
-                row.eachCell((cell, columnNumber) => applyBody(cell, ![1, 5, 6, 7, 8, 10, 13].includes(columnNumber)));
+                row.eachCell((cell, columnNumber) => applyBody(cell, ![1, 5, 6, 7, 8, 10, 15].includes(columnNumber)));
                 const statusCell = row.getCell(9);
                 if (booking.status === "completed") statusCell.fill = completedFill;
                 if (booking.status === "waiting") statusCell.fill = waitingFill;
                 if (booking.status === "in_progress") statusCell.fill = progressFill;
             });
 
-            [summarySheet, workerSheet, bookingSheet].forEach((sheet) => {
+            [summarySheet, workerSheet, rejectReasonSheet, bookingSheet].forEach((sheet) => {
                 sheet.views = [{ state: "frozen", ySplit: 1 }];
             });
 
@@ -461,6 +507,33 @@ export default function QueueSessionReportPage() {
                     </Card>
                 ))}
             </div>
+
+            <Card className="border border-default-200 bg-content1 shadow-sm">
+                <CardHeader className="pb-0">
+                    <div>
+                        <h2 className="text-lg font-semibold">{t("สรุปเหตุผลการปฏิเสธ", "Decline Reason Summary")}</h2>
+                        <p className="text-sm text-default-500">{t("สรุปจำนวนการปฏิเสธงานตามเหตุผลมาตรฐานใน session นี้", "Summary of declined offers by standard reason for this session.")}</p>
+                    </div>
+                </CardHeader>
+                <CardBody>
+                    <Table removeWrapper aria-label={t("สรุปเหตุผลการปฏิเสธ", "Decline reason summary")}>
+                        <TableHeader>
+                            <TableColumn>{t("เหตุผล", "Reason")}</TableColumn>
+                            <TableColumn>{t("จำนวนครั้ง", "Count")}</TableColumn>
+                            <TableColumn>{t("สัดส่วน", "Share")}</TableColumn>
+                        </TableHeader>
+                        <TableBody emptyContent={t("ยังไม่มีการปฏิเสธงาน", "No declined offers found.")}>
+                            {rejectReasonStats.map((reason) => (
+                                <TableRow key={reason.code}>
+                                    <TableCell>{isEnglish ? reason.label_en : reason.label_th}</TableCell>
+                                    <TableCell>{reason.count}</TableCell>
+                                    <TableCell>{`${((reason.count / Math.max(1, totalRejectByReason)) * 100).toFixed(1)}%`}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardBody>
+            </Card>
 
             <Card className="border border-default-200 bg-content1 shadow-sm">
                 <CardBody className="p-4">
@@ -551,6 +624,9 @@ export default function QueueSessionReportPage() {
                             <TableColumn>{t("ปิดล่าสุด", "Last Closed")}</TableColumn>
                             <TableColumn>{t("เปิด/ปิด", "Open/Close")}</TableColumn>
                             <TableColumn>{t("เวลาเปิดรวม", "Total Active Time")}</TableColumn>
+                            <TableColumn>{t("รับ/ปฏิเสธ/หมดเวลา", "Accept/Decline/Timeout")}</TableColumn>
+                            <TableColumn>{t("% ตอบรับ", "Accept %")}</TableColumn>
+                            <TableColumn>{t("พักถึง", "Paused Until")}</TableColumn>
                         </TableHeader>
                         <TableBody emptyContent={t("ยังไม่มีข้อมูลผู้ตรวจ", "No worker data found.")}>
                             {filteredWorkers.map((worker) => (
@@ -565,6 +641,9 @@ export default function QueueSessionReportPage() {
                                     <TableCell>{formatDateTime(worker.last_closed_at)}</TableCell>
                                     <TableCell>{`${worker.opened_count || 0} / ${worker.closed_count || 0}`}</TableCell>
                                     <TableCell>{worker.total_active_duration || "-"}</TableCell>
+                                    <TableCell>{`${worker.offer_accept_count || 0} / ${worker.offer_reject_count || 0} / ${worker.offer_timeout_count || 0}`}</TableCell>
+                                    <TableCell>{`${(worker.offer_accept_rate || 0).toFixed(1)}%`}</TableCell>
+                                    <TableCell>{formatDateTime(worker.offer_paused_until)}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -593,6 +672,8 @@ export default function QueueSessionReportPage() {
                             <TableColumn>{t("ผู้ตรวจ", "Worker")}</TableColumn>
                             <TableColumn>{t("เวลารอ", "Wait Time")}</TableColumn>
                             <TableColumn>{t("เวลาตรวจ", "Service Time")}</TableColumn>
+                            <TableColumn>{t("หมดเวลา", "Timeout")}</TableColumn>
+                            <TableColumn>{t("ปฏิเสธ", "Declined")}</TableColumn>
                             <TableColumn>{t("หมายเหตุ", "Note")}</TableColumn>
                         </TableHeader>
                         <TableBody emptyContent={t("ยังไม่มีประวัติการจองคิว", "No booking history found.")}>
@@ -618,6 +699,8 @@ export default function QueueSessionReportPage() {
                                     <TableCell>{booking.assigned_worker?.full_name || "-"}</TableCell>
                                     <TableCell>{booking.wait_duration || "-"}</TableCell>
                                     <TableCell>{booking.service_duration || "-"}</TableCell>
+                                    <TableCell>{booking.timeout_count || 0}</TableCell>
+                                    <TableCell>{booking.reject_count || 0}</TableCell>
                                     <TableCell>{booking.worker_note || "-"}</TableCell>
                                 </TableRow>
                             ))}

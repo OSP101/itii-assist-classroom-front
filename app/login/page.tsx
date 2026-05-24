@@ -11,6 +11,7 @@ import { Icon } from "@iconify/react";
 import { IoSchool } from "react-icons/io5";
 import type { TurnstileInstance } from '@marsidev/react-turnstile';
 import { addToast } from "@heroui/toast";
+import { API_BASE_URL } from "@/config/api";
 import { authService } from "@/services";
 import { AppFooter } from "@/components/Footer";
 import { loginPolicyLinks } from "@/config/public-links";
@@ -98,7 +99,7 @@ export default function LoginPage() {
         passwordValidation.hasSpecialChar
     , [passwordValidation]);
 
-    // Check if user is already logged in
+    // Check if user is already logged in, then check maintenance status
     useEffect(() => {
         const checkAuth = async () => {
             try {
@@ -108,8 +109,21 @@ export default function LoginPage() {
                     router.replace(nextPath || getDefaultRouteForRole(result.user.role));
                     return; // Don't set isCheckingAuth to false, we're redirecting
                 }
-            } catch (error) {
-                // Not logged in, stay on login page
+            } catch {
+                // Not logged in
+            }
+            // Proactively check maintenance status so fresh browsers are redirected
+            try {
+                const maintRes = await fetch(`${API_BASE_URL}/maintenance-status`);
+                if (maintRes.ok) {
+                    const maintData = await maintRes.json();
+                    if (maintData.success && maintData.data?.active) {
+                        router.replace('/maintenance');
+                        return;
+                    }
+                }
+            } catch {
+                // Cannot reach backend — fall through to show login form
             }
             setIsCheckingAuth(false);
         };

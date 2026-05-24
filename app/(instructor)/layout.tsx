@@ -19,6 +19,7 @@ import { getNotificationHeadline, getNotificationMessage } from "@/lib/notificat
 import Link from "next/link";
 import { IoSchool } from "react-icons/io5";
 import { AppFooter } from "@/components/Footer";
+import { GlobalAnnouncementLayer } from "@/components/system-announcements/global-announcement-layer";
 
 interface User {
     id: number;
@@ -695,6 +696,7 @@ export default function InstructorLayout({
 
                 {/* Main Content */}
                 <main className={`w-full flex-1 ${isHomePage ? "max-w-7xl mx-auto px-4 py-6" : ""}`}>
+                    {!pathname.startsWith("/classroom/") && <GlobalAnnouncementLayer />}
                     {children}
                 </main>
 

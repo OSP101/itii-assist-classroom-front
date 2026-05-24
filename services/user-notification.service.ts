@@ -62,6 +62,11 @@ const userNotificationService = {
         const response = await api.delete<{ success: boolean }>("/notifications/clear") as unknown as { success: boolean };
         return !!response.success;
     },
+
+    async acknowledgeAnnouncement(announcementId: number): Promise<boolean> {
+        const response = await api.post<{ success: boolean }>(`/notifications/announcements/${announcementId}/ack`) as unknown as { success: boolean };
+        return !!response.success;
+    },
 };
 
 export default userNotificationService;

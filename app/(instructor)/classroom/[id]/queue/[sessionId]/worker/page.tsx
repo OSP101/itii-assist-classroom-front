@@ -8,6 +8,7 @@ import { Chip } from "@heroui/chip";
 import { Avatar } from "@heroui/avatar";
 import { Checkbox } from "@heroui/checkbox";
 import { Input } from "@heroui/input";
+import { Select, SelectItem } from "@heroui/select";
 import { Skeleton } from "@heroui/skeleton";
 import { Spinner } from "@heroui/spinner";
 import {
@@ -308,6 +309,14 @@ export default function WorkerDashboardPage() {
     const courseId = params.id as string;
     const sessionId = params.sessionId as string;
     const t = useCallback((thai: string, english: string) => (isEnglish ? english : thai), [isEnglish]);
+    const rejectReasonOptions = [
+        { key: "busy_with_student", label: t("ติดช่วยนักศึกษาคนอื่น", "Busy helping another student") },
+        { key: "consulting_instructor", label: t("กำลังคุยกับอาจารย์", "Consulting instructor") },
+        { key: "bathroom_break", label: t("ติดภารกิจส่วนตัวชั่วคราว", "Temporary personal break") },
+        { key: "technical_issue", label: t("มีปัญหาทางเทคนิค", "Technical issue") },
+        { key: "temporary_unavailable", label: t("ไม่สะดวกรับงานชั่วคราว", "Temporarily unavailable") },
+        { key: "other", label: t("เหตุผลอื่น", "Other") },
+    ];
 
     const [session, setSession] = useState<QueueSession | null>(null);
     const [isCourseActive, setIsCourseActive] = useState(false);
@@ -360,6 +369,13 @@ export default function WorkerDashboardPage() {
     const [isSkipModalOpen, setIsSkipModalOpen] = useState(false);
     const [skipReason, setSkipReason] = useState("");
     const [isSkipping, setIsSkipping] = useState(false);
+
+    // Offer (waiting acceptance) states
+    const [offerSecondsLeft, setOfferSecondsLeft] = useState<number | null>(null);
+    const [isAcceptingOffer, setIsAcceptingOffer] = useState(false);
+    const [isRejectOfferModalOpen, setIsRejectOfferModalOpen] = useState(false);
+    const [rejectOfferReason, setRejectOfferReason] = useState("busy_with_student");
+    const [isRejectingOffer, setIsRejectingOffer] = useState(false);
 
     // Mini room map
     const [deskLayout, setDeskLayout] = useState<MiniDeskInfo[]>([]);
@@ -554,7 +570,9 @@ export default function WorkerDashboardPage() {
                 skipPollingRef.current = true;
                 addToast({
                     title: t("มีงานใหม่!", "New task assigned"),
-                    description: `${formatDeskLabel(result.currentBooking.desk_number, isEnglish)} - ${formatBookingTypeLabel(result.currentBooking.booking_type, isEnglish)}`,
+                    description: result.currentBooking.status === "waiting"
+                        ? t("กรุณากดรับงานภายใน 20 วินาที", "Please accept this task within 20 seconds.")
+                        : `${formatDeskLabel(result.currentBooking.desk_number, isEnglish)} - ${formatBookingTypeLabel(result.currentBooking.booking_type, isEnglish)}`,
                     color: "primary",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -596,7 +614,9 @@ export default function WorkerDashboardPage() {
             setCurrentBooking(data.booking);
             addToast({
                 title: t("มีงานใหม่!", "New task assigned"),
-                description: `${formatDeskLabel(data.booking.desk_number, isEnglish)} - ${formatBookingTypeLabel(data.booking.booking_type, isEnglish)}`,
+                description: data.booking.status === "waiting"
+                    ? t("กรุณากดรับงานภายใน 20 วินาที", "Please accept this task within 20 seconds.")
+                    : `${formatDeskLabel(data.booking.desk_number, isEnglish)} - ${formatBookingTypeLabel(data.booking.booking_type, isEnglish)}`,
                 color: "primary",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -686,7 +706,9 @@ export default function WorkerDashboardPage() {
                 setCurrentBooking(result.assignedBooking);
                 addToast({
                     title: t("มีงานรอตรวจ!", "Task assigned immediately"),
-                    description: `${formatDeskLabel(result.assignedBooking.desk_number, isEnglish)} - ${formatBookingTypeLabel(result.assignedBooking.booking_type, isEnglish)}`,
+                    description: result.assignedBooking.status === "waiting"
+                        ? t("กรุณากดรับงานภายใน 20 วินาที", "Please accept this task within 20 seconds.")
+                        : `${formatDeskLabel(result.assignedBooking.desk_number, isEnglish)} - ${formatBookingTypeLabel(result.assignedBooking.booking_type, isEnglish)}`,
                     color: "primary",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -916,6 +938,130 @@ export default function WorkerDashboardPage() {
             setIsSkipping(false);
         }
     };
+
+    const handleAcceptOffer = async () => {
+        if (!isCourseActive) {
+            showCourseClosedReadOnlyToast();
+            return;
+        }
+        if (!currentBooking || currentBooking.status !== "waiting") return;
+
+        setIsAcceptingOffer(true);
+        try {
+            const result = await queueService.workerBookingAction(courseId, sessionId, currentBooking.id, {
+                action: "start",
+            });
+
+            setCurrentBooking(result.booking || currentBooking);
+            setOfferSecondsLeft(null);
+            addToast({
+                title: t("รับงานแล้ว", "Task accepted"),
+                description: t("เริ่มตรวจงานได้เลย", "You can start this task now."),
+                color: "success",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } catch (error: unknown) {
+            console.error("Error accepting offer:", error);
+            addToast({
+                title: t("รับงานไม่สำเร็จ", "Unable to accept task"),
+                description: isEnglish
+                    ? "This offer may have expired."
+                    : error instanceof Error ? error.message : "ข้อเสนออาจหมดเวลาแล้ว",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            setCurrentBooking(null);
+            skipPollingRef.current = false;
+            setTimeout(() => {
+                pollForBooking(true);
+            }, 300);
+        } finally {
+            setIsAcceptingOffer(false);
+        }
+    };
+
+    const handleRejectOffer = async () => {
+        if (!isCourseActive) {
+            showCourseClosedReadOnlyToast();
+            return;
+        }
+        if (!currentBooking || currentBooking.status !== "waiting") return;
+
+        setIsRejectingOffer(true);
+        try {
+            const result = await queueService.workerBookingAction(courseId, sessionId, currentBooking.id, {
+                action: "reject",
+                reject_reason: rejectOfferReason,
+            });
+
+            setIsRejectOfferModalOpen(false);
+            setRejectOfferReason("busy_with_student");
+            setOfferSecondsLeft(null);
+
+            if (result.next_booking) {
+                setCurrentBooking(result.next_booking);
+                skipPollingRef.current = true;
+            } else {
+                setCurrentBooking(null);
+                skipPollingRef.current = false;
+                setTimeout(() => {
+                    pollForBooking(true);
+                }, 300);
+            }
+
+            addToast({
+                title: t("ปฏิเสธงานแล้ว", "Task declined"),
+                description: t("ระบบจะหาเคสถัดไปให้อัตโนมัติ", "The system will route this task and find the next one automatically."),
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } catch (error: unknown) {
+            console.error("Error rejecting offer:", error);
+            addToast({
+                title: t("ปฏิเสธงานไม่สำเร็จ", "Unable to decline task"),
+                description: isEnglish
+                    ? "Unable to update this task offer."
+                    : error instanceof Error ? error.message : "ไม่สามารถปฏิเสธงานนี้ได้",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } finally {
+            setIsRejectingOffer(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!currentBooking || currentBooking.status !== "waiting" || !currentBooking.offer_expires_at) {
+            setOfferSecondsLeft(null);
+            return;
+        }
+
+        const computeSecondsLeft = () => {
+            const expiresAt = new Date(currentBooking.offer_expires_at || "").getTime();
+            if (Number.isNaN(expiresAt)) {
+                setOfferSecondsLeft(null);
+                return;
+            }
+            const seconds = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+            setOfferSecondsLeft(seconds);
+
+            if (seconds <= 0) {
+                setCurrentBooking(null);
+                skipPollingRef.current = false;
+                setTimeout(() => {
+                    pollForBooking(true);
+                }, 300);
+            }
+        };
+
+        computeSecondsLeft();
+        const timer = setInterval(computeSecondsLeft, 1000);
+        return () => clearInterval(timer);
+    }, [currentBooking, pollForBooking]);
 
     // Get max score from linked assignment
     const maxScore = session?.linkedAssignment?.max_score || 10;
@@ -1281,6 +1427,41 @@ export default function WorkerDashboardPage() {
                                     <div className="space-y-6">
                                         {/* Booking Info */}
                                         <div className="rounded-2xl bg-primary/5 p-4">
+                                            {currentBooking.status === "waiting" && (
+                                                <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <div className="flex items-center gap-2 text-amber-700">
+                                                            <Icon icon="solar:alarm-bold" className="text-lg" />
+                                                            <p className="text-sm font-medium">
+                                                                {t("กรุณากดรับงานภายใน 20 วินาที", "Please accept this task within 20 seconds")}
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="relative h-10 w-10">
+                                                                <svg className="h-10 w-10 -rotate-90" viewBox="0 0 36 36" aria-hidden="true">
+                                                                    <circle cx="18" cy="18" r="15.915" fill="none" stroke="currentColor" strokeOpacity="0.2" strokeWidth="3" className="text-amber-500" />
+                                                                    <circle
+                                                                        cx="18"
+                                                                        cy="18"
+                                                                        r="15.915"
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        strokeWidth="3"
+                                                                        className={offerSecondsLeft !== null && offerSecondsLeft <= 5 ? "text-rose-500" : "text-amber-600"}
+                                                                        strokeDasharray={`${Math.max(0, Math.min(1, (offerSecondsLeft ?? 0) / 20)) * 100}, 100`}
+                                                                    />
+                                                                </svg>
+                                                                <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-amber-700">
+                                                                    {offerSecondsLeft ?? 0}
+                                                                </span>
+                                                            </div>
+                                                            <Chip color={offerSecondsLeft !== null && offerSecondsLeft <= 5 ? "danger" : "warning"} variant="flat" size="sm">
+                                                                {t("เวลารับงาน", "Offer timer")}
+                                                            </Chip>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                             <div className="flex items-center justify-between mb-4">
                                                 <Chip
                                                     size="sm"
@@ -1419,28 +1600,54 @@ export default function WorkerDashboardPage() {
 
 
                                         {/* Action Buttons */}
-                                        <div className="flex gap-3">
-                                            <Button
-                                                color="success"
-                                                size="lg"
-                                                className="flex-1"
-                                                startContent={<Icon icon="solar:check-circle-bold" className="text-xl" />}
-                                                onPress={initializeCompleteForm}
-                                                isDisabled={!isCourseActive}
-                                            >
-                                                {t("เสร็จสิ้น", "Complete")}
-                                            </Button>
-                                            <Button
-                                                color="warning"
-                                                variant="flat"
-                                                size="lg"
-                                                startContent={<Icon icon="solar:skip-next-bold" className="text-xl" />}
-                                                onPress={() => setIsSkipModalOpen(true)}
-                                                isDisabled={!isCourseActive}
-                                            >
-                                                {t("ข้าม", "Skip")}
-                                            </Button>
-                                        </div>
+                                        {currentBooking.status === "waiting" ? (
+                                            <div className="flex gap-3">
+                                                <Button
+                                                    color="primary"
+                                                    size="lg"
+                                                    className="flex-1"
+                                                    startContent={<Icon icon="solar:inbox-in-bold" className="text-xl" />}
+                                                    onPress={handleAcceptOffer}
+                                                    isLoading={isAcceptingOffer}
+                                                    isDisabled={!isCourseActive}
+                                                >
+                                                    {t("รับงานตรวจนี้", "Accept this task")}
+                                                </Button>
+                                                <Button
+                                                    color="danger"
+                                                    variant="flat"
+                                                    size="lg"
+                                                    startContent={<Icon icon="solar:close-circle-bold" className="text-xl" />}
+                                                    onPress={() => setIsRejectOfferModalOpen(true)}
+                                                    isDisabled={!isCourseActive}
+                                                >
+                                                    {t("ปฏิเสธ", "Decline")}
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex gap-3">
+                                                <Button
+                                                    color="success"
+                                                    size="lg"
+                                                    className="flex-1"
+                                                    startContent={<Icon icon="solar:check-circle-bold" className="text-xl" />}
+                                                    onPress={initializeCompleteForm}
+                                                    isDisabled={!isCourseActive}
+                                                >
+                                                    {t("เสร็จสิ้น", "Complete")}
+                                                </Button>
+                                                <Button
+                                                    color="warning"
+                                                    variant="flat"
+                                                    size="lg"
+                                                    startContent={<Icon icon="solar:skip-next-bold" className="text-xl" />}
+                                                    onPress={() => setIsSkipModalOpen(true)}
+                                                    isDisabled={!isCourseActive}
+                                                >
+                                                    {t("ข้าม", "Skip")}
+                                                </Button>
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="text-center py-12">
@@ -1774,6 +1981,51 @@ export default function WorkerDashboardPage() {
                             isDisabled={!isCourseActive}
                         >
                             {t("ข้ามคิว", "Skip queue")}
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
+            {/* Reject Offer Modal */}
+            <Modal isOpen={isRejectOfferModalOpen} onClose={() => setIsRejectOfferModalOpen(false)}>
+                <ModalContent>
+                    <ModalHeader>
+                        <div className="flex items-center gap-3">
+                            <Icon icon="solar:close-circle-bold" className="text-red-500 text-2xl" />
+                            <span>{t("ปฏิเสธงาน", "Decline task")}</span>
+                        </div>
+                    </ModalHeader>
+                    <ModalBody>
+                        <p className="mb-3 text-default-600">
+                            {t("หากไม่สะดวกในตอนนี้ คุณสามารถปฏิเสธงานนี้ได้ ระบบจะส่งต่อให้อีกคน", "If you are currently unavailable, you can decline this task and the system will re-route it.")}
+                        </p>
+                        <Select
+                            label={t("เหตุผลการปฏิเสธ", "Decline reason")}
+                            labelPlacement="outside"
+                            selectedKeys={[rejectOfferReason]}
+                            onSelectionChange={(keys) => {
+                                const selected = (Array.from(keys)[0] as string) || "busy_with_student";
+                                setRejectOfferReason(selected);
+                            }}
+                            variant="bordered"
+                            isDisabled={!isCourseActive}
+                        >
+                            {rejectReasonOptions.map((item) => (
+                                <SelectItem key={item.key}>{item.label}</SelectItem>
+                            ))}
+                        </Select>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button variant="flat" onPress={() => setIsRejectOfferModalOpen(false)}>
+                            {t("ยกเลิก", "Cancel")}
+                        </Button>
+                        <Button
+                            color="danger"
+                            onPress={handleRejectOffer}
+                            isLoading={isRejectingOffer}
+                            isDisabled={!isCourseActive}
+                        >
+                            {t("ยืนยันปฏิเสธ", "Confirm decline")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>

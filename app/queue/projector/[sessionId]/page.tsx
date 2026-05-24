@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
+import { Avatar } from "@heroui/avatar";
 import { Spinner } from "@heroui/spinner";
 import { Switch } from "@heroui/switch";
 import {
@@ -33,6 +34,11 @@ interface DeskBooking {
     booking_type: 'grading' | 'help';
     status: string;
     student_name?: string;
+    assigned_worker?: {
+        id: number;
+        full_name: string;
+        avatar?: string;
+    };
 }
 
 interface DeskWithStatus {
@@ -567,7 +573,6 @@ export default function ProjectorViewPage() {
     const isClosed = data.session.status === "closed";
     const isCutoffEnabled = Boolean(data.session.is_cutoff_enabled);
     const nextCutoffEnabled = !isCutoffEnabled;
-
     return (
         <div ref={containerRef} className="flex min-h-screen flex-col bg-background p-4">
             {/* Header */}
@@ -802,6 +807,19 @@ export default function ProjectorViewPage() {
                                             </div>
                                         )}
                                     </div>
+
+                                    {desk.booking?.status === "in_progress" && desk.booking.assigned_worker && (
+                                        <div
+                                            className="absolute -right-3 -top-3 z-20"
+                                            title={desk.booking.assigned_worker.full_name}
+                                        >
+                                            <Avatar
+                                                src={desk.booking.assigned_worker.avatar || undefined}
+                                                name={desk.booking.assigned_worker.full_name}
+                                                className="h-8 w-8 border-2 border-white bg-fuchsia-500 text-[11px] font-bold text-white shadow-md"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
@@ -1037,6 +1055,12 @@ export default function ProjectorViewPage() {
                                         <span className="text-sm text-default-600">{t('สถานะ', 'Status')}</span>
                                         <span className="font-medium text-foreground">{formatBookingStatus(selectedDesk.booking.status)}</span>
                                     </div>
+                                    {selectedDesk.booking.assigned_worker && (
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm text-default-600">{t('ผู้ตรวจ', 'Checker')}</span>
+                                            <span className="font-medium text-foreground">{selectedDesk.booking.assigned_worker.full_name}</span>
+                                        </div>
+                                    )}
                                     {selectedDesk.booking.student_name && (
                                         <div className="flex items-center justify-between">
                                             <span className="text-sm text-default-600">{t('นักศึกษา', 'Student')}</span>
@@ -1082,7 +1106,7 @@ export default function ProjectorViewPage() {
                     <ModalBody>
                         <div className="space-y-3">
                             <div className="flex items-start gap-3 rounded-lg bg-warning-50 border border-warning-200 p-3">
-                                <Icon icon="solar:danger-triangle-bold" className="text-warning-600 text-xl flex-shrink-0 mt-0.5" />
+                                <Icon icon="solar:danger-triangle-bold" className="text-warning-600 text-xl shrink-0 mt-0.5" />
                                 <p className="text-sm text-warning-700">
                                     {t(
                                         "กรุณาปิดเซสชันก่อนปิดหน้าต่างนี้ เพื่อให้นักศึกษาทราบว่าการจองคิวสิ้นสุดแล้ว",

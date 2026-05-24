@@ -10,6 +10,7 @@ import type { User } from "@/services/auth.service";
 import { authService } from "@/services/auth.service";
 import { getDefaultRouteForRole, isStudentRole } from "@/lib/auth-routing";
 import { buildStudentLoginHref, getCurrentAppPath } from "@/lib/auth-resume";
+import { GlobalAnnouncementLayer } from "@/components/system-announcements/global-announcement-layer";
 
 const navItems = [
   { href: "/student",               label: "หน้าหลัก", icon: "solar:home-2-bold",         activeIcon: "solar:home-2-bold" },
@@ -105,6 +106,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   return (
     <div className="min-h-screen bg-linear-to-b from-sky-50 via-white to-slate-100 text-slate-900">
       <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-4 pb-32 pt-4 sm:px-6 lg:px-8">
+        <GlobalAnnouncementLayer />
 
         {/* ── Back header (deep pages only) ──────────────────────────── */}
         {!NAV_ROOTS.has(pathname) && (

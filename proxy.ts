@@ -8,6 +8,9 @@ import type { NextRequest } from 'next/server';
  * This proxy handles basic route patterns and redirects.
  */
 
+/** Cookie name set by api.service.ts interceptor when backend returns 503 MAINTENANCE_MODE */
+const MAINTENANCE_COOKIE = 'maintenance_active';
+
 // Routes that are completely public (no auth needed)
 const publicRoutes = [
     '/login',
@@ -18,6 +21,16 @@ const publicRoutes = [
 const publicPrefixes = [
     '/check-in/',  // Public check-in page for students
     '/display/',   // Public display board (device-authenticated via display grant cookie)
+];
+
+// Paths exempt from maintenance redirect
+// Note: /login is intentionally NOT exempt — the login page proactively checks
+// maintenance status on mount and redirects itself. Admins use /maintenance/alogin.
+const maintenanceExempt = [
+    '/maintenance',
+    '/auth/',
+    '/check-in/',
+    '/display/',
 ];
 
 export function proxy(request: NextRequest) {
@@ -32,6 +45,17 @@ export function proxy(request: NextRequest) {
 
     if (isApiRoute || isStaticFile) {
         return NextResponse.next();
+    }
+
+    // Maintenance redirect — must come before auth check so blocked users see the maintenance page
+    const isMaintenanceExempt = maintenanceExempt.some(
+        (p) => pathname === p || pathname.startsWith(p),
+    );
+    if (!isMaintenanceExempt) {
+        const maintenanceCookie = request.cookies.get(MAINTENANCE_COOKIE);
+        if (maintenanceCookie?.value === '1') {
+            return NextResponse.redirect(new URL('/maintenance', request.url));
+        }
     }
 
     // Check if the route is public
