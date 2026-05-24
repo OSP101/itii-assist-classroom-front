@@ -19,6 +19,7 @@ import { Icon } from "@iconify/react";
 import Cropper, { type Area, type Point } from "react-easy-crop";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { useI18n } from "@/hooks/useI18n";
+import { SystemOperationsControlCard } from "@/components/monitoring";
 import {
     adminSettingsService,
     type Announcement,
@@ -1248,6 +1249,11 @@ export default function AdminSettingsPage() {
                     </Button>
                 </CardBody>
             </Card>
+
+            <SystemOperationsControlCard
+                title={t("adminSystemOpsTitle")}
+                description={t("adminSystemOpsDescription")}
+            />
 
             <Card className="border border-default-200 bg-content1 shadow-sm">
                 <CardHeader className="px-6 py-4 border-b border-default-100">

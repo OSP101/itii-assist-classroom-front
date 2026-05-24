@@ -10,6 +10,7 @@ import { Tooltip } from "@heroui/tooltip";
 import { Icon } from "@iconify/react";
 
 import { useMonitoringData } from "@/hooks/useMonitoringData";
+import { useI18n } from "@/hooks/useI18n";
 import {
   ConnectionStatusBadge,
   CpuCard,
@@ -24,7 +25,10 @@ import {
   RequestRateCard,
   StatusCodesCard,
   ContainerListCard,
+  SystemOperationsControlCard,
+  MonitoringTrendCharts,
 } from "@/components/monitoring";
+import { cloudMonitoringService, type CloudCost, type CloudOverview } from "@/services/cloud-monitoring.service";
 
 // ---------------------------------------------------------------------------
 // Skeleton / Loading state
@@ -88,6 +92,7 @@ interface MonitoringPageProps {
 
 export function MonitoringPage({ initialTab = "overview" }: MonitoringPageProps) {
   const pathname = usePathname();
+  const t = useI18n();
 
   // Derive tab from current pathname (for initial render / real Next.js navigation)
   const tabFromPath = useMemo<TabKey | null>(() => {
@@ -98,7 +103,19 @@ export function MonitoringPage({ initialTab = "overview" }: MonitoringPageProps)
 
   const [activeTab, setActiveTab] = useState<TabKey>(tabFromPath ?? initialTab);
   const [isTabTransitioning, setIsTabTransitioning] = useState(false);
+  const [cloudOverview, setCloudOverview] = useState<CloudOverview | null>(null);
+  const [cloudCost, setCloudCost] = useState<CloudCost | null>(null);
   const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const loadCloudData = useCallback(async () => {
+    const [overview, cost] = await Promise.all([
+      cloudMonitoringService.getCloudOverview(),
+      cloudMonitoringService.getCloudCost(),
+    ]);
+    setCloudOverview(overview);
+    setCloudCost(cost);
+  }, []);
+
 
   // Sync activeTab when Next.js pathname changes (real navigation, not pushState)
   useEffect(() => {
@@ -130,6 +147,10 @@ export function MonitoringPage({ initialTab = "overview" }: MonitoringPageProps)
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
+
+  useEffect(() => {
+    loadCloudData();
+  }, [loadCloudData]);
   const {
     system,
     containers,
@@ -164,6 +185,11 @@ export function MonitoringPage({ initialTab = "overview" }: MonitoringPageProps)
       ? "warning"
       : "healthy";
 
+  const handleRefreshAll = useCallback(async () => {
+    refresh();
+    await loadCloudData();
+  }, [refresh, loadCloudData]);
+
   return (
     <div className="space-y-6">
       {/* Header Bar */}
@@ -195,7 +221,7 @@ export function MonitoringPage({ initialTab = "overview" }: MonitoringPageProps)
               variant="flat"
               isIconOnly
               isLoading={isRefreshing}
-              onPress={refresh}
+              onPress={handleRefreshAll}
             >
               <Icon icon="solar:refresh-bold" className="text-lg" />
             </Button>
@@ -319,6 +345,13 @@ export function MonitoringPage({ initialTab = "overview" }: MonitoringPageProps)
                 <RequestRateCard data={website?.requestRate ?? null} />
               </div>
 
+              <MonitoringTrendCharts
+                system={system}
+                website={website}
+                containers={containers}
+                lastUpdated={lastUpdated}
+              />
+
               {/* Containers + extras */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <ContainerListCard containers={containers} />
@@ -329,6 +362,83 @@ export function MonitoringPage({ initialTab = "overview" }: MonitoringPageProps)
                   <StatusCodesCard data={website?.statusCodes ?? null} />
                 </div>
               </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <Card className="border border-default-200 shadow-sm">
+                  <CardHeader className="pb-1 pt-3 px-4 flex items-center justify-between">
+                    <p className="text-xs text-default-500 font-medium">Cloud Overview</p>
+                    <Chip
+                      size="sm"
+                      variant="flat"
+                      color={
+                        cloudOverview?.overallStatus === "up"
+                          ? "success"
+                          : cloudOverview?.overallStatus === "warning"
+                          ? "warning"
+                          : "danger"
+                      }
+                    >
+                      {cloudOverview?.overallStatus ?? "unknown"}
+                    </Chip>
+                  </CardHeader>
+                  <CardBody className="pt-2 px-4 pb-4">
+                    {!cloudOverview ? (
+                      <p className="text-sm text-default-400">ไม่มีข้อมูล cloud</p>
+                    ) : (
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-default-500">Provider</span>
+                          <span className="font-medium">{cloudOverview.provider}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-default-500">Storage Used</span>
+                          <span className="font-medium">{cloudOverview.storage.totalGB.toFixed(2)} GB</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-default-500">Objects</span>
+                          <span className="font-medium">{cloudOverview.storage.objectCount.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-default-500">R2 Status</span>
+                          <span className={cloudOverview.r2.status === "up" ? "text-success" : "text-danger"}>{cloudOverview.r2.status}</span>
+                        </div>
+                      </div>
+                    )}
+                  </CardBody>
+                </Card>
+
+                <Card className="border border-default-200 shadow-sm">
+                  <CardHeader className="pb-1 pt-3 px-4">
+                    <p className="text-xs text-default-500 font-medium">Estimated Cloud Cost</p>
+                  </CardHeader>
+                  <CardBody className="pt-2 px-4 pb-4">
+                    {!cloudCost ? (
+                      <p className="text-sm text-default-400">ไม่มีข้อมูลต้นทุน</p>
+                    ) : (
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-default-500">MTD Total</span>
+                          <span className="font-semibold">{cloudCost.mtd.total.toFixed(4)} {cloudCost.currency}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-default-500">Storage</span>
+                          <span>{cloudCost.mtd.storage.toFixed(4)} {cloudCost.currency}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-default-500">Operations</span>
+                          <span>{cloudCost.mtd.operations.toFixed(4)} {cloudCost.currency}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-default-500">Forecast / month</span>
+                          <span className="font-medium">{cloudCost.forecast.monthly.toFixed(4)} {cloudCost.currency}</span>
+                        </div>
+                      </div>
+                    )}
+                  </CardBody>
+                </Card>
+              </div>
+
+              <SystemOperationsControlCard title={t("adminSystemOpsRecentTitle")} />
             </div>
           )}
 

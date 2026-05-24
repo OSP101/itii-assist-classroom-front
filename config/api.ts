@@ -80,12 +80,16 @@ export const API_ENDPOINTS = {
   // TODO: Confirm with backend team whether container/website monitoring endpoints will be added.
   // See docs/performance-data-audit.md — "Monitoring Endpoint Mismatch" section.
   MONITORING: {
-    // Maps to GET /api/system/metrics (confirmed in system_route.go)
     SYSTEM: '/system/metrics',
-    // TODO: No backend endpoint confirmed — remove this TODO when backend adds the route
+    TRENDS: '/system/trends',
     CONTAINERS: '/system/containers',
-    // TODO: No backend endpoint confirmed — remove this TODO when backend adds the route
     WEBSITE: '/system/website',
+    CLOUD_OVERVIEW: '/system/cloud/overview',
+    CLOUD_COST: '/system/cloud/cost',
+    ACTIONS_HISTORY: '/system/actions/history',
+    RESTART_SERVICE: '/system/actions/restart-service',
+    REBOOT_HOST: '/system/actions/reboot-host',
+    CANCEL_OPERATION: '/system/actions/cancel',
   },
 
   // System Settings (Admin)

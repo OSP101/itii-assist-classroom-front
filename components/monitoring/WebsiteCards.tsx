@@ -33,6 +33,9 @@ export function WebsiteStatusCard({ data }: WebsiteStatusCardProps) {
       status={data.uptime.isUp ? "good" : "critical"}
     >
       <div className="mt-2 space-y-2">
+        <p className="text-[11px] leading-4 text-default-400">
+          วัดจาก URL ที่ backend ตั้งไว้ใน MONITOR_PROBE_URLS ถ้าเข้าไม่ถึงจาก container ระบบจะขึ้นออฟไลน์
+        </p>
         <div className="flex items-center justify-between text-xs">
           <span className="text-default-500">Uptime</span>
           <span className="font-mono font-medium">

@@ -3,8 +3,7 @@
  * 
  * Provides methods to fetch system monitoring data.
  *
- * NOTE: Backend currently exposes only /api/system/* routes.
- * Container and website monitoring endpoints are not available yet.
+ * NOTE: Backend exposes /api/system/* routes for system, containers, and website.
  * 
  * The backend returns raw metrics (bytes, seconds) — this service
  * transforms them into the UI-friendly units the components expect.
@@ -102,6 +101,17 @@ export interface MonitoringOverview {
   timestamp: string;
 }
 
+export interface MonitoringTrendPoint {
+  timestamp: string;
+  cpuPercent: number;
+  memoryPercent: number;
+  diskPercent: number;
+  responseAvgMs: number;
+  errorPercent: number;
+  requestsPerMinute: number;
+  runningContainers: number;
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -109,14 +119,8 @@ export interface MonitoringOverview {
 const bytesToGB = (bytes: number | null): number =>
   bytes ? parseFloat((bytes / 1073741824).toFixed(2)) : 0;
 
-const bytesToMB = (bytes: number | null): number =>
-  bytes ? parseFloat((bytes / 1048576).toFixed(2)) : 0;
-
 const bytesToMBps = (bytesPerSec: number | null): number =>
   bytesPerSec ? parseFloat((bytesPerSec / 1048576).toFixed(3)) : 0;
-
-const secToMs = (sec: number | null): number =>
-  sec ? parseFloat((sec * 1000).toFixed(2)) : 0;
 
 function formatUptime(seconds: number | null): string {
   if (!seconds) return '—';
@@ -208,47 +212,75 @@ function computeLoadStatus(
 
 /**
  * Fetch container metrics.
- *
- * TODO: Backend endpoint for container monitoring is not implemented.
- * Return an empty list until /api/system/containers (or equivalent) exists.
  */
 async function getContainerMetrics(): Promise<ContainerMetrics[]> {
-  return [];
+  try {
+    const response = await apiService.get<RawData[]>(
+      API_ENDPOINTS.MONITORING.CONTAINERS
+    );
+    if (!response.success || !Array.isArray(response.data)) return [];
+
+    return response.data.map((row) => ({
+      name: String(row.name ?? 'unknown'),
+      cpuPercent: Number(row.cpuPercent ?? 0),
+      memoryUsageMB: Number(row.memoryUsageMB ?? 0),
+      memoryLimitMB: Number(row.memoryLimitMB ?? 0),
+      memoryPercent: Number(row.memoryPercent ?? 0),
+      restarts: Number(row.restarts ?? 0),
+      status: (row.status as ContainerMetrics['status']) ?? 'stopped',
+    }));
+  } catch (error) {
+    console.error('Failed to fetch container metrics:', error);
+    return [];
+  }
 }
 
 /**
  * Fetch website health metrics.
- *
- * TODO: Backend endpoint for website monitoring is not implemented.
- * Return a safe fallback model so UI can render without crashing.
  */
 async function getWebsiteMetrics(): Promise<WebsiteMetrics | null> {
-  return {
-    uptime: {
-      isUp: false,
-      uptimePercent: 0,
-      lastDowntime: null,
-    },
-    responseTime: {
-      avgMs: 0,
-      p50Ms: 0,
-      p95Ms: 0,
-      p99Ms: 0,
-      status: 'critical',
-    },
-    errorRate: {
-      percent: 0,
-      total5xx: 0,
-      total4xx: 0,
-      totalRequests: 0,
-      status: 'normal',
-    },
-    statusCodes: [],
-    requestRate: {
-      perSecond: 0,
-      perMinute: 0,
-    },
-  };
+  try {
+    const response = await apiService.get<RawData>(
+      API_ENDPOINTS.MONITORING.WEBSITE
+    );
+    if (!response.success || !response.data) return null;
+
+    const d = response.data;
+    return {
+      uptime: {
+        isUp: Boolean(d.uptime?.isUp),
+        uptimePercent: Number(d.uptime?.uptimePercent ?? 0),
+        lastDowntime: d.uptime?.lastDowntime ?? null,
+      },
+      responseTime: {
+        avgMs: Number(d.responseTime?.avgMs ?? 0),
+        p50Ms: Number(d.responseTime?.p50Ms ?? 0),
+        p95Ms: Number(d.responseTime?.p95Ms ?? 0),
+        p99Ms: Number(d.responseTime?.p99Ms ?? 0),
+        status: (d.responseTime?.status as WebsiteMetrics['responseTime']['status']) ?? 'good',
+      },
+      errorRate: {
+        percent: Number(d.errorRate?.percent ?? 0),
+        total5xx: Number(d.errorRate?.total5xx ?? 0),
+        total4xx: Number(d.errorRate?.total4xx ?? 0),
+        totalRequests: Number(d.errorRate?.totalRequests ?? 0),
+        status: (d.errorRate?.status as WebsiteMetrics['errorRate']['status']) ?? 'normal',
+      },
+      statusCodes: Array.isArray(d.statusCodes)
+        ? d.statusCodes.map((row: RawData) => ({
+            code: String(row.code ?? '-'),
+            count: Number(row.count ?? 0),
+          }))
+        : [],
+      requestRate: {
+        perSecond: Number(d.requestRate?.perSecond ?? 0),
+        perMinute: Number(d.requestRate?.perMinute ?? 0),
+      },
+    };
+  } catch (error) {
+    console.error('Failed to fetch website metrics:', error);
+    return null;
+  }
 }
 
 /**
@@ -276,11 +308,34 @@ async function getMonitoringOverview(): Promise<MonitoringOverview | null> {
   }
 }
 
+async function getTrendHistory(range: '15m' | '1h' | '6h' | '24h' | 'all'): Promise<MonitoringTrendPoint[]> {
+  try {
+    const endpoint = `${API_ENDPOINTS.MONITORING.TRENDS}?range=${encodeURIComponent(range)}`;
+    const response = await apiService.get<RawData>(endpoint);
+    if (!response.success || !response.data || !Array.isArray(response.data.points)) return [];
+
+    return response.data.points.map((row: RawData) => ({
+      timestamp: String(row.timestamp ?? new Date().toISOString()),
+      cpuPercent: Number(row.cpuPercent ?? 0),
+      memoryPercent: Number(row.memoryPercent ?? 0),
+      diskPercent: Number(row.diskPercent ?? 0),
+      responseAvgMs: Number(row.responseAvgMs ?? 0),
+      errorPercent: Number(row.errorPercent ?? 0),
+      requestsPerMinute: Number(row.requestsPerMinute ?? 0),
+      runningContainers: Number(row.runningContainers ?? 0),
+    }));
+  } catch (error) {
+    console.error('Failed to fetch monitoring trend history:', error);
+    return [];
+  }
+}
+
 export const monitoringService = {
   getSystemMetrics,
   getContainerMetrics,
   getWebsiteMetrics,
   getMonitoringOverview,
+  getTrendHistory,
 };
 
 export default monitoringService;
