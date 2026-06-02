@@ -18,6 +18,7 @@ import {
 } from "@heroui/modal";
 import { Select, SelectItem } from "@heroui/select";
 import { Spinner } from "@heroui/spinner";
+import { Tooltip } from "@heroui/tooltip";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import Link from "next/link";
@@ -37,11 +38,8 @@ import {
 import type { Assignment as AssignmentType, AssignmentSubItem } from "@/services/assignment.service";
 import { getCurrentCourseMemberPermissions } from "@/services/course.service";
 import type { CourseMemberPermissions, SectionStudent } from "@/services/course.service";
-
-// Import Skeletons directly (they're small and used for loading states)
 import { OverviewSkeleton, TeamsGridSkeleton, SidebarMenuSkeleton, PeopleTableSkeleton, AssignmentsSkeleton, ScoresSkeleton, TabListSkeleton } from "./components/Skeletons";
 
-// Lazy load heavy Tab components with custom loading states
 const OverviewTab = dynamic(() => import("./components/OverviewTab"), {
     loading: () => <OverviewSkeleton />,
 });
@@ -59,6 +57,10 @@ const AssignmentsTab = dynamic(() => import("./components/AssignmentsTab"), {
 });
 
 const AttendanceTab = dynamic(() => import("./components/AttendanceTab"), {
+    loading: () => <TabListSkeleton />,
+});
+
+const AttendanceOverviewTab = dynamic(() => import("./components/AttendanceOverviewTab"), {
     loading: () => <TabListSkeleton />,
 });
 
@@ -118,6 +120,7 @@ const TAB_PRELOADERS: Partial<Record<ClassroomTabKey, () => void>> = {
     "exam-scores": () => preloadDynamic(ExamScoresTab),
     "exam-seats": () => preloadDynamic(ExamSeatsTab),
     approval: () => preloadDynamic(ScoreApprovalTab),
+    "attendance-overview": () => preloadDynamic(AttendanceOverviewTab),
     attendance: () => preloadDynamic(AttendanceTab),
     queue: () => preloadDynamic(QueueTab),
     "activity-log": () => preloadDynamic(ActivityLogTab),
@@ -134,6 +137,7 @@ export type ClassroomTabKey =
     | "exam-scores"
     | "exam-seats"
     | "approval"
+    | "attendance-overview"
     | "attendance"
     | "queue"
     | "activity-log"
@@ -149,6 +153,7 @@ const TAB_ROUTE_MAP: Record<ClassroomTabKey, string> = {
     "exam-scores": "exam-scores",
     "exam-seats": "exam-seats",
     approval: "approval",
+    "attendance-overview": "attendance-overview",
     attendance: "attendance",
     queue: "queue",
     "activity-log": "activity-log",
@@ -157,6 +162,37 @@ const TAB_ROUTE_MAP: Record<ClassroomTabKey, string> = {
 };
 
 const ALL_TABS = new Set<ClassroomTabKey>(Object.keys(TAB_ROUTE_MAP) as ClassroomTabKey[]);
+
+type ClassroomMenuGroupKey =
+    | "classroom-management"
+    | "work-score-management"
+    | "attendance-management"
+    | "course-settings";
+
+interface ClassroomMenuItem {
+    key: ClassroomTabKey;
+    label: string;
+    icon: string;
+    groupKey?: ClassroomMenuGroupKey;
+    status?: "coming_soon";
+}
+
+interface ClassroomMenuGroup {
+    key: ClassroomMenuGroupKey;
+    label: string;
+    icon: string;
+    items: ClassroomMenuItem[];
+}
+
+const CLASSROOM_MENU_GROUP_ORDER: ClassroomMenuGroupKey[] = [
+    "classroom-management",
+    "work-score-management",
+    "attendance-management",
+    "course-settings",
+];
+
+const CLASSROOM_MENU_GROUP_STORAGE_PREFIX = "classroom.sidebar.groups.v1";
+const CLASSROOM_MENU_COLLAPSED_STORAGE_PREFIX = "classroom.sidebar.collapsed.v1";
 
 interface ClassroomDetailPageProps {
     initialTab?: ClassroomTabKey;
@@ -257,6 +293,9 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
     const [isTabTransitioning, setIsTabTransitioning] = useState(false);
     const hasInitializedRef = useRef(false);
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+    const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false);
+    const [expandedMenuGroups, setExpandedMenuGroups] = useState<ClassroomMenuGroupKey[]>([]);
+    const restoredMenuStateRef = useRef<string | null>(null);
     const [expandedSections, setExpandedSections] = useState<number[]>([]);
 
     // Section UI states
@@ -1069,25 +1108,189 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
     // Menu Items
     // ============================================
 
-    const menuItems = useMemo(() => [
-        { key: "overview", label: t("overview"), icon: "solar:chart-2-bold" },
-        ...(canAccessSections ? [{ key: "sections", label: t("sections"), icon: "solar:notebook-bold" }] : []),
-        ...(canViewPeople ? [{ key: "people", label: t("people"), icon: "solar:users-group-rounded-bold" }] : []),
-        ...(canAccessAssignments ? [{ key: "assignments", label: t("classwork"), icon: "solar:clipboard-list-bold" }] : []),
-        ...(canAccessScores ? [{ key: "scores", label: t("classroomScores"), icon: "solar:chart-square-bold" }] : []),
-        ...(canAccessExamScores ? [{ key: "exam-scores", label: t("examScores"), icon: "solar:diploma-bold" }] : []),
-        ...(canAccessExamScores ? [{ key: "exam-seats", label: t("examSeatManagement"), icon: "solar:armchair-bold" }] : []),
-        ...(canAccessApproval ? [{
-            key: "approval",
-            label: approvalRole === "ta" ? t("scoreRequestStatus") : t("scoreApproval"),
-            icon: "solar:clipboard-check-bold",
-        }] : []),
-        ...(canAccessAttendance ? [{ key: "attendance", label: t("attendance"), icon: "solar:user-check-bold" }] : []),
-        ...(canAccessQueue ? [{ key: "queue", label: t("reviewQueue"), icon: "solar:sort-by-time-bold" }] : []),
-        ...(userRole === 'instructor' || isAdminAccess ? [{ key: "activity-log", label: t("activityLog"), icon: "solar:document-text-bold" }] : []),
-        ...(userRole === 'instructor' || isAdminAccess ? [{ key: "ta-stats", label: t("taStats"), icon: "solar:graph-new-up-bold" }] : []),
-        ...(userRole === 'instructor' || isAdminAccess ? [{ key: "settings", label: t("courseSettings"), icon: "solar:settings-bold" }] : []),
-    ], [approvalRole, canAccessApproval, canAccessAssignments, canAccessAttendance, canAccessExamScores, canAccessScores, canAccessSections, canViewPeople, t, userRole]);
+    const menuItems = useMemo<ClassroomMenuItem[]>(() => {
+        const items: ClassroomMenuItem[] = [
+            { key: "overview", label: t("overview"), icon: "solar:chart-2-bold" },
+        ];
+
+        if (canAccessSections) {
+            items.push({ key: "sections", label: t("sections"), icon: "solar:notebook-bold", groupKey: "classroom-management" });
+        }
+        if (canViewPeople) {
+            items.push({ key: "people", label: t("people"), icon: "solar:users-group-rounded-bold", groupKey: "classroom-management" });
+        }
+        if (canAccessAssignments) {
+            items.push({ key: "assignments", label: t("classwork"), icon: "solar:clipboard-list-bold", groupKey: "work-score-management" });
+        }
+        if (canAccessScores) {
+            items.push({ key: "scores", label: t("classroomScores"), icon: "solar:chart-square-bold", groupKey: "work-score-management" });
+        }
+        if (canAccessExamScores) {
+            items.push({ key: "exam-scores", label: t("examScores"), icon: "solar:diploma-bold", groupKey: "work-score-management" });
+        }
+        if (canAccessApproval) {
+            items.push({
+                key: "approval",
+                label: approvalRole === "ta" ? t("scoreRequestStatus") : t("scoreApproval"),
+                icon: "solar:clipboard-check-bold",
+                groupKey: "work-score-management",
+            });
+        }
+        if (canAccessAttendance) {
+            items.push({ key: "attendance-overview", label: t("overview"), icon: "solar:chart-2-bold", groupKey: "attendance-management" });
+            items.push({ key: "attendance", label: t("attendance"), icon: "solar:user-check-bold", groupKey: "attendance-management" });
+        }
+        if (canAccessQueue) {
+            items.push({ key: "queue", label: t("reviewQueue"), icon: "solar:sort-by-time-bold" });
+        }
+        if (userRole === "instructor" || isAdminAccess) {
+            items.push({ key: "ta-stats", label: t("taStats"), icon: "solar:graph-new-up-bold", groupKey: "course-settings" });
+            items.push({ key: "activity-log", label: t("activityLog"), icon: "solar:document-text-bold", groupKey: "course-settings" });
+            items.push({ key: "settings", label: t("courseSettings"), icon: "solar:settings-bold", groupKey: "course-settings" });
+        }
+
+        return items;
+    }, [
+        approvalRole,
+        canAccessApproval,
+        canAccessAssignments,
+        canAccessAttendance,
+        canAccessExamScores,
+        canAccessQueue,
+        canAccessScores,
+        canAccessSections,
+        canViewPeople,
+        isAdminAccess,
+        t,
+        userRole,
+    ]);
+
+    const activeMenuGroup = useMemo<ClassroomMenuGroupKey | null>(() => {
+        return menuItems.find((item) => item.key === activeTab)?.groupKey ?? null;
+    }, [activeTab, menuItems]);
+
+    const menuGroups = useMemo<ClassroomMenuGroup[]>(() => {
+        const groupMeta: Record<ClassroomMenuGroupKey, { label: string; icon: string }> = {
+            "classroom-management": { label: t("classroomMenuGroupManagement"), icon: "solar:users-group-rounded-bold" },
+            "work-score-management": { label: t("classroomMenuGroupWorkScore"), icon: "solar:clipboard-list-bold" },
+            "attendance-management": { label: t("classroomMenuGroupAttendance"), icon: "solar:user-check-bold" },
+            "course-settings": { label: t("classroomMenuGroupCourseSettings"), icon: "solar:settings-bold" },
+        };
+
+        return CLASSROOM_MENU_GROUP_ORDER
+            .map((groupKey) => ({
+                key: groupKey,
+                label: groupMeta[groupKey].label,
+                icon: groupMeta[groupKey].icon,
+                items: menuItems.filter((item) => item.groupKey === groupKey),
+            }))
+            .filter((group) => group.items.length > 0);
+    }, [menuItems, t]);
+
+    const menuItemsByKey = useMemo(() => new Map(menuItems.map((item) => [item.key, item])), [menuItems]);
+    const menuGroupsByKey = useMemo(() => new Map(menuGroups.map((group) => [group.key, group])), [menuGroups]);
+
+    const overviewMenuItem = menuItemsByKey.get("overview") ?? null;
+    const queueMenuItem = menuItemsByKey.get("queue") ?? null;
+
+    const primaryMenuGroups = useMemo(() => {
+        const orderedKeys: ClassroomMenuGroupKey[] = [
+            "classroom-management",
+            "work-score-management",
+            "attendance-management",
+        ];
+
+        return orderedKeys
+            .map((key) => menuGroupsByKey.get(key))
+            .filter((group): group is ClassroomMenuGroup => Boolean(group));
+    }, [menuGroupsByKey]);
+
+    const courseSettingsMenuGroup = menuGroupsByKey.get("course-settings") ?? null;
+
+    const preferencesScopeKey = useMemo(() => {
+        return `${courseId}:${currentUserId || "guest"}`;
+    }, [courseId, currentUserId]);
+
+    const expandedGroupsStorageKey = useMemo(() => {
+        return `${CLASSROOM_MENU_GROUP_STORAGE_PREFIX}.${preferencesScopeKey}`;
+    }, [preferencesScopeKey]);
+
+    const collapsedSidebarStorageKey = useMemo(() => {
+        return `${CLASSROOM_MENU_COLLAPSED_STORAGE_PREFIX}.${preferencesScopeKey}`;
+    }, [preferencesScopeKey]);
+
+    const toggleMenuGroup = useCallback((groupKey: ClassroomMenuGroupKey) => {
+        setExpandedMenuGroups((prev) => (
+            prev.includes(groupKey)
+                ? prev.filter((key) => key !== groupKey)
+                : [...prev, groupKey]
+        ));
+    }, []);
+
+    useEffect(() => {
+        if (!activeMenuGroup) {
+            return;
+        }
+
+        setExpandedMenuGroups((prev) => (
+            prev.includes(activeMenuGroup) ? prev : [...prev, activeMenuGroup]
+        ));
+    }, [activeMenuGroup]);
+
+    useEffect(() => {
+        if (typeof window === "undefined" || menuGroups.length === 0) {
+            return;
+        }
+
+        if (restoredMenuStateRef.current === preferencesScopeKey) {
+            return;
+        }
+
+        restoredMenuStateRef.current = preferencesScopeKey;
+
+        const availableGroupKeys = new Set(menuGroups.map((group) => group.key));
+        const defaultGroup = activeMenuGroup ?? menuGroups[0]?.key ?? null;
+
+        try {
+            const savedGroupsRaw = window.localStorage.getItem(expandedGroupsStorageKey);
+            const parsedGroups = savedGroupsRaw ? JSON.parse(savedGroupsRaw) : null;
+            const savedGroups = Array.isArray(parsedGroups)
+                ? parsedGroups.filter((groupKey): groupKey is ClassroomMenuGroupKey => (
+                    typeof groupKey === "string" && availableGroupKeys.has(groupKey as ClassroomMenuGroupKey)
+                ))
+                : [];
+
+            if (savedGroups.length > 0) {
+                setExpandedMenuGroups(savedGroups);
+            } else if (defaultGroup) {
+                setExpandedMenuGroups([defaultGroup]);
+            }
+
+            const savedCollapsed = window.localStorage.getItem(collapsedSidebarStorageKey);
+            setIsDesktopSidebarCollapsed(savedCollapsed === "1");
+        } catch {
+            if (defaultGroup) {
+                setExpandedMenuGroups([defaultGroup]);
+            }
+            setIsDesktopSidebarCollapsed(false);
+        }
+    }, [activeMenuGroup, collapsedSidebarStorageKey, expandedGroupsStorageKey, menuGroups, preferencesScopeKey]);
+
+    useEffect(() => {
+        if (typeof window === "undefined" || restoredMenuStateRef.current !== preferencesScopeKey) {
+            return;
+        }
+
+        window.localStorage.setItem(expandedGroupsStorageKey, JSON.stringify(expandedMenuGroups));
+    }, [expandedGroupsStorageKey, expandedMenuGroups, preferencesScopeKey]);
+
+    useEffect(() => {
+        if (typeof window === "undefined" || restoredMenuStateRef.current !== preferencesScopeKey) {
+            return;
+        }
+
+        window.localStorage.setItem(collapsedSidebarStorageKey, isDesktopSidebarCollapsed ? "1" : "0");
+    }, [collapsedSidebarStorageKey, isDesktopSidebarCollapsed, preferencesScopeKey]);
 
     useEffect(() => {
         if (isLoading || !course) {
@@ -1229,27 +1432,151 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             {!course ? (
                                 <SidebarMenuSkeleton />
                             ) : (
-                                menuItems.map((item) => (
-                                <button
-                                    key={item.key}
-                                    onMouseEnter={() => preloadTab(item.key as ClassroomTabKey)}
-                                    onFocus={() => preloadTab(item.key as ClassroomTabKey)}
-                                    onClick={() => {
-                                        if ((item as any).status !== "coming_soon") {
-                                            navigateToTab(item.key as ClassroomTabKey);
-                                            setIsMobileSidebarOpen(false);
-                                        }
-                                    }}
-                                    disabled={(item as any).status === "coming_soon"}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-all ${activeTab === item.key
-                                        ? "bg-primary/10 text-primary"
-                                        : "text-default-600 hover:bg-content2"
-                                        } ${(item as any).status === "coming_soon" ? "cursor-not-allowed bg-content2 opacity-50" : "cursor-pointer"}`}
-                                >
-                                    <Icon icon={item.icon} className="text-xl" />
-                                    <span className="font-medium">{item.label}</span>
-                                </button>
-                            ))
+                                <div className="space-y-3">
+                                    {overviewMenuItem && (
+                                        <div className="space-y-1">
+                                            <button
+                                                key={overviewMenuItem.key}
+                                                onMouseEnter={() => preloadTab(overviewMenuItem.key as ClassroomTabKey)}
+                                                onFocus={() => preloadTab(overviewMenuItem.key as ClassroomTabKey)}
+                                                onClick={() => {
+                                                    if (overviewMenuItem.status !== "coming_soon") {
+                                                        navigateToTab(overviewMenuItem.key as ClassroomTabKey);
+                                                        setIsMobileSidebarOpen(false);
+                                                    }
+                                                }}
+                                                disabled={overviewMenuItem.status === "coming_soon"}
+                                                className={`w-full flex items-center gap-3 rounded-md px-3 py-2 text-left transition-colors ${activeTab === overviewMenuItem.key
+                                                    ? "bg-primary/10 text-primary font-medium"
+                                                    : "text-default-600 hover:bg-content2"
+                                                    } ${overviewMenuItem.status === "coming_soon" ? "cursor-not-allowed bg-content2 opacity-50" : "cursor-pointer"}`}
+                                            >
+                                                <Icon icon={overviewMenuItem.icon} className={`text-base ${activeTab === overviewMenuItem.key ? "text-primary" : "text-default-400"}`} />
+                                                <span className="text-sm font-medium">{overviewMenuItem.label}</span>
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {primaryMenuGroups.map((group) => {
+                                        const isExpanded = expandedMenuGroups.includes(group.key);
+                                        return (
+                                            <div key={group.key} className="space-y-1">
+                                                <button
+                                                    onClick={() => toggleMenuGroup(group.key)}
+                                                    aria-expanded={isExpanded}
+                                                    className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm font-medium text-default-600 transition-colors hover:bg-content2"
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <Icon icon={group.icon} className="text-base text-default-400" />
+                                                        <span>{group.label}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Icon
+                                                            icon={isExpanded ? "solar:alt-arrow-down-linear" : "solar:alt-arrow-right-linear"}
+                                                            className="text-base"
+                                                        />
+                                                    </div>
+                                                </button>
+
+                                                {isExpanded && (
+                                                    <div className="ml-6 space-y-0.5 pl-1">
+                                                        {group.items.map((item) => (
+                                                            <button
+                                                                key={item.key}
+                                                                onMouseEnter={() => preloadTab(item.key as ClassroomTabKey)}
+                                                                onFocus={() => preloadTab(item.key as ClassroomTabKey)}
+                                                                onClick={() => {
+                                                                    if (item.status !== "coming_soon") {
+                                                                        navigateToTab(item.key as ClassroomTabKey);
+                                                                        setIsMobileSidebarOpen(false);
+                                                                    }
+                                                                }}
+                                                                disabled={item.status === "coming_soon"}
+                                                                className={`w-full rounded-md px-3 py-2 text-left transition-colors ${activeTab === item.key
+                                                                    ? "bg-primary/10 text-primary font-medium"
+                                                                    : "text-default-600 hover:bg-content2"
+                                                                    } ${item.status === "coming_soon" ? "cursor-not-allowed bg-content2 opacity-50" : "cursor-pointer"}`}
+                                                            >
+                                                                <span className="text-sm font-medium">{item.label}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+
+                                    {queueMenuItem && (
+                                        <div className="space-y-1">
+                                            <button
+                                                key={queueMenuItem.key}
+                                                onMouseEnter={() => preloadTab(queueMenuItem.key as ClassroomTabKey)}
+                                                onFocus={() => preloadTab(queueMenuItem.key as ClassroomTabKey)}
+                                                onClick={() => {
+                                                    if (queueMenuItem.status !== "coming_soon") {
+                                                        navigateToTab(queueMenuItem.key as ClassroomTabKey);
+                                                        setIsMobileSidebarOpen(false);
+                                                    }
+                                                }}
+                                                disabled={queueMenuItem.status === "coming_soon"}
+                                                className={`w-full flex items-center gap-3 rounded-md px-3 py-2 text-left transition-colors ${activeTab === queueMenuItem.key
+                                                    ? "bg-primary/10 text-primary font-medium"
+                                                    : "text-default-600 hover:bg-content2"
+                                                    } ${queueMenuItem.status === "coming_soon" ? "cursor-not-allowed bg-content2 opacity-50" : "cursor-pointer"}`}
+                                            >
+                                                <Icon icon={queueMenuItem.icon} className={`text-base ${activeTab === queueMenuItem.key ? "text-primary" : "text-default-400"}`} />
+                                                <span className="text-sm font-medium">{queueMenuItem.label}</span>
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {courseSettingsMenuGroup && (() => {
+                                        const isExpanded = expandedMenuGroups.includes(courseSettingsMenuGroup.key);
+                                        return (
+                                            <div key={courseSettingsMenuGroup.key} className="space-y-1">
+                                                <button
+                                                    onClick={() => toggleMenuGroup(courseSettingsMenuGroup.key)}
+                                                    aria-expanded={isExpanded}
+                                                    className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm font-medium text-default-600 transition-colors hover:bg-content2"
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <Icon icon={courseSettingsMenuGroup.icon} className="text-base text-default-400" />
+                                                        <span>{courseSettingsMenuGroup.label}</span>
+                                                    </div>
+                                                    <Icon
+                                                        icon={isExpanded ? "solar:alt-arrow-down-linear" : "solar:alt-arrow-right-linear"}
+                                                        className="text-base"
+                                                    />
+                                                </button>
+
+                                                {isExpanded && (
+                                                    <div className="ml-6 space-y-0.5 pl-1">
+                                                        {courseSettingsMenuGroup.items.map((item) => (
+                                                            <button
+                                                                key={item.key}
+                                                                onMouseEnter={() => preloadTab(item.key as ClassroomTabKey)}
+                                                                onFocus={() => preloadTab(item.key as ClassroomTabKey)}
+                                                                onClick={() => {
+                                                                    if (item.status !== "coming_soon") {
+                                                                        navigateToTab(item.key as ClassroomTabKey);
+                                                                        setIsMobileSidebarOpen(false);
+                                                                    }
+                                                                }}
+                                                                disabled={item.status === "coming_soon"}
+                                                                className={`w-full rounded-md px-3 py-2 text-left transition-colors ${activeTab === item.key
+                                                                    ? "bg-primary/10 text-primary font-medium"
+                                                                    : "text-default-600 hover:bg-content2"
+                                                                    } ${item.status === "coming_soon" ? "cursor-not-allowed bg-content2 opacity-50" : "cursor-pointer"}`}
+                                                            >
+                                                                <span className="text-sm font-medium">{item.label}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
                             )}
                         </nav>
                     </div>
@@ -1258,38 +1585,196 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
 
             <div className="flex">
                 {/* Desktop Sidebar - Fixed position */}
-                <aside className="fixed top-12 left-0 z-40 hidden h-[calc(100vh)] w-64 flex-col overflow-y-auto border-r border-divider bg-content1 lg:flex">
+                <aside className={`fixed top-12 left-0 z-40 hidden h-[calc(100vh)] flex-col overflow-y-auto border-r border-divider bg-content1 transition-all duration-300 lg:flex ${isDesktopSidebarCollapsed ? "w-20" : "w-64"}`}>
                     {/* Navigation Menu */}
-                    <nav className="flex-1 p-3">
+                    <nav className="flex-1 overflow-y-auto p-3 pb-12">
                         {!course ? (
                             <SidebarMenuSkeleton />
+                        ) : isDesktopSidebarCollapsed ? (
+                            <div className="space-y-1">
+                                {menuItems.map((item) => (
+                                    <Tooltip key={item.key} content={item.label} placement="right">
+                                        <button
+                                            disabled={item.status === "coming_soon"}
+                                            onMouseEnter={() => preloadTab(item.key as ClassroomTabKey)}
+                                            onFocus={() => preloadTab(item.key as ClassroomTabKey)}
+                                            onClick={() => {
+                                                if (item.status !== "coming_soon") {
+                                                    navigateToTab(item.key as ClassroomTabKey);
+                                                }
+                                            }}
+                                            className={`w-full flex items-center justify-center rounded-md px-3 py-2 transition-colors ${activeTab === item.key
+                                                ? "bg-primary/10 text-primary"
+                                                : "text-default-600 hover:bg-content2"
+                                                } ${item.status === "coming_soon" ? "cursor-not-allowed bg-content2 opacity-50" : "cursor-pointer"}`}
+                                        >
+                                            <Icon icon={item.icon} className={`text-base ${activeTab === item.key ? "text-primary" : "text-default-400"}`} />
+                                        </button>
+                                    </Tooltip>
+                                ))}
+                            </div>
                         ) : (
-                            menuItems.map((item) => (
-                            <button
-                                key={item.key}
-                                disabled={(item as any).status === "coming_soon"}
-                                onMouseEnter={() => preloadTab(item.key as ClassroomTabKey)}
-                                onFocus={() => preloadTab(item.key as ClassroomTabKey)}
-                                onClick={() => {
-                                    if ((item as any).status !== "coming_soon") {
-                                        navigateToTab(item.key as ClassroomTabKey);
-                                    }
-                                }}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-all ${activeTab === item.key
-                                    ? "bg-primary/10 text-primary font-medium"
-                                    : "text-default-600 hover:bg-content2"
-                                    } ${(item as any).status === "coming_soon" ? "cursor-not-allowed bg-content2 opacity-50" : "cursor-pointer"}`}
-                            >
-                                <Icon icon={item.icon} className={`text-lg ${activeTab === item.key ? "text-primary" : "text-default-400"}`} />
-                                <span className="text-sm">{item.label}</span>
-                            </button>
-                        ))
+                                <div className="space-y-3">
+                                    {overviewMenuItem && (
+                                        <div className="space-y-1">
+                                            <button
+                                                key={overviewMenuItem.key}
+                                                onMouseEnter={() => preloadTab(overviewMenuItem.key as ClassroomTabKey)}
+                                                onFocus={() => preloadTab(overviewMenuItem.key as ClassroomTabKey)}
+                                                onClick={() => {
+                                                    if (overviewMenuItem.status !== "coming_soon") {
+                                                        navigateToTab(overviewMenuItem.key as ClassroomTabKey);
+                                                    }
+                                                }}
+                                                disabled={overviewMenuItem.status === "coming_soon"}
+                                                className={`w-full flex items-center gap-3 rounded-md px-3 py-2 text-left transition-colors ${activeTab === overviewMenuItem.key
+                                                    ? "bg-primary/10 text-primary font-medium"
+                                                    : "text-default-600 hover:bg-content2"
+                                                    } ${overviewMenuItem.status === "coming_soon" ? "cursor-not-allowed bg-content2 opacity-50" : "cursor-pointer"}`}
+                                            >
+                                                <Icon icon={overviewMenuItem.icon} className={`text-base ${activeTab === overviewMenuItem.key ? "text-primary" : "text-default-400"}`} />
+                                                <span className="text-sm font-medium">{overviewMenuItem.label}</span>
+                                            </button>
+                                        </div>
+                                    )}
+
+                                {primaryMenuGroups.map((group) => {
+                                    const isExpanded = expandedMenuGroups.includes(group.key);
+                                    return (
+                                        <div key={group.key} className="space-y-1">
+                                            <button
+                                                onClick={() => toggleMenuGroup(group.key)}
+                                                aria-expanded={isExpanded}
+                                                className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm font-medium text-default-600 transition-colors hover:bg-content2"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <Icon icon={group.icon} className="text-base text-default-400" />
+                                                    <span>{group.label}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Icon
+                                                        icon={isExpanded ? "solar:alt-arrow-down-linear" : "solar:alt-arrow-right-linear"}
+                                                        className="text-base"
+                                                    />
+                                                </div>
+                                            </button>
+
+                                            {isExpanded && (
+                                                <div className="ml-6 space-y-0.5 pl-1">
+                                                    {group.items.map((item) => (
+                                                        <button
+                                                            key={item.key}
+                                                            disabled={item.status === "coming_soon"}
+                                                            onMouseEnter={() => preloadTab(item.key as ClassroomTabKey)}
+                                                            onFocus={() => preloadTab(item.key as ClassroomTabKey)}
+                                                            onClick={() => {
+                                                                if (item.status !== "coming_soon") {
+                                                                    navigateToTab(item.key as ClassroomTabKey);
+                                                                }
+                                                            }}
+                                                            className={`w-full rounded-md px-3 py-2 text-left transition-colors ${activeTab === item.key
+                                                                ? "bg-primary/10 text-primary font-medium"
+                                                                : "text-default-600 hover:bg-content2"
+                                                                } ${item.status === "coming_soon" ? "cursor-not-allowed bg-content2 opacity-50" : "cursor-pointer"}`}
+                                                        >
+                                                            <span className="text-sm font-medium">{item.label}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+
+                                {queueMenuItem && (
+                                    <div className="space-y-1">
+                                        <button
+                                            key={queueMenuItem.key}
+                                            onMouseEnter={() => preloadTab(queueMenuItem.key as ClassroomTabKey)}
+                                            onFocus={() => preloadTab(queueMenuItem.key as ClassroomTabKey)}
+                                            onClick={() => {
+                                                if (queueMenuItem.status !== "coming_soon") {
+                                                    navigateToTab(queueMenuItem.key as ClassroomTabKey);
+                                                }
+                                            }}
+                                            disabled={queueMenuItem.status === "coming_soon"}
+                                            className={`w-full flex items-center gap-3 rounded-md px-3 py-2 text-left transition-colors ${activeTab === queueMenuItem.key
+                                                ? "bg-primary/10 text-primary font-medium"
+                                                : "text-default-600 hover:bg-content2"
+                                                } ${queueMenuItem.status === "coming_soon" ? "cursor-not-allowed bg-content2 opacity-50" : "cursor-pointer"}`}
+                                        >
+                                            <Icon icon={queueMenuItem.icon} className={`text-base ${activeTab === queueMenuItem.key ? "text-primary" : "text-default-400"}`} />
+                                            <span className="text-sm font-medium">{queueMenuItem.label}</span>
+                                        </button>
+                                    </div>
+                                )}
+
+                                {courseSettingsMenuGroup && (() => {
+                                    const isExpanded = expandedMenuGroups.includes(courseSettingsMenuGroup.key);
+                                    return (
+                                        <div key={courseSettingsMenuGroup.key} className="space-y-1">
+                                            <button
+                                                onClick={() => toggleMenuGroup(courseSettingsMenuGroup.key)}
+                                                aria-expanded={isExpanded}
+                                                className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm font-medium text-default-600 transition-colors hover:bg-content2"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <Icon icon={courseSettingsMenuGroup.icon} className="text-base text-default-400" />
+                                                    <span>{courseSettingsMenuGroup.label}</span>
+                                                </div>
+                                                <Icon
+                                                    icon={isExpanded ? "solar:alt-arrow-down-linear" : "solar:alt-arrow-right-linear"}
+                                                    className="text-base"
+                                                />
+                                            </button>
+
+                                            {isExpanded && (
+                                                <div className="ml-6 space-y-0.5 pl-1">
+                                                    {courseSettingsMenuGroup.items.map((item) => (
+                                                        <button
+                                                            key={item.key}
+                                                            disabled={item.status === "coming_soon"}
+                                                            onMouseEnter={() => preloadTab(item.key as ClassroomTabKey)}
+                                                            onFocus={() => preloadTab(item.key as ClassroomTabKey)}
+                                                            onClick={() => {
+                                                                if (item.status !== "coming_soon") {
+                                                                    navigateToTab(item.key as ClassroomTabKey);
+                                                                }
+                                                            }}
+                                                            className={`w-full rounded-md px-3 py-2 text-left transition-colors ${activeTab === item.key
+                                                                ? "bg-primary/10 text-primary font-medium"
+                                                                : "text-default-600 hover:bg-content2"
+                                                                } ${item.status === "coming_soon" ? "cursor-not-allowed bg-content2 opacity-50" : "cursor-pointer"}`}
+                                                        >
+                                                            <span className="text-sm font-medium">{item.label}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
+                            </div>
                         )}
                     </nav>
+
+                    <div className="absolute bottom-2 left-2 right-2">
+                        <Tooltip content={isDesktopSidebarCollapsed ? t("expand") : t("collapse")} placement="right">
+                            <button
+                                onClick={() => setIsDesktopSidebarCollapsed((prev) => !prev)}
+                                className="flex h-8 w-8 items-center justify-center rounded-md text-default-500 transition-colors hover:bg-default-100 hover:text-foreground"
+                            >
+                                <Icon
+                                    icon={isDesktopSidebarCollapsed ? "solar:alt-arrow-right-linear" : "solar:alt-arrow-left-linear"}
+                                    className="text-base"
+                                />
+                            </button>
+                        </Tooltip>
+                    </div>
                 </aside>
 
                 {/* Main Content Area - Add left margin for fixed sidebar */}
-                <main className="flex-1 lg:ml-64 overflow-x-hidden">
+                <main className={`flex-1 overflow-x-hidden transition-all duration-300 ${isDesktopSidebarCollapsed ? "lg:ml-20" : "lg:ml-64"}`}>
                     <div className="p-4 lg:p-6">
                         {/* Error State - Course Not Found */}
                         {!isLoading && !course && (
@@ -1498,6 +1983,17 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                             canCreateAttendanceSessions={isAdminAccess || currentCoursePermissions.create_attendance_sessions}
                                             canUpdateAttendanceSessions={isAdminAccess || currentCoursePermissions.update_attendance_sessions}
                                             canDeleteAttendanceSessions={isAdminAccess || currentCoursePermissions.delete_attendance_sessions}
+                                        />
+                                    )}
+
+                                    {activeTab === "attendance-overview" && canAccessAttendance && (
+                                        <AttendanceOverviewTab
+                                            courseId={String(course.id)}
+                                            sections={course.sections ?? []}
+                                            sessions={attendanceSessions}
+                                            isLoading={isOverviewLoading}
+                                            isCourseActive={course.is_active}
+                                            onNavigateToAttendance={() => navigateToTab("attendance")}
                                         />
                                     )}
 
@@ -1727,18 +2223,19 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                         if (existingTAIds.includes(ta.id)) return false;
 
                                         const searchLower = modals.taModal.searchQuery.toLowerCase();
-                                        const matchesSearch = !modals.taModal.searchQuery ||
+                                        const matchesSearch =
+                                            !modals.taModal.searchQuery ||
                                             ta.full_name.toLowerCase().includes(searchLower) ||
-                                            (ta.email && ta.email.toLowerCase().includes(searchLower)) ||
-                                            (ta.username && ta.username.toLowerCase().includes(searchLower));
+                                            (ta.email?.toLowerCase().includes(searchLower) ?? false) ||
+                                            (ta.username?.toLowerCase().includes(searchLower) ?? false);
+
                                         return matchesSearch;
                                     });
 
                                     if (filteredTAs.length === 0) {
                                         return (
-                                            <div className="p-8 text-center text-default-500">
-                                                <Icon icon="solar:user-cross-linear" className="text-4xl mb-2" />
-                                                <p>{modals.taModal.searchQuery ? "ไม่พบผู้ช่วยสอนที่ค้นหา" : "ผู้ช่วยสอนทั้งหมดอยู่ในวิชานี้แล้ว"}</p>
+                                            <div className="flex h-48 items-center justify-center text-sm text-default-500">
+                                                ไม่พบผู้ช่วยสอน
                                             </div>
                                         );
                                     }
@@ -1750,13 +2247,13 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                             <div
                                                 key={ta.id}
                                                 onClick={() => toggleTASelection(ta.id)}
-                                                className={`flex items-center gap-3 border-b border-divider p-3 transition-all last:border-0 ${isSelected
+                                                className={`flex items-center gap-3 p-3 transition-colors ${isSelected
                                                     ? "cursor-pointer bg-primary/10"
                                                     : "cursor-pointer hover:bg-content2"
                                                     }`}
                                             >
                                                 {/* Checkbox */}
-                                                <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 `}>
+                                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded">
                                                     {isSelected && (
                                                         <Icon icon="solar:check-circle-bold" className="text-lg text-blue-500" />
                                                     )}
@@ -1768,7 +2265,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                                     size="sm"
                                                     className="shrink-0 bg-linear-to-br from-blue-400 to-indigo-500"
                                                 />
-                                                <div className="flex-1 min-w-0">
+                                                <div className="min-w-0 flex-1">
                                                     <p className="truncate font-medium text-foreground">
                                                         {ta.full_name}
                                                     </p>

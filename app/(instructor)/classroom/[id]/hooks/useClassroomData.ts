@@ -478,6 +478,7 @@ export function useClassroomData(courseId: string) {
             case "assignments":
                 await fetchAssignments(force, !force);
                 break;
+            case "attendance-overview":
             case "attendance":
                 await fetchAttendanceSessions(force);
                 break;
@@ -521,6 +522,7 @@ export function useClassroomData(courseId: string) {
             case "approval":
                 tabRequests.push(fetchAssignments());
                 break;
+            case "attendance-overview":
             case "attendance":
                 tabRequests.push(fetchAttendanceSessions());
                 break;
