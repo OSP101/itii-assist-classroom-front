@@ -12,7 +12,7 @@ import { Autocomplete, AutocompleteItem } from "@heroui/autocomplete";
 import { Avatar } from "@heroui/avatar";
 import { Icon } from "@iconify/react";
 import { addToast } from "@heroui/toast";
-import bonusScoreService, { StudentWithBonus, StudentBonusData } from "@/services/bonusScore.service";
+import bonusScoreService, { BonusScoreRecord, StudentWithBonus, StudentBonusData } from "@/services/bonusScore.service";
 
 interface BonusScoreModalProps {
     isOpen: boolean;
@@ -44,6 +44,48 @@ const BONUS_SEARCH_LISTBOX_PROPS = {
     },
 };
 
+function bonusDateKey(value: string) {
+    const date = new Date(value);
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, "0");
+    const day = `${date.getDate()}`.padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+function groupBonusRecordsByDay(records: BonusScoreRecord[]) {
+    const grouped = new Map<string, { label: string; total: number; records: BonusScoreRecord[] }>();
+
+    records.forEach((record) => {
+        const key = bonusDateKey(record.given_at);
+        const existing = grouped.get(key);
+        if (existing) {
+            existing.total += record.score;
+            existing.records.push(record);
+            return;
+        }
+
+        grouped.set(key, {
+            label: new Date(record.given_at).toLocaleDateString("th-TH", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+            }),
+            total: record.score,
+            records: [record],
+        });
+    });
+
+    return Array.from(grouped.entries())
+        .sort(([a], [b]) => b.localeCompare(a))
+        .map(([key, value]) => ({
+            key,
+            label: value.label,
+            total: value.total,
+            records: value.records.sort((a, b) => new Date(b.given_at).getTime() - new Date(a.given_at).getTime()),
+        }));
+}
+
 export default function BonusScoreModal({ isOpen, onClose, courseId, isCourseActive = true }: BonusScoreModalProps) {
     const [activeTab, setActiveTab] = useState<"give" | "history">("give");
     const [searchQuery, setSearchQuery] = useState("");
@@ -52,6 +94,7 @@ export default function BonusScoreModal({ isOpen, onClose, courseId, isCourseAct
     const [isLoading, setIsLoading] = useState(false);
     const [givingTo, setGivingTo] = useState<number | null>(null);
     const [recentBonuses, setRecentBonuses] = useState<{ student: StudentWithBonus; totalBonus: number }[]>([]);
+    const [expandedHistoryGroups, setExpandedHistoryGroups] = useState<Record<string, boolean>>({});
 
     // Load all students and history when modal opens (like ScoreModal)
     useEffect(() => {
@@ -100,6 +143,7 @@ export default function BonusScoreModal({ isOpen, onClose, courseId, isCourseAct
         setActiveTab("give");
         setSearchQuery("");
         setRecentBonuses([]);
+        setExpandedHistoryGroups({});
     };
 
     // Client-side filter students (like ScoreModal)
@@ -111,6 +155,32 @@ export default function BonusScoreModal({ isOpen, onClose, courseId, isCourseAct
                 s.full_name.toLowerCase().includes(query)
         ).slice(0, 10);
     }, [students, searchQuery]);
+
+    const historyCards = useMemo(() => {
+        return bonusHistory
+            .map((entry) => ({
+                ...entry,
+                groups: groupBonusRecordsByDay(entry.records),
+            }))
+            .sort((a, b) => {
+                const aLatest = a.records[0] ? new Date(a.records[0].given_at).getTime() : 0;
+                const bLatest = b.records[0] ? new Date(b.records[0].given_at).getTime() : 0;
+                return bLatest - aLatest;
+            });
+    }, [bonusHistory]);
+
+    const latestBonusRecordByStudent = useMemo(() => {
+        const map = new Map<number, BonusScoreRecord>();
+        bonusHistory.forEach((entry) => {
+            const latestRecord = [...entry.records].sort(
+                (a, b) => new Date(b.given_at).getTime() - new Date(a.given_at).getTime()
+            )[0];
+            if (latestRecord) {
+                map.set(entry.student.id, latestRecord);
+            }
+        });
+        return map;
+    }, [bonusHistory]);
 
     // Handle autocomplete selection - give bonus immediately
     const handleSelectStudent = async (key: React.Key | null) => {
@@ -395,6 +465,20 @@ export default function BonusScoreModal({ isOpen, onClose, courseId, isCourseAct
                                                                     >
                                                                         {item.totalBonus}
                                                                     </Chip>
+                                                                    {latestBonusRecordByStudent.get(item.student.id) && (
+                                                                        <Tooltip content="ยกเลิกล่าสุด" color="danger">
+                                                                            <Button
+                                                                                isIconOnly
+                                                                                size="sm"
+                                                                                variant="flat"
+                                                                                color="danger"
+                                                                                isDisabled={!isCourseActive}
+                                                                                onPress={() => handleDeleteBonus(latestBonusRecordByStudent.get(item.student.id)!.id)}
+                                                                            >
+                                                                                <Icon icon="solar:undo-left-linear" className="text-base" />
+                                                                            </Button>
+                                                                        </Tooltip>
+                                                                    )}
                                                                 </div>
                                                                 {/* Quick add more button */}
                                                                 <Tooltip content="ให้อีก +1">
@@ -440,18 +524,18 @@ export default function BonusScoreModal({ isOpen, onClose, courseId, isCourseAct
                                     <div className="flex items-center gap-2">
                                         <Icon icon="solar:history-bold" className="text-lg" />
                                         <span>ประวัติ</span>
-                                        {bonusHistory.length > 0 && (
+                                        {historyCards.length > 0 && (
                                             <Chip size="sm" variant="flat" className="bg-amber-100 text-amber-700 h-5 min-w-5 px-1">
-                                                {bonusHistory.length}
+                                                {historyCards.length}
                                             </Chip>
                                         )}
                                     </div>
                                 }
                             >
                                 <div className="space-y-4 mt-4">
-                                    {bonusHistory.length > 0 ? (
+                                    {historyCards.length > 0 ? (
                                         <div className="max-h-100 space-y-3 overflow-y-auto pr-2">
-                                            {bonusHistory.map((data) => (
+                                            {historyCards.map((data) => (
                                                 <Card
                                                     key={data.student.id}
                                                     className="border border-default-200 bg-content1 shadow-sm"
@@ -484,48 +568,76 @@ export default function BonusScoreModal({ isOpen, onClose, courseId, isCourseAct
                                                             </Chip>
                                                         </div>
 
-                                                        {/* Records */}
-                                                        <div className="space-y-1.5 pl-13">
-                                                            {data.records.slice(0, 5).map((record) => (
-                                                                <div
-                                                                    key={record.id}
-                                                                    className="flex items-center justify-between rounded-lg bg-content2 px-3 py-2 text-sm"
-                                                                >
-                                                                    <div className="flex items-center gap-2">
-                                                                        <Chip size="sm" color="success" variant="flat">
-                                                                            +{record.score}
-                                                                        </Chip>
-                                                                        <span className="text-default-600">{record.reason}</span>
+                                                        <div className="space-y-3 pl-13">
+                                                            {data.groups.map((group) => {
+                                                                const groupKey = `${data.student.id}-${group.key}`;
+                                                                const isExpanded = expandedHistoryGroups[groupKey] ?? false;
+                                                                const previewRecords = isExpanded ? group.records : group.records.slice(0, 1);
+
+                                                                return (
+                                                                    <div key={groupKey} className="rounded-xl border border-default-200 bg-content2 p-3">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setExpandedHistoryGroups((prev) => ({ ...prev, [groupKey]: !prev[groupKey] }))}
+                                                                            className="flex w-full items-center gap-3 text-left"
+                                                                        >
+                                                                            <div className="min-w-0 flex-1">
+                                                                                <p className="text-sm font-semibold text-foreground">{group.label}</p>
+                                                                                <p className="text-xs text-default-500">
+                                                                                    {group.records.length} รายการ · รวม +{group.total}
+                                                                                </p>
+                                                                            </div>
+                                                                            <Icon
+                                                                                icon={isExpanded ? "solar:alt-arrow-up-linear" : "solar:alt-arrow-down-linear"}
+                                                                                className="text-lg text-default-400"
+                                                                            />
+                                                                        </button>
+
+                                                                        <div className="mt-3 space-y-2">
+                                                                            {previewRecords.map((record) => (
+                                                                                <div
+                                                                                    key={record.id}
+                                                                                    className="flex items-center justify-between rounded-lg bg-content1 px-3 py-2 text-sm"
+                                                                                >
+                                                                                    <div className="flex min-w-0 items-center gap-2">
+                                                                                        <Chip size="sm" color="success" variant="flat">
+                                                                                            +{record.score}
+                                                                                        </Chip>
+                                                                                        <div className="min-w-0">
+                                                                                            <p className="truncate text-default-700">{record.reason}</p>
+                                                                                            <p className="text-xs text-default-400">
+                                                                                                โดย {record.giver.full_name} · {new Date(record.given_at).toLocaleString("th-TH", {
+                                                                                                    day: "numeric",
+                                                                                                    month: "short",
+                                                                                                    hour: "2-digit",
+                                                                                                    minute: "2-digit",
+                                                                                                })}
+                                                                                            </p>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <Tooltip content="ลบคะแนนนี้" color="danger">
+                                                                                        <Button
+                                                                                            isIconOnly
+                                                                                            size="sm"
+                                                                                            variant="light"
+                                                                                            color="danger"
+                                                                                            isDisabled={!isCourseActive}
+                                                                                            onPress={() => handleDeleteBonus(record.id)}
+                                                                                        >
+                                                                                            <Icon icon="solar:trash-bin-trash-linear" className="text-sm" />
+                                                                                        </Button>
+                                                                                    </Tooltip>
+                                                                                </div>
+                                                                            ))}
+                                                                            {!isExpanded && group.records.length > 1 && (
+                                                                                <p className="pt-1 text-center text-xs text-default-400">
+                                                                                    และอีก {group.records.length - 1} รายการ
+                                                                                </p>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-xs text-default-400">
-                                                                            {new Date(record.given_at).toLocaleString("th-TH", {
-                                                                                day: "numeric",
-                                                                                month: "short",
-                                                                                hour: "2-digit",
-                                                                                minute: "2-digit",
-                                                                            })}
-                                                                        </span>
-                                                                        <Tooltip content="ลบคะแนนนี้" color="danger">
-                                                                            <Button
-                                                                                isIconOnly
-                                                                                size="sm"
-                                                                                variant="light"
-                                                                                color="danger"
-                                                                                isDisabled={!isCourseActive}
-                                                                                onPress={() => handleDeleteBonus(record.id)}
-                                                                            >
-                                                                                <Icon icon="solar:trash-bin-trash-linear" className="text-sm" />
-                                                                            </Button>
-                                                                        </Tooltip>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                            {data.records.length > 5 && (
-                                                                <p className="pt-1 text-center text-xs text-default-400">
-                                                                    และอีก {data.records.length - 5} รายการ
-                                                                </p>
-                                                            )}
+                                                                );
+                                                            })}
                                                         </div>
                                                     </CardBody>
                                                 </Card>

@@ -47,7 +47,7 @@ interface MiniDeskInfo {
 function getDirectionGuide(
     prev: { x: number; y: number },
     curr: { x: number; y: number }
-): { label: string; icon: string; distance: "ใกล้" | "ปานกลาง" | "ไกล" } {
+): { label: string; icon: string; distance: "????" | "???????" | "???" } {
     const dx = curr.x - prev.x;
     const dy = curr.y - prev.y; // y increases downward on canvas
     const dist = Math.sqrt(dx * dx + dy * dy);
@@ -57,17 +57,17 @@ function getDirectionGuide(
 
     let label: string;
     let icon: string;
-    if (deg >= 337.5 || deg < 22.5)       { label = "ขวา";       icon = "solar:arrow-right-bold"; }
-    else if (deg < 67.5)                  { label = "ขวา-ล่าง";  icon = "solar:arrow-right-down-bold"; }
-    else if (deg < 112.5)                 { label = "ล่าง";       icon = "solar:arrow-down-bold"; }
-    else if (deg < 157.5)                 { label = "ซ้าย-ล่าง"; icon = "solar:arrow-left-down-bold"; }
-    else if (deg < 202.5)                 { label = "ซ้าย";       icon = "solar:arrow-left-bold"; }
-    else if (deg < 247.5)                 { label = "ซ้าย-บน";   icon = "solar:arrow-left-up-bold"; }
-    else if (deg < 292.5)                 { label = "บน";         icon = "solar:arrow-up-bold"; }
-    else                                  { label = "ขวา-บน";    icon = "solar:arrow-right-up-bold"; }
+    if (deg >= 337.5 || deg < 22.5)       { label = "???";       icon = "solar:arrow-right-bold"; }
+    else if (deg < 67.5)                  { label = "???-????";  icon = "solar:arrow-right-down-bold"; }
+    else if (deg < 112.5)                 { label = "????";       icon = "solar:arrow-down-bold"; }
+    else if (deg < 157.5)                 { label = "????-????"; icon = "solar:arrow-left-down-bold"; }
+    else if (deg < 202.5)                 { label = "????";       icon = "solar:arrow-left-bold"; }
+    else if (deg < 247.5)                 { label = "????-??";   icon = "solar:arrow-left-up-bold"; }
+    else if (deg < 292.5)                 { label = "??";         icon = "solar:arrow-up-bold"; }
+    else                                  { label = "???-??";    icon = "solar:arrow-right-up-bold"; }
 
-    const distance: "ใกล้" | "ปานกลาง" | "ไกล" =
-        dist < 80 ? "ใกล้" : dist < 200 ? "ปานกลาง" : "ไกล";
+    const distance: "????" | "???????" | "???" =
+        dist < 80 ? "????" : dist < 200 ? "???????" : "???";
 
     return { label, icon, distance };
 }
@@ -229,49 +229,49 @@ function formatCutoffDateTime(value?: string | null, isEnglish = false): string 
 
 function formatDeskLabel(deskNumber: string | number | null | undefined, isEnglish = false): string {
     if (deskNumber === null || deskNumber === undefined || deskNumber === "") return "-";
-    return `${isEnglish ? "Desk" : "โต๊ะ"} ${deskNumber}`;
+    return `${isEnglish ? "Desk" : "????"} ${deskNumber}`;
 }
 
 function formatBookingTypeLabel(bookingType: QueueBooking["booking_type"], isEnglish = false): string {
     return bookingType === "grading"
-        ? (isEnglish ? "Grading" : "ตรวจงาน")
-        : (isEnglish ? "Help" : "ช่วยเหลือ");
+        ? (isEnglish ? "Grading" : "???????")
+        : (isEnglish ? "Help" : "?????????");
 }
 
 function formatDirectionLabel(label: string, isEnglish = false): string {
     if (!isEnglish) return label;
 
     switch (label) {
-        case "ขวา":
+        case "???":
             return "right";
-        case "ขวา-ล่าง":
+        case "???-????":
             return "down-right";
-        case "ล่าง":
+        case "????":
             return "down";
-        case "ซ้าย-ล่าง":
+        case "????-????":
             return "down-left";
-        case "ซ้าย":
+        case "????":
             return "left";
-        case "ซ้าย-บน":
+        case "????-??":
             return "up-left";
-        case "บน":
+        case "??":
             return "up";
-        case "ขวา-บน":
+        case "???-??":
             return "up-right";
         default:
             return label;
     }
 }
 
-function formatDistanceLabel(distance: "ใกล้" | "ปานกลาง" | "ไกล", isEnglish = false): string {
+function formatDistanceLabel(distance: "????" | "???????" | "???", isEnglish = false): string {
     if (!isEnglish) return distance;
 
     switch (distance) {
-        case "ใกล้":
+        case "????":
             return "near";
-        case "ปานกลาง":
+        case "???????":
             return "medium";
-        case "ไกล":
+        case "???":
             return "far";
         default:
             return distance;
@@ -283,7 +283,7 @@ function formatBookingStatusLabel(status: string, isEnglish = false): string {
         case "waiting":
             return getQueueBookingStatusLabel("waiting", isEnglish);
         case "assigned":
-            return isEnglish ? "Assigned" : "มอบหมายแล้ว";
+            return isEnglish ? "Assigned" : "???????????";
         case "in_progress":
             return getQueueBookingStatusLabel("in_progress", isEnglish);
         case "completed":
@@ -291,7 +291,7 @@ function formatBookingStatusLabel(status: string, isEnglish = false): string {
         case "cancelled":
             return getQueueBookingStatusLabel("cancelled", isEnglish);
         case "skipped":
-            return isEnglish ? "Skipped" : "ข้ามแล้ว";
+            return isEnglish ? "Skipped" : "????????";
         default:
             return status;
     }
@@ -362,6 +362,7 @@ export default function WorkerDashboardPage() {
         sub_item_id: number;
         score: number | null;
         graded_by?: { id: number; display_name: string };
+        graded_at?: string | null;
     }[]>([]);
     const [isLoadingScores, setIsLoadingScores] = useState(false);
 
@@ -1095,6 +1096,7 @@ export default function WorkerDashboardPage() {
                         sub_item_id: s.sub_item_id,
                         score: s.score,
                         graded_by: s.graded_by || undefined,
+                        graded_at: s.graded_at ?? null,
                     })) || [];
                     
                     setExistingSubItemScores(existingScores);
@@ -1739,7 +1741,7 @@ export default function WorkerDashboardPage() {
                                                         return (
                                                             <div 
                                                                 key={`sub-item-${index}-${item.id}`} 
-                                                                className={`flex items-center gap-3 p-3 rounded-lg border ${
+                                                                className={`flex items-start gap-3 p-3 rounded-lg border ${
                                                                     isLocked 
                                                                         ? 'bg-amber-50 border-amber-200' 
                                                                         : 'bg-content1 border-default-200'
@@ -1753,21 +1755,28 @@ export default function WorkerDashboardPage() {
                                                                     {index + 1}
                                                                 </span>
                                                                 <div className="flex-1 min-w-0">
-                                                                    <p className="truncate text-sm font-medium text-default-700">{item.name}</p>
+                                                                    <p className="text-sm font-medium text-default-700 break-words">{item.name}</p>
                                                                     {isLocked && existingScore?.graded_by && (
-                                                                        <p className="text-xs text-amber-600 mt-0.5">
-                                                                            {t("ลงโดย", "Scored by")} {existingScore.graded_by.display_name}
-                                                                        </p>
+                                                                        <div className="mt-1 space-y-0.5">
+                                                                            <p className="text-xs text-amber-700">
+                                                                                {t("?????", "Scored by")} {existingScore.graded_by.display_name}
+                                                                            </p>
+                                                                            {existingScore.graded_at && (
+                                                                                <p className="text-[11px] text-amber-600/90">
+                                                                                    {formatCutoffDateTime(existingScore.graded_at, isEnglish)}
+                                                                                </p>
+                                                                            )}
+                                                                        </div>
                                                                     )}
                                                                 </div>
-                                                                <div className="flex flex-col items-end gap-2">
+                                                                <div className="flex shrink-0 flex-col items-end gap-1 text-right">
                                                                     {isLocked ? (
                                                                         <>
-                                                                            <div className="flex items-center gap-1 px-3 py-1.5 bg-amber-100 rounded-lg">
+                                                                            <div className="flex items-center gap-1 rounded-lg bg-amber-100 px-3 py-1.5">
                                                                                 <Icon icon="solar:lock-bold" className="text-amber-600" />
                                                                                 <span className="font-bold text-amber-700">{existingScore?.score}</span>
                                                                             </div>
-                                                                            <span className="text-sm text-default-500">/ {item.max_score}</span>
+                                                                            <span className="text-xs text-default-500">/ {item.max_score}</span>
                                                                         </>
                                                                     ) : (
                                                                         <>
@@ -2033,3 +2042,4 @@ export default function WorkerDashboardPage() {
         </div>
     );
 }
+

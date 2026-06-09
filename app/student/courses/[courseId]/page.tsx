@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { useI18n } from "@/hooks/useI18n";
@@ -40,6 +40,15 @@ function fmt(value: string | null | undefined, opts?: Intl.DateTimeFormatOptions
   if (!value) return "-";
   const defaults: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" };
   return new Date(value).toLocaleString("th-TH", { ...defaults, ...opts });
+}
+
+function bonusDateKey(value: string | null | undefined) {
+  if (!value) return "unknown";
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 const ATTEND_STATUS_COLORS: Record<string, string> = {
@@ -198,6 +207,11 @@ function AssignmentCard({ a }: { a: AssignmentScore }) {
   );
 }
 
+function shouldHideGroupAssignment(a: AssignmentScore) {
+  const isGroupAssignment = a.type === "permanent_group" || a.type === "weekly_group";
+  return isGroupAssignment && !a.group_info;
+}
+
 function ExamCard({ e }: { e: ExamScoreData }) {
   const pct = e.score != null && e.max_score > 0 ? Math.round((e.score / e.max_score) * 100) : null;
   const scoreColor = pct == null ? "text-slate-400" : pct >= 60 ? "text-emerald-600" : pct >= 40 ? "text-amber-600" : "text-rose-600";
@@ -264,6 +278,7 @@ export default function StudentCourseDetailPage() {
   const [notifs, setNotifs] = useState<UserNotificationItem[]>([]);
   const [examSeats, setExamSeats] = useState<MyExamSeat[]>([]);
   const [isExamSeatsLoading, setIsExamSeatsLoading] = useState(false);
+  const [expandedBonusDays, setExpandedBonusDays] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let active = true;
@@ -317,6 +332,40 @@ export default function StudentCourseDetailPage() {
     void loadSeats();
     return () => { active = false; };
   }, [activeTab, params.courseId]);
+
+  useEffect(() => {
+    setExpandedBonusDays({});
+  }, [params.courseId]);
+
+  const bonusRecords = data?.course.bonusScore?.records ?? [];
+  const bonusGroups = useMemo(() => {
+    const grouped = new Map<string, { label: string; total: number; records: typeof bonusRecords }>();
+
+    bonusRecords.forEach((record) => {
+      const key = bonusDateKey(record.given_at);
+      const existing = grouped.get(key);
+      if (existing) {
+        existing.total += record.score;
+        existing.records.push(record);
+        return;
+      }
+
+      grouped.set(key, {
+        label: fmt(record.given_at, { day: "numeric", month: "long", year: "numeric" }),
+        total: record.score,
+        records: [record],
+      });
+    });
+
+    return Array.from(grouped.entries())
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([key, value]) => ({
+        key,
+        label: value.label,
+        total: value.total,
+        records: value.records.sort((a, b) => new Date(b.given_at).getTime() - new Date(a.given_at).getTime()),
+      }));
+  }, [bonusRecords]);
 
   // ── loading ──
   if (isLoading) {
@@ -373,8 +422,12 @@ export default function StudentCourseDetailPage() {
   };
 
   // group assignments by type
+  const visibleAssignments = course.assignments.filter((a) => !shouldHideGroupAssignment(a));
+  const visibleTotalScore = visibleAssignments.reduce((sum, a) => sum + (a.score ?? 0), 0);
+  const visibleTotalMaxScore = visibleAssignments.reduce((sum, a) => sum + a.max_score, 0);
+
   const assignByType: Record<string, AssignmentScore[]> = {};
-  for (const a of course.assignments) {
+  for (const a of visibleAssignments) {
     const g = a.type === "assignment" ? "assignment" : (a.type === "permanent_group" || a.type === "weekly_group") ? "group" : "individual";
     if (!assignByType[g]) assignByType[g] = [];
     assignByType[g].push(a);
@@ -559,13 +612,13 @@ export default function StudentCourseDetailPage() {
             <div className="flex items-center justify-between">
               <p className="text-xs font-bold uppercase tracking-wide text-sky-700">คะแนนรวม (งาน)</p>
               <span className="text-xl font-bold text-sky-700 tabular-nums">
-                {course.totalScore.toFixed(1)} <span className="text-sm font-medium text-sky-400">/ {course.totalMaxScore.toFixed(1)}</span>
+                {visibleTotalScore.toFixed(1)} <span className="text-sm font-medium text-sky-400">/ {visibleTotalMaxScore.toFixed(1)}</span>
               </span>
             </div>
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-sky-100">
               <div
                 className="h-full rounded-full bg-linear-to-r from-sky-500 to-cyan-400 transition-all"
-                style={{ width: `${course.totalMaxScore > 0 ? Math.round((course.totalScore / course.totalMaxScore) * 100) : 0}%` }}
+                style={{ width: `${visibleTotalMaxScore > 0 ? Math.round((visibleTotalScore / visibleTotalMaxScore) * 100) : 0}%` }}
               />
             </div>
           </div>
@@ -593,22 +646,54 @@ export default function StudentCourseDetailPage() {
           {/* Bonus scores */}
           {course.bonusScore && course.bonusScore.total > 0 && (
             <div className="rounded-4xl border border-amber-100 bg-white/90 p-5 shadow-sm">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="mb-3 flex items-center gap-2">
                 <Icon icon="solar:gift-bold-duotone" className="text-amber-500 text-base" />
                 <p className="text-xs font-bold uppercase tracking-wide text-slate-500">โบนัสพิเศษ</p>
                 <span className="ml-auto text-sm font-bold text-amber-700">+{course.bonusScore.total}</span>
               </div>
               <div className="space-y-2">
-                {course.bonusScore.records.map((b, i) => (
-                  <div key={i} className="flex items-start gap-3 rounded-3xl bg-amber-50 border border-amber-100 p-3">
-                    <Icon icon="solar:star-bold" className="text-amber-400 text-sm shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-amber-800">{b.reason}</p>
-                      {b.given_by && <p className="text-[10px] text-amber-600 mt-0.5">โดย {b.given_by} · {fmt(b.given_at)}</p>}
+                {bonusGroups.map((group) => {
+                  const isExpanded = expandedBonusDays[group.key] ?? false;
+                  const previewRecords = isExpanded ? group.records : group.records.slice(0, 1);
+
+                  return (
+                    <div key={group.key} className="rounded-3xl border border-amber-100 bg-amber-50/70 p-3">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedBonusDays((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
+                        className="flex w-full items-center gap-3 text-left"
+                      >
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white/70 text-amber-500">
+                          <Icon icon="solar:star-bold" className="text-sm" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-amber-800">{group.label}</p>
+                          <p className="text-[10px] text-amber-600">{group.records.length} รายการในวัน +{group.total}</p>
+                        </div>
+                        <Icon
+                          icon={isExpanded ? "solar:alt-arrow-up-linear" : "solar:alt-arrow-down-linear"}
+                          className="shrink-0 text-base text-amber-500"
+                        />
+                      </button>
+
+                      <div className="mt-3 space-y-2">
+                        {previewRecords.map((b, i) => (
+                          <div key={`${group.key}-${i}`} className="flex items-start gap-3 rounded-2xl bg-white/80 p-3">
+                            <Icon icon="solar:star-bold" className="mt-0.5 shrink-0 text-sm text-amber-400" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-semibold text-amber-800">{b.reason}</p>
+                              {b.given_by && <p className="mt-0.5 text-[10px] text-amber-600">โดย {b.given_by} · {fmt(b.given_at)}</p>}
+                            </div>
+                            <span className="shrink-0 text-xs font-bold text-amber-700 tabular-nums">+{b.score}</span>
+                          </div>
+                        ))}
+                        {!isExpanded && group.records.length > 1 && (
+                          <p className="px-1 text-[10px] font-medium text-amber-600">และอีก {group.records.length - 1} รายการ</p>
+                        )}
+                      </div>
                     </div>
-                    <span className="text-xs font-bold text-amber-700 tabular-nums shrink-0">+{b.score}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

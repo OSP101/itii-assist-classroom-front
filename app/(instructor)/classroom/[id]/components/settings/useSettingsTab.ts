@@ -404,8 +404,7 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
                         if (scoreObj?.comment) noteLines.push(`หมายเหตุ: ${scoreObj.comment}`);
 
                         const hasNote = noteLines.filter(l => l.length > 0).length > 0;
-                        // Display value: append asterisk if there are edit requests or comments
-                        cell.value = hasNote && val !== null ? `${val} *` : val;
+                        cell.value = val;
                         if (hasNote) {
                             cell.note = noteLines.join("\n").trim();
                         }
@@ -668,7 +667,7 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
                         if (scoreObj?.comment) noteLines.push(`หมายเหตุ: ${scoreObj.comment}`);
 
                         const hasNote = noteLines.filter(l => l.length > 0).length > 0;
-                        cell.value = hasNote && val !== null ? `${val} *` : val;
+                        cell.value = val;
                         if (hasNote) cell.note = noteLines.join("\n").trim();
 
                         wci++;
