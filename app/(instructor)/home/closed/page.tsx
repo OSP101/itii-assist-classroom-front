@@ -425,11 +425,11 @@ export default function ClosedCoursesPage() {
 
 
             {/* Filters */}
-            <Card className="border border-default-200 shadow-sm">
+            <Card className="w-full border border-default-200 shadow-sm">
                 <CardBody className="p-4">
                     <div className="flex flex-col md:flex-row gap-4">
                         {/* Search */}
-                        <div className="flex flex-row gap-2 sm:gap-3">
+                        <div className="flex flex-row gap-2 sm:gap-3 w-full">
                             <Input
                                 aria-label={t("searchCourses")}
                                 placeholder={`${t("searchCourses")}...`}

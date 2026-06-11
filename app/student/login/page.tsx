@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import Image from "next/image";
 import { Button } from "@heroui/button";
 import { addToast } from "@heroui/toast";
+import { Icon } from "@iconify/react";
 import { IoSchool } from "react-icons/io5";
 import type { TurnstileInstance } from "@marsidev/react-turnstile";
 import { authService } from "@/services";
@@ -23,7 +23,7 @@ const Turnstile = dynamic(
 function AppMark({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`flex h-10 w-10 items-center justify-center rounded-2xl bg-linear-to-br from-sky-500 to-blue-600 text-2xl text-white shadow-sm shadow-sky-200 ${className}`}
+      className={`flex h-8 w-8 items-center justify-center rounded bg-linear-to-br from-blue-400 to-indigo-500 text-xl text-white shadow-sm shadow-blue-200 ${className}`}
       aria-hidden="true"
     >
       <IoSchool />
@@ -47,11 +47,11 @@ export default function StudentLoginPage() {
   const searchParams = useSearchParams();
   const t = useI18n();
   const nextPath = normalizeAppReturnPath(searchParams.get("next")) || "/student";
-  const bypassTurnstile = process.env.NODE_ENV !== "production";
   const refTurnstile = useRef<TurnstileInstance>(null);
   const [turnstileKey, setTurnstileKey] = useState<string | null>(null);
   const [canSubmit, setCanSubmit] = useState(false);
   const [turnstileReady, setTurnstileReady] = useState(false);
+  const [widgetInstanceKey, setWidgetInstanceKey] = useState(0);
 
   useEffect(() => {
     const error = searchParams.get("error");
@@ -89,28 +89,29 @@ export default function StudentLoginPage() {
   }, [nextPath, router]);
 
   useEffect(() => {
-    if (bypassTurnstile) {
-      setTurnstileReady(true);
-      setCanSubmit(true);
-      return;
-    }
+    const key = process.env.NEXT_PUBLIC_CLOUD ?? null;
 
-    const key = process.env.NEXT_PUBLIC_CLOUD;
-    if (key) {
-      setTurnstileKey(key);
-      setCanSubmit(false);
-      return;
-    }
+    setCanSubmit(false);
+    setTurnstileReady(false);
+    setTurnstileKey(key);
+    setWidgetInstanceKey((current) => current + 1);
 
-    setTurnstileReady(true);
-    setCanSubmit(true);
-  }, [bypassTurnstile]);
+    if (!key) {
+      addToast({
+        title: "Turnstile ยังไม่พร้อมใช้งาน",
+        description: "ยังไม่ได้ตั้งค่า site key สำหรับการยืนยันตัวตน",
+        color: "warning",
+        timeout: 4000,
+        shouldShowTimeoutProgress: true,
+      });
+    }
+  }, []);
 
   const handleGoogleLogin = () => {
-    if (!bypassTurnstile && !canSubmit) {
+    if (!canSubmit) {
       addToast({
         title: "ยืนยันตัวตนก่อนเข้าสู่ระบบ",
-        description: "กรุณายืนยันว่าคุณไม่ใช่หุ่นยนต์",
+        description: "กรุณายืนยันว่าคุณไม่ใช่บอท",
         color: "warning",
         timeout: 3000,
         shouldShowTimeoutProgress: true,
@@ -123,106 +124,93 @@ export default function StudentLoginPage() {
   };
 
   return (
-    <div data-auth-shell="true" className="flex min-h-dvh flex-col bg-linear-to-b from-slate-50 via-white to-sky-50 text-foreground">
-      <header className="flex h-20 items-center px-6 sm:px-10">
+    <div data-auth-shell="true" className="flex min-h-dvh flex-col bg-background text-foreground">
+      <header className="flex h-20 items-center justify-between bg-transparent px-6 max-sm:bg-transparent dark:max-sm:bg-slate-950 sm:px-10">
         <Link href="/" aria-label={t("itiiAssistClassroomHome")} className="inline-flex items-center">
           <AppMark />
         </Link>
+        <Link
+          href="/login"
+          className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white/90 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-blue-300 hover:bg-blue-50 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:text-slate-100 dark:max-sm:hover:border-sky-400/45 dark:max-sm:hover:bg-sky-400/10 dark:sm:text-slate-700"
+        >
+          <span>เข้าสู่ระบบผู้สอน</span>
+          <Icon icon="solar:arrow-right-linear" className="text-base" />
+        </Link>
       </header>
 
-      <main className="flex w-full flex-1 flex-col items-center justify-start px-4 pb-6 pt-2 sm:min-h-[calc(100vh-128px)] sm:justify-center sm:px-6 sm:pb-16 sm:pt-8">
-        <section className="w-full max-w-5xl overflow-hidden rounded-4xl border border-slate-200/80 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.10)] shadow-slate-200/70">
-          <div className="grid md:grid-cols-[1.02fr_0.98fr]">
-            <div className="relative overflow-hidden bg-slate-100">
-              <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 pb-0 pt-5 sm:px-6 md:px-8">
-                {/* <div className="rounded-full border border-white/70 bg-white/88 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-sky-700 backdrop-blur uppercase">
-                  นักศึกษา
-                </div> */}
-              </div>
+      <main className="flex w-full flex-1 flex-col items-center justify-start bg-transparent px-5 pb-6 pt-4 max-sm:bg-transparent dark:max-sm:bg-slate-950 sm:min-h-[calc(100vh-128px)] sm:justify-center sm:px-6 sm:pb-16 sm:pt-10">
+        <section className="w-full max-w-112.5 bg-transparent px-2 py-4 max-sm:border-0 max-sm:shadow-none dark:max-sm:bg-transparent sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white sm:px-12 sm:py-12 sm:shadow-sm sm:shadow-slate-200/60 dark:sm:shadow-zinc-950/50">
+          <div className="mb-7">
+            <h1 className="text-[25px] font-semibold leading-tight tracking-[-0.01em] text-slate-800 dark:max-sm:text-white">
+              เข้าสู่ระบบนักศึกษา
+            </h1>
+            <p className="mt-2 text-sm text-slate-500 dark:max-sm:text-slate-300">
+              ใช้บัญชี KKUMail ของนักศึกษาเพื่อเข้าสู่ระบบ ITII Assist Classroom
+            </p>
+          </div>
 
-              <Image
-                src="/images/cp-image-login.jpg"
-                alt="ภาพเข้าสู่ระบบนักศึกษา"
-                width={1200}
-                height={900}
-                priority
-                className="h-72 w-full object-cover sm:h-84 md:h-full md:min-h-135"
-              />
+          <div className="space-y-4">
+            <Button
+              type="button"
+              variant="bordered"
+              radius="sm"
+              className="h-10.5 w-full border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:text-white dark:max-sm:data-[hover=true]:border-sky-400/45 dark:max-sm:data-[hover=true]:bg-sky-400/10 disabled:cursor-not-allowed disabled:opacity-55"
+              onPress={handleGoogleLogin}
+              startContent={<SocialIconGoogle />}
+              isDisabled={!canSubmit}
+            >
+              เข้าสู่ระบบด้วย Google
+            </Button>
 
-              <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-slate-950/45 via-slate-950/8 to-transparent" />
-
-              <div className="absolute inset-x-0 bottom-0 z-10 p-5 text-white sm:p-6 md:p-8">
-                <p className="text-[13px] font-medium tracking-[0.14em] text-white/80 uppercase">ITII Assist Classroom</p>
-                <h2 className="mt-2 max-w-sm text-2xl font-semibold leading-tight sm:text-[28px]">
-                  เข้าสู่ระบบนักศึกษา
-                </h2>
-              </div>
-            </div>
-
-            <div className="flex items-center bg-white px-5 py-6 sm:px-8 sm:py-8 md:px-10 md:py-10">
-              <div className="w-full">
-                <div className="mb-7 border-b border-slate-100 pb-5">
-                  <h1 className="mt-3 text-[28px] font-semibold leading-tight tracking-[-0.02em] text-slate-900 sm:text-[32px]">
-                    ยินดีต้อนรับสู่ ITII Assist Classroom
-                  </h1>
-                  {/* <p className="mt-2 text-sm text-slate-500">
-                    ITII Assist Classroom
-                  </p> */}
-                </div>
-
-                <div className="mb-4">
-                  <p className="mb-2 text-[14px] font-medium text-slate-600">ยืนยันว่าคุณไม่ใช่หุ่นยนต์</p>
-                  <div className="w-full" suppressHydrationWarning>
-                    {turnstileKey ? (
-                      <Turnstile
-                        id="student-turnstile"
-                        ref={refTurnstile}
-                        siteKey={turnstileKey}
-                        onSuccess={() => {
-                          setCanSubmit(true);
-                          setTurnstileReady(true);
-                        }}
-                        onError={() => {
-                          setCanSubmit(false);
-                          setTurnstileReady(true);
-                        }}
-                        onExpire={() => {
-                          setCanSubmit(false);
-                        }}
-                        onWidgetLoad={() => {
-                          setTurnstileReady(true);
-                        }}
-                        options={{
-                          theme: "auto",
-                          size: "flexible",
-                        }}
-                      />
-                    ) : !turnstileReady ? (
-                      <div className="flex h-16.25 w-full items-center justify-between border border-blue-100 bg-blue-50/40 px-3">
-                        <div className="flex items-center gap-3">
-                          <span className="h-6 w-6 rounded-sm border-2 border-blue-300 bg-white" />
-                          <span className="text-[14px] text-slate-700">ยืนยันว่าคุณไม่ใช่หุ่นยนต์</span>
-                        </div>
-                        <AppMark className="scale-75" />
-                      </div>
-                    ) : null}
+            <div className="pt-1">
+              <p className="mb-2 text-[14px] font-medium text-slate-600 dark:max-sm:text-slate-200 dark:sm:text-slate-700">
+                ยืนยันว่าคุณไม่ใช่บอท
+              </p>
+              <div className="w-full" suppressHydrationWarning>
+                {turnstileKey ? (
+                  <Turnstile
+                    key={widgetInstanceKey}
+                    id="student-turnstile"
+                    ref={refTurnstile}
+                    siteKey={turnstileKey}
+                    onSuccess={() => {
+                      setCanSubmit(true);
+                      setTurnstileReady(true);
+                    }}
+                    onError={() => {
+                      setCanSubmit(false);
+                      setTurnstileReady(true);
+                      refTurnstile.current?.reset();
+                    }}
+                    onExpire={() => {
+                      setCanSubmit(false);
+                      refTurnstile.current?.reset();
+                    }}
+                    onWidgetLoad={() => {
+                      setCanSubmit(false);
+                      setTurnstileReady(true);
+                    }}
+                    options={{
+                      theme: "auto",
+                      size: "flexible",
+                      retry: "never",
+                      refreshExpired: "manual",
+                      refreshTimeout: "manual",
+                    }}
+                  />
+                ) : !turnstileReady ? (
+                  <div className="flex h-16.25 w-full items-center justify-between border border-blue-100 bg-blue-50/40 px-3 dark:max-sm:border-white/12 dark:max-sm:bg-white/8">
+                    <div className="flex items-center gap-3">
+                      <span className="h-6 w-6 rounded-sm border-2 border-blue-300 bg-white dark:max-sm:border-sky-300/50 dark:max-sm:bg-slate-950" />
+                      <span className="text-[14px] text-slate-700 dark:max-sm:text-slate-100">กำลังเตรียมการยืนยันตัวตน</span>
+                    </div>
+                    <AppMark className="scale-75" />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-3">
-                  <Button
-                    type="button"
-                    variant="bordered"
-                    radius="sm"
-                    className="h-11 border-blue-200 bg-white text-[15px] font-medium text-slate-700 shadow-sm shadow-slate-100 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-55"
-                    onPress={handleGoogleLogin}
-                    startContent={<SocialIconGoogle />}
-                    isDisabled={!bypassTurnstile && !canSubmit}
-                  >
-                    เข้าสู่ระบบด้วย Google
-                  </Button>
-                </div>
-
+                ) : (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:max-sm:border-amber-400/30 dark:max-sm:bg-amber-500/10 dark:max-sm:text-amber-100">
+                    ไม่พบการตั้งค่า Turnstile site key จึงยังไม่สามารถเปิดปุ่มเข้าสู่ระบบได้
+                  </div>
+                )}
               </div>
             </div>
           </div>

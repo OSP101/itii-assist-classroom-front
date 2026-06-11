@@ -218,6 +218,68 @@ export function useClassroomActions({
         }
     }, [courseId, setCourse, emitUpdate]);
 
+    const createTAAccount = useCallback(async (payload: {
+        username: string;
+        full_name: string;
+        email?: string;
+        avatar?: string;
+    }) => {
+        if (!payload.username.trim() || !payload.full_name.trim()) {
+            addToast({
+                title: "à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹„à¸¡à¹ˆà¸„à¸£à¸š",
+                description: "à¸à¸£à¸¸à¸“à¸²à¸à¸£à¸­à¸à¸Šà¸·à¹ˆà¸­à¸œà¸¹à¹‰à¹ƒà¸Šà¹‰à¹à¸¥à¸°à¸Šà¸·à¹ˆà¸­à¸ªà¸à¸¸à¸¥",
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return null;
+        }
+
+        try {
+            const response = await courseService.createTAAccount(courseId, {
+                username: payload.username.trim(),
+                full_name: payload.full_name.trim(),
+                email: payload.email?.trim() || undefined,
+                avatar: payload.avatar || undefined,
+            });
+
+            if (response.success && response.data) {
+                await Promise.all([
+                    fetchCourse(true),
+                    fetchOverview(true),
+                ]);
+                emitUpdate("user", "create", response.data.user.id);
+                addToast({
+                    title: "à¸ªà¸³à¹€à¸£à¹‡à¸ˆ",
+                    description: "à¸ªà¸£à¹‰à¸²à¸‡à¸šà¸±à¸à¸Šà¸µ TA à¹à¸¥à¸°à¹€à¸žà¸´à¹ˆà¸¡à¹€à¸‚à¹‰à¸²à¸£à¸²à¸¢à¸§à¸´à¸Šà¸²à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢",
+                    color: "success",
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+                });
+                return response.data;
+            }
+
+            addToast({
+                title: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”",
+                description: response.message || "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¸ªà¸£à¹‰à¸²à¸‡à¸šà¸±à¸à¸Šà¸µ TA à¹„à¸”à¹‰",
+                color: "danger",
+                timeout: 5000,
+                shouldShowTimeoutProgress: true,
+            });
+            return null;
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            addToast({
+                title: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”",
+                description: err.message || "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¸ªà¸£à¹‰à¸²à¸‡à¸šà¸±à¸à¸Šà¸µ TA à¹„à¸”à¹‰",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return null;
+        }
+    }, [courseId, fetchCourse, fetchOverview, emitUpdate]);
+
     const removeTA = useCallback(async (userId: number) => {
         try {
             const response = await courseService.removeTA(courseId, userId);
@@ -859,6 +921,7 @@ export function useClassroomActions({
 
         // TA actions
         addTAs,
+        createTAAccount,
         removeTA,
 
         // Instructor actions

@@ -57,6 +57,7 @@ export const API_ENDPOINTS = {
     REMOVE_SECTION: (courseId: string, sectionId: number) => `/courses/${courseId}/sections/${sectionId}`,
     // TAs
     ADD_TA: (courseId: string) => `/courses/${courseId}/tas`,
+    CREATE_TA_ACCOUNT: (courseId: string) => `/courses/${courseId}/tas/create-account`,
     REMOVE_TA: (courseId: string, userId: number) => `/courses/${courseId}/tas/${userId}`,
     // Students
     SECTION_STUDENTS: (courseId: string, sectionId: number) => `/courses/${courseId}/sections/${sectionId}/students`,

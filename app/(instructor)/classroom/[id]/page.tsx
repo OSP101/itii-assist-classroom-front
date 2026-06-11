@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo, useRef, type ComponentType } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef, type ChangeEvent, type ComponentType } from "react";
 import { createPortal } from "react-dom";
 import { useParams, usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -198,6 +198,20 @@ interface ClassroomDetailPageProps {
     initialTab?: ClassroomTabKey;
 }
 
+interface CreateTAAcountFormState {
+    username: string;
+    full_name: string;
+    email: string;
+    avatar: string;
+}
+
+const EMPTY_TA_ACCOUNT_FORM: CreateTAAcountFormState = {
+    username: "",
+    full_name: "",
+    email: "",
+    avatar: "",
+};
+
 export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetailPageProps) {
     const params = useParams();
     const pathname = usePathname();
@@ -297,6 +311,11 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
     const [expandedMenuGroups, setExpandedMenuGroups] = useState<ClassroomMenuGroupKey[]>([]);
     const restoredMenuStateRef = useRef<string | null>(null);
     const [expandedSections, setExpandedSections] = useState<number[]>([]);
+    const [isCreateTAAccountModalOpen, setIsCreateTAAccountModalOpen] = useState(false);
+    const [taAccountForm, setTAAccountForm] = useState<CreateTAAcountFormState>(EMPTY_TA_ACCOUNT_FORM);
+    const [taAccountAvatarPreview, setTAAccountAvatarPreview] = useState<string | null>(null);
+    const [taAccountCredentials, setTAAccountCredentials] = useState<{ username: string; password: string } | null>(null);
+    const [isTACredentialsModalOpen, setIsTACredentialsModalOpen] = useState(false);
 
     // Section UI states
     const [sectionSubTab, setSectionSubTab] = useState<"students" | "permanent" | "weekly">("students");
@@ -651,6 +670,74 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
         const success = await classroomActions.addTAs(modals.taModal.selectedIds);
         modals.setIsSubmitting(false);
         if (success) modals.taModal.reset();
+    };
+
+    const resetCreateTAAccountForm = useCallback(() => {
+        setTAAccountForm(EMPTY_TA_ACCOUNT_FORM);
+        setTAAccountAvatarPreview(null);
+        setIsCreateTAAccountModalOpen(false);
+    }, []);
+
+    const copyTAAccountCredentials = useCallback(async (text: string, label: string) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            addToast({
+                title: "คัดลอกแล้ว",
+                description: `คัดลอก${label}ไปยังคลิปบอร์ดแล้ว`,
+                color: "success",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } catch {
+            addToast({
+                title: "คัดลอกไม่สำเร็จ",
+                description: "กรุณาคัดลอกข้อมูลด้วยตนเอง",
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        }
+    }, []);
+
+    const handleTAAvatarUpload = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > 2 * 1024 * 1024) {
+            addToast({
+                title: "ไฟล์ใหญ่เกินไป",
+                description: "กรุณาเลือกไฟล์ภาพขนาดไม่เกิน 2 MB",
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const result = reader.result as string;
+            setTAAccountAvatarPreview(result);
+            setTAAccountForm((prev) => ({ ...prev, avatar: result }));
+        };
+        reader.readAsDataURL(file);
+    }, []);
+
+    const handleCreateTAAccount = async () => {
+        modals.setIsSubmitting(true);
+        const result = await classroomActions.createTAAccount({
+            username: taAccountForm.username,
+            full_name: taAccountForm.full_name,
+            email: taAccountForm.email,
+            avatar: taAccountForm.avatar,
+        });
+        modals.setIsSubmitting(false);
+
+        if (result?.credentials) {
+            setTAAccountCredentials(result.credentials);
+            setIsTACredentialsModalOpen(true);
+            resetCreateTAAccountForm();
+            modals.taModal.reset();
+        }
     };
 
     const confirmRemoveTA = async () => {
@@ -2213,6 +2300,28 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             )}
                         </div>
 
+                        <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-4">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="min-w-0">
+                                    <p className="font-medium text-blue-900">ยังไม่มีบัญชี TA ที่ต้องการใช่ไหม</p>
+                                    <p className="text-sm text-blue-700/80">สร้างบัญชีผู้ช่วยสอนใหม่จากหน้านี้ได้เลย ระบบจะสุ่มรหัสผ่านชั่วคราวให้และเพิ่มเข้ารายวิชาทันที</p>
+                                </div>
+                                <Button
+                                    color="primary"
+                                    variant="flat"
+                                    onPress={() => {
+                                        setTAAccountForm(EMPTY_TA_ACCOUNT_FORM);
+                                        setTAAccountAvatarPreview(null);
+                                        setIsCreateTAAccountModalOpen(true);
+                                    }}
+                                    className="shrink-0 bg-white text-blue-700"
+                                    startContent={<Icon icon="solar:user-plus-bold" />}
+                                >
+                                    สร้างบัญชี TA ใหม่
+                                </Button>
+                            </div>
+                        </div>
+
                         {/* TA List */}
                         <div className="mt-1 overflow-hidden rounded-xl border border-default-200">
                             <div className="h-75 overflow-y-auto">
@@ -2319,6 +2428,274 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
                         >
                             เพิ่มผู้ช่วยสอน {modals.taModal.selectedIds.length > 0 ? `(${modals.taModal.selectedIds.length} คน)` : ""}
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
+            <Modal
+                isOpen={isCreateTAAccountModalOpen}
+                onClose={resetCreateTAAccountForm}
+                size="2xl"
+                scrollBehavior="inside"
+            >
+                <ModalContent>
+                    <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                                <Icon icon="solar:user-plus-bold" className="text-2xl text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-foreground">สร้างบัญชีผู้ช่วยสอนใหม่</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">กรอกข้อมูลบัญชี TA ระบบจะสุ่มรหัสผ่านชั่วคราวและเพิ่มเข้ารายวิชานี้ให้อัตโนมัติ</p>
+                            </div>
+                        </div>
+                    </ModalHeader>
+                    <ModalBody className="px-6 py-4">
+                        <div className="space-y-5">
+                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Icon icon="solar:camera-bold" className="text-lg text-purple-500" />
+                                    <span className="text-sm font-semibold text-default-700">รูปโปรไฟล์</span>
+                                </div>
+                                <div className="flex items-center gap-6 py-3">
+                                    <div className="relative">
+                                        <Avatar
+                                            size="lg"
+                                            src={taAccountAvatarPreview || undefined}
+                                            name={taAccountForm.full_name || "TA"}
+                                            className="w-24 h-24 text-2xl bg-linear-to-br from-blue-400 to-indigo-500 text-white"
+                                        />
+                                        {taAccountAvatarPreview && (
+                                            <Button
+                                                isIconOnly
+                                                size="sm"
+                                                color="danger"
+                                                variant="solid"
+                                                className="absolute -top-1 -right-1 min-w-6 w-6 h-6"
+                                                onPress={() => {
+                                                    setTAAccountAvatarPreview(null);
+                                                    setTAAccountForm((prev) => ({ ...prev, avatar: "" }));
+                                                }}
+                                            >
+                                                <Icon icon="solar:close-circle-bold" className="text-sm" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <div className="flex-1">
+                                        <label className="cursor-pointer">
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleTAAvatarUpload}
+                                                className="hidden"
+                                            />
+                                            <div className="rounded-xl border-2 border-dashed border-default-300 p-4 text-center transition-colors hover:border-purple-400 hover:bg-purple-50/50">
+                                                <Icon icon="solar:cloud-upload-bold-duotone" className="text-3xl text-purple-400 mx-auto mb-2" />
+                                                <p className="text-sm font-medium text-default-600">คลิกเพื่ออัปโหลดรูป</p>
+                                                <p className="mt-1 text-xs text-default-400">รองรับไฟล์ภาพขนาดไม่เกิน 2 MB</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Icon icon="solar:user-id-bold" className="text-lg text-emerald-500" />
+                                    <span className="text-sm font-semibold text-default-700">ข้อมูลส่วนตัว</span>
+                                </div>
+                                <div className="grid grid-cols-1 gap-4 py-3">
+                                    <Input
+                                        label="ชื่อ-นามสกุล"
+                                        labelPlacement="outside"
+                                        placeholder="กรอกชื่อ-นามสกุล"
+                                        variant="bordered"
+                                        size="md"
+                                        value={taAccountForm.full_name}
+                                        onValueChange={(value) => setTAAccountForm((prev) => ({ ...prev, full_name: value }))}
+                                        isRequired
+                                        startContent={<Icon icon="solar:user-id-linear" className="text-emerald-400 text-xl" />}
+                                        classNames={{
+                                            inputWrapper: "bg-content1 border-default-200 hover:border-emerald-300 focus-within:!border-emerald-400",
+                                            label: "text-default-600 font-medium text-sm",
+                                        }}
+                                    />
+                                    <Input
+                                        label="อีเมล"
+                                        labelPlacement="outside"
+                                        placeholder="กรอกอีเมล (ถ้ามี)"
+                                        type="email"
+                                        variant="bordered"
+                                        size="md"
+                                        value={taAccountForm.email}
+                                        onValueChange={(value) => setTAAccountForm((prev) => ({ ...prev, email: value }))}
+                                        startContent={<Icon icon="solar:letter-linear" className="text-emerald-400 text-xl" />}
+                                        classNames={{
+                                            inputWrapper: "bg-content1 border-default-200 hover:border-emerald-300 focus-within:!border-emerald-400",
+                                            label: "text-default-600 font-medium text-sm",
+                                        }}
+                                    />
+                                    {taAccountForm.email && (
+                                        <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2">
+                                            <Icon icon="flat-color-icons:google" className="text-base mt-0.5 shrink-0" />
+                                            <p className="text-xs text-blue-700">หากอีเมลนี้ผูกกับ Google อยู่แล้ว ผู้ใช้จะสามารถเชื่อมการเข้าสู่ระบบภายหลังได้</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Icon icon="solar:shield-user-bold" className="text-lg text-blue-500" />
+                                    <span className="text-sm font-semibold text-default-700">ข้อมูลบัญชี</span>
+                                </div>
+                                <div className="grid grid-cols-1 gap-4 py-3">
+                                    <Input
+                                        label="ชื่อผู้ใช้"
+                                        labelPlacement="outside"
+                                        placeholder="กรอก username"
+                                        variant="bordered"
+                                        size="md"
+                                        value={taAccountForm.username}
+                                        onValueChange={(value) => setTAAccountForm((prev) => ({ ...prev, username: value }))}
+                                        isRequired
+                                        startContent={<Icon icon="solar:user-linear" className="text-blue-400 text-xl" />}
+                                        classNames={{
+                                            inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                            label: "text-default-600 font-medium text-sm",
+                                        }}
+                                    />
+                                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-700">
+                                        บัญชีนี้จะถูกสร้างเป็นบทบาท <span className="font-semibold">TA</span> และต้องเปลี่ยนรหัสผ่านเมื่อเข้าสู่ระบบครั้งแรก
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </ModalBody>
+                    <ModalFooter className="gap-3 border-t border-divider px-6 py-4">
+                        <Button
+                            variant="flat"
+                            color="default"
+                            onPress={resetCreateTAAccountForm}
+                            className="font-medium px-6"
+                        >
+                            ยกเลิก
+                        </Button>
+                        <Button
+                            color="primary"
+                            onPress={handleCreateTAAccount}
+                            isLoading={modals.isSubmitting}
+                            isDisabled={!taAccountForm.username.trim() || !taAccountForm.full_name.trim()}
+                            className="font-medium px-6 bg-linear-to-r from-blue-400 to-indigo-500"
+                        >
+                            สร้างบัญชี TA
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
+            <Modal
+                isOpen={isTACredentialsModalOpen}
+                onClose={() => {
+                    setIsTACredentialsModalOpen(false);
+                    setTAAccountCredentials(null);
+                }}
+                size="md"
+                isDismissable={false}
+                isKeyboardDismissDisabled={true}
+            >
+                <ModalContent>
+                    <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
+                                <Icon icon="solar:check-circle-bold" className="text-2xl text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-foreground">สร้างบัญชี TA สำเร็จ</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">บันทึกข้อมูลเข้าสู่ระบบด้านล่างก่อนปิดหน้าต่างนี้</p>
+                            </div>
+                        </div>
+                    </ModalHeader>
+                    <ModalBody className="px-6 py-6">
+                        <div className="space-y-4">
+                            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                                <div className="flex items-start gap-3">
+                                    <Icon icon="solar:danger-triangle-bold" className="text-amber-500 text-xl mt-0.5" />
+                                    <div className="text-sm text-amber-700">
+                                        <p className="font-semibold">สำคัญ</p>
+                                        <p className="mt-1">คัดลอก username และรหัสผ่านนี้ไปส่งให้ TA เพราะระบบจะแสดงรหัสผ่านชั่วคราวครั้งนี้ครั้งเดียว</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 rounded-xl bg-content2/80 p-5">
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium text-default-600">ชื่อผู้ใช้</label>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex-1 rounded-lg border border-default-200 bg-content1 p-3 font-mono text-foreground">
+                                            {taAccountCredentials?.username}
+                                        </div>
+                                        <Button
+                                            isIconOnly
+                                            variant="flat"
+                                            color="primary"
+                                            onPress={() => copyTAAccountCredentials(taAccountCredentials?.username || "", "ชื่อผู้ใช้")}
+                                        >
+                                            <Icon icon="solar:copy-bold" className="text-lg" />
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium text-default-600">รหัสผ่านชั่วคราว</label>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex-1 rounded-lg border border-default-200 bg-content1 p-3 font-mono text-foreground">
+                                            {taAccountCredentials?.password}
+                                        </div>
+                                        <Button
+                                            isIconOnly
+                                            variant="flat"
+                                            color="primary"
+                                            onPress={() => copyTAAccountCredentials(taAccountCredentials?.password || "", "รหัสผ่าน")}
+                                        >
+                                            <Icon icon="solar:copy-bold" className="text-lg" />
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <Button
+                                    variant="flat"
+                                    color="secondary"
+                                    className="w-full mt-2"
+                                    startContent={<Icon icon="solar:clipboard-list-bold" className="text-lg" />}
+                                    onPress={() => copyTAAccountCredentials(
+                                        `username: ${taAccountCredentials?.username}\npassword: ${taAccountCredentials?.password}`,
+                                        "ข้อมูลบัญชี"
+                                    )}
+                                >
+                                    คัดลอกทั้งหมด
+                                </Button>
+                            </div>
+
+                            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                                <div className="flex items-center gap-2 text-sm text-blue-700">
+                                    <Icon icon="solar:info-circle-bold" className="text-blue-500" />
+                                    <span>TA ต้องเปลี่ยนรหัสผ่านเมื่อเข้าสู่ระบบครั้งแรก</span>
+                                </div>
+                            </div>
+                        </div>
+                    </ModalBody>
+                    <ModalFooter className="border-t border-divider px-6 py-4">
+                        <Button
+                            color="primary"
+                            onPress={() => {
+                                setIsTACredentialsModalOpen(false);
+                                setTAAccountCredentials(null);
+                            }}
+                            className="w-full font-medium bg-linear-to-r from-blue-400 to-indigo-500"
+                        >
+                            เสร็จสิ้น
                         </Button>
                     </ModalFooter>
                 </ModalContent>

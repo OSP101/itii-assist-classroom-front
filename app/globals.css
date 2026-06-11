@@ -375,6 +375,31 @@ html[data-font-size="lg"] {
 }
 
 @layer utilities {
+	:is(html.dark, html[data-theme="dark"]) .login-desktop-dark-input {
+		color: rgb(30 41 59);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) .login-desktop-dark-input:-webkit-autofill,
+	:is(html.dark, html[data-theme="dark"]) .login-desktop-dark-input:-webkit-autofill:hover,
+	:is(html.dark, html[data-theme="dark"]) .login-desktop-dark-input:-webkit-autofill:focus {
+		-webkit-text-fill-color: rgb(30 41 59);
+		caret-color: rgb(30 41 59);
+		transition: background-color 9999s ease-out 0s;
+	}
+
+	@media (max-width: 639px) {
+		:is(html.dark, html[data-theme="dark"]) .login-desktop-dark-input {
+			color: rgb(241 245 249);
+		}
+
+		:is(html.dark, html[data-theme="dark"]) .login-desktop-dark-input:-webkit-autofill,
+		:is(html.dark, html[data-theme="dark"]) .login-desktop-dark-input:-webkit-autofill:hover,
+		:is(html.dark, html[data-theme="dark"]) .login-desktop-dark-input:-webkit-autofill:focus {
+			-webkit-text-fill-color: rgb(241 245 249);
+			caret-color: rgb(241 245 249);
+		}
+	}
+
 	:is(html.dark, html[data-theme="dark"]) .score-modal-theme-scope .bg-white,
 	:is(html.dark, html[data-theme="dark"]) .score-modal-theme-scope .bg-white\/60 {
 		background-color: hsl(var(--heroui-content1));

@@ -372,31 +372,38 @@ export default function LoginPage() {
 
     return (
         <div data-auth-shell="true" className="flex min-h-dvh flex-col bg-background text-foreground">
-            <header className="flex h-20 items-center px-6 sm:px-10">
+            <header className="flex h-20 items-center justify-between bg-transparent px-6 max-sm:bg-transparent dark:max-sm:bg-slate-950 sm:px-10">
                 <Link href="/" aria-label={t("itiiAssistClassroomHome")} className="inline-flex items-center">
                     <AppMark />
                 </Link>
+                <Link
+                    href="/student/login"
+                    className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white/90 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-blue-300 hover:bg-blue-50 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:text-slate-100 dark:max-sm:hover:border-sky-400/45 dark:max-sm:hover:bg-sky-400/10 dark:sm:text-slate-700"
+                >
+                    <span>ล็อกอินนักศึกษา</span>
+                    <Icon icon="solar:arrow-right-linear" className="text-base" />
+                </Link>
             </header>
 
-            <main className="flex w-full flex-1 flex-col items-center justify-start px-5 pb-6 pt-4 sm:min-h-[calc(100vh-128px)] sm:justify-center sm:px-6 sm:pb-16 sm:pt-10">
-                <section className="w-full max-w-112.5 px-2 py-4 sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white sm:px-12 sm:py-12 sm:shadow-sm sm:shadow-slate-200/60 dark:sm:shadow-zinc-950/50">
+            <main className="flex w-full flex-1 flex-col items-center justify-start bg-transparent px-5 pb-6 pt-4 max-sm:bg-transparent dark:max-sm:bg-slate-950 sm:min-h-[calc(100vh-128px)] sm:justify-center sm:px-6 sm:pb-16 sm:pt-10">
+                <section className="w-full max-w-112.5 bg-transparent px-2 py-4 max-sm:border-0 max-sm:shadow-none dark:max-sm:bg-transparent sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white sm:px-12 sm:py-12 sm:shadow-sm sm:shadow-slate-200/60 dark:sm:shadow-zinc-950/50">
                     {nextPath ? (
-                        <div className="mb-5 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+                        <div className="mb-5 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:max-sm:border-sky-500/30 dark:max-sm:bg-sky-500/10 dark:max-sm:text-sky-100">
                             {isStudentLoginMode
                                 ? <>Student access continues with <span className="font-medium">Google Sign-In</span> to <span className="font-medium">{nextPath}</span></>
                                 : <>Sign in to continue to <span className="font-medium">{nextPath}</span></>}
                         </div>
                     ) : null}
-                    <h1 className="mb-7 text-[25px] font-semibold leading-tight tracking-[-0.01em] text-slate-800">
+                    <h1 className="mb-7 text-[25px] font-semibold leading-tight tracking-[-0.01em] text-slate-800 dark:max-sm:text-white">
                         {t("signInToITIIAssistClassroom")}
                     </h1>
 
-                    <div className={`grid gap-2 ${isStudentLoginMode ? "grid-cols-1" : "grid-cols-3"}`}>
+                    <div className={`grid gap-2 ${isStudentLoginMode ? "grid-cols-1" : "grid-cols-2"}`}>
                         <Button
                             type="button"
                             variant="bordered"
                             radius="sm"
-                            className="h-10.5 border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50"
+                            className="h-10.5 border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:text-white dark:max-sm:data-[hover=true]:border-sky-400/45 dark:max-sm:data-[hover=true]:bg-sky-400/10"
                             onPress={handleGoogleLogin}
                             startContent={<SocialIconGoogle />}
                         >
@@ -408,19 +415,9 @@ export default function LoginPage() {
                                     type="button"
                                     variant="bordered"
                                     radius="sm"
-                                    className="h-10.5 border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50"
-                                    onPress={() => handleUnavailableLogin("Apple")}
-                                    startContent={<Icon icon="fa6-brands:apple" className="text-[17px] text-slate-700" />}
-                                >
-                                    Apple
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="bordered"
-                                    radius="sm"
-                                    className="h-10.5 border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50"
+                                    className="h-10.5 border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:text-white dark:max-sm:data-[hover=true]:border-sky-400/45 dark:max-sm:data-[hover=true]:bg-sky-400/10"
                                     onPress={handleGitHubLogin}
-                                    startContent={<Icon icon="fa6-brands:github" className="text-[16px] text-slate-700" />}
+                                    startContent={<Icon icon="fa6-brands:github" className="text-[16px] text-slate-700 dark:max-sm:text-white" />}
                                 >
                                     GitHub
                                 </Button>
@@ -443,7 +440,7 @@ export default function LoginPage() {
                         <>
                             <div className="my-5 flex items-center gap-3">
                                 <div className="h-px flex-1 bg-slate-200" />
-                                <span className="text-sm text-slate-400">{t("or")}</span>
+                                <span className="text-sm text-slate-400 dark:max-sm:text-slate-300 dark:sm:text-slate-500">{t("or")}</span>
                                 <div className="h-px flex-1 bg-slate-200" />
                             </div>
 
@@ -467,20 +464,20 @@ export default function LoginPage() {
                                         />
                                     }
                                     classNames={{
-                                        base: "gap-1",
-                                        label: "text-[14px] font-medium text-slate-600",
-                                        inputWrapper: "h-10.5 min-h-10.5 rounded-md border-blue-200 bg-white shadow-none data-[hover=true]:border-blue-300 group-data-[focus=true]:!border-blue-400 group-data-[focus=true]:ring-1 group-data-[focus=true]:ring-blue-300",
-                                        input: "text-[15px] text-slate-800 placeholder:text-slate-400",
+                                        base: "gap-1 dark:sm:[&_[data-slot=label]]:!text-slate-800",
+                                        label: "text-[14px] font-medium text-slate-600 dark:max-sm:text-slate-100 dark:sm:text-slate-800",
+                                        inputWrapper: "h-10.5 min-h-10.5 rounded-md border-blue-200 bg-white shadow-none data-[hover=true]:border-blue-300 group-data-[focus=true]:!border-blue-400 group-data-[focus=true]:ring-1 group-data-[focus=true]:ring-blue-300 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:data-[hover=true]:border-sky-400/45 dark:max-sm:group-data-[focus=true]:ring-sky-400/30",
+                                        input: "login-desktop-dark-input text-[15px] text-slate-800 placeholder:text-slate-400 dark:max-sm:text-slate-100 dark:max-sm:placeholder:text-slate-400 dark:max-sm:autofill:[-webkit-text-fill-color:rgb(241_245_249)] dark:sm:text-slate-800 dark:sm:placeholder:text-slate-500 dark:sm:autofill:[-webkit-text-fill-color:rgb(30_41_59)]",
                                     }}
                                 />
 
                                 <div className="space-y-1">
                                     <div className="flex items-center justify-between">
-                                        <label className="text-[14px] font-medium text-slate-600">{t("password")}</label>
+                                        <label className="text-[14px] font-medium text-slate-600 dark:max-sm:text-slate-100 dark:sm:text-slate-800">{t("password")}</label>
                                         <button
                                             type="button"
                                             onClick={() => setIsForgotPasswordModalOpen(true)}
-                                            className="text-[13px] text-blue-400 underline-offset-2 hover:text-blue-500 hover:underline"
+                                            className="text-[13px] text-blue-400 underline-offset-2 hover:text-blue-500 hover:underline dark:max-sm:text-sky-300 dark:max-sm:hover:text-sky-200"
                                         >
                                             {t("forgotPassword")}
                                         </button>
@@ -517,14 +514,14 @@ export default function LoginPage() {
                                         }
                                         type={isVisible ? "text" : "password"}
                                         classNames={{
-                                            inputWrapper: "h-10.5 min-h-10.5 rounded-md border-blue-200 bg-white shadow-none data-[hover=true]:border-blue-300 group-data-[focus=true]:!border-blue-400 group-data-[focus=true]:ring-1 group-data-[focus=true]:ring-blue-300",
-                                            input: "text-[15px] text-slate-800 placeholder:text-slate-400",
+                                            inputWrapper: "h-10.5 min-h-10.5 rounded-md border-blue-200 bg-white shadow-none data-[hover=true]:border-blue-300 group-data-[focus=true]:!border-blue-400 group-data-[focus=true]:ring-1 group-data-[focus=true]:ring-blue-300 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:data-[hover=true]:border-sky-400/45 dark:max-sm:group-data-[focus=true]:ring-sky-400/30",
+                                            input: "login-desktop-dark-input text-[15px] text-slate-800 placeholder:text-slate-400 dark:max-sm:text-slate-100 dark:max-sm:placeholder:text-slate-400 dark:max-sm:autofill:[-webkit-text-fill-color:rgb(241_245_249)] dark:sm:text-slate-800 dark:sm:placeholder:text-slate-500 dark:sm:autofill:[-webkit-text-fill-color:rgb(30_41_59)]",
                                         }}
                                     />
                                 </div>
 
                                 <div className="pt-1">
-                                    <p className="mb-2 text-[14px] text-slate-600">{t("verifyYouAreNotABot")}</p>
+                                    <p className="mb-2 text-[14px] text-slate-600 dark:max-sm:text-slate-200 dark:sm:text-slate-700">{t("verifyYouAreNotABot")}</p>
                                     <div className="w-full" suppressHydrationWarning>
                                         {turnstileKey ? (
                                             <Turnstile
@@ -551,10 +548,10 @@ export default function LoginPage() {
                                                 }}
                                             />
                                         ) : !turnstileReady ? (
-                                            <div className="flex h-16.25 w-full items-center justify-between border border-blue-100 bg-blue-50/40 px-3">
+                                            <div className="flex h-16.25 w-full items-center justify-between border border-blue-100 bg-blue-50/40 px-3 dark:max-sm:border-white/12 dark:max-sm:bg-white/8">
                                                 <div className="flex items-center gap-3">
-                                                    <span className="h-6 w-6 rounded-sm border-2 border-blue-300 bg-white" />
-                                                    <span className="text-[14px] text-slate-700">{t("verifyYouAreNotABot")}</span>
+                                                    <span className="h-6 w-6 rounded-sm border-2 border-blue-300 bg-white dark:max-sm:border-sky-300/50 dark:max-sm:bg-slate-950" />
+                                                    <span className="text-[14px] text-slate-700 dark:max-sm:text-slate-100">{t("verifyYouAreNotABot")}</span>
                                                 </div>
                                                 <AppMark className="scale-75" />
                                             </div>
@@ -573,24 +570,24 @@ export default function LoginPage() {
                             </form>
                         </>
                     ) : (
-                        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-600">
+                        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-600 dark:max-sm:border-white/10 dark:max-sm:bg-white/8 dark:max-sm:text-slate-200">
                             Student accounts use Google as the identity source for classroom access. Username/password and GitHub sign-in are disabled for student routes.
                         </div>
                     )}
 
                 </section>
 
-                <p className="mt-5 max-w-85 text-center text-[13px] leading-5 text-slate-500">
+                <p className="mt-5 max-w-85 text-center text-[13px] leading-5 text-slate-500 dark:max-sm:text-slate-300 dark:sm:text-slate-300">
                     {t("continuingMeansAccept")}{" "}
-                    <Link href={loginPolicyLinks.terms} className="text-[13px] text-slate-500 underline hover:text-blue-500">
+                    <Link href={loginPolicyLinks.terms} className="text-[13px] text-slate-500 underline hover:text-blue-500 dark:max-sm:text-slate-200 dark:max-sm:hover:text-sky-300 dark:sm:text-slate-200 dark:sm:hover:text-sky-300">
                         {t("termsOfUse")}
                     </Link>
                     ,{" "}
-                    <Link href={loginPolicyLinks.privacy} className="text-[13px] text-slate-500 underline hover:text-blue-500">
+                    <Link href={loginPolicyLinks.privacy} className="text-[13px] text-slate-500 underline hover:text-blue-500 dark:max-sm:text-slate-200 dark:max-sm:hover:text-sky-300 dark:sm:text-slate-200 dark:sm:hover:text-sky-300">
                         {t("privacyPolicy")}
                     </Link>
                     , และ{" "}
-                    <Link href={loginPolicyLinks.cookies} className="text-[13px] text-slate-500 underline hover:text-blue-500">
+                    <Link href={loginPolicyLinks.cookies} className="text-[13px] text-slate-500 underline hover:text-blue-500 dark:max-sm:text-slate-200 dark:max-sm:hover:text-sky-300 dark:sm:text-slate-200 dark:sm:hover:text-sky-300">
                         {t("cookiePolicy")}
                     </Link>
                     {" "}{t("ofITIIAssistClassroom")}

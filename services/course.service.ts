@@ -123,8 +123,8 @@ export const DEFAULT_TA_COURSE_PERMISSIONS: CourseMemberPermissions = {
   delete_teams: false,
   manage_team_members: false,
   view_assignments: true,
-  create_assignments: false,
-  update_assignments: false,
+  create_assignments: true,
+  update_assignments: true,
   delete_assignments: false,
   grade_assignments: true,
   edit_scores: true,
@@ -377,6 +377,21 @@ export interface TA {
   CourseTA?: {
     assigned_at: string;
     permissions: CourseMemberPermissions;
+  };
+}
+
+export interface CreateCourseTAAccountDto {
+  username: string;
+  full_name: string;
+  email?: string;
+  avatar?: string;
+}
+
+export interface CreateCourseTAAccountResponse {
+  user: TA;
+  credentials: {
+    username: string;
+    password: string;
   };
 }
 
@@ -850,6 +865,10 @@ class CourseService {
    */
   async addTA(courseId: string, userId: number) {
     return apiService.post<TA>(API_ENDPOINTS.COURSES.ADD_TA(courseId), { user_id: userId });
+  }
+
+  async createTAAccount(courseId: string, data: CreateCourseTAAccountDto) {
+    return apiService.post<CreateCourseTAAccountResponse>(API_ENDPOINTS.COURSES.CREATE_TA_ACCOUNT(courseId), data);
   }
 
   /**
