@@ -14,9 +14,9 @@ function getDocsPageCopy(language: 'th' | 'en') {
     if (language === 'en') {
         return {
             metadataTitle: 'Documentation',
-            metadataDescription: 'ITII Assist Classroom guides for students, teaching assistants, instructors, and administrators.',
+            metadataDescription: 'LabTAS guides for students, teaching assistants, instructors, and administrators.',
             eyebrow: 'Documentation',
-            title: 'ITII Assist Classroom documentation',
+            title: 'LabTAS documentation',
             description: 'Task-based guides for the workflows users actually do, covering assignments, attendance, queues, scores, accounts, security, and policies.',
             searchGuides: 'Search guides',
             contactSupport: 'Contact support',
@@ -54,9 +54,9 @@ function getDocsPageCopy(language: 'th' | 'en') {
 
     return {
         metadataTitle: 'คู่มือการใช้งาน',
-        metadataDescription: 'คู่มือการใช้งาน ITII Assist Classroom สำหรับนักศึกษา ผู้ช่วยสอน ผู้สอน และผู้ดูแลระบบ',
+        metadataDescription: 'คู่มือการใช้งาน LabTAS สำหรับนักศึกษา ผู้ช่วยสอน ผู้สอน และผู้ดูแลระบบ',
         eyebrow: 'คู่มือการใช้งาน',
-        title: 'คู่มือการใช้งาน ITII Assist Classroom',
+        title: 'คู่มือการใช้งาน LabTAS',
         description: 'รวมคู่มือแบบเป็นขั้นตอนสำหรับงานที่ผู้ใช้ทำจริง ครอบคลุมงาน เช็คชื่อ คิว คะแนน บัญชี ความปลอดภัย และนโยบายที่ควรทราบ',
         searchGuides: 'ค้นหาคู่มือ',
         contactSupport: 'ติดต่อทีมสนับสนุน',

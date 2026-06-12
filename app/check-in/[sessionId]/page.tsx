@@ -13,6 +13,7 @@ import attendanceService, { type AttendanceSession } from "@/services/attendance
 import { authService } from "@/services/auth.service";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { useI18n } from "@/hooks/useI18n";
+import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
 
 // Declare Google Auth type
 declare global {
@@ -104,6 +105,12 @@ export default function StudentCheckInPage() {
         status: string;
         check_in_time: string;
     } | null>(null);
+
+    useEffect(() => {
+        const pageLabel = language === "en" ? "Student Check-In" : "เช็คชื่อเข้าเรียน";
+        const courseContext = buildCourseTitleContext(session?.course);
+        document.title = buildPageTitle(pageLabel, courseContext);
+    }, [language, session?.course]);
 
     // Socket ref
     const socketRef = useRef<Socket | null>(null);

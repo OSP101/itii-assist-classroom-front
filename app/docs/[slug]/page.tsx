@@ -26,7 +26,7 @@ export function generateStaticParams() {
 function getDocsArticlePageCopy(language: 'th' | 'en') {
   if (language === 'en') {
     return {
-      notFoundTitle: 'Article not found | ITII Assist Classroom',
+      notFoundTitle: 'Article not found',
       docsSuffix: 'Documentation',
       eyebrow: 'Documentation',
       backToDocs: 'Back to docs',
@@ -52,7 +52,7 @@ function getDocsArticlePageCopy(language: 'th' | 'en') {
   }
 
   return {
-    notFoundTitle: 'ไม่พบบทความ | ITII Assist Classroom',
+    notFoundTitle: 'ไม่พบบทความ',
     docsSuffix: 'คู่มือการใช้งาน',
     eyebrow: 'คู่มือการใช้งาน',
     backToDocs: 'กลับหน้าคู่มือ',

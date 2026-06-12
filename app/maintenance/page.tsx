@@ -217,7 +217,7 @@ export default function MaintenancePage() {
       </div>
 
       <p className="mt-6 text-xs text-slate-400">
-        © {new Date().getFullYear()} ITII Assist Classroom
+        © {new Date().getFullYear()} LabTAS
         {" · "}
         <a
           href="/login"

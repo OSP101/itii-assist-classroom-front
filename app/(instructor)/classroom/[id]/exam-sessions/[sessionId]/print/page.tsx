@@ -9,6 +9,7 @@ import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { getExamSeatingExport, type ExamSeatingExport } from "@/services/examSeat.service";
 import { courseService } from "@/services/course.service";
 import type { Course } from "@/services/course.service";
+import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
 
 export default function ExamSessionPrintPage() {
     const params = useParams<{ id: string; sessionId: string }>();
@@ -41,6 +42,12 @@ export default function ExamSessionPrintPage() {
         };
         void load();
     }, [courseId, sessionId, t]);
+
+    useEffect(() => {
+        const pageLabel = isEnglish ? "Exam Seating Print" : "พิมพ์ผังที่นั่งสอบ";
+        const courseContext = buildCourseTitleContext(course);
+        document.title = buildPageTitle(pageLabel, courseContext);
+    }, [course, isEnglish]);
 
     if (isLoading) {
         return (

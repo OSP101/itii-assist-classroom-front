@@ -12,10 +12,10 @@ function getSupportPageCopy(language: 'th' | 'en') {
         return {
             metadataTitle: 'Help Center',
             metadataDescription: statusProvider
-                ? `Find answers, read guides, check system status through ${statusProvider.name}, and contact the ITII Assist Classroom support team from one place.`
-                : 'Find answers, read guides, check system status, and contact the ITII Assist Classroom support team from one place.',
+                ? `Find answers, read guides, check system status through ${statusProvider.name}, and contact the LabTAS support team from one place.`
+                : 'Find answers, read guides, check system status, and contact the LabTAS support team from one place.',
             eyebrow: 'Help Center',
-            title: 'ITII Assist Classroom Help Center',
+            title: 'LabTAS Help Center',
             description: statusProvider
                 ? `Find answers in the FAQ, read task-based guides, check system status through ${statusProvider.name}, or send a request to the support team from here.`
                 : 'Find answers in the FAQ, read task-based guides, check system status, or send a request to the support team from here.',
@@ -50,10 +50,10 @@ function getSupportPageCopy(language: 'th' | 'en') {
     return {
         metadataTitle: 'ศูนย์ช่วยเหลือ',
         metadataDescription: statusProvider
-            ? `ค้นหาคำตอบ อ่านคู่มือการใช้งาน ตรวจสอบสถานะระบบผ่าน ${statusProvider.name} และติดต่อทีมสนับสนุน ITII Assist Classroom ได้จากที่เดียว`
-            : 'ค้นหาคำตอบจากคำถามที่พบบ่อย อ่านคู่มือการใช้งาน ตรวจสอบสถานะระบบ และติดต่อทีมสนับสนุน ITII Assist Classroom ได้จากที่เดียว',
+            ? `ค้นหาคำตอบ อ่านคู่มือการใช้งาน ตรวจสอบสถานะระบบผ่าน ${statusProvider.name} และติดต่อทีมสนับสนุน LabTAS ได้จากที่เดียว`
+            : 'ค้นหาคำตอบจากคำถามที่พบบ่อย อ่านคู่มือการใช้งาน ตรวจสอบสถานะระบบ และติดต่อทีมสนับสนุน LabTAS ได้จากที่เดียว',
         eyebrow: 'ศูนย์ช่วยเหลือ',
-        title: 'ศูนย์ช่วยเหลือ ITII Assist Classroom',
+        title: 'ศูนย์ช่วยเหลือ LabTAS',
         description: statusProvider
             ? `ค้นหาคำตอบจากคำถามที่พบบ่อย อ่านคู่มือรายหัวข้อ ตรวจสอบสถานะระบบผ่าน ${statusProvider.name} หรือส่งคำขอถึงทีมสนับสนุนได้จากที่นี่`
             : 'ค้นหาคำตอบจากคำถามที่พบบ่อย อ่านคู่มือรายหัวข้อ ตรวจสอบสถานะระบบ หรือส่งคำขอถึงทีมสนับสนุนได้จากที่นี่',

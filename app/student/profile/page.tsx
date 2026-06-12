@@ -78,7 +78,7 @@ export default function StudentProfilePage() {
 
           <div className="text-center">
             <h2 className="text-xl font-bold text-white">{user?.full_name || "ชื่อผู้ใช้"}</h2>
-            <p className="mt-0.5 text-sm text-sky-100/80">นักศึกษา · ITII Assist Classroom</p>
+            <p className="mt-0.5 text-sm text-sky-100/80">นักศึกษา · LabTAS</p>
           </div>
         </div>
       </div>
@@ -136,7 +136,7 @@ export default function StudentProfilePage() {
         ออกจากระบบ
       </button>
 
-      <p className="text-center text-[11px] text-slate-400">© 2026 ITII Assist Classroom v1.2.90. สงวนลิขสิทธิ์</p>
+      <p className="text-center text-[11px] text-slate-400">© 2026 LabTAS v1.2.90. สงวนลิขสิทธิ์</p>
     </div>
   );
 }

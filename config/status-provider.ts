@@ -24,7 +24,7 @@ export const statusGatewayLink: StatusLink = {
     type: 'internal',
     label: 'System Status',
     description: statusProvider
-        ? `สรุปภาพรวมบริการหลักของ ITII Assist Classroom และลิงก์ไปยัง ${statusProvider.name} สำหรับ live incident updates`
+        ? `สรุปภาพรวมบริการหลักของ LabTAS และลิงก์ไปยัง ${statusProvider.name} สำหรับ live incident updates`
         : 'ติดตามความพร้อมใช้งานของ Web, API, Authentication, Upload, และการแจ้งเตือน',
 };
 

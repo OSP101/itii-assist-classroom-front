@@ -2,7 +2,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "ภาพรวม",
-  description: "ภาพรวมระบบจัดการ ITII Assist Classroom",
+  description: "ภาพรวมระบบจัดการ LabTAS",
 };
 
 export default function DashboardLayout({

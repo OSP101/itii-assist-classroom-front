@@ -23,6 +23,8 @@ import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useI18n } from "@/hooks/useI18n";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import { buildCourseTitleContext, buildPageTitle, getClassroomTabLabel } from "@/lib/page-title";
 // Import custom hooks
 import {
     useClassroomData,
@@ -217,6 +219,8 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
     const pathname = usePathname();
     const courseId = params.id as string;
     const t = useI18n();
+    const { language } = useGlobalSettings();
+    const isEnglish = language === "en";
 
     // ============================================
     // Custom Hooks - Data & Business Logic
@@ -337,6 +341,12 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
     const totalStudents = useMemo(() => {
         return course?.sections?.reduce((acc, section) => acc + (section.studentCount || 0), 0) || 0;
     }, [course?.sections]);
+
+    useEffect(() => {
+        const pageLabel = getClassroomTabLabel(activeTab, isEnglish);
+        const courseContext = buildCourseTitleContext(course);
+        document.title = buildPageTitle(pageLabel, courseContext);
+    }, [activeTab, course, isEnglish]);
 
     const currentCoursePermissions = useMemo<CourseMemberPermissions>(() => {
         return getCurrentCourseMemberPermissions(course, currentUserId, userRole);

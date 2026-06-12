@@ -28,6 +28,7 @@ import { Select, SelectItem } from "@heroui/select";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
 import { courseService } from "@/services/course.service";
 import attendanceService, {
     type AttendanceSession,
@@ -109,6 +110,7 @@ export default function AttendanceSummaryPage() {
     // State
     const [session, setSession] = useState<AttendanceSession | null>(null);
     const [records, setRecords] = useState<AttendanceRecord[]>([]);
+    const [courseContext, setCourseContext] = useState<string | null>(null);
     const [isCourseActive, setIsCourseActive] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -156,6 +158,7 @@ export default function AttendanceSummaryPage() {
             const courseResponse = await courseService.getCourseById(courseId);
             if (courseResponse.success && courseResponse.data) {
                 setIsCourseActive(courseResponse.data.is_active);
+                setCourseContext(buildCourseTitleContext(courseResponse.data));
             }
 
             if (sessionData) {
@@ -183,9 +186,14 @@ export default function AttendanceSummaryPage() {
 
     useEffect(() => {
         document.title = isEnglish
-            ? "Attendance Summary - ITII Assist Classroom"
-            : "สรุปการเช็คชื่อ - ITII Assist Classroom";
+            ? "Attendance Summary - LabTAS"
+            : "สรุปการเช็คชื่อ - LabTAS";
     }, [isEnglish]);
+
+    useEffect(() => {
+        const pageLabel = isEnglish ? "Attendance Summary" : "สรุปการเช็คชื่อ";
+        document.title = buildPageTitle(pageLabel, courseContext);
+    }, [courseContext, isEnglish]);
 
     // Update record status
     const handleUpdateStatus = async () => {

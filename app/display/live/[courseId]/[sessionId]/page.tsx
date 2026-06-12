@@ -25,6 +25,7 @@ import attendanceDisplayService, {
     AttendanceDisplayError,
 } from "@/services/attendance-display.service";
 import type { AttendanceRecord } from "@/services/attendance.service";
+import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
 
 // Status config
 const statusConfig: Record<
@@ -130,6 +131,12 @@ export default function DisplayLivePage() {
             shouldShowTimeoutProgress: true,
         });
     }, []);
+
+    useEffect(() => {
+        const pageLabel = "หน้าจอเช็คชื่อ";
+        const courseContext = buildCourseTitleContext(session?.course);
+        document.title = buildPageTitle(pageLabel, courseContext);
+    }, [session?.course]);
 
     // Fetch initial data
     const fetchData = useCallback(async () => {

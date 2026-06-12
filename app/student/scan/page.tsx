@@ -199,7 +199,7 @@ export default function StudentScanPage() {
         {/* top bar inside camera card */}
         <div className="flex items-center justify-between gap-3 px-5 py-4">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">ITII Assist Classroom</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">LabTAS</p>
             <p className="mt-0.5 text-base font-bold text-white">สแกน QR</p>
           </div>
           <button

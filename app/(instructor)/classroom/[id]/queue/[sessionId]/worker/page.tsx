@@ -33,6 +33,7 @@ import scoreService from "@/services/score.service";
 import { useNotification } from "@/contexts/NotificationContext";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { API_BASE_URL } from "@/config/api";
+import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
 
 
 interface MiniDeskInfo {
@@ -319,6 +320,7 @@ export default function WorkerDashboardPage() {
     ];
 
     const [session, setSession] = useState<QueueSession | null>(null);
+    const [courseContext, setCourseContext] = useState<string | null>(null);
     const [isCourseActive, setIsCourseActive] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<{ id: number; full_name: string } | null>(null);
@@ -397,9 +399,14 @@ export default function WorkerDashboardPage() {
 
     useEffect(() => {
         document.title = isEnglish
-            ? "Queue Worker - ITII Assist Classroom"
-            : "หน้ารับงาน - ITII Assist Classroom";
+            ? "Queue Worker - LabTAS"
+            : "หน้ารับงาน - LabTAS";
     }, [isEnglish]);
+
+    useEffect(() => {
+        const pageLabel = isEnglish ? "Queue Worker" : "หน้ารับงาน";
+        document.title = buildPageTitle(pageLabel, courseContext);
+    }, [courseContext, isEnglish]);
 
     // Get current user
     useEffect(() => {
@@ -458,6 +465,9 @@ export default function WorkerDashboardPage() {
             ]);
             setSession(data);
             setIsCourseActive(Boolean(courseResponse.success && courseResponse.data?.is_active));
+            if (courseResponse.success && courseResponse.data) {
+                setCourseContext(buildCourseTitleContext(courseResponse.data));
+            }
 
             // Always check for existing booking assigned to current user (even if offline)
             // This handles reconnection after page refresh

@@ -25,6 +25,7 @@ import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { API_BASE_URL } from "@/config/api";
 import { Divider } from "@heroui/divider";
 import { Skeleton } from "@heroui/skeleton";
+import { buildPageTitle } from "@/lib/page-title";
 
 const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
 
@@ -121,9 +122,14 @@ export default function ProjectorViewPage() {
 
     useEffect(() => {
         document.title = isEnglish
-            ? "Queue Projector Display - ITII Assist Classroom"
-            : "หน้าจอแสดงผลคิว - ITII Assist Classroom";
+            ? "Queue Projector Display - LabTAS"
+            : "หน้าจอแสดงผลคิว - LabTAS";
     }, [isEnglish]);
+
+    useEffect(() => {
+        const pageLabel = isEnglish ? "Queue Projector Display" : "หน้าจอแสดงผลคิว";
+        document.title = buildPageTitle(pageLabel, data?.session?.title ?? null);
+    }, [data?.session?.title, isEnglish]);
 
     // Fetch data
     const fetchData = useCallback(async () => {

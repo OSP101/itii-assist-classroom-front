@@ -10,10 +10,10 @@ function getCookiesPageCopy(language: 'th' | 'en') {
     if (language === 'en') {
         return {
             metadataTitle: 'Cookie Policy',
-            metadataDescription: 'The ITII Assist Classroom cookie policy explains the browser-side data used for sessions, preferences, and essential security mechanisms.',
+            metadataDescription: 'The LabTAS cookie policy explains the browser-side data used for sessions, preferences, and essential security mechanisms.',
             eyebrow: 'Cookie Policy',
             title: 'Cookies and browser storage are used only where needed for sessions, security, and user experience',
-            description: 'This document explains the browser-side data used for authentication, abuse prevention, and the settings that are necessary to use ITII Assist Classroom.',
+            description: 'This document explains the browser-side data used for authentication, abuse prevention, and the settings that are necessary to use LabTAS.',
             backLabel: 'Back to Help Center',
             privacyActionLabel: 'View Privacy Policy',
             supportActionLabel: 'Get help',
@@ -59,10 +59,10 @@ function getCookiesPageCopy(language: 'th' | 'en') {
 
     return {
         metadataTitle: 'นโยบายคุกกี้',
-        metadataDescription: 'นโยบายคุกกี้ของ ITII Assist Classroom สำหรับ session การตั้งค่า และกลไกด้านความปลอดภัยที่จำเป็นต่อการให้บริการ',
+        metadataDescription: 'นโยบายคุกกี้ของ LabTAS สำหรับ session การตั้งค่า และกลไกด้านความปลอดภัยที่จำเป็นต่อการให้บริการ',
         eyebrow: 'นโยบายคุกกี้',
         title: 'คุกกี้และ storage ถูกใช้เท่าที่จำเป็นต่อ session ความปลอดภัย และประสบการณ์ใช้งาน',
-        description: 'เอกสารนี้อธิบายการใช้ข้อมูลฝั่ง browser สำหรับการยืนยันตัวตน การป้องกัน abuse และการตั้งค่าที่จำเป็นต่อการใช้งาน ITII Assist Classroom',
+        description: 'เอกสารนี้อธิบายการใช้ข้อมูลฝั่ง browser สำหรับการยืนยันตัวตน การป้องกัน abuse และการตั้งค่าที่จำเป็นต่อการใช้งาน LabTAS',
         backLabel: 'กลับศูนย์ช่วยเหลือ',
         privacyActionLabel: 'ดูนโยบายความเป็นส่วนตัว',
         supportActionLabel: 'ขอความช่วยเหลือ',

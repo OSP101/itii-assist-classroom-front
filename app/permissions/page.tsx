@@ -157,7 +157,7 @@ export default function PermissionsPage() {
 
             if (result === "granted") {
                 // Show test notification
-                new Notification("ITII Assist Classroom", {
+                new Notification("LabTAS", {
                     body: t("notificationsEnabled"),
                     icon: "/images/logo.png",
                 });

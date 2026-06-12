@@ -44,8 +44,8 @@ function getStatusPageCopy(language: 'th' | 'en') {
             eyebrow: 'System Status',
             title: 'Public status for the services that keep classroom workflows running',
             description: statusProvider
-                ? `This page summarizes the user-facing status of ITII Assist Classroom and links to ${statusProvider.name} for live incident communication.`
-                : 'Use this page to track the availability of the web app, API, authentication, uploads, and notifications that support ITII Assist Classroom.',
+                ? `This page summarizes the user-facing status of LabTAS and links to ${statusProvider.name} for live incident communication.`
+                : 'Use this page to track the availability of the web app, API, authentication, uploads, and notifications that support LabTAS.',
             backLabel: 'Back to Help Center',
             primaryActionLabel: statusProvider ? `Open ${statusProvider.name}` : 'View live status',
             incidentActionLabel: 'Report an incident',
@@ -148,8 +148,8 @@ function getStatusPageCopy(language: 'th' | 'en') {
         eyebrow: 'สถานะระบบ',
         title: 'สถานะสาธารณะของบริการหลักที่ขับเคลื่อนการใช้งานในห้องเรียน',
         description: statusProvider
-            ? `หน้านี้สรุปสถานะสาธารณะของ ITII Assist Classroom และเชื่อมต่อไปยัง ${statusProvider.name} เมื่อต้องติดตาม incident แบบสด`
-            : 'ใช้หน้านี้เพื่อติดตามความพร้อมใช้งานของเว็บแอป API การยืนยันตัวตน การอัปโหลดไฟล์ และการแจ้งเตือนที่สนับสนุน ITII Assist Classroom',
+            ? `หน้านี้สรุปสถานะสาธารณะของ LabTAS และเชื่อมต่อไปยัง ${statusProvider.name} เมื่อต้องติดตาม incident แบบสด`
+            : 'ใช้หน้านี้เพื่อติดตามความพร้อมใช้งานของเว็บแอป API การยืนยันตัวตน การอัปโหลดไฟล์ และการแจ้งเตือนที่สนับสนุน LabTAS',
         backLabel: 'กลับศูนย์ช่วยเหลือ',
         primaryActionLabel: statusProvider ? `เปิด ${statusProvider.name}` : 'ดูสถานะระบบสด',
         incidentActionLabel: 'รายงานเหตุขัดข้อง',

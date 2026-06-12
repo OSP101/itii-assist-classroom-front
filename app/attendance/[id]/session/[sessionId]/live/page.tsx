@@ -30,6 +30,7 @@ import { Icon } from "@iconify/react";
 import { IoSchool } from "react-icons/io5";
 import { QRCodeSVG } from "qrcode.react";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
 import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket";
 import attendanceService, {
     type AttendanceSession,
@@ -291,9 +292,15 @@ export default function LiveAttendancePage() {
 
     useEffect(() => {
         document.title = isEnglish
-            ? "Live Attendance - ITII Assist Classroom"
-            : "เช็คชื่อ Live - ITII Assist Classroom";
+            ? "Live Attendance - LabTAS"
+            : "เช็คชื่อ Live - LabTAS";
     }, [isEnglish]);
+
+    useEffect(() => {
+        const pageLabel = isEnglish ? "Live Attendance" : "เช็คชื่อ Live";
+        const courseContext = buildCourseTitleContext(session?.course);
+        document.title = buildPageTitle(pageLabel, courseContext);
+    }, [isEnglish, session?.course]);
 
     // Capture original status when modal opens
     useEffect(() => {

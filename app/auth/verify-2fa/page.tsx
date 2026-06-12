@@ -356,7 +356,7 @@ export default function VerifyTwoFactorPage() {
       {/* Footer */}
       <div className="text-center py-4">
         <p className="text-xs text-slate-400">
-          ITII Assist Classroom - {t("twoFactorAuthentication")}
+          LabTAS - {t("twoFactorAuthentication")}
         </p>
       </div>
     </div>

@@ -1,6 +1,6 @@
 export const metadata = {
   title: "เข้าสู่ระบบ",
-  description: "เข้าสู่ระบบ ITII Assist Classroom เพื่อจัดการห้องเรียนของคุณอย่างมีประสิทธิภาพและง่ายดาย",
+  description: "เข้าสู่ระบบ LabTAS เพื่อจัดการห้องเรียนของคุณอย่างมีประสิทธิภาพและง่ายดาย",
   image: "/cp-image-login.jpg",
 };
 

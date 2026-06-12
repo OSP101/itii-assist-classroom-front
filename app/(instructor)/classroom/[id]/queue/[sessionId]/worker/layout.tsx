@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Queue Worker - ITII Assist Classroom",
+  title: "Queue Worker",
   description: "Manage grading and help queue tasks for a classroom session.",
 };
 

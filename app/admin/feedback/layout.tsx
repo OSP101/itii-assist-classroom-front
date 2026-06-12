@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'จัดการ Feedback - ITII Assist Classroom',
+  title: 'จัดการ Feedback',
   description: 'รายงานข้อผิดพลาดและข้อเสนอแนะ',
 };
 

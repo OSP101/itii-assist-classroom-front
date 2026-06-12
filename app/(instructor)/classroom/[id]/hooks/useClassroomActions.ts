@@ -226,8 +226,8 @@ export function useClassroomActions({
     }) => {
         if (!payload.username.trim() || !payload.full_name.trim()) {
             addToast({
-                title: "à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹„à¸¡à¹ˆà¸„à¸£à¸š",
-                description: "à¸à¸£à¸¸à¸“à¸²à¸à¸£à¸­à¸à¸Šà¸·à¹ˆà¸­à¸œà¸¹à¹‰à¹ƒà¸Šà¹‰à¹à¸¥à¸°à¸Šà¸·à¹ˆà¸­à¸ªà¸à¸¸à¸¥",
+                title: "ข้อมูลไม่ครบ",
+                description: "กรุณากรอกชื่อผู้ใช้และชื่อ-นามสกุล",
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -250,8 +250,8 @@ export function useClassroomActions({
                 ]);
                 emitUpdate("user", "create", response.data.user.id);
                 addToast({
-                    title: "à¸ªà¸³à¹€à¸£à¹‡à¸ˆ",
-                    description: "à¸ªà¸£à¹‰à¸²à¸‡à¸šà¸±à¸à¸Šà¸µ TA à¹à¸¥à¸°à¹€à¸žà¸´à¹ˆà¸¡à¹€à¸‚à¹‰à¸²à¸£à¸²à¸¢à¸§à¸´à¸Šà¸²à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢",
+                    title: "สำเร็จ",
+                    description: "สร้างบัญชี TA และเพิ่มเข้ารายวิชาเรียบร้อย",
                     color: "success",
                     timeout: 3000,
                     shouldShowTimeoutProgress: true,
@@ -260,8 +260,8 @@ export function useClassroomActions({
             }
 
             addToast({
-                title: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”",
-                description: response.message || "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¸ªà¸£à¹‰à¸²à¸‡à¸šà¸±à¸à¸Šà¸µ TA à¹„à¸”à¹‰",
+                title: "เกิดข้อผิดพลาด",
+                description: response.message || "ไม่สามารถสร้างบัญชี TA ได้",
                 color: "danger",
                 timeout: 5000,
                 shouldShowTimeoutProgress: true,
@@ -270,8 +270,8 @@ export function useClassroomActions({
         } catch (error: unknown) {
             const err = error as { message?: string };
             addToast({
-                title: "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”",
-                description: err.message || "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¸ªà¸£à¹‰à¸²à¸‡à¸šà¸±à¸à¸Šà¸µ TA à¹„à¸”à¹‰",
+                title: "เกิดข้อผิดพลาด",
+                description: err.message || "ไม่สามารถสร้างบัญชี TA ได้",
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,

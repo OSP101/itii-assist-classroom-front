@@ -15,7 +15,7 @@ function getSecurityPageCopy(language: 'th' | 'en') {
     if (language === 'en') {
         return {
             metadataTitle: 'Security Reporting',
-            metadataDescription: 'Responsible disclosure guidance and channels for reporting security issues in ITII Assist Classroom.',
+            metadataDescription: 'Responsible disclosure guidance and channels for reporting security issues in LabTAS.',
             eyebrow: 'Security Reporting',
             title: 'Report security issues responsibly and help the team respond quickly',
             description: 'Use this page for account takeover, data exposure, privilege issues, abuse, or vulnerabilities that could affect trust in the platform. Avoid public disclosure before the risk has been assessed.',
@@ -75,7 +75,7 @@ function getSecurityPageCopy(language: 'th' | 'en') {
 
     return {
         metadataTitle: 'การแจ้งปัญหาความปลอดภัย',
-        metadataDescription: 'แนวทาง Responsible Disclosure และช่องทางแจ้งปัญหาความปลอดภัยของ ITII Assist Classroom',
+        metadataDescription: 'แนวทาง Responsible Disclosure และช่องทางแจ้งปัญหาความปลอดภัยของ LabTAS',
         eyebrow: 'การแจ้งปัญหาความปลอดภัย',
         title: 'รายงานเหตุด้านความปลอดภัยอย่างรับผิดชอบ และให้ทีมงานตอบสนองได้เร็ว',
         description: 'ใช้หน้านี้สำหรับ account takeover, data exposure, privilege issues, abuse, หรือช่องโหว่ที่กระทบความเชื่อมั่นของระบบ โดยหลีกเลี่ยงการเปิดเผยสู่สาธารณะก่อนการประเมินความเสี่ยง',

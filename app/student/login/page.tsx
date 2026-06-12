@@ -145,7 +145,7 @@ export default function StudentLoginPage() {
               เข้าสู่ระบบนักศึกษา
             </h1>
             <p className="mt-2 text-sm text-slate-500 dark:max-sm:text-slate-300">
-              ใช้บัญชี KKUMail ของนักศึกษาเพื่อเข้าสู่ระบบ ITII Assist Classroom
+              ใช้บัญชี KKUMail ของนักศึกษาเพื่อเข้าสู่ระบบ LabTAS
             </p>
           </div>
 

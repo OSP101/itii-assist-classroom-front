@@ -143,7 +143,7 @@ export default function StudentHomePage() {
               {initials}
             </span>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-sky-100/80">ITII Assist Classroom</p>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-sky-100/80">LabTAS</p>
               <p className="mt-0.5 text-xs font-medium text-white/70">นักศึกษา</p>
             </div>
           </div>
