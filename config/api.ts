@@ -2,7 +2,10 @@
  * API Configuration
  */
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const INTERNAL_API_BASE_URL = process.env.INTERNAL_API_BASE_URL || PUBLIC_API_BASE_URL;
+
+export const API_BASE_URL = typeof window === 'undefined' ? INTERNAL_API_BASE_URL : PUBLIC_API_BASE_URL;
 
 export const API_ENDPOINTS = {
   // Auth
