@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Spinner } from "@heroui/spinner";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { Button } from "@heroui/button";
@@ -12,6 +13,8 @@ import { Avatar } from "@heroui/avatar";
 import { Card, CardBody } from "@heroui/card";
 import { Icon } from "@iconify/react";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import { addToast } from "@heroui/toast";
+import { courseService } from "@/services/course.service";
 import { useSectionsTab, SectionsTabView } from "./sections";
 
 interface SectionsTabProps {
@@ -28,6 +31,17 @@ interface SectionsTabProps {
 
 function formatCount(count: number, singular: string, plural: string) {
     return `${count} ${count === 1 ? singular : plural}`;
+}
+
+interface BulkTeamPreviewItem {
+    name: string;
+    rowNumbers: number[];
+    memberIds: number[];
+    memberLabels: string[];
+    invalidTokens: string[];
+    conflictMembers: Array<{ token: string; teamName: string }>;
+    duplicateWithinTeam: string[];
+    duplicateAcrossImport: Array<{ token: string; teamName: string }>;
 }
 
 /**
@@ -134,6 +148,7 @@ export default function SectionsTab({
         // Utility
         parseExcelData,
         parseTeamExcelData,
+        refreshTeams,
     } = hook;
 
     // Get enrolled student IDs for filtering
@@ -161,6 +176,238 @@ export default function SectionsTab({
             s.full_name.toLowerCase().includes(query)
         );
     };
+
+    const [bulkTeamPasteData, setBulkTeamPasteData] = useState("");
+    const [isBulkImportSubmitting, setIsBulkImportSubmitting] = useState(false);
+
+    const allEnrolledStudents = useMemo(() => getAllEnrolledStudents(), [getAllEnrolledStudents]);
+
+    const studentLookup = useMemo(() => {
+        const byExact = new Map<string, typeof allEnrolledStudents[number]>();
+        allEnrolledStudents.forEach((student) => {
+            byExact.set(student.student_id.toLowerCase(), student);
+            byExact.set(student.full_name.trim().toLowerCase(), student);
+        });
+        return byExact;
+    }, [allEnrolledStudents]);
+
+    const currentTeamAssignments = useMemo(() => {
+        const assignments = new Map<number, string>();
+        const targetTeams = teamModal.type === "permanent"
+            ? permanentTeams
+            : (weeklyTeams[selectedWeek] || []);
+
+        targetTeams.forEach((team) => {
+            team.members.forEach((member) => {
+                assignments.set(member.id, team.name);
+            });
+        });
+
+        return assignments;
+    }, [teamModal.type, permanentTeams, weeklyTeams, selectedWeek]);
+
+    const resolveBulkStudentToken = useCallback((token: string) => {
+        const normalizedToken = token.trim().toLowerCase();
+        if (!normalizedToken) {
+            return null;
+        }
+
+        const exactMatch = studentLookup.get(normalizedToken);
+        if (exactMatch) {
+            return exactMatch;
+        }
+
+        return allEnrolledStudents.find((student) => {
+            const studentId = student.student_id.toLowerCase();
+            const fullName = student.full_name.trim().toLowerCase();
+            return normalizedToken.includes(studentId) || fullName === normalizedToken;
+        }) ?? null;
+    }, [allEnrolledStudents, studentLookup]);
+
+    const bulkTeamPreview = useMemo<BulkTeamPreviewItem[]>(() => {
+        const text = bulkTeamPasteData.trim();
+        if (!text) {
+            return [];
+        }
+
+        const groupedTeams = new Map<string, {
+            name: string;
+            rowNumbers: number[];
+            tokens: string[];
+        }>();
+
+        text
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter((line) => line.length > 0)
+            .forEach((line, index) => {
+                const rawCells = line.includes("\t")
+                    ? line.split("\t")
+                    : line.split(",");
+                const cells = rawCells
+                    .map((cell) => cell.trim())
+                    .filter((cell) => cell.length > 0);
+
+                if (cells.length === 0) {
+                    return;
+                }
+
+                const teamName = cells[0];
+                const memberTokens = cells
+                    .slice(1)
+                    .flatMap((cell) => cell.split(/[;,|/]+/))
+                    .map((cell) => cell.trim())
+                    .filter((cell) => cell.length > 0);
+
+                const existing = groupedTeams.get(teamName) ?? {
+                    name: teamName,
+                    rowNumbers: [],
+                    tokens: [],
+                };
+                existing.rowNumbers.push(index + 1);
+                existing.tokens.push(...memberTokens);
+                groupedTeams.set(teamName, existing);
+            });
+
+        const seenAcrossImport = new Map<number, string>();
+
+        return Array.from(groupedTeams.values()).map((team) => {
+            const memberIds: number[] = [];
+            const memberLabels: string[] = [];
+            const invalidTokens: string[] = [];
+            const conflictMembers: Array<{ token: string; teamName: string }> = [];
+            const duplicateWithinTeam: string[] = [];
+            const duplicateAcrossImport: Array<{ token: string; teamName: string }> = [];
+            const seenWithinTeam = new Set<number>();
+
+            team.tokens.forEach((token) => {
+                const matchedStudent = resolveBulkStudentToken(token);
+                if (!matchedStudent) {
+                    invalidTokens.push(token);
+                    return;
+                }
+
+                if (currentTeamAssignments.has(matchedStudent.id)) {
+                    conflictMembers.push({
+                        token,
+                        teamName: currentTeamAssignments.get(matchedStudent.id) || "",
+                    });
+                    return;
+                }
+
+                if (seenWithinTeam.has(matchedStudent.id)) {
+                    duplicateWithinTeam.push(token);
+                    return;
+                }
+
+                if (seenAcrossImport.has(matchedStudent.id)) {
+                    duplicateAcrossImport.push({
+                        token,
+                        teamName: seenAcrossImport.get(matchedStudent.id) || "",
+                    });
+                    return;
+                }
+
+                seenWithinTeam.add(matchedStudent.id);
+                seenAcrossImport.set(matchedStudent.id, team.name);
+                memberIds.push(matchedStudent.id);
+                memberLabels.push(`${matchedStudent.student_id} ${matchedStudent.full_name}`);
+            });
+
+            return {
+                name: team.name,
+                rowNumbers: team.rowNumbers,
+                memberIds,
+                memberLabels,
+                invalidTokens,
+                conflictMembers,
+                duplicateWithinTeam,
+                duplicateAcrossImport,
+            };
+        });
+    }, [bulkTeamPasteData, currentTeamAssignments, resolveBulkStudentToken]);
+
+    const bulkTeamImportStats = useMemo(() => {
+        const readyTeams = bulkTeamPreview.filter((team) =>
+            team.memberIds.length > 0 &&
+            team.invalidTokens.length === 0 &&
+            team.conflictMembers.length === 0 &&
+            team.duplicateWithinTeam.length === 0 &&
+            team.duplicateAcrossImport.length === 0
+        );
+
+        const invalidTeams = bulkTeamPreview.length - readyTeams.length;
+        return {
+            readyTeams,
+            invalidTeams,
+            totalMembers: readyTeams.reduce((sum, team) => sum + team.memberIds.length, 0),
+        };
+    }, [bulkTeamPreview]);
+
+    const resetBulkTeamImport = useCallback(() => {
+        setBulkTeamPasteData("");
+    }, []);
+
+    useEffect(() => {
+        if (!teamModal.isOpen || teamModal.formationMethod !== "bulk") {
+            resetBulkTeamImport();
+        }
+    }, [teamModal.isOpen, teamModal.formationMethod, resetBulkTeamImport]);
+
+    const handleBulkCreateTeams = useCallback(async () => {
+        if (bulkTeamImportStats.readyTeams.length === 0 || bulkTeamImportStats.invalidTeams > 0) {
+            addToast({
+                title: isEnglish ? "Import not ready" : "ข้อมูลยังไม่พร้อมนำเข้า",
+                description: isEnglish
+                    ? "Please fix invalid rows before creating teams."
+                    : "กรุณาแก้ไขแถวที่ยังมีปัญหาก่อนสร้างกลุ่ม",
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+
+        setIsBulkImportSubmitting(true);
+        try {
+            const response = await courseService.bulkCreateTeams(courseId, {
+                group_type: teamModal.type === "permanent" ? "permanent" : "temporary",
+                week_number: teamModal.type === "weekly" ? selectedWeek : undefined,
+                teams: bulkTeamImportStats.readyTeams.map((team) => ({
+                    name: team.name,
+                    member_ids: team.memberIds,
+                })),
+            });
+
+            if (response.success) {
+                await refreshTeams(true);
+                addToast({
+                    title: isEnglish ? "Import completed" : "นำเข้ากลุ่มสำเร็จ",
+                    description: isEnglish
+                        ? `Created ${bulkTeamImportStats.readyTeams.length} teams from Excel.`
+                        : `สร้างกลุ่มจาก Excel จำนวน ${bulkTeamImportStats.readyTeams.length} กลุ่มเรียบร้อย`,
+                    color: "success",
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+                });
+                resetBulkTeamImport();
+                teamModal.reset();
+            }
+        } catch (error) {
+            const err = error as { message?: string };
+            addToast({
+                title: isEnglish ? "Import failed" : "นำเข้ากลุ่มไม่สำเร็จ",
+                description: err.message || (isEnglish
+                    ? "Unable to create teams from Excel data."
+                    : "ไม่สามารถสร้างกลุ่มจากข้อมูล Excel ได้"),
+                color: "danger",
+                timeout: 4000,
+                shouldShowTimeoutProgress: true,
+            });
+        } finally {
+            setIsBulkImportSubmitting(false);
+        }
+    }, [bulkTeamImportStats, courseId, isEnglish, refreshTeams, resetBulkTeamImport, selectedWeek, teamModal]);
 
     // Initial tab loading is handled by route/tab skeletons.
     // Keep this container blank until course data is ready.
@@ -561,6 +808,8 @@ export default function SectionsTab({
                                 <h3 className="text-xl font-bold text-foreground">
                                     {teamModal.formationMethod === "random"
                                         ? (isEnglish ? "Auto-generate teams" : "สุ่มกลุ่มอัตโนมัติ")
+                                        : teamModal.formationMethod === "bulk"
+                                            ? (isEnglish ? "Import teams from Excel" : "นำเข้ากลุ่มจาก Excel")
                                         : isEnglish
                                             ? `Create a new ${teamModal.type === "permanent" ? "project team" : "weekly team"}`
                                             : `สร้าง${teamModal.type === "permanent" ? "กลุ่มโปรเจกต์" : "กลุ่มโปรเจกต์รายสัปดาห์"}ใหม่`
@@ -573,6 +822,10 @@ export default function SectionsTab({
                                                 ? "Randomly group students into project teams."
                                                 : `Randomly group students for week ${selectedWeek}.`
                                             : `สุ่มจับกลุ่ม${teamModal.type === "permanent" ? "โปรเจกต์" : `สัปดาห์ที่ ${selectedWeek}`}`
+                                        : teamModal.formationMethod === "bulk"
+                                            ? isEnglish
+                                                ? "Paste rows copied from Excel, review them, and create all teams at once."
+                                                : "วางข้อมูลที่คัดลอกมาจาก Excel ตรวจสอบความถูกต้อง แล้วสร้างหลายกลุ่มในครั้งเดียว"
                                         : teamModal.type === "permanent"
                                             ? (isEnglish ? "Teams used throughout the semester." : "กลุ่มที่ใช้ตลอดทั้งเทอม")
                                             : (isEnglish ? `Team for week ${selectedWeek}.` : `กลุ่มสำหรับสัปดาห์ที่ ${selectedWeek}`)
@@ -583,6 +836,55 @@ export default function SectionsTab({
                     </ModalHeader>
                     <ModalBody className="px-6 py-4">
                         <div className="space-y-5">
+                            <div className="grid grid-cols-1 gap-2 rounded-2xl bg-content2 p-1.5 sm:grid-cols-3">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        teamModal.setFormationMethod("manual");
+                                        resetBulkTeamImport();
+                                    }}
+                                    className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
+                                        teamModal.formationMethod === "manual"
+                                            ? "bg-content1 text-blue-700 shadow-sm"
+                                            : "text-default-600 hover:bg-content3"
+                                    }`}
+                                >
+                                    <Icon icon="solar:add-circle-linear" />
+                                    {isEnglish ? "Create manually" : "สร้างเอง"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        teamModal.setFormationMethod("bulk");
+                                        teamModal.setName("");
+                                        teamModal.setMembers([]);
+                                    }}
+                                    className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
+                                        teamModal.formationMethod === "bulk"
+                                            ? "bg-content1 text-blue-700 shadow-sm"
+                                            : "text-default-600 hover:bg-content3"
+                                    }`}
+                                >
+                                    <Icon icon="solar:clipboard-list-linear" />
+                                    {isEnglish ? "Import Excel" : "นำเข้า Excel"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        teamModal.setFormationMethod("random");
+                                        resetBulkTeamImport();
+                                    }}
+                                    className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
+                                        teamModal.formationMethod === "random"
+                                            ? "bg-content1 text-blue-700 shadow-sm"
+                                            : "text-default-600 hover:bg-content3"
+                                    }`}
+                                >
+                                    <Icon icon="solar:shuffle-linear" />
+                                    {isEnglish ? "Randomize" : "สุ่มกลุ่ม"}
+                                </button>
+                            </div>
+
                             {teamModal.formationMethod === "random" ? (
                                 <>
                                     {/* Random Formation Settings */}
@@ -662,6 +964,137 @@ export default function SectionsTab({
                                             </div>
                                         );
                                     })()}
+                                </>
+                            ) : teamModal.formationMethod === "bulk" ? (
+                                <>
+                                    <Card className="border border-blue-100 bg-blue-50/60 shadow-sm">
+                                        <CardBody className="space-y-3 p-4">
+                                            <div className="flex items-start gap-3">
+                                                <div className="rounded-xl bg-blue-100 p-2 text-blue-600">
+                                                    <Icon icon="solar:document-text-bold" className="text-xl" />
+                                                </div>
+                                                <div className="space-y-2 text-sm text-blue-900">
+                                                    <p className="font-semibold">
+                                                        {isEnglish ? "Expected format" : "รูปแบบที่รองรับ"}
+                                                    </p>
+                                                    <p>
+                                                        {isEnglish
+                                                            ? "Put the team name in the first column, then member student IDs or names in the next columns."
+                                                            : "ใส่ชื่อกลุ่มไว้คอลัมน์แรก แล้วใส่รหัสนักศึกษาหรือชื่อนักศึกษาในคอลัมน์ถัดไป"}
+                                                    </p>
+                                                    <pre className="overflow-x-auto rounded-xl bg-white/80 p-3 text-xs text-blue-800">{`Alpha\t64070001\t64070002\nBeta\t64070003\t64070004`}</pre>
+                                                    <p className="text-blue-700">
+                                                        {isEnglish
+                                                            ? "If one team spans multiple Excel rows, reuse the same team name and the system will merge them."
+                                                            : "ถ้ากลุ่มเดียวกันมีหลายแถว ให้ใช้ชื่อกลุ่มเดิมซ้ำได้ ระบบจะรวมสมาชิกให้เอง"}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </CardBody>
+                                    </Card>
+
+                                    <div>
+                                        <label className="mb-2 block text-sm font-medium text-default-600">
+                                            {isEnglish ? "Paste rows from Excel" : "วางข้อมูลที่คัดลอกจาก Excel"}
+                                        </label>
+                                        <Textarea
+                                            placeholder={"Alpha\t64070001\t64070002\nBeta\t64070003\t64070004"}
+                                            value={bulkTeamPasteData}
+                                            onValueChange={setBulkTeamPasteData}
+                                            minRows={7}
+                                            variant="bordered"
+                                            classNames={{
+                                                inputWrapper: "bg-content1 border-blue-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                            }}
+                                        />
+                                    </div>
+
+                                    {bulkTeamPreview.length > 0 && (
+                                        <div className="space-y-3">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <Chip size="sm" variant="flat" className="bg-blue-100 text-blue-700">
+                                                    {isEnglish ? `Ready ${bulkTeamImportStats.readyTeams.length} teams` : `พร้อมสร้าง ${bulkTeamImportStats.readyTeams.length} กลุ่ม`}
+                                                </Chip>
+                                                <Chip size="sm" variant="flat" className="bg-amber-100 text-amber-700">
+                                                    {isEnglish ? `Need review ${bulkTeamImportStats.invalidTeams} teams` : `ต้องตรวจทาน ${bulkTeamImportStats.invalidTeams} กลุ่ม`}
+                                                </Chip>
+                                                <Chip size="sm" variant="flat" className="bg-emerald-100 text-emerald-700">
+                                                    {isEnglish ? `${bulkTeamImportStats.totalMembers} members ready` : `สมาชิกพร้อมนำเข้า ${bulkTeamImportStats.totalMembers} คน`}
+                                                </Chip>
+                                            </div>
+
+                                            <div className="max-h-80 space-y-3 overflow-y-auto pr-1">
+                                                {bulkTeamPreview.map((team) => {
+                                                    const isReady =
+                                                        team.memberIds.length > 0 &&
+                                                        team.invalidTokens.length === 0 &&
+                                                        team.conflictMembers.length === 0 &&
+                                                        team.duplicateWithinTeam.length === 0 &&
+                                                        team.duplicateAcrossImport.length === 0;
+
+                                                    return (
+                                                        <Card
+                                                            key={`${team.name}-${team.rowNumbers.join("-")}`}
+                                                            className={`border ${isReady ? "border-emerald-200 bg-emerald-50/40" : "border-amber-200 bg-amber-50/40"}`}
+                                                        >
+                                                            <CardBody className="space-y-3 p-4">
+                                                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                                                    <div>
+                                                                        <p className="font-semibold text-foreground">{team.name}</p>
+                                                                        <p className="text-xs text-default-500">
+                                                                            {isEnglish
+                                                                                ? `Rows ${team.rowNumbers.join(", ")}`
+                                                                                : `แถวที่ ${team.rowNumbers.join(", ")}`}
+                                                                        </p>
+                                                                    </div>
+                                                                    <Chip
+                                                                        size="sm"
+                                                                        variant="flat"
+                                                                        className={isReady ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}
+                                                                    >
+                                                                        {isReady
+                                                                            ? (isEnglish ? `${team.memberIds.length} members ready` : `พร้อม ${team.memberIds.length} คน`)
+                                                                            : (isEnglish ? "Needs review" : "ต้องตรวจทาน")}
+                                                                    </Chip>
+                                                                </div>
+
+                                                                {team.memberLabels.length > 0 && (
+                                                                    <div className="flex flex-wrap gap-2">
+                                                                        {team.memberLabels.map((label) => (
+                                                                            <Chip key={`${team.name}-${label}`} size="sm" variant="flat" className="bg-content1 text-default-700">
+                                                                                {label}
+                                                                            </Chip>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+
+                                                                {team.invalidTokens.length > 0 && (
+                                                                    <p className="text-sm text-red-600">
+                                                                        {isEnglish ? "Not found:" : "ไม่พบข้อมูล:"} {team.invalidTokens.join(", ")}
+                                                                    </p>
+                                                                )}
+                                                                {team.conflictMembers.length > 0 && (
+                                                                    <p className="text-sm text-amber-700">
+                                                                        {isEnglish ? "Already assigned:" : "มีสมาชิกอยู่ในกลุ่มแล้ว:"} {team.conflictMembers.map((item) => `${item.token} (${item.teamName})`).join(", ")}
+                                                                    </p>
+                                                                )}
+                                                                {team.duplicateWithinTeam.length > 0 && (
+                                                                    <p className="text-sm text-amber-700">
+                                                                        {isEnglish ? "Duplicated in this team:" : "มีข้อมูลซ้ำในกลุ่มเดียวกัน:"} {team.duplicateWithinTeam.join(", ")}
+                                                                    </p>
+                                                                )}
+                                                                {team.duplicateAcrossImport.length > 0 && (
+                                                                    <p className="text-sm text-amber-700">
+                                                                        {isEnglish ? "Duplicated across imported teams:" : "มีข้อมูลซ้ำกับกลุ่มอื่นในชุดนำเข้า:"} {team.duplicateAcrossImport.map((item) => `${item.token} (${item.teamName})`).join(", ")}
+                                                                    </p>
+                                                                )}
+                                                            </CardBody>
+                                                        </Card>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
                                 </>
                             ) : (
                                 <>
@@ -923,17 +1356,25 @@ export default function SectionsTab({
                             {isEnglish ? "Cancel" : "ยกเลิก"}
                         </Button>
                         <Button 
-                            onPress={handleCreateTeam}
-                            isLoading={isSubmitting}
+                            onPress={teamModal.formationMethod === "bulk" ? handleBulkCreateTeams : handleCreateTeam}
+                            isLoading={teamModal.formationMethod === "bulk" ? isBulkImportSubmitting : isSubmitting}
                             isDisabled={
-                                !isCourseActive || teamModal.formationMethod === "manual" 
-                                    ? !teamModal.name.trim() || teamModal.members.length === 0
-                                    : getUnassignedStudents(teamModal.type, teamModal.type === "weekly" ? selectedWeek : undefined).length === 0
+                                !isCourseActive || (
+                                    teamModal.formationMethod === "manual"
+                                        ? (!teamModal.name.trim() || teamModal.members.length === 0)
+                                        : teamModal.formationMethod === "bulk"
+                                            ? (bulkTeamImportStats.readyTeams.length === 0 || bulkTeamImportStats.invalidTeams > 0)
+                                            : (getUnassignedStudents(teamModal.type, teamModal.type === "weekly" ? selectedWeek : undefined).length === 0)
+                                )
                             }
                             className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-500/25"
                         >
                             {teamModal.formationMethod === "random"
                                 ? (isEnglish ? "Randomize teams" : "สุ่มกลุ่ม")
+                                : teamModal.formationMethod === "bulk"
+                                    ? (isEnglish
+                                        ? `Create ${bulkTeamImportStats.readyTeams.length} teams`
+                                        : `สร้าง ${bulkTeamImportStats.readyTeams.length} กลุ่ม`)
                                 : isEnglish
                                     ? `Create team${teamModal.members.length > 0 ? ` (${teamModal.members.length})` : ""}`
                                     : `สร้างกลุ่ม${teamModal.members.length > 0 ? ` (${teamModal.members.length} คน)` : ""}`

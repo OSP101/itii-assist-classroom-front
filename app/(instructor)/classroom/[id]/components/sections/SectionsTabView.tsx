@@ -996,6 +996,16 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                             >
                                 {isEnglish ? "Create team" : "สร้างกลุ่ม"}
                             </Button>
+                            <Button
+                                variant="flat"
+                                onPress={() => onOpenCreateTeamModal("permanent", "bulk")}
+                                className={instructorFlatButtonClass("bg-blue-50 text-blue-700 shrink-0 hidden lg:flex")}
+                                size="md"
+                                isDisabled={isTeamsLoading || !isCourseActive || !canCreateTeams}
+                                startContent={<Icon icon="solar:clipboard-list-bold" className="text-lg" />}
+                            >
+                                {isEnglish ? "Import Excel" : "นำเข้าจาก Excel"}
+                            </Button>
                         </div>
                     </div>
                 </CardBody>
@@ -1059,6 +1069,16 @@ const PermanentTeamsSubTab = React.memo(function PermanentTeamsSubTab({
                                     className={instructorPrimaryButtonClass()}
                                 >
                                     {isEnglish ? "Create manually" : "สร้างกลุ่มเอง"}
+                                </Button>
+                            )}
+                            {canCreateTeams && (
+                                <Button
+                                    variant="flat"
+                                    onPress={() => onOpenCreateTeamModal("permanent", "bulk")}
+                                    isDisabled={!isCourseActive}
+                                    className={instructorFlatButtonClass("bg-blue-50 text-blue-700")}
+                                >
+                                    {isEnglish ? "Import from Excel" : "นำเข้าจาก Excel"}
                                 </Button>
                             )}
                         </div>
@@ -1289,6 +1309,16 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                             >
                                 {isEnglish ? "Create team" : "สร้างกลุ่ม"}
                             </Button>
+                            <Button
+                                variant="flat"
+                                size="md"
+                                isDisabled={!isCourseActive || !canCreateTeams}
+                                onPress={() => onOpenCreateTeamModal("weekly", "bulk")}
+                                className={instructorFlatButtonClass("bg-blue-50 text-blue-700 shrink-0 hidden lg:flex")}
+                                startContent={<Icon icon="solar:clipboard-list-bold" className="text-lg" />}
+                            >
+                                {isEnglish ? "Import Excel" : "นำเข้าจาก Excel"}
+                            </Button>
                         </div>
                     </div>
                 </CardBody>
@@ -1408,6 +1438,16 @@ const WeeklyTeamsSubTab = React.memo(function WeeklyTeamsSubTab({
                                     className={instructorPrimaryButtonClass()}
                                 >
                                     {isEnglish ? "Create manually" : "สร้างกลุ่มเอง"}
+                                </Button>
+                            )}
+                            {canCreateTeams && (
+                                <Button
+                                    variant="flat"
+                                    onPress={() => onOpenCreateTeamModal("weekly", "bulk")}
+                                    isDisabled={!isCourseActive}
+                                    className={instructorFlatButtonClass("bg-blue-50 text-blue-700")}
+                                >
+                                    {isEnglish ? "Import from Excel" : "นำเข้าจาก Excel"}
                                 </Button>
                             )}
                         </div>

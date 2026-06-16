@@ -605,25 +605,25 @@ export default function LoginPage() {
                 isKeyboardDismissDisabled={true}
                 size="md"
             >
-                <ModalContent>
+                <ModalContent className="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-linear-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:key-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">{t("changePassword")}</h3>
-                                <p className="text-sm text-slate-500 font-normal mt-1">{t("setNewPasswordForSecurity")}</p>
+                                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t("resetPasswordTitle")}</h3>
+                                <p className="mt-1 text-sm font-normal text-slate-500 dark:text-slate-300">{t("enterNewPasswordForAccount")}</p>
                             </div>
                         </div>
                     </ModalHeader>
                     <ModalBody className="px-6 py-4">
                         <div className="space-y-4">
                             {/* Info Box */}
-                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-500/30 dark:bg-blue-500/10">
                                 <div className="flex items-start gap-3">
-                                    <Icon icon="solar:info-circle-bold" className="text-blue-500 text-xl mt-0.5" />
-                                    <div className="text-sm text-blue-700">
+                                    <Icon icon="solar:info-circle-bold" className="mt-0.5 text-xl text-blue-500 dark:text-blue-300" />
+                                    <div className="text-sm text-blue-700 dark:text-blue-100">
                                         <p className="font-semibold">{t("welcomeFirstLogin", { username: pendingUser?.username || "" })}</p>
                                         <p className="mt-1">{t("firstLoginSetNewPassword")}</p>
                                     </div>
@@ -655,14 +655,15 @@ export default function LoginPage() {
                                         </button>
                                     }
                                     classNames={{
-                                        inputWrapper: "border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                        label: "text-slate-600 font-medium text-sm",
+                                        inputWrapper: "border-slate-200 bg-white hover:border-blue-300 focus-within:!border-blue-400 dark:border-slate-700 dark:bg-slate-900/80 dark:hover:border-blue-500 dark:focus-within:!border-blue-400",
+                                        input: "text-slate-800 placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500",
+                                        label: "text-sm font-medium text-slate-700 dark:text-slate-200",
                                     }}
                                 />
 
                                 {/* Confirm Password */}
                                 <Input
-                                    label={t("confirmPassword")}
+                                    label={t("confirmNewPasswordLabel")}
                                     labelPlacement="outside"
                                     placeholder={t("confirmNewPassword")}
                                     variant="bordered"
@@ -684,8 +685,10 @@ export default function LoginPage() {
                                         </button>
                                     }
                                     classNames={{
-                                        inputWrapper: "border-slate-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                        label: "text-slate-600 font-medium text-sm",
+                                        inputWrapper: "border-slate-200 bg-white hover:border-blue-300 focus-within:!border-blue-400 dark:border-slate-700 dark:bg-slate-900/80 dark:hover:border-blue-500 dark:focus-within:!border-blue-400",
+                                        input: "text-slate-800 placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500",
+                                        label: "text-sm font-medium text-slate-700 dark:text-slate-200",
+                                        errorMessage: "text-red-600 dark:text-red-400",
                                     }}
                                     isInvalid={confirmPassword !== "" && newPassword !== confirmPassword}
                                     errorMessage={confirmPassword !== "" && newPassword !== confirmPassword ? t("passwordsDoNotMatch") : ""}
@@ -693,42 +696,42 @@ export default function LoginPage() {
                             </div>
 
                             {/* Password Requirements */}
-                            <div className="bg-slate-50 rounded-lg p-3 space-y-2">
-                                <p className="text-xs font-medium text-slate-600 mb-2">{t("passwordRequirements")}</p>
+                            <div className="space-y-2 rounded-lg bg-slate-50 p-3 dark:bg-slate-900/80">
+                                <p className="mb-2 text-xs font-medium text-slate-600 dark:text-slate-300">{t("passwordRequirements")}</p>
                                 <div className="space-y-1.5">
                                     <div className="flex items-center gap-2">
                                         <Icon 
                                             icon={passwordValidation.minLength ? "solar:check-circle-bold" : "solar:close-circle-linear"} 
-                                            className={passwordValidation.minLength ? "text-green-500" : "text-slate-400"} 
+                                            className={passwordValidation.minLength ? "text-green-500 dark:text-green-400" : "text-slate-400 dark:text-slate-500"} 
                                         />
-                                        <span className={`text-xs ${passwordValidation.minLength ? "text-green-600" : "text-slate-500"}`}>
+                                        <span className={`text-xs ${passwordValidation.minLength ? "text-green-600 dark:text-green-300" : "text-slate-500 dark:text-slate-300"}`}>
                                             {t("atLeastEightCharacters")}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Icon 
                                             icon={passwordValidation.hasLowercase ? "solar:check-circle-bold" : "solar:close-circle-linear"} 
-                                            className={passwordValidation.hasLowercase ? "text-green-500" : "text-slate-400"} 
+                                            className={passwordValidation.hasLowercase ? "text-green-500 dark:text-green-400" : "text-slate-400 dark:text-slate-500"} 
                                         />
-                                        <span className={`text-xs ${passwordValidation.hasLowercase ? "text-green-600" : "text-slate-500"}`}>
+                                        <span className={`text-xs ${passwordValidation.hasLowercase ? "text-green-600 dark:text-green-300" : "text-slate-500 dark:text-slate-300"}`}>
                                             {t("containsLowercaseLetter")}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Icon 
                                             icon={passwordValidation.hasUppercase ? "solar:check-circle-bold" : "solar:close-circle-linear"} 
-                                            className={passwordValidation.hasUppercase ? "text-green-500" : "text-slate-400"} 
+                                            className={passwordValidation.hasUppercase ? "text-green-500 dark:text-green-400" : "text-slate-400 dark:text-slate-500"} 
                                         />
-                                        <span className={`text-xs ${passwordValidation.hasUppercase ? "text-green-600" : "text-slate-500"}`}>
+                                        <span className={`text-xs ${passwordValidation.hasUppercase ? "text-green-600 dark:text-green-300" : "text-slate-500 dark:text-slate-300"}`}>
                                             {t("containsUppercaseLetter")}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Icon 
                                             icon={passwordValidation.hasSpecialChar ? "solar:check-circle-bold" : "solar:close-circle-linear"} 
-                                            className={passwordValidation.hasSpecialChar ? "text-green-500" : "text-slate-400"} 
+                                            className={passwordValidation.hasSpecialChar ? "text-green-500 dark:text-green-400" : "text-slate-400 dark:text-slate-500"} 
                                         />
-                                        <span className={`text-xs ${passwordValidation.hasSpecialChar ? "text-green-600" : "text-slate-500"}`}>
+                                        <span className={`text-xs ${passwordValidation.hasSpecialChar ? "text-green-600 dark:text-green-300" : "text-slate-500 dark:text-slate-300"}`}>
                                             {t("containsSpecialCharacter")}
                                         </span>
                                     </div>
@@ -736,7 +739,7 @@ export default function LoginPage() {
                             </div>
                         </div>
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4 border-t border-slate-100">
+                    <ModalFooter className="border-t border-slate-100 px-6 py-4 dark:border-slate-800">
                         <Button
                             color="primary"
                             onPress={handleForceChangePassword}
@@ -745,7 +748,7 @@ export default function LoginPage() {
                             className="w-full font-medium bg-linear-to-r from-blue-400 to-indigo-500"
                             startContent={!isChangingPassword && <Icon icon="solar:key-bold" className="text-lg" />}
                         >
-                            {t("changePassword")}
+                            {t("resetPasswordTitle")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>

@@ -284,6 +284,7 @@ export interface UseSectionsTabReturn {
     // Utility
     parseExcelData: (pasteData: string) => void;
     parseTeamExcelData: (pasteData: string) => Promise<void>;
+    refreshTeams: (forceRefresh?: boolean) => Promise<void>;
 }
 
 // ============================================
@@ -1379,7 +1380,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
                 shouldShowTimeoutProgress: true,
                 });
             }
-        } else {
+        } else if (teamModalState.formationMethod === "random") {
             // Random team creation
             const unassigned = getUnassignedStudents(
                 teamModalState.type,
@@ -1877,5 +1878,6 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         // Utility
         parseExcelData,
         parseTeamExcelData,
+        refreshTeams: fetchTeams,
     };
 }

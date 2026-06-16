@@ -7,6 +7,64 @@ const docsDirectoryTh = path.join(process.cwd(), '../MANUAL_GUIDE_TH');
 const docsDirectoryEn = path.join(process.cwd(), '../MANUAL_GUIDE_EN');
 
 type DocsLanguage = 'th' | 'en';
+type DocDefinition = {
+    slug: string;
+    related?: string[];
+};
+
+const docDefinitions: Record<string, DocDefinition> = {
+    '01_SYSTEM_CAPABILITIES_TH.md': {
+        slug: 'getting-started',
+        related: ['quick-start-student', 'quick-start-instructor', 'quick-start-ta'],
+    },
+    '02_INSTRUCTOR_STEP_BY_STEP_TH.md': {
+        slug: 'instructor-end-to-end',
+        related: ['ta-operations', 'role-permission-matrix'],
+    },
+    '03_TA_STEP_BY_STEP_TH.md': {
+        slug: 'ta-operations',
+        related: ['instructor-end-to-end', 'role-permission-matrix'],
+    },
+    '04_STUDENT_STEP_BY_STEP_TH.md': {
+        slug: 'student-step-by-step',
+        related: ['getting-started', 'troubleshooting-guide'],
+    },
+    '05_ROLE_PERMISSION_MATRIX_TH.md': {
+        slug: 'role-permission-matrix',
+        related: ['instructor-end-to-end', 'ta-operations'],
+    },
+    '06_TROUBLESHOOTING_AND_SUPPORT_TH.md': {
+        slug: 'troubleshooting-guide',
+        related: ['getting-started', 'student-step-by-step'],
+    },
+    '07_AI_ASSISTANT_RULES_TH.md': {
+        slug: 'ai-assistant-rules',
+        related: ['role-permission-matrix', 'troubleshooting-guide'],
+    },
+    '10_QUICK_START_INSTRUCTOR_TH.md': {
+        slug: 'quick-start-instructor',
+        related: ['instructor-end-to-end', 'role-permission-matrix'],
+    },
+    '11_QUICK_START_TA_TH.md': {
+        slug: 'quick-start-ta',
+        related: ['ta-operations', 'role-permission-matrix'],
+    },
+    '12_QUICK_START_STUDENT_TH.md': {
+        slug: 'quick-start-student',
+        related: ['student-step-by-step', 'getting-started'],
+    },
+};
+
+const docSlugAliases: Record<string, string> = {
+    'system-capabilities': 'getting-started',
+    'assignments': 'student-step-by-step',
+    'attendance': 'student-step-by-step',
+    'queue-workflow': 'student-step-by-step',
+    'scores-appeals': 'student-step-by-step',
+    'account-security': 'getting-started',
+    'browser-permissions': 'student-step-by-step',
+    'security-reporting': 'ai-assistant-rules',
+};
 
 const categoryLabels = {
     th: {
@@ -59,20 +117,41 @@ function getDocSourcePath(fileName: string, language: DocsLanguage) {
     return path.join(docsDirectoryTh, fileName);
 }
 
+function slugifyFallback(fileName: string) {
+    return fileName
+        .replace(/\.md$/i, '')
+        .replace(/^\d+_/, '')
+        .replace(/_TH$/i, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
+function getCanonicalSlug(fileName: string) {
+    return docDefinitions[fileName]?.slug ?? slugifyFallback(fileName);
+}
+
+function normalizeDocSlug(slug: string) {
+    const normalized = slug.trim().toLowerCase();
+    return docSlugAliases[normalized] ?? normalized;
+}
+
 function inferCategory(slug: string) {
-    if (slug.includes('INSTRUCTOR') || slug.includes('TA')) {
+    const key = slug.toUpperCase();
+
+    if (key.includes('INSTRUCTOR') || key.includes('TA')) {
         return 'teaching';
     }
 
-    if (slug.includes('STUDENT')) {
+    if (key.includes('STUDENT')) {
         return 'student';
     }
 
-    if (slug.includes('SYSTEM') || slug.includes('ROLE')) {
+    if (key.includes('SYSTEM') || key.includes('ROLE')) {
         return 'admin';
     }
 
-    if (slug.includes('AI_ASSISTANT')) {
+    if (key.includes('AI_ASSISTANT')) {
         return 'policy';
     }
 
@@ -80,15 +159,17 @@ function inferCategory(slug: string) {
 }
 
 function inferAudience(slug: string, language: DocsLanguage) {
-    if (slug.includes('INSTRUCTOR') || slug.includes('TA') || slug.includes('AI_ASSISTANT')) {
+    const key = slug.toUpperCase();
+
+    if (key.includes('INSTRUCTOR') || key.includes('TA') || key.includes('AI_ASSISTANT')) {
         return audienceLabels[language].teaching;
     }
 
-    if (slug.includes('STUDENT')) {
+    if (key.includes('STUDENT')) {
         return audienceLabels[language].student;
     }
 
-    if (slug.includes('SYSTEM') || slug.includes('ROLE')) {
+    if (key.includes('SYSTEM') || key.includes('ROLE')) {
         return audienceLabels[language].admin;
     }
 
@@ -96,7 +177,7 @@ function inferAudience(slug: string, language: DocsLanguage) {
 }
 
 function inferIcon(slug: string, category: string) {
-    if (slug.includes('AI_ASSISTANT')) {
+    if (slug.toUpperCase().includes('AI_ASSISTANT')) {
         return 'solar:cpu-bolt-bold';
     }
 
@@ -167,15 +248,15 @@ export function getAllDocs(language: DocsLanguage = 'th'): DocsArticle[] {
     const docsFiles = getCanonicalDocFiles();
 
     return docsFiles.map((fileName) => {
-        const slug = fileName.replace(/\.md$/, '');
+        const slug = getCanonicalSlug(fileName);
         const fullPath = getDocSourcePath(fileName, language);
         const fileContents = fs.readFileSync(fullPath, 'utf8');
         const { data, content } = matter(fileContents);
-        const category = inferCategory(slug);
+        const category = inferCategory(fileName);
         const title = data.title || extractTitle(content, language);
         const description = data.description || extractDescription(content);
-        const audience = inferAudience(slug, language);
-        const icon = inferIcon(slug, category);
+        const audience = inferAudience(fileName, language);
+        const icon = inferIcon(fileName, category);
         const categoryLabel = getCategoryLabel(category, language);
         const stats = fs.statSync(path.join(docsDirectoryTh, fileName));
         const updatedAt = formatUpdatedAt(stats.mtime, language);
@@ -192,13 +273,14 @@ export function getAllDocs(language: DocsLanguage = 'th'): DocsArticle[] {
             readingTime: calculateReadingTime(content, language),
             content: content.replace(/^#\s+(.*)\n/, ''), // Strip the main title so we don't duplicate it
             sections: extractSections(content),
-            related: []
+            related: docDefinitions[fileName]?.related ?? []
         };
     }).sort((a, b) => a.slug.localeCompare(b.slug));
 }
 
 export function getDocBySlug(slug: string, language: DocsLanguage = 'th'): DocsArticle | undefined {
-    return getAllDocs(language).find(doc => doc.slug === slug);
+    const normalizedSlug = normalizeDocSlug(slug);
+    return getAllDocs(language).find(doc => doc.slug === normalizedSlug);
 }
 
 export function getDocsByCategory(category: string, language: DocsLanguage = 'th'): DocsArticle[] {

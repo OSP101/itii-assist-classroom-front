@@ -35,7 +35,7 @@ export interface WeeklyTeam {
 // ============================================
 
 export type SectionSubTab = "students" | "permanent" | "weekly";
-export type TeamFormationMethod = "manual" | "random";
+export type TeamFormationMethod = "manual" | "random" | "bulk";
 export type TeamType = "permanent" | "weekly";
 
 export interface SectionsTabProps {
