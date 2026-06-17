@@ -6,6 +6,14 @@ import type { AppRole } from '@/lib/auth-routing';
 export const AUTH_USER_UPDATED_EVENT = 'auth:user-updated';
 export const PENDING_PREFERENCES_STORAGE_KEY = 'auth:pending-preferences';
 
+function getOAuthApiBaseUrl(): string {
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/api`;
+  }
+
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+}
+
 let authChannel: BroadcastChannel | null = null;
 if (typeof window !== 'undefined') {
   authChannel = new BroadcastChannel('auth-sync');
@@ -468,7 +476,7 @@ class AuthService {
    * Get Google OAuth URL
    */
   getGoogleAuthUrl(audience?: 'student'): string {
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+    const apiBaseUrl = getOAuthApiBaseUrl();
     if (audience === 'student') {
       return `${apiBaseUrl}/auth/google?audience=student`;
     }
@@ -480,7 +488,7 @@ class AuthService {
    * Get GitHub OAuth URL
    */
   getGitHubAuthUrl(): string {
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+    const apiBaseUrl = getOAuthApiBaseUrl();
     return `${apiBaseUrl}/auth/github`;
   }
 

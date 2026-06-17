@@ -105,7 +105,10 @@ class OAuthService {
     // This is more reliable than backend cookies which can be dropped during cross-origin redirects.
     localStorage.setItem("pending_oauth_link_provider", provider);
 
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "/api";
+    const backendUrl =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/api`
+        : (process.env.NEXT_PUBLIC_API_URL || "/api");
     const linkUrl = new URL(`${backendUrl}/auth/${provider}`);
     linkUrl.searchParams.set("action", "link");
     if (accessToken) {
