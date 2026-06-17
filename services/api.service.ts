@@ -113,7 +113,10 @@ class ApiService {
     retry = true,
     retryCount = 0
   ): Promise<ApiResponse<T>> {
-    const url = new URL(`${this.baseURL}${endpoint}`);
+    const url = new URL(
+      `${this.baseURL}${endpoint}`,
+      typeof window !== 'undefined' ? window.location.origin : 'http://localhost'
+    );
     
     if (options?.params) {
       Object.entries(options.params).forEach(([key, value]) => {
