@@ -40,6 +40,7 @@ const ANNOUNCEMENT_IMAGE_MIN_WIDTH = 1200;
 const ANNOUNCEMENT_IMAGE_MIN_HEIGHT = 600;
 const ANNOUNCEMENT_IMAGE_EDIT_WIDTH = 1920;
 const ANNOUNCEMENT_IMAGE_EDIT_HEIGHT = 1080;
+const ANNOUNCEMENT_PREVIEW_BASE_URL = (process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "");
 
 async function getImageDimensions(file: File): Promise<{ width: number; height: number; objectUrl: string } | null> {
     const objectUrl = URL.createObjectURL(file);
@@ -1754,7 +1755,7 @@ export default function AdminSettingsPage() {
                                                     <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
                                                 </div>
                                                 <div className="rounded-md bg-content1 px-2 py-1 text-[11px] text-default-500">
-                                                    https://itii.osp101.dev/{announcementPreviewLanguage === "th" ? "th" : "en"}{announcementPreviewPathUrlMap[announcementPreviewPath] || "/home"}
+                                                    {ANNOUNCEMENT_PREVIEW_BASE_URL}/{announcementPreviewLanguage === "th" ? "th" : "en"}{announcementPreviewPathUrlMap[announcementPreviewPath] || "/home"}
                                                 </div>
                                             </div>
                                             <div className="p-4">

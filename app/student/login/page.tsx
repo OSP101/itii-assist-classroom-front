@@ -1,24 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Button } from "@heroui/button";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { IoSchool } from "react-icons/io5";
-import type { TurnstileInstance } from "@marsidev/react-turnstile";
 import { authService } from "@/services";
 import { AppFooter } from "@/components/Footer";
 import { useI18n } from "@/hooks/useI18n";
 import { getDefaultRouteForRole, isStudentRole } from "@/lib/auth-routing";
 import { normalizeAppReturnPath, storeOAuthReturnPath } from "@/lib/auth-resume";
-
-const Turnstile = dynamic(
-  () => import("@marsidev/react-turnstile").then((mod) => mod.Turnstile),
-  { ssr: false },
-);
 
 function AppMark({ className = "" }: { className?: string }) {
   return (
@@ -47,11 +40,6 @@ export default function StudentLoginPage() {
   const searchParams = useSearchParams();
   const t = useI18n();
   const nextPath = normalizeAppReturnPath(searchParams.get("next")) || "/student";
-  const refTurnstile = useRef<TurnstileInstance>(null);
-  const [turnstileKey, setTurnstileKey] = useState<string | null>(null);
-  const [canSubmit, setCanSubmit] = useState(false);
-  const [turnstileReady, setTurnstileReady] = useState(false);
-  const [widgetInstanceKey, setWidgetInstanceKey] = useState(0);
 
   useEffect(() => {
     const error = searchParams.get("error");
@@ -88,37 +76,7 @@ export default function StudentLoginPage() {
     checkAuth();
   }, [nextPath, router]);
 
-  useEffect(() => {
-    const key = process.env.NEXT_PUBLIC_CLOUD ?? null;
-
-    setCanSubmit(false);
-    setTurnstileReady(false);
-    setTurnstileKey(key);
-    setWidgetInstanceKey((current) => current + 1);
-
-    if (!key) {
-      addToast({
-        title: "Turnstile ยังไม่พร้อมใช้งาน",
-        description: "ยังไม่ได้ตั้งค่า site key สำหรับการยืนยันตัวตน",
-        color: "warning",
-        timeout: 4000,
-        shouldShowTimeoutProgress: true,
-      });
-    }
-  }, []);
-
   const handleGoogleLogin = () => {
-    if (!canSubmit) {
-      addToast({
-        title: "ยืนยันตัวตนก่อนเข้าสู่ระบบ",
-        description: "กรุณายืนยันว่าคุณไม่ใช่บอท",
-        color: "warning",
-        timeout: 3000,
-        shouldShowTimeoutProgress: true,
-      });
-      return;
-    }
-
     storeOAuthReturnPath(nextPath);
     window.location.href = authService.getGoogleAuthUrl("student");
   };
@@ -157,62 +115,9 @@ export default function StudentLoginPage() {
               className="h-10.5 w-full border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:text-white dark:max-sm:data-[hover=true]:border-sky-400/45 dark:max-sm:data-[hover=true]:bg-sky-400/10 disabled:cursor-not-allowed disabled:opacity-55"
               onPress={handleGoogleLogin}
               startContent={<SocialIconGoogle />}
-              isDisabled={!canSubmit}
             >
               เข้าสู่ระบบด้วย Google
             </Button>
-
-            <div className="pt-1">
-              <p className="mb-2 text-[14px] font-medium text-slate-600 dark:max-sm:text-slate-200 dark:sm:text-slate-700">
-                ยืนยันว่าคุณไม่ใช่บอท
-              </p>
-              <div className="w-full" suppressHydrationWarning>
-                {turnstileKey ? (
-                  <Turnstile
-                    key={widgetInstanceKey}
-                    id="student-turnstile"
-                    ref={refTurnstile}
-                    siteKey={turnstileKey}
-                    onSuccess={() => {
-                      setCanSubmit(true);
-                      setTurnstileReady(true);
-                    }}
-                    onError={() => {
-                      setCanSubmit(false);
-                      setTurnstileReady(true);
-                      refTurnstile.current?.reset();
-                    }}
-                    onExpire={() => {
-                      setCanSubmit(false);
-                      refTurnstile.current?.reset();
-                    }}
-                    onWidgetLoad={() => {
-                      setCanSubmit(false);
-                      setTurnstileReady(true);
-                    }}
-                    options={{
-                      theme: "auto",
-                      size: "flexible",
-                      retry: "never",
-                      refreshExpired: "manual",
-                      refreshTimeout: "manual",
-                    }}
-                  />
-                ) : !turnstileReady ? (
-                  <div className="flex h-16.25 w-full items-center justify-between border border-blue-100 bg-blue-50/40 px-3 dark:max-sm:border-white/12 dark:max-sm:bg-white/8">
-                    <div className="flex items-center gap-3">
-                      <span className="h-6 w-6 rounded-sm border-2 border-blue-300 bg-white dark:max-sm:border-sky-300/50 dark:max-sm:bg-slate-950" />
-                      <span className="text-[14px] text-slate-700 dark:max-sm:text-slate-100">กำลังเตรียมการยืนยันตัวตน</span>
-                    </div>
-                    <AppMark className="scale-75" />
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:max-sm:border-amber-400/30 dark:max-sm:bg-amber-500/10 dark:max-sm:text-amber-100">
-                    ไม่พบการตั้งค่า Turnstile site key จึงยังไม่สามารถเปิดปุ่มเข้าสู่ระบบได้
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         </section>
       </main>

@@ -27,7 +27,8 @@ import { Divider } from "@heroui/divider";
 import { Skeleton } from "@heroui/skeleton";
 import { buildPageTitle } from "@/lib/page-title";
 
-const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
+const FRONTEND_URL = (process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "");
+const FRONTEND_HOST_LABEL = FRONTEND_URL.replace(/^https?:\/\//, "");
 
 interface DeskBooking {
     id: number;
@@ -863,7 +864,7 @@ export default function ProjectorViewPage() {
                                     <p className="text-4xl font-mono font-bold text-blue-700 dark:text-blue-300 text-center">{data.session.pin_code}</p>
 
                                     <Divider className="my-3" />
-                                    <p className="font-mono text-foreground">{`itii.osp101.dev/queue/book`}</p>
+                                    <p className="font-mono text-foreground">{`${FRONTEND_HOST_LABEL}/queue/book`}</p>
                                 </div>
                             </div>
                         )}

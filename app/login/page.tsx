@@ -1,15 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import dynamic from "next/dynamic";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 import { Link } from "@heroui/link";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { Icon } from "@iconify/react";
 import { IoSchool } from "react-icons/io5";
-import type { TurnstileInstance } from '@marsidev/react-turnstile';
 import { addToast } from "@heroui/toast";
 import { API_BASE_URL } from "@/config/api";
 import { authService } from "@/services";
@@ -18,12 +16,6 @@ import { loginPolicyLinks } from "@/config/public-links";
 import { useI18n } from "@/hooks/useI18n";
 import { getDefaultRouteForRole } from "@/lib/auth-routing";
 import { normalizeAppReturnPath, storeOAuthReturnPath, storePendingAuthReturnPath } from "@/lib/auth-resume";
-
-// Dynamic import Turnstile - completely skip SSR
-const Turnstile = dynamic(
-    () => import('@marsidev/react-turnstile').then(mod => mod.Turnstile),
-    { ssr: false }
-);
 
 function AppMark({ className = "" }: { className?: string }) {
     return (
@@ -58,11 +50,6 @@ export default function LoginPage() {
         username: "",
         password: "",
     });
-    const [canSubmit, setCanSubmit] = useState(true);
-    const [turnstileKey, setTurnstileKey] = useState<string | null>(null);
-    const [turnstileReady, setTurnstileReady] = useState(false);
-    const refTurnstile = useRef<TurnstileInstance>(null);
-
     // Force change password modal state
     const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
     const [newPassword, setNewPassword] = useState("");
@@ -129,18 +116,6 @@ export default function LoginPage() {
         };
         checkAuth();
     }, [nextPath, router]);
-
-    // Get Turnstile key only on client side to avoid hydration mismatch
-    useEffect(() => {
-        const key = process.env.NEXT_PUBLIC_CLOUD;
-        if (key) {
-            setTurnstileKey(key);
-        } else {
-            // No Turnstile key, allow submit
-            setTurnstileReady(true);
-        }
-    }, []);
-
 
     const toggleVisibility = () => setIsVisible(!isVisible);
 
@@ -213,7 +188,6 @@ export default function LoginPage() {
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
                 });
-                refTurnstile.current?.reset();
             }
         } catch (error) {
             addToast({
@@ -223,7 +197,6 @@ export default function LoginPage() {
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
             });
-            refTurnstile.current?.reset();
         } finally {
             setIsLoading(false);
         }
@@ -520,45 +493,6 @@ export default function LoginPage() {
                                     />
                                 </div>
 
-                                <div className="pt-1">
-                                    <p className="mb-2 text-[14px] text-slate-600 dark:max-sm:text-slate-200 dark:sm:text-slate-700">{t("verifyYouAreNotABot")}</p>
-                                    <div className="w-full" suppressHydrationWarning>
-                                        {turnstileKey ? (
-                                            <Turnstile
-                                                id='turnstile-1'
-                                                ref={refTurnstile}
-                                                siteKey={turnstileKey ?? ""}
-                                                onSuccess={() => {
-                                                    setCanSubmit(true);
-                                                    setTurnstileReady(true);
-                                                }}
-                                                onError={() => {
-                                                    setCanSubmit(true);
-                                                    setTurnstileReady(true);
-                                                }}
-                                                onExpire={() => {
-                                                    setCanSubmit(true);
-                                                }}
-                                                onWidgetLoad={() => {
-                                                    setTurnstileReady(true);
-                                                }}
-                                                options={{
-                                                    theme: 'auto',
-                                                    size: 'flexible',
-                                                }}
-                                            />
-                                        ) : !turnstileReady ? (
-                                            <div className="flex h-16.25 w-full items-center justify-between border border-blue-100 bg-blue-50/40 px-3 dark:max-sm:border-white/12 dark:max-sm:bg-white/8">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="h-6 w-6 rounded-sm border-2 border-blue-300 bg-white dark:max-sm:border-sky-300/50 dark:max-sm:bg-slate-950" />
-                                                    <span className="text-[14px] text-slate-700 dark:max-sm:text-slate-100">{t("verifyYouAreNotABot")}</span>
-                                                </div>
-                                                <AppMark className="scale-75" />
-                                            </div>
-                                        ) : null}
-                                    </div>
-                                </div>
-
                                 <Button
                                     type="submit"
                                     radius="sm"
@@ -760,15 +694,15 @@ export default function LoginPage() {
                 onClose={closeForgotPasswordModal}
                 size="md"
             >
-                <ModalContent>
+                <ModalContent className="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
                                 <Icon icon="solar:key-bold" className="text-2xl text-white" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-slate-800">{t("forgotPasswordTitle")}</h3>
-                                <p className="text-sm text-slate-500 font-normal mt-1">
+                                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t("forgotPasswordTitle")}</h3>
+                                <p className="mt-1 text-sm font-normal text-slate-500 dark:text-slate-300">
                                     {resetEmailSent ? t("checkYourEmail") : t("enterEmailToResetPassword")}
                                 </p>
                             </div>
@@ -778,12 +712,12 @@ export default function LoginPage() {
                         {resetEmailSent ? (
                             <div className="space-y-4">
                                 {/* Success Message */}
-                                <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
+                                <div className="rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-500/30 dark:bg-green-500/10">
                                     <div className="flex items-start gap-3">
-                                        <div className="p-2 bg-green-100 rounded-full">
-                                            <Icon icon="solar:check-circle-bold" className="text-green-600 text-xl" />
+                                        <div className="rounded-full bg-green-100 p-2 dark:bg-green-500/15">
+                                            <Icon icon="solar:check-circle-bold" className="text-xl text-green-600 dark:text-green-300" />
                                         </div>
-                                        <div className="text-sm text-green-700">
+                                        <div className="text-sm text-green-700 dark:text-green-100">
                                             <p className="font-semibold">{t("resetEmailSent")}</p>
                                             <p className="mt-1">{t("resetEmailSentDescription")}</p>
                                         </div>
@@ -791,10 +725,10 @@ export default function LoginPage() {
                                 </div>
 
                                 {/* Instructions */}
-                                <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                                <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-500/30 dark:bg-blue-500/10">
                                     <div className="flex items-start gap-3">
-                                        <Icon icon="solar:info-circle-bold" className="text-blue-500 text-xl mt-0.5" />
-                                        <div className="text-sm text-blue-700">
+                                        <Icon icon="solar:info-circle-bold" className="mt-0.5 text-xl text-blue-500 dark:text-blue-300" />
+                                        <div className="text-sm text-blue-700 dark:text-blue-100">
                                             <p className="font-semibold">{t("nextSteps")}</p>
                                             <ul className="mt-2 space-y-1 list-disc list-inside">
                                                 <li>{t("checkYourInbox")}</li>
@@ -808,10 +742,10 @@ export default function LoginPage() {
                         ) : (
                             <div className="space-y-4">
                                 {/* Info */}
-                                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
                                     <div className="flex items-start gap-3">
-                                        <Icon icon="solar:info-circle-bold" className="text-amber-500 text-xl mt-0.5" />
-                                        <div className="text-sm text-amber-700">
+                                        <Icon icon="solar:info-circle-bold" className="mt-0.5 text-xl text-amber-500 dark:text-amber-300" />
+                                        <div className="text-sm text-amber-700 dark:text-amber-100">
                                             <p>{t("enterRegisteredEmailToReset")}</p>
                                         </div>
                                     </div>
@@ -829,8 +763,9 @@ export default function LoginPage() {
                                     onValueChange={setForgotPasswordEmail}
                                     startContent={<Icon icon="solar:letter-linear" className="text-amber-400 text-xl" />}
                                     classNames={{
-                                        inputWrapper: "border-slate-200 hover:border-amber-300 focus-within:!border-amber-400",
-                                        label: "text-slate-600 font-medium text-sm",
+                                        inputWrapper: "border-slate-200 bg-white hover:border-amber-300 focus-within:!border-amber-400 dark:border-slate-700 dark:bg-slate-900/80 dark:hover:border-amber-500 dark:focus-within:!border-amber-400",
+                                        input: "text-slate-800 placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500",
+                                        label: "text-sm font-medium text-slate-700 dark:text-slate-200",
                                     }}
                                     onKeyDown={(e) => {
                                         if (e.key === "Enter" && !isSendingResetEmail) {
@@ -842,7 +777,7 @@ export default function LoginPage() {
                             </div>
                         )}
                     </ModalBody>
-                    <ModalFooter className="px-6 py-4">
+                    <ModalFooter className="border-t border-slate-100 px-6 py-4 dark:border-slate-800">
                         {resetEmailSent ? (
                             <Button
                                 color="primary"
@@ -856,7 +791,7 @@ export default function LoginPage() {
                                 <Button
                                     variant="bordered"
                                     onPress={closeForgotPasswordModal}
-                                    className="flex-1"
+                                    className="flex-1 border-slate-300 text-slate-700 dark:border-slate-700 dark:text-slate-200"
                                 >
                                     {t("cancel")}
                                 </Button>
