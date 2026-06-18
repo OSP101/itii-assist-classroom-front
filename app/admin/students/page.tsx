@@ -26,6 +26,7 @@ import { Select, SelectItem } from "@heroui/select";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { studentService } from "@/services/student.service";
+import { adminSettingsService, type StudentProgram } from "@/services/admin-settings.service";
 import type { Student, CreateStudentDto, UpdateStudentDto, StudentStats } from "@/services/student.service";
 import { useTableParams } from "@/lib/table/use-table-params";
 import TablePaginationFooter, { DEFAULT_TABLE_ROWS_PER_PAGE } from "@/components/ui/table-pagination-footer";
@@ -83,13 +84,43 @@ export default function StudentsPage() {
     const page = Number(params.page) || 1;
     const limit = Number(params.limit) || DEFAULT_TABLE_ROWS_PER_PAGE;
     const isEnglish = language === "en";
+    const programLabel = isEnglish ? "Program" : "หลักสูตร";
+    const selectProgramLabel = isEnglish ? "Select a program" : "เลือกหลักสูตร";
+    const noProgramSpecifiedLabel = isEnglish ? "No program selected" : "ไม่ระบุหลักสูตร";
+    const manageProgramsLabel = isEnglish ? "Manage programs" : "จัดการหลักสูตร";
+    const manageProgramsDescriptionLabel = isEnglish
+        ? "Define the full names and short names used for student programs."
+        : "กำหนดชื่อเต็มและชื่อย่อที่ใช้ในระบบนักศึกษา";
+    const addProgramLabel = isEnglish ? "Add program" : "เพิ่มหลักสูตร";
+    const editProgramLabel = isEnglish ? "Edit program" : "แก้ไขหลักสูตร";
+    const fullProgramNameLabel = isEnglish ? "Full program name" : "ชื่อเต็มหลักสูตร";
+    const shortProgramNameLabel = isEnglish ? "Short program name" : "ชื่อย่อหลักสูตร";
+    const enterFullProgramNameLabel = isEnglish ? "Enter the full program name" : "กรอกชื่อเต็มของหลักสูตร";
+    const enterShortProgramNameLabel = isEnglish ? "Enter the short name, for example SC-IT" : "กรอกชื่อย่อ เช่น SC-IT";
+    const programNamesRequiredLabel = isEnglish
+        ? "Please enter both the full program name and short program name."
+        : "กรุณากรอกชื่อเต็มและชื่อย่อของหลักสูตร";
+    const programShortNameDuplicateLabel = isEnglish
+        ? "This short program name is already in use."
+        : "ชื่อย่อหลักสูตรนี้ถูกใช้แล้ว";
+    const programAtLeastOneRequiredLabel = isEnglish
+        ? "Please keep at least one program in the list."
+        : "กรุณาเพิ่มหลักสูตรอย่างน้อย 1 รายการ";
+    const programListTitleLabel = isEnglish ? "Program list" : "รายการหลักสูตร";
+    const programListDescriptionLabel = isEnglish
+        ? "Student dropdowns show the full name, while regular displays use the short name."
+        : "หน้าเลือกนักศึกษาจะแสดงชื่อเต็ม แต่จุดแสดงผลทั่วไปจะใช้ชื่อย่อ";
+    const noProgramsConfiguredLabel = isEnglish ? "No programs have been configured yet." : "ยังไม่มีหลักสูตรในระบบ";
+    const saveProgramsLabel = isEnglish ? "Save programs" : "บันทึกหลักสูตร";
+    const programsSavedLabel = isEnglish ? "Program list saved successfully." : "บันทึกรายการหลักสูตรเรียบร้อยแล้ว";
+    const programsSaveFailedLabel = isEnglish ? "Could not save the program list." : "ไม่สามารถบันทึกหลักสูตรได้";
     const search = String(params.search ?? "");
     const statusFilter = String(params.status ?? "all");
     const sortBy = String(params.sort ?? "created_at");
     const sortOrder: "ASC" | "DESC" = params.order === "asc" ? "ASC" : "DESC";
     const columns = columnDefs.map((column) => ({
         ...column,
-        label: t(column.labelKey),
+        label: column.key === "program" ? programLabel : t(column.labelKey),
     }));
     const statusOptions = statusOptionDefs.map((option) => ({
         ...option,
@@ -101,10 +132,16 @@ export default function StudentsPage() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [isProgramsModalOpen, setIsProgramsModalOpen] = useState(false);
     const [isToggleStatusModalOpen, setIsToggleStatusModalOpen] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
     const [studentToToggle, setStudentToToggle] = useState<Student | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [programs, setPrograms] = useState<StudentProgram[]>([]);
+    const [programDrafts, setProgramDrafts] = useState<StudentProgram[]>([]);
+    const [programForm, setProgramForm] = useState<StudentProgram>({ short_name: "", full_name: "" });
+    const [editingProgramShortName, setEditingProgramShortName] = useState<string | null>(null);
+    const [isSavingPrograms, setIsSavingPrograms] = useState(false);
 
     // Form data
     const [formData, setFormData] = useState<CreateStudentDto>({
@@ -171,10 +208,20 @@ export default function StudentsPage() {
         }
     }, []);
 
+    const fetchPrograms = useCallback(async () => {
+        try {
+            const response = await adminSettingsService.getStudentPrograms();
+            setPrograms(response);
+        } catch (error) {
+            console.error("Error fetching student programs:", error);
+        }
+    }, []);
+
     useEffect(() => {
         fetchStudents();
         fetchStats();
-    }, [fetchStudents, fetchStats]);
+        fetchPrograms();
+    }, [fetchStudents, fetchStats, fetchPrograms]);
 
     useEffect(() => {
         setSearchInput(search);
@@ -205,6 +252,72 @@ export default function StudentsPage() {
             email: "",
         });
         setOriginalFormData(null);
+    };
+
+    const resetProgramForm = () => {
+        setProgramForm({ short_name: "", full_name: "" });
+        setEditingProgramShortName(null);
+    };
+
+    const getProgramDefinition = useCallback((value?: string | null) => {
+        const normalizedValue = value?.trim();
+        if (!normalizedValue) {
+            return undefined;
+        }
+
+        return programs.find((program) =>
+            program.short_name.toLowerCase() === normalizedValue.toLowerCase()
+            || program.full_name.toLowerCase() === normalizedValue.toLowerCase(),
+        );
+    }, [programs]);
+
+    const getProgramShortName = useCallback((value?: string | null) => {
+        const normalizedValue = value?.trim();
+        if (!normalizedValue) {
+            return "";
+        }
+
+        return getProgramDefinition(normalizedValue)?.short_name || normalizedValue;
+    }, [getProgramDefinition]);
+
+    const getProgramFullLabel = useCallback((value?: string | null) => {
+        const normalizedValue = value?.trim();
+        if (!normalizedValue) {
+            return "";
+        }
+
+        const definition = getProgramDefinition(normalizedValue);
+        if (!definition) {
+            return normalizedValue;
+        }
+
+        if (definition.full_name === definition.short_name) {
+            return definition.full_name;
+        }
+
+        return `${definition.full_name} (${definition.short_name})`;
+    }, [getProgramDefinition]);
+
+    const getProgramSelectItems = (selectedValue?: string | null) => {
+        const items = [...programs];
+        const normalizedValue = selectedValue?.trim();
+        if (!normalizedValue) {
+            return items;
+        }
+
+        const existing = items.some((program) =>
+            program.short_name.toLowerCase() === normalizedValue.toLowerCase()
+            || program.full_name.toLowerCase() === normalizedValue.toLowerCase(),
+        );
+
+        if (!existing) {
+            items.push({
+                short_name: normalizedValue,
+                full_name: normalizedValue,
+            });
+        }
+
+        return items;
     };
 
     // Extract student rows from a parsed ExcelJS workbook (XLSX path)
@@ -353,7 +466,14 @@ export default function StudentsPage() {
         setIsSubmitting(true);
         isUpdatingRef.current = true;
         try {
-            const response = await studentService.createStudent(formData);
+            const normalizedProgram = getProgramShortName(formData.extra?.program as string | undefined);
+            const createData: CreateStudentDto = {
+                student_id: formData.student_id,
+                full_name: formData.full_name,
+                email: formData.email,
+                extra: normalizedProgram ? { program: normalizedProgram } : undefined,
+            };
+            const response = await studentService.createStudent(createData);
             if (response.success) {
                 addToast({
                     title: t("addStudentSuccess"),
@@ -408,7 +528,7 @@ export default function StudentsPage() {
         setIsSubmitting(true);
         isUpdatingRef.current = true;
         try {
-            const program = formData.extra?.program as string | undefined;
+            const program = getProgramShortName(formData.extra?.program as string | undefined);
             const updateData: UpdateStudentDto = {
                 student_id: formData.student_id,
                 full_name: formData.full_name,
@@ -564,13 +684,18 @@ export default function StudentsPage() {
                 return;
             }
             const lines = importText.trim().split('\n');
+            const studentIdPattern = /^\d{9}-\d$/;
             for (const line of lines) {
                 const parts = line.split(/[,\t]/).map(p => p.trim());
-                if (parts.length >= 2 && parts[0] && parts[1]) {
+                const offset = studentIdPattern.test(parts[0] ?? "") ? 0 : studentIdPattern.test(parts[1] ?? "") ? 1 : -1;
+                if (offset >= 0 && parts[offset] && parts[offset + 1]) {
+                    const email = parts[offset + 2] || "";
+                    const program = parts[offset + 3] || "";
                     studentsToImport.push({
-                        student_id: parts[0],
-                        full_name: parts[1],
-                        email: parts[2] || "",
+                        student_id: parts[offset],
+                        full_name: parts[offset + 1],
+                        email,
+                        extra: program ? { program } : undefined,
                     });
                 }
             }
@@ -589,6 +714,14 @@ export default function StudentsPage() {
         setIsSubmitting(true);
         isUpdatingRef.current = true;
         try {
+            studentsToImport = studentsToImport.map((student) => {
+                const program = getProgramShortName(student.extra?.program as string | undefined);
+                return {
+                    ...student,
+                    extra: program ? { program } : undefined,
+                };
+            });
+
             const response = await studentService.importStudents(studentsToImport);
             if (response.success && response.data) {
                 const { created, skipped, failed } = response.data;
@@ -644,7 +777,7 @@ export default function StudentsPage() {
     // Open edit modal
     const openEditModal = (student: Student) => {
         setSelectedStudent(student);
-        const program = (student.extra as Record<string, unknown> | undefined)?.program as string | undefined;
+        const program = getProgramShortName((student.extra as Record<string, unknown> | undefined)?.program as string | undefined);
         const studentData: CreateStudentDto = {
             student_id: student.student_id,
             full_name: student.full_name,
@@ -660,6 +793,116 @@ export default function StudentsPage() {
     const openDeleteModal = (student: Student) => {
         setSelectedStudent(student);
         setIsDeleteModalOpen(true);
+    };
+
+    const openProgramsModal = () => {
+        setProgramDrafts(programs);
+        resetProgramForm();
+        setIsProgramsModalOpen(true);
+    };
+
+    const handleEditProgram = (program: StudentProgram) => {
+        setProgramForm({
+            ...program,
+            original_short_name: program.original_short_name || program.short_name,
+        });
+        setEditingProgramShortName(program.short_name);
+    };
+
+    const handleRemoveProgram = (shortName: string) => {
+        setProgramDrafts((current) => current.filter((program) => program.short_name !== shortName));
+        if (editingProgramShortName === shortName) {
+            resetProgramForm();
+        }
+    };
+
+    const handleProgramDraftSave = () => {
+        const shortName = programForm.short_name.trim();
+        const fullName = programForm.full_name.trim();
+
+        if (!shortName || !fullName) {
+                addToast({
+                    title: t("pleaseFillRequiredFields"),
+                    description: programNamesRequiredLabel,
+                    color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+
+        const duplicate = programDrafts.some((program) =>
+            program.short_name.toLowerCase() === shortName.toLowerCase()
+            && program.short_name !== editingProgramShortName,
+        );
+        if (duplicate) {
+                addToast({
+                title: t("somethingWentWrong"),
+                description: programShortNameDuplicateLabel,
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+
+        const nextProgram: StudentProgram = {
+            short_name: shortName,
+            full_name: fullName,
+            original_short_name: editingProgramShortName || undefined,
+        };
+        setProgramDrafts((current) => {
+            if (editingProgramShortName) {
+                return current.map((program) => (
+                    program.short_name === editingProgramShortName ? nextProgram : program
+                ));
+            }
+            return [...current, nextProgram];
+        });
+        resetProgramForm();
+    };
+
+    const handleSavePrograms = async () => {
+        if (programDrafts.length === 0) {
+                addToast({
+                title: t("pleaseFillRequiredFields"),
+                description: programAtLeastOneRequiredLabel,
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+
+        setIsSavingPrograms(true);
+        try {
+            const savedPrograms = await adminSettingsService.updateStudentPrograms(programDrafts);
+            if (!savedPrograms) {
+                throw new Error("save_failed");
+            }
+
+            setPrograms(savedPrograms);
+            setProgramDrafts(savedPrograms);
+            setIsProgramsModalOpen(false);
+            resetProgramForm();
+            addToast({
+                title: t("success"),
+                description: programsSavedLabel,
+                color: "success",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } catch (error) {
+            addToast({
+                title: t("somethingWentWrong"),
+                description: programsSaveFailedLabel,
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } finally {
+            setIsSavingPrograms(false);
+        }
     };
 
     // Format date
@@ -705,11 +948,11 @@ export default function StudentsPage() {
                     <span className="italic text-default-400">{t("noEmailSpecified")}</span>
                 );
             case "program": {
-                const prog = student.extra?.program as string | undefined;
+                const prog = getProgramShortName(student.extra?.program as string | undefined);
                 return prog ? (
                     <Chip size="sm" variant="flat" color="secondary">{prog}</Chip>
                 ) : (
-                    <span className="italic text-default-400">{t("noProgramSpecified")}</span>
+                    <span className="italic text-default-400">{noProgramSpecifiedLabel}</span>
                 );
             }
             case "status":
@@ -800,6 +1043,15 @@ export default function StudentsPage() {
                     </Tooltip>
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
+                    <Button
+                        variant="flat"
+                        startContent={<Icon icon="solar:notebook-bookmark-bold" className="text-xl" />}
+                        onPress={openProgramsModal}
+                        className="font-medium flex-1 sm:flex-none sm:px-6 bg-amber-100 text-amber-900"
+                    >
+                        <span className="hidden sm:inline">{manageProgramsLabel}</span>
+                        <span className="sm:hidden">{programLabel}</span>
+                    </Button>
                     <Button
                         color="secondary"
                         variant="flat"
@@ -1056,12 +1308,12 @@ export default function StudentsPage() {
                                     }}
                                 />
                                 <Select
-                                    label={t("program")}
+                                    label={programLabel}
                                     labelPlacement="outside"
-                                    placeholder={t("selectProgram")}
+                                    placeholder={selectProgramLabel}
                                     variant="bordered"
                                     size="lg"
-                                    selectedKeys={formData.extra?.program ? [formData.extra.program as string] : []}
+                                    selectedKeys={formData.extra?.program ? [getProgramShortName(formData.extra.program as string)] : []}
                                     onSelectionChange={(keys) => {
                                         const val = Array.from(keys)[0] as string | undefined;
                                         setFormData({ ...formData, extra: val ? { program: val } : undefined });
@@ -1072,8 +1324,10 @@ export default function StudentsPage() {
                                         label: "text-sm font-medium text-default-600",
                                     }}
                                 >
-                                    {["SC-IT", "SC-CS", "CP-Cy", "CP-AI", "SC-GIS"].map((p) => (
-                                        <SelectItem key={p}>{p}</SelectItem>
+                                    {getProgramSelectItems(formData.extra?.program as string | undefined).map((program) => (
+                                        <SelectItem key={program.short_name} textValue={program.short_name}>
+                                            {getProgramFullLabel(program.short_name)}
+                                        </SelectItem>
                                     ))}
                                 </Select>
                             </div>
@@ -1171,12 +1425,12 @@ export default function StudentsPage() {
                                     }}
                                 />
                                 <Select
-                                    label={t("program")}
+                                    label={programLabel}
                                     labelPlacement="outside"
-                                    placeholder={t("selectProgram")}
+                                    placeholder={selectProgramLabel}
                                     variant="bordered"
                                     size="lg"
-                                    selectedKeys={formData.extra?.program ? [formData.extra.program as string] : []}
+                                    selectedKeys={formData.extra?.program ? [getProgramShortName(formData.extra.program as string)] : []}
                                     onSelectionChange={(keys) => {
                                         const val = Array.from(keys)[0] as string | undefined;
                                         setFormData({ ...formData, extra: val ? { program: val } : undefined });
@@ -1187,8 +1441,10 @@ export default function StudentsPage() {
                                         label: "text-sm font-medium text-default-600",
                                     }}
                                 >
-                                    {["SC-IT", "SC-CS", "CP-Cy", "CP-AI", "SC-GIS"].map((p) => (
-                                        <SelectItem key={p}>{p}</SelectItem>
+                                    {getProgramSelectItems(formData.extra?.program as string | undefined).map((program) => (
+                                        <SelectItem key={program.short_name} textValue={program.short_name}>
+                                            {getProgramFullLabel(program.short_name)}
+                                        </SelectItem>
                                     ))}
                                 </Select>
                             </div>
@@ -1216,6 +1472,115 @@ export default function StudentsPage() {
                 </ModalContent>
             </Modal>
 
+
+            <Modal isOpen={isProgramsModalOpen} onClose={() => setIsProgramsModalOpen(false)} size="3xl" scrollBehavior="inside">
+                <ModalContent>
+                    <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-linear-to-br from-amber-400 to-orange-500 rounded-xl shadow-lg shadow-amber-500/30">
+                                <Icon icon="solar:notebook-bookmark-bold" className="text-2xl text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-foreground">{manageProgramsLabel}</h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">{manageProgramsDescriptionLabel}</p>
+                            </div>
+                        </div>
+                    </ModalHeader>
+                    <ModalBody className="px-6 py-4 space-y-5">
+                        <div className="rounded-xl bg-content2/80 p-5 space-y-4">
+                            <div className="flex items-center gap-2">
+                                <Icon icon="solar:pen-2-bold" className="text-lg text-amber-500" />
+                                <span className="text-sm font-semibold text-default-700">
+                                    {editingProgramShortName ? editProgramLabel : addProgramLabel}
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input
+                                    label={fullProgramNameLabel}
+                                    labelPlacement="outside"
+                                    placeholder={enterFullProgramNameLabel}
+                                    variant="bordered"
+                                    value={programForm.full_name}
+                                    onValueChange={(value) => setProgramForm((current) => ({ ...current, full_name: value }))}
+                                    classNames={{
+                                        inputWrapper: "bg-content1 border-default-200 hover:border-amber-300 focus-within:!border-amber-400",
+                                        label: "text-sm font-medium text-default-600",
+                                    }}
+                                />
+                                <Input
+                                    label={shortProgramNameLabel}
+                                    labelPlacement="outside"
+                                    placeholder={enterShortProgramNameLabel}
+                                    variant="bordered"
+                                    value={programForm.short_name}
+                                    onValueChange={(value) => setProgramForm((current) => ({ ...current, short_name: value }))}
+                                    classNames={{
+                                        inputWrapper: "bg-content1 border-default-200 hover:border-amber-300 focus-within:!border-amber-400",
+                                        label: "text-sm font-medium text-default-600",
+                                    }}
+                                />
+                            </div>
+                            <div className="flex gap-2 justify-end">
+                                {editingProgramShortName && (
+                                    <Button variant="flat" color="default" onPress={resetProgramForm}>
+                                        {t("cancel")}
+                                    </Button>
+                                )}
+                                <Button color="primary" onPress={handleProgramDraftSave} className="bg-linear-to-r from-amber-400 to-orange-500 text-white">
+                                    {editingProgramShortName ? t("saveChanges") : addProgramLabel}
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="rounded-xl border border-default-200 bg-content1">
+                            <div className="flex items-center justify-between px-5 py-4 border-b border-divider">
+                                <div>
+                                    <p className="font-semibold text-foreground">{programListTitleLabel}</p>
+                                    <p className="text-sm text-default-500">{programListDescriptionLabel}</p>
+                                </div>
+                                <Chip color="warning" variant="flat">{programDrafts.length}</Chip>
+                            </div>
+                            <div className="p-4 space-y-3">
+                                {programDrafts.length === 0 ? (
+                                    <div className="rounded-xl bg-content2/70 p-8 text-center">
+                                        <Icon icon="solar:notebook-minimalistic-linear" className="mx-auto mb-3 text-4xl text-default-300" />
+                                        <p className="text-default-500">{noProgramsConfiguredLabel}</p>
+                                    </div>
+                                ) : (
+                                    programDrafts.map((program) => (
+                                        <div key={program.short_name} className="flex items-start justify-between gap-3 rounded-xl border border-default-200 bg-content2/70 p-4">
+                                            <div className="min-w-0">
+                                                <p className="font-semibold text-foreground">{program.full_name}</p>
+                                                <p className="text-sm text-default-500">{program.short_name}</p>
+                                            </div>
+                                            <div className="flex items-center gap-1 shrink-0">
+                                                <Tooltip content={t("editAction")}>
+                                                    <Button isIconOnly size="sm" variant="light" onPress={() => handleEditProgram(program)}>
+                                                        <Icon icon="solar:pen-linear" className="text-lg text-default-500" />
+                                                    </Button>
+                                                </Tooltip>
+                                                <Tooltip content={isEnglish ? "Delete" : "ลบ"}>
+                                                    <Button isIconOnly size="sm" variant="light" color="danger" onPress={() => handleRemoveProgram(program.short_name)}>
+                                                        <Icon icon="solar:trash-bin-trash-linear" className="text-lg" />
+                                                    </Button>
+                                                </Tooltip>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </ModalBody>
+                    <ModalFooter className="gap-3 border-t border-divider px-6 py-4">
+                        <Button variant="flat" color="default" onPress={() => setIsProgramsModalOpen(false)}>
+                            {t("cancel")}
+                        </Button>
+                        <Button color="primary" onPress={handleSavePrograms} isLoading={isSavingPrograms} className="bg-linear-to-r from-amber-400 to-orange-500 text-white">
+                            {saveProgramsLabel}
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
 
             {/* Toggle Status Confirmation Modal */}
             <Modal isOpen={isToggleStatusModalOpen} onClose={() => setIsToggleStatusModalOpen(false)} size="md">
@@ -1402,7 +1767,7 @@ export default function StudentsPage() {
                                 <div className="rounded-lg border border-default-200 bg-content1 p-4">
                                     <p className="mb-2 text-xs font-medium text-default-600">{t("copyExcelColumnsHint")}</p>
                                     <div className="flex gap-2 flex-wrap">
-                                        <Chip size="sm" color="default" variant="flat">ลำดับ</Chip>
+                                        <Chip size="sm" color="default" variant="flat">{isEnglish ? "No." : "\u0e25\u0e33\u0e14\u0e31\u0e1a"}</Chip>
                                         <Chip size="sm" color="primary" variant="flat">{t("columnAStudentId")}</Chip>
                                         <Chip size="sm" color="success" variant="flat">{t("columnBFullName")}</Chip>
                                         <Chip size="sm" color="warning" variant="flat">{t("columnCEmail")}</Chip>
@@ -1421,13 +1786,13 @@ export default function StudentsPage() {
                                                     <span className="text-foreground flex-1 truncate">{s.full_name}</span>
                                                     <span className="text-default-400 truncate hidden sm:block">{s.email || "-"}</span>
                                                     {s.extra?.program != null && (
-                                                        <Chip size="sm" variant="flat" color="secondary" className="text-xs shrink-0">{String(s.extra.program)}</Chip>
+                                                        <Chip size="sm" variant="flat" color="secondary" className="text-xs shrink-0">{getProgramShortName(String(s.extra.program))}</Chip>
                                                     )}
                                                 </div>
                                             ))}
                                             {parsedStudents.length > 6 && (
                                                 <p className="text-xs text-center text-default-400 pt-1">
-                                                    +{parsedStudents.length - 6} {isEnglish ? "more" : "รายการอีก"}
+                                                    +{parsedStudents.length - 6} {isEnglish ? "more" : "\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e40\u0e15\u0e34\u0e21"}
                                                 </p>
                                             )}
                                         </div>
@@ -1447,6 +1812,7 @@ export default function StudentsPage() {
                                             <Chip size="sm" color="primary" variant="flat">{t("columnAStudentId")}</Chip>
                                             <Chip size="sm" color="success" variant="flat">{t("columnBFullName")}</Chip>
                                             <Chip size="sm" color="warning" variant="flat">{t("columnCEmail")}</Chip>
+                                            <Chip size="sm" color="secondary" variant="flat">{t("columnDProgram")}</Chip>
                                         </div>
                                         <p className="mt-3 text-xs text-default-500">
                                             <Icon icon="solar:lightbulb-bolt-bold" className="text-amber-500 inline mr-1" />

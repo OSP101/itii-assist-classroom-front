@@ -1664,7 +1664,7 @@ export default function UsersPage() {
                                 <div>
                                     <label className="mb-2 block text-sm font-medium text-default-600">{t("username")}</label>
                                     <div className="flex items-center gap-2">
-                                        <div className="flex-1 rounded-lg border border-default-200 bg-content1 p-3 font-mono text-foreground">
+                                        <div className="flex-1 rounded-lg border border-default-200 bg-content1 p-3 text-sm text-foreground">
                                             {newCredentials?.username}
                                         </div>
                                         <Button
@@ -1682,7 +1682,7 @@ export default function UsersPage() {
                                 <div>
                                     <label className="mb-2 block text-sm font-medium text-default-600">{t("temporaryPassword")}</label>
                                     <div className="flex items-center gap-2">
-                                        <div className="flex-1 rounded-lg border border-default-200 bg-content1 p-3 font-mono text-foreground">
+                                        <div className="flex-1 rounded-lg border border-default-200 bg-content1 p-3 text-sm text-foreground">
                                             {newCredentials?.password}
                                         </div>
                                         <Button

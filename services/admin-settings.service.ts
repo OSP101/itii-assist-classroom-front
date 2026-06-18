@@ -76,6 +76,12 @@ export interface MaintenanceConfig {
   updated_at?: string;
 }
 
+export interface StudentProgram {
+  short_name: string;
+  full_name: string;
+  original_short_name?: string;
+}
+
 export interface ServiceDependency {
   name: string;
   status: "up" | "down";
@@ -276,6 +282,18 @@ async function getServiceHealth(): Promise<ServiceHealth | null> {
   return response.data;
 }
 
+async function getStudentPrograms(): Promise<StudentProgram[]> {
+  const response = await apiService.get<StudentProgram[]>(API_ENDPOINTS.SYSTEM_SETTINGS.PROGRAMS);
+  if (!response.success || !response.data) return [];
+  return response.data;
+}
+
+async function updateStudentPrograms(programs: StudentProgram[]): Promise<StudentProgram[] | null> {
+  const response = await apiService.put<StudentProgram[]>(API_ENDPOINTS.SYSTEM_SETTINGS.PROGRAMS, { programs });
+  if (!response.success || !response.data) return null;
+  return response.data;
+}
+
 export const adminSettingsService = {
   getBackups,
   getBackupStatus,
@@ -294,5 +312,7 @@ export const adminSettingsService = {
   getLastFlagUpdateError: () => _lastFlagUpdateError,
   getMaintenanceConfig,
   updateMaintenanceConfig,
+  getStudentPrograms,
+  updateStudentPrograms,
   getServiceHealth,
 };

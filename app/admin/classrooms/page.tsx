@@ -82,6 +82,19 @@ interface Classroom {
     isDeleted: boolean;
 }
 
+interface CanvasSize {
+    width: number;
+    height: number;
+}
+
+interface LayoutDraft {
+    classroomId: string;
+    desks: Desk[];
+    zones: Zone[];
+    canvasSize: CanvasSize;
+    savedAt: string;
+}
+
 // Transform functions between API (snake_case) and UI (camelCase)
 const transformDeskFromAPI = (desk: APIDesk): Desk => ({
     id: desk.id,
@@ -130,11 +143,15 @@ const TEACHER_DESK_HEIGHT = 60;
 const GRID_SIZE = 20;
 
 // Logical canvas dimensions (the "room" coordinate space)
-const CANVAS_WIDTH = 2000;
-const CANVAS_HEIGHT = 1500;
+const MIN_CANVAS_WIDTH = 2000;
+const MIN_CANVAS_HEIGHT = 1500;
+const CANVAS_PADDING = 240;
+const CANVAS_EXPAND_WIDTH = 800;
+const CANVAS_EXPAND_HEIGHT = 600;
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 1.5;
 const ZOOM_STEP = 0.1;
+const LAYOUT_DRAFT_STORAGE_PREFIX = "admin_classroom_layout_draft:";
 
 const ZONE_COLORS = [
     "#6366f1", // indigo
@@ -157,6 +174,40 @@ const columns = [
     { key: "actions", label: "จัดการ", sortable: false },
 ];
 
+const snapCanvasDimension = (value: number) =>
+    Math.max(GRID_SIZE, Math.ceil(value / GRID_SIZE) * GRID_SIZE);
+
+const getDeskDimensions = (desk: Desk) => {
+    if (desk.type === "teacher") {
+        return { width: TEACHER_DESK_WIDTH, height: TEACHER_DESK_HEIGHT };
+    }
+    return { width: DESK_WIDTH, height: DESK_HEIGHT };
+};
+
+const getLayoutCanvasSize = (desks: Desk[], zones: Zone[]): CanvasSize => {
+    let maxX = MIN_CANVAS_WIDTH - CANVAS_PADDING;
+    let maxY = MIN_CANVAS_HEIGHT - CANVAS_PADDING;
+
+    desks.forEach((desk) => {
+        const { width, height } = getDeskDimensions(desk);
+        maxX = Math.max(maxX, desk.x + width);
+        maxY = Math.max(maxY, desk.y + height);
+    });
+
+    zones.forEach((zone) => {
+        maxX = Math.max(maxX, zone.x + zone.width);
+        maxY = Math.max(maxY, zone.y + zone.height);
+    });
+
+    return {
+        width: snapCanvasDimension(Math.max(MIN_CANVAS_WIDTH, maxX + CANVAS_PADDING)),
+        height: snapCanvasDimension(Math.max(MIN_CANVAS_HEIGHT, maxY + CANVAS_PADDING)),
+    };
+};
+
+const getLayoutDraftStorageKey = (classroomId: string) =>
+    `${LAYOUT_DRAFT_STORAGE_PREFIX}${classroomId}`;
+
 export default function ClassroomsPage() {
     const [classrooms, setClassrooms] = useState<Classroom[]>([]);
     const [stats, setStats] = useState<ClassroomStats | null>(null);
@@ -172,7 +223,12 @@ export default function ClassroomsPage() {
     const [showDeskModal, setShowDeskModal] = useState(false);
     const [showDeletedOnly, setShowDeletedOnly] = useState(false);
     const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
+    const [canvasSize, setCanvasSize] = useState<CanvasSize>({
+        width: MIN_CANVAS_WIDTH,
+        height: MIN_CANVAS_HEIGHT,
+    });
     const containerRef = useRef<HTMLDivElement>(null);
+    const draftHydratedRef = useRef(false);
 
     // Multi-select state
     const [selectedDeskIds, setSelectedDeskIds] = useState<Set<string>>(new Set());
@@ -198,6 +254,7 @@ export default function ClassroomsPage() {
 
     // Zoom state
     const [zoomLevel, setZoomLevel] = useState(0.5);
+    const [lastDraftSavedAt, setLastDraftSavedAt] = useState<string | null>(null);
 
     // Zone management
     const [zones, setZones] = useState<Zone[]>([]);
@@ -309,10 +366,83 @@ export default function ClassroomsPage() {
         return () => window.removeEventListener("resize", updateSize);
     }, [showLayoutModal]);
 
+    useEffect(() => {
+        if (!showLayoutModal || !editingClassroom) return;
+
+        const requiredSize = getLayoutCanvasSize(editingClassroom.desks, zones);
+        setCanvasSize((prev) => {
+            const next = {
+                width: Math.max(prev.width, requiredSize.width),
+                height: Math.max(prev.height, requiredSize.height),
+            };
+            if (next.width === prev.width && next.height === prev.height) {
+                return prev;
+            }
+            return next;
+        });
+    }, [editingClassroom, showLayoutModal, zones]);
+
+    useEffect(() => {
+        if (!showLayoutModal || !editingClassroom || !draftHydratedRef.current) return;
+        if (typeof window === "undefined") return;
+
+        const timeoutId = window.setTimeout(() => {
+            const draft: LayoutDraft = {
+                classroomId: editingClassroom.id,
+                desks: editingClassroom.desks,
+                zones,
+                canvasSize,
+                savedAt: new Date().toISOString(),
+            };
+            window.localStorage.setItem(
+                getLayoutDraftStorageKey(editingClassroom.id),
+                JSON.stringify(draft)
+            );
+            setLastDraftSavedAt(draft.savedAt);
+        }, 800);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [canvasSize, editingClassroom, showLayoutModal, zones]);
+
     // Snap to grid
     const snapToGrid = (value: number) => {
         return Math.round(value / GRID_SIZE) * GRID_SIZE;
     };
+
+    const resetLayoutEditorState = useCallback(() => {
+        draftHydratedRef.current = false;
+        setShowLayoutModal(false);
+        setEditingClassroom(null);
+        setSelectedDeskIds(new Set());
+        setUndoStack([]);
+        setRedoStack([]);
+        setZones([]);
+        setZoomLevel(0.5);
+        setCanvasSize({
+            width: MIN_CANVAS_WIDTH,
+            height: MIN_CANVAS_HEIGHT,
+        });
+        setLastDraftSavedAt(null);
+    }, []);
+
+    const clearLayoutDraft = useCallback((classroomId?: string | null) => {
+        if (typeof window === "undefined" || !classroomId) return;
+        window.localStorage.removeItem(getLayoutDraftStorageKey(classroomId));
+    }, []);
+
+    const closeLayoutEditor = useCallback((options?: { clearDraft?: boolean }) => {
+        if (options?.clearDraft) {
+            clearLayoutDraft(editingClassroom?.id);
+        }
+        resetLayoutEditorState();
+    }, [clearLayoutDraft, editingClassroom?.id, resetLayoutEditorState]);
+
+    const expandCanvas = useCallback((width = CANVAS_EXPAND_WIDTH, height = CANVAS_EXPAND_HEIGHT) => {
+        setCanvasSize((prev) => ({
+            width: snapCanvasDimension(prev.width + width),
+            height: snapCanvasDimension(prev.height + height),
+        }));
+    }, []);
 
     // ============ Undo/Redo helpers ============
     const pushUndo = useCallback((desks: Desk[]) => {
@@ -425,6 +555,17 @@ export default function ClassroomsPage() {
 
             // Open layout editor immediately
             setEditingClassroom(newClassroom);
+            setZones([]);
+            setCanvasSize({
+                width: MIN_CANVAS_WIDTH,
+                height: MIN_CANVAS_HEIGHT,
+            });
+            setUndoStack([]);
+            setRedoStack([]);
+            setSelectedDeskIds(new Set());
+            setZoomLevel(0.5);
+            setLastDraftSavedAt(null);
+            draftHydratedRef.current = true;
             setShowLayoutModal(true);
 
             // Refresh stats in background (non-blocking)
@@ -591,15 +732,7 @@ export default function ClassroomsPage() {
             if (!response.success || !response.data) {
                 throw new Error(response.error || "Failed to load classroom");
             }
-            setEditingClassroom(transformClassroomFromAPI(response.data));
-            setShowLayoutModal(true);
-            // Reset history
-            setUndoStack([]);
-            setRedoStack([]);
-            setSelectedDeskIds(new Set());
-            // Load zones from API
-            const apiZones = response.data.zones || [];
-            setZones(apiZones.map((z: any) => ({
+            const apiZones = (response.data.zones || []).map((z: any) => ({
                 id: z.id,
                 name: z.name,
                 x: z.x,
@@ -607,8 +740,70 @@ export default function ClassroomsPage() {
                 width: z.width,
                 height: z.height,
                 color: z.color,
-            })));
+            }));
+            const serverClassroom = transformClassroomFromAPI(response.data);
+            let nextClassroom = serverClassroom;
+            let nextZones = apiZones;
+            let nextCanvasSize = getLayoutCanvasSize(serverClassroom.desks, apiZones);
+            let restoredDraft = false;
+            setLastDraftSavedAt(null);
+
+            if (typeof window !== "undefined") {
+                const rawDraft = window.localStorage.getItem(getLayoutDraftStorageKey(classroom.id));
+                if (rawDraft) {
+                    try {
+                        const parsedDraft = JSON.parse(rawDraft) as LayoutDraft;
+                        if (parsedDraft.classroomId === classroom.id) {
+                            nextClassroom = {
+                                ...serverClassroom,
+                                desks: Array.isArray(parsedDraft.desks) ? parsedDraft.desks : serverClassroom.desks,
+                            };
+                            nextZones = Array.isArray(parsedDraft.zones) ? parsedDraft.zones : apiZones;
+                            nextCanvasSize = parsedDraft.canvasSize
+                                ? {
+                                      width: snapCanvasDimension(
+                                          Math.max(
+                                              MIN_CANVAS_WIDTH,
+                                              parsedDraft.canvasSize.width || MIN_CANVAS_WIDTH
+                                          )
+                                      ),
+                                      height: snapCanvasDimension(
+                                          Math.max(
+                                              MIN_CANVAS_HEIGHT,
+                                              parsedDraft.canvasSize.height || MIN_CANVAS_HEIGHT
+                                          )
+                                      ),
+                                  }
+                                : getLayoutCanvasSize(nextClassroom.desks, nextZones);
+                            setLastDraftSavedAt(parsedDraft.savedAt || null);
+                            restoredDraft = true;
+                        }
+                    } catch (draftError) {
+                        console.warn("Failed to parse classroom layout draft:", draftError);
+                        window.localStorage.removeItem(getLayoutDraftStorageKey(classroom.id));
+                    }
+                }
+            }
+
+            setEditingClassroom(nextClassroom);
+            setZones(nextZones);
+            setCanvasSize(nextCanvasSize);
+            setShowLayoutModal(true);
+            setUndoStack([]);
+            setRedoStack([]);
+            setSelectedDeskIds(new Set());
             setZoomLevel(0.5);
+            draftHydratedRef.current = true;
+
+            if (restoredDraft) {
+                addToast({
+                    title: "กู้คืนแบบร่างอัตโนมัติ",
+                    description: "โหลดผังที่ยังไม่ได้บันทึกล่าสุดกลับมาแล้ว",
+                    color: "primary",
+                    timeout: 2500,
+                    shouldShowTimeoutProgress: true,
+                });
+            }
         } catch (error: any) {
             console.error("Failed to load classroom:", error);
             addToast({
@@ -732,7 +927,7 @@ body { font-family: sans-serif; background: #fff; padding: 24px; }
 
         const deskW = isTeacherDesk ? TEACHER_DESK_WIDTH : DESK_WIDTH;
         const deskH = isTeacherDesk ? TEACHER_DESK_HEIGHT : DESK_HEIGHT;
-        const cols = Math.max(1, Math.floor((CANVAS_WIDTH - 40) / (deskW + GRID_SIZE)));
+        const cols = Math.max(1, Math.floor((canvasSize.width - 40) / (deskW + GRID_SIZE)));
 
         const newDesks: Desk[] = [];
         for (let i = 0; i < count; i++) {
@@ -791,14 +986,14 @@ body { font-family: sans-serif; background: #fff; padding: 24px; }
         if (containerRef.current) {
             const rect = containerRef.current.getBoundingClientRect();
             const fitScale = Math.min(
-                (rect.width - 48) / CANVAS_WIDTH,
-                (Math.max(600, window.innerHeight - 300)) / CANVAS_HEIGHT
+                (rect.width - 48) / canvasSize.width,
+                (Math.max(600, window.innerHeight - 300)) / canvasSize.height
             );
             setZoomLevel(+Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, fitScale)).toFixed(2));
         } else {
             setZoomLevel(0.5);
         }
-    }, []);
+    }, [canvasSize.height, canvasSize.width]);
 
     const handleWheelZoom = useCallback((delta: number) => {
         setZoomLevel((prev) => {
@@ -927,8 +1122,8 @@ body { font-family: sans-serif; background: #fff; padding: 24px; }
             // Refresh stats in background
             refreshStats();
 
-            setShowLayoutModal(false);
-            setEditingClassroom(null);
+            clearLayoutDraft(editingClassroom.id);
+            resetLayoutEditorState();
 
             addToast({
                 title: "สำเร็จ",
@@ -1524,15 +1719,7 @@ body { font-family: sans-serif; background: #fff; padding: 24px; }
             {/* Layout Editor Modal */}
             <Modal
                 isOpen={showLayoutModal}
-                onClose={() => {
-                    setShowLayoutModal(false);
-                    setEditingClassroom(null);
-                    setSelectedDeskIds(new Set());
-                    setUndoStack([]);
-                    setRedoStack([]);
-                    setZones([]);
-                    setZoomLevel(0.5);
-                }}
+                onClose={() => closeLayoutEditor({ clearDraft: true })}
                 size="full"
                 scrollBehavior="inside"
             >
@@ -1601,6 +1788,21 @@ body { font-family: sans-serif; background: #fff; padding: 24px; }
                                     </Button>
                                 </Tooltip>
                                 <div className="mx-1 h-5 w-px bg-default-300" />
+                                <Button
+                                    size="sm"
+                                    variant="flat"
+                                    startContent={<Icon icon="solar:scale-linear" className="text-base" />}
+                                    onPress={() => expandCanvas()}
+                                >
+                                    ขยายพื้นที่
+                                </Button>
+                                <Chip
+                                    variant="flat"
+                                    className="bg-slate-100 text-slate-700"
+                                    size="sm"
+                                >
+                                    {canvasSize.width} x {canvasSize.height}
+                                </Chip>
                                 <Chip
                                     variant="flat"
                                     className="bg-emerald-50 text-emerald-600"
@@ -1858,12 +2060,15 @@ body { font-family: sans-serif; background: #fff; padding: 24px; }
                                         </Tooltip>
                                     </div>
                                     
-                                    <div className="overflow-auto rounded-xl border-2 border-dashed border-default-300 bg-content2">
+                                    <div
+                                        className="overflow-auto rounded-xl border-2 border-dashed border-default-300 bg-content2"
+                                        style={{ height: stageSize.height }}
+                                    >
                                         <CanvasEditor
-                                            width={stageSize.width}
-                                            height={stageSize.height}
-                                            canvasWidth={CANVAS_WIDTH}
-                                            canvasHeight={CANVAS_HEIGHT}
+                                            width={Math.max(stageSize.width, Math.ceil(canvasSize.width * zoomLevel))}
+                                            height={Math.max(stageSize.height, Math.ceil(canvasSize.height * zoomLevel))}
+                                            canvasWidth={canvasSize.width}
+                                            canvasHeight={canvasSize.height}
                                             scale={zoomLevel}
                                             desks={editingClassroom.desks}
                                             zones={zones}
@@ -1886,17 +2091,19 @@ body { font-family: sans-serif; background: #fff; padding: 24px; }
                         )}
                     </ModalBody>
                     <ModalFooter className="border-t border-divider p-3 sm:p-4">
+                        {lastDraftSavedAt && (
+                            <Chip
+                                variant="flat"
+                                className="mr-auto bg-amber-50 text-amber-700"
+                                startContent={<Icon icon="solar:diskette-linear" />}
+                                size="sm"
+                            >
+                                บันทึกแบบร่างอัตโนมัติแล้ว
+                            </Chip>
+                        )}
                         <Button
                             variant="light"
-                            onPress={() => {
-                                setShowLayoutModal(false);
-                                setEditingClassroom(null);
-                                setSelectedDeskIds(new Set());
-                                setUndoStack([]);
-                                setRedoStack([]);
-                                setZones([]);
-                                setZoomLevel(0.5);
-                            }}
+                            onPress={() => closeLayoutEditor({ clearDraft: true })}
                             isDisabled={isSaving}
                             size="sm"
                         >

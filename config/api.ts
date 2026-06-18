@@ -111,6 +111,7 @@ export const API_ENDPOINTS = {
     FEATURE_FLAGS: '/system-settings/feature-flags',
     FEATURE_FLAG_BY_KEY: (key: string) => `/system-settings/feature-flags/${key}`,
     MAINTENANCE: '/system-settings/maintenance',
+    PROGRAMS: '/system-settings/programs',
     HEALTH: '/system-settings/health',
   },
 };
