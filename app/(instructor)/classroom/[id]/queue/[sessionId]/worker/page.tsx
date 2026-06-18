@@ -48,7 +48,7 @@ interface MiniDeskInfo {
 function getDirectionGuide(
     prev: { x: number; y: number },
     curr: { x: number; y: number }
-): { label: string; icon: string; distance: "????" | "???????" | "???" } {
+): { label: string; icon: string; distance: "ใกล้" | "ปานกลาง" | "ไกล" } {
     const dx = curr.x - prev.x;
     const dy = curr.y - prev.y; // y increases downward on canvas
     const dist = Math.sqrt(dx * dx + dy * dy);
@@ -58,17 +58,17 @@ function getDirectionGuide(
 
     let label: string;
     let icon: string;
-    if (deg >= 337.5 || deg < 22.5)       { label = "???";       icon = "solar:arrow-right-bold"; }
-    else if (deg < 67.5)                  { label = "???-????";  icon = "solar:arrow-right-down-bold"; }
-    else if (deg < 112.5)                 { label = "????";       icon = "solar:arrow-down-bold"; }
-    else if (deg < 157.5)                 { label = "????-????"; icon = "solar:arrow-left-down-bold"; }
-    else if (deg < 202.5)                 { label = "????";       icon = "solar:arrow-left-bold"; }
-    else if (deg < 247.5)                 { label = "????-??";   icon = "solar:arrow-left-up-bold"; }
-    else if (deg < 292.5)                 { label = "??";         icon = "solar:arrow-up-bold"; }
-    else                                  { label = "???-??";    icon = "solar:arrow-right-up-bold"; }
+    if (deg >= 337.5 || deg < 22.5)       { label = "ขวา";       icon = "solar:arrow-right-bold"; }
+    else if (deg < 67.5)                  { label = "ขวา-ล่าง";  icon = "solar:arrow-right-down-bold"; }
+    else if (deg < 112.5)                 { label = "ล่าง";       icon = "solar:arrow-down-bold"; }
+    else if (deg < 157.5)                 { label = "ซ้าย-ล่าง"; icon = "solar:arrow-left-down-bold"; }
+    else if (deg < 202.5)                 { label = "ซ้าย";       icon = "solar:arrow-left-bold"; }
+    else if (deg < 247.5)                 { label = "ซ้าย-บน";   icon = "solar:arrow-left-up-bold"; }
+    else if (deg < 292.5)                 { label = "บน";         icon = "solar:arrow-up-bold"; }
+    else                                  { label = "ขวา-บน";    icon = "solar:arrow-right-up-bold"; }
 
-    const distance: "????" | "???????" | "???" =
-        dist < 80 ? "????" : dist < 200 ? "???????" : "???";
+    const distance: "ใกล้" | "ปานกลาง" | "ไกล" =
+        dist < 80 ? "ใกล้" : dist < 200 ? "ปานกลาง" : "ไกล";
 
     return { label, icon, distance };
 }
@@ -230,49 +230,49 @@ function formatCutoffDateTime(value?: string | null, isEnglish = false): string 
 
 function formatDeskLabel(deskNumber: string | number | null | undefined, isEnglish = false): string {
     if (deskNumber === null || deskNumber === undefined || deskNumber === "") return "-";
-    return `${isEnglish ? "Desk" : "????"} ${deskNumber}`;
+    return `${isEnglish ? "Desk" : "โต๊ะ"} ${deskNumber}`;
 }
 
 function formatBookingTypeLabel(bookingType: QueueBooking["booking_type"], isEnglish = false): string {
     return bookingType === "grading"
-        ? (isEnglish ? "Grading" : "???????")
-        : (isEnglish ? "Help" : "?????????");
+        ? (isEnglish ? "Grading" : "ตรวจงาน")
+        : (isEnglish ? "Help" : "ช่วยเหลือ");
 }
 
 function formatDirectionLabel(label: string, isEnglish = false): string {
     if (!isEnglish) return label;
 
     switch (label) {
-        case "???":
+        case "ขวา":
             return "right";
-        case "???-????":
+        case "ขวา-ล่าง":
             return "down-right";
-        case "????":
+        case "ล่าง":
             return "down";
-        case "????-????":
+        case "ซ้าย-ล่าง":
             return "down-left";
-        case "????":
+        case "ซ้าย":
             return "left";
-        case "????-??":
+        case "ซ้าย-บน":
             return "up-left";
-        case "??":
+        case "บน":
             return "up";
-        case "???-??":
+        case "ขวา-บน":
             return "up-right";
         default:
             return label;
     }
 }
 
-function formatDistanceLabel(distance: "????" | "???????" | "???", isEnglish = false): string {
+function formatDistanceLabel(distance: "ใกล้" | "ปานกลาง" | "ไกล", isEnglish = false): string {
     if (!isEnglish) return distance;
 
     switch (distance) {
-        case "????":
+        case "ใกล้":
             return "near";
-        case "???????":
+        case "ปานกลาง":
             return "medium";
-        case "???":
+        case "ไกล":
             return "far";
         default:
             return distance;
@@ -284,7 +284,7 @@ function formatBookingStatusLabel(status: string, isEnglish = false): string {
         case "waiting":
             return getQueueBookingStatusLabel("waiting", isEnglish);
         case "assigned":
-            return isEnglish ? "Assigned" : "???????????";
+            return isEnglish ? "Assigned" : "มอบหมายแล้ว";
         case "in_progress":
             return getQueueBookingStatusLabel("in_progress", isEnglish);
         case "completed":
@@ -292,7 +292,7 @@ function formatBookingStatusLabel(status: string, isEnglish = false): string {
         case "cancelled":
             return getQueueBookingStatusLabel("cancelled", isEnglish);
         case "skipped":
-            return isEnglish ? "Skipped" : "????????";
+            return isEnglish ? "Skipped" : "ข้ามแล้ว";
         default:
             return status;
     }
@@ -348,6 +348,7 @@ export default function WorkerDashboardPage() {
 
     // Complete booking modal
     const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
+    const [isPreparingCompleteForm, setIsPreparingCompleteForm] = useState(false);
     const [completeForm, setCompleteForm] = useState<{
         score: string;
         score_comment: string;
@@ -807,10 +808,35 @@ export default function WorkerDashboardPage() {
 
         if (!currentBooking) return;
 
+        if (currentBooking.booking_type === "grading") {
+            const parsedScore = completeForm.score === "" ? null : Number(completeForm.score);
+
+            if (usesSubItemScoring) {
+                const hasAnySubItemScore = completeForm.sub_item_scores.some((item) => item.score !== "");
+                if (!hasAnySubItemScore) {
+                    addToast({
+                        title: t("กรุณากรอกคะแนน", "Score required"),
+                        description: t("กรุณากรอกคะแนนอย่างน้อย 1 ข้อก่อนบันทึกผล", "Please enter at least one sub-item score before saving."),
+                        color: "warning",
+                        timeout: 3000,
+                        shouldShowTimeoutProgress: true,
+                    });
+                    return;
+                }
+            } else if (parsedScore === null || Number.isNaN(parsedScore)) {
+                addToast({
+                    title: t("กรุณากรอกคะแนน", "Score required"),
+                    description: t("คิวตรวจงานนี้ต้องมีคะแนนก่อนบันทึกผล", "This grading task requires a score before saving."),
+                    color: "warning",
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+                });
+                return;
+            }
+        }
+
         setIsCompleting(true);
         try {
-            const hasSubItems = session?.linkedAssignment?.subItems && session.linkedAssignment.subItems.length > 0;
-
             // Filter only sub-items with scores entered
             const validSubItemScores = completeForm.sub_item_scores
                 .filter(s => s.score !== "" && s.score !== null)
@@ -820,10 +846,10 @@ export default function WorkerDashboardPage() {
                 }));
 
             const result = await queueService.completeBooking(courseId, sessionId, currentBooking.id, {
-                score: !hasSubItems && currentBooking.booking_type === "grading" && completeForm.score !== "" 
+                score: !usesSubItemScoring && currentBooking.booking_type === "grading" && completeForm.score !== "" 
                     ? parseFloat(completeForm.score) || 0 
                     : undefined,
-                sub_item_scores: hasSubItems && currentBooking.booking_type === "grading" && validSubItemScores.length > 0
+                sub_item_scores: usesSubItemScoring && currentBooking.booking_type === "grading" && validSubItemScores.length > 0
                     ? validSubItemScores
                     : undefined,
                 score_comment: completeForm.score_comment || undefined,
@@ -1074,9 +1100,13 @@ export default function WorkerDashboardPage() {
         return () => clearInterval(timer);
     }, [currentBooking, pollForBooking]);
 
-    // Get max score from linked assignment
+    const isGradingBooking = currentBooking?.booking_type === "grading";
+    const isSessionLinkedAssignmentMissing = Boolean(session?.linked_assignment_id && !session?.linkedAssignment);
+    // Get max score from linked assignment, or fall back to a general manual-score default.
     const maxScore = session?.linkedAssignment?.max_score || 10;
-    const hasSubItems = session?.linkedAssignment?.subItems && session.linkedAssignment.subItems.length > 0;
+    const hasSubItems = Boolean(session?.linkedAssignment?.subItems?.length);
+    const usesSubItemScoring = isGradingBooking && hasSubItems;
+    const usesSingleScoreScoring = isGradingBooking && !hasSubItems;
     // Sort subItems by order_index
     const subItems = [...(session?.linkedAssignment?.subItems || [])].sort(
         (a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)
@@ -1090,13 +1120,31 @@ export default function WorkerDashboardPage() {
         }
 
         setIsCompleteModalOpen(true);
-        
-        if (currentBooking?.booking_type === "grading" && session?.linkedAssignment) {
-            if (hasSubItems) {
+        setIsPreparingCompleteForm(true);
+
+        try {
+            let scoringSession = session;
+
+            if (currentBooking?.booking_type === "grading" && session?.linked_assignment_id && !session?.linkedAssignment) {
+                try {
+                    const refreshedSession = await queueService.getQueueSession(courseId, sessionId);
+                    scoringSession = refreshedSession;
+                    setSession(refreshedSession);
+                } catch (refreshError) {
+                    console.error("Error refreshing queue session for scoring:", refreshError);
+                }
+            }
+
+            const scoringSubItems = [...(scoringSession?.linkedAssignment?.subItems || [])].sort(
+                (a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)
+            );
+            const scoringHasSubItems = scoringSubItems.length > 0;
+
+            if (currentBooking?.booking_type === "grading" && scoringSession?.linkedAssignment && scoringHasSubItems) {
                 // Fetch existing scores for this student
                 setIsLoadingScores(true);
                 try {
-                    const scoresData = await scoreService.getScores(session.linkedAssignment.id);
+                    const scoresData = await scoreService.getScores(scoringSession.linkedAssignment.id);
                     const studentScore = scoresData?.student_scores?.find(
                         ss => ss.student.id === currentBooking.student_id
                     );
@@ -1116,7 +1164,7 @@ export default function WorkerDashboardPage() {
                         score: "",
                         score_comment: "",
                         worker_note: "",
-                        sub_item_scores: subItems.map(item => ({
+                        sub_item_scores: scoringSubItems.map(item => ({
                             sub_item_id: item.id,
                             score: "", // Start empty - only for items not yet scored
                         })),
@@ -1128,7 +1176,7 @@ export default function WorkerDashboardPage() {
                         score: "",
                         score_comment: "",
                         worker_note: "",
-                        sub_item_scores: subItems.map(item => ({
+                        sub_item_scores: scoringSubItems.map(item => ({
                             sub_item_id: item.id,
                             score: "",
                         })),
@@ -1136,7 +1184,7 @@ export default function WorkerDashboardPage() {
                 } finally {
                     setIsLoadingScores(false);
                 }
-            } else {
+            } else if (currentBooking?.booking_type === "grading") {
                 setExistingSubItemScores([]);
                 setCompleteForm({
                     score: "",
@@ -1144,10 +1192,12 @@ export default function WorkerDashboardPage() {
                     worker_note: "",
                     sub_item_scores: [],
                 });
+            } else {
+                setExistingSubItemScores([]);
+                setCompleteForm({ score: "", score_comment: "", worker_note: "", sub_item_scores: [] });
             }
-        } else {
-            setExistingSubItemScores([]);
-            setCompleteForm({ score: "", score_comment: "", worker_note: "", sub_item_scores: [] });
+        } finally {
+            setIsPreparingCompleteForm(false);
         }
     };
 
@@ -1719,10 +1769,30 @@ export default function WorkerDashboardPage() {
                     </ModalHeader>
                     <ModalBody>
                         <div className="space-y-4">
-                            {currentBooking?.booking_type === "grading" && session?.linkedAssignment && (
+                            {isPreparingCompleteForm && (
+                                <div className="flex items-center justify-center py-8">
+                                    <Spinner size="lg" />
+                                </div>
+                            )}
+
+                            {!isPreparingCompleteForm && isGradingBooking && isSessionLinkedAssignmentMissing && (
+                                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                                    <div className="flex items-start gap-2 text-amber-700">
+                                        <Icon icon="solar:danger-triangle-bold" className="mt-0.5 text-lg shrink-0" />
+                                        <div className="text-sm">
+                                            <p className="font-medium">{t("โหลดรายละเอียดการให้คะแนนไม่ครบ", "Scoring details are incomplete")}</p>
+                                            <p className="mt-0.5 text-amber-600">
+                                                {t("ระบบจะแสดงช่องคะแนนรวมเป็นค่า fallback หากคิวนี้ควรเป็นการให้คะแนนรายข้อ แนะนำให้รีเฟรชหน้าแล้วลองอีกครั้ง", "A total-score fallback is shown for now. If this task should use sub-item scoring, refresh the page and try again.")}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {!isPreparingCompleteForm && isGradingBooking && (
                                 <>
                                     {/* Sub-items scoring */}
-                                    {hasSubItems ? (
+                                    {usesSubItemScoring ? (
                                         <div className="space-y-4">
                                             <div className="flex items-center justify-between">
                                                 <label className="text-sm font-medium text-default-700">
@@ -1769,7 +1839,7 @@ export default function WorkerDashboardPage() {
                                                                     {isLocked && existingScore?.graded_by && (
                                                                         <div className="mt-1 space-y-0.5">
                                                                             <p className="text-xs text-amber-700">
-                                                                                {t("?????", "Scored by")} {existingScore.graded_by.display_name}
+                                                                                {t("ลงโดย", "Scored by")} {existingScore.graded_by.display_name}
                                                                             </p>
                                                                             {existingScore.graded_at && (
                                                                                 <p className="text-[11px] text-amber-600/90">
@@ -1932,7 +2002,7 @@ export default function WorkerDashboardPage() {
                             )}
 
                             {/* For help requests - no score needed */}
-                            {currentBooking?.booking_type === "help" && (
+                            {!isPreparingCompleteForm && currentBooking?.booking_type === "help" && (
                                 <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
                                     <div className="flex items-center gap-2 text-amber-700">
                                         <Icon icon="solar:info-circle-bold" className="text-xl" />
@@ -1958,7 +2028,7 @@ export default function WorkerDashboardPage() {
                             color="success" 
                             onPress={handleCompleteBooking}
                             isLoading={isCompleting}
-                            isDisabled={!isCourseActive}
+                            isDisabled={!isCourseActive || isPreparingCompleteForm || isLoadingScores}
                         >
                             {t("บันทึกผล", "Save result")}
                         </Button>

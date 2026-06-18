@@ -476,7 +476,10 @@ export function useClassroomData(courseId: string) {
                 await fetchOverview(force);
                 break;
             case "assignments":
-                await fetchAssignments(force, !force);
+                await Promise.all([
+                    fetchAssignments(force, !force),
+                    fetchTeams(force),
+                ]);
                 break;
             case "attendance-overview":
             case "attendance":
@@ -493,11 +496,16 @@ export function useClassroomData(courseId: string) {
                 }
                 break;
             case "scores":
+                await Promise.all([
+                    fetchAssignments(force, !force),
+                    fetchTeams(force),
+                ]);
+                break;
             case "score-summary":
                 await fetchAssignments(force, !force);
                 break;
         }
-    }, [fetchOverview, fetchAssignments, fetchAttendanceSessions, fetchCourse, fetchAllSectionStudents, fetchTAsList, fetchInstructorsList]);
+    }, [fetchOverview, fetchAssignments, fetchAttendanceSessions, fetchCourse, fetchAllSectionStudents, fetchTAsList, fetchInstructorsList, fetchTeams]);
 
     // Initial data load (route-aware to avoid fetching every heavy dataset at once)
     const initializeData = useCallback(async (tab: string = "overview") => {
@@ -517,7 +525,11 @@ export function useClassroomData(courseId: string) {
                 tabRequests.push(fetchTAsList(), fetchInstructorsList());
                 break;
             case "assignments":
+                tabRequests.push(fetchAssignments(), fetchTeams());
+                break;
             case "scores":
+                tabRequests.push(fetchAssignments(), fetchTeams());
+                break;
             case "exam-scores":
             case "approval":
                 tabRequests.push(fetchAssignments());

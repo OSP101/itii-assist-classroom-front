@@ -114,6 +114,15 @@ export default function ProjectorViewPage() {
 
     const socketRef = useRef<Socket | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const selectedDeskHasActiveBooking = Boolean(
+        selectedDesk?.booking &&
+        (selectedDesk.status.grading_status === "waiting" ||
+            selectedDesk.status.grading_status === "in_progress" ||
+            selectedDesk.status.help_status !== "none")
+    );
+    const selectedDeskHasCompletedLock = Boolean(
+        selectedDesk?.booking && selectedDesk.status.grading_status === "completed"
+    );
 
     // Update clock every second
     useEffect(() => {
@@ -367,8 +376,8 @@ export default function ProjectorViewPage() {
 
     // Handle desk click
     const handleDeskClick = (desk: DeskWithStatus) => {
-        // Only open modal if desk has active booking
-        if (desk.booking && (desk.status.grading_status === 'waiting' || desk.status.grading_status === 'in_progress' || desk.status.help_status !== 'none')) {
+        // Open the modal for active bookings and completed grading locks.
+        if (desk.booking && (desk.status.grading_status === 'waiting' || desk.status.grading_status === 'in_progress' || desk.status.help_status !== 'none' || desk.status.grading_status === 'completed')) {
             setSelectedDesk(desk);
             setIsDeskModalOpen(true);
         }
@@ -777,6 +786,8 @@ export default function ProjectorViewPage() {
                         {desks.map((desk) => {
                             const isTeacher = desk.type === "teacher";
                             const hasActiveBooking = desk.booking && (desk.status.grading_status === 'waiting' || desk.status.grading_status === 'in_progress' || desk.status.help_status !== 'none');
+                            const hasCompletedLock = desk.booking && desk.status.grading_status === 'completed';
+                            const isInspectable = Boolean(hasActiveBooking || hasCompletedLock);
                             return (
                                 <div
                                     key={desk.id}
@@ -784,7 +795,7 @@ export default function ProjectorViewPage() {
                                         absolute flex items-center justify-center rounded-lg
                                         ${getDeskColor(desk)} ${getDeskBorder(desk)}
                                         transition-all duration-300 
-                                        ${hasActiveBooking ? 'cursor-pointer hover:ring-2 hover:ring-red-400 hover:ring-offset-2' : 'cursor-default'}
+                                        ${isInspectable ? 'cursor-pointer hover:ring-2 hover:ring-red-400 hover:ring-offset-2' : 'cursor-default'}
                                     `}
                                     style={{
                                         left: desk.x,
@@ -794,7 +805,7 @@ export default function ProjectorViewPage() {
                                     }}
                                     title={isTeacher
                                         ? (isEnglish ? `Teacher desk ${desk.number}` : `โต๊ะอาจารย์ ${desk.number}`)
-                                        : `${isEnglish ? 'Desk' : 'โต๊ะ'} ${desk.number}${desk.label ? ` (${desk.label})` : ""}${hasActiveBooking ? (isEnglish ? ' - click to manage' : ' - คลิกเพื่อจัดการ') : ''}`}
+                                        : `${isEnglish ? 'Desk' : 'โต๊ะ'} ${desk.number}${desk.label ? ` (${desk.label})` : ""}${hasActiveBooking ? (isEnglish ? ' - click to manage' : ' - คลิกเพื่อจัดการ') : hasCompletedLock ? (isEnglish ? ' - click to inspect lock' : ' - คลิกเพื่อดูการล็อกโต๊ะ') : ''}`}
                                     onClick={() => handleDeskClick(desk)}
                                 >
                                     <span className={`font-bold ${isTeacher ? "text-sm text-foreground" : "text-lg"} ${desk.status.grading_status === "not_started" && desk.status.help_status === "none" ? "text-default-700" : "text-white"}`}>
@@ -1076,15 +1087,27 @@ export default function ProjectorViewPage() {
                                     )}
                                 </div>
 
-                                <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
-                                    <div className="flex items-start gap-2">
-                                        <Icon icon="solar:danger-triangle-bold" className="text-amber-600 text-lg mt-0.5" />
-                                        <div className="text-sm text-amber-700">
-                                            <p className="font-medium">{t('ยกเลิกการจองนี้?', 'Cancel this booking?')}</p>
-                                            <p className="mt-1">{t('ใช้เมื่อมีปัญหาหรือข้อผิดพลาดเท่านั้น โต๊ะจะว่างและนักศึกษาสามารถจองใหม่ได้', 'Use this only when there is a problem or mistake. The desk will become available and the student can book again.')}</p>
+                                {selectedDeskHasActiveBooking ? (
+                                    <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                                        <div className="flex items-start gap-2">
+                                            <Icon icon="solar:danger-triangle-bold" className="text-amber-600 text-lg mt-0.5" />
+                                            <div className="text-sm text-amber-700">
+                                                <p className="font-medium">{t('ยกเลิกการจองนี้?', 'Cancel this booking?')}</p>
+                                                <p className="mt-1">{t('ใช้เมื่อมีปัญหาหรือข้อผิดพลาดเท่านั้น โต๊ะจะว่างและนักศึกษาสามารถจองใหม่ได้', 'Use this only when there is a problem or mistake. The desk will become available and the student can book again.')}</p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                ) : selectedDeskHasCompletedLock ? (
+                                    <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
+                                        <div className="flex items-start gap-2">
+                                            <Icon icon="solar:lock-bold" className="text-emerald-600 text-lg mt-0.5" />
+                                            <div className="text-sm text-emerald-700">
+                                                <p className="font-medium">{t('โต๊ะนี้ถูกล็อกแล้ว', 'This desk is locked')}</p>
+                                                <p className="mt-1">{t('โต๊ะนี้มีผลตรวจสำเร็จแล้ว จึงถูกผูกไว้กับนักศึกษาคนเดิมและไม่ควรเปิดให้คนอื่นจองต่อ', 'A grading result has already been completed on this desk, so it stays linked to the same student and should not be reopened for someone else.')}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : null}
                             </div>
                         )}
                     </ModalBody>
@@ -1092,14 +1115,16 @@ export default function ProjectorViewPage() {
                         <Button variant="light" onPress={() => setIsDeskModalOpen(false)}>
                             {t('ปิด', 'Close')}
                         </Button>
-                        <Button
-                            color="primary"
-                            onPress={handleCancelDeskBooking}
-                            isLoading={isCancelling}
-                            className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
-                        >
-                            {t('ยกเลิกการจอง', 'Cancel booking')}
-                        </Button>
+                        {selectedDeskHasActiveBooking && (
+                            <Button
+                                color="primary"
+                                onPress={handleCancelDeskBooking}
+                                isLoading={isCancelling}
+                                className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
+                            >
+                                {t('ยกเลิกการจอง', 'Cancel booking')}
+                            </Button>
+                        )}
                     </ModalFooter>
                 </ModalContent>
             </Modal>
