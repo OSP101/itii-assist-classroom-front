@@ -9,7 +9,6 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@herou
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 import { Button } from "@heroui/button";
 import { Divider } from "@heroui/divider";
-import { Link } from "@heroui/link";
 import { Icon } from "@iconify/react";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { ScoresSkeleton } from "../Skeletons";
@@ -178,9 +177,6 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                     <h2 className="text-lg font-semibold text-foreground">{isEnglish ? "Classroom scores" : "คะแนนในชั้นเรียน"}</h2>
                     <p className="text-sm text-default-500">{isEnglish ? "View the overall score summary for all students." : "ดูภาพรวมคะแนนทั้งหมดของนักศึกษา"}</p>
                 </div>
-                <Link isExternal showAnchorIcon className="text-blue-600 hover:underline" href="/myscore">
-                    {isEnglish ? "Check individual scores" : "เช็คคะแนนรายบุคคล"}
-                </Link>
             </div>
 
             {/* Tabs */}

@@ -49,10 +49,7 @@ export default function StudentProfilePage() {
     { icon: "solar:shield-user-bold-duotone", label: "บทบาท",        value: "นักศึกษา",             copyable: false },
   ];
 
-  const studentId = user?.username || "";
-
   const menuItems = [
-    { icon: "solar:medal-star-bold-duotone",      label: "คะแนนของฉัน",     desc: "ดูคะแนนทุกวิชา",                href: `/myscore?id=${studentId}`, external: false },
     { icon: "solar:shield-check-bold-duotone",    label: "สิทธิ์เครื่อง",    desc: "กล้อง · ตำแหน่ง · แจ้งเตือน",   href: "/student/device-check",   external: false },
     { icon: "solar:question-circle-bold-duotone", label: "ช่วยเหลือ",        desc: "คู่มือและการติดต่อสนับสนุน",     href: "/support",                external: false },
   ];

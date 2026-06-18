@@ -92,6 +92,8 @@ export default function SectionsTab({
         sectionStudents,
         removedStudents,
         studentsList,
+        studentSearchResults,
+        isStudentSearchLoading,
         
         // Computed
         totalStudents,
@@ -168,7 +170,10 @@ export default function SectionsTab({
 
     // Filter available students by search query
     const filteredStudents = () => {
-        const available = getAvailableStudents();
+        const hasQuery = studentModal.searchQuery.trim().length > 0;
+        const available = hasQuery
+            ? studentSearchResults.filter(student => !getEnrolledStudentIds().has(student.id))
+            : getAvailableStudents();
         if (!studentModal.searchQuery.trim()) return available;
         const query = studentModal.searchQuery.toLowerCase();
         return available.filter(s =>
@@ -660,6 +665,12 @@ export default function SectionsTab({
                                             inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
                                         }}
                                     />
+                                    {isStudentSearchLoading && studentModal.searchQuery.trim() ? (
+                                        <div className="flex items-center gap-2 px-1 text-sm text-default-500">
+                                            <Spinner size="sm" />
+                                            <span>{isEnglish ? "Searching students..." : "กำลังค้นหานักศึกษา..."}</span>
+                                        </div>
+                                    ) : null}
                                     <div className="overflow-hidden rounded-xl border border-default-200">
                                         <div className="max-h-60 overflow-y-auto">
                                             {filteredStudents().map(student => (

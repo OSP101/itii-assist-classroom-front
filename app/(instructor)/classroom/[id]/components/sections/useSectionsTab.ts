@@ -25,6 +25,8 @@ import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 // ============================================
 
 const CACHE_DURATION = 60000; // 1 minute
+const STUDENT_SEARCH_DEBOUNCE_MS = 700;
+const STUDENT_SEARCH_MIN_QUERY_LENGTH = 2;
 
 interface CacheEntry<T> {
     data: T;
@@ -175,6 +177,8 @@ export interface UseSectionsTabReturn {
     sectionStudents: Record<number, SectionStudent[]>;
     removedStudents: RemovedSectionStudent[];
     studentsList: Student[];
+    studentSearchResults: Student[];
+    isStudentSearchLoading: boolean;
     
     // Computed
     totalStudents: number;
@@ -313,11 +317,13 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
     const [sectionStudents, setSectionStudents] = useState<Record<number, SectionStudent[]>>({});
     const [removedStudents, setRemovedStudents] = useState<RemovedSectionStudent[]>([]);
     const [studentsList, setStudentsList] = useState<Student[]>([]);
+    const [studentSearchResults, setStudentSearchResults] = useState<Student[]>([]);
     
     // Loading States
     const [isLoading, setIsLoading] = useState(true);
     const [isTeamsLoading, setIsTeamsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isStudentSearchLoading, setIsStudentSearchLoading] = useState(false);
     
     // ============================================
     // UI States
@@ -587,6 +593,59 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
             fetchAllSectionStudents();
         }
     }, [course?.sections, fetchAllSectionStudents]);
+
+    useEffect(() => {
+        const query = studentModalState.searchQuery.trim();
+
+        if (
+            !studentModalState.isOpen ||
+            studentModalState.mode !== "single" ||
+            query.length < STUDENT_SEARCH_MIN_QUERY_LENGTH
+        ) {
+            setStudentSearchResults([]);
+            setIsStudentSearchLoading(false);
+            return;
+        }
+
+        let isActive = true;
+        setIsStudentSearchLoading(true);
+
+        const timeoutId = window.setTimeout(async () => {
+            try {
+                const response = await studentService.getStudents({
+                    limit: 20,
+                    search: query,
+                    status: "active",
+                    sortBy: "student_id",
+                    sortOrder: "ASC",
+                });
+
+                if (!isActive) {
+                    return;
+                }
+
+                if (response.success && response.data) {
+                    setStudentSearchResults(response.data.students);
+                } else {
+                    setStudentSearchResults([]);
+                }
+            } catch (error) {
+                if (isActive) {
+                    console.error("Error searching students:", error);
+                    setStudentSearchResults([]);
+                }
+            } finally {
+                if (isActive) {
+                    setIsStudentSearchLoading(false);
+                }
+            }
+        }, STUDENT_SEARCH_DEBOUNCE_MS);
+
+        return () => {
+            isActive = false;
+            window.clearTimeout(timeoutId);
+        };
+    }, [studentModalState.isOpen, studentModalState.mode, studentModalState.searchQuery]);
     
     // ============================================
     // Computed Values
@@ -1822,6 +1881,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         sectionStudents,
         removedStudents,
         studentsList,
+        studentSearchResults,
+        isStudentSearchLoading,
         
         // Computed
         totalStudents,
