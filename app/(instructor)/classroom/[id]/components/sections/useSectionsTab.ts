@@ -101,6 +101,7 @@ interface StudentModalState {
         inputValue: string;
         matchedStudent: Student | null;
         status: "matched" | "not_found" | "already_enrolled";
+        enrolledSectionNo?: string | null;
     }>;
 }
 
@@ -286,7 +287,7 @@ export interface UseSectionsTabReturn {
     getAllEnrolledStudents: () => TeamMember[];
     
     // Utility
-    parseExcelData: (pasteData: string) => void;
+    parseExcelData: (pasteData: string) => Promise<void>;
     parseTeamExcelData: (pasteData: string) => Promise<void>;
     refreshTeams: (forceRefresh?: boolean) => Promise<void>;
 }
@@ -1113,7 +1114,23 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
             );
             
             if (response.success) {
-                const student = studentsList.find(s => s.id === parseInt(studentModalState.studentId));
+                const studentId = parseInt(studentModalState.studentId);
+                const student =
+                    studentSearchResults.find(s => s.id === studentId) ||
+                    studentsList.find(s => s.id === studentId);
+
+                setCourse(prev => {
+                    if (!prev) return prev;
+                    return {
+                        ...prev,
+                        sections: prev.sections?.map(s =>
+                            s.id === studentModalState.sectionId
+                                ? { ...s, studentCount: (s.studentCount || 0) + 1 }
+                                : s
+                        ) || []
+                    };
+                });
+
                 if (student) {
                     setSectionStudents(prev => ({
                         ...prev,
@@ -1126,18 +1143,6 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
                             enrolled_at: new Date().toISOString(),
                         }]
                     }));
-                    
-                    setCourse(prev => {
-                        if (!prev) return prev;
-                        return {
-                            ...prev,
-                            sections: prev.sections?.map(s => 
-                                s.id === studentModalState.sectionId
-                                    ? { ...s, studentCount: (s.studentCount || 0) + 1 }
-                                    : s
-                            ) || []
-                        };
-                    });
                 }
                 
                 addToast({
@@ -1178,7 +1183,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } finally {
             setIsSubmitting(false);
         }
-    }, [courseId, studentModalState.sectionId, studentModalState.studentId, studentsList, studentModal, emitUpdate, isEnglish]);
+    }, [courseId, studentModalState.sectionId, studentModalState.studentId, studentSearchResults, studentsList, studentModal, emitUpdate, isEnglish]);
     
     const handleBulkAddStudents = useCallback(async () => {
         const studentsToAdd = studentModalState.parsedStudents
@@ -1730,7 +1735,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
     // Excel Parsing
     // ============================================
     
-    const parseExcelData = useCallback((pasteData: string) => {
+    const parseExcelData = useCallback(async (pasteData: string) => {
         if (!pasteData.trim() || !studentModalState.sectionId) {
             studentModal.setParsedStudents([]);
             return;
@@ -1741,30 +1746,59 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
             .map(line => line.trim())
             .filter(line => line.length > 0);
         
-        const enrolledStudentIds = new Set(
-            (sectionStudents[studentModalState.sectionId] || []).map(s => s.student_id)
-        );
-        
-        const results = lines.map(inputValue => {
-            const matchedStudent = studentsList.find(student =>
-                student.student_id.toLowerCase() === inputValue.toLowerCase() ||
-                student.full_name.toLowerCase().includes(inputValue.toLowerCase()) ||
-                inputValue.toLowerCase().includes(student.student_id.toLowerCase())
-            );
-            
-            if (!matchedStudent) {
-                return { inputValue, matchedStudent: null, status: "not_found" as const };
-            }
-            
-            if (enrolledStudentIds.has(matchedStudent.student_id)) {
-                return { inputValue, matchedStudent, status: "already_enrolled" as const };
-            }
-            
-            return { inputValue, matchedStudent, status: "matched" as const };
+        if (lines.length === 0) {
+            studentModal.setParsedStudents([]);
+            return;
+        }
+
+        const enrolledStudentSections = new Map<string, string | null>();
+        Object.entries(sectionStudents).forEach(([sectionId, students]) => {
+            const sectionNo = course?.sections?.find(section => section.id === Number(sectionId))?.section_no || null;
+            students.forEach((student) => {
+                enrolledStudentSections.set(student.student_id.toLowerCase(), sectionNo);
+            });
         });
-        
-        studentModal.setParsedStudents(results);
-    }, [studentModalState.sectionId, sectionStudents, studentsList, studentModal]);
+
+        try {
+            const response = await studentService.searchStudentsByIds(lines, course?.id, "all");
+
+            if (!response.success || !response.data) {
+                studentModal.setParsedStudents([]);
+                return;
+            }
+
+            const foundMap = new Map<string, Student>();
+            response.data.found.forEach((item: any) => {
+                foundMap.set(item.query, item.student as Student);
+            });
+
+            const results: StudentModalState["parsedStudents"] = lines.map((inputValue) => {
+                const matchedStudent = foundMap.get(inputValue);
+                if (!matchedStudent) {
+                    return {
+                        inputValue,
+                        matchedStudent: null,
+                        status: "not_found" as const,
+                        enrolledSectionNo: null,
+                    };
+                }
+
+                return {
+                    inputValue,
+                    matchedStudent,
+                    status: enrolledStudentSections.has(matchedStudent.student_id.toLowerCase())
+                        ? "already_enrolled" as const
+                        : "matched" as const,
+                    enrolledSectionNo: enrolledStudentSections.get(matchedStudent.student_id.toLowerCase()) || null,
+                };
+            });
+
+            studentModal.setParsedStudents(results);
+        } catch (error) {
+            console.error("Error parsing student IDs:", error);
+            studentModal.setParsedStudents([]);
+        }
+    }, [studentModalState.sectionId, sectionStudents, studentModal, course?.id, course?.sections]);
     
     const parseTeamExcelData = useCallback(async (pasteData: string) => {
         if (!pasteData.trim()) {

@@ -162,6 +162,15 @@ export default function SectionsTab({
         return enrolledIds;
     };
 
+    const getEnrolledSectionByStudentId = () => {
+        const enrolledSections = new Map<number, string | null>();
+        Object.entries(sectionStudents).forEach(([sectionId, students]) => {
+            const sectionNo = course?.sections?.find(section => section.id === Number(sectionId))?.section_no || null;
+            students.forEach(student => enrolledSections.set(student.id, sectionNo));
+        });
+        return enrolledSections;
+    };
+
     // Get available students (not enrolled)
     const getAvailableStudents = () => {
         const enrolledIds = getEnrolledStudentIds();
@@ -171,15 +180,26 @@ export default function SectionsTab({
     // Filter available students by search query
     const filteredStudents = () => {
         const hasQuery = studentModal.searchQuery.trim().length > 0;
-        const available = hasQuery
-            ? studentSearchResults.filter(student => !getEnrolledStudentIds().has(student.id))
-            : getAvailableStudents();
-        if (!studentModal.searchQuery.trim()) return available;
+        const enrolledSections = getEnrolledSectionByStudentId();
+        const candidates = hasQuery ? studentSearchResults : getAvailableStudents();
+        if (!studentModal.searchQuery.trim()) {
+            return candidates.map(student => ({
+                student,
+                status: "matched" as const,
+                enrolledSectionNo: null,
+            }));
+        }
         const query = studentModal.searchQuery.toLowerCase();
-        return available.filter(s =>
-            s.student_id.toLowerCase().includes(query) ||
-            s.full_name.toLowerCase().includes(query)
-        );
+        return candidates
+            .filter(s =>
+                s.student_id.toLowerCase().includes(query) ||
+                s.full_name.toLowerCase().includes(query)
+            )
+            .map(student => ({
+                student,
+                status: enrolledSections.has(student.id) ? "already_enrolled" as const : "matched" as const,
+                enrolledSectionNo: enrolledSections.get(student.id) || null,
+            }));
     };
 
     const [bulkTeamPasteData, setBulkTeamPasteData] = useState("");
@@ -673,15 +693,22 @@ export default function SectionsTab({
                                     ) : null}
                                     <div className="overflow-hidden rounded-xl border border-default-200">
                                         <div className="max-h-60 overflow-y-auto">
-                                            {filteredStudents().map(student => (
+                                            {filteredStudents().map(({ student, status, enrolledSectionNo }) => (
                                                 <div
                                                     key={student.id}
                                                     className={`flex items-center justify-between border-b border-divider p-3 transition-colors last:border-0 ${
+                                                        status === "already_enrolled"
+                                                            ? "cursor-not-allowed bg-amber-50"
+                                                            : ""
+                                                    } ${
                                                         studentModal.studentId === student.id.toString()
                                                             ? "border-l-4 border-l-primary bg-primary/10"
                                                             : "hover:bg-content2"
                                                     }`}
-                                                    onClick={() => studentModal.setStudentId(student.id.toString())}
+                                                    onClick={() => {
+                                                        if (status === "already_enrolled") return;
+                                                        studentModal.setStudentId(student.id.toString());
+                                                    }}
                                                 >
                                                     <div className="flex items-center gap-3">
                                                         <Avatar
@@ -692,9 +719,20 @@ export default function SectionsTab({
                                                         <div>
                                                             <p className="font-medium text-foreground">{student.full_name}</p>
                                                             <p className="text-sm text-default-500">{student.student_id}</p>
+                                                            {status === "already_enrolled" && (
+                                                                <p className="text-xs text-amber-700">
+                                                                    {isEnglish
+                                                                        ? `Already in this course${enrolledSectionNo ? ` (${enrolledSectionNo})` : ""}`
+                                                                        : `อยู่ในรายวิชาแล้ว${enrolledSectionNo ? ` (${enrolledSectionNo})` : ""}`}
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     </div>
-                                                    {studentModal.studentId === student.id.toString() && (
+                                                    {status === "already_enrolled" ? (
+                                                        <Chip size="sm" color="warning" variant="flat">
+                                                            {isEnglish ? "Already in course" : "อยู่ในรายวิชาแล้ว"}
+                                                        </Chip>
+                                                    ) : studentModal.studentId === student.id.toString() && (
                                                         <Icon icon="solar:check-circle-bold" className="text-xl text-blue-500" />
                                                     )}
                                                 </div>

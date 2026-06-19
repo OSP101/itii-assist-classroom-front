@@ -500,12 +500,32 @@ export default function ClassroomsPage() {
 
     // Renumber desks after deletion: sort spatially (column-major x→y) then assign 1-N per group
     const renumberDesks = useCallback((desks: Desk[]): Desk[] => {
-        const sorted = [...desks].sort((a, b) => a.x !== b.x ? a.x - b.x : a.y - b.y);
-        let tc = 0, sc = 0;
-        return sorted.map((d) => {
-            if (d.type === "teacher") { tc++; return { ...d, number: tc }; }
-            else { sc++; return { ...d, number: sc }; }
+        const groupOrder = (desk: Desk) => (desk.type === "teacher" ? 0 : 1);
+        const sorted = [...desks].sort((a, b) => {
+            const groupDiff = groupOrder(a) - groupOrder(b);
+            if (groupDiff !== 0) return groupDiff;
+            if (a.number !== b.number) return a.number - b.number;
+            return a.id.localeCompare(b.id);
         });
+        let tc = 0;
+        let sc = 0;
+        return sorted.map((d) => {
+            if (d.type === "teacher") {
+                tc++;
+                return { ...d, number: tc };
+            }
+            sc++;
+            return { ...d, number: sc };
+        });
+    }, []);
+
+    const getNextDeskNumberForType = useCallback((desks: Desk[], type: Desk["type"]) => {
+        const isTeacherDesk = type === "teacher";
+        return (
+            desks
+                .filter((desk) => (isTeacherDesk ? desk.type === "teacher" : desk.type !== "teacher"))
+                .reduce((maxNumber, desk) => Math.max(maxNumber, desk.number), 0) + 1
+        );
     }, []);
 
     // Helper: update desks with undo support
@@ -920,10 +940,7 @@ body { font-family: sans-serif; background: #fff; padding: 24px; }
         if (!editingClassroom) return;
 
         const isTeacherDesk = type === "teacher";
-        const sameTypeDesks = editingClassroom.desks.filter((d) =>
-            isTeacherDesk ? d.type === "teacher" : d.type !== "teacher"
-        );
-        let nextNumber = sameTypeDesks.length + 1;
+        let nextNumber = getNextDeskNumberForType(editingClassroom.desks, type);
 
         const deskW = isTeacherDesk ? TEACHER_DESK_WIDTH : DESK_WIDTH;
         const deskH = isTeacherDesk ? TEACHER_DESK_HEIGHT : DESK_HEIGHT;
@@ -1057,9 +1074,27 @@ body { font-family: sans-serif; background: #fff; padding: 24px; }
     // Update desk
     const handleUpdateDesk = () => {
         if (!editingClassroom || !selectedDesk) return;
-        updateDesksWithUndo((desks) =>
-            desks.map((d) => (d.id === selectedDesk.id ? selectedDesk : d))
-        );
+        updateDesksWithUndo((desks) => {
+            const originalDesk = desks.find((d) => d.id === selectedDesk.id);
+            if (!originalDesk) return desks;
+
+            let updatedDesks = desks.map((d) => (d.id === selectedDesk.id ? selectedDesk : d));
+
+            if (originalDesk.type !== selectedDesk.type) {
+                const reassignedNumber = getNextDeskNumberForType(
+                    desks.filter((d) => d.id !== selectedDesk.id),
+                    selectedDesk.type
+                );
+
+                updatedDesks = updatedDesks.map((d) =>
+                    d.id === selectedDesk.id ? { ...d, number: reassignedNumber } : d
+                );
+
+                return renumberDesks(updatedDesks);
+            }
+
+            return updatedDesks;
+        });
         setShowDeskModal(false);
         setSelectedDesk(null);
     };
