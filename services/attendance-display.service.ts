@@ -98,13 +98,11 @@ function toMessage(payload: { message?: string; error?: string } | null, fallbac
 }
 
 async function publicRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
-    // Use the Next.js API proxy (/api/display/...) so the browser makes a same-origin
-    // request instead of hitting the backend directly on a different port.
-    // This bypasses the SameSite=Lax cookie restriction on cross-origin fetch.
-    const proxyPath = endpoint.replace(/^\/attendance\/display/, "");
-    const url = typeof window !== "undefined"
-        ? `/api/display${proxyPath}`
-        : `${API_BASE_URL}${endpoint}`;
+    // Call the real attendance display backend path directly.
+    // In production, NEXT_PUBLIC_API_URL is "/api", so this becomes
+    // same-origin "/api/attendance/display/*" and works with the nginx
+    // proxy that already forwards /api/* to the backend service.
+    const url = `${API_BASE_URL}${endpoint}`;
     const response = await fetch(url, {
         ...init,
         credentials: "include",

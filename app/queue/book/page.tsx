@@ -123,6 +123,16 @@ interface BookingValidationResult {
     warnings?: ValidationWarning[];
     student?: StudentInfo | null;
     desk?: DeskInfo | null;
+    booking_type_availability?: {
+        grading?: {
+            allowed: boolean;
+            reason?: string;
+        };
+        help?: {
+            allowed: boolean;
+            reason?: string;
+        };
+    };
     is_cutoff_enabled?: boolean;
     cutoff_at?: string | null;
     cutoff_note?: string;
@@ -227,6 +237,7 @@ function BookQueueContent() {
     const [validationWarnings, setValidationWarnings] = useState<ValidationWarning[]>([]);
     const [studentInfo, setStudentInfo] = useState<StudentInfo | null>(null);
     const [deskInfo, setDeskInfo] = useState<DeskInfo | null>(null);
+    const [bookingTypeAvailability, setBookingTypeAvailability] = useState<BookingValidationResult["booking_type_availability"] | null>(null);
     const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const [isLateConfirmOpen, setIsLateConfirmOpen] = useState(false);
     const [latePreviewInfo, setLatePreviewInfo] = useState<{ cutoffAt?: string | null; reason?: string } | null>(null);
@@ -336,12 +347,15 @@ function BookQueueContent() {
             fromScan &&
             loggedInUser &&
             deskNumber &&
+            !isValidating &&
+            bookingTypeAvailability &&
+            !(bookingType === "grading" && bookingTypeAvailability.grading?.allowed === false) &&
             !autoBookTriggeredRef.current
         ) {
             autoBookTriggeredRef.current = true;
             handleCreateBooking();
         }
-    }, [step, fromScan, loggedInUser, deskNumber]);
+    }, [step, fromScan, loggedInUser, deskNumber, isValidating, bookingTypeAvailability, bookingType]);
 
     // Validate booking info with debounce
     const validateBookingInfo = useCallback(async () => {
@@ -369,6 +383,7 @@ function BookQueueContent() {
                 setValidationWarnings(result.data.warnings || []);
                 setStudentInfo(result.data.student);
                 setDeskInfo(result.data.desk);
+                setBookingTypeAvailability(result.data.booking_type_availability || null);
             }
         } catch (error) {
             console.error("Error validating:", error);
@@ -537,6 +552,7 @@ function BookQueueContent() {
                 setValidationWarnings(validation.warnings || []);
                 setStudentInfo(validation.student || null);
                 setDeskInfo(validation.desk || null);
+                setBookingTypeAvailability(validation.booking_type_availability || null);
 
                 if (validation.errors && validation.errors.length > 0) {
                     addToast({
@@ -941,6 +957,8 @@ function BookQueueContent() {
         const studentError = validationErrors.find(e => e.field === "student_id");
         const deskError = validationErrors.find(e => e.field === "desk_number");
         const existingBookingWarning = validationWarnings.find(w => w.existing_booking);
+        const gradingDisabled = bookingTypeAvailability?.grading?.allowed === false;
+        const gradingDisabledReason = bookingTypeAvailability?.grading?.reason;
 
         // When from QR scan + logged in: show auto-booking loader instead of full form
         if (fromScan && loggedInUser && isBooking) {
@@ -1112,9 +1130,14 @@ function BookQueueContent() {
                             <div className="grid grid-cols-2 gap-3">
                                 <button
                                     type="button"
-                                    onClick={() => setBookingType("grading")}
+                                    onClick={() => {
+                                        if (!gradingDisabled) setBookingType("grading");
+                                    }}
+                                    disabled={gradingDisabled}
                                     className={`rounded-3xl border-2 p-4 transition active:scale-[0.98] ${
-                                        bookingType === "grading"
+                                        gradingDisabled
+                                            ? "cursor-not-allowed border-slate-200 bg-slate-100 opacity-60"
+                                            : bookingType === "grading"
                                             ? "border-emerald-400 bg-emerald-50"
                                             : "border-slate-100 bg-slate-50 hover:border-slate-200"
                                     }`}
@@ -1127,6 +1150,11 @@ function BookQueueContent() {
                                         ตรวจงาน
                                     </p>
                                 </button>
+                                {gradingDisabledReason && (
+                                    <p className="col-span-2 -mt-1 text-xs text-slate-500">
+                                        {gradingDisabledReason}
+                                    </p>
+                                )}
                                 <button
                                     type="button"
                                     onClick={() => setBookingType("help")}
@@ -1187,7 +1215,7 @@ function BookQueueContent() {
                             <button
                                 type="button"
                                 onClick={handleCreateBooking}
-                                disabled={isBooking || !studentId || !deskNumber || validationErrors.length > 0}
+                                disabled={isBooking || !studentId || !deskNumber || validationErrors.length > 0 || (bookingType === "grading" && gradingDisabled)}
                                 className="flex-1 rounded-full bg-linear-to-r from-sky-600 to-cyan-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-300/40 transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isBooking ? "กำลังจอง..." : existingBookingWarning ? "ดูคิวที่มีอยู่" : "จองคิว"}

@@ -337,7 +337,7 @@ export default function CanvasEditor({
             }
             setKonvaReady(false);
         };
-    }, [width, height]);
+    }, []);
 
     // Update stage scale
     useEffect(() => {
@@ -345,6 +345,9 @@ export default function CanvasEditor({
             stageRef.current.scaleX(scale);
             stageRef.current.scaleY(scale);
             stageRef.current.batchDraw();
+            layerRef.current?.batchDraw();
+            guidesLayerRef.current?.batchDraw();
+            selectionLayerRef.current?.batchDraw();
         }
     }, [scale]);
 
@@ -354,6 +357,9 @@ export default function CanvasEditor({
             stageRef.current.width(width);
             stageRef.current.height(height);
             stageRef.current.batchDraw();
+            layerRef.current?.batchDraw();
+            guidesLayerRef.current?.batchDraw();
+            selectionLayerRef.current?.batchDraw();
         }
     }, [width, height]);
 
