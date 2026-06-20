@@ -139,14 +139,14 @@ function TwoFactorVerifyModal({
       isDismissable={!isLoading}
       size="md"
     >
-      <ModalContent>
+      <ModalContent className="border border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
         <ModalBody className="py-8 px-6">
           {/* Header */}
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-default-900 mb-2">
+            <h2 className="mb-2 text-2xl font-bold text-slate-900 dark:text-slate-100">
               {t("twoFactorAuthentication")}
             </h2>
-            <p className="text-sm text-default-500">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
               {getMethodDescription()}
             </p>
           </div>
@@ -165,7 +165,7 @@ function TwoFactorVerifyModal({
                 variant="bordered"
                 isInvalid={!!error}
                 classNames={{
-                  segment: "w-12 h-14 text-xl",
+                  segment: "h-14 w-12 border-slate-300 bg-white text-xl text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
                   segmentWrapper: "gap-2",
                 }}
               />
@@ -222,7 +222,9 @@ function TwoFactorVerifyModal({
                 size="lg"
                 variant="bordered"
                 classNames={{
-                  input: "text-center font-mono tracking-wider",
+                  input: "text-center font-mono tracking-wider text-slate-900 dark:text-slate-100",
+                  inputWrapper: "border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900",
+                  label: "text-slate-700 dark:text-slate-300",
                 }}
                 isInvalid={!!error}
                 errorMessage={error}

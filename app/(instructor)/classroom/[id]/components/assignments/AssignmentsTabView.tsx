@@ -766,7 +766,7 @@ function AssignmentsTabViewComponent({
                 onClose={onCloseDeleteModal}
                 size="lg"
             >
-                <ModalContent>
+                <ModalContent className="border border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
                     <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-linear-to-br from-red-500 to-rose-600 rounded-xl shadow-lg">
@@ -784,7 +784,7 @@ function AssignmentsTabViewComponent({
                         {deleteTarget && (
                             <div className="space-y-4">
                                 {/* Assignment Info */}
-                                <Card className="border border-red-100 bg-red-50/50">
+                                <Card className="border border-slate-200 bg-slate-50/90 dark:border-slate-700 dark:bg-slate-800/70">
                                     <CardBody className="py-4 px-4">
                                         <div className="flex items-center gap-4">
                                             <div className={`w-14 h-14 rounded-xl flex items-center justify-center shadow-lg ${getDeleteGradient(deleteTarget.assignment_type)}`}>
@@ -802,7 +802,7 @@ function AssignmentsTabViewComponent({
                                                         {deleteTypeInfo?.label}
                                                     </Chip>
                                                     {deleteTarget.week_number && (
-                                                        <Chip size="sm" variant="flat" className="bg-blue-50 text-blue-600">
+                                                        <Chip size="sm" variant="flat" className="bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-200">
                                                             W{deleteTarget.week_number}
                                                         </Chip>
                                                     )}
@@ -827,13 +827,13 @@ function AssignmentsTabViewComponent({
                                 </Card>
 
                                 {/* Score Info */}
-                                <Card className="border border-amber-200 bg-amber-50">
+                                <Card className="border border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10">
                                     <CardBody className="py-3 px-4">
                                         <div className="flex items-start gap-3">
                                             <Icon icon="solar:diploma-verified-bold" className="text-xl text-amber-600 mt-0.5" />
                                             <div>
-                                                <p className="font-medium text-amber-800">{isEnglish ? "Score impact" : "เกี่ยวกับคะแนน"}</p>
-                                                <p className="text-sm text-amber-700 mt-1">
+                                                <p className="font-medium text-amber-800 dark:text-amber-200">{isEnglish ? "Score impact" : "เกี่ยวกับคะแนน"}</p>
+                                                <p className="text-sm text-amber-700 mt-1 dark:text-amber-300">
                                                     {isEnglish
                                                         ? "All scores related to this assignment will also be deleted, including any sub-item scores."
                                                         : "คะแนนทั้งหมดที่เกี่ยวข้องกับงานนี้จะถูกลบไปด้วย รวมถึงคะแนนข้อย่อยทั้งหมด (ถ้ามี)"}
@@ -844,14 +844,14 @@ function AssignmentsTabViewComponent({
                                 </Card>
 
                                 {/* Warning */}
-                                <div className="p-4 bg-red-100 rounded-xl border border-red-200">
+                                <div className="p-4 bg-rose-50 rounded-xl border border-rose-200 dark:border-rose-500/30 dark:bg-rose-500/10">
                                     <div className="flex items-center gap-3">
-                                        <Icon icon="solar:shield-warning-bold" className="text-2xl text-red-600" />
+                                        <Icon icon="solar:shield-warning-bold" className="text-2xl text-rose-600 dark:text-rose-300" />
                                         <div>
-                                            <p className="font-semibold text-red-800">
+                                            <p className="font-semibold text-rose-800 dark:text-rose-200">
                                                 {isEnglish ? "Delete this assignment?" : "คุณต้องการลบงานนี้ใช่หรือไม่?"}
                                             </p>
-                                            <p className="text-sm text-red-600">
+                                            <p className="text-sm text-rose-700 dark:text-rose-300">
                                                 {isEnglish ? "This action cannot be undone." : "การดำเนินการนี้ไม่สามารถย้อนกลับได้"}
                                             </p>
                                         </div>

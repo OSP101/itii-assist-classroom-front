@@ -345,10 +345,10 @@ export default function InstructorLayout({
             setCourseInfo,
             refreshCourses: fetchActiveCourses
         }}>
-            <div data-auth-shell="true" className="app-mobile-screen flex flex-col overflow-hidden bg-background text-foreground">
+            <div data-auth-shell="true" className="flex min-h-screen flex-col bg-background text-foreground max-lg:app-mobile-screen max-lg:overflow-hidden">
                 {/* Top Navigation Bar - Shared Header */}
-                <header className="sticky top-0 z-50 border-b border-divider bg-content1/95 backdrop-blur supports-[backdrop-filter]:bg-content1/85">
-                    <div className="flex h-12 items-center justify-between px-4 pt-[env(safe-area-inset-top)] sm:h-14 sm:px-6">
+                <header className="sticky top-0 z-50 border-b border-divider bg-content1 max-lg:bg-content1/95 max-lg:backdrop-blur max-lg:supports-[backdrop-filter]:bg-content1/85">
+                    <div className="flex h-12 items-center justify-between px-4 max-lg:pt-[env(safe-area-inset-top)] sm:h-14 sm:px-6">
                         {/* Left: Breadcrumb Navigation */}
                         <div className="flex min-w-0 items-center gap-1 text-sm overflow-x-auto">
                             {/* Home Icon */}
@@ -695,8 +695,8 @@ export default function InstructorLayout({
                 </header>
 
                 {/* Main Content */}
-                <main className="app-mobile-scroll flex-1 overflow-x-hidden">
-                    <div className={`w-full pb-[calc(env(safe-area-inset-bottom)+1rem)] ${isHomePage ? "mx-auto max-w-7xl px-4 py-6 sm:px-6" : ""}`}>
+                <main className={`w-full flex-1 max-lg:app-mobile-scroll max-lg:overflow-x-hidden ${isHomePage ? "max-w-7xl mx-auto px-4 py-6 sm:px-6" : ""}`}>
+                    <div className="w-full max-lg:pb-[calc(env(safe-area-inset-bottom)+1rem)]">
                         {!pathname.startsWith("/classroom/") && <GlobalAnnouncementLayer />}
                         {children}
                     </div>

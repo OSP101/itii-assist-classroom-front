@@ -950,11 +950,11 @@ export default function SectionsTab({
                                             </Button>
                                             <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
                                                 teamModal.type === "permanent"
-                                                    ? "bg-purple-50 border-purple-200"
-                                                    : "bg-emerald-50 border-emerald-200"
+                                                    ? "bg-purple-50 border-purple-200 dark:bg-purple-500/10 dark:border-purple-500/30"
+                                                    : "bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/30"
                                             }`}>
                                                 <Icon icon="solar:users-group-rounded-linear" className={
-                                                    teamModal.type === "permanent" ? "text-purple-500" : "text-emerald-500"
+                                                    teamModal.type === "permanent" ? "text-purple-600 dark:text-purple-300" : "text-emerald-600 dark:text-emerald-300"
                                                 } />
                                                 <span className="text-lg font-bold text-foreground">{teamModal.size}</span>
                                                 <span className="text-sm text-default-500">{isEnglish ? "members" : "คน"}</span>
@@ -979,31 +979,31 @@ export default function SectionsTab({
                                         return (
                                             <div className={`p-4 rounded-xl border ${
                                                 teamModal.type === "permanent"
-                                                    ? "border-purple-100 bg-purple-50/50"
-                                                    : "border-emerald-100 bg-emerald-50/50"
+                                                    ? "border-purple-200 bg-purple-50/70 dark:border-purple-500/30 dark:bg-purple-500/10"
+                                                    : "border-emerald-200 bg-emerald-50/70 dark:border-emerald-500/30 dark:bg-emerald-500/10"
                                             }`}>
                                                 <div className="flex items-start gap-3">
                                                     <Icon icon="solar:info-circle-bold" className={`text-xl mt-0.5 ${
-                                                        teamModal.type === "permanent" ? "text-purple-500" : "text-emerald-500"
+                                                        teamModal.type === "permanent" ? "text-purple-600 dark:text-purple-300" : "text-emerald-600 dark:text-emerald-300"
                                                     }`} />
                                                     <div className="space-y-2">
                                                         <p className={`font-medium ${
-                                                            teamModal.type === "permanent" ? "text-purple-800" : "text-emerald-800"
+                                                            teamModal.type === "permanent" ? "text-purple-900 dark:text-purple-200" : "text-emerald-900 dark:text-emerald-200"
                                                         }`}>{isEnglish ? "Grouping preview" : "ตัวอย่างการจับกลุ่ม"}</p>
                                                         <div className={`text-sm space-y-1 ${
-                                                            teamModal.type === "permanent" ? "text-purple-600" : "text-emerald-600"
+                                                            teamModal.type === "permanent" ? "text-purple-700 dark:text-purple-300" : "text-emerald-700 dark:text-emerald-300"
                                                         }`}>
                                                             <p>{isEnglish ? "Unassigned students" : "นักศึกษาที่ยังไม่มีกลุ่ม"}: <span className="font-semibold">{isEnglish ? formatCount(totalStudents, "student", "students") : totalStudents}</span>{!isEnglish && " คน"}</p>
                                                             <p>{isEnglish ? "Teams to create" : "จำนวนกลุ่มที่จะสร้าง"}: <span className="font-semibold">{isEnglish ? formatCount(groupCount, "team", "teams") : groupCount}</span> {isEnglish ? `(${formatCount(teamModal.size, "member", "members")} each)` : `กลุ่ม (กลุ่มละ ${teamModal.size} คน)`}</p>
                                                             {remainder > 0 && totalStudents > 0 && (
-                                                                <p className={`${teamModal.type === "permanent" ? "text-purple-700" : "text-emerald-700"} font-medium`}>
+                                                                <p className={`${teamModal.type === "permanent" ? "text-purple-800 dark:text-purple-200" : "text-emerald-800 dark:text-emerald-200"} font-medium`}>
                                                                     {isEnglish
                                                                         ? <>The last team (Team {groupCount}) will have <span className="font-semibold">{formatCount(lastGroupSize, "member", "members")}</span>.</>
                                                                         : <>• กลุ่มสุดท้าย (กลุ่มที่ {groupCount}) จะมี <span className="font-semibold">{lastGroupSize}</span> คน</>}
                                                                 </p>
                                                             )}
                                                             {remainder === 0 && totalStudents > 0 && (
-                                                                <p className={`${teamModal.type === "permanent" ? "text-purple-700" : "text-emerald-700"}`}>
+                                                                <p className={`${teamModal.type === "permanent" ? "text-purple-800 dark:text-purple-200" : "text-emerald-800 dark:text-emerald-200"}`}>
                                                                     {isEnglish ? "All teams will have the same number of members." : "• ทุกกลุ่มจะมีจำนวนสมาชิกเท่ากัน ✓"}
                                                                 </p>
                                                             )}
@@ -1612,7 +1612,7 @@ export default function SectionsTab({
                     <ModalBody className="px-6 py-4">
                         <div className="space-y-4">
                             {/* Item Info Card */}
-                            <Card className="border border-red-100 bg-red-50/50">
+                            <Card className="border border-slate-200 bg-slate-50/90 dark:border-slate-700 dark:bg-slate-800/70">
                                 <CardBody className="py-4 px-4">
                                     {deleteModal.target?.type === "section" && (
                                         <div className="flex items-center gap-4">
@@ -1622,13 +1622,13 @@ export default function SectionsTab({
                                             <div className="flex-1">
                                                 <p className="text-lg font-semibold text-foreground">Section {deleteModal.target.sectionNo}</p>
                                                 <div className="flex items-center gap-2 mt-1">
-                                                    <Chip size="sm" variant="flat" className="bg-blue-100 text-blue-700">
+                                                    <Chip size="sm" variant="flat" className="bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-200">
                                                         {isEnglish ? "Section" : "กลุ่มเรียน"}
                                                     </Chip>
                                                 </div>
                                                 <div className="mt-2 flex items-center gap-3 text-sm text-default-500">
                                                     <span className="flex items-center gap-1">
-                                                        <Icon icon="solar:users-group-rounded-linear" className="text-blue-500" />
+                                                        <Icon icon="solar:users-group-rounded-linear" className="text-blue-600 dark:text-blue-300" />
                                                         {deleteModal.target.sectionStudentCount || 0} {isEnglish ? "students" : "คน"}
                                                     </span>
                                                 </div>
@@ -1646,7 +1646,7 @@ export default function SectionsTab({
                                                     <Chip size="sm" variant="flat" className="bg-content3 text-default-700">
                                                         {deleteModal.target.studentCode}
                                                     </Chip>
-                                                    <Chip size="sm" variant="flat" className="bg-blue-50 text-blue-600">
+                                                    <Chip size="sm" variant="flat" className="bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-200">
                                                         Section {deleteModal.target.sectionNo}
                                                     </Chip>
                                                 </div>
@@ -1673,8 +1673,8 @@ export default function SectionsTab({
                                                 <div className="flex items-center gap-2 mt-1">
                                                     <Chip size="sm" variant="flat" className={
                                                         deleteModal.target.teamType === "permanent"
-                                                            ? "bg-purple-100 text-purple-700"
-                                                            : "bg-emerald-100 text-emerald-700"
+                                                            ? "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-200"
+                                                            : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"
                                                     }>
                                                         {deleteModal.target.teamType === "permanent"
                                                             ? (isEnglish ? "Project team" : "กลุ่มโปรเจกต์")
@@ -1694,13 +1694,13 @@ export default function SectionsTab({
                             </Card>
 
                             {/* Amber Warning Card */}
-                            <Card className="border border-amber-200 bg-amber-50">
+                            <Card className="border border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10">
                                 <CardBody className="py-3 px-4">
                                     <div className="flex items-start gap-3">
-                                        <Icon icon="solar:info-circle-bold" className="text-xl text-amber-600 mt-0.5" />
+                                        <Icon icon="solar:info-circle-bold" className="text-xl text-amber-600 mt-0.5 dark:text-amber-300" />
                                         <div>
-                                            <p className="font-medium text-amber-800">{isEnglish ? "What will happen" : "สิ่งที่จะเกิดขึ้น"}</p>
-                                            <p className="text-sm text-amber-700 mt-1">
+                                            <p className="font-medium text-amber-800 dark:text-amber-200">{isEnglish ? "What will happen" : "สิ่งที่จะเกิดขึ้น"}</p>
+                                            <p className="text-sm text-amber-700 mt-1 dark:text-amber-300">
                                                 {deleteModal.target?.type === "section" && (isEnglish ? "All students in this section will be removed from the course." : "นักศึกษาทั้งหมดในกลุ่มเรียนนี้จะถูกลบออกจากรายวิชา")}
                                                 {deleteModal.target?.type === "student" && (isEnglish ? "The student will be removed from this section." : "นักศึกษาจะถูกลบออกจากกลุ่มเรียนนี้")}
                                                 {deleteModal.target?.type === "team" && (isEnglish ? "All members will be removed from this team." : "สมาชิกทั้งหมดจะถูกลบออกจากกลุ่มนี้")}
@@ -1713,16 +1713,16 @@ export default function SectionsTab({
                             {/* Confirmation Input for Section Delete */}
                             {deleteModal.target?.type === "section" && (
                                 <div className="space-y-3">
-                                    <div className="p-4 bg-red-100 rounded-xl border border-red-200">
+                                    <div className="p-4 bg-rose-50 rounded-xl border border-rose-200 dark:border-rose-500/30 dark:bg-rose-500/10">
                                         <div className="flex items-start gap-3">
-                                            <Icon icon="solar:shield-warning-bold" className="text-2xl text-red-600 mt-0.5" />
+                                            <Icon icon="solar:shield-warning-bold" className="text-2xl text-rose-600 mt-0.5 dark:text-rose-300" />
                                             <div>
-                                                <p className="font-semibold text-red-800">
+                                                <p className="font-semibold text-rose-800 dark:text-rose-200">
                                                     {isEnglish
                                                         ? `Type "${deleteModal.target.sectionNo}" to confirm deletion`
                                                         : `พิมพ์ "${deleteModal.target.sectionNo}" เพื่อยืนยันการลบ`}
                                                 </p>
-                                                <p className="text-sm text-red-600 mt-1">
+                                                <p className="text-sm text-rose-700 mt-1 dark:text-rose-300">
                                                     {isEnglish ? "Deleting a section removes all students from the course." : "การลบกลุ่มเรียนจะลบนักศึกษาทั้งหมดออกจากรายวิชา"}
                                                 </p>
                                             </div>
@@ -1734,7 +1734,7 @@ export default function SectionsTab({
                                         onValueChange={deleteModal.setConfirmInput}
                                         variant="bordered"
                                         classNames={{
-                                            inputWrapper: "border-red-200 hover:border-red-300 focus-within:!border-red-400",
+                                            inputWrapper: "border-rose-200 hover:border-rose-300 focus-within:!border-rose-400 dark:border-rose-500/30 dark:bg-slate-900",
                                         }}
                                     />
                                 </div>
@@ -1742,14 +1742,14 @@ export default function SectionsTab({
 
                             {/* Red Warning for non-section delete */}
                             {deleteModal.target?.type !== "section" && (
-                                <div className="p-4 bg-red-100 rounded-xl border border-red-200">
+                                <div className="p-4 bg-rose-50 rounded-xl border border-rose-200 dark:border-rose-500/30 dark:bg-rose-500/10">
                                     <div className="flex items-center gap-3">
-                                        <Icon icon="solar:shield-warning-bold" className="text-2xl text-red-600" />
+                                        <Icon icon="solar:shield-warning-bold" className="text-2xl text-rose-600 dark:text-rose-300" />
                                         <div>
-                                            <p className="font-semibold text-red-800">
+                                            <p className="font-semibold text-rose-800 dark:text-rose-200">
                                                 {isEnglish ? "Do you want to continue?" : "คุณต้องการดำเนินการต่อหรือไม่?"}
                                             </p>
-                                            <p className="text-sm text-red-600">
+                                            <p className="text-sm text-rose-700 dark:text-rose-300">
                                                 {isEnglish ? "This action cannot be undone." : "การดำเนินการนี้ไม่สามารถย้อนกลับได้"}
                                             </p>
                                         </div>

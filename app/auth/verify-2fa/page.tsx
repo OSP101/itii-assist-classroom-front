@@ -19,7 +19,7 @@ import { buildPreferredLoginHref, consumePendingAuthReturnPath, peekPendingAuthR
 type InputMode = "otp" | "recovery";
 
 const AUTH_PAGE_SHELL = "flex min-h-screen flex-col bg-background p-3 text-foreground sm:p-4";
-const AUTH_PAGE_CARD = "w-full max-w-md border border-default-200 bg-content1 shadow-2xl shadow-slate-200/40 dark:shadow-zinc-950/50";
+const AUTH_PAGE_CARD = "w-full max-w-md border border-slate-200 bg-white text-slate-900 shadow-2xl shadow-slate-200/40 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:shadow-zinc-950/50";
 
 export default function VerifyTwoFactorPage() {
   const router = useRouter();
@@ -189,7 +189,7 @@ export default function VerifyTwoFactorPage() {
           <Card className={AUTH_PAGE_CARD}>
             <CardBody className="flex flex-col items-center py-12">
               <Spinner size="lg" color="primary" />
-              <p className="mt-4 text-slate-500">{t("loading")}</p>
+              <p className="mt-4 text-slate-500 dark:text-slate-400">{t("loading")}</p>
             </CardBody>
           </Card>
         </div>
@@ -204,16 +204,16 @@ export default function VerifyTwoFactorPage() {
           <CardBody className="p-6 sm:p-8">
             {/* Header */}
             <div className="text-center mb-8">
-              <div className="w-16 h-16 mx-auto mb-4 bg-primary-100 rounded-full flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary-100 flex items-center justify-center dark:bg-primary-500/20">
                 <Icon
                   icon={twoFactorData?.twoFactorMethod === "totp" ? "solar:shield-keyhole-bold" : "solar:letter-bold"}
                   className="text-3xl text-primary"
                 />
               </div>
-              <h1 className="text-2xl font-bold text-slate-800">
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                 {t("twoFactorVerification")}
               </h1>
-              <p className="text-slate-500 mt-2">
+              <p className="mt-2 text-slate-600 dark:text-slate-400">
                 {twoFactorData?.twoFactorMethod === "totp"
                   ? t("enterCodeFromAuthenticator")
                   : t("enterCodeFromEmail")}
@@ -228,13 +228,13 @@ export default function VerifyTwoFactorPage() {
                   {twoFactorData?.twoFactorMethod === "email" && (
                     <div className="w-full">
                       {isSendingEmail ? (
-                        <div className="p-3 bg-primary-50 border border-primary-200 rounded-lg flex items-center justify-center gap-2">
+                        <div className="flex items-center justify-center gap-2 rounded-lg border border-primary-200 bg-primary-50 p-3 text-primary-700 dark:border-primary-500/30 dark:bg-primary-500/10 dark:text-primary-300">
                           <Spinner size="sm" color="primary" />
-                          <span className="text-sm text-primary">{t("sendingCodeToEmail")}</span>
+                          <span className="text-sm">{t("sendingCodeToEmail")}</span>
                         </div>
                       ) : emailSent ? (
-                        <div className="p-3 bg-success-50 border border-success-200 rounded-lg">
-                          <p className="text-sm text-success text-center flex items-center justify-center gap-2">
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+                          <p className="flex items-center justify-center gap-2 text-center text-sm text-emerald-700 dark:text-emerald-300">
                             <Icon icon="solar:check-circle-bold" className="text-lg" />
                             {t("codeSentToYourEmail")}
                           </p>
@@ -259,7 +259,7 @@ export default function VerifyTwoFactorPage() {
                     size="lg"
                     variant="bordered"
                     classNames={{
-                      segment: "w-12 h-14 text-xl",
+                      segment: "h-14 w-12 border-slate-300 bg-white text-xl text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
                     }}
                     isDisabled={isVerifying || (twoFactorData?.twoFactorMethod === "email" && isSendingEmail)}
                   />
@@ -290,7 +290,9 @@ export default function VerifyTwoFactorPage() {
                   size="lg"
                   variant="bordered"
                   classNames={{
-                    input: "text-center font-mono tracking-wider",
+                    input: "text-center font-mono tracking-wider text-slate-900 dark:text-slate-100",
+                    inputWrapper: "border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900",
+                    label: "text-slate-700 dark:text-slate-300",
                   }}
                   isDisabled={isVerifying}
                   onKeyDown={(e) => {
@@ -303,8 +305,8 @@ export default function VerifyTwoFactorPage() {
 
               {/* Error Message */}
               {error && (
-                <div className="p-3 bg-danger-50 border border-danger-200 rounded-lg">
-                  <p className="text-sm text-danger text-center">{error}</p>
+                <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 dark:border-rose-500/30 dark:bg-rose-500/10">
+                  <p className="text-center text-sm text-rose-700 dark:text-rose-300">{error}</p>
                 </div>
               )}
 
@@ -327,7 +329,7 @@ export default function VerifyTwoFactorPage() {
                   as="button"
                   size="sm"
                   onPress={toggleInputMode}
-                  className="text-default-600 hover:text-primary"
+                  className="text-slate-600 hover:text-primary dark:text-slate-300"
                 >
                   {inputMode === "otp"
                     ? t("useRecoveryCode")
@@ -338,7 +340,7 @@ export default function VerifyTwoFactorPage() {
               </div>
 
               {/* Back to Login */}
-              <div className="text-center pt-4 border-t border-default-200">
+              <div className="border-t border-slate-200 pt-4 text-center dark:border-slate-800">
                 <Button
                   variant="light"
                   size="sm"
@@ -355,7 +357,7 @@ export default function VerifyTwoFactorPage() {
 
       {/* Footer */}
       <div className="text-center py-4">
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-400 dark:text-slate-500">
           LabTAS - {t("twoFactorAuthentication")}
         </p>
       </div>

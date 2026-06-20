@@ -1914,16 +1914,16 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             <>
                                 {/* Admin access banner */}
                                 {isAdminAccess && (
-                                    <div className="mb-4 rounded-xl border border-danger-200 bg-danger-50 dark:border-danger-700 dark:bg-danger-900/30 p-4">
+                                    <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-4 dark:border-rose-500/40 dark:bg-rose-950/40">
                                         <div className="flex items-center gap-3">
                                             <div className="shrink-0">
                                                 <Icon icon="solar:shield-warning-bold" className="text-danger-600 dark:text-danger-400" width={24} />
                                             </div>
                                             <div className="flex-1">
-                                                <p className="font-semibold text-danger-800 dark:text-danger-300">
+                                                <p className="font-semibold text-rose-800 dark:text-rose-200">
                                                     {t("adminAccessWarning")}
                                                 </p>
-                                                <p className="text-sm text-danger-600 dark:text-danger-400">
+                                                <p className="text-sm text-rose-700 dark:text-rose-300">
                                                     {t("adminAccessWarningDesc")}
                                                 </p>
                                             </div>

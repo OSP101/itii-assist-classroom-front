@@ -190,7 +190,7 @@ export default async function RootLayout({
       </head>
       <body
         className={clsx(
-          "h-full text-foreground bg-background font-sans antialiased",
+          "min-h-screen text-foreground bg-background font-sans antialiased",
           fontSans.variable,
         )}
       >
@@ -202,11 +202,7 @@ export default async function RootLayout({
             language: initialLanguage,
           }}
         >
-          <div id="app-root" className="app-shell">
-            <div className="app-scroll app-scroll-root">
-              {children}
-            </div>
-          </div>
+          {children}
         </Providers>
       </body>
     </html>

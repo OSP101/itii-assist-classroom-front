@@ -302,7 +302,7 @@ function AssignmentModalComponent({
             size="2xl"
             scrollBehavior="inside"
         >
-            <ModalContent>
+            <ModalContent className="border border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
                 <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
                     <div className="flex items-center gap-4">
                         <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg">
@@ -347,14 +347,14 @@ function AssignmentModalComponent({
                                     type="button"
                                     onClick={() => setFormData(prev => ({ ...prev, assignment_type: "individual", week_number: undefined }))}
                                     className={`p-4 rounded-xl border-2 transition-all ${formData.assignment_type === "individual"
-                                            ? "border-indigo-500 bg-indigo-50"
-                                            : "border-default-200 hover:border-default-300"
+                                            ? "border-indigo-500 bg-indigo-50 dark:border-indigo-400 dark:bg-indigo-500/10"
+                                            : "border-default-200 hover:border-default-300 dark:hover:border-slate-600"
                                         } ${editingAssignment ? "opacity-60 cursor-not-allowed" : ""}`}
                                     disabled={!!editingAssignment}
                                 >
                                     <Icon icon="solar:monitor-bold" className={`text-3xl mx-auto mb-2 ${formData.assignment_type === "individual" ? "text-indigo-500" : "text-default-400"
                                         }`} />
-                                    <p className={`font-semibold text-sm ${formData.assignment_type === "individual" ? "text-indigo-600" : "text-default-600"
+                                    <p className={`font-semibold text-sm ${formData.assignment_type === "individual" ? "text-indigo-700 dark:text-indigo-200" : "text-default-600"
                                         }`}>Laboratory</p>
                                     <p className="mt-1 text-xs text-default-500">{isEnglish ? "In-class work" : "งานในคาบ"}</p>
                                 </button>
@@ -362,14 +362,14 @@ function AssignmentModalComponent({
                                     type="button"
                                     onClick={() => setFormData(prev => ({ ...prev, assignment_type: "assignment", week_number: undefined }))}
                                     className={`p-4 rounded-xl border-2 transition-all ${formData.assignment_type === "assignment"
-                                            ? "border-amber-500 bg-amber-50"
-                                            : "border-default-200 hover:border-default-300"
+                                            ? "border-amber-500 bg-amber-50 dark:border-amber-400 dark:bg-amber-500/10"
+                                            : "border-default-200 hover:border-default-300 dark:hover:border-slate-600"
                                         } ${editingAssignment ? "opacity-60 cursor-not-allowed" : ""}`}
                                     disabled={!!editingAssignment}
                                 >
                                     <Icon icon="solar:document-text-bold" className={`text-3xl mx-auto mb-2 ${formData.assignment_type === "assignment" ? "text-amber-500" : "text-default-400"
                                         }`} />
-                                    <p className={`font-semibold text-sm ${formData.assignment_type === "assignment" ? "text-amber-600" : "text-default-600"
+                                    <p className={`font-semibold text-sm ${formData.assignment_type === "assignment" ? "text-amber-700 dark:text-amber-200" : "text-default-600"
                                         }`}>Assignment</p>
                                     <p className="mt-1 text-xs text-default-500">{isEnglish ? "Homework" : "การบ้าน"}</p>
                                 </button>
@@ -377,8 +377,8 @@ function AssignmentModalComponent({
                                     type="button"
                                     onClick={() => setFormData(prev => ({ ...prev, assignment_type: "permanent_group", week_number: undefined }))}
                                     className={`p-4 rounded-xl border-2 transition-all ${formData.assignment_type === "permanent_group"
-                                            ? "border-purple-500 bg-purple-50"
-                                            : "border-default-200 hover:border-default-300"
+                                            ? "border-purple-500 bg-purple-50 dark:border-purple-400 dark:bg-purple-500/10"
+                                            : "border-default-200 hover:border-default-300 dark:hover:border-slate-600"
                                         } ${editingAssignment ? "opacity-60 cursor-not-allowed" : ""}`}
                                     disabled={!!editingAssignment}
                                 >
@@ -392,8 +392,8 @@ function AssignmentModalComponent({
                                     type="button"
                                     onClick={() => setFormData(prev => ({ ...prev, assignment_type: "weekly_group", week_number: prev.week_number || 1 }))}
                                     className={`p-4 rounded-xl border-2 transition-all ${formData.assignment_type === "weekly_group"
-                                            ? "border-emerald-500 bg-emerald-50"
-                                            : "border-default-200 hover:border-default-300"
+                                            ? "border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-500/10"
+                                            : "border-default-200 hover:border-default-300 dark:hover:border-slate-600"
                                         } ${editingAssignment ? "opacity-60 cursor-not-allowed" : ""}`}
                                     disabled={!!editingAssignment}
                                 >
@@ -408,7 +408,7 @@ function AssignmentModalComponent({
 
                         {/* Week Number - Only show for weekly group */}
                         {formData.assignment_type === "weekly_group" && (
-                            <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+                            <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 dark:border-emerald-500/30 dark:bg-emerald-500/10">
                                 <label className="mb-2 block text-sm font-medium text-default-600">{isEnglish ? "Week" : "สัปดาห์ที่"}</label>
                                 {Object.keys(weeklyTeams).length > 0 ? (
                                     <Select

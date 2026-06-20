@@ -399,11 +399,7 @@ body {
 @layer utilities {
 	.app-shell {
 		position: relative;
-		min-height: 100%;
 		width: 100%;
-		background:
-			radial-gradient(circle at top, rgb(191 219 254 / 0.35), transparent 32%),
-			linear-gradient(180deg, rgb(248 250 252), rgb(241 245 249));
 	}
 
 	.app-scroll {
@@ -417,7 +413,6 @@ body {
 
 	.app-mobile-screen {
 		position: relative;
-		min-height: 100%;
 	}
 
 	.app-mobile-scroll {
