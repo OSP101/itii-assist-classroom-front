@@ -241,8 +241,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             {/* Main Content - Responsive margin */}
             <div className={`flex-1 min-w-0 flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
                 {/* Header */}
-                <header className="sticky top-0 z-30 border-b border-divider bg-content1/95 backdrop-blur">
-                    <div className="flex items-center justify-between h-14 px-4 sm:h-16 sm:px-6">
+                <header className="sticky top-0 z-30 h-14 border-b border-divider bg-content1/95 backdrop-blur sm:h-16">
+                    <div className="flex items-center justify-between h-full px-4 sm:px-6">
                         <div className="flex items-center gap-3">
                             {/* Mobile Menu Button */}
                             <button
