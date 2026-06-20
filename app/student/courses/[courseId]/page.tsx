@@ -9,7 +9,6 @@ import {
   studentService,
   type AttendanceRecordData,
   type AssignmentScore,
-  type CourseScoreData,
   type ExamScoreData,
   type MyStudentCourseResponse,
 } from "@/services/student.service";
@@ -21,6 +20,7 @@ import { getMyExamSeats, type MyExamSeat } from "@/services/examSeat.service";
 const tabs    = ["ภาพรวม", "คะแนน", "เช็กชื่อ", "ที่นั่งสอบ", "อัปเดต"] as const;
 const tabKeys = ["Overview", "Scores", "Attendance", "ExamSeats", "Updates"] as const;
 type TabKey = (typeof tabKeys)[number];
+type ScoreCategoryKey = "all" | "lab" | "homework" | "group" | "weekly" | "exams" | "bonus";
 
 const TAB_MAP: Record<string, TabKey> = {
   Overview: "Overview", Scores: "Scores", Attendance: "Attendance", ExamSeats: "ExamSeats", Updates: "Updates",
@@ -247,14 +247,14 @@ function ExamCard({ e }: { e: ExamScoreData }) {
 
 function NotifCard({ n }: { n: UserNotificationItem }) {
   return (
-    <div className={`flex items-start gap-3 rounded-3xl border bg-white/90 p-3.5 shadow-sm ${!n.is_read ? "border-sky-200" : "border-slate-100"}`}>
+    <div className={`flex items-start gap-3 rounded-3xl border bg-white/90 p-3.5 shadow-sm ${!n.is_read ? "border-slate-300" : "border-slate-200/80"}`}>
       <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl text-sm ${notifTypeColor(n.type)}`}>
         <Icon icon={notifTypeIcon(n.type)} />
       </span>
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <p className="text-xs font-bold text-slate-800 leading-snug">{n.title}</p>
-          {!n.is_read && <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-sky-500" />}
+          {!n.is_read && <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-slate-700" />}
         </div>
         <p className="mt-0.5 text-[11px] text-slate-500 leading-relaxed line-clamp-2">{n.message}</p>
         <p className="mt-1 text-[10px] text-slate-400">{fmt(n.created_at)}</p>
@@ -272,6 +272,7 @@ export default function StudentCourseDetailPage() {
   const requestedTab = searchParams.get("tab");
   const initialTabKey: TabKey = (requestedTab && TAB_MAP[requestedTab]) ? TAB_MAP[requestedTab] : "Overview";
   const [activeTab, setActiveTab] = useState<TabKey>(initialTabKey);
+  const [selectedScoreCategory, setSelectedScoreCategory] = useState<ScoreCategoryKey>("all");
   const [data, setData] = useState<MyStudentCourseResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -337,6 +338,10 @@ export default function StudentCourseDetailPage() {
     setExpandedBonusDays({});
   }, [params.courseId]);
 
+  useEffect(() => {
+    setSelectedScoreCategory("all");
+  }, [params.courseId]);
+
   const bonusRecords = data?.course.bonusScore?.records ?? [];
   const bonusGroups = useMemo(() => {
     const grouped = new Map<string, { label: string; total: number; records: typeof bonusRecords }>();
@@ -395,7 +400,7 @@ export default function StudentCourseDetailPage() {
           <div>
             <p className="font-bold text-rose-900">ไม่สามารถเปิดรายวิชาได้</p>
             <p className="mt-1 text-sm text-rose-700/80">{errorMessage ?? "ไม่พบข้อมูลรายวิชา"}</p>
-            <Link href="/student" className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500 active:scale-95">
+            <Link href="/student" className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 active:scale-95">
               <Icon icon="solar:arrow-left-bold" />กลับหน้าหลัก
             </Link>
           </div>
@@ -413,7 +418,7 @@ export default function StudentCourseDetailPage() {
     Scores: tabs[1],
     Attendance: tabs[2],
     ExamSeats: t("examSeats"),
-    Updates: tabs[4],
+    Updates: "อัปเดต",
   };
   const formatExamSeatType = (seat: MyExamSeat) => {
     const examTypeLabel = seat.exam_type === "midterm" ? t("midtermExam") : t("finalExam");
@@ -448,6 +453,34 @@ export default function StudentCourseDetailPage() {
     };
   }
 
+  const scoreAssignmentGroups = {
+    lab: visibleAssignments.filter((a) => a.type !== "assignment" && a.type !== "permanent_group" && a.type !== "weekly_group"),
+    homework: visibleAssignments.filter((a) => a.type === "assignment"),
+    group: visibleAssignments.filter((a) => a.type === "permanent_group"),
+    weekly: visibleAssignments.filter((a) => a.type === "weekly_group"),
+  };
+  const scoreCategoryOptions = [
+    { key: "all",      label: "ทั้งหมด",      count: visibleAssignments.length + course.examScores.length + bonusGroups.length },
+    { key: "lab",      label: "คะแนนแลป",     count: scoreAssignmentGroups.lab.length },
+    { key: "homework", label: "การบ้าน",      count: scoreAssignmentGroups.homework.length },
+    { key: "group",    label: "งานกลุ่ม",     count: scoreAssignmentGroups.group.length },
+    { key: "weekly",   label: "งานสัปดาห์",   count: scoreAssignmentGroups.weekly.length },
+    { key: "exams",    label: "คะแนนสอบ",     count: course.examScores.length },
+    { key: "bonus",    label: "คะแนนพิเศษ",   count: bonusGroups.length },
+  ].filter((option) => option.key === "all" || option.count > 0) as Array<{ key: ScoreCategoryKey; label: string; count: number }>;
+  const scoreCategorySections = [
+    { key: "lab" as const,      label: "คะแนนแลป",   icon: "solar:laptop-bold-duotone",              cls: "text-sky-600 bg-sky-50 border-sky-100", items: scoreAssignmentGroups.lab },
+    { key: "homework" as const, label: "การบ้าน",    icon: "solar:notebook-bold-duotone",            cls: "text-violet-600 bg-violet-50 border-violet-100", items: scoreAssignmentGroups.homework },
+    { key: "group" as const,    label: "งานกลุ่ม",   icon: "solar:users-group-rounded-bold-duotone", cls: "text-amber-600 bg-amber-50 border-amber-100", items: scoreAssignmentGroups.group },
+    { key: "weekly" as const,   label: "งานสัปดาห์", icon: "solar:calendar-bold-duotone",            cls: "text-orange-600 bg-orange-50 border-orange-100", items: scoreAssignmentGroups.weekly },
+  ].filter((section) => section.items.length > 0);
+  const filteredScoreSections = selectedScoreCategory === "all"
+    ? scoreCategorySections
+    : scoreCategorySections.filter((section) => section.key === selectedScoreCategory);
+  assignByType.lab = scoreAssignmentGroups.lab;
+  assignByType.homework = scoreAssignmentGroups.homework;
+  assignByType.weekly = scoreAssignmentGroups.weekly;
+
   const summaryItems = [
     { label: "มาเรียน", val: course.attendance.summary.present, icon: "solar:check-circle-bold-duotone", cls: "text-emerald-600 bg-emerald-50" },
     { label: "สาย",     val: course.attendance.summary.late,    icon: "solar:clock-circle-bold-duotone",  cls: "text-amber-600 bg-amber-50" },
@@ -458,16 +491,16 @@ export default function StudentCourseDetailPage() {
   return (
     <div className="space-y-4 pb-2">
       {/* ── course header ──────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-4xl bg-linear-to-br from-sky-700 via-sky-600 to-cyan-500 p-5 shadow-xl shadow-sky-300/40 sm:p-6">
+      <div className="relative overflow-hidden rounded-4xl border border-slate-200/70 bg-slate-900 p-5 shadow-lg shadow-slate-300/40 sm:p-6">
         <span className="pointer-events-none absolute -right-8 -top-8 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
         <div className="relative flex items-start gap-4">
           <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-lg font-bold text-white ring-2 ring-white/25 backdrop-blur-sm">
             {initials}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-sky-200/80">{course.course.code}</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-300">{course.course.code}</p>
             <h2 className="mt-0.5 text-lg font-bold leading-snug text-white sm:text-xl">{course.course.name}</h2>
-            <p className="mt-1 text-xs text-sky-100/70">
+            <p className="mt-1 text-xs text-slate-400">
               {data.student.full_name} · ปีการศึกษา {course.course.year} เทอม {course.course.semester}
               {course.course.sections.length > 0 && (
                 <> · Sec {course.course.sections.map((s) => s.section_no).filter(Boolean).join(", ") || course.course.sections.map((s) => s.id).join(", ")}</>
@@ -479,12 +512,12 @@ export default function StudentCourseDetailPage() {
 
       {/* ── tab bar ────────────────────────────────────── */}
       <div className="flex gap-1 overflow-x-auto rounded-4xl border border-slate-100 bg-white/80 p-1.5 shadow-sm scrollbar-hide">
-        {tabKeys.map((key, i) => (
+        {tabKeys.filter((key) => key !== "ExamSeats").map((key, i) => (
           <button
             key={key}
             onClick={() => setActiveTab(key)}
             className={`flex shrink-0 items-center gap-1.5 rounded-3xl px-3 py-2 text-xs font-semibold transition ${
-              activeTab === key ? "bg-sky-600 text-white shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+              activeTab === key ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
             }`}
           >
             <Icon icon={TAB_ICONS[key]} className="text-sm" />
@@ -499,7 +532,7 @@ export default function StudentCourseDetailPage() {
           {/* Course notifications */}
           <div>
             <div className="mb-2 flex items-center gap-2">
-              <Icon icon="solar:bell-bing-bold-duotone" className="text-base text-sky-600" />
+              <Icon icon="solar:bell-bing-bold-duotone" className="text-base text-slate-700" />
               <p className="text-xs font-bold uppercase tracking-wide text-slate-600">ประกาศจากรายวิชา</p>
             </div>
             {notifs.length > 0 ? (
@@ -594,8 +627,8 @@ export default function StudentCourseDetailPage() {
               <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">กลุ่มเรียน</p>
               <div className="flex flex-wrap gap-2">
                 {course.course.sections.map((s) => (
-                  <span key={s.id} className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
-                    Section {s.id}
+                  <span key={s.id} className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                    Section {s.section_no || s.name || s.id}
                   </span>
                 ))}
               </div>
@@ -608,28 +641,51 @@ export default function StudentCourseDetailPage() {
       {activeTab === "Scores" && (
         <div className="space-y-4">
           {/* Score total banner */}
-          <div className="rounded-4xl bg-linear-to-br from-sky-50 to-cyan-50 border border-sky-100 p-4">
+          <div className="rounded-4xl border border-slate-200 bg-slate-50 p-4">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-bold uppercase tracking-wide text-sky-700">คะแนนรวม (งาน)</p>
-              <span className="text-xl font-bold text-sky-700 tabular-nums">
-                {visibleTotalScore.toFixed(1)} <span className="text-sm font-medium text-sky-400">/ {visibleTotalMaxScore.toFixed(1)}</span>
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-700">คะแนนรวม (งาน)</p>
+              <span className="text-xl font-bold text-slate-900 tabular-nums">
+                {visibleTotalScore.toFixed(1)} <span className="text-sm font-medium text-slate-400">/ {visibleTotalMaxScore.toFixed(1)}</span>
               </span>
             </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-sky-100">
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
               <div
-                className="h-full rounded-full bg-linear-to-r from-sky-500 to-cyan-400 transition-all"
+                className="h-full rounded-full bg-slate-900 transition-all"
                 style={{ width: `${visibleTotalMaxScore > 0 ? Math.round((visibleTotalScore / visibleTotalMaxScore) * 100) : 0}%` }}
               />
             </div>
           </div>
 
-          {assignGroups.length === 0 ? (
+          <div className="rounded-4xl border border-slate-100 bg-white/90 p-4 shadow-sm">
+            <div className="flex items-center gap-2">
+              <Icon icon="solar:filter-bold-duotone" className="text-base text-slate-500" />
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">เลือกหมวดคะแนน</p>
+            </div>
+            <div className="mt-3 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              {scoreCategoryOptions.map((option) => (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => setSelectedScoreCategory(option.key)}
+                  className={`shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                    selectedScoreCategory === option.key
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-white"
+                  }`}
+                >
+                  {option.label} ({option.count})
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {filteredScoreSections.length === 0 && course.examScores.length === 0 && bonusGroups.length === 0 ? (
             <div className="flex flex-col items-center gap-3 rounded-4xl border border-dashed border-slate-200 bg-white/60 py-12 text-center">
               <Icon icon="solar:medal-star-bold-duotone" className="text-3xl text-slate-300" />
               <p className="text-sm text-slate-400">ยังไม่มีงานที่แสดงได้</p>
             </div>
           ) : (
-            assignGroups.map((g) => (
+            filteredScoreSections.map((g) => (
               <div key={g.key}>
                 <div className="mb-2 flex items-center gap-2 px-1">
                   <span className={`flex h-6 w-6 items-center justify-center rounded-xl border text-xs ${g.cls}`}><Icon icon={g.icon} /></span>
@@ -637,14 +693,14 @@ export default function StudentCourseDetailPage() {
                   <span className="text-xs text-slate-400">({(assignByType[g.key] ?? []).length} งาน)</span>
                 </div>
                 <div className="space-y-2">
-                  {(assignByType[g.key] ?? []).map((a) => <AssignmentCard key={a.id} a={a} />)}
+                  {g.items.map((a) => <AssignmentCard key={a.id} a={a} />)}
                 </div>
               </div>
             ))
           )}
 
           {/* Bonus scores */}
-          {course.bonusScore && course.bonusScore.total > 0 && (
+          {course.bonusScore && course.bonusScore.total > 0 && (selectedScoreCategory === "all" || selectedScoreCategory === "bonus") && (
             <div className="rounded-4xl border border-amber-100 bg-white/90 p-5 shadow-sm">
               <div className="mb-3 flex items-center gap-2">
                 <Icon icon="solar:gift-bold-duotone" className="text-amber-500 text-base" />
@@ -699,10 +755,10 @@ export default function StudentCourseDetailPage() {
           )}
 
           {/* Exam scores */}
-          {course.examScores && course.examScores.length > 0 && (
+          {course.examScores && course.examScores.length > 0 && (selectedScoreCategory === "all" || selectedScoreCategory === "exams") && (
             <div>
               <div className="mb-2 flex items-center gap-2 px-1">
-                <Icon icon="solar:diploma-bold-duotone" className="text-indigo-500 text-base" />
+                <Icon icon="solar:diploma-bold-duotone" className="text-blue-700 text-base" />
                 <p className="text-xs font-bold uppercase tracking-wide text-slate-600">คะแนนสอบ</p>
               </div>
               <div className="space-y-2">
@@ -741,7 +797,7 @@ export default function StudentCourseDetailPage() {
         <div className="space-y-3">
           {isExamSeatsLoading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500" />
+              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-slate-700" />
             </div>
           ) : examSeats.length === 0 ? (
             <div className="flex flex-col items-center gap-3 rounded-4xl border border-dashed border-slate-200 bg-white/60 py-12 text-center">
@@ -750,22 +806,22 @@ export default function StudentCourseDetailPage() {
             </div>
           ) : (
             examSeats.map((seat) => (
-              <div key={`${seat.session_id}-${seat.exam_type}-${seat.component}`} className="rounded-4xl border border-indigo-100 bg-white/90 p-4 shadow-sm">
+              <div key={`${seat.session_id}-${seat.exam_type}-${seat.component}`} className="rounded-4xl border border-blue-100 bg-white/90 p-4 shadow-sm">
                 <div className="flex items-start gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 text-blue-700">
                     <Icon icon="solar:armchair-bold-duotone" />
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-bold text-slate-900">{formatExamSeatType(seat)}</p>
-                      <span className="rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
+                      <span className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
                         {seat.exam_date}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-slate-500">{seat.start_time}–{seat.end_time}</p>
                     <div className="mt-2 flex items-center gap-2">
-                      <span className="flex items-center gap-1.5 rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
-                        <Icon icon="solar:buildings-bold" className="text-sky-500" />
+                      <span className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                        <Icon icon="solar:buildings-bold" className="text-slate-500" />
                         {seat.classroom_name}
                       </span>
                       <span className="flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">

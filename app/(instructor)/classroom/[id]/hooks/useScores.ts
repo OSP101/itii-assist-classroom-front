@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo } from "react";
 import { addToast } from "@heroui/toast";
 import scoreService from "@/services/score.service";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import { isScoreInputValid, parseScoreInput } from "@/lib/score-input";
 import type { Assignment as AssignmentType, AssignmentSubItem } from "@/services/assignment.service";
 import type { ScoresData, Group } from "@/services/score.service";
 
@@ -29,7 +30,7 @@ export function useScores(options: UseScoresOptions = {}) {
     const [scoreEntries, setScoreEntries] = useState<Record<string, number | "">>({});
     const [groupsForScore, setGroupsForScore] = useState<Group[]>([]);
     const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-    const [groupScoreValue, setGroupScoreValue] = useState<number>(0);
+    const [groupScoreValue, setGroupScoreValue] = useState<string>("");
     const [groupSubItemScores, setGroupSubItemScores] = useState<Record<number, number>>({});
 
     // Fetch scores for assignment
@@ -161,13 +162,25 @@ export function useScores(options: UseScoresOptions = {}) {
     // Save group score
     const saveGroupScore = useCallback(async () => {
         if (!selectedAssignment || !selectedGroup) return;
+        if (!isScoreInputValid(groupScoreValue, selectedAssignment.max_score)) {
+            addToast({
+                title: t("à¸„à¸°à¹à¸™à¸™à¹„à¸¡à¹ˆà¸–à¸¹à¸à¸•à¹‰à¸­à¸‡", "Invalid score"),
+                description: isEnglish
+                    ? `Please enter a valid score between 0 and ${selectedAssignment.max_score} with up to 2 decimal places.`
+                    : `à¸à¸£à¸¸à¸“à¸²à¸à¸£à¸­à¸à¸„à¸°à¹à¸™à¸™à¹ƒà¸«à¹‰à¸–à¸¹à¸à¸•à¹‰à¸­à¸‡ à¸£à¸°à¸«à¸§à¹ˆà¸²à¸‡ 0-${selectedAssignment.max_score} à¹à¸¥à¸°à¸—à¸¨à¸™à¸´à¸¢à¸¡à¹„à¸¡à¹ˆà¹€à¸à¸´à¸™ 2 à¸•à¸³à¹à¸«à¸™à¹ˆà¸‡`,
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return false;
+        }
         
         setIsSaving(true);
         try {
             await scoreService.submitGroupScore({
                 assignment_id: selectedAssignment.id,
                 group_id: selectedGroup.id,
-                score: groupScoreValue,
+                score: parseScoreInput(groupScoreValue) ?? 0,
             });
             
             addToast({
@@ -207,7 +220,7 @@ export function useScores(options: UseScoresOptions = {}) {
         setScoreEntries({});
         setGroupsForScore([]);
         setSelectedGroup(null);
-        setGroupScoreValue(0);
+        setGroupScoreValue("");
         setGroupSubItemScores({});
     }, []);
 

@@ -129,11 +129,11 @@ export default function StudentNotificationsPage() {
   return (
     <div className="space-y-4 pb-2">
       {/* Header strip */}
-      <div className="relative overflow-hidden rounded-4xl bg-linear-to-br from-sky-600 via-sky-500 to-cyan-400 p-5 shadow-lg shadow-sky-300/30">
+      <div className="relative overflow-hidden rounded-4xl border border-slate-200/70 bg-slate-900 p-5 shadow-lg shadow-slate-300/30">
         <span className="pointer-events-none absolute -right-6 -top-6 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-sky-100/70">การแจ้งเตือน</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-300">การแจ้งเตือน</p>
             <h2 className="mt-0.5 text-xl font-bold text-white">อัปเดตล่าสุด</h2>
           </div>
           {unreadCount > 0 && (
@@ -167,7 +167,7 @@ export default function StudentNotificationsPage() {
           <button
             key={tab}
             onClick={() => setFilter(tab)}
-            className={`flex-1 rounded-2xl py-2 text-sm font-semibold transition ${filter === tab ? "bg-sky-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            className={`flex-1 rounded-2xl py-2 text-sm font-semibold transition ${filter === tab ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
           >
             {tab === "all" ? "ทั้งหมด" : tab === "unread" ? (
               <span className="flex items-center justify-center gap-1.5">
@@ -222,8 +222,8 @@ export default function StudentNotificationsPage() {
                 onClick={() => void handleOpen(notification.id, href)}
                 className={`group flex w-full items-start gap-4 rounded-4xl border p-4 text-left transition active:scale-[0.985] ${
                   isUnread
-                    ? "border-sky-100 bg-sky-50/60 hover:bg-sky-50"
-                    : "border-slate-100/80 bg-white/80 hover:border-sky-50 hover:bg-white"
+                    ? "border-slate-300 bg-slate-50/80 hover:bg-slate-50"
+                    : "border-slate-200/80 bg-white/90 hover:border-slate-300 hover:bg-white"
                 }`}
               >
                 {/* icon */}
@@ -234,12 +234,12 @@ export default function StudentNotificationsPage() {
                 {/* body */}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
-                    <p className={`text-[11px] font-semibold uppercase tracking-wide ${isUnread ? "text-sky-600" : "text-slate-400"}`}>
+                    <p className={`text-[11px] font-semibold uppercase tracking-wide ${isUnread ? "text-slate-700" : "text-slate-400"}`}>
                       {notification.course_id ? `วิชา ${notification.course_id}` : "ทั่วไป"}
                     </p>
                     <div className="flex shrink-0 items-center gap-2">
                       <span className="text-[11px] text-slate-400">{formatRelativeTime(notification.created_at)}</span>
-                      {isUnread && <span className="h-2 w-2 rounded-full bg-sky-500" />}
+                      {isUnread && <span className="h-2 w-2 rounded-full bg-slate-700" />}
                     </div>
                   </div>
                   <p className="mt-0.5 text-sm font-semibold text-slate-900">
@@ -249,7 +249,7 @@ export default function StudentNotificationsPage() {
                     {getNotificationMessage(notification, language, t)}
                   </p>
                   {href && (
-                    <p className="mt-2 flex items-center gap-1 text-xs font-semibold text-sky-600">
+                    <p className="mt-2 flex items-center gap-1 text-xs font-semibold text-slate-700">
                       เปิดดู <Icon icon="solar:arrow-right-bold" className="text-xs" />
                     </p>
                   )}

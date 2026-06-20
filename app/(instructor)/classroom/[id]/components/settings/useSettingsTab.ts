@@ -522,185 +522,256 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
             // Group name is shown as an Excel note on each score cell
             // ════════════════════════════════════════════════════════════════
             const weeklyMatrix = await scoreService.getScoreSummaryMatrix(courseId, { assignmentType: "weekly_group" });
-            // If no weekly assignments yet, show student list without score columns
             if (!weeklyMatrix || weeklyMatrix.assignments.length === 0) {
-                const wws = wb.addWorksheet("คะแนนกลุ่ม (สัปดาห์)");
-                wws.getColumn(1).width = 16;
-                wws.getColumn(2).width = 28;
-                wws.getColumn(3).width = 10;
-                wws.getRow(1).height = 28;
+                const wws = wb.addWorksheet("\u0e04\u0e30\u0e41\u0e19\u0e19\u0e01\u0e25\u0e38\u0e48\u0e21 (\u0e2a\u0e31\u0e1b\u0e14\u0e32\u0e2b\u0e4c)");
+                wws.getColumn(1).width = 22;
+                wws.getColumn(2).width = 16;
+                wws.getColumn(3).width = 28;
+                wws.getColumn(4).width = 12;
                 const noDataHdr = wws.getRow(1);
-                noDataHdr.getCell(1).value = "รหัสนักศึกษา";
-                noDataHdr.getCell(2).value = "ชื่อ-นามสกุล";
-                noDataHdr.getCell(3).value = "กลุ่มเรียน";
-                for (let c = 1; c <= 3; c++) applyHdr1(noDataHdr.getCell(c));
+                noDataHdr.height = 30;
+                noDataHdr.getCell(1).value = "\u0e0a\u0e37\u0e48\u0e2d\u0e01\u0e25\u0e38\u0e48\u0e21";
+                noDataHdr.getCell(2).value = "\u0e23\u0e2b\u0e31\u0e2a\u0e19\u0e31\u0e01\u0e28\u0e36\u0e01\u0e29\u0e32";
+                noDataHdr.getCell(3).value = "\u0e0a\u0e37\u0e48\u0e2d \u0e19\u0e32\u0e21\u0e2a\u0e01\u0e38\u0e25";
+                noDataHdr.getCell(4).value = "\u0e04\u0e30\u0e41\u0e19\u0e19\u0e23\u0e27\u0e21";
+                for (let c = 1; c <= 4; c++) applyHdr1(noDataHdr.getCell(c));
                 if (weeklyMatrix?.students.length) {
                     weeklyMatrix.students.forEach((stu, rowOffset) => {
                         const wr = wws.getRow(2 + rowOffset);
-                        wr.getCell(1).value = stu.student_id;
-                        wr.getCell(2).value = stu.full_name;
-                        wr.getCell(3).value = stu.section_number;
-                        wr.getCell(1).alignment = LEFT_ALIGN;
+                        wr.getCell(1).value = "-";
+                        wr.getCell(2).value = stu.student_id;
+                        wr.getCell(3).value = stu.full_name;
+                        wr.getCell(4).value = stu.total_score;
+                        wr.getCell(1).alignment = CENTER_ALIGN;
                         wr.getCell(2).alignment = LEFT_ALIGN;
-                        wr.getCell(3).alignment = CENTER_ALIGN;
-                        for (let c = 1; c <= 3; c++) wr.getCell(c).border = THIN_BORDER;
+                        wr.getCell(3).alignment = LEFT_ALIGN;
+                        wr.getCell(4).alignment = CENTER_ALIGN;
+                        for (let c = 1; c <= 4; c++) wr.getCell(c).border = THIN_BORDER;
                         if (rowOffset % 2 === 1) {
-                            for (let c = 1; c <= 3; c++) wr.getCell(c).fill = solidFill("FFF8FAFC");
+                            for (let c = 1; c <= 4; c++) wr.getCell(c).fill = solidFill("FFF8FAFC");
                         }
                     });
                 }
                 wws.views = [{ state: "frozen", xSplit: 0, ySplit: 1 }];
             } else {
-                const wws = wb.addWorksheet("คะแนนกลุ่ม (สัปดาห์)");
-                const WFIXED = 3; // รหัสนักศึกษา, ชื่อ, กลุ่มเรียน
-                const wasgmts = weeklyMatrix.assignments;
+                const wws = wb.addWorksheet("\u0e04\u0e30\u0e41\u0e19\u0e19\u0e01\u0e25\u0e38\u0e48\u0e21 (\u0e2a\u0e31\u0e1b\u0e14\u0e32\u0e2b\u0e4c)");
+                const WEEK_FIXED = 3;
+                type WeeklyColDef = {
+                    scoreKey: string;
+                    asgmtMax: number;
+                    headerLabel: string;
+                };
+                type WeeklyBlock = {
+                    weekNumber: number;
+                    columns: WeeklyColDef[];
+                };
 
-                // Score cols only — group name will appear as cell note
-                type WColDef = { scoreKey: string; asgmtId: number; asgmtTitle: string; asgmtMax: number; subLabel: string | null; isFirstOfAsgmt: boolean };
-                const wCols: WColDef[] = [];
-                for (const a of wasgmts) {
-                    if (a.subItems.length === 0) {
-                        wCols.push({ scoreKey: `${a.id}_main`, asgmtId: a.id, asgmtTitle: a.title, asgmtMax: a.max_score, subLabel: null, isFirstOfAsgmt: true });
-                    } else {
-                        for (let si = 0; si < a.subItems.length; si++) {
-                            const sub = a.subItems[si];
-                            wCols.push({ scoreKey: `${a.id}_${sub.id}`, asgmtId: a.id, asgmtTitle: a.title, asgmtMax: sub.max_score, subLabel: `${sub.name} (${sub.max_score})`, isFirstOfAsgmt: si === 0 });
+                const assignmentsByWeek = new Map<number, typeof weeklyMatrix.assignments>();
+                for (const assignment of weeklyMatrix.assignments) {
+                    const weekNumber = assignment.week_number ?? 0;
+                    const bucket = assignmentsByWeek.get(weekNumber) ?? [];
+                    bucket.push(assignment);
+                    assignmentsByWeek.set(weekNumber, bucket);
+                }
+
+                const weeklyBlocks: WeeklyBlock[] = Array.from(assignmentsByWeek.entries())
+                    .sort((a, b) => a[0] - b[0])
+                    .map(([weekNumber, assignments]) => ({
+                        weekNumber,
+                        columns: assignments.flatMap((assignment) => {
+                            if (assignment.subItems.length === 0) {
+                                return [{
+                                    scoreKey: `${assignment.id}_main`,
+                                    asgmtMax: assignment.max_score,
+                                    headerLabel: assignment.title,
+                                }];
+                            }
+                            return assignment.subItems.map((subItem) => ({
+                                scoreKey: `${assignment.id}_${subItem.id}`,
+                                asgmtMax: subItem.max_score,
+                                headerLabel: subItem.name,
+                            }));
+                        }),
+                    }));
+
+                const maxWeekCols = weeklyBlocks.reduce((max, block) => Math.max(max, block.columns.length), 0);
+                const totalCol = WEEK_FIXED + maxWeekCols + 1;
+
+                wws.getColumn(1).width = 22;
+                wws.getColumn(2).width = 16;
+                wws.getColumn(3).width = 28;
+                for (let c = 4; c < totalCol; c++) wws.getColumn(c).width = 11;
+                wws.getColumn(totalCol).width = 12;
+
+                const topHeader = wws.getRow(1);
+                topHeader.height = 30;
+                topHeader.getCell(1).value = "\u0e0a\u0e37\u0e48\u0e2d\u0e01\u0e25\u0e38\u0e48\u0e21";
+                topHeader.getCell(2).value = "\u0e23\u0e2b\u0e31\u0e2a\u0e19\u0e31\u0e01\u0e28\u0e36\u0e01\u0e29\u0e32";
+                topHeader.getCell(3).value = "\u0e0a\u0e37\u0e48\u0e2d \u0e19\u0e32\u0e21\u0e2a\u0e01\u0e38\u0e25";
+                topHeader.getCell(4).value = "\u0e07\u0e32\u0e19";
+                topHeader.getCell(totalCol).value = "\u0e04\u0e30\u0e41\u0e19\u0e19\u0e23\u0e27\u0e21";
+                for (let c = 1; c <= totalCol; c++) applyHdr1(topHeader.getCell(c));
+                if (totalCol > 4) wws.mergeCells(1, 4, 1, totalCol - 1);
+
+                const buildWeeklyNote = (scoreObj?: {
+                    group_name?: string | null;
+                    comment?: string | null;
+                    edit_requests?: {
+                        old_score: number | null;
+                        new_score: number;
+                        reason: string | null;
+                        requester: string | null;
+                        reviewer: string | null;
+                        reviewed_at: string | null;
+                        review_comment: string | null;
+                    }[];
+                }) => {
+                    if (!scoreObj) return undefined;
+                    const noteLines: string[] = [];
+                    if (scoreObj.group_name) noteLines.push(`\u0e01\u0e25\u0e38\u0e48\u0e21: ${scoreObj.group_name}`);
+                    const editReqs = scoreObj.edit_requests ?? [];
+                    if (editReqs.length > 0) {
+                        if (noteLines.length > 0) noteLines.push("");
+                        for (const er of editReqs) {
+                            const oldStr = er.old_score !== null && er.old_score !== undefined ? String(er.old_score) : "-";
+                            noteLines.push(`\u0e41\u0e01\u0e49\u0e44\u0e02\u0e04\u0e30\u0e41\u0e19\u0e19: ${oldStr} -> ${er.new_score}`);
+                            if (er.reason) noteLines.push(`\u0e40\u0e2b\u0e15\u0e38\u0e1c\u0e25: ${er.reason}`);
+                            if (er.requester) noteLines.push(`\u0e1c\u0e39\u0e49\u0e02\u0e2d\u0e41\u0e01\u0e49\u0e44\u0e02: ${er.requester}`);
+                            if (er.reviewer) noteLines.push(`\u0e1c\u0e39\u0e49\u0e2d\u0e19\u0e38\u0e21\u0e31\u0e15\u0e34: ${er.reviewer}`);
+                            if (er.review_comment) noteLines.push(`\u0e04\u0e27\u0e32\u0e21\u0e40\u0e2b\u0e47\u0e19: ${er.review_comment}`);
+                            noteLines.push("");
                         }
                     }
-                }
-                const wTotalCols = WFIXED + wCols.length + 2;
+                    if (scoreObj.comment) noteLines.push(`\u0e2b\u0e21\u0e32\u0e22\u0e40\u0e2b\u0e15\u0e38: ${scoreObj.comment}`);
+                    const content = noteLines.join("\\n").trim();
+                    return content.length > 0 ? content : undefined;
+                };
 
-                // Column widths
-                wws.getColumn(1).width = 16;
-                wws.getColumn(2).width = 28;
-                wws.getColumn(3).width = 10;
-                for (let c = WFIXED + 1; c <= WFIXED + wCols.length; c++) wws.getColumn(c).width = 11;
-                wws.getColumn(wTotalCols - 1).width = 9;
-                wws.getColumn(wTotalCols).width = 11;
-                wws.getRow(1).height = 32;
-                wws.getRow(2).height = 22;
+                let currentRow = 2;
+                let stripeIndex = 0;
+                for (const block of weeklyBlocks) {
+                    const weekLabelRow = wws.getRow(currentRow);
+                    weekLabelRow.height = 24;
+                    weekLabelRow.getCell(1).value = block.weekNumber > 0 ? `\u0e2a\u0e31\u0e1b\u0e14\u0e32\u0e2b\u0e4c\u0e17\u0e35\u0e48 ${block.weekNumber}` : "\u0e2a\u0e31\u0e1b\u0e14\u0e32\u0e2b\u0e4c\u0e44\u0e21\u0e48\u0e23\u0e30\u0e1a\u0e38";
+                    for (let c = 1; c <= totalCol; c++) applyHdr2(weekLabelRow.getCell(c));
+                    if (totalCol > 1) wws.mergeCells(currentRow, 1, currentRow, totalCol);
+                    currentRow += 1;
 
-                // Row 1: fixed headers + assignment titles
-                const wr1 = wws.getRow(1);
-                wr1.getCell(1).value = "รหัสนักศึกษา";
-                wr1.getCell(2).value = "ชื่อ-นามสกุล";
-                wr1.getCell(3).value = "กลุ่มเรียน";
-                let wci = WFIXED;
-                for (const wc of wCols) {
-                    if (wc.isFirstOfAsgmt) wr1.getCell(wci + 1).value = `${wc.asgmtTitle} (${wc.asgmtMax})`;
-                    wci++;
-                }
-                wr1.getCell(wTotalCols - 1).value = "รวม";
-                wr1.getCell(wTotalCols).value = "คะแนนเต็ม";
-                for (let c = 1; c <= wTotalCols; c++) applyHdr1(wr1.getCell(c));
+                    const weekHeaderRow = wws.getRow(currentRow);
+                    weekHeaderRow.height = 22;
+                    block.columns.forEach((col, index) => {
+                        weekHeaderRow.getCell(4 + index).value = col.headerLabel;
+                    });
+                    for (let c = 1; c <= totalCol; c++) applyHdr2(weekHeaderRow.getCell(c));
+                    currentRow += 1;
 
-                // Row 2: sub-item labels
-                const wr2 = wws.getRow(2);
-                wci = WFIXED;
-                for (const wc of wCols) {
-                    if (wc.subLabel) wr2.getCell(wci + 1).value = wc.subLabel;
-                    wci++;
-                }
-                for (let c = 1; c <= wTotalCols; c++) applyHdr2(wr2.getCell(c));
+                    const weekStudents = weeklyMatrix.students
+                        .map((stu) => {
+                            const weekKey = String(block.weekNumber);
+                            const fallbackGroupName = block.columns
+                                .map((col) => stu.scores[col.scoreKey]?.group_name)
+                                .find((value): value is string => Boolean(value && value.trim()));
+                            const groupName = stu.weekly_group_names?.[weekKey] ?? fallbackGroupName ?? null;
+                            const groupId = stu.weekly_group_ids?.[weekKey] ?? null;
+                            return { stu, groupName, groupId };
+                        })
+                        .filter((entry) => entry.groupName);
 
-                // Merges: fixed cols vertical
-                wws.mergeCells(1, 1, 2, 1);
-                wws.mergeCells(1, 2, 2, 2);
-                wws.mergeCells(1, 3, 2, 3);
-                wws.mergeCells(1, wTotalCols - 1, 2, wTotalCols - 1);
-                wws.mergeCells(1, wTotalCols, 2, wTotalCols);
-                // Per-assignment: merge title across all its score cols
-                wci = WFIXED;
-                for (const a of wasgmts) {
-                    const span = a.subItems.length === 0 ? 1 : a.subItems.length;
-                    if (span > 1) {
-                        wws.mergeCells(1, wci + 1, 1, wci + span);
-                    } else {
-                        wws.mergeCells(1, wci + 1, 2, wci + 1); // single col: vertical merge
-                    }
-                    wci += span;
-                }
+                    weekStudents.sort((a, b) => {
+                        const groupDiff = (a.groupId ?? Number.MAX_SAFE_INTEGER) - (b.groupId ?? Number.MAX_SAFE_INTEGER);
+                        if (groupDiff !== 0) return groupDiff;
+                        const nameDiff = (a.groupName ?? "").localeCompare(b.groupName ?? "");
+                        if (nameDiff !== 0) return nameDiff;
+                        return a.stu.student_id.localeCompare(b.stu.student_id);
+                    });
 
-                // Data rows
-                weeklyMatrix.students.forEach((stu, rowOffset) => {
-                    const wr = wws.getRow(3 + rowOffset);
-                    wr.getCell(1).value = stu.student_id;
-                    wr.getCell(2).value = stu.full_name;
-                    wr.getCell(3).value = stu.section_number;
-                    wr.getCell(1).alignment = LEFT_ALIGN;
-                    wr.getCell(2).alignment = LEFT_ALIGN;
-                    wr.getCell(3).alignment = CENTER_ALIGN;
-                    for (let c = 1; c <= WFIXED; c++) wr.getCell(c).border = THIN_BORDER;
+                    const groupRanges: Array<{ startRow: number; endRow: number; groupName: string }> = [];
+                    let groupStart = currentRow;
+                    for (let index = 0; index < weekStudents.length; index++) {
+                        const entry = weekStudents[index];
+                        const row = wws.getRow(currentRow + index);
+                        row.getCell(1).value = entry.groupName;
+                        row.getCell(2).value = entry.stu.student_id;
+                        row.getCell(3).value = entry.stu.full_name;
+                        row.getCell(1).alignment = CENTER_ALIGN;
+                        row.getCell(2).alignment = LEFT_ALIGN;
+                        row.getCell(3).alignment = LEFT_ALIGN;
+                        for (let c = 1; c <= 3; c++) row.getCell(c).border = THIN_BORDER;
 
-                    wci = WFIXED;
-                    for (const wc of wCols) {
-                        const cell = wr.getCell(wci + 1);
-                        cell.border = THIN_BORDER;
-                        const scoreObj = stu.scores[wc.scoreKey];
-                        const val = scoreObj?.score ?? null;
-                        cell.alignment = CENTER_ALIGN;
-                        const argb = scoreArgb(val, wc.asgmtMax);
-                        if (argb) {
-                            cell.fill = solidFill(argb);
-                            cell.font = { color: { argb: scoreWhite(val, wc.asgmtMax) ? "FFFFFFFF" : "FF1E293B" }, size: 10, bold: val !== null && val / wc.asgmtMax >= 0.9 };
-                        } else {
-                            cell.font = { size: 10, color: { argb: "FF64748B" } };
+                        block.columns.forEach((col, colIndex) => {
+                            const scoreObj = entry.stu.scores[col.scoreKey];
+                            const val = scoreObj?.score ?? null;
+                            const cell = row.getCell(4 + colIndex);
+                            cell.value = val;
+                            cell.alignment = CENTER_ALIGN;
+                            cell.border = THIN_BORDER;
+                            const argb = scoreArgb(val, col.asgmtMax);
+                            if (argb) {
+                                cell.fill = solidFill(argb);
+                                cell.font = { color: { argb: scoreWhite(val, col.asgmtMax) ? "FFFFFFFF" : "FF1E293B" }, size: 10, bold: val !== null && val / col.asgmtMax >= 0.9 };
+                            } else {
+                                cell.font = { size: 10, color: { argb: "FF64748B" } };
+                            }
+                            const note = buildWeeklyNote(scoreObj);
+                            if (note) cell.note = note;
+                        });
+
+                        for (let c = 4 + block.columns.length; c < totalCol; c++) {
+                            row.getCell(c).border = THIN_BORDER;
+                            row.getCell(c).alignment = CENTER_ALIGN;
                         }
 
-                        // Build note: group name first, then edit history, then comment
-                        const noteLines: string[] = [];
-                        const gName = scoreObj?.group_name;
-                        if (gName) noteLines.push(`กลุ่ม: ${gName}`);
-                        const editReqs = scoreObj?.edit_requests ?? [];
-                        if (editReqs.length > 0) {
-                            if (noteLines.length > 0) noteLines.push("");
-                            for (const er of editReqs) {
-                                const oldStr = er.old_score !== null && er.old_score !== undefined ? String(er.old_score) : "-";
-                                noteLines.push(`แก้ไขคะแนน: ${oldStr} → ${er.new_score}`);
-                                if (er.reason) noteLines.push(`เหตุผล: ${er.reason}`);
-                                if (er.requester) noteLines.push(`ผู้ขอแก้ไข: ${er.requester}`);
-                                if (er.reviewer) noteLines.push(`ผู้อนุมัติ: ${er.reviewer}`);
-                                if (er.review_comment) noteLines.push(`ความเห็น: ${er.review_comment}`);
-                                noteLines.push("");
+                        const totalCell = row.getCell(totalCol);
+                        totalCell.value = entry.stu.total_score;
+                        totalCell.alignment = CENTER_ALIGN;
+                        totalCell.border = THIN_BORDER;
+                        const totalArgb = scoreArgb(entry.stu.total_score, entry.stu.total_max_score);
+                        if (totalArgb) {
+                            totalCell.fill = solidFill(totalArgb);
+                            totalCell.font = { bold: true, color: { argb: scoreWhite(entry.stu.total_score, entry.stu.total_max_score) ? "FFFFFFFF" : "FF1E293B" }, size: 10 };
+                        }
+
+                        if (stripeIndex % 2 === 1) {
+                            for (let c = 1; c <= totalCol; c++) {
+                                const currentCell = row.getCell(c);
+                                const fillArgb = (currentCell.fill as FillSolid | undefined)?.fgColor?.argb;
+                                if (!fillArgb) currentCell.fill = solidFill("FFF8FAFC");
                             }
                         }
-                        if (scoreObj?.comment) noteLines.push(`หมายเหตุ: ${scoreObj.comment}`);
+                        stripeIndex += 1;
 
-                        const hasNote = noteLines.filter(l => l.length > 0).length > 0;
-                        cell.value = val;
-                        if (hasNote) cell.note = noteLines.join("\n").trim();
-
-                        wci++;
-                    }
-
-                    // Total + max
-                    const wTotalCell = wr.getCell(wTotalCols - 1);
-                    const wMaxCell   = wr.getCell(wTotalCols);
-                    wTotalCell.value = stu.total_score;
-                    wMaxCell.value   = stu.total_max_score;
-                    wTotalCell.alignment = CENTER_ALIGN;
-                    wMaxCell.alignment   = CENTER_ALIGN;
-                    wTotalCell.border = THIN_BORDER;
-                    wMaxCell.border   = THIN_BORDER;
-                    const wTotalArgb = scoreArgb(stu.total_score, stu.total_max_score);
-                    if (wTotalArgb) {
-                        wTotalCell.fill = solidFill(wTotalArgb);
-                        wTotalCell.font = { bold: true, color: { argb: scoreWhite(stu.total_score, stu.total_max_score) ? "FFFFFFFF" : "FF1E293B" }, size: 10 };
-                    }
-                    if (rowOffset % 2 === 1) {
-                        for (let c = 1; c <= WFIXED; c++) {
-                            if (!(wr.getCell(c).fill as FillSolid)?.fgColor?.argb)
-                                wr.getCell(c).fill = solidFill("FFF8FAFC");
+                        const nextEntry = weekStudents[index + 1];
+                        if (!nextEntry || nextEntry.groupName !== entry.groupName) {
+                            groupRanges.push({
+                                startRow: groupStart,
+                                endRow: currentRow + index,
+                                groupName: entry.groupName ?? "-",
+                            });
+                            groupStart = currentRow + index + 1;
                         }
                     }
-                });
 
-                wws.views = [{ state: "frozen", xSplit: WFIXED, ySplit: 2 }];
+                    const GROUP_FILL = solidFill("FFE0E7FF");
+                    const GROUP_FONT: Partial<ExcelJS.Font> = { bold: true, color: { argb: "FF3730A3" }, size: 10, name: "Calibri" };
+                    for (const range of groupRanges) {
+                        if (range.endRow > range.startRow) {
+                            wws.mergeCells(range.startRow, 1, range.endRow, 1);
+                        }
+                        const nameCell = wws.getCell(range.startRow, 1);
+                        nameCell.value = range.groupName;
+                        nameCell.fill = GROUP_FILL;
+                        nameCell.font = GROUP_FONT;
+                        nameCell.alignment = CENTER_ALIGN;
+                        nameCell.border = THIN_BORDER;
+                    }
+
+                    currentRow += weekStudents.length;
+                    currentRow += 1;
+                }
+
+                wws.views = [{ state: "frozen", xSplit: 0, ySplit: 1 }];
             }
 
-            // ════════════════════════════════════════════════════════════════
-            // Sheet 4: การเช็คชื่อ
-            // ════════════════════════════════════════════════════════════════
             const sessions = await attendanceService.getSessions(courseId);
             const closedSessions = (sessions ?? []).filter(s => s.status !== "draft");
 

@@ -10,6 +10,7 @@ export interface AttendanceSession {
     course_section_id: number | null; // Legacy single section
     course_section_ids?: number[]; // New: array of section IDs
     title: string;
+    auto_rotate_pin: boolean;
     pin_code: string;
     pin_issued_at?: string | null;
     pin_rotates_at?: string | null;
@@ -90,6 +91,7 @@ export interface CreateAttendanceData {
     course_section_id?: number | null; // Legacy single section
     course_section_ids?: number[]; // New: array of section IDs for multi-select
     title: string;
+    auto_rotate_pin: boolean;
     session_type: 'lecture' | 'lab' | 'online';
     check_location: boolean;
     location_lat?: number;

@@ -91,8 +91,8 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-linear-to-b from-sky-50 via-white to-slate-100">
-        <div className="flex flex-col items-center gap-4 rounded-4xl border border-white/70 bg-white/90 px-8 py-10 shadow-lg shadow-sky-100">
+      <div className="app-mobile-screen flex items-center justify-center bg-[#f5f7fb]">
+        <div className="flex flex-col items-center gap-4 rounded-4xl border border-slate-200/80 bg-white px-8 py-10 shadow-sm shadow-slate-200/70">
           <Spinner size="lg" color="primary" />
           <div className="text-center">
             <p className="text-base font-semibold text-slate-800">กำลังเตรียมพื้นที่นักศึกษา</p>
@@ -104,13 +104,13 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-sky-50 via-white to-slate-100 text-slate-900">
-      <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-4 pb-32 pt-4 sm:px-6 lg:px-8">
+    <div className="app-mobile-screen bg-[#f5f7fb] text-slate-900">
+      <div className="mx-auto flex h-full w-full max-w-5xl flex-col overflow-hidden app-safe-x">
         <GlobalAnnouncementLayer />
 
         {/* ── Back header (deep pages only) ──────────────────────────── */}
         {!NAV_ROOTS.has(pathname) && (
-          <header className="sticky top-0 z-20 mb-4 flex items-center justify-between gap-2">
+          <header className="sticky top-0 z-20 flex items-center justify-between gap-2 px-4 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)] backdrop-blur-sm sm:px-6 lg:px-8">
             <button
               onClick={() => router.back()}
               className="flex items-center gap-2 rounded-full bg-white/90 px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm shadow-slate-200 backdrop-blur border border-slate-200/70 transition active:scale-95 hover:bg-white"
@@ -120,7 +120,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
             </button>
             <Link
               href="/student"
-              className="flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-2 text-sm font-semibold text-sky-600 shadow-sm shadow-slate-200 backdrop-blur border border-slate-200/70 transition active:scale-95 hover:bg-white"
+              className="flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm shadow-slate-200/70 backdrop-blur transition active:scale-95 hover:bg-slate-50"
             >
               <Icon icon="solar:home-2-bold" className="text-base" />
               หน้าหลัก
@@ -128,11 +128,11 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           </header>
         )}
 
-        <main className="flex-1">{children}</main>
+        <main className={`app-mobile-scroll flex-1 px-4 pb-[calc(env(safe-area-inset-bottom)+7.5rem)] sm:px-6 lg:px-8 ${NAV_ROOTS.has(pathname) ? "pt-[calc(env(safe-area-inset-top)+1rem)]" : "pt-0"}`}>{children}</main>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2">
-        <div className="mx-auto grid max-w-lg grid-cols-5 items-end gap-1 rounded-4xl border border-slate-200/80 bg-white/95 px-2 py-2 shadow-[0_-12px_40px_rgba(15,23,42,0.10)] backdrop-blur">
+      <nav className="fixed inset-x-0 bottom-0 z-30 px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 app-safe-x">
+        <div className="mx-auto grid max-w-lg grid-cols-5 items-end gap-1 rounded-4xl border border-slate-200/80 bg-white/95 px-2 py-2 shadow-[0_-10px_32px_rgba(15,23,42,0.08)] backdrop-blur">
           {navItems.map((item) => {
             const isActive = item.href === "/student"
               ? pathname === item.href
@@ -147,10 +147,10 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                   href={item.href}
                   className="flex flex-col items-center justify-end gap-1 pb-0.5"
                 >
-                  <span className={`-mt-8 flex h-16 w-16 items-center justify-center rounded-full shadow-lg transition-transform active:scale-95 ${isActive ? "bg-linear-to-br from-sky-500 to-cyan-500 shadow-sky-300/60 ring-4 ring-white" : "bg-linear-to-br from-sky-600 to-sky-500 shadow-sky-300/40 ring-4 ring-white"}`}>
+                  <span className={`-mt-8 flex h-16 w-16 items-center justify-center rounded-full border-4 border-white shadow-md transition-transform active:scale-95 ${isActive ? "bg-slate-900 text-white" : "bg-slate-800 text-white"}`}>
                     <Icon icon={item.icon} className="text-[26px] text-white" />
                   </span>
-                  <span className={`text-[10px] font-semibold ${isActive ? "text-sky-600" : "text-slate-500"}`}>{item.label}</span>
+                  <span className={`text-[10px] font-semibold ${isActive ? "text-slate-900" : "text-slate-500"}`}>{item.label}</span>
                 </Link>
               );
             }
@@ -159,10 +159,10 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
               <Link
                 key={item.href}
                 href={item.href}
-                className={`relative flex flex-col items-center gap-1 rounded-2xl px-1 py-2 transition-all active:scale-95 ${isActive ? "text-sky-600" : "text-slate-400 hover:text-slate-600"}`}
+                className={`relative flex flex-col items-center gap-1 rounded-2xl px-1 py-2 transition-all active:scale-95 ${isActive ? "text-slate-900" : "text-slate-400 hover:text-slate-600"}`}
               >
                 {isActive && (
-                  <span className="absolute inset-0 rounded-2xl bg-sky-50" />
+                  <span className="absolute inset-0 rounded-2xl bg-slate-100" />
                 )}
                 <span className="relative flex h-7 w-7 items-center justify-center">
                   <Icon icon={isActive ? item.activeIcon : item.icon} className="text-xl" />

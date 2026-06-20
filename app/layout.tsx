@@ -150,6 +150,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#2b7fff",
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({
@@ -189,7 +190,7 @@ export default async function RootLayout({
       </head>
       <body
         className={clsx(
-          "min-h-screen text-foreground bg-background font-sans antialiased",
+          "h-full text-foreground bg-background font-sans antialiased",
           fontSans.variable,
         )}
       >
@@ -201,7 +202,11 @@ export default async function RootLayout({
             language: initialLanguage,
           }}
         >
-          {children}
+          <div id="app-root" className="app-shell">
+            <div className="app-scroll app-scroll-root">
+              {children}
+            </div>
+          </div>
         </Providers>
       </body>
     </html>

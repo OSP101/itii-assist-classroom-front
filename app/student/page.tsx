@@ -28,12 +28,12 @@ function getInitials(name: string | undefined | null): string {
 }
 
 const COURSE_PALETTES = [
-  { bg: "from-sky-500 to-cyan-400",    ring: "ring-sky-200",   text: "text-white" },
-  { bg: "from-violet-500 to-purple-400", ring: "ring-violet-200", text: "text-white" },
-  { bg: "from-rose-500 to-pink-400",   ring: "ring-rose-200",  text: "text-white" },
-  { bg: "from-amber-500 to-orange-400", ring: "ring-amber-200", text: "text-white" },
-  { bg: "from-emerald-500 to-teal-400", ring: "ring-emerald-200", text: "text-white" },
-  { bg: "from-blue-500 to-indigo-400", ring: "ring-blue-200",  text: "text-white" },
+  { bg: "bg-slate-900", ring: "ring-slate-200", text: "text-white" },
+  { bg: "bg-blue-700", ring: "ring-blue-100", text: "text-white" },
+  { bg: "bg-emerald-700", ring: "ring-emerald-100", text: "text-white" },
+  { bg: "bg-amber-600", ring: "ring-amber-100", text: "text-white" },
+  { bg: "bg-rose-700", ring: "ring-rose-100", text: "text-white" },
+  { bg: "bg-indigo-700", ring: "ring-indigo-100", text: "text-white" },
 ] as const;
 
 function getCourseColor(code: string) {
@@ -47,7 +47,7 @@ function CourseInitialBadge({ code }: { code: string }) {
   const letters = code.replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase() || code.slice(0, 2).toUpperCase();
   return (
     <span
-      className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br ${pal.bg} text-sm font-bold ${pal.text} ring-2 ${pal.ring} shadow-sm`}
+      className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${pal.bg} text-sm font-bold ${pal.text} ring-2 ${pal.ring} shadow-sm`}
     >
       {letters}
     </span>
@@ -128,12 +128,12 @@ export default function StudentHomePage() {
     <div className="space-y-5 pb-2">
 
       {/* ── Hero greeting card ───────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-linear-to-br from-sky-600 via-sky-500 to-cyan-400 p-5 shadow-xl shadow-sky-300/40 sm:p-7">
+      <div className="relative overflow-hidden rounded-[2.5rem] border border-slate-200/70 bg-slate-900 p-5 shadow-lg shadow-slate-300/40 sm:p-7">
 
         {/* decorative circles */}
         <span className="pointer-events-none absolute -right-10 -top-10 h-52 w-52 rounded-full bg-white/10 blur-3xl" />
-        <span className="pointer-events-none absolute -bottom-14 -left-8 h-48 w-48 rounded-full bg-cyan-300/20 blur-2xl" />
-        <span className="pointer-events-none absolute bottom-4 right-6 h-24 w-24 rounded-full bg-white/8 blur-xl" />
+        <span className="pointer-events-none absolute -bottom-14 -left-8 h-48 w-48 rounded-full bg-white/5 blur-2xl" />
+        <span className="pointer-events-none absolute bottom-4 right-6 h-24 w-24 rounded-full bg-white/6 blur-xl" />
 
         {/* top row */}
         <div className="relative flex items-start justify-between gap-3">
@@ -143,15 +143,15 @@ export default function StudentHomePage() {
               {initials}
             </span>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-sky-100/80">LabTAS</p>
-              <p className="mt-0.5 text-xs font-medium text-white/70">นักศึกษา</p>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-300">LabTAS</p>
+              <p className="mt-0.5 text-xs font-medium text-slate-400">นักศึกษา</p>
             </div>
           </div>
 
           {/* notification dot */}
           <Link
             href="/student/notifications"
-            className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-white backdrop-blur-sm transition active:scale-95 hover:bg-white/25"
+            className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-white backdrop-blur-sm transition active:scale-95 hover:bg-white/15"
           >
             <Icon icon="solar:bell-bold" className="text-xl" />
             {unreadCount > 0 && (
@@ -166,12 +166,12 @@ export default function StudentHomePage() {
         <div className="relative mt-5">
           <div className="flex items-center gap-2">
             <Icon icon={greeting.icon} className="text-xl text-yellow-200" />
-            <p className="text-sm font-medium text-sky-100">{greeting.text}</p>
+            <p className="text-sm font-medium text-slate-300">{greeting.text}</p>
           </div>
           <h2 className="mt-1 text-2xl font-bold leading-tight text-white sm:text-3xl">
             {user?.full_name ? user.full_name : "ยินดีต้อนรับ"}
           </h2>
-          <p className="mt-1.5 text-sm text-sky-100/80">{user?.username ?? ""}</p>
+          <p className="mt-1.5 text-sm text-slate-400">{user?.username ?? ""}</p>
         </div>
 
         {/* stat pills */}
@@ -200,31 +200,31 @@ export default function StudentHomePage() {
       {/* ── QR scan hero button ──────────────────────────────────────────── */}
       <Link
         href="/student/scan"
-        className="group relative flex items-center gap-4 overflow-hidden rounded-4xl bg-linear-to-r from-sky-700 via-sky-600 to-cyan-500 p-5 shadow-lg shadow-sky-300/30 transition active:scale-[0.98] sm:gap-5 sm:p-6"
+        className="group relative flex items-center gap-4 overflow-hidden rounded-4xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-200/70 transition active:scale-[0.98] sm:gap-5 sm:p-6"
       >
         {/* pulsing glow */}
-        <span className="absolute -left-4 top-1/2 h-28 w-28 -translate-y-1/2 rounded-full bg-white/10 blur-2xl" />
+        <span className="absolute -left-4 top-1/2 h-28 w-28 -translate-y-1/2 rounded-full bg-slate-100 blur-2xl" />
 
         {/* icon block */}
-        <span className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/20 ring-2 ring-white/25 backdrop-blur-sm transition-transform group-hover:scale-105 group-active:scale-95 sm:h-18 sm:w-18">
+        <span className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-slate-900 ring-1 ring-slate-900/10 transition-transform group-hover:scale-105 group-active:scale-95 sm:h-18 sm:w-18">
           <Icon icon="solar:qr-code-bold-duotone" className="text-4xl text-white sm:text-5xl" />
           {/* tiny scanner line animation */}
           <span className="scan-line pointer-events-none absolute inset-x-2 h-0.5 rounded-full bg-white/60" />
         </span>
 
         <div className="relative flex-1">
-          <p className="text-xs font-semibold uppercase tracking-widest text-sky-100/70">แตะเพื่อเริ่ม</p>
-          <p className="mt-0.5 text-lg font-bold text-white sm:text-xl">สแกน QR ทันที</p>
-          <p className="mt-0.5 text-sm text-sky-100/80">เช็กชื่อ · จองคิว</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">แตะเพื่อเริ่ม</p>
+          <p className="mt-0.5 text-lg font-bold text-slate-900 sm:text-xl">สแกน QR ทันที</p>
+          <p className="mt-0.5 text-sm text-slate-500">เช็กชื่อ · จองคิว</p>
         </div>
 
-        <Icon icon="solar:arrow-right-bold" className="relative text-2xl text-white/50 transition-transform group-hover:translate-x-1" />
+        <Icon icon="solar:arrow-right-bold" className="relative text-2xl text-slate-300 transition-transform group-hover:translate-x-1 group-hover:text-slate-500" />
       </Link>
 
       {/* ── Quick shortcuts ──────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {([
-          { href: "/student/courses",       icon: "solar:notebook-bookmark-bold",  label: "รายวิชา",     sub: `${courses.length} วิชา`,   color: "bg-sky-50 text-sky-700   border-sky-100" },
+          { href: "/student/courses",       icon: "solar:notebook-bookmark-bold",  label: "รายวิชา",     sub: `${courses.length} วิชา`,   color: "bg-blue-50 text-blue-700 border-blue-100" },
           { href: "/student/notifications", icon: "solar:bell-bold",               label: "แจ้งเตือน",   sub: unreadCount > 0 ? `${unreadCount} ใหม่` : "ไม่มีใหม่", color: "bg-rose-50 text-rose-700 border-rose-100" },
           { href: "/student/scan",          icon: "solar:camera-bold",             label: "สแกนกล้อง",   sub: "เปิดกล้อง",   color: "bg-violet-50 text-violet-700 border-violet-100" },
           { href: "/student/profile",       icon: "solar:user-circle-bold",        label: "บัญชีของฉัน", sub: user?.username ?? "โปรไฟล์", color: "bg-slate-50 text-slate-700 border-slate-200" },
@@ -248,9 +248,9 @@ export default function StudentHomePage() {
       {/* ── Device permission check ─────────────────────────────────────── */}
       <Link
         href="/student/device-check"
-        className="group flex items-center gap-4 rounded-[1.75rem] border border-slate-200/80 bg-white/80 px-5 py-4 shadow-sm shadow-slate-100 transition hover:border-sky-100 hover:shadow-sky-100/30 active:scale-[0.98]"
+        className="group flex items-center gap-4 rounded-[1.75rem] border border-slate-200/80 bg-white/90 px-5 py-4 shadow-sm shadow-slate-100 transition hover:border-slate-300 hover:shadow-slate-200/60 active:scale-[0.98]"
       >
-        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl transition group-hover:bg-sky-50 group-hover:text-sky-600 ${
+        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl transition group-hover:bg-slate-100 group-hover:text-slate-700 ${
           permReady && permReady.granted === permReady.total
             ? "bg-emerald-100 text-emerald-600"
             : permReady && permReady.granted === 0
@@ -274,7 +274,7 @@ export default function StudentHomePage() {
             {permReady.granted}/{permReady.total}
           </span>
         ) : (
-          <Icon icon="solar:arrow-right-bold" className="text-base text-slate-300 transition-transform group-hover:translate-x-1 group-hover:text-sky-400" />
+          <Icon icon="solar:arrow-right-bold" className="text-base text-slate-300 transition-transform group-hover:translate-x-1 group-hover:text-slate-500" />
         )}
       </Link>
 
@@ -286,7 +286,7 @@ export default function StudentHomePage() {
             <p className="text-xs text-slate-400">แตะเพื่อเข้าดูรายละเอียด</p>
           </div>
           {!isLoadingCourses && courses.length > 0 && (
-            <Link href="/student/courses" className="flex items-center gap-1 text-xs font-semibold text-sky-600 hover:underline">
+            <Link href="/student/courses" className="flex items-center gap-1 text-xs font-semibold text-slate-700 hover:underline">
               ดูทั้งหมด <Icon icon="solar:arrow-right-bold" className="text-sm" />
             </Link>
           )}
@@ -331,13 +331,13 @@ export default function StudentHomePage() {
               <Link
                 key={course.id}
                 href={`/student/courses/${course.id}`}
-                className="group flex items-center gap-4 rounded-[1.75rem] border border-slate-100/80 bg-white/90 p-4 shadow-sm shadow-slate-100 transition hover:border-sky-100 hover:shadow-sky-100/40 active:scale-[0.985]"
+                className="group flex items-center gap-4 rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-4 shadow-sm shadow-slate-100 transition hover:border-slate-300 hover:shadow-slate-200/60 active:scale-[0.985]"
               >
                 <CourseInitialBadge code={course.code} />
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-sky-600">{course.code}</p>
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-slate-700">{course.code}</p>
                     {!course.is_active && (
                       <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">ปิดแล้ว</span>
                     )}
@@ -365,7 +365,7 @@ export default function StudentHomePage() {
 
                 <Icon
                   icon="solar:arrow-right-bold"
-                  className="shrink-0 text-lg text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-sky-400"
+                  className="shrink-0 text-lg text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-500"
                 />
               </Link>
             ))}

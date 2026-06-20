@@ -1194,13 +1194,13 @@ export default function HomePage() {
                             <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:users-group-two-rounded-bold" className="text-lg text-blue-500" />
-                                    <span className="text-sm font-semibold text-default-700">{t("instructorsLabel")}</span>
+                                    <span className="text-sm font-semibold text-default-700">{t("coInstructorsLabel")}</span>
                                 </div>
                                 <div className="py-3">
                                     <Select
-                                        label={t("instructorsLabel")}
+                                        label={t("coInstructorsLabel")}
                                         labelPlacement="outside"
-                                        placeholder={t("selectInstructorsPlaceholder")}
+                                        placeholder={t("selectCoInstructorsPlaceholder")}
                                         variant="bordered"
                                         selectionMode="multiple"
                                         size="md"
@@ -1475,13 +1475,13 @@ export default function HomePage() {
                             <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:users-group-two-rounded-bold" className="text-lg text-amber-500" />
-                                    <span className="text-sm font-semibold text-default-700">{t("instructorsLabel")}</span>
+                                    <span className="text-sm font-semibold text-default-700">{t("coInstructorsLabel")}</span>
                                 </div>
                                 <div className="py-3">
                                     <Select
-                                        label={t("instructorsLabel")}
+                                        label={t("coInstructorsLabel")}
                                         labelPlacement="outside"
-                                        placeholder={t("selectInstructorsPlaceholder")}
+                                        placeholder={t("selectCoInstructorsPlaceholder")}
                                         variant="bordered"
                                         selectionMode="multiple"
                                         selectedKeys={new Set(formData.instructor_ids.map(id => id.toString()))}

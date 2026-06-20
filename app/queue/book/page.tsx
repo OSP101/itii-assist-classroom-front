@@ -433,6 +433,14 @@ function BookQueueContent() {
         };
     }, [studentId, deskNumber, bookingType, step, validateBookingInfo]);
 
+    useEffect(() => {
+        if (step !== "form" || fromScan) return;
+        if (bookingType !== "grading") return;
+        if (bookingTypeAvailability?.grading?.allowed === false && bookingTypeAvailability?.help?.allowed !== false) {
+            setBookingType("help");
+        }
+    }, [bookingType, bookingTypeAvailability, fromScan, step]);
+
     // Verify PIN
     const handleVerifyPIN = async () => {
         if (!pinCode.trim()) {
@@ -686,6 +694,9 @@ function BookQueueContent() {
 
             if (result.success) {
                 setBookingStatus(result.data);
+                if (["completed", "cancelled", "no_show"].includes(result.data.status)) {
+                    clearBookingState();
+                }
             }
         } catch (error) {
             console.error("Error fetching status:", error);
@@ -795,6 +806,34 @@ function BookQueueContent() {
         });
 
         socket.on("booking-assigned", () => {
+            fetchBookingStatus(bookingId);
+        });
+
+        socket.on("booking-cancelled", () => {
+            fetchBookingStatus(bookingId);
+            clearBookingState();
+            addToast({
+                title: "คิวถูกยกเลิกแล้ว",
+                description: "รายการจองนี้ไม่อยู่ในคิวแล้ว",
+                color: "warning",
+            });
+        });
+
+        socket.on("booking-skipped", () => {
+            fetchBookingStatus(bookingId);
+            clearBookingState();
+            addToast({
+                title: "คิวถูกข้าม",
+                description: "กรุณาตรวจสอบสถานะล่าสุดบนหน้าจอนี้",
+                color: "warning",
+            });
+        });
+
+        socket.on("booking-completed", () => {
+            fetchBookingStatus(bookingId);
+        });
+
+        socket.on("booking-requeued", () => {
             fetchBookingStatus(bookingId);
         });
 
@@ -1269,9 +1308,12 @@ function BookQueueContent() {
         const isCompleted = status.status === "completed";
         const isWaiting = status.status === "waiting";
         const isInProgress = status.status === "in_progress";
+        const isEnded = status.status === "cancelled" || status.status === "no_show";
 
         const heroGradient = isCompleted
             ? "from-emerald-600 to-teal-500 shadow-emerald-300/40"
+            : isEnded
+            ? "from-rose-500 to-orange-500 shadow-rose-300/40"
             : isInProgress
             ? "from-amber-500 to-orange-500 shadow-amber-300/40"
             : "from-sky-700 via-sky-600 to-cyan-500 shadow-sky-300/40";
@@ -1516,6 +1558,34 @@ function BookQueueContent() {
                             <Link href="/student" className="block py-2 text-center text-sm font-medium text-sky-600 transition hover:text-sky-700">
                                 กลับหน้าหลัก
                             </Link>
+                        </>
+                    )}
+
+                    {isEnded && (
+                        <>
+                            <div className="flex items-center gap-2 rounded-3xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                                <Icon icon={status.status === "cancelled" ? "solar:close-circle-bold" : "solar:user-cross-bold"} className="shrink-0 text-lg" />
+                                <span>
+                                    {status.status === "cancelled"
+                                        ? "คิวนี้ถูกยกเลิกแล้ว ระบบอัปเดตให้โดยอัตโนมัติ"
+                                        : "คิวนี้ถูกข้ามหรือไม่อยู่ในสถานะรอแล้ว"}
+                                </span>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    cleanupPolling();
+                                    currentBookingIdRef.current = null;
+                                    clearBookingState();
+                                    setBookingResult(null);
+                                    setBookingStatus(null);
+                                    setStep("form");
+                                }}
+                                className="w-full rounded-full bg-linear-to-r from-sky-600 to-cyan-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-300/40 transition active:scale-[0.98]"
+                            >
+                                กลับไปจองใหม่
+                            </button>
                         </>
                     )}
 

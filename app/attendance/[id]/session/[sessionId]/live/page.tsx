@@ -30,6 +30,7 @@ import { Icon } from "@iconify/react";
 import { IoSchool } from "react-icons/io5";
 import { QRCodeSVG } from "qrcode.react";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import { useAttendancePinPresentation } from "@/hooks/useAttendancePinPresentation";
 import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
 import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket";
 import attendanceService, {
@@ -141,12 +142,9 @@ export default function LiveAttendancePage() {
     // QR Modal
     const [isQRModalOpen, setIsQRModalOpen] = useState(false);
 
-    // PIN rotation countdown
-    const [pinCountdown, setPinCountdown] = useState<number | null>(null);
-    const [pinTotal, setPinTotal] = useState<number | null>(null);
-
     // Search filter
     const [searchQuery, setSearchQuery] = useState("");
+    const { secondsLeft: pinCountdown, totalSeconds: pinTotal } = useAttendancePinPresentation(session);
 
     // Calculate stats
     const stats = {
@@ -243,11 +241,12 @@ export default function LiveAttendancePage() {
             );
         });
 
-        socket.on("attendance-pin-updated", (data: { pin_code?: string; pin_issued_at?: string | null; pin_rotates_at?: string | null; status?: AttendanceSession["status"] }) => {
+        socket.on("attendance-pin-updated", (data: { pin_code?: string; pin_issued_at?: string | null; pin_rotates_at?: string | null; auto_rotate_pin?: boolean; status?: AttendanceSession["status"] }) => {
             setSession((prev) => prev
                 ? {
                     ...prev,
                     pin_code: data.pin_code ?? "",
+                    auto_rotate_pin: data.auto_rotate_pin ?? prev.auto_rotate_pin,
                     pin_issued_at: data.pin_issued_at ?? null,
                     pin_rotates_at: data.pin_rotates_at ?? null,
                     status: data.status ?? prev.status,
@@ -311,26 +310,6 @@ export default function LiveAttendancePage() {
             setStatusNote(selectedRecord.note || "");
         }
     }, [isStatusModalOpen, selectedRecord]);
-
-    // PIN rotation countdown
-    useEffect(() => {
-        if (!session?.pin_rotates_at || session.status !== "active") {
-            setPinCountdown(null);
-            setPinTotal(null);
-            return;
-        }
-        if (session.pin_issued_at && session.pin_rotates_at) {
-            const total = Math.round((new Date(session.pin_rotates_at).getTime() - new Date(session.pin_issued_at).getTime()) / 1000);
-            setPinTotal(total > 0 ? total : null);
-        }
-        const tick = () => {
-            const diff = Math.floor((new Date(session.pin_rotates_at!).getTime() - Date.now()) / 1000);
-            setPinCountdown(diff > 0 ? diff : 0);
-        };
-        tick();
-        const id = setInterval(tick, 1000);
-        return () => clearInterval(id);
-    }, [session?.pin_rotates_at, session?.pin_issued_at, session?.status]);
 
     // Countdown timer
     useEffect(() => {

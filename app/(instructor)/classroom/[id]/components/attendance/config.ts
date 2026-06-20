@@ -201,6 +201,7 @@ export function getInitialFormData(courseId: string, sectionIds: number[]): Crea
         course_section_id: null,
         course_section_ids: sectionIds,
         title: "",
+        auto_rotate_pin: true,
         session_type: "lecture",
         check_location: false,
         location_lat: undefined,

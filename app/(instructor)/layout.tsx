@@ -345,10 +345,10 @@ export default function InstructorLayout({
             setCourseInfo,
             refreshCourses: fetchActiveCourses
         }}>
-            <div data-auth-shell="true" className="flex min-h-screen flex-col bg-background text-foreground">
+            <div data-auth-shell="true" className="app-mobile-screen flex flex-col overflow-hidden bg-background text-foreground">
                 {/* Top Navigation Bar - Shared Header */}
-                <header className="sticky top-0 z-50 border-b border-divider bg-content1">
-                    <div className="flex items-center justify-between h-12 px-4">
+                <header className="sticky top-0 z-50 border-b border-divider bg-content1/95 backdrop-blur supports-[backdrop-filter]:bg-content1/85">
+                    <div className="flex h-12 items-center justify-between px-4 pt-[env(safe-area-inset-top)] sm:h-14 sm:px-6">
                         {/* Left: Breadcrumb Navigation */}
                         <div className="flex min-w-0 items-center gap-1 text-sm overflow-x-auto">
                             {/* Home Icon */}
@@ -695,12 +695,16 @@ export default function InstructorLayout({
                 </header>
 
                 {/* Main Content */}
-                <main className={`w-full flex-1 ${isHomePage ? "max-w-7xl mx-auto px-4 py-6" : ""}`}>
-                    {!pathname.startsWith("/classroom/") && <GlobalAnnouncementLayer />}
-                    {children}
+                <main className="app-mobile-scroll flex-1 overflow-x-hidden">
+                    <div className={`w-full pb-[calc(env(safe-area-inset-bottom)+1rem)] ${isHomePage ? "mx-auto max-w-7xl px-4 py-6 sm:px-6" : ""}`}>
+                        {!pathname.startsWith("/classroom/") && <GlobalAnnouncementLayer />}
+                        {children}
+                    </div>
                 </main>
 
-                <AppFooter userEmail={user?.email} />
+                <div className="shrink-0">
+                    <AppFooter userEmail={user?.email} />
+                </div>
             </div>
         </InstructorContext.Provider>
     );

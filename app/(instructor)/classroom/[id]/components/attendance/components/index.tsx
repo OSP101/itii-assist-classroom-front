@@ -14,6 +14,7 @@ import { Tooltip } from "@heroui/tooltip";
 import { Skeleton } from "@heroui/skeleton";
 import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
+import { Switch } from "@heroui/switch";
 import { Divider } from "@heroui/divider";
 import { addToast } from "@heroui/toast";
 import {
@@ -49,6 +50,7 @@ import {
     getStatusDisplay,
 } from "../config";
 import { type AttendanceSession, type TimeChangePreview, type TimeChangeRecord, type SectionChangePreview } from "@/services/attendance.service";
+import { getAppUrl } from "@/lib/app-url";
 import DisplayScannerModal from "./DisplayScannerModal";
 
 // Lazy load LocationPicker
@@ -408,9 +410,7 @@ export const QRPreviewModal = memo(function QRPreviewModal({
 
     if (!session) return null;
 
-    const checkInUrl = typeof window !== "undefined"
-        ? `${window.location.origin}/check-in/${session.id}`
-        : "";
+    const checkInUrl = getAppUrl(`/check-in/${session.id}`);
 
     const copyPIN = () => {
         if (session.pin_code) {
@@ -1421,6 +1421,22 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                             />
                         </div>
 
+                        <Card className="border border-default-200 bg-content1">
+                            <CardBody className="flex flex-row items-center justify-between gap-4 p-4">
+                                <div>
+                                    <p className="font-medium text-default-700">{isEnglish ? "Auto-rotate PIN" : "เปลี่ยน PIN อัตโนมัติ"}</p>
+                                    <p className="text-sm text-default-500">
+                                        {isEnglish ? "Rotate the check-in PIN every minute for this session." : "ให้ระบบเปลี่ยน PIN ทุก 1 นาทีสำหรับรอบนี้"}
+                                    </p>
+                                </div>
+                                <Switch
+                                    isSelected={formData.auto_rotate_pin}
+                                    color="primary"
+                                    onValueChange={(value) => setFormData((prev: CreateAttendanceData) => ({ ...prev, auto_rotate_pin: value }))}
+                                />
+                            </CardBody>
+                        </Card>
+
                         {/* Location Check */}
                         <LocationCheckCard
                             checkLocation={formData.check_location}
@@ -1669,6 +1685,22 @@ export const EditSessionModal = memo(function EditSessionModal({
                                 max={toDateTimeLocalStr(endDateTime)}
                             />
                         </div>
+
+                        <Card className="border border-default-200 bg-content1">
+                            <CardBody className="flex flex-row items-center justify-between gap-4 p-4">
+                                <div>
+                                    <p className="font-medium text-default-700">{isEnglish ? "Auto-rotate PIN" : "เปลี่ยน PIN อัตโนมัติ"}</p>
+                                    <p className="text-sm text-default-500">
+                                        {isEnglish ? "Rotate the check-in PIN every minute for this session." : "ให้ระบบเปลี่ยน PIN ทุก 1 นาทีสำหรับรอบนี้"}
+                                    </p>
+                                </div>
+                                <Switch
+                                    isSelected={formData.auto_rotate_pin}
+                                    color="warning"
+                                    onValueChange={(value) => setFormData((prev: CreateAttendanceData) => ({ ...prev, auto_rotate_pin: value }))}
+                                />
+                            </CardBody>
+                        </Card>
 
 
                         {/* Location Check */}

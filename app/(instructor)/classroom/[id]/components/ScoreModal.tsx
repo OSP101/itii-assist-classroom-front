@@ -18,6 +18,7 @@ import { addToast } from "@heroui/toast";
 import scoreService, { type Student, type Group, type StudentScore, type ScoresData, type SubItemScoreData } from "@/services/score.service";
 import scoreEditRequestService from "@/services/scoreEditRequest.service";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import { formatScoreValue, isScoreInputValid, SCORE_INPUT_PATTERN, sanitizeScoreInput } from "@/lib/score-input";
 import type { AssignmentType } from "./types";
 
 // Preset reasons for score edit requests
@@ -867,9 +868,10 @@ export default function ScoreModal({
     };
 
     const handleGradeGroupMemberScoreChange = (studentId: number, value: string) => {
+        const sanitizedValue = sanitizeScoreInput(value, assignment?.max_score);
         setGradeGroupMemberScores(prev => ({
             ...prev,
-            [studentId]: value,
+            [studentId]: sanitizedValue,
         }));
         setCopiedGradeMemberScores(prev => ({
             ...prev,
@@ -882,11 +884,13 @@ export default function ScoreModal({
     };
 
     const handleGradeGroupMemberSubItemScoreChange = (studentId: number, subItemId: number, value: string) => {
+        const maxScore = subItemScores.find(item => item.subItemId === subItemId)?.maxScore;
+        const sanitizedValue = sanitizeScoreInput(value, maxScore);
         setGradeGroupMemberSubItemScores(prev => ({
             ...prev,
             [studentId]: {
                 ...(prev[studentId] || {}),
-                [subItemId]: value,
+                [subItemId]: sanitizedValue,
             },
         }));
         setCopiedGradeMemberSubItemScores(prev => ({
@@ -1205,9 +1209,11 @@ export default function ScoreModal({
     }, [gradeGroupMembers]);
 
     const handleSubItemScoreChange = (subItemId: number, value: string) => {
+        const maxScore = subItemScores.find(item => item.subItemId === subItemId)?.maxScore;
+        const sanitizedValue = sanitizeScoreInput(value, maxScore);
         setSubItemScores(prev =>
             prev.map(item =>
-                item.subItemId === subItemId ? { ...item, score: value } : item
+                item.subItemId === subItemId ? { ...item, score: sanitizedValue } : item
             )
         );
     };
@@ -1223,8 +1229,7 @@ export default function ScoreModal({
 
     // Validate scores
     const validateScore = (score: string, maxScore: number): boolean => {
-        const numScore = parseFloat(score);
-        return !isNaN(numScore) && numScore >= 0 && numScore <= maxScore;
+        return isScoreInputValid(score, maxScore);
     };
 
     const canSubmitGrade = useMemo(() => {
@@ -1717,18 +1722,21 @@ export default function ScoreModal({
     };
 
     const handleEditGroupMemberScoreChange = (studentId: number, value: string) => {
+        const sanitizedValue = sanitizeScoreInput(value, assignment?.max_score);
         setEditGroupMemberScores(prev => ({
             ...prev,
-            [studentId]: value,
+            [studentId]: sanitizedValue,
         }));
     };
 
     const handleEditGroupMemberSubItemScoreChange = (studentId: number, subItemId: number, value: string) => {
+        const maxScore = assignment?.subItems?.find((item) => item.id === subItemId)?.max_score;
+        const sanitizedValue = sanitizeScoreInput(value, maxScore);
         setEditGroupMemberSubItemScores(prev => ({
             ...prev,
             [studentId]: {
                 ...(prev[studentId] || {}),
-                [subItemId]: value,
+                [subItemId]: sanitizedValue,
             },
         }));
     };
@@ -1859,8 +1867,10 @@ export default function ScoreModal({
     }, [currentScore, newScore, editReasonType, editReasonCustom, assignment, hasSubItems, selectedEditSubItemId, editSubItemScores, isCourseActive, isGroupAssignment, editSelectedGroup, groupMemberScores, groupMemberSubItemScores, editGroupMode, editGroupMemberScores, editGroupMemberSubItemScores, pendingEditSubItemByStudent]);
 
     const handleSubItemNewScoreChange = (subItemId: number, value: string) => {
+        const maxScore = assignment?.subItems?.find((item) => item.id === subItemId)?.max_score;
+        const sanitizedValue = sanitizeScoreInput(value, maxScore);
         setEditSubItemScores(prev => prev.map(s =>
-            s.subItemId === subItemId ? { ...s, newScore: value } : s
+            s.subItemId === subItemId ? { ...s, newScore: sanitizedValue } : s
         ));
     };
 
@@ -3027,13 +3037,15 @@ export default function ScoreModal({
                                                                                         ) : (
                                                                                             <div className="flex items-center gap-2">
                                                                                                 <Input
-                                                                                                    type="number"
+                                                                                                    type="text"
+                                                                                                    inputMode="decimal"
+                                                                                                    pattern={SCORE_INPUT_PATTERN}
                                                                                                     placeholder="0"
                                                                                                     value={value}
                                                                                                     onValueChange={(v) => handleGradeGroupMemberSubItemScoreChange(member.studentId, subItemId, v)}
                                                                                                     min={0}
                                                                                                     max={subItem.max_score}
-                                                                                                    step="any"
+                                                                                                    step="0.01"
                                                                                                     className="w-20"
                                                                                                     size="sm"
                                                                                                     variant="bordered"
@@ -3103,13 +3115,15 @@ export default function ScoreModal({
                                                                             <div className="flex flex-col items-end gap-2">
                                                                                 <div className="flex items-center gap-2">
                                                                                     <Input
-                                                                                        type="number"
+                                                                                        type="text"
+                                                                                        inputMode="decimal"
+                                                                                        pattern={SCORE_INPUT_PATTERN}
                                                                                         placeholder="0"
                                                                                         value={subItemScores.find(s => s.subItemId === subItemId)?.score.toString() || ""}
                                                                                         onValueChange={(value) => handleSubItemScoreChange(subItemId, value)}
                                                                                         min={0}
                                                                                         max={subItem.max_score}
-                                                                                        step="any"
+                                                                                        step="0.01"
                                                                                         className="w-20"
                                                                                         size="sm"
                                                                                         variant="bordered"
@@ -3126,7 +3140,7 @@ export default function ScoreModal({
                                                                                         const max = Number(subItem.max_score);
                                                                                         const currentScore = subItemScores.find(s => s.subItemId === subItemId)?.score.toString() || "";
                                                                                         // Always show 3 buttons: 0, half, full
-                                                                                        const half = max / 2;
+                                                                                        const half = Number(formatScoreValue(max / 2));
                                                                                         const options = [0, half, max];
                                                                                         return options.map(score => (
                                                                                             <Button
@@ -3229,13 +3243,15 @@ export default function ScoreModal({
                                                                             </div>
                                                                             <div className="flex items-center gap-2">
                                                                                 <Input
-                                                                                    type="number"
+                                                                                    type="text"
+                                                                                    inputMode="decimal"
+                                                                                    pattern={SCORE_INPUT_PATTERN}
                                                                                     placeholder="0"
                                                                                     value={gradeGroupMemberScores[member.studentId] ?? ""}
                                                                                     onValueChange={(value) => handleGradeGroupMemberScoreChange(member.studentId, value)}
                                                                                     min={0}
                                                                                     max={assignment.max_score}
-                                                                                    step="any"
+                                                                                    step="0.01"
                                                                                     className="w-20"
                                                                                     size="sm"
                                                                                     variant="bordered"
@@ -3269,13 +3285,15 @@ export default function ScoreModal({
                                                                     </div>
                                                                     <div className="flex items-center gap-2">
                                                                         <Input
-                                                                            type="number"
+                                                                            type="text"
+                                                                            inputMode="decimal"
+                                                                            pattern={SCORE_INPUT_PATTERN}
                                                                             placeholder="0"
                                                                             value={mainScore}
-                                                                            onValueChange={setMainScore}
+                                                                            onValueChange={(value) => setMainScore(sanitizeScoreInput(value, assignment.max_score))}
                                                                             min={0}
                                                                             max={assignment.max_score}
-                                                                            step="any"
+                                                                            step="0.01"
                                                                             className="w-20"
                                                                             size="sm"
                                                                             variant="bordered"
@@ -3292,7 +3310,7 @@ export default function ScoreModal({
                                                                     {(() => {
                                                                         const max = Number(assignment.max_score);
                                                                         // Always show 3 buttons: 0, half, full
-                                                                        const half = max / 2;
+                                                                        const half = Number(formatScoreValue(max / 2));
                                                                         const options = [0, half, max];
                                                                         return options.map(score => (
                                                                             <Button
@@ -3814,14 +3832,16 @@ export default function ScoreModal({
                                                                                             <span className="text-sm font-medium text-slate-700 truncate">{member.studentName}</span>
                                                                                             <div className="flex items-center gap-2">
                                                                                                 <Input
-                                                                                                    type="number"
+                                                                                                    type="text"
+                                                                                                    inputMode="decimal"
+                                                                                                    pattern={SCORE_INPUT_PATTERN}
                                                                                                     isRequired
                                                                                                     placeholder="0"
                                                                                                     value={editGroupMemberSubItemScores[member.studentId]?.[selectedEditSubItemId] ?? ""}
                                                                                                     onValueChange={(val) => handleEditGroupMemberSubItemScoreChange(member.studentId, selectedEditSubItemId, val)}
                                                                                                     min={0}
                                                                                                     max={selectedSubItem?.max_score || 0}
-                                                                                                    step="any"
+                                                                                                    step="0.01"
                                                                                                     size="sm"
                                                                                                     variant="bordered"
                                                                                                     className="w-24"
@@ -3847,14 +3867,16 @@ export default function ScoreModal({
                                                                     ) : (
                                                                         <div className="flex items-center justify-center gap-3">
                                                                             <Input
-                                                                                type="number"
+                                                                                type="text"
+                                                                                inputMode="decimal"
+                                                                                pattern={SCORE_INPUT_PATTERN}
                                                                                 isRequired
                                                                                 placeholder="0"
                                                                                 value={selectedEditScore?.newScore || ""}
                                                                                 onValueChange={(val) => handleSubItemNewScoreChange(selectedEditSubItemId, val)}
                                                                                 min={0}
                                                                                 max={selectedSubItem?.max_score || 0}
-                                                                                step="any"
+                                                                                step="0.01"
                                                                                 size="lg"
                                                                                 variant="bordered"
                                                                                 classNames={{
@@ -4014,13 +4036,15 @@ export default function ScoreModal({
                                                                                 </div>
                                                                                 <div className="flex items-center gap-2">
                                                                                     <Input
-                                                                                        type="number"
+                                                                                        type="text"
+                                                                                        inputMode="decimal"
+                                                                                        pattern={SCORE_INPUT_PATTERN}
                                                                                         placeholder="0"
                                                                                         value={editGroupMemberScores[member.studentId] ?? ""}
                                                                                         onValueChange={(value) => handleEditGroupMemberScoreChange(member.studentId, value)}
                                                                                         min={0}
                                                                                         max={assignment.max_score}
-                                                                                        step="any"
+                                                                                        step="0.01"
                                                                                         className="w-20"
                                                                                         size="sm"
                                                                                         variant="bordered"
@@ -4044,13 +4068,15 @@ export default function ScoreModal({
                                                                     </div>
                                                                     <div className="flex items-center gap-2">
                                                                         <Input
-                                                                            type="number"
+                                                                            type="text"
+                                                                            inputMode="decimal"
+                                                                            pattern={SCORE_INPUT_PATTERN}
                                                                             placeholder="0"
                                                                             value={newScore}
-                                                                            onValueChange={setNewScore}
+                                                                            onValueChange={(value) => setNewScore(sanitizeScoreInput(value, assignment.max_score))}
                                                                             min={0}
                                                                             max={assignment.max_score}
-                                                                            step="any"
+                                                                            step="0.01"
                                                                             className="w-20"
                                                                             size="sm"
                                                                             variant="bordered"

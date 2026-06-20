@@ -58,9 +58,9 @@ export default function StudentProfilePage() {
     <div className="space-y-4 pb-2">
 
       {/* Profile hero */}
-      <div className="relative overflow-hidden rounded-4xl bg-linear-to-br from-sky-600 via-sky-500 to-cyan-400 p-6 shadow-xl shadow-sky-300/40">
+      <div className="relative overflow-hidden rounded-4xl border border-slate-200/70 bg-slate-900 p-6 shadow-lg shadow-slate-300/40">
         <span className="pointer-events-none absolute -right-8 -top-8 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
-        <span className="pointer-events-none absolute -bottom-10 -left-6 h-36 w-36 rounded-full bg-cyan-300/20 blur-2xl" />
+        <span className="pointer-events-none absolute -bottom-10 -left-6 h-36 w-36 rounded-full bg-white/5 blur-2xl" />
 
         <div className="relative flex flex-col items-center gap-4 pt-2">
           {/* avatar */}
@@ -75,7 +75,7 @@ export default function StudentProfilePage() {
 
           <div className="text-center">
             <h2 className="text-xl font-bold text-white">{user?.full_name || "ชื่อผู้ใช้"}</h2>
-            <p className="mt-0.5 text-sm text-sky-100/80">นักศึกษา · LabTAS</p>
+            <p className="mt-0.5 text-sm text-slate-300">นักศึกษา · LabTAS</p>
           </div>
         </div>
       </div>
@@ -84,8 +84,8 @@ export default function StudentProfilePage() {
       <div className="divide-y divide-slate-100 overflow-hidden rounded-4xl border border-slate-100 bg-white/90 shadow-sm">
         {infoRows.map((row) => (
           <div key={row.label} className="flex items-center gap-4 px-5 py-4">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-sky-50">
-              <Icon icon={row.icon} className="text-xl text-sky-600" />
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100">
+              <Icon icon={row.icon} className="text-xl text-slate-700" />
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{row.label}</p>
@@ -94,7 +94,7 @@ export default function StudentProfilePage() {
             {row.copyable && (
               <button
                 onClick={handleCopyStudentId}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition active:scale-95 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-600"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition active:scale-95 hover:border-slate-300 hover:bg-slate-100 hover:text-slate-700"
                 title="คัดลอกรหัสนักศึกษา"
               >
                 <Icon icon={copied ? "solar:check-circle-bold" : "solar:copy-bold"} className={`text-base transition ${copied ? "text-emerald-500" : ""}`} />

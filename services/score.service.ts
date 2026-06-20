@@ -487,6 +487,8 @@ export interface ScoreSummaryMatrixStudent {
     bonus_score: number;
     group_id?: number | null;
     group_name?: string | null;
+    weekly_group_ids?: Record<string, number>;
+    weekly_group_names?: Record<string, string>;
     scores: {
         [key: string]: {
             score: number | null;
@@ -520,6 +522,7 @@ export interface ScoreSummaryMatrixAssignment {
     short_title: string;
     max_score: number;
     assignment_type: string;
+    week_number?: number | null;
     subItems: {
         id: number;
         name: string;

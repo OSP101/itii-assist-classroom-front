@@ -354,14 +354,17 @@ export function useAttendanceTab(
 
     const openEditModal = useCallback((session: AttendanceSession) => {
         setEditTarget(session);
-        const sectionIds = session.sections?.map((s) => s.id) ||
-            (session.course_section_id ? [session.course_section_id] : []);
+        const sectionIds = session.course_section_ids?.length
+            ? session.course_section_ids
+            : session.sections?.map((s) => s.id) ||
+                (session.course_section_id ? [session.course_section_id] : []);
         
         setFormData({
             course_id: course.id,
             course_section_id: session.course_section_id,
             course_section_ids: sectionIds,
             title: session.title,
+            auto_rotate_pin: session.auto_rotate_pin,
             session_type: session.session_type,
             check_location: session.check_location,
             location_lat: session.location_lat ?? undefined,
@@ -574,6 +577,7 @@ export function useAttendanceTab(
 
             const data: Partial<CreateAttendanceData> = {
                 title: formData.title,
+                auto_rotate_pin: formData.auto_rotate_pin,
                 session_type: formData.session_type,
                 check_location: formData.check_location,
                 location_lat: formData.check_location ? formData.location_lat : undefined,
@@ -823,7 +827,24 @@ export function useAttendanceTab(
         const computedStatus = computeSessionStatus(session);
         if (computedStatus === "draft") {
             try {
-                await attendanceService.activateSession(session.id);
+                const activatedSession = await attendanceService.activateSession(session.id);
+                if (activatedSession) {
+                    setSessions((prev) =>
+                        prev.map((item) =>
+                            item.id === session.id
+                                ? {
+                                      ...item,
+                                      ...activatedSession,
+                                      sections: item.sections,
+                                      section: item.section,
+                                      course: item.course,
+                                      creator: item.creator,
+                                      stats: item.stats,
+                                  }
+                                : item
+                        )
+                    );
+                }
                 addToast({
                     title: isEnglish ? "Success" : "สำเร็จ",
                     description: isEnglish ? "Attendance session is now open." : "เริ่มเปิดรอบเช็คชื่อแล้ว",

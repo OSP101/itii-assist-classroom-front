@@ -30,6 +30,7 @@ export interface AttendanceDisplaySessionInfo {
     title: string;
     session_type: string;
     check_location: boolean;
+    auto_rotate_pin: boolean;
     pin_code: string;
     pin_issued_at?: string | null;
     pin_rotates_at?: string | null;

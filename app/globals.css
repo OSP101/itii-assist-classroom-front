@@ -5,6 +5,13 @@
 @source "../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}";
 @custom-variant dark (&:where(.dark, .dark *, [data-theme=dark], [data-theme=dark] *));
 
+:root {
+	--app-safe-top: env(safe-area-inset-top, 0px);
+	--app-safe-bottom: env(safe-area-inset-bottom, 0px);
+	--app-safe-left: env(safe-area-inset-left, 0px);
+	--app-safe-right: env(safe-area-inset-right, 0px);
+}
+
 html[data-font-size="sm"] {
 	font-size: 14px;
 }
@@ -17,7 +24,22 @@ html[data-font-size="lg"] {
 	font-size: 18px;
 }
 
+html,
+body {
+	height: 100%;
+}
+
 @layer base {
+	html {
+		-webkit-text-size-adjust: 100%;
+		background-color: hsl(var(--heroui-background));
+	}
+
+	body {
+		background-color: hsl(var(--heroui-background));
+		color: hsl(var(--heroui-foreground));
+	}
+
 	html.dark[data-theme-role="staff"] .bg-white,
 	.dark [data-auth-shell="true"].bg-white,
 	.dark [data-auth-shell="true"] .bg-white {
@@ -375,6 +397,99 @@ html[data-font-size="lg"] {
 }
 
 @layer utilities {
+	.app-shell {
+		position: relative;
+		min-height: 100%;
+		width: 100%;
+		background:
+			radial-gradient(circle at top, rgb(191 219 254 / 0.35), transparent 32%),
+			linear-gradient(180deg, rgb(248 250 252), rgb(241 245 249));
+	}
+
+	.app-scroll {
+		min-height: 100%;
+	}
+
+	.app-scroll-root {
+		padding-left: var(--app-safe-left);
+		padding-right: var(--app-safe-right);
+	}
+
+	.app-mobile-screen {
+		position: relative;
+		min-height: 100%;
+	}
+
+	.app-mobile-scroll {
+		min-height: 0;
+	}
+
+	.app-safe-top {
+		padding-top: var(--app-safe-top);
+	}
+
+	.app-safe-bottom {
+		padding-bottom: var(--app-safe-bottom);
+	}
+
+	.app-safe-x {
+		padding-left: var(--app-safe-left);
+		padding-right: var(--app-safe-right);
+	}
+
+	@media (max-width: 1023px) {
+		html,
+		body {
+			overflow: hidden;
+			overscroll-behavior: none;
+		}
+
+		body {
+			position: fixed;
+			inset: 0;
+			width: 100%;
+			touch-action: pan-y pinch-zoom;
+		}
+
+		.app-shell {
+			height: 100dvh;
+			min-height: 100dvh;
+			overflow: hidden;
+			overscroll-behavior: none;
+		}
+
+		.app-scroll {
+			height: 100%;
+			min-height: 0;
+			overflow-y: auto;
+			overflow-x: hidden;
+			overscroll-behavior-y: none;
+			-webkit-overflow-scrolling: touch;
+			scrollbar-gutter: stable both-edges;
+		}
+
+		.app-mobile-screen {
+			height: 100dvh;
+			min-height: 100dvh;
+			overflow: hidden;
+		}
+
+		.app-mobile-content {
+			height: 100%;
+			min-height: 0;
+			overflow: hidden;
+		}
+
+		.app-mobile-scroll {
+			height: 100%;
+			min-height: 0;
+			overflow-y: auto;
+			overflow-x: hidden;
+			overscroll-behavior-y: none;
+			-webkit-overflow-scrolling: touch;
+		}
+	}
+
 	:is(html.dark, html[data-theme="dark"]) .login-desktop-dark-input {
 		color: rgb(30 41 59);
 	}

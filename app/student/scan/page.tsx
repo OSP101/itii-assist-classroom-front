@@ -21,6 +21,36 @@ declare global {
   }
 }
 
+function normalizeCameraLabel(label: string): string {
+  return label.trim().toLowerCase();
+}
+
+function scoreCameraDevice(label: string): number {
+  const name = normalizeCameraLabel(label);
+  let score = 0;
+
+  if (!name) score += 5;
+  if (name.includes("back") || name.includes("rear") || name.includes("environment")) score += 40;
+  if (name.includes("camera")) score += 5;
+  if (name.includes("main") || name.includes("normal") || name.includes("standard") || name.includes("1x")) score += 20;
+  if (name.includes("tele")) score += 8;
+  if (name.includes("front") || name.includes("user") || name.includes("selfie")) score -= 80;
+  if (name.includes("ultra") || name.includes("ultrawide") || name.includes("ultra-wide")) score -= 60;
+  if (name.includes("wide")) score -= 25;
+  if (name.includes("0.5") || name.includes("0,5") || name.includes("fisheye")) score -= 40;
+
+  return score;
+}
+
+function pickPreferredRearCamera(devices: MediaDeviceInfo[]): MediaDeviceInfo | null {
+  const candidates = devices
+    .filter((device) => device.kind === "videoinput")
+    .map((device) => ({ device, score: scoreCameraDevice(device.label) }))
+    .sort((a, b) => b.score - a.score);
+
+  return candidates[0]?.device ?? null;
+}
+
 export default function StudentScanPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -34,6 +64,7 @@ export default function StudentScanPage() {
   const [isStartingCamera, setIsStartingCamera] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<StudentQrParseResult | null>(null);
+  const [activeCameraLabel, setActiveCameraLabel] = useState<string | null>(null);
 
   const stopCamera = useCallback(() => {
     if (frameRef.current !== null) {
@@ -51,6 +82,7 @@ export default function StudentScanPage() {
     }
 
     setCameraReady(false);
+    setActiveCameraLabel(null);
   }, []);
 
   const routeToScanTarget = useCallback((result: StudentQrParseResult) => {
@@ -142,12 +174,39 @@ export default function StudentScanPage() {
     setCameraError(null);
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+      stopCamera();
+
+      const initialStream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: "environment" },
         },
         audio: false,
       });
+
+      let stream = initialStream;
+      let currentTrack = initialStream.getVideoTracks()[0] ?? null;
+      let currentDeviceId = currentTrack?.getSettings().deviceId ?? "";
+
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const preferredDevice = pickPreferredRearCamera(devices);
+
+      if (preferredDevice?.deviceId && preferredDevice.deviceId !== currentDeviceId) {
+        initialStream.getTracks().forEach((track) => track.stop());
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            deviceId: { exact: preferredDevice.deviceId },
+          },
+          audio: false,
+        });
+        currentTrack = stream.getVideoTracks()[0] ?? null;
+        currentDeviceId = currentTrack?.getSettings().deviceId ?? preferredDevice.deviceId;
+      }
+
+      const resolvedLabel =
+        currentTrack?.label ||
+        devices.find((device) => device.deviceId === currentDeviceId)?.label ||
+        preferredDevice?.label ||
+        null;
 
       streamRef.current = stream;
       if (videoRef.current) {
@@ -155,13 +214,14 @@ export default function StudentScanPage() {
         await videoRef.current.play();
       }
       setCameraReady(true);
+      setActiveCameraLabel(resolvedLabel);
       void scanLoop();
     } catch {
       setCameraError("ไม่สามารถเข้าถึงกล้องได้ คุณยังวางลิงก์ QR หรือ PIN คิวได้ด้านล่าง");
     } finally {
       setIsStartingCamera(false);
     }
-  }, [scanLoop]);
+  }, [scanLoop, stopCamera]);
 
   useEffect(() => {
     if (initialData) {

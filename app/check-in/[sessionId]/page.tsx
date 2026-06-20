@@ -13,6 +13,7 @@ import attendanceService, { type AttendanceSession } from "@/services/attendance
 import { authService } from "@/services/auth.service";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { useI18n } from "@/hooks/useI18n";
+import { useAttendancePinPresentation } from "@/hooks/useAttendancePinPresentation";
 import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
 
 // Declare Google Auth type
@@ -91,8 +92,6 @@ export default function StudentCheckInPage() {
     const [locationError, setLocationError] = useState<string | null>(null);
     const [isGettingLocation, setIsGettingLocation] = useState(false);
     const [pinCode, setPinCode] = useState("");
-    const [pinCountdown, setPinCountdown] = useState<number | null>(null);
-    const [pinTotal, setPinTotal] = useState<number | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [checkInResult, setCheckInResult] = useState<{
         status: string;
@@ -117,6 +116,9 @@ export default function StudentCheckInPage() {
 
     // Google Sign In ref
     const googleButtonRef = useRef<HTMLDivElement>(null);
+    const { secondsLeft, totalSeconds } = useAttendancePinPresentation(session);
+    const pinCountdown = secondsLeft;
+    const pinTotal = totalSeconds;
 
     // Fetch session info
     const fetchSessionInfo = useCallback(async () => {
@@ -376,9 +378,15 @@ export default function StudentCheckInPage() {
             setStep("error");
         });
 
-        socket.on("attendance-pin-updated", (data: { pin_code?: string; pin_issued_at?: string | null; pin_rotates_at?: string | null }) => {
+        socket.on("attendance-pin-updated", (data: { pin_code?: string; pin_issued_at?: string | null; pin_rotates_at?: string | null; auto_rotate_pin?: boolean }) => {
             setSession((prev) => prev
-                ? { ...prev, pin_code: data.pin_code ?? prev.pin_code, pin_rotates_at: data.pin_rotates_at ?? prev.pin_rotates_at, pin_issued_at: data.pin_issued_at ?? prev.pin_issued_at }
+                ? {
+                    ...prev,
+                    pin_code: data.pin_code ?? prev.pin_code,
+                    pin_rotates_at: data.pin_rotates_at ?? prev.pin_rotates_at,
+                    pin_issued_at: data.pin_issued_at ?? prev.pin_issued_at,
+                    auto_rotate_pin: data.auto_rotate_pin ?? prev.auto_rotate_pin,
+                }
                 : prev);
             setPinCode("");
         });
@@ -395,26 +403,6 @@ export default function StudentCheckInPage() {
     useEffect(() => {
         fetchSessionInfo();
     }, [fetchSessionInfo]);
-
-    // PIN rotation countdown
-    useEffect(() => {
-        if (!session?.pin_rotates_at || session.status !== "active") {
-            setPinCountdown(null);
-            setPinTotal(null);
-            return;
-        }
-        if (session.pin_issued_at && session.pin_rotates_at) {
-            const total = Math.round((new Date(session.pin_rotates_at).getTime() - new Date(session.pin_issued_at).getTime()) / 1000);
-            setPinTotal(total > 0 ? total : null);
-        }
-        const tick = () => {
-            const diff = Math.floor((new Date(session.pin_rotates_at!).getTime() - Date.now()) / 1000);
-            setPinCountdown(diff > 0 ? diff : 0);
-        };
-        tick();
-        const id = setInterval(tick, 1000);
-        return () => clearInterval(id);
-    }, [session?.pin_rotates_at, session?.pin_issued_at, session?.status]);
 
     // Status display
     const statusDisplay: Record<string, { label: string; color: string; icon: string }> = {

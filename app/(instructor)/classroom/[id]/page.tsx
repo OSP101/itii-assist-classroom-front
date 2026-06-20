@@ -25,6 +25,7 @@ import Link from "next/link";
 import { useI18n } from "@/hooks/useI18n";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { buildCourseTitleContext, buildPageTitle, getClassroomTabLabel } from "@/lib/page-title";
+import { SCORE_INPUT_PATTERN, sanitizeScoreInput } from "@/lib/score-input";
 // Import custom hooks
 import {
     useClassroomData,
@@ -4085,14 +4086,17 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                             </Select>
                             {scores.selectedGroup && (
                                 <Input
-                                    type="number"
+                                    type="text"
+                                    inputMode="decimal"
+                                    pattern={SCORE_INPUT_PATTERN}
                                     label="คะแนน"
                                     labelPlacement="outside"
                                     placeholder="ใส่คะแนน"
                                     variant="bordered"
                                     size="lg"
-                                    value={String(scores.groupScoreValue)}
-                                    onValueChange={(v) => scores.setGroupScoreValue(parseFloat(v) || 0)}
+                                    value={scores.groupScoreValue}
+                                    onValueChange={(v) => scores.setGroupScoreValue(sanitizeScoreInput(v, scores.selectedAssignment?.max_score))}
+                                    step="0.01"
                                     max={scores.selectedAssignment?.max_score || 100}
                                     min={0}
                                     startContent={<Icon icon="solar:star-linear" className="text-slate-400" />}

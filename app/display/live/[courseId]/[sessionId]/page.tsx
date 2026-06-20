@@ -25,6 +25,8 @@ import attendanceDisplayService, {
     AttendanceDisplayError,
 } from "@/services/attendance-display.service";
 import type { AttendanceRecord } from "@/services/attendance.service";
+import { useAttendancePinPresentation } from "@/hooks/useAttendancePinPresentation";
+import { getAppUrl } from "@/lib/app-url";
 import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
 
 // Status config
@@ -84,14 +86,13 @@ export default function DisplayLivePage() {
     } | null>(null);
     const [isPastLateThreshold, setIsPastLateThreshold] = useState(false);
     const [lateThresholdDisplay, setLateThresholdDisplay] = useState<string | null>(null);
-    const [pinCountdown, setPinCountdown] = useState<number | null>(null);
-    const [pinTotal, setPinTotal] = useState<number | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
 
     const socketRef = useRef<Socket | null>(null);
     const socketUrl = getRealtimeSocketBaseUrl();
 
     const session = current?.session ?? null;
+    const { secondsLeft: pinCountdown, totalSeconds: pinTotal } = useAttendancePinPresentation(session);
     const pinAvailabilityMessage = !session
         ? ""
         : session.status === "closed"
@@ -279,7 +280,7 @@ export default function DisplayLivePage() {
                     setRecords((prev) => upsertRecord(prev, record));
                 });
 
-                activeSocket.on("attendance-pin-updated", (data?: { pin_code?: string; pin_issued_at?: string | null; pin_rotates_at?: string | null; status?: "draft" | "active" | "closed" }) => {
+                activeSocket.on("attendance-pin-updated", (data?: { pin_code?: string; pin_issued_at?: string | null; pin_rotates_at?: string | null; auto_rotate_pin?: boolean; status?: "draft" | "active" | "closed" }) => {
                     setCurrent((prev) => prev
                         ? {
                             ...prev,
@@ -287,6 +288,7 @@ export default function DisplayLivePage() {
                                 ? {
                                     ...prev.session,
                                     pin_code: data?.pin_code ?? "",
+                                    auto_rotate_pin: data?.auto_rotate_pin ?? prev.session.auto_rotate_pin,
                                     pin_issued_at: data?.pin_issued_at ?? null,
                                     pin_rotates_at: data?.pin_rotates_at ?? null,
                                     status: data?.status ?? prev.session.status,
@@ -397,30 +399,7 @@ export default function DisplayLivePage() {
         return () => clearInterval(interval);
     }, [session, current, handleGrantExpired]);
 
-    // PIN rotation countdown
-    useEffect(() => {
-        const rotatesAt = session?.pin_rotates_at;
-        if (!rotatesAt || session?.status !== "active") {
-            setPinCountdown(null);
-            setPinTotal(null);
-            return;
-        }
-        if (session?.pin_issued_at && rotatesAt) {
-            const total = Math.round((new Date(rotatesAt).getTime() - new Date(session.pin_issued_at).getTime()) / 1000);
-            setPinTotal(total > 0 ? total : null);
-        }
-        const tick = () => {
-            const diff = Math.floor((new Date(rotatesAt).getTime() - Date.now()) / 1000);
-            setPinCountdown(diff > 0 ? diff : 0);
-        };
-        tick();
-        const id = setInterval(tick, 1000);
-        return () => clearInterval(id);
-    }, [session?.pin_rotates_at, session?.pin_issued_at, session?.status]);
-
-    const checkInUrl = typeof window !== "undefined"
-        ? `${window.location.origin}/check-in/${sessionId}`
-        : "";
+    const checkInUrl = getAppUrl(`/check-in/${sessionId}`);
 
     const checkedInRecords = records.filter((r) => !!r.check_in_time && r.status !== "absent");
 

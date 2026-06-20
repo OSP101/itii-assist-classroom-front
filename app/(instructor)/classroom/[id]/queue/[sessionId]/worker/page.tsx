@@ -34,6 +34,7 @@ import { useNotification } from "@/contexts/NotificationContext";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { API_BASE_URL } from "@/config/api";
 import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
+import { formatScoreValue, parseScoreInput, SCORE_INPUT_PATTERN, sanitizeScoreInput } from "@/lib/score-input";
 
 
 interface MiniDeskInfo {
@@ -809,7 +810,7 @@ export default function WorkerDashboardPage() {
         if (!currentBooking) return;
 
         if (currentBooking.booking_type === "grading") {
-            const parsedScore = completeForm.score === "" ? null : Number(completeForm.score);
+            const parsedScore = completeForm.score === "" ? null : parseScoreInput(completeForm.score);
 
             if (usesSubItemScoring) {
                 const hasAnySubItemScore = completeForm.sub_item_scores.some((item) => item.score !== "");
@@ -823,10 +824,21 @@ export default function WorkerDashboardPage() {
                     });
                     return;
                 }
-            } else if (parsedScore === null || Number.isNaN(parsedScore)) {
+            } else if (parsedScore === null) {
                 addToast({
                     title: t("กรุณากรอกคะแนน", "Score required"),
                     description: t("คิวตรวจงานนี้ต้องมีคะแนนก่อนบันทึกผล", "This grading task requires a score before saving."),
+                    color: "warning",
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+                });
+                return;
+            } else if (parsedScore < 0 || parsedScore > maxScore) {
+                addToast({
+                    title: t("à¸„à¸°à¹à¸™à¸™à¹„à¸¡à¹ˆà¸–à¸¹à¸à¸•à¹‰à¸­à¸‡", "Invalid score"),
+                    description: isEnglish
+                        ? `Please enter a score between 0 and ${maxScore} with up to 2 decimal places.`
+                        : `à¸à¸£à¸¸à¸“à¸²à¸à¸£à¸­à¸à¸„à¸°à¹à¸™à¸™à¸£à¸°à¸«à¸§à¹ˆà¸²à¸‡ 0-${maxScore} à¹à¸¥à¸°à¸—à¸¨à¸™à¸´à¸¢à¸¡à¹„à¸¡à¹ˆà¹€à¸à¸´à¸™ 2 à¸•à¸³à¹à¸«à¸™à¹ˆà¸‡`,
                     color: "warning",
                     timeout: 3000,
                     shouldShowTimeoutProgress: true,
@@ -842,12 +854,12 @@ export default function WorkerDashboardPage() {
                 .filter(s => s.score !== "" && s.score !== null)
                 .map(s => ({
                     sub_item_id: s.sub_item_id,
-                    score: parseFloat(s.score) || 0,
+                    score: parseScoreInput(s.score) ?? 0,
                 }));
 
             const result = await queueService.completeBooking(courseId, sessionId, currentBooking.id, {
                 score: !usesSubItemScoring && currentBooking.booking_type === "grading" && completeForm.score !== "" 
-                    ? parseFloat(completeForm.score) || 0 
+                    ? parseScoreInput(completeForm.score) ?? 0 
                     : undefined,
                 sub_item_scores: usesSubItemScoring && currentBooking.booking_type === "grading" && validSubItemScores.length > 0
                     ? validSubItemScores
@@ -1862,7 +1874,9 @@ export default function WorkerDashboardPage() {
                                                                         <>
                                                                             <div className="flex items-center gap-2">
                                                                                 <Input
-                                                                                    type="number"
+                                                                                    type="text"
+                                                                                    inputMode="decimal"
+                                                                                    pattern={SCORE_INPUT_PATTERN}
                                                                                     placeholder="0"
                                                                                     size="sm"
                                                                                     value={currentScore}
@@ -1872,7 +1886,7 @@ export default function WorkerDashboardPage() {
                                                                                             ...prev,
                                                                                             sub_item_scores: prev.sub_item_scores.map(s =>
                                                                                                 s.sub_item_id === item.id
-                                                                                                    ? { ...s, score: value }
+                                                                                                    ? { ...s, score: sanitizeScoreInput(value, Number(item.max_score) || 0) }
                                                                                                     : s
                                                                                             ),
                                                                                         }));
@@ -1893,7 +1907,7 @@ export default function WorkerDashboardPage() {
                                                                                 {(() => {
                                                                                     const rawMax = Number(item.max_score);
                                                                                     const max = Number.isFinite(rawMax) ? rawMax : 0;
-                                                                                    const half = Math.floor(max / 2);
+                                                                                    const half = Number(formatScoreValue(max / 2));
                                                                                     const options = [0, half, max];
                                                                                     return options.map((score, idx) => (
                                                                                         <Button
@@ -1936,7 +1950,7 @@ export default function WorkerDashboardPage() {
                                                 <div className="bg-blue-50 rounded-xl p-4 flex items-center justify-between">
                                                     <span className="font-medium text-blue-700">{isEnglish ? `Score to submit now (${newScoredItemsCount} items)` : `คะแนนที่จะลงครั้งนี้ (${newScoredItemsCount} ข้อ)`}</span>
                                                     <span className="text-2xl font-bold text-blue-600">
-                                                        {totalSubItemScore.toFixed(1)}
+                                                        {formatScoreValue(totalSubItemScore)}
                                                     </span>
                                                 </div>
                                             )}
@@ -1953,13 +1967,16 @@ export default function WorkerDashboardPage() {
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <Input
-                                                        type="number"
+                                                        type="text"
+                                                        inputMode="decimal"
+                                                        pattern={SCORE_INPUT_PATTERN}
                                                         placeholder="0"
                                                         value={completeForm.score}
                                                         isDisabled={!isCourseActive}
-                                                        onValueChange={(value) => setCompleteForm({ ...completeForm, score: value })}
+                                                        onValueChange={(value) => setCompleteForm({ ...completeForm, score: sanitizeScoreInput(value, maxScore) })}
                                                         min={0}
                                                         max={maxScore}
+                                                        step="0.01"
                                                         className="w-20"
                                                         size="sm"
                                                         variant="bordered"
@@ -1976,7 +1993,7 @@ export default function WorkerDashboardPage() {
                                                 {(() => {
                                                     const rawMax = Number(maxScore);
                                                     const max = Number.isFinite(rawMax) ? rawMax : 0;
-                                                    const half = Math.floor(max / 2);
+                                                    const half = Number(formatScoreValue(max / 2));
                                                     const options = [0, half, max];
                                                     return options.map((score, idx) => (
                                                         <Button

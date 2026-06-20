@@ -25,10 +25,8 @@ import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { API_BASE_URL } from "@/config/api";
 import { Divider } from "@heroui/divider";
 import { Skeleton } from "@heroui/skeleton";
+import { getAppHostLabel, getAppUrl } from "@/lib/app-url";
 import { buildPageTitle } from "@/lib/page-title";
-
-const FRONTEND_URL = (process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "");
-const FRONTEND_HOST_LABEL = FRONTEND_URL.replace(/^https?:\/\//, "");
 
 interface DeskBooking {
     id: number;
@@ -486,7 +484,7 @@ export default function ProjectorViewPage() {
 
     // Get booking URL for QR code
     const getBookingUrl = () => {
-        return `${FRONTEND_URL}/queue/book?pin=${data?.session.pin_code}`;
+        return getAppUrl(`/queue/book?pin=${encodeURIComponent(data?.session.pin_code || "")}`);
     };
 
     const formatQueueStatusLabel = (status: string) => {
@@ -875,7 +873,7 @@ export default function ProjectorViewPage() {
                                     <p className="text-4xl font-mono font-bold text-blue-700 dark:text-blue-300 text-center">{data.session.pin_code}</p>
 
                                     <Divider className="my-3" />
-                                    <p className="font-mono text-foreground">{`${FRONTEND_HOST_LABEL}/queue/book`}</p>
+                                    <p className="font-mono text-foreground">{`${getAppHostLabel()}/queue/book`}</p>
                                 </div>
                             </div>
                         )}
