@@ -51,6 +51,24 @@ function pickPreferredRearCamera(devices: MediaDeviceInfo[]): MediaDeviceInfo | 
   return candidates[0]?.device ?? null;
 }
 
+async function getRearCameraBootstrapStream(): Promise<MediaStream> {
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { exact: "environment" },
+      },
+      audio: false,
+    });
+  } catch {
+    return navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: "environment" },
+      },
+      audio: false,
+    });
+  }
+}
+
 export default function StudentScanPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -176,12 +194,7 @@ export default function StudentScanPage() {
     try {
       stopCamera();
 
-      const initialStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: "environment" },
-        },
-        audio: false,
-      });
+      const initialStream = await getRearCameraBootstrapStream();
 
       let stream = initialStream;
       let currentTrack = initialStream.getVideoTracks()[0] ?? null;
@@ -195,6 +208,7 @@ export default function StudentScanPage() {
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             deviceId: { exact: preferredDevice.deviceId },
+            facingMode: { ideal: "environment" },
           },
           audio: false,
         });
@@ -286,7 +300,7 @@ export default function StudentScanPage() {
           <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
           <video
             ref={videoRef}
-            className="aspect-3/4 w-full object-cover sm:aspect-video"
+            className="h-[42dvh] min-h-[250px] max-h-[360px] w-full object-cover sm:h-auto sm:min-h-0 sm:max-h-none sm:aspect-video"
             muted
             playsInline
             autoPlay

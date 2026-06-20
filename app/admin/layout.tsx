@@ -164,7 +164,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <div data-auth-shell="true" className="flex min-h-screen bg-background text-foreground max-lg:app-mobile-screen max-lg:overflow-hidden">
+        <div data-auth-shell="true" className="flex min-h-screen bg-background text-foreground">
             {/* Mobile Overlay */}
             {isMobileSidebarOpen && (
                 <div 
@@ -176,7 +176,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             {/* Sidebar - Desktop: fixed, Mobile: slide-in */}
             <aside
                 className={`
-                    fixed left-0 top-0 z-50 h-screen max-lg:h-[100dvh] border-r border-divider bg-content1 
+                    fixed left-0 top-0 z-50 h-screen border-r border-divider bg-content1 
                     transition-all duration-300 ease-in-out
                     ${sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'}
                     ${isMobileSidebarOpen ? 'translate-x-0 w-72' : '-translate-x-full lg:translate-x-0'}
@@ -191,7 +191,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 </button>
 
                 {/* Logo */}
-                <div className="flex h-16 items-center border-b border-divider px-4 max-lg:pt-[env(safe-area-inset-top)]">
+                <div className="flex items-center h-16 border-b border-divider px-4">
                     <Link href="/admin/dashboard" className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-500/30 shrink-0">
                             <IoSchool />
@@ -203,7 +203,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 </div>
 
                 {/* Navigation */}
-                <nav className="h-[calc(100vh-8rem)] max-lg:h-[calc(100dvh-8rem-env(safe-area-inset-top))] space-y-1 overflow-y-auto p-3">
+                <nav className="p-3 space-y-1 overflow-y-auto h-[calc(100vh-8rem)]">
                     {visibleMenuItems.map((item) => (
                         <Tooltip key={item.key} content={t(item.labelKey)} placement="right" isDisabled={!sidebarCollapsed || isMobileSidebarOpen}>
                             <Link
@@ -239,10 +239,10 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             </aside>
 
             {/* Main Content - Responsive margin */}
-            <div className={`flex min-w-0 flex-1 flex-col transition-all duration-300 max-lg:min-h-0 max-lg:overflow-hidden ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
+            <div className={`flex-1 min-w-0 flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
                 {/* Header */}
                 <header className="sticky top-0 z-30 border-b border-divider bg-content1/95 backdrop-blur">
-                    <div className="flex h-14 items-center justify-between px-4 max-lg:pt-[env(safe-area-inset-top)] sm:h-16 sm:px-6">
+                    <div className="flex items-center justify-between h-14 px-4 sm:h-16 sm:px-6">
                         <div className="flex items-center gap-3">
                             {/* Mobile Menu Button */}
                             <button
@@ -300,18 +300,14 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 </header>
 
                 {/* Page Content - Responsive padding */}
-                <main className="flex-1 max-lg:app-mobile-scroll max-lg:overflow-x-hidden">
-                    <div className="p-3 sm:p-4 lg:p-6 max-lg:pb-[calc(env(safe-area-inset-bottom)+1rem)]">
-                        <GlobalAnnouncementLayer />
-                        {children}
-                    </div>
+                <main className="flex-1 p-3 sm:p-4 lg:p-6">
+                    <GlobalAnnouncementLayer />
+                    {children}
                 </main>
 
                 <NetworkMetricsPanel />
 
-                <div className="shrink-0">
-                    <AppFooter userEmail={user?.email} />
-                </div>
+                <AppFooter userEmail={user?.email} />
             </div>
         </div>
     );
