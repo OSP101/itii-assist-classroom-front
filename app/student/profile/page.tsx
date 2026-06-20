@@ -50,7 +50,7 @@ export default function StudentProfilePage() {
   ];
 
   const menuItems = [
-    { icon: "solar:shield-check-bold-duotone",    label: "สิทธิ์เครื่อง",    desc: "กล้อง · ตำแหน่ง · แจ้งเตือน",   href: "/student/device-check",   external: false },
+    { icon: "solar:shield-check-bold-duotone",    label: "สิทธิ์เครื่อง",    desc: "กล้อง · ตำแหน่ง · แผนที่",   href: "/device-check",   external: false },
     { icon: "solar:question-circle-bold-duotone", label: "ช่วยเหลือ",        desc: "คู่มือและการติดต่อสนับสนุน",     href: "/support",                external: false },
   ];
 

@@ -247,7 +247,7 @@ export default function StudentHomePage() {
 
       {/* ── Device permission check ─────────────────────────────────────── */}
       <Link
-        href="/student/device-check"
+        href="/device-check"
         className="group flex items-center gap-4 rounded-[1.75rem] border border-slate-200/80 bg-white/90 px-5 py-4 shadow-sm shadow-slate-100 transition hover:border-slate-300 hover:shadow-slate-200/60 active:scale-[0.98]"
       >
         <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl transition group-hover:bg-slate-100 group-hover:text-slate-700 ${
@@ -261,7 +261,7 @@ export default function StudentHomePage() {
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-slate-800">เช็กสิทธิ์เครื่อง</p>
-          <p className="mt-0.5 text-xs text-slate-400">ตรวจสอบกล้อง · ตำแหน่ง · การแจ้งเตือน</p>
+          <p className="mt-0.5 text-xs text-slate-400">ตรวจสอบกล้อง · ตำแหน่ง · แผนที่</p>
         </div>
         {permReady ? (
           <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
