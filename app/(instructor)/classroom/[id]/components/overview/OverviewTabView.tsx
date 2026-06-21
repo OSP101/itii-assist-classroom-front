@@ -225,23 +225,23 @@ function OverviewTabViewComponent({
             {/* Name + meta */}
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
-                <span className={`text-xs font-semibold rounded-md px-2 py-0.5 ${course.image ? "bg-white/15 text-white" : "bg-slate-100 text-slate-600"}`}>{course.code}</span>
-                <span className={`text-xs ${course.image ? "text-slate-200" : "text-slate-400"}`}>
+                <span className="text-xs font-semibold rounded-md px-2 py-0.5 bg-slate-100 text-slate-700 dark:bg-white/15 dark:text-white">{course.code}</span>
+                <span className="text-xs text-slate-500 dark:text-slate-300">
                   {course.year} / {course.semester === 3
                     ? t("summerSemester")
                     : t("semesterShortWithNumber", { number: course.semester })}
                 </span>
                 <span className="flex items-center gap-1 text-xs font-medium">
                   <span className={"w-1.5 h-1.5 rounded-full " + (course.is_active ? "bg-emerald-500 animate-pulse" : "bg-slate-300")} />
-                  <span className={course.image ? (course.is_active ? "text-emerald-300" : "text-slate-200") : (course.is_active ? "text-emerald-600" : "text-slate-400")}>
+                  <span className={course.is_active ? "text-emerald-600 dark:text-emerald-300" : "text-slate-500 dark:text-slate-400"}>
                     {course.is_active ? t("enabledStatus") : t("closedStatus")}
                   </span>
                 </span>
               </div>
-              <h1 className={`text-lg sm:text-xl font-bold leading-tight tracking-tight ${course.image ? "text-white" : "text-slate-900 dark:text-white"}`}>{course.name}</h1>
-              {course.description && <p className={`mt-0.5 line-clamp-1 text-xs ${course.image ? "text-slate-200" : "text-slate-400"}`}>{course.description}</p>}
+              <h1 className="text-lg sm:text-xl font-bold leading-tight tracking-tight text-slate-900 dark:text-white">{course.name}</h1>
+              {course.description && <p className="mt-0.5 line-clamp-1 text-xs text-slate-500 dark:text-slate-400">{course.description}</p>}
               {course.instructor && (
-                <p className={`mt-1.5 flex items-center gap-1 text-xs ${course.image ? "text-slate-200" : "text-slate-500"}`}>
+                <p className="mt-1.5 flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400">
                   <Icon icon="solar:user-linear" className="text-xs" />
                   {course.instructor.full_name}
                 </p>

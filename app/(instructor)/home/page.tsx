@@ -781,7 +781,7 @@ export default function HomePage() {
                                 className="border border-default-200 shadow-sm transition-shadow hover:shadow-md"
                             >
                                 {/* Course Image/Banner */}
-                                <div className="h-32 relative overflow-hidden">
+                                <div className="relative h-36 overflow-hidden sm:h-40 lg:h-44">
                                     {course.image ? (
                                         <CourseCoverImage
                                             src={course.image}
@@ -789,10 +789,10 @@ export default function HomePage() {
                                             positionX={course.cover_position_x}
                                             positionY={course.cover_position_y}
                                             zoom={course.cover_zoom}
-                                            className="h-full w-full"
+                                            className="block h-full w-full"
                                         />
                                     ) : (
-                                                <div className="w-full h-full bg-linear-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                                        <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-blue-400 to-indigo-500">
                                             <IoSchool className="text-white/20 text-7xl" />
                                         </div>
                                     )}
