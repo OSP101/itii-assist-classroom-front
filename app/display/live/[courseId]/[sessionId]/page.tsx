@@ -531,7 +531,9 @@ export default function DisplayLivePage() {
                                 </div>
                             )}
                             {/* PIN rotation progress bar */}
-                            {session.status === "active" && pinCountdown !== null && pinTotal !== null ? (
+                            {session.status === "active" && !session.auto_rotate_pin ? (
+                                <p className="mb-6 text-xs text-slate-400">PIN คงที่ตลอดรอบนี้</p>
+                            ) : session.status === "active" && pinCountdown !== null && pinTotal !== null ? (
                                 <div className="mb-6 w-full">
                                     <div className="flex items-center justify-between mb-1.5">
                                         <span className="text-xs text-slate-400">PIN เปลี่ยนทุก 1 นาที</span>

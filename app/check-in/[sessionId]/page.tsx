@@ -604,7 +604,7 @@ export default function StudentCheckInPage() {
                                         <h2 className="text-lg font-bold text-slate-900">{t("enterPin")}</h2>
                                         <p className="mt-1 text-sm text-slate-500">{t("sixDigitsFromClassroomDisplay")}</p>
                                     </div>
-                                    {pinCountdown !== null && pinTotal !== null && (
+                                    {session?.auto_rotate_pin && pinCountdown !== null && pinTotal !== null && (
                                         <div className="w-full">
                                             <div className="flex items-center justify-between mb-1">
                                                 <span className="text-xs text-slate-400">

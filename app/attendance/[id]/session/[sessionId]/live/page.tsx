@@ -601,7 +601,9 @@ export default function LiveAttendancePage() {
                                 </div>
                             )}
                             {/* PIN rotation progress bar */}
-                            {session.status === "active" && pinCountdown !== null && pinTotal !== null ? (
+                            {session.status === "active" && !session.auto_rotate_pin ? (
+                                <p className="mb-4 text-xs text-default-400">{t("PIN คงที่ตลอดรอบนี้", "This PIN stays fixed for the whole session")}</p>
+                            ) : session.status === "active" && pinCountdown !== null && pinTotal !== null ? (
                                 <div className="mb-4 w-full">
                                     <div className="flex items-center justify-between mb-1.5">
                                         <span className="text-xs text-default-400">{t("PIN เปลี่ยนทุก 1 นาที", "PIN rotates every minute")}</span>
