@@ -164,10 +164,10 @@ export function useScores(options: UseScoresOptions = {}) {
         if (!selectedAssignment || !selectedGroup) return;
         if (!isScoreInputValid(groupScoreValue, selectedAssignment.max_score)) {
             addToast({
-                title: t("à¸„à¸°à¹à¸™à¸™à¹„à¸¡à¹ˆà¸–à¸¹à¸à¸•à¹‰à¸­à¸‡", "Invalid score"),
+                title: t("คะแนนไม่ถูกต้อง", "Invalid score"),
                 description: isEnglish
                     ? `Please enter a valid score between 0 and ${selectedAssignment.max_score} with up to 2 decimal places.`
-                    : `à¸à¸£à¸¸à¸“à¸²à¸à¸£à¸­à¸à¸„à¸°à¹à¸™à¸™à¹ƒà¸«à¹‰à¸–à¸¹à¸à¸•à¹‰à¸­à¸‡ à¸£à¸°à¸«à¸§à¹ˆà¸²à¸‡ 0-${selectedAssignment.max_score} à¹à¸¥à¸°à¸—à¸¨à¸™à¸´à¸¢à¸¡à¹„à¸¡à¹ˆà¹€à¸à¸´à¸™ 2 à¸•à¸³à¹à¸«à¸™à¹ˆà¸‡`,
+                    : `กรุณากรอกคะแนนให้ถูกต้อง ระหว่าง 0-${selectedAssignment.max_score} และทศนิยมไม่เกิน 2 ตำแหน่ง`,
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,

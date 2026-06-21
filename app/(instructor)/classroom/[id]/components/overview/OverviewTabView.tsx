@@ -207,21 +207,6 @@ function OverviewTabViewComponent({
           <div className="absolute -top-20 -right-10 w-64 h-64 rounded-full bg-linear-to-br from-blue-100/25 to-indigo-100/15 dark:from-blue-900/10 dark:to-transparent blur-3xl pointer-events-none" />
           <div className="relative p-4 sm:p-6">
           <div className="flex items-start gap-4">
-            {/* Thumbnail */}
-            <div className={`w-14 h-14 shrink-0 rounded-xl overflow-hidden flex items-center justify-center border ${course.image ? "bg-white/15 border-white/20" : "bg-slate-100 border-slate-200"} ${course.image ? "-mt-10 backdrop-blur-sm" : ""}`}>
-              {course.image
-                ? <CourseCoverImage
-                    src={course.image}
-                    alt={course.name}
-                    positionX={course.cover_position_x}
-                    positionY={course.cover_position_y}
-                    zoom={course.cover_zoom}
-                    className="h-full w-full"
-                  />
-                : <Icon icon="solar:book-2-bold-duotone" className="text-2xl text-slate-400" />
-              }
-            </div>
-
             {/* Name + meta */}
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">

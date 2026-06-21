@@ -835,10 +835,10 @@ export default function WorkerDashboardPage() {
                 return;
             } else if (parsedScore < 0 || parsedScore > maxScore) {
                 addToast({
-                    title: t("à¸„à¸°à¹à¸™à¸™à¹„à¸¡à¹ˆà¸–à¸¹à¸à¸•à¹‰à¸­à¸‡", "Invalid score"),
+                    title: t("คะแนนไม่ถูกต้อง", "Invalid score"),
                     description: isEnglish
                         ? `Please enter a score between 0 and ${maxScore} with up to 2 decimal places.`
-                        : `à¸à¸£à¸¸à¸“à¸²à¸à¸£à¸­à¸à¸„à¸°à¹à¸™à¸™à¸£à¸°à¸«à¸§à¹ˆà¸²à¸‡ 0-${maxScore} à¹à¸¥à¸°à¸—à¸¨à¸™à¸´à¸¢à¸¡à¹„à¸¡à¹ˆà¹€à¸à¸´à¸™ 2 à¸•à¸³à¹à¸«à¸™à¹ˆà¸‡`,
+                        : `กรุณากรอกคะแนนระหว่าง 0-${maxScore} และทศนิยมไม่เกิน 2 ตำแหน่ง`,
                     color: "warning",
                     timeout: 3000,
                     shouldShowTimeoutProgress: true,
@@ -1847,7 +1847,7 @@ export default function WorkerDashboardPage() {
                                                                     {index + 1}
                                                                 </span>
                                                                 <div className="flex-1 min-w-0">
-                                                                    <p className="text-sm font-medium text-default-700 break-words">{item.name}</p>
+                                                                    <p className="text-sm font-medium text-default-700 wrap-break-word">{item.name}</p>
                                                                     {isLocked && existingScore?.graded_by && (
                                                                         <div className="mt-1 space-y-0.5">
                                                                             <p className="text-xs text-amber-700">
