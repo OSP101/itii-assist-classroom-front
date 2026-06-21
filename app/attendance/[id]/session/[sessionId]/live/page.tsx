@@ -241,12 +241,13 @@ export default function LiveAttendancePage() {
             );
         });
 
-        socket.on("attendance-pin-updated", (data: { pin_code?: string; pin_issued_at?: string | null; pin_rotates_at?: string | null; auto_rotate_pin?: boolean; status?: AttendanceSession["status"] }) => {
+        socket.on("attendance-pin-updated", (data: { pin_code?: string; pin_issued_at?: string | null; pin_rotates_at?: string | null; auto_rotate_pin?: boolean; pin_mode?: AttendanceSession["pin_mode"]; status?: AttendanceSession["status"] }) => {
             setSession((prev) => prev
                 ? {
                     ...prev,
                     pin_code: data.pin_code ?? "",
                     auto_rotate_pin: data.auto_rotate_pin ?? prev.auto_rotate_pin,
+                    pin_mode: data.pin_mode ?? prev.pin_mode,
                     pin_issued_at: data.pin_issued_at ?? null,
                     pin_rotates_at: data.pin_rotates_at ?? null,
                     status: data.status ?? prev.status,
@@ -601,7 +602,7 @@ export default function LiveAttendancePage() {
                                 </div>
                             )}
                             {/* PIN rotation progress bar */}
-                            {session.status === "active" && !session.auto_rotate_pin ? (
+                            {session.status === "active" && (session.pin_mode === "static" || !session.auto_rotate_pin) ? (
                                 <p className="mb-4 text-xs text-default-400">{t("PIN คงที่ตลอดรอบนี้", "This PIN stays fixed for the whole session")}</p>
                             ) : session.status === "active" && pinCountdown !== null && pinTotal !== null ? (
                                 <div className="mb-4 w-full">

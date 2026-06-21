@@ -208,9 +208,20 @@ function AssignmentsTabViewComponent({
         );
     };
 
-    // Render draft badge
-    const renderDraftBadge = (assignment: AssignmentType) => {
-        if (!assignment.is_draft) return null;
+    const renderStatusBadge = (assignment: AssignmentType) => {
+        if (!assignment.is_draft) {
+            return (
+                <Chip
+                    size="sm"
+                    variant="flat"
+                    className="bg-emerald-50 text-emerald-700 gap-1 border border-emerald-200"
+                    startContent={<Icon icon="solar:check-circle-bold" width={13} />}
+                >
+                    {isEnglish ? "Published" : "เผยแพร่แล้ว"}
+                </Chip>
+            );
+        }
+
         const publishAt = assignment.publish_at ? new Date(assignment.publish_at) : null;
         const isScheduled = publishAt && publishAt > new Date();
         return (
@@ -318,7 +329,7 @@ function AssignmentsTabViewComponent({
                                 </Chip>
                             </Tooltip>
                         )}
-                        {renderDraftBadge(assignment)}
+                        {renderStatusBadge(assignment)}
                     </div>
 
                     {/* Footer Info */}
@@ -345,7 +356,7 @@ function AssignmentsTabViewComponent({
                                 </Button>
                             </Tooltip>
                         )}
-                        {!assignment.is_draft && canUpdateAssignments && (
+                        {false && !assignment.is_draft && canUpdateAssignments && (
                             <Tooltip content={isEnglish ? "Move back to draft" : "ย้ายกลับเป็นร่าง"}>
                                 <Button
                                     size="sm"
@@ -422,7 +433,7 @@ function AssignmentsTabViewComponent({
                                             </Chip>
                                         </Tooltip>
                                     )}
-                                    {renderDraftBadge(assignment)}
+                                    {renderStatusBadge(assignment)}
                                 </div>
                             </div>
                             <div className={`mt-1 flex items-center gap-3 text-sm ${assignment.is_draft ? "text-default-400" : "text-default-500"}`}>
@@ -474,7 +485,7 @@ function AssignmentsTabViewComponent({
                                         </Button>
                                     </Tooltip>
                                 )}
-                                {!assignment.is_draft && canUpdateAssignments && (
+                                {false && !assignment.is_draft && canUpdateAssignments && (
                                     <Tooltip content={isEnglish ? "Move back to draft" : "ย้ายกลับเป็นร่าง"}>
                                         <Button
                                             isIconOnly

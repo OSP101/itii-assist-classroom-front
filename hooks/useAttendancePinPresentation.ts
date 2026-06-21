@@ -5,6 +5,7 @@ type PinSessionLike = {
     pin_issued_at?: string | null;
     pin_rotates_at?: string | null;
     auto_rotate_pin?: boolean;
+    pin_mode?: "static" | "rotating" | string;
     status?: "draft" | "active" | "closed" | string;
 };
 
@@ -44,7 +45,9 @@ export function useAttendancePinPresentation(session: PinSessionLike | null | un
             return;
         }
 
-        if (!session.auto_rotate_pin || !session.pin_rotates_at) {
+        const isStaticMode = session.pin_mode === "static" || !session.auto_rotate_pin;
+
+        if (isStaticMode || !session.pin_rotates_at) {
             setState({
                 isPending: false,
                 isStatic: true,
@@ -95,6 +98,7 @@ export function useAttendancePinPresentation(session: PinSessionLike | null | un
         return () => window.cancelAnimationFrame(frameId);
     }, [
         session?.auto_rotate_pin,
+        session?.pin_mode,
         session?.pin_code,
         session?.pin_issued_at,
         session?.pin_rotates_at,

@@ -378,7 +378,7 @@ export default function StudentCheckInPage() {
             setStep("error");
         });
 
-        socket.on("attendance-pin-updated", (data: { pin_code?: string; pin_issued_at?: string | null; pin_rotates_at?: string | null; auto_rotate_pin?: boolean }) => {
+        socket.on("attendance-pin-updated", (data: { pin_code?: string; pin_issued_at?: string | null; pin_rotates_at?: string | null; auto_rotate_pin?: boolean; pin_mode?: AttendanceSession["pin_mode"] }) => {
             setSession((prev) => prev
                 ? {
                     ...prev,
@@ -386,6 +386,7 @@ export default function StudentCheckInPage() {
                     pin_rotates_at: data.pin_rotates_at ?? prev.pin_rotates_at,
                     pin_issued_at: data.pin_issued_at ?? prev.pin_issued_at,
                     auto_rotate_pin: data.auto_rotate_pin ?? prev.auto_rotate_pin,
+                    pin_mode: data.pin_mode ?? prev.pin_mode,
                 }
                 : prev);
             setPinCode("");
@@ -604,7 +605,7 @@ export default function StudentCheckInPage() {
                                         <h2 className="text-lg font-bold text-slate-900">{t("enterPin")}</h2>
                                         <p className="mt-1 text-sm text-slate-500">{t("sixDigitsFromClassroomDisplay")}</p>
                                     </div>
-                                    {session?.auto_rotate_pin && pinCountdown !== null && pinTotal !== null && (
+                                    {(session?.pin_mode === "rotating" || (session?.pin_mode == null && session?.auto_rotate_pin)) && pinCountdown !== null && pinTotal !== null && (
                                         <div className="w-full">
                                             <div className="flex items-center justify-between mb-1">
                                                 <span className="text-xs text-slate-400">

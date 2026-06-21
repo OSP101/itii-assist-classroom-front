@@ -24,7 +24,7 @@ import attendanceDisplayService, {
     type AttendanceDisplayCurrent,
     AttendanceDisplayError,
 } from "@/services/attendance-display.service";
-import type { AttendanceRecord } from "@/services/attendance.service";
+import type { AttendanceRecord, AttendanceSession } from "@/services/attendance.service";
 import { useAttendancePinPresentation } from "@/hooks/useAttendancePinPresentation";
 import { getAppUrl } from "@/lib/app-url";
 import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
@@ -280,7 +280,7 @@ export default function DisplayLivePage() {
                     setRecords((prev) => upsertRecord(prev, record));
                 });
 
-                activeSocket.on("attendance-pin-updated", (data?: { pin_code?: string; pin_issued_at?: string | null; pin_rotates_at?: string | null; auto_rotate_pin?: boolean; status?: "draft" | "active" | "closed" }) => {
+                activeSocket.on("attendance-pin-updated", (data?: { pin_code?: string; pin_issued_at?: string | null; pin_rotates_at?: string | null; auto_rotate_pin?: boolean; pin_mode?: AttendanceSession["pin_mode"]; status?: "draft" | "active" | "closed" }) => {
                     setCurrent((prev) => prev
                         ? {
                             ...prev,
@@ -289,6 +289,7 @@ export default function DisplayLivePage() {
                                     ...prev.session,
                                     pin_code: data?.pin_code ?? "",
                                     auto_rotate_pin: data?.auto_rotate_pin ?? prev.session.auto_rotate_pin,
+                                    pin_mode: data?.pin_mode ?? prev.session.pin_mode,
                                     pin_issued_at: data?.pin_issued_at ?? null,
                                     pin_rotates_at: data?.pin_rotates_at ?? null,
                                     status: data?.status ?? prev.session.status,
@@ -531,7 +532,7 @@ export default function DisplayLivePage() {
                                 </div>
                             )}
                             {/* PIN rotation progress bar */}
-                            {session.status === "active" && !session.auto_rotate_pin ? (
+                            {session.status === "active" && (session.pin_mode === "static" || !session.auto_rotate_pin) ? (
                                 <p className="mb-6 text-xs text-slate-400">PIN คงที่ตลอดรอบนี้</p>
                             ) : session.status === "active" && pinCountdown !== null && pinTotal !== null ? (
                                 <div className="mb-6 w-full">
