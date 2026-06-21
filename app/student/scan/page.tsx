@@ -122,6 +122,21 @@ async function getRearCameraBootstrapStream(): Promise<MediaStream> {
   }
 }
 
+function shouldAvoidCameraProbing(): boolean {
+  if (typeof navigator === "undefined") {
+    return false;
+  }
+
+  const userAgent = navigator.userAgent || "";
+  const isIOSDevice = /iPhone|iPad|iPod/i.test(userAgent);
+  const isIPadOSDesktopMode =
+    /Macintosh/i.test(userAgent) &&
+    typeof navigator.maxTouchPoints === "number" &&
+    navigator.maxTouchPoints > 1;
+
+  return isIOSDevice || isIPadOSDesktopMode;
+}
+
 async function applyRearCameraTrackPreferences(track: MediaStreamTrack): Promise<void> {
   if (typeof track.getCapabilities !== "function") {
     return;
@@ -246,6 +261,7 @@ async function probeRearCamera(
 async function selectBestRearCameraStream(
   initialStream: MediaStream,
   devices: MediaDeviceInfo[],
+  options?: { avoidProbing?: boolean },
 ): Promise<RearCameraProbeResult> {
   const initialTrack = initialStream.getVideoTracks()[0];
   const initialDeviceId = initialTrack?.getSettings().deviceId ?? "";
@@ -264,6 +280,10 @@ async function selectBestRearCameraStream(
     stream: initialStream,
     track: initialTrack!,
   };
+
+  if (options?.avoidProbing || !initialTrack) {
+    return initialResult;
+  }
 
   const candidates = listRearCameraCandidates(devices, initialDeviceId)
     .filter((device) => device.deviceId && device.deviceId !== initialDeviceId)
@@ -416,7 +436,9 @@ export default function StudentScanPage() {
 
       const initialStream = await getRearCameraBootstrapStream();
       const devices = await navigator.mediaDevices.enumerateDevices();
-      const selectedCamera = await selectBestRearCameraStream(initialStream, devices);
+      const selectedCamera = await selectBestRearCameraStream(initialStream, devices, {
+        avoidProbing: shouldAvoidCameraProbing(),
+      });
       const stream = selectedCamera.stream;
       const currentTrack = selectedCamera.track;
       const currentDeviceId = selectedCamera.deviceId;
