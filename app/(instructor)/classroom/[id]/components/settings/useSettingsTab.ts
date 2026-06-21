@@ -18,6 +18,10 @@ export interface SettingsFormData {
     year: number;
     semester: number;
     description: string;
+    image: string;
+    cover_position_x: number;
+    cover_position_y: number;
+    cover_zoom: number;
     attention_threshold: number;
     is_active: boolean;
 }
@@ -42,6 +46,10 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
         year: course.year || new Date().getFullYear() + 543,
         semester: course.semester || 1,
         description: course.description || "",
+        image: course.image || "",
+        cover_position_x: course.cover_position_x ?? 50,
+        cover_position_y: course.cover_position_y ?? 50,
+        cover_zoom: course.cover_zoom ?? 1,
         attention_threshold: course.attention_threshold ?? 60,
         is_active: course.is_active ?? true,
     }));
@@ -54,6 +62,10 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
             year: course.year || new Date().getFullYear() + 543,
             semester: course.semester || 1,
             description: course.description || "",
+            image: course.image || "",
+            cover_position_x: course.cover_position_x ?? 50,
+            cover_position_y: course.cover_position_y ?? 50,
+            cover_zoom: course.cover_zoom ?? 1,
             attention_threshold: course.attention_threshold ?? 60,
             is_active: course.is_active ?? true,
         });
@@ -111,6 +123,10 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
                 year: formData.year,
                 semester: formData.semester,
                 description: formData.description || undefined,
+                image: formData.image,
+                cover_position_x: formData.cover_position_x,
+                cover_position_y: formData.cover_position_y,
+                cover_zoom: formData.cover_zoom,
                 attention_threshold: formData.attention_threshold,
                 is_active: formData.is_active,
             });
@@ -158,6 +174,10 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
             year: course.year || new Date().getFullYear() + 543,
             semester: course.semester || 1,
             description: course.description || "",
+            image: course.image || "",
+            cover_position_x: course.cover_position_x ?? 50,
+            cover_position_y: course.cover_position_y ?? 50,
+            cover_zoom: course.cover_zoom ?? 1,
             attention_threshold: course.attention_threshold ?? 60,
             is_active: course.is_active ?? true,
         });

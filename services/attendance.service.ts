@@ -11,9 +11,13 @@ export interface AttendanceSession {
     course_section_ids?: number[]; // New: array of section IDs
     title: string;
     auto_rotate_pin: boolean;
+    pin_mode?: 'static' | 'rotating';
     pin_code: string;
     pin_issued_at?: string | null;
     pin_rotates_at?: string | null;
+    started_at?: string | null;
+    expires_at?: string | null;
+    closed_at?: string | null;
     session_type: 'lecture' | 'lab' | 'online';
     check_location: boolean;
     location_lat: number | null;
@@ -107,8 +111,18 @@ export interface StudentCheckInData {
     pin_code: string;
     google_email: string;
     google_id: string;
+    student_id?: number;
     location_lat?: number;
     location_lng?: number;
+}
+
+export interface AttendanceSessionStartResult {
+    session_id: number;
+    current_pin: string;
+    expires_at?: string | null;
+    next_rotation_at?: string | null;
+    mode: 'static' | 'rotating';
+    status: 'active' | 'closed' | 'draft';
 }
 
 // ============================================
@@ -247,6 +261,56 @@ const attendanceService = {
         return response.data || null;
     },
 
+    async startSession(attendanceSessionId: number, idempotencyKey?: string): Promise<AttendanceSessionStartResult | null> {
+        const response = await api.post<AttendanceSessionStartResult>('/attendance/sessions/start', {
+            attendance_session_id: attendanceSessionId,
+            idempotency_key: idempotencyKey,
+        });
+        return response.data || null;
+    },
+
+    async getSessionPin(sessionId: number): Promise<{
+        session_id: number;
+        status: string;
+        mode: 'static' | 'rotating';
+        current_pin: string;
+        previous_pin?: string | null;
+        expires_at?: string | null;
+        pin_issued_at?: string | null;
+        next_rotation_at?: string | null;
+        next_pin_ready?: boolean;
+    } | null> {
+        const response = await api.get<{
+            session_id: number;
+            status: string;
+            mode: 'static' | 'rotating';
+            current_pin: string;
+            previous_pin?: string | null;
+            expires_at?: string | null;
+            pin_issued_at?: string | null;
+            next_rotation_at?: string | null;
+            next_pin_ready?: boolean;
+        }>(`/attendance/sessions/${sessionId}/pin`);
+        return response.data || null;
+    },
+
+    async rotateSessionPin(sessionId: number): Promise<{
+        session_id: number;
+        current_pin: string;
+        previous_pin?: string | null;
+        pin_issued_at?: string | null;
+        next_rotation_at?: string | null;
+    } | null> {
+        const response = await api.post<{
+            session_id: number;
+            current_pin: string;
+            previous_pin?: string | null;
+            pin_issued_at?: string | null;
+            next_rotation_at?: string | null;
+        }>(`/attendance/sessions/${sessionId}/rotate`);
+        return response.data || null;
+    },
+
     /**
      * Close attendance session
      */
@@ -313,6 +377,24 @@ const attendanceService = {
             throw new Error(response.message || 'เช็คชื่อไม่สำเร็จ');
         }
         
+        return response.data || null;
+    },
+
+    async studentCheckInByPin(data: StudentCheckInData): Promise<{
+        status: string;
+        check_in_time: string;
+        location_verified: boolean;
+        distance_meters: number | null;
+    } | null> {
+        const response = await api.post<{
+            status: string;
+            check_in_time: string;
+            location_verified: boolean;
+            distance_meters: number | null;
+        }>('/attendance/check-in', data);
+        if (!response.success) {
+            throw new Error(response.message || 'Attendance check-in failed');
+        }
         return response.data || null;
     },
 

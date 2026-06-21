@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Image from "next/image";
 import {
     Table,
     TableHeader,
@@ -35,6 +34,7 @@ import TablePaginationFooter, { DEFAULT_TABLE_ROWS_PER_PAGE } from "@/components
 import { MetricCardSkeleton, TableRowsSkeleton } from "@/components/ui/resource-loading";
 import { useI18n } from "@/hooks/useI18n";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import { CourseCoverEditor, CourseCoverImage, buildCourseCoverRecommendedSizeText } from "@/components/course";
 
 // Column definitions
 const columnDefs = [
@@ -139,13 +139,13 @@ export default function CoursesPage() {
         instructor_ids: [],
         description: "",
         image: "",
+        cover_position_x: 50,
+        cover_position_y: 50,
+        cover_zoom: 1,
     });
 
     // Track original form data for change detection (edit mode)
     const [originalFormData, setOriginalFormData] = useState<CreateCourseDto | null>(null);
-
-    // Image upload state
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
 
     // Year options (current + 5 years back)
     const currentYear = new Date().getFullYear() + 543;
@@ -173,6 +173,25 @@ export default function CoursesPage() {
             year,
             semester: getSemesterLabel(semester),
         });
+    };
+    const courseCoverEditorText = {
+        title: t("courseImage"),
+        emptyTitle: t("clickToUploadCourseCover"),
+        emptyHint: t("courseImageHint"),
+        recommendedSize: buildCourseCoverRecommendedSizeText(t("courseCoverRecommendedSize")),
+        editCover: t("courseImage"),
+        changeImage: t("changeImage"),
+        removeImage: t("removeImage"),
+        adjustCover: t("adjustCourseCover"),
+        modalTitle: t("courseCoverAdjustTitle"),
+        modalHint: t("courseCoverAdjustHint"),
+        horizontalPosition: t("courseCoverHorizontalPosition"),
+        verticalPosition: t("courseCoverVerticalPosition"),
+        zoom: t("courseCoverZoom"),
+        cancel: t("cancel"),
+        apply: t("applyCourseCover"),
+        invalidFileType: t("pleaseSelectImageFileOnly"),
+        fileTooLarge: t("courseImageHint"),
     };
 
     // Fetch courses
@@ -326,60 +345,17 @@ export default function CoursesPage() {
             instructor_ids: [],
             description: "",
             image: "",
+            cover_position_x: 50,
+            cover_position_y: 50,
+            cover_zoom: 1,
         });
         setOriginalFormData(null);
-        setImagePreview(null);
     };
 
     // Check if form has changes
     const hasFormChanges = () => {
         if (!originalFormData) return false;
         return JSON.stringify(formData) !== JSON.stringify(originalFormData);
-    };
-
-    // Handle image upload
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            // Check file size (max 2MB)
-            if (file.size > 2 * 1024 * 1024) {
-                addToast({
-                    title: t("fileTooLarge"),
-                    description: t("chooseFileUpTo2Mb"),
-                    color: "warning",
-                    timeout: 3000,
-                shouldShowTimeoutProgress: true,
-                });
-                return;
-            }
-
-            // Check file type
-            if (!file.type.startsWith("image/")) {
-                addToast({
-                    title: t("invalidFileType"),
-                    description: t("pleaseSelectImageFileOnly"),
-                    color: "warning",
-                    timeout: 3000,
-                shouldShowTimeoutProgress: true,
-                });
-                return;
-            }
-
-            // Convert to base64
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64 = reader.result as string;
-                setFormData({ ...formData, image: base64 });
-                setImagePreview(base64);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    // Remove image
-    const handleRemoveImage = () => {
-        setFormData({ ...formData, image: "" });
-        setImagePreview(null);
     };
 
     // Open edit modal
@@ -397,10 +373,12 @@ export default function CoursesPage() {
             instructor_ids: instructorIdList,
             description: course.description || "",
             image: course.image || "",
+            cover_position_x: course.cover_position_x ?? 50,
+            cover_position_y: course.cover_position_y ?? 50,
+            cover_zoom: course.cover_zoom ?? 1,
         };
         setFormData(courseData);
         setOriginalFormData(courseData);
-        setImagePreview(course.image || null);
         setIsEditModalOpen(true);
     };
 
@@ -514,6 +492,9 @@ export default function CoursesPage() {
                 instructor_ids: formData.instructor_ids,
                 description: formData.description,
                 image: formData.image,
+                cover_position_x: formData.cover_position_x,
+                cover_position_y: formData.cover_position_y,
+                cover_zoom: formData.cover_zoom,
             };
 
             const response = await courseService.updateCourse(selectedCourse.id, updateData);
@@ -705,15 +686,14 @@ export default function CoursesPage() {
                 return (
                     <div className="flex items-center gap-3">
                         {course.image ? (
-                            <div className="relative w-10 h-10">
-                                <Image
-                                    src={course.image}
-                                    alt={course.name}
-                                    fill
-                                    className="rounded-lg border border-default-200 object-cover"
-                                    sizes="40px"
-                                />
-                            </div>
+                            <CourseCoverImage
+                                src={course.image}
+                                alt={course.name}
+                                positionX={course.cover_position_x}
+                                positionY={course.cover_position_y}
+                                zoom={course.cover_zoom}
+                                className="h-10 w-10 rounded-lg border border-default-200"
+                            />
                         ) : (
                             <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg">
                                 <IoBook className="text-2xl text-white" />
@@ -1182,63 +1162,18 @@ export default function CoursesPage() {
                     <ModalBody className="px-4 sm:px-6 py-4 sm:py-6">
                         <div className="space-y-5">
                             {/* Course Image Section */}
-                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Icon icon="solar:gallery-bold" className="text-lg text-blue-500" />
-                                    <span className="text-sm font-semibold text-default-700">{t("courseImage")}</span>
-                                </div>
-                                <div className="py-3">
-                                    {imagePreview ? (
-                                        <div className="relative group">
-                                            <img
-                                                src={imagePreview}
-                                                alt={t("courseImage")}
-                                                className="h-48 w-full rounded-xl border border-default-200 object-cover"
-                                            />
-                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-3">
-                                                <label className="cursor-pointer">
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        onChange={handleImageUpload}
-                                                        className="hidden"
-                                                    />
-                                                    <Button
-                                                        as="span"
-                                                        size="sm"
-                                                        color="primary"
-                                                        startContent={<Icon icon="solar:camera-bold" />}
-                                                    >
-                                                        {t("changeImage")}
-                                                    </Button>
-                                                </label>
-                                                <Button
-                                                    size="sm"
-                                                    color="danger"
-                                                    startContent={<Icon icon="solar:trash-bin-trash-bold" />}
-                                                    onPress={handleRemoveImage}
-                                                >
-                                                    {t("removeImage")}
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <label className="cursor-pointer">
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleImageUpload}
-                                                className="hidden"
-                                            />
-                                            <div className="rounded-xl border-2 border-dashed border-default-300 p-8 text-center transition-colors hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-500/10">
-                                                <Icon icon="solar:cloud-upload-bold-duotone" className="text-5xl text-blue-400 mx-auto mb-3" />
-                                                <p className="font-medium text-default-600">{t("clickToUploadCourseCover")}</p>
-                                                <p className="mt-1 text-sm text-default-400">{t("courseImageHint")}</p>
-                                            </div>
-                                        </label>
-                                    )}
-                                </div>
-                            </div>
+                            <CourseCoverEditor
+                                value={{
+                                    image: formData.image || "",
+                                    cover_position_x: formData.cover_position_x ?? 50,
+                                    cover_position_y: formData.cover_position_y ?? 50,
+                                    cover_zoom: formData.cover_zoom ?? 1,
+                                }}
+                                onChange={(value) => setFormData((prev) => ({ ...prev, ...value }))}
+                                text={courseCoverEditorText}
+                                accentClassName="text-blue-500"
+                                onValidationError={(message) => addToast({ title: t("invalidFileType"), description: message, color: "warning", timeout: 3000, shouldShowTimeoutProgress: true })}
+                            />
                             <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:document-text-bold" className="text-lg text-blue-500" />
@@ -1428,63 +1363,18 @@ export default function CoursesPage() {
                     <ModalBody className="px-6 py-6">
                         <div className="space-y-5">
                             {/* Course Image Section */}
-                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Icon icon="solar:gallery-bold" className="text-lg text-blue-500" />
-                                    <span className="text-sm font-semibold text-default-700">{t("courseImage")}</span>
-                                </div>
-                                <div className="py-3">
-                                    {imagePreview ? (
-                                        <div className="relative group">
-                                            <img
-                                                src={imagePreview}
-                                                alt={t("courseImage")}
-                                                className="h-48 w-full rounded-xl border border-default-200 object-cover"
-                                            />
-                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-3">
-                                                <label className="cursor-pointer">
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        onChange={handleImageUpload}
-                                                        className="hidden"
-                                                    />
-                                                    <Button
-                                                        as="span"
-                                                        size="sm"
-                                                        color="warning"
-                                                        startContent={<Icon icon="solar:camera-bold" />}
-                                                    >
-                                                        {t("changeImage")}
-                                                    </Button>
-                                                </label>
-                                                <Button
-                                                    size="sm"
-                                                    color="danger"
-                                                    startContent={<Icon icon="solar:trash-bin-trash-bold" />}
-                                                    onPress={handleRemoveImage}
-                                                >
-                                                    {t("removeImage")}
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <label className="cursor-pointer">
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleImageUpload}
-                                                className="hidden"
-                                            />
-                                            <div className="rounded-xl border-2 border-dashed border-default-300 p-8 text-center transition-colors hover:border-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-500/10">
-                                                <Icon icon="solar:cloud-upload-bold-duotone" className="text-5xl text-amber-400 mx-auto mb-3" />
-                                                <p className="font-medium text-default-600">{t("clickToUploadCourseCover")}</p>
-                                                <p className="mt-1 text-sm text-default-400">{t("courseImageHint")}</p>
-                                            </div>
-                                        </label>
-                                    )}
-                                </div>
-                            </div>
+                            <CourseCoverEditor
+                                value={{
+                                    image: formData.image || "",
+                                    cover_position_x: formData.cover_position_x ?? 50,
+                                    cover_position_y: formData.cover_position_y ?? 50,
+                                    cover_zoom: formData.cover_zoom ?? 1,
+                                }}
+                                onChange={(value) => setFormData((prev) => ({ ...prev, ...value }))}
+                                text={courseCoverEditorText}
+                                accentClassName="text-amber-500"
+                                onValidationError={(message) => addToast({ title: t("invalidFileType"), description: message, color: "warning", timeout: 3000, shouldShowTimeoutProgress: true })}
+                            />
                             <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon icon="solar:document-text-bold" className="text-lg text-amber-500" />

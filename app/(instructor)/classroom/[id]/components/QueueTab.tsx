@@ -1604,6 +1604,7 @@ export default function QueueTab({
                                 }}
                             />
 
+                            {false && (
                             <div className="p-4 bg-rose-50 rounded-xl border border-rose-200 space-y-3">
                                 <div className="flex items-start justify-between gap-3">
                                     <div>
@@ -1659,6 +1660,7 @@ export default function QueueTab({
                                     </div>
                                 )}
                             </div>
+                            )}
 
                             {/* ลิงก์กับหัวข้องาน */}
                             <div className="rounded-xl border border-default-200 bg-content2 p-4">

@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { Card, CardBody, CardFooter } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Input, Textarea } from "@heroui/input";
@@ -27,6 +26,7 @@ import {
 import { useI18n } from "@/hooks/useI18n";
 import Link from "next/link";
 import { IoSchool, IoBook, IoPeople, IoPersonAdd } from "react-icons/io5";
+import { CourseCoverEditor, CourseCoverImage, buildCourseCoverRecommendedSizeText } from "@/components/course";
 
 interface Stats {
     total: number;
@@ -68,7 +68,6 @@ export default function HomePage() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
     const currentYear = new Date().getFullYear() + 543;
     const [formData, setFormData] = useState({
         code: "",
@@ -77,6 +76,9 @@ export default function HomePage() {
         semester: 1,
         description: "",
         image: "",
+        cover_position_x: 50,
+        cover_position_y: 50,
+        cover_zoom: 1,
         instructor_ids: [] as number[],
         attention_threshold: 60,
     });
@@ -291,6 +293,26 @@ export default function HomePage() {
         });
     };
 
+    const courseCoverEditorText = {
+        title: t("courseImage"),
+        emptyTitle: t("clickToUploadCourseCover"),
+        emptyHint: t("courseImageHint"),
+        recommendedSize: buildCourseCoverRecommendedSizeText(t("courseCoverRecommendedSize")),
+        editCover: t("courseImage"),
+        changeImage: t("changeImage"),
+        removeImage: t("removeImage"),
+        adjustCover: t("adjustCourseCover"),
+        modalTitle: t("courseCoverAdjustTitle"),
+        modalHint: t("courseCoverAdjustHint"),
+        horizontalPosition: t("courseCoverHorizontalPosition"),
+        verticalPosition: t("courseCoverVerticalPosition"),
+        zoom: t("courseCoverZoom"),
+        cancel: t("cancel"),
+        apply: t("applyCourseCover"),
+        invalidFileType: t("pleaseSelectImageFileOnly"),
+        fileTooLarge: t("courseImageHint"),
+    };
+
     const getLocalizedErrorMessage = (message: unknown, fallbackMessage: string) => {
         if (typeof message === "string" && message.trim() && !/[\u0E00-\u0E7F]/.test(message)) {
             return message;
@@ -307,34 +329,6 @@ export default function HomePage() {
         setIsCreateModalOpen(true);
     };
 
-    // Image upload handlers
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            if (file.size > 2 * 1024 * 1024) {
-                addToast({
-                    title: t("fileTooLarge"),
-                    description: t("courseImageHint"),
-                    color: "warning",
-                    timeout: 3000,
-                    shouldShowTimeoutProgress: true,
-                });
-                return;
-            }
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setImagePreview(reader.result as string);
-                setFormData({ ...formData, image: reader.result as string });
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const handleRemoveImage = () => {
-        setImagePreview(null);
-        setFormData({ ...formData, image: "" });
-    };
-
     const resetForm = () => {
         setFormData({
             code: "",
@@ -343,11 +337,13 @@ export default function HomePage() {
             semester: 1,
             description: "",
             image: "",
+            cover_position_x: 50,
+            cover_position_y: 50,
+            cover_zoom: 1,
             instructor_ids: [],
             attention_threshold: 60,
         });
         setOriginalFormData(null);
-        setImagePreview(null);
     };
 
     // Check if form has changes
@@ -377,6 +373,9 @@ export default function HomePage() {
                 semester: formData.semester,
                 description: formData.description || undefined,
                 image: formData.image || undefined,
+                cover_position_x: formData.cover_position_x,
+                cover_position_y: formData.cover_position_y,
+                cover_zoom: formData.cover_zoom,
                 instructor_ids: formData.instructor_ids.length > 0 ? formData.instructor_ids : undefined,
                 attention_threshold: formData.attention_threshold,
             });
@@ -433,12 +432,14 @@ export default function HomePage() {
             semester: course.semester,
             description: course.description || "",
             image: course.image || "",
+            cover_position_x: course.cover_position_x ?? 50,
+            cover_position_y: course.cover_position_y ?? 50,
+            cover_zoom: course.cover_zoom ?? 1,
             instructor_ids: instructorIdList,
             attention_threshold: course.attention_threshold ?? 60,
         };
         setFormData(courseData);
         setOriginalFormData(courseData);
-        setImagePreview(course.image || null);
         setIsEditModalOpen(true);
     };
 
@@ -464,7 +465,10 @@ export default function HomePage() {
                 year: formData.year,
                 semester: formData.semester,
                 description: formData.description || undefined,
-                image: formData.image || undefined,
+                image: formData.image,
+                cover_position_x: formData.cover_position_x,
+                cover_position_y: formData.cover_position_y,
+                cover_zoom: formData.cover_zoom,
                 instructor_ids: formData.instructor_ids.length > 0 ? formData.instructor_ids : undefined,
                 attention_threshold: formData.attention_threshold,
             });
@@ -778,12 +782,13 @@ export default function HomePage() {
                                 {/* Course Image/Banner */}
                                 <div className="h-32 relative overflow-hidden">
                                     {course.image ? (
-                                        <Image
+                                        <CourseCoverImage
                                             src={course.image}
                                             alt={course.name}
-                                            fill
-                                            className="object-cover"
-                                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                            positionX={course.cover_position_x}
+                                            positionY={course.cover_position_y}
+                                            zoom={course.cover_zoom}
+                                            className="h-full w-full"
                                         />
                                     ) : (
                                                 <div className="w-full h-full bg-linear-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
@@ -913,11 +918,13 @@ export default function HomePage() {
                                         {/* Course Image/Icon */}
                                         <div className="w-14 h-14 sm:w-16 sm:h-16 relative overflow-hidden rounded-lg shrink-0">
                                             {course.image ? (
-                                                <Image
+                                                <CourseCoverImage
                                                     src={course.image}
                                                     alt={course.name}
-                                                    fill
-                                                    className="object-cover"
+                                                    positionX={course.cover_position_x}
+                                                    positionY={course.cover_position_y}
+                                                    zoom={course.cover_zoom}
+                                                    className="h-full w-full"
                                                 />
                                             ) : (
                                                 <div className="w-full h-full bg-linear-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
@@ -1056,61 +1063,18 @@ export default function HomePage() {
                     <ModalBody className="px-4 sm:px-6 py-4 sm:py-6">
                         <div className="space-y-5">
                             {/* Course Image Section */}
-                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Icon icon="solar:gallery-bold" className="text-lg text-blue-500" />
-                                    <span className="text-sm font-semibold text-default-700">{t("courseImage")}</span>
-                                </div>
-                                <div className="py-3">
-                                    {imagePreview ? (
-                                        <div className="relative group">
-                                            <img
-                                                src={imagePreview}
-                                                alt={t("courseImage")}
-                                                className="h-40 w-full rounded-xl border border-default-200 object-cover"
-                                            />
-                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-3">
-                                                <label className="cursor-pointer">
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        onChange={handleImageUpload}
-                                                        className="hidden"
-                                                    />
-                                                    <Button
-                                                        as="span"
-                                                        size="sm"
-                                                        color="primary"
-                                                    >
-                                                        {t("changeImage")}
-                                                    </Button>
-                                                </label>
-                                                <Button
-                                                    size="sm"
-                                                    color="danger"
-                                                    onPress={handleRemoveImage}
-                                                >
-                                                    {t("removeImage")}
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <label className="cursor-pointer">
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleImageUpload}
-                                                className="hidden"
-                                            />
-                                            <div className="rounded-xl border-2 border-dashed border-default-300 p-4 text-center transition-colors hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-500/10">
-                                                <Icon icon="solar:cloud-upload-bold-duotone" className="text-5xl text-blue-400 mx-auto mb-3" />
-                                                <p className="font-medium text-default-600">{t("clickToUploadCourseCover")}</p>
-                                                <p className="mt-1 text-sm text-default-400">{t("courseImageHint")}</p>
-                                            </div>
-                                        </label>
-                                    )}
-                                </div>
-                            </div>
+                            <CourseCoverEditor
+                                value={{
+                                    image: formData.image,
+                                    cover_position_x: formData.cover_position_x,
+                                    cover_position_y: formData.cover_position_y,
+                                    cover_zoom: formData.cover_zoom,
+                                }}
+                                onChange={(value) => setFormData((prev) => ({ ...prev, ...value }))}
+                                text={courseCoverEditorText}
+                                accentClassName="text-blue-500"
+                                onValidationError={(message) => addToast({ title: t("invalidFileType"), description: message, color: "warning", timeout: 3000, shouldShowTimeoutProgress: true })}
+                            />
 
                             {/* Course Info Section */}
                             <div className="space-y-5 rounded-xl bg-content2/80 p-5">
@@ -1337,61 +1301,18 @@ export default function HomePage() {
                     <ModalBody className="px-4 sm:px-6 py-4 sm:py-6">
                         <div className="space-y-5">
                             {/* Course Image Section */}
-                            <div className="space-y-5 rounded-xl bg-content2/80 p-5">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Icon icon="solar:gallery-bold" className="text-lg text-amber-500" />
-                                    <span className="text-sm font-semibold text-default-700">{t("courseImage")}</span>
-                                </div>
-                                <div className="py-3">
-                                    {imagePreview ? (
-                                        <div className="relative group">
-                                            <img
-                                                src={imagePreview}
-                                                alt={t("courseImage")}
-                                                className="h-48 w-full rounded-xl border border-default-200 object-cover"
-                                            />
-                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-3">
-                                                <label className="cursor-pointer">
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        onChange={handleImageUpload}
-                                                        className="hidden"
-                                                    />
-                                                    <Button
-                                                        as="span"
-                                                        size="sm"
-                                                        color="primary"
-                                                    >
-                                                        {t("changeImage")}
-                                                    </Button>
-                                                </label>
-                                                <Button
-                                                    size="sm"
-                                                    color="danger"
-                                                    onPress={handleRemoveImage}
-                                                >
-                                                    {t("removeImage")}
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <label className="cursor-pointer">
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleImageUpload}
-                                                className="hidden"
-                                            />
-                                            <div className="rounded-xl border-2 border-dashed border-default-300 p-8 text-center transition-colors hover:border-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-500/10">
-                                                <Icon icon="solar:cloud-upload-bold-duotone" className="text-5xl text-amber-400 mx-auto mb-3" />
-                                                <p className="font-medium text-default-600">{t("clickToUploadCourseCover")}</p>
-                                                <p className="mt-1 text-sm text-default-400">{t("courseImageHint")}</p>
-                                            </div>
-                                        </label>
-                                    )}
-                                </div>
-                            </div>
+                            <CourseCoverEditor
+                                value={{
+                                    image: formData.image,
+                                    cover_position_x: formData.cover_position_x,
+                                    cover_position_y: formData.cover_position_y,
+                                    cover_zoom: formData.cover_zoom,
+                                }}
+                                onChange={(value) => setFormData((prev) => ({ ...prev, ...value }))}
+                                text={courseCoverEditorText}
+                                accentClassName="text-amber-500"
+                                onValidationError={(message) => addToast({ title: t("invalidFileType"), description: message, color: "warning", timeout: 3000, shouldShowTimeoutProgress: true })}
+                            />
 
                             {/* Course Info Section */}
                             <div className="space-y-5 rounded-xl bg-content2/80 p-5">

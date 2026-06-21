@@ -14,6 +14,7 @@ import {
 } from "@/services/student.service";
 import userNotificationService, { type UserNotificationItem } from "@/services/user-notification.service";
 import { getMyExamSeats, type MyExamSeat } from "@/services/examSeat.service";
+import { CourseCoverImage } from "@/components/course";
 
 // ─── tabs ─────────────────────────────────────────────────────────────────────
 
@@ -491,10 +492,21 @@ export default function StudentCourseDetailPage() {
   return (
     <div className="space-y-4 pb-2">
       {/* ── course header ──────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-4xl border border-slate-200/70 bg-slate-900 p-5 shadow-lg shadow-slate-300/40 sm:p-6">
+      <div className="relative overflow-hidden rounded-4xl border border-slate-200/70 bg-slate-900 shadow-lg shadow-slate-300/40">
+        {course.course.image ? (
+          <CourseCoverImage
+            src={course.course.image}
+            alt={course.course.name}
+            positionX={course.course.cover_position_x}
+            positionY={course.course.cover_position_y}
+            zoom={course.course.cover_zoom}
+            className="h-44 w-full sm:h-48"
+            overlay={<div className="absolute inset-0 bg-linear-to-r from-slate-950/75 via-slate-900/45 to-slate-950/20" />}
+          />
+        ) : null}
         <span className="pointer-events-none absolute -right-8 -top-8 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
-        <div className="relative flex items-start gap-4">
-          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-lg font-bold text-white ring-2 ring-white/25 backdrop-blur-sm">
+        <div className="relative flex items-start gap-4 p-5 sm:p-6">
+          <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-lg font-bold text-white ring-2 ring-white/25 backdrop-blur-sm ${course.course.image ? "bg-white/15 -mt-8" : "bg-white/20"}`}>
             {initials}
           </span>
           <div className="min-w-0 flex-1">

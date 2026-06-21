@@ -134,7 +134,7 @@ const DateTimeInput = memo(function DateTimeInput({
         : "border-default-200 hover:border-blue-300 focus:border-blue-500 focus:ring-blue-500/20";
 
     return (
-        <div className="flex flex-col gap-1.5">
+        <div className="flex min-w-0 w-full max-w-full flex-col gap-1.5 overflow-hidden">
             <label className="text-sm font-medium text-default-700">
                 {label}
                 {isRequired && <span className="text-red-500 ml-1">*</span>}
@@ -145,7 +145,7 @@ const DateTimeInput = memo(function DateTimeInput({
                 onChange={handleChange}
                 min={min}
                 max={max}
-                className={`w-full px-3 py-2.5 rounded-xl bg-content1 border-2 ${borderColor} 
+                className={`box-border h-10 min-w-0 w-full max-w-full rounded-xl border-2 bg-content1 px-4 py-0 ${borderColor}
                     text-foreground text-sm transition-all duration-200
                     focus:outline-none focus:ring-4
                     placeholder:text-default-400`}
@@ -768,6 +768,7 @@ const SessionRowActions = memo(function SessionRowActions({
 
 interface SessionsTableProps {
     sessions: SessionWithComputedStatus[];
+    sections: Section[];
     courseId: string;
     isCourseActive?: boolean;
     onCreateClick: () => void;
@@ -782,6 +783,7 @@ interface SessionsTableProps {
 
 export const SessionsTable = memo(function SessionsTable({
     sessions,
+    sections,
     courseId,
     isCourseActive = true,
     onCreateClick,
@@ -807,6 +809,10 @@ export const SessionsTable = memo(function SessionsTable({
     const [rowsPerPage, setRowsPerPage] = useState(DEFAULT_TABLE_ROWS_PER_PAGE);
 
     const totalPages = Math.max(1, Math.ceil(sessions.length / rowsPerPage));
+    const sectionMap = useMemo(
+        () => new Map(sections.map((section) => [section.id, section])),
+        [sections],
+    );
     const paginatedSessions = useMemo(() => {
         const start = (currentPage - 1) * rowsPerPage;
         return sessions.slice(start, start + rowsPerPage);
@@ -871,6 +877,11 @@ export const SessionsTable = memo(function SessionsTable({
                                 {paginatedSessions.map((session) => {
                                     const sessionTypeDisplay = getSessionTypeDisplay(session.session_type, isEnglish);
                                     const statusDisplay = getStatusDisplay(session.status, isEnglish);
+                                    const resolvedSections = session.sections && session.sections.length > 0
+                                        ? session.sections
+                                        : (session.course_section_ids || [])
+                                            .map((sectionId) => sectionMap.get(sectionId))
+                                            .filter((section): section is Section => Boolean(section));
 
                                     return (
                                     <TableRow key={session.id}>
@@ -887,9 +898,9 @@ export const SessionsTable = memo(function SessionsTable({
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            {session.sections && session.sections.length > 0 ? (
+                                            {resolvedSections.length > 0 ? (
                                                 <div className="flex flex-wrap gap-1">
-                                                    {session.sections.map((sec) => (
+                                                    {resolvedSections.map((sec) => (
                                                         <Chip key={sec.id} size="sm" variant="flat" color="default">
                                                             {sec.section_no}
                                                         </Chip>
@@ -1049,37 +1060,23 @@ export const LocationCheckCard = memo(function LocationCheckCard({
     const isEnglish = language === "en";
 
     return (
-        <Card className="overflow-hidden border border-default-200 bg-content1">
-            <CardBody className="p-0">
+        <Card className="border border-default-200 bg-content1">
+            <CardBody className="p-4">
                 {/* Header */}
-                <div className="flex items-center justify-between bg-content2 p-4">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 rounded-xl">
-                            <Icon icon="solar:map-point-bold" className="text-xl text-blue-600" />
-                        </div>
-                        <div>
-                            <span className="font-semibold text-foreground">{isEnglish ? "GPS location check" : "ตรวจสอบตำแหน่ง GPS"}</span>
-                            <p className="text-xs text-default-500">{isEnglish ? "Require students to be within the selected area." : "ให้นักศึกษาต้องอยู่ในบริเวณที่กำหนด"}</p>
-                        </div>
+                <div className="flex items-center justify-between gap-4">
+                    <div>
+                        <p className="font-medium text-default-700">{isEnglish ? "GPS location check" : "ตรวจสอบตำแหน่ง GPS"}</p>
+                        <p className="text-sm text-default-500">{isEnglish ? "Restrict check-in to the selected area." : "ให้นักศึกษาต้องอยู่ในบริเวณที่กำหนด"}</p>
                     </div>
-                    <Button
-                        size="sm"
-                        variant={checkLocation ? "solid" : "bordered"}
-                        color={checkLocation ? "primary" : "default"}
-                        onPress={onToggle}
-                        startContent={
-                            <Icon
-                                icon={checkLocation ? "solar:check-circle-bold" : "solar:close-circle-linear"}
-                                className="text-lg"
-                            />
-                        }
-                    >
-                        {checkLocation ? (isEnglish ? "Enabled" : "เปิดใช้งาน") : (isEnglish ? "Disabled" : "ปิดใช้งาน")}
-                    </Button>
+                    <Switch
+                        isSelected={checkLocation}
+                        color="primary"
+                        onValueChange={onToggle}
+                    />
                 </div>
 
                 {checkLocation && (
-                    <div className="p-4 space-y-4">
+                    <div className="mt-4 space-y-4">
                         {/* GPS Button */}
                         <button
                             type="button"
@@ -1288,10 +1285,11 @@ export const CreateSessionModal = memo(function CreateSessionModal({
             isKeyboardDismissDisabled={true}
             onClose={onClose}
             size="2xl"
+            placement="top-center"
             scrollBehavior="inside"
         >
-            <ModalContent>
-                <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
+            <ModalContent className="m-0 h-[100dvh] max-h-[100dvh] w-full rounded-none sm:my-8 sm:h-auto sm:max-h-[92vh] sm:rounded-2xl">
+                <ModalHeader className="flex flex-col gap-1 px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
                     <div className="flex items-center gap-4">
                         <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg">
                             <Icon icon="solar:clipboard-check-bold" className="text-2xl text-white" />
@@ -1304,7 +1302,7 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                         </div>
                     </div>
                 </ModalHeader>
-                <ModalBody className="px-6 py-4">
+                <ModalBody className="px-4 py-4 pb-32 sm:px-6 sm:pb-6">
                     <div className="space-y-5">
                         {/* Title */}
                         <div>
@@ -1433,7 +1431,6 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                                     isSelected={formData.auto_rotate_pin}
                                     color="primary"
                                     onValueChange={(value) => setFormData((prev: CreateAttendanceData) => ({ ...prev, auto_rotate_pin: value }))}
-                                    onChange={(event) => setFormData((prev: CreateAttendanceData) => ({ ...prev, auto_rotate_pin: event.target.checked }))}
                                 />
                             </CardBody>
                         </Card>
@@ -1453,8 +1450,8 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                         />
                     </div>
                 </ModalBody>
-                <ModalFooter className="border-t border-divider px-6 py-4">
-                    <Button variant="light" onPress={onClose}>
+                <ModalFooter className="sticky bottom-0 z-20 flex-col-reverse gap-2 border-t border-divider bg-content1 px-4 py-3 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] sm:flex-row sm:px-6 sm:py-4">
+                    <Button variant="light" onPress={onClose} className="w-full sm:w-auto">
                         {isEnglish ? "Cancel" : "ยกเลิก"}
                     </Button>
                     <Button
@@ -1462,7 +1459,7 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                         onPress={onSubmit}
                         isLoading={isSubmitting}
                         isDisabled={!isCourseActive || !formData.title?.trim()}
-                        className="bg-linear-to-r from-blue-400 to-indigo-500"
+                        className="w-full bg-linear-to-r from-blue-400 to-indigo-500 sm:w-auto"
                     >
                         {isEnglish ? "Create attendance session" : "สร้างรอบเช็คชื่อ"}
                     </Button>
@@ -1563,10 +1560,11 @@ export const EditSessionModal = memo(function EditSessionModal({
             isKeyboardDismissDisabled={true}
             onClose={onClose}
             size="2xl"
+            placement="top-center"
             scrollBehavior="inside"
         >
-            <ModalContent>
-                <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
+            <ModalContent className="m-0 h-[100dvh] max-h-[100dvh] w-full rounded-none sm:my-8 sm:h-auto sm:max-h-[92vh] sm:rounded-2xl">
+                <ModalHeader className="flex flex-col gap-1 px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
                     <div className="flex items-center gap-4">
                         <div className="p-3 bg-linear-to-br from-amber-400 to-orange-500 rounded-xl shadow-lg">
                             <Icon icon="solar:pen-bold" className="text-2xl text-white" />
@@ -1579,7 +1577,7 @@ export const EditSessionModal = memo(function EditSessionModal({
                         </div>
                     </div>
                 </ModalHeader>
-                <ModalBody className="px-6 py-4">
+                <ModalBody className="px-4 py-4 pb-32 sm:px-6 sm:pb-6">
                     <div className="space-y-3">
                         {/* Title */}
                         <Input
@@ -1628,7 +1626,7 @@ export const EditSessionModal = memo(function EditSessionModal({
 
                         {/* Session Type */}
                         <Select
-                            label={isEnglish ? "Session type" : "ประเภทการสอน"}
+                            label={isEnglish ? "Session type" : "ประเภทการเรียน"}
                             selectedKeys={[formData.session_type]}
                             labelPlacement="outside"
                             variant="bordered"
@@ -1642,14 +1640,14 @@ export const EditSessionModal = memo(function EditSessionModal({
                                 label: "text-default-700 font-medium text-sm",
                             }}
                         >
-                            <SelectItem key="lecture" startContent={<Icon icon="solar:presentation-graph-bold" className="text-blue-500" />}>
-                                {isEnglish ? "Lecture" : "บรรยาย"}
+                            <SelectItem key="lecture">
+                                {isEnglish ? "Lecture" : "บรรยาย (Lecture)"}
                             </SelectItem>
-                            <SelectItem key="lab" startContent={<Icon icon="solar:test-tube-bold" className="text-emerald-500" />}>
-                                {isEnglish ? "Lab" : "ปฏิบัติ"}
+                            <SelectItem key="lab">
+                                {isEnglish ? "Lab" : "ปฏิบัติการ (Lab)"}
                             </SelectItem>
-                            <SelectItem key="online" startContent={<Icon icon="solar:laptop-bold" className="text-violet-500" />}>
-                                {isEnglish ? "Online" : "ออนไลน์"}
+                            <SelectItem key="online">
+                                {isEnglish ? "Online" : "ออนไลน์ (Online)"}
                             </SelectItem>
                         </Select>
 
@@ -1699,7 +1697,6 @@ export const EditSessionModal = memo(function EditSessionModal({
                                     isSelected={formData.auto_rotate_pin}
                                     color="warning"
                                     onValueChange={(value) => setFormData((prev: CreateAttendanceData) => ({ ...prev, auto_rotate_pin: value }))}
-                                    onChange={(event) => setFormData((prev: CreateAttendanceData) => ({ ...prev, auto_rotate_pin: event.target.checked }))}
                                 />
                             </CardBody>
                         </Card>
@@ -1708,18 +1705,16 @@ export const EditSessionModal = memo(function EditSessionModal({
                         {/* Location Check */}
                         <Card className="border border-default-200 bg-content1">
                             <CardBody className="p-4">
-                                <div className="flex items-center justify-between mb-4">
+                                <div className="mb-4 flex items-center justify-between gap-4">
                                     <div>
                                         <p className="font-medium text-default-700">{isEnglish ? "GPS location check" : "ตรวจสอบตำแหน่ง GPS"}</p>
                                         <p className="text-sm text-default-500">{isEnglish ? "Restrict check-in to the selected area." : "ให้นักศึกษาเช็คชื่อได้เฉพาะในพื้นที่ที่กำหนด"}</p>
                                     </div>
-                                    <Button
-                                        color={formData.check_location ? "primary" : "default"}
-                                        variant={formData.check_location ? "solid" : "flat"}
-                                        onPress={() => setFormData((prev: CreateAttendanceData) => ({ ...prev, check_location: !prev.check_location }))}
-                                    >
-                                        {formData.check_location ? (isEnglish ? "Enabled" : "เปิดใช้งาน") : (isEnglish ? "Disabled" : "ปิดใช้งาน")}
-                                    </Button>
+                                    <Switch
+                                        isSelected={formData.check_location}
+                                        color="primary"
+                                        onValueChange={(value) => setFormData((prev: CreateAttendanceData) => ({ ...prev, check_location: value }))}
+                                    />
                                 </div>
 
                                 {formData.check_location && (
@@ -1789,8 +1784,8 @@ export const EditSessionModal = memo(function EditSessionModal({
                         </Card>
                     </div>
                 </ModalBody>
-                <ModalFooter className="border-t border-divider">
-                    <Button variant="light" onPress={onClose}>
+                <ModalFooter className="sticky bottom-0 z-20 flex-col-reverse gap-2 border-t border-divider bg-content1 px-4 py-3 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] sm:flex-row sm:px-6 sm:py-4">
+                    <Button variant="light" onPress={onClose} className="w-full sm:w-auto">
                         {isEnglish ? "Cancel" : "ยกเลิก"}
                     </Button>
                     <Button
@@ -1798,7 +1793,7 @@ export const EditSessionModal = memo(function EditSessionModal({
                         onPress={onSubmit}
                         isLoading={isSubmitting}
                         isDisabled={!isCourseActive || !formData.title?.trim() || !hasFormChanges()}
-                        className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
+                        className="w-full bg-linear-to-r from-blue-400 to-indigo-500 text-white sm:w-auto"
                     >
                         {isEnglish ? "Save changes" : "บันทึกการแก้ไข"}
                     </Button>

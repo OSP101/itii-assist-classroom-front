@@ -641,7 +641,7 @@ function AssignmentModalComponent({
                                         ...prev,
                                         hasSubItems: true,
                                         subItems: prev.subItems.length > 0 ? prev.subItems : [
-                                            { name: isEnglish ? "Item 1" : "ข้อ 1", max_score: 5 }
+                                            { name: isEnglish ? "Item 1" : "ข้อ 1", max_score: 10 }
                                         ]
                                     }))}
                                     className={`p-4 rounded-xl border-2 transition-all ${formData.hasSubItems

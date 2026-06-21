@@ -1,7 +1,6 @@
 "use client";
 
 import { memo, useMemo, useState } from "react";
-import Image from "next/image";
 import { Progress } from "@heroui/progress";
 import { Button } from "@heroui/button";
 import { Avatar } from "@heroui/avatar";
@@ -20,6 +19,7 @@ import type {
 import { useI18n } from "@/hooks/useI18n";
 import type { AssignmentType } from "../types";
 import { getAssignmentTypeConfig, formatRelativeTime } from "./config";
+import { CourseCoverImage } from "@/components/course";
 import {
   computeHealthScore, computeActionItems, generateInsights,
   computeRiskStudents, buildGradeDistributionData, buildAssignmentDifficultyData,
@@ -193,13 +193,31 @@ function OverviewTabViewComponent({
       {/* ══ 1. COURSE HEADER ══════════════════════════════════════════════ */}
       <Fade>
         <div className={CARD + " overflow-hidden relative"}>
+          {course.image ? (
+            <CourseCoverImage
+              src={course.image}
+              alt={course.name}
+              positionX={course.cover_position_x}
+              positionY={course.cover_position_y}
+              zoom={course.cover_zoom}
+              className="h-36 w-full border-b border-slate-200/80 dark:border-zinc-800"
+              overlay={<div className="absolute inset-0 bg-linear-to-r from-slate-950/70 via-slate-900/35 to-transparent" />}
+            />
+          ) : null}
           <div className="absolute -top-20 -right-10 w-64 h-64 rounded-full bg-linear-to-br from-blue-100/25 to-indigo-100/15 dark:from-blue-900/10 dark:to-transparent blur-3xl pointer-events-none" />
           <div className="relative p-4 sm:p-6">
           <div className="flex items-start gap-4">
             {/* Thumbnail */}
-            <div className="w-14 h-14 shrink-0 rounded-xl bg-slate-100 overflow-hidden flex items-center justify-center border border-slate-200">
+            <div className={`w-14 h-14 shrink-0 rounded-xl overflow-hidden flex items-center justify-center border ${course.image ? "bg-white/15 border-white/20" : "bg-slate-100 border-slate-200"} ${course.image ? "-mt-10 backdrop-blur-sm" : ""}`}>
               {course.image
-                ? <Image src={course.image} alt={course.name} width={56} height={56} className="object-cover w-full h-full" />
+                ? <CourseCoverImage
+                    src={course.image}
+                    alt={course.name}
+                    positionX={course.cover_position_x}
+                    positionY={course.cover_position_y}
+                    zoom={course.cover_zoom}
+                    className="h-full w-full"
+                  />
                 : <Icon icon="solar:book-2-bold-duotone" className="text-2xl text-slate-400" />
               }
             </div>
@@ -207,23 +225,23 @@ function OverviewTabViewComponent({
             {/* Name + meta */}
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
-                <span className="text-xs font-semibold text-slate-600 bg-slate-100 rounded-md px-2 py-0.5">{course.code}</span>
-                <span className="text-xs text-slate-400">
+                <span className={`text-xs font-semibold rounded-md px-2 py-0.5 ${course.image ? "bg-white/15 text-white" : "bg-slate-100 text-slate-600"}`}>{course.code}</span>
+                <span className={`text-xs ${course.image ? "text-slate-200" : "text-slate-400"}`}>
                   {course.year} / {course.semester === 3
                     ? t("summerSemester")
                     : t("semesterShortWithNumber", { number: course.semester })}
                 </span>
                 <span className="flex items-center gap-1 text-xs font-medium">
                   <span className={"w-1.5 h-1.5 rounded-full " + (course.is_active ? "bg-emerald-500 animate-pulse" : "bg-slate-300")} />
-                  <span className={course.is_active ? "text-emerald-600" : "text-slate-400"}>
+                  <span className={course.image ? (course.is_active ? "text-emerald-300" : "text-slate-200") : (course.is_active ? "text-emerald-600" : "text-slate-400")}>
                     {course.is_active ? t("enabledStatus") : t("closedStatus")}
                   </span>
                 </span>
               </div>
-              <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight">{course.name}</h1>
-              {course.description && <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{course.description}</p>}
+              <h1 className={`text-lg sm:text-xl font-bold leading-tight tracking-tight ${course.image ? "text-white" : "text-slate-900 dark:text-white"}`}>{course.name}</h1>
+              {course.description && <p className={`mt-0.5 line-clamp-1 text-xs ${course.image ? "text-slate-200" : "text-slate-400"}`}>{course.description}</p>}
               {course.instructor && (
-                <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-1">
+                <p className={`mt-1.5 flex items-center gap-1 text-xs ${course.image ? "text-slate-200" : "text-slate-500"}`}>
                   <Icon icon="solar:user-linear" className="text-xs" />
                   {course.instructor.full_name}
                 </p>

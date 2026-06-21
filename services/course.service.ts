@@ -413,6 +413,9 @@ export interface Course {
   instructor_id: number | null;
   description: string | null;
   image: string | null;
+  cover_position_x: number;
+  cover_position_y: number;
+  cover_zoom: number;
   is_active: boolean;
   attention_threshold: number;
   created_at: string;
@@ -435,6 +438,9 @@ export interface CreateCourseDto {
   instructor_ids?: number[];
   description?: string;
   image?: string;
+  cover_position_x?: number;
+  cover_position_y?: number;
+  cover_zoom?: number;
   attention_threshold?: number;
 }
 
@@ -447,6 +453,9 @@ export interface UpdateCourseDto {
   instructor_ids?: number[];
   description?: string;
   image?: string;
+  cover_position_x?: number;
+  cover_position_y?: number;
+  cover_zoom?: number;
   is_active?: boolean;
   attention_threshold?: number;
 }

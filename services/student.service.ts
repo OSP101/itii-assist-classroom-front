@@ -143,6 +143,10 @@ export interface CourseScoreData {
     name: string;
     year: number;
     semester: number;
+    image: string | null;
+    cover_position_x: number;
+    cover_position_y: number;
+    cover_zoom: number;
     is_active: boolean;
     sections: Array<{ id: number; section_no?: string; name?: string; week_number?: number | null }>;
   };

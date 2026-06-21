@@ -121,6 +121,7 @@ interface ContentProps {
     sessions: SessionWithComputedStatus[];
     filteredSessions: SessionWithComputedStatus[];
     stats: AttendanceStats;
+    sections: Course["sections"];
     courseId: string;
     isCourseActive?: boolean;
     searchQuery: string;
@@ -143,6 +144,7 @@ const Content = memo(function Content({
     sessions,
     filteredSessions,
     stats,
+    sections,
     courseId,
     isCourseActive = true,
     searchQuery,
@@ -176,6 +178,7 @@ const Content = memo(function Content({
             ) : (
                 <SessionsTable
                     sessions={filteredSessions}
+                    sections={sections || []}
                     courseId={courseId}
                     isCourseActive={isCourseActive}
                     onCreateClick={onCreateClick}
@@ -289,6 +292,7 @@ function AttendanceTabViewComponent({
                     sessions={sessions}
                     filteredSessions={filteredSessions}
                     stats={stats}
+                    sections={course.sections || []}
                     courseId={courseId}
                     isCourseActive={isCourseActive}
                     searchQuery={filters.searchQuery}

@@ -455,6 +455,54 @@ body {
 		}
 	}
 
+	@media (max-width: 639px) {
+		/* Give all HeroUI modals a consistent mobile layout without affecting desktop. */
+		[data-slot="wrapper"] > [aria-modal="true"]:not(.\!rounded-none) {
+			width: calc(100vw - 0.75rem) !important;
+			max-width: calc(100vw - 0.75rem) !important;
+			max-height: calc(var(--visual-viewport-height, 100dvh) - 0.75rem) !important;
+			margin: 0.375rem !important;
+			display: flex !important;
+			flex-direction: column !important;
+			overflow: hidden !important;
+			border-radius: 1.25rem !important;
+		}
+
+		[data-slot="wrapper"] > [aria-modal="true"]:not(.\!rounded-none) > header {
+			padding: 1rem 1rem 0.75rem !important;
+		}
+
+		[data-slot="wrapper"] > [aria-modal="true"]:not(.\!rounded-none) > div[id] {
+			min-height: 0 !important;
+			overflow-x: hidden !important;
+			overflow-y: auto !important;
+			padding: 0.75rem 1rem 1rem !important;
+			-webkit-overflow-scrolling: touch;
+		}
+
+		[data-slot="wrapper"] > [aria-modal="true"]:not(.\!rounded-none):has(> footer) > div[id] {
+			padding-bottom: calc(6rem + var(--app-safe-bottom)) !important;
+		}
+
+		[data-slot="wrapper"] > [aria-modal="true"]:not(.\!rounded-none) > footer {
+			position: sticky !important;
+			right: 0;
+			bottom: 0;
+			left: 0;
+			z-index: 20;
+			flex-direction: column-reverse !important;
+			gap: 0.5rem !important;
+			padding: 0.75rem 1rem calc(0.75rem + var(--app-safe-bottom)) !important;
+			border-top: 1px solid hsl(var(--heroui-divider)) !important;
+			background-color: hsl(var(--heroui-content1)) !important;
+			box-shadow: 0 -12px 30px rgba(15, 23, 42, 0.08);
+		}
+
+		[data-slot="wrapper"] > [aria-modal="true"]:not(.\!rounded-none) > footer > * {
+			width: 100%;
+		}
+	}
+
 	:is(html.dark, html[data-theme="dark"]) .login-desktop-dark-input {
 		color: rgb(30 41 59);
 	}

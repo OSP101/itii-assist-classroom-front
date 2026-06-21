@@ -16,6 +16,7 @@ import {
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import type { Course } from "@/services/course.service";
 import type { SettingsFormData, UseSettingsTabReturn } from "./useSettingsTab";
+import { CourseCoverEditor, buildCourseCoverRecommendedSizeText } from "@/components/course";
 
 interface SettingsTabViewProps {
     course: Course;
@@ -112,8 +113,33 @@ function SettingsTabViewComponent({
         formData.year !== (course.year || formData.year) ||
         formData.semester !== (course.semester || 1) ||
         formData.description !== (course.description || "") ||
+        formData.image !== (course.image || "") ||
+        formData.cover_position_x !== (course.cover_position_x ?? 50) ||
+        formData.cover_position_y !== (course.cover_position_y ?? 50) ||
+        formData.cover_zoom !== (course.cover_zoom ?? 1) ||
         formData.attention_threshold !== (course.attention_threshold ?? 60) ||
         formData.is_active !== (course.is_active ?? true);
+    const courseCoverEditorText = {
+        title: isEnglish ? "Course cover image" : "รูปปกรายวิชา",
+        emptyTitle: isEnglish ? "Click to upload a course cover image" : "คลิกเพื่ออัปโหลดรูปปกรายวิชา",
+        emptyHint: isEnglish ? "Supports JPG and PNG files up to 2MB" : "รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 2MB",
+        recommendedSize: buildCourseCoverRecommendedSizeText(isEnglish ? "Recommended size" : "ขนาดแนะนำ"),
+        editCover: isEnglish ? "Course cover image" : "รูปปกรายวิชา",
+        changeImage: isEnglish ? "Change image" : "เปลี่ยนรูป",
+        removeImage: isEnglish ? "Remove image" : "ลบรูป",
+        adjustCover: isEnglish ? "Adjust cover" : "ปรับตำแหน่ง Cover",
+        modalTitle: isEnglish ? "Adjust course cover" : "ปรับแต่งภาพ Cover รายวิชา",
+        modalHint: isEnglish
+            ? "Move and scale the image so the important area fits inside the cover frame used across the app."
+            : "จัดตำแหน่งและขนาดภาพให้พอดีกับกรอบ Cover ที่จะแสดงทุกหน้า",
+        horizontalPosition: isEnglish ? "Move left to right" : "เลื่อนซ้าย-ขวา",
+        verticalPosition: isEnglish ? "Move top to bottom" : "เลื่อนบน-ล่าง",
+        zoom: isEnglish ? "Zoom image" : "ซูมภาพ",
+        cancel: isEnglish ? "Cancel" : "ยกเลิก",
+        apply: isEnglish ? "Apply cover settings" : "ใช้การตั้งค่านี้",
+        invalidFileType: isEnglish ? "Please choose an image file only." : "กรุณาเลือกไฟล์รูปภาพเท่านั้น",
+        fileTooLarge: isEnglish ? "Supports JPG and PNG files up to 2MB" : "รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 2MB",
+    };
 
     return (
         <div className="space-y-5">
@@ -210,6 +236,24 @@ function SettingsTabViewComponent({
             </Card>
 
             {/* ── Course Info ──────────────────────────────────────────────── */}
+            <CourseCoverEditor
+                value={{
+                    image: formData.image,
+                    cover_position_x: formData.cover_position_x,
+                    cover_position_y: formData.cover_position_y,
+                    cover_zoom: formData.cover_zoom,
+                }}
+                onChange={(value) => {
+                    onUpdateField("image", value.image);
+                    onUpdateField("cover_position_x", value.cover_position_x);
+                    onUpdateField("cover_position_y", value.cover_position_y);
+                    onUpdateField("cover_zoom", value.cover_zoom);
+                }}
+                text={courseCoverEditorText}
+                accentClassName="text-indigo-500"
+                disabled={!isEditing || !course.is_active}
+            />
+
             <Card className="border border-default-200 bg-content1 shadow-sm">
                 <SectionCardHeader
                     icon="solar:document-text-bold"
