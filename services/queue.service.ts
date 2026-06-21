@@ -477,6 +477,15 @@ const queueService = {
         return response.data.pin_code;
     },
 
+    async heartbeatProjectorSession(courseId: string, sessionId: string): Promise<void> {
+        const response = await api.post<QueueSession>(
+            `/courses/${courseId}/queue/sessions/${sessionId}/heartbeat`
+        );
+        if (!response.success) {
+            throw new Error((response.error as unknown as { message?: string })?.message || response.message || 'Failed to record projector heartbeat');
+        }
+    },
+
     // ============================================
     // Worker Management
     // ============================================

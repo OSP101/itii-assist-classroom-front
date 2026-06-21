@@ -480,8 +480,16 @@ export function useAttendanceTab(
             const lateTimeStr = `${String(lateDate.getHours()).padStart(2, '0')}:${String(lateDate.getMinutes()).padStart(2, '0')}:00`;
 
             const data: CreateAttendanceData = {
-                ...formData,
                 course_id: course.id,
+                course_section_id: formData.course_section_id,
+                course_section_ids: formData.course_section_ids,
+                title: formData.title,
+                auto_rotate_pin: Boolean(formData.auto_rotate_pin),
+                session_type: formData.session_type,
+                check_location: formData.check_location,
+                location_lat: formData.location_lat,
+                location_lng: formData.location_lng,
+                radius_meters: formData.radius_meters,
                 start_time: startDate.toISOString(),
                 end_time: endDate.toISOString(),
                 late_threshold_minutes: lateThresholdMinutes,
@@ -577,7 +585,7 @@ export function useAttendanceTab(
 
             const data: Partial<CreateAttendanceData> = {
                 title: formData.title,
-                auto_rotate_pin: formData.auto_rotate_pin,
+                auto_rotate_pin: Boolean(formData.auto_rotate_pin),
                 session_type: formData.session_type,
                 check_location: formData.check_location,
                 location_lat: formData.check_location ? formData.location_lat : undefined,

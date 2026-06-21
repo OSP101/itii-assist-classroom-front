@@ -1433,6 +1433,7 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                                     isSelected={formData.auto_rotate_pin}
                                     color="primary"
                                     onValueChange={(value) => setFormData((prev: CreateAttendanceData) => ({ ...prev, auto_rotate_pin: value }))}
+                                    onChange={(event) => setFormData((prev: CreateAttendanceData) => ({ ...prev, auto_rotate_pin: event.target.checked }))}
                                 />
                             </CardBody>
                         </Card>
@@ -1698,6 +1699,7 @@ export const EditSessionModal = memo(function EditSessionModal({
                                     isSelected={formData.auto_rotate_pin}
                                     color="warning"
                                     onValueChange={(value) => setFormData((prev: CreateAttendanceData) => ({ ...prev, auto_rotate_pin: value }))}
+                                    onChange={(event) => setFormData((prev: CreateAttendanceData) => ({ ...prev, auto_rotate_pin: event.target.checked }))}
                                 />
                             </CardBody>
                         </Card>

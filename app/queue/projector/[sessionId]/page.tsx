@@ -79,6 +79,9 @@ interface ProjectorViewData {
     };
 }
 
+const PROJECTOR_HEARTBEAT_MS = 30_000;
+const PAUSED_SESSION_LEASE_MINUTES = 2;
+
 export default function ProjectorViewPage() {
     const params = useParams();
     const { language } = useGlobalSettings();
@@ -102,6 +105,8 @@ export default function ProjectorViewPage() {
     // Close session confirmation
     const [isCloseSessionOpen, setIsCloseSessionOpen] = useState(false);
     const [isClosingSession, setIsClosingSession] = useState(false);
+    const [isInitialWarningOpen, setIsInitialWarningOpen] = useState(false);
+    const [initialWarningCountdown, setInitialWarningCountdown] = useState(5);
 
     // Status toggle states
     const [isTogglingStatus, setIsTogglingStatus] = useState(false);
@@ -112,9 +117,7 @@ export default function ProjectorViewPage() {
 
     const socketRef = useRef<Socket | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const latestSessionRef = useRef<ProjectorViewData["session"] | null>(null);
-    const unloadPromptShownRef = useRef(false);
-    const isClosingFromUnloadRef = useRef(false);
+    const hasShownInitialWarningRef = useRef(false);
     const selectedDeskHasActiveBooking = Boolean(
         selectedDesk?.booking &&
         (selectedDesk.status.grading_status === "waiting" ||
@@ -168,65 +171,54 @@ export default function ProjectorViewPage() {
     }, [fetchData]);
 
     useEffect(() => {
-        latestSessionRef.current = data?.session ?? null;
+        if (!data?.session || data.session.status === "closed" || hasShownInitialWarningRef.current) {
+            return;
+        }
+
+        hasShownInitialWarningRef.current = true;
+        setInitialWarningCountdown(5);
+        setIsInitialWarningOpen(true);
     }, [data?.session]);
 
-    const closeSessionOnUnload = useCallback(() => {
-        const session = latestSessionRef.current;
-        if (!session || session.status === "closed" || isClosingFromUnloadRef.current || !session.course_id) {
-            return;
-        }
-
-        const accessToken = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-        if (!accessToken) {
-            return;
-        }
-
-        isClosingFromUnloadRef.current = true;
-
-        void fetch(`${API_BASE_URL}/courses/${session.course_id}/queue/sessions/${sessionId}/close`, {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-            },
-            keepalive: true,
-        }).catch((error) => {
-            console.error("Failed to close queue session during unload:", error);
-            isClosingFromUnloadRef.current = false;
-        });
-    }, [sessionId]);
-
-    // Warn before closing or reloading when the session is still open.
     useEffect(() => {
-        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            const session = latestSessionRef.current;
-            if (!session || session.status === "closed" || isClosingSession) return;
+        if (!isInitialWarningOpen || initialWarningCountdown <= 0) {
+            return;
+        }
 
-            unloadPromptShownRef.current = true;
-            e.preventDefault();
-            e.returnValue = "";
+        const timeoutId = window.setTimeout(() => {
+            setInitialWarningCountdown((current) => Math.max(current - 1, 0));
+        }, 1000);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [initialWarningCountdown, isInitialWarningOpen]);
+
+    useEffect(() => {
+        if (!data?.session.course_id || data.session.status === "closed") {
+            return;
+        }
+
+        let cancelled = false;
+
+        const sendHeartbeat = async () => {
+            try {
+                await queueService.heartbeatProjectorSession(data.session.course_id!, sessionId);
+            } catch (error) {
+                if (!cancelled) {
+                    console.error("Failed to send projector heartbeat:", error);
+                }
+            }
         };
 
-        const handlePageHide = () => {
-            if (!unloadPromptShownRef.current) return;
-            closeSessionOnUnload();
-        };
-
-        const handlePageShow = () => {
-            unloadPromptShownRef.current = false;
-            isClosingFromUnloadRef.current = false;
-        };
-
-        window.addEventListener("beforeunload", handleBeforeUnload);
-        window.addEventListener("pagehide", handlePageHide);
-        window.addEventListener("pageshow", handlePageShow);
+        void sendHeartbeat();
+        const intervalId = window.setInterval(() => {
+            void sendHeartbeat();
+        }, PROJECTOR_HEARTBEAT_MS);
 
         return () => {
-            window.removeEventListener("beforeunload", handleBeforeUnload);
-            window.removeEventListener("pagehide", handlePageHide);
-            window.removeEventListener("pageshow", handlePageShow);
+            cancelled = true;
+            window.clearInterval(intervalId);
         };
-    }, [closeSessionOnUnload, isClosingSession]);
+    }, [data?.session.course_id, data?.session.status, sessionId]);
 
     // Socket connection for real-time updates
     useEffect(() => {
@@ -403,8 +395,6 @@ export default function ProjectorViewPage() {
         setIsClosingSession(true);
         try {
             await queueService.closeQueueSession(data.session.course_id, sessionId);
-            unloadPromptShownRef.current = false;
-            isClosingFromUnloadRef.current = false;
             addToast({
                 title: t("ปิดเซสชันสำเร็จ", "Session closed"),
                 description: t("นักศึกษาจะไม่สามารถจองคิวได้อีก", "Students can no longer create bookings."),
@@ -820,27 +810,6 @@ export default function ProjectorViewPage() {
                 </div>
             </div>
 
-            {!isClosed && (
-                <div className={`mb-4 rounded-2xl border px-4 py-3 shadow-sm ${isPaused ? "border-warning-200 bg-warning-50" : "border-rose-200 bg-rose-50"}`}>
-                    <div className="flex items-start gap-3">
-                        <Icon icon="solar:danger-triangle-bold" className={`mt-0.5 shrink-0 text-xl ${isPaused ? "text-warning-600" : "text-rose-600"}`} />
-                        <div className="space-y-1">
-                            <p className={`text-sm font-semibold ${isPaused ? "text-warning-700" : "text-rose-700"}`}>
-                                {isPaused
-                                    ? t("หยุดรับคิวชั่วคราวเท่านั้น ถ้าเลิกใช้งานห้องแล้วให้ปิดเซสชันทันที", "Pause is only temporary. If you are done using the room, close the session immediately.")
-                                    : t("ถ้าปิดหรือรีโหลดหน้านี้แล้วกดยืนยัน ระบบจะปิดเซสชันคิวนี้ถาวรอัตโนมัติ", "If you close or reload this page and confirm the browser warning, this queue session will be closed automatically and permanently.")}
-                            </p>
-                            <p className={`text-sm ${isPaused ? "text-warning-700" : "text-rose-700"}`}>
-                                {t(
-                                    "เพื่อไม่ให้ห้องถูกค้างจนคนอื่นเปิดใช้ต่อไม่ได้ กรุณากดปิดเซสชันเมื่อเลิกใช้งานจริง และอย่ารีโหลดหน้านี้ถ้ายังต้องการใช้เซสชันเดิมต่อ",
-                                    "To avoid blocking the room for the next team, close the session when you are really done, and do not reload this page if you still need to keep the current session running."
-                                )}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* Main Content */}
             <div className={`flex-1 flex gap-4 ${sidebarPosition === 'bottom' ? 'flex-col' : 'flex-row'}`}>
                 {/* Room Layout */}
@@ -1234,6 +1203,51 @@ export default function ProjectorViewPage() {
                         </Button>
                         <Button color="danger" onPress={handleCloseSession} isLoading={isClosingSession}>
                             {t("ปิดเซสชัน", "Close Session")}
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
+            <Modal isOpen={isInitialWarningOpen} hideCloseButton isDismissable={false} size="md">
+                <ModalContent>
+                    <ModalHeader className="text-warning-700">
+                        {t("โปรดอ่านก่อนใช้งาน", "Please read before using")}
+                    </ModalHeader>
+                    <ModalBody>
+                        <div className="space-y-3">
+                            <div className="flex items-start gap-3 rounded-lg border border-warning-200 bg-warning-50 p-3">
+                                <Icon icon="solar:danger-triangle-bold" className="mt-0.5 shrink-0 text-xl text-warning-600" />
+                                <div className="space-y-2 text-sm text-warning-800">
+                                    <p className="font-semibold">
+                                        {isPaused
+                                            ? t(
+                                                `ตอนนี้คิวอยู่ในโหมดหยุดรับคิวชั่วคราว ถ้าหน้า projector หายไปและไม่มีสัญญาณกลับมานานเกิน ${PAUSED_SESSION_LEASE_MINUTES} นาที ระบบจะปิดเซสชันนี้อัตโนมัติ`,
+                                                `The queue is currently paused. If the projector page disappears and does not come back for more than ${PAUSED_SESSION_LEASE_MINUTES} minutes, this session will be closed automatically.`
+                                            )
+                                            : t(
+                                                "หากหน้าเว็บค้าง คุณสามารถรีเฟรชหรือเปิดหน้านี้กลับมาใหม่ได้ตามปกติ ระบบจะไม่ปิดเซสชันอัตโนมัติขณะยัง active อยู่",
+                                                "If the page freezes, you can refresh or reopen this page normally. The system will not auto-close the session while it is still active."
+                                            )}
+                                    </p>
+                                    <p>
+                                        {t(
+                                            "เมื่อเลิกใช้งานห้องจริง ให้กดปิดเซสชันคิวทุกครั้ง เพื่อไม่ให้ห้องค้างจนคนอื่นเปิดใช้ต่อไม่ได้",
+                                            "When you are truly done using the room, close the queue session so the next team can use the room without getting blocked."
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button
+                            color="warning"
+                            onPress={() => setIsInitialWarningOpen(false)}
+                            isDisabled={initialWarningCountdown > 0}
+                        >
+                            {initialWarningCountdown > 0
+                                ? t(`ตกลง (${initialWarningCountdown})`, `OK (${initialWarningCountdown})`)
+                                : t("ตกลง", "OK")}
                         </Button>
                     </ModalFooter>
                 </ModalContent>
