@@ -139,6 +139,7 @@ function SettingsTabViewComponent({
         apply: isEnglish ? "Apply cover settings" : "ใช้การตั้งค่านี้",
         invalidFileType: isEnglish ? "Please choose an image file only." : "กรุณาเลือกไฟล์รูปภาพเท่านั้น",
         fileTooLarge: isEnglish ? "Supports JPG and PNG files up to 2MB" : "รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 2MB",
+        dragHint: isEnglish ? "Drag image to reposition · Scroll to zoom" : "ลากภาพเพื่อปรับตำแหน่ง · เลื่อนล้อเมาส์เพื่อซูม",
     };
 
     return (

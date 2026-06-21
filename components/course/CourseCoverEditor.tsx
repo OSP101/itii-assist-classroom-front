@@ -6,7 +6,6 @@ import { Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from "@herou
 import { Icon } from "@iconify/react";
 import { CourseCoverImage } from "./CourseCoverImage";
 import {
-    COURSE_COVER_ASPECT_RATIO,
     COURSE_COVER_DEFAULT_POSITION_X,
     COURSE_COVER_DEFAULT_POSITION_Y,
     COURSE_COVER_DEFAULT_ZOOM,
@@ -35,6 +34,7 @@ interface CourseCoverEditorText {
     apply: string;
     invalidFileType: string;
     fileTooLarge: string;
+    dragHint?: string;
 }
 
 interface CourseCoverEditorProps {
@@ -55,12 +55,19 @@ export function CourseCoverEditor({
     onValidationError,
 }: CourseCoverEditorProps) {
     const inputRef = useRef<HTMLInputElement | null>(null);
+    const previewRef = useRef<HTMLDivElement | null>(null);
     const [isAdjustOpen, setIsAdjustOpen] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
     const [draft, setDraft] = useState({
         cover_position_x: value.cover_position_x || COURSE_COVER_DEFAULT_POSITION_X,
         cover_position_y: value.cover_position_y || COURSE_COVER_DEFAULT_POSITION_Y,
         cover_zoom: value.cover_zoom || COURSE_COVER_DEFAULT_ZOOM,
     });
+
+    // Refs for drag state to avoid stale closures
+    const dragActive = useRef(false);
+    const dragLastPos = useRef({ x: 0, y: 0 });
+    const dragZoom = useRef(COURSE_COVER_DEFAULT_ZOOM);
 
     const openPicker = () => {
         if (disabled) {
@@ -136,6 +143,49 @@ export function CourseCoverEditor({
         setIsAdjustOpen(false);
     };
 
+    // ── Drag-to-reposition handlers ──────────────────────────────────────────
+    const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        dragActive.current = true;
+        dragLastPos.current = { x: e.clientX, y: e.clientY };
+        dragZoom.current = draft.cover_zoom;
+        e.currentTarget.setPointerCapture(e.pointerId);
+        setIsDragging(true);
+        e.preventDefault();
+    };
+
+    const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (!dragActive.current || !previewRef.current) return;
+        const dx = e.clientX - dragLastPos.current.x;
+        const dy = e.clientY - dragLastPos.current.y;
+        dragLastPos.current = { x: e.clientX, y: e.clientY };
+        const rect = previewRef.current.getBoundingClientRect();
+        // sensitivity: dragging full container width = 100% position change, scaled by zoom
+        const sensX = 100 / (rect.width * Math.max(1, dragZoom.current));
+        const sensY = 100 / (rect.height * Math.max(1, dragZoom.current));
+        setDraft((prev) => ({
+            ...prev,
+            cover_position_x: Math.min(100, Math.max(0, prev.cover_position_x - dx * sensX)),
+            cover_position_y: Math.min(100, Math.max(0, prev.cover_position_y - dy * sensY)),
+        }));
+    };
+
+    const handlePointerUp = () => {
+        dragActive.current = false;
+        setIsDragging(false);
+    };
+
+    // Scroll/pinch to zoom on the preview
+    const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.08 : 0.08;
+        setDraft((prev) => ({
+            ...prev,
+            cover_zoom: Math.min(2.5, Math.max(1, prev.cover_zoom + delta)),
+        }));
+    };
+
+    const dragHintText = text.dragHint ?? "ลากภาพเพื่อปรับตำแหน่ง · เลื่อนล้อเมาส์เพื่อซูม";
+
     return (
         <>
             <input
@@ -148,21 +198,44 @@ export function CourseCoverEditor({
             />
 
             <div className="space-y-4 rounded-xl bg-content2/80 p-5">
-                <div className="flex items-center gap-2">
-                    <Icon icon="solar:gallery-bold" className={`text-lg ${accentClassName}`} />
-                    <span className="text-sm font-semibold text-default-700">{text.title}</span>
+                {/* Header row with size badge */}
+                <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                        <Icon icon="solar:gallery-bold" className={`text-lg ${accentClassName}`} />
+                        <span className="text-sm font-semibold text-default-700">{text.title}</span>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-default-100 px-2.5 py-1 text-xs font-medium text-default-500">
+                        {COURSE_COVER_RECOMMENDED_WIDTH} × {COURSE_COVER_RECOMMENDED_HEIGHT} px
+                    </span>
                 </div>
 
                 {value.image ? (
                     <>
-                        <CourseCoverImage
-                            src={value.image}
-                            alt={text.title}
-                            positionX={value.cover_position_x}
-                            positionY={value.cover_position_y}
-                            zoom={value.cover_zoom}
-                            className="aspect-[4/1] w-full rounded-xl border border-default-200 bg-default-100"
-                        />
+                        {/* Preview thumbnail — click to open adjust modal */}
+                        <button
+                            type="button"
+                            onClick={openAdjustModal}
+                            disabled={disabled}
+                            className="group relative w-full overflow-hidden rounded-xl border border-default-200 bg-default-100 disabled:pointer-events-none"
+                            aria-label={text.adjustCover}
+                        >
+                            <CourseCoverImage
+                                src={value.image}
+                                alt={text.title}
+                                positionX={value.cover_position_x}
+                                positionY={value.cover_position_y}
+                                zoom={value.cover_zoom}
+                                className="aspect-[4/1] w-full"
+                            />
+                            {!disabled && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
+                                    <span className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
+                                        <Icon icon="solar:move-bold" className="text-sm" />
+                                        {text.adjustCover}
+                                    </span>
+                                </div>
+                            )}
+                        </button>
                         <div className="flex flex-wrap gap-2">
                             <Button size="sm" color="primary" onPress={openPicker} isDisabled={disabled}>
                                 {text.changeImage}
@@ -185,64 +258,68 @@ export function CourseCoverEditor({
                         <Icon icon="solar:cloud-upload-bold-duotone" className={`mx-auto mb-3 text-5xl ${accentClassName}`} />
                         <p className="font-medium text-default-700">{text.emptyTitle}</p>
                         <p className="mt-1 text-sm text-default-500">{text.emptyHint}</p>
-                        <p className="mt-2 text-xs text-default-400">{text.recommendedSize}</p>
+                        <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-default-200 bg-default-50 px-3 py-1 text-xs text-default-500">
+                            <Icon icon="solar:ruler-bold" className="text-sm" />
+                            {text.recommendedSize}: {COURSE_COVER_RECOMMENDED_WIDTH} × {COURSE_COVER_RECOMMENDED_HEIGHT} px
+                        </div>
                     </button>
                 )}
-
-                {value.image ? (
-                    <p className="text-xs text-default-400">
-                        {text.recommendedSize}
-                    </p>
-                ) : null}
             </div>
 
+            {/* ── Adjust Modal ──────────────────────────────────────────────── */}
             <Modal isOpen={isAdjustOpen} onClose={() => setIsAdjustOpen(false)} size="3xl">
                 <ModalContent>
                     {(onClose) => (
                         <>
-                            <ModalHeader>{text.modalTitle}</ModalHeader>
+                            <ModalHeader className="flex items-center gap-2">
+                                <Icon icon="solar:move-bold-duotone" className={`text-xl ${accentClassName}`} />
+                                {text.modalTitle}
+                            </ModalHeader>
                             <ModalBody className="space-y-4">
                                 <p className="text-sm text-default-500">{text.modalHint}</p>
-                                <CourseCoverImage
-                                    src={value.image}
-                                    alt={text.title}
-                                    positionX={draft.cover_position_x}
-                                    positionY={draft.cover_position_y}
-                                    zoom={draft.cover_zoom}
-                                    className="aspect-[4/1] w-full rounded-xl border border-default-200 bg-slate-950"
-                                />
-                                <div className="space-y-3">
-                                    <label className="block text-xs font-medium uppercase tracking-wide text-default-500">
-                                        {text.horizontalPosition}
-                                    </label>
-                                    <input
-                                        type="range"
-                                        min={0}
-                                        max={100}
-                                        step={1}
-                                        value={draft.cover_position_x}
-                                        onChange={(event) => setDraft((prev) => ({ ...prev, cover_position_x: Number(event.target.value) }))}
-                                        className="w-full"
+
+                                {/* Draggable preview */}
+                                <div
+                                    ref={previewRef}
+                                    className={`relative aspect-[4/1] w-full select-none overflow-hidden rounded-xl border border-default-200 bg-slate-950 ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+                                    onPointerDown={handlePointerDown}
+                                    onPointerMove={handlePointerMove}
+                                    onPointerUp={handlePointerUp}
+                                    onPointerCancel={handlePointerUp}
+                                    onWheel={handleWheel}
+                                    style={{ touchAction: "none" }}
+                                >
+                                    <CourseCoverImage
+                                        src={value.image}
+                                        alt={text.title}
+                                        positionX={draft.cover_position_x}
+                                        positionY={draft.cover_position_y}
+                                        zoom={draft.cover_zoom}
+                                        className="pointer-events-none h-full w-full"
                                     />
+                                    {/* Drag-hint overlay (shown when not dragging) */}
+                                    {!isDragging && (
+                                        <div className="pointer-events-none absolute inset-0 flex items-end justify-end p-2">
+                                            <span className="flex items-center gap-1 rounded-lg bg-black/50 px-2 py-1 text-[11px] text-white backdrop-blur-sm">
+                                                <Icon icon="solar:move-bold" className="shrink-0" />
+                                                {dragHintText}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {/* Frame guides — 4:1 aspect ratio border overlay */}
+                                    <div className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-inset ring-white/20" />
                                 </div>
-                                <div className="space-y-3">
-                                    <label className="block text-xs font-medium uppercase tracking-wide text-default-500">
-                                        {text.verticalPosition}
-                                    </label>
-                                    <input
-                                        type="range"
-                                        min={0}
-                                        max={100}
-                                        step={1}
-                                        value={draft.cover_position_y}
-                                        onChange={(event) => setDraft((prev) => ({ ...prev, cover_position_y: Number(event.target.value) }))}
-                                        className="w-full"
-                                    />
-                                </div>
-                                <div className="space-y-3">
-                                    <label className="block text-xs font-medium uppercase tracking-wide text-default-500">
-                                        {text.zoom}
-                                    </label>
+
+                                {/* Zoom slider */}
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-xs font-medium uppercase tracking-wide text-default-500">
+                                            {text.zoom}
+                                        </label>
+                                        <span className="rounded-full bg-default-100 px-2 py-0.5 text-xs text-default-500">
+                                            {draft.cover_zoom.toFixed(2)}×
+                                        </span>
+                                    </div>
                                     <input
                                         type="range"
                                         min={1}
@@ -252,6 +329,38 @@ export function CourseCoverEditor({
                                         onChange={(event) => setDraft((prev) => ({ ...prev, cover_zoom: Number(event.target.value) }))}
                                         className="w-full"
                                     />
+                                </div>
+
+                                {/* Fine-tune sliders */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-medium uppercase tracking-wide text-default-500">
+                                            {text.horizontalPosition}
+                                        </label>
+                                        <input
+                                            type="range"
+                                            min={0}
+                                            max={100}
+                                            step={1}
+                                            value={draft.cover_position_x}
+                                            onChange={(event) => setDraft((prev) => ({ ...prev, cover_position_x: Number(event.target.value) }))}
+                                            className="w-full"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-medium uppercase tracking-wide text-default-500">
+                                            {text.verticalPosition}
+                                        </label>
+                                        <input
+                                            type="range"
+                                            min={0}
+                                            max={100}
+                                            step={1}
+                                            value={draft.cover_position_y}
+                                            onChange={(event) => setDraft((prev) => ({ ...prev, cover_position_y: Number(event.target.value) }))}
+                                            className="w-full"
+                                        />
+                                    </div>
                                 </div>
                             </ModalBody>
                             <ModalFooter>
@@ -271,5 +380,5 @@ export function CourseCoverEditor({
 }
 
 export function buildCourseCoverRecommendedSizeText(prefix: string) {
-    return `${prefix} ${COURSE_COVER_RECOMMENDED_WIDTH} x ${COURSE_COVER_RECOMMENDED_HEIGHT}px`;
+    return `${prefix} ${COURSE_COVER_RECOMMENDED_WIDTH} × ${COURSE_COVER_RECOMMENDED_HEIGHT}px`;
 }

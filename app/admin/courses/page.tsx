@@ -192,6 +192,7 @@ export default function CoursesPage() {
         apply: t("applyCourseCover"),
         invalidFileType: t("pleaseSelectImageFileOnly"),
         fileTooLarge: t("courseImageHint"),
+        dragHint: t("courseCoverDragHint"),
     };
 
     // Fetch courses

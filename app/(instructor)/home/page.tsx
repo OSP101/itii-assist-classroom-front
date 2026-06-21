@@ -311,6 +311,7 @@ export default function HomePage() {
         apply: t("applyCourseCover"),
         invalidFileType: t("pleaseSelectImageFileOnly"),
         fileTooLarge: t("courseImageHint"),
+        dragHint: t("courseCoverDragHint"),
     };
 
     const getLocalizedErrorMessage = (message: unknown, fallbackMessage: string) => {
