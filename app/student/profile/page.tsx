@@ -79,10 +79,21 @@ export default function StudentProfilePage() {
     return definition?.full_name || programValue;
   }, [programValue, programs]);
 
+  const programDisplay = useMemo(() => {
+    if (!programValue) return "-";
+
+    const normalized = programValue.toLowerCase();
+    const definition = programs.find((program) =>
+      program.short_name.toLowerCase() === normalized || program.full_name.toLowerCase() === normalized,
+    );
+
+    return definition?.full_name || programValue;
+  }, [programValue, programs]);
+
   const infoRows = [
     { icon: "solar:letter-bold-duotone", label: "อีเมล", value: user?.email || "-", copyable: false },
     { icon: "solar:user-id-bold-duotone", label: "รหัสนักศึกษา", value: user?.username || "-", copyable: true },
-    { icon: "solar:shield-user-bold-duotone", label: "สาขา", value: profileSubtitle, copyable: false },
+    { icon: "solar:shield-user-bold-duotone", label: "สาขา", value: programDisplay, copyable: false },
   ];
 
   const menuItems = [
