@@ -33,6 +33,7 @@ export interface User {
   full_name: string;
   role: AppRole;
   avatar: string | null;
+  extra?: Record<string, unknown>;
   preferences?: UserPreferences;
   is_active: boolean;
   created_at: string;

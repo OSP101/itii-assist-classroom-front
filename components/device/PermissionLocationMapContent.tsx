@@ -19,6 +19,10 @@ interface PermissionLocationMapContentProps {
   accuracy: number;
 }
 
+function getAccuracyBounds(latitude: number, longitude: number, accuracy: number) {
+  return L.latLng(latitude, longitude).toBounds(Math.max(accuracy, 10) * 2);
+}
+
 export default function PermissionLocationMapContent({
   latitude,
   longitude,
@@ -37,6 +41,8 @@ export default function PermissionLocationMapContent({
       scrollWheelZoom: true,
     });
 
+    map.setView([latitude, longitude], 16);
+
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19,
@@ -52,7 +58,7 @@ export default function PermissionLocationMapContent({
       weight: 2,
     }).addTo(map);
 
-    map.fitBounds(circleRef.current.getBounds(), {
+    map.fitBounds(getAccuracyBounds(latitude, longitude, accuracy), {
       padding: [28, 28],
       maxZoom: 18,
     });
@@ -71,7 +77,7 @@ export default function PermissionLocationMapContent({
     markerRef.current.setLatLng([latitude, longitude]);
     circleRef.current.setLatLng([latitude, longitude]);
     circleRef.current.setRadius(Math.max(accuracy, 10));
-    mapInstanceRef.current.fitBounds(circleRef.current.getBounds(), {
+    mapInstanceRef.current.fitBounds(getAccuracyBounds(latitude, longitude, accuracy), {
       padding: [28, 28],
       maxZoom: 18,
     });

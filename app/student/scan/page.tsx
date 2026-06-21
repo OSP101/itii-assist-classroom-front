@@ -73,10 +73,10 @@ function scoreCameraDevice(label: string): number {
   return score;
 }
 
-function pickPreferredRearCamera(
+function listRearCameraCandidates(
   devices: MediaDeviceInfo[],
   currentDeviceId: string,
-): MediaDeviceInfo | null {
+): MediaDeviceInfo[] {
   const videoInputs = devices.filter((device) => device.kind === "videoinput");
   const labeledDevices = videoInputs.filter((device) => normalizeCameraLabel(device.label));
   const hasLabeledDevices = labeledDevices.length > 0;
@@ -92,17 +92,16 @@ function pickPreferredRearCamera(
       : [];
 
   if (candidatePool.length === 0) {
-    return null;
+    return [];
   }
 
-  const candidates = candidatePool
+  return candidatePool
     .map((device) => ({
       device,
       score: scoreCameraDevice(device.label) + (device.deviceId === currentDeviceId ? 10 : 0),
     }))
-    .sort((a, b) => b.score - a.score);
-
-  return candidates[0]?.device ?? null;
+    .sort((a, b) => b.score - a.score)
+    .map((candidate) => candidate.device);
 }
 
 async function getRearCameraBootstrapStream(): Promise<MediaStream> {
@@ -159,6 +158,135 @@ async function applyRearCameraTrackPreferences(track: MediaStreamTrack): Promise
   } catch {
     // Ignore unsupported camera tuning options and keep the stream alive.
   }
+}
+
+type RearCameraProbeResult = {
+  deviceId: string;
+  label: string;
+  score: number;
+  stream: MediaStream;
+  track: MediaStreamTrack;
+};
+
+function scoreRearCameraCapabilities(track: MediaStreamTrack): number {
+  if (typeof track.getCapabilities !== "function") {
+    return 0;
+  }
+
+  const capabilities = track.getCapabilities() as MediaTrackCapabilities & {
+    zoom?: { min?: number; max?: number };
+    torch?: boolean;
+    focusMode?: string[];
+    focusDistance?: { min?: number; max?: number };
+  };
+
+  let score = 0;
+
+  if (capabilities.torch) score += 20;
+  if (Array.isArray(capabilities.focusMode) && capabilities.focusMode.includes("continuous")) score += 20;
+  if (typeof capabilities.focusDistance?.max === "number" && capabilities.focusDistance.max > 0) score += 10;
+  if (typeof capabilities.zoom?.max === "number") {
+    if (capabilities.zoom.max >= 2) score += 35;
+    else if (capabilities.zoom.max > 1) score += 18;
+    else score -= 25;
+  }
+
+  return score;
+}
+
+async function openRearCameraStream(deviceId?: string): Promise<MediaStream> {
+  return navigator.mediaDevices.getUserMedia({
+    video: deviceId
+      ? {
+          deviceId: { exact: deviceId },
+          facingMode: { ideal: "environment" },
+        }
+      : {
+          facingMode: { exact: "environment" },
+        },
+    audio: false,
+  });
+}
+
+async function probeRearCamera(
+  device: MediaDeviceInfo,
+  currentDeviceId: string,
+): Promise<RearCameraProbeResult | null> {
+  try {
+    const stream = await openRearCameraStream(device.deviceId);
+    const track = stream.getVideoTracks()[0];
+    if (!track) {
+      stream.getTracks().forEach((candidateTrack) => candidateTrack.stop());
+      return null;
+    }
+
+    const settings = track.getSettings();
+    const label = track.label || device.label;
+    let score =
+      scoreCameraDevice(label) +
+      scoreRearCameraCapabilities(track) +
+      (settings.facingMode === "environment" ? 15 : 0) +
+      (device.deviceId === currentDeviceId ? 5 : 0);
+
+    if (isLikelyFrontCameraLabel(label)) score -= 100;
+    if (isLikelyUltraWideLabel(label)) score -= 80;
+
+    return {
+      deviceId: device.deviceId,
+      label,
+      score,
+      stream,
+      track,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function selectBestRearCameraStream(
+  initialStream: MediaStream,
+  devices: MediaDeviceInfo[],
+): Promise<RearCameraProbeResult> {
+  const initialTrack = initialStream.getVideoTracks()[0];
+  const initialDeviceId = initialTrack?.getSettings().deviceId ?? "";
+  const initialLabel =
+    initialTrack?.label ||
+    devices.find((device) => device.deviceId === initialDeviceId)?.label ||
+    "";
+
+  const initialResult: RearCameraProbeResult = {
+    deviceId: initialDeviceId,
+    label: initialLabel,
+    score:
+      scoreCameraDevice(initialLabel) +
+      (initialTrack ? scoreRearCameraCapabilities(initialTrack) : 0) +
+      10,
+    stream: initialStream,
+    track: initialTrack!,
+  };
+
+  const candidates = listRearCameraCandidates(devices, initialDeviceId)
+    .filter((device) => device.deviceId && device.deviceId !== initialDeviceId)
+    .slice(0, 3);
+
+  let bestResult = initialResult;
+
+  for (const candidate of candidates) {
+    const probed = await probeRearCamera(candidate, initialDeviceId);
+    if (!probed) {
+      continue;
+    }
+
+    if (probed.score > bestResult.score + 8) {
+      bestResult.stream.getTracks().forEach((track) => track.stop());
+      bestResult = probed;
+      continue;
+    }
+
+    probed.stream.getTracks().forEach((track) => track.stop());
+  }
+
+  return bestResult;
 }
 
 export default function StudentScanPage() {
@@ -287,41 +415,11 @@ export default function StudentScanPage() {
       stopCamera();
 
       const initialStream = await getRearCameraBootstrapStream();
-
-      let stream = initialStream;
-      let currentTrack = initialStream.getVideoTracks()[0] ?? null;
-      let currentDeviceId = currentTrack?.getSettings().deviceId ?? "";
-
       const devices = await navigator.mediaDevices.enumerateDevices();
-      const preferredDevice = pickPreferredRearCamera(devices, currentDeviceId);
-      const currentLabel =
-        currentTrack?.label ||
-        devices.find((device) => device.deviceId === currentDeviceId)?.label ||
-        "";
-      const shouldSwitchToPreferredDevice =
-        Boolean(preferredDevice?.deviceId) &&
-        preferredDevice!.deviceId !== currentDeviceId &&
-        (
-          isLikelyFrontCameraLabel(currentLabel) ||
-          isLikelyUltraWideLabel(currentLabel) ||
-          (
-            !isLikelyRearCameraLabel(currentLabel) &&
-            scoreCameraDevice(preferredDevice?.label ?? "") > scoreCameraDevice(currentLabel) + 10
-          )
-        );
-
-      if (shouldSwitchToPreferredDevice && preferredDevice?.deviceId) {
-        initialStream.getTracks().forEach((track) => track.stop());
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            deviceId: { exact: preferredDevice.deviceId },
-            facingMode: { ideal: "environment" },
-          },
-          audio: false,
-        });
-        currentTrack = stream.getVideoTracks()[0] ?? null;
-        currentDeviceId = currentTrack?.getSettings().deviceId ?? preferredDevice.deviceId;
-      }
+      const selectedCamera = await selectBestRearCameraStream(initialStream, devices);
+      const stream = selectedCamera.stream;
+      const currentTrack = selectedCamera.track;
+      const currentDeviceId = selectedCamera.deviceId;
 
       if (currentTrack) {
         await applyRearCameraTrackPreferences(currentTrack);
@@ -330,7 +428,7 @@ export default function StudentScanPage() {
       const resolvedLabel =
         currentTrack?.label ||
         devices.find((device) => device.deviceId === currentDeviceId)?.label ||
-        preferredDevice?.label ||
+        selectedCamera.label ||
         null;
 
       streamRef.current = stream;
