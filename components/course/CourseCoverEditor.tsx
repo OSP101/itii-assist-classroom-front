@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Button } from "@heroui/button";
 import { Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from "@heroui/modal";
 import { Icon } from "@iconify/react";
 import { CourseCoverImage } from "./CourseCoverImage";
 import {
+    COURSE_COVER_ASPECT_RATIO,
     COURSE_COVER_DEFAULT_POSITION_X,
     COURSE_COVER_DEFAULT_POSITION_Y,
     COURSE_COVER_DEFAULT_ZOOM,
@@ -64,15 +65,62 @@ export function CourseCoverEditor({
         cover_zoom: value.cover_zoom || COURSE_COVER_DEFAULT_ZOOM,
     });
 
+    // Natural image dimensions for computing the crop frame
+    const [imgNaturalSize, setImgNaturalSize] = useState<{ w: number; h: number } | null>(null);
+
+    // Load natural image dimensions whenever the source image changes
+    useEffect(() => {
+        if (!value.image) { setImgNaturalSize(null); return; }
+        const img = new window.Image();
+        img.onload = () => setImgNaturalSize({ w: img.naturalWidth, h: img.naturalHeight });
+        img.src = value.image;
+    }, [value.image]);
+
     // Refs for drag state to avoid stale closures
     const dragActive = useRef(false);
     const dragLastPos = useRef({ x: 0, y: 0 });
     const dragZoom = useRef(COURSE_COVER_DEFAULT_ZOOM);
 
+    // ── Crop frame metrics ───────────────────────────────────────────────────
+    // Compute how the 4:1 crop frame maps onto the full-image preview
+    const cropMetrics = useMemo(() => {
+        if (!imgNaturalSize) return null;
+        const imgAR = imgNaturalSize.w / imgNaturalSize.h;
+        const coverAR = COURSE_COVER_ASPECT_RATIO; // 4:1
+        // Fraction of image (in each axis) visible at zoom=1
+        const visX = Math.min(1, coverAR / imgAR);
+        const visY = Math.min(1, imgAR / coverAR);
+        return { imgAR, coverAR, visX, visY };
+    }, [imgNaturalSize]);
+
+    // Crop frame rectangle in % of the preview container (0-100)
+    const cropFrame = useMemo(() => {
+        if (!cropMetrics) return { left: 0, top: 0, width: 100, height: 100 };
+        const { imgAR, coverAR, visX, visY } = cropMetrics;
+        const z = draft.cover_zoom;
+
+        // Fraction of image visible at this zoom
+        const visXz = visX / z;
+        const visYz = visY / z;
+
+        // Center of the crop frame in image-fraction coordinates (0-1)
+        // Derived from object-position CSS semantics + object-fit: cover
+        const centerX_frac = imgAR > coverAR
+            ? draft.cover_position_x / 100 * (1 - visX) + visX / 2
+            : 0.5;
+        const centerY_frac = imgAR < coverAR
+            ? draft.cover_position_y / 100 * (1 - visY) + visY / 2
+            : 0.5;
+
+        // Convert to preview-% and clamp so frame stays inside the image
+        const left = Math.max(0, Math.min(100 - visXz * 100, (centerX_frac - visXz / 2) * 100));
+        const top  = Math.max(0, Math.min(100 - visYz * 100, (centerY_frac - visYz / 2) * 100));
+
+        return { left, top, width: visXz * 100, height: visYz * 100 };
+    }, [cropMetrics, draft]);
+
     const openPicker = () => {
-        if (disabled) {
-            return;
-        }
+        if (disabled) return;
         inputRef.current?.click();
     };
 
@@ -89,9 +137,7 @@ export function CourseCoverEditor({
         const file = event.target.files?.[0];
         event.target.value = "";
 
-        if (!file) {
-            return;
-        }
+        if (!file) return;
 
         if (!file.type.startsWith("image/")) {
             onValidationError?.(text.invalidFileType);
@@ -133,6 +179,15 @@ export function CourseCoverEditor({
         setIsAdjustOpen(false);
     };
 
+    const resetDraft = () => {
+        setDraft({
+            cover_position_x: COURSE_COVER_DEFAULT_POSITION_X,
+            cover_position_y: COURSE_COVER_DEFAULT_POSITION_Y,
+            cover_zoom: COURSE_COVER_DEFAULT_ZOOM,
+        });
+        setIsAdjustOpen(false);
+    };
+
     const applyDraft = () => {
         onChange({
             ...value,
@@ -154,18 +209,32 @@ export function CourseCoverEditor({
     };
 
     const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-        if (!dragActive.current || !previewRef.current) return;
+        if (!dragActive.current || !previewRef.current || !cropMetrics) return;
         const dx = e.clientX - dragLastPos.current.x;
         const dy = e.clientY - dragLastPos.current.y;
         dragLastPos.current = { x: e.clientX, y: e.clientY };
         const rect = previewRef.current.getBoundingClientRect();
-        // sensitivity: dragging full container width = 100% position change, scaled by zoom
-        const sensX = 100 / (rect.width * Math.max(1, dragZoom.current));
-        const sensY = 100 / (rect.height * Math.max(1, dragZoom.current));
+        const { imgAR, coverAR, visX, visY } = cropMetrics;
+
+        // Sensitivity: posX/posY change per pixel of drag
+        // Moving posX by Δ shifts crop center by Δ*(1-visX) fraction of image.
+        // In preview pixels: Δ*(1-visX)*rect.width → sensX = 100/((1-visX)*rect.width)
+        // Dragging the image left/right: posX decreases/increases (drag-the-image model)
+        const sensX = imgAR > coverAR && (1 - visX) > 0.001
+            ? 100 / ((1 - visX) * rect.width)
+            : 0;
+        const sensY = imgAR < coverAR && (1 - visY) > 0.001
+            ? 100 / ((1 - visY) * rect.height)
+            : 0;
+
         setDraft((prev) => ({
             ...prev,
-            cover_position_x: Math.min(100, Math.max(0, prev.cover_position_x - dx * sensX)),
-            cover_position_y: Math.min(100, Math.max(0, prev.cover_position_y - dy * sensY)),
+            cover_position_x: sensX > 0
+                ? Math.min(100, Math.max(0, prev.cover_position_x - dx * sensX))
+                : prev.cover_position_x,
+            cover_position_y: sensY > 0
+                ? Math.min(100, Math.max(0, prev.cover_position_y - dy * sensY))
+                : prev.cover_position_y,
         }));
     };
 
@@ -174,7 +243,7 @@ export function CourseCoverEditor({
         setIsDragging(false);
     };
 
-    // Scroll/pinch to zoom on the preview
+    // Scroll to zoom on the preview
     const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
         e.preventDefault();
         const delta = e.deltaY > 0 ? -0.08 : 0.08;
@@ -185,6 +254,11 @@ export function CourseCoverEditor({
     };
 
     const dragHintText = text.dragHint ?? "ลากภาพเพื่อปรับตำแหน่ง · เลื่อนล้อเมาส์เพื่อซูม";
+
+    // Preview container aspect ratio (natural image ratio, max 16:9 for display)
+    const previewAspectRatio = imgNaturalSize
+        ? `${imgNaturalSize.w} / ${imgNaturalSize.h}`
+        : "16 / 9";
 
     return (
         <>
@@ -267,47 +341,95 @@ export function CourseCoverEditor({
             </div>
 
             {/* ── Adjust Modal ──────────────────────────────────────────────── */}
-            <Modal isOpen={isAdjustOpen} onClose={() => setIsAdjustOpen(false)} size="3xl">
+            <Modal isOpen={isAdjustOpen} onClose={() => setIsAdjustOpen(false)} size="3xl" scrollBehavior="inside">
                 <ModalContent>
                     {(onClose) => (
                         <>
                             <ModalHeader className="flex items-center gap-2">
-                                <Icon icon="solar:move-bold-duotone" className={`text-xl ${accentClassName}`} />
+                                <Icon icon="solar:crop-minimalistic-bold-duotone" className={`text-xl ${accentClassName}`} />
                                 {text.modalTitle}
                             </ModalHeader>
-                            <ModalBody className="space-y-4">
+                            <ModalBody className="space-y-4 pb-2">
                                 <p className="text-sm text-default-500">{text.modalHint}</p>
 
-                                {/* Draggable preview */}
+                                {/* ── Full-image preview with crop frame overlay ── */}
                                 <div
                                     ref={previewRef}
-                                    className={`relative aspect-[4/1] w-full select-none overflow-hidden rounded-xl border border-default-200 bg-slate-950 ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+                                    className={`relative w-full overflow-hidden rounded-xl border border-default-200 bg-slate-950 select-none ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+                                    style={{ aspectRatio: previewAspectRatio, maxHeight: "55vh", touchAction: "none" } as React.CSSProperties}
                                     onPointerDown={handlePointerDown}
                                     onPointerMove={handlePointerMove}
                                     onPointerUp={handlePointerUp}
                                     onPointerCancel={handlePointerUp}
                                     onWheel={handleWheel}
-                                    style={{ touchAction: "none" }}
                                 >
-                                    <CourseCoverImage
+                                    {/* Full image */}
+                                    <img
                                         src={value.image}
                                         alt={text.title}
-                                        positionX={draft.cover_position_x}
-                                        positionY={draft.cover_position_y}
-                                        zoom={draft.cover_zoom}
-                                        className="pointer-events-none h-full w-full"
+                                        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                                        draggable={false}
                                     />
-                                    {/* Drag-hint overlay (shown when not dragging) */}
+
+                                    {/* SVG mask: darken everything outside the crop frame */}
+                                    <svg
+                                        className="pointer-events-none absolute inset-0 h-full w-full"
+                                        viewBox="0 0 100 100"
+                                        preserveAspectRatio="none"
+                                        aria-hidden="true"
+                                    >
+                                        <defs>
+                                            <mask id="cover-crop-mask">
+                                                <rect x="0" y="0" width="100" height="100" fill="white" />
+                                                <rect
+                                                    x={cropFrame.left}
+                                                    y={cropFrame.top}
+                                                    width={cropFrame.width}
+                                                    height={cropFrame.height}
+                                                    fill="black"
+                                                />
+                                            </mask>
+                                        </defs>
+                                        {/* Dark vignette outside the crop frame */}
+                                        <rect
+                                            x="0" y="0" width="100" height="100"
+                                            fill="rgba(0,0,0,0.58)"
+                                            mask="url(#cover-crop-mask)"
+                                        />
+                                        {/* Crop frame border */}
+                                        <rect
+                                            x={cropFrame.left}
+                                            y={cropFrame.top}
+                                            width={cropFrame.width}
+                                            height={cropFrame.height}
+                                            fill="none"
+                                            stroke="white"
+                                            strokeWidth="0.45"
+                                        />
+                                        {/* Corner brackets (L-shaped) */}
+                                        {[
+                                            // top-left
+                                            [`M${cropFrame.left + 3},${cropFrame.top + 0.5} L${cropFrame.left + 0.5},${cropFrame.top + 0.5} L${cropFrame.left + 0.5},${cropFrame.top + 3}`],
+                                            // top-right
+                                            [`M${cropFrame.left + cropFrame.width - 3},${cropFrame.top + 0.5} L${cropFrame.left + cropFrame.width - 0.5},${cropFrame.top + 0.5} L${cropFrame.left + cropFrame.width - 0.5},${cropFrame.top + 3}`],
+                                            // bottom-left
+                                            [`M${cropFrame.left + 0.5},${cropFrame.top + cropFrame.height - 3} L${cropFrame.left + 0.5},${cropFrame.top + cropFrame.height - 0.5} L${cropFrame.left + 3},${cropFrame.top + cropFrame.height - 0.5}`],
+                                            // bottom-right
+                                            [`M${cropFrame.left + cropFrame.width - 0.5},${cropFrame.top + cropFrame.height - 3} L${cropFrame.left + cropFrame.width - 0.5},${cropFrame.top + cropFrame.height - 0.5} L${cropFrame.left + cropFrame.width - 3},${cropFrame.top + cropFrame.height - 0.5}`],
+                                        ].map((d, i) => (
+                                            <path key={i} d={d[0]} stroke="white" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+                                        ))}
+                                    </svg>
+
+                                    {/* Drag hint */}
                                     {!isDragging && (
-                                        <div className="pointer-events-none absolute inset-0 flex items-end justify-end p-2">
+                                        <div className="pointer-events-none absolute bottom-2 right-2">
                                             <span className="flex items-center gap-1 rounded-lg bg-black/50 px-2 py-1 text-[11px] text-white backdrop-blur-sm">
                                                 <Icon icon="solar:move-bold" className="shrink-0" />
                                                 {dragHintText}
                                             </span>
                                         </div>
                                     )}
-                                    {/* Frame guides — 4:1 aspect ratio border overlay */}
-                                    <div className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-inset ring-white/20" />
                                 </div>
 
                                 {/* Zoom slider */}
@@ -345,6 +467,7 @@ export function CourseCoverEditor({
                                             value={draft.cover_position_x}
                                             onChange={(event) => setDraft((prev) => ({ ...prev, cover_position_x: Number(event.target.value) }))}
                                             className="w-full"
+                                            disabled={cropMetrics ? cropMetrics.imgAR <= cropMetrics.coverAR : false}
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -359,6 +482,7 @@ export function CourseCoverEditor({
                                             value={draft.cover_position_y}
                                             onChange={(event) => setDraft((prev) => ({ ...prev, cover_position_y: Number(event.target.value) }))}
                                             className="w-full"
+                                            disabled={cropMetrics ? cropMetrics.imgAR >= cropMetrics.coverAR : false}
                                         />
                                     </div>
                                 </div>

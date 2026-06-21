@@ -48,7 +48,7 @@ export function CourseCoverImage({
                     style={{
                         objectPosition: `${safePositionX}% ${safePositionY}%`,
                         transform: `scale(${safeZoom})`,
-                        transformOrigin: "center center",
+                        transformOrigin: `${safePositionX}% ${safePositionY}%`,
                     }}
                 />
             ) : (

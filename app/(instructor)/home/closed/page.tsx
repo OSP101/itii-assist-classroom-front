@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { Card, CardBody, CardFooter } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
@@ -18,6 +17,7 @@ import { Icon } from "@iconify/react";
 import { addToast } from "@heroui/toast";
 import { authService } from "@/services/auth.service";
 import { courseService, Course } from "@/services/course.service";
+import { CourseCoverImage } from "@/components/course";
 import { useSocket } from "@/contexts/SocketContext";
 import { CourseListSkeleton } from "@/components/loading-skeletons";
 import { instructorFlatButtonClass } from "@/components/ui/instructor-button-styles";
@@ -571,12 +571,13 @@ export default function ClosedCoursesPage() {
                                 {/* Course Image/Banner */}
                                 <div className="h-32 relative overflow-hidden">
                                     {course.image ? (
-                                        <Image
+                                        <CourseCoverImage
                                             src={course.image}
                                             alt={course.name}
-                                            fill
-                                            className="object-cover grayscale"
-                                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                            positionX={course.cover_position_x}
+                                            positionY={course.cover_position_y}
+                                            zoom={course.cover_zoom}
+                                            className="h-full w-full grayscale"
                                         />
                                     ) : (
                                                 <div className="w-full h-full bg-linear-to-br from-slate-400 to-slate-500 flex items-center justify-center">
@@ -708,11 +709,13 @@ export default function ClosedCoursesPage() {
                                         {/* Course Image/Icon */}
                                         <div className="w-14 h-14 sm:w-16 sm:h-16 relative overflow-hidden rounded-lg shrink-0">
                                             {course.image ? (
-                                                <Image
+                                                <CourseCoverImage
                                                     src={course.image}
                                                     alt={course.name}
-                                                    fill
-                                                    className="object-cover grayscale"
+                                                    positionX={course.cover_position_x}
+                                                    positionY={course.cover_position_y}
+                                                    zoom={course.cover_zoom}
+                                                    className="h-full w-full grayscale"
                                                 />
                                             ) : (
                                                 <div className="w-full h-full bg-linear-to-br from-slate-400 to-slate-500 flex items-center justify-center">

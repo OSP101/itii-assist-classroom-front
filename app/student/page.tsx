@@ -6,6 +6,7 @@ import { Button } from "@heroui/button";
 import { Icon } from "@iconify/react";
 import { authService } from "@/services/auth.service";
 import { courseService, type Course } from "@/services/course.service";
+import { CourseCoverImage } from "@/components/course";
 import { useNotification } from "@/contexts/NotificationContext";
 import { queryAllPerms } from "@/lib/device-permissions";
 
@@ -333,7 +334,18 @@ export default function StudentHomePage() {
                 href={`/student/courses/${course.id}`}
                 className="group flex items-center gap-4 rounded-[1.75rem] border border-slate-200/80 bg-white/95 p-4 shadow-sm shadow-slate-100 transition hover:border-slate-300 hover:shadow-slate-200/60 active:scale-[0.985]"
               >
-                <CourseInitialBadge code={course.code} />
+                {course.image ? (
+                  <CourseCoverImage
+                    src={course.image}
+                    alt={course.name}
+                    positionX={course.cover_position_x}
+                    positionY={course.cover_position_y}
+                    zoom={course.cover_zoom}
+                    className="h-12 w-12 shrink-0 rounded-2xl ring-2 ring-slate-100"
+                  />
+                ) : (
+                  <CourseInitialBadge code={course.code} />
+                )}
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
