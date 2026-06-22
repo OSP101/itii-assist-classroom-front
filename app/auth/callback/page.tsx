@@ -9,6 +9,7 @@ import { addToast } from "@heroui/toast";
 import { authService } from "@/services";
 import { getDefaultRouteForRole } from "@/lib/auth-routing";
 import { consumeOAuthReturnPath, storePendingAuthReturnPath } from "@/lib/auth-resume";
+import { getOAuthCallbackParam } from "@/lib/oauth-callback-params";
 
 const AUTH_PAGE_SHELL = "flex min-h-screen items-center justify-center bg-background p-4 text-foreground";
 const AUTH_PAGE_CARD = "w-full max-w-md border border-default-200 bg-content1 shadow-2xl shadow-slate-200/40 dark:shadow-zinc-950/50";
@@ -21,11 +22,11 @@ function AuthCallbackContent() {
 
     useEffect(() => {
         const handleCallback = async () => {
-            const accessToken = searchParams.get("accessToken");
-            const refreshToken = searchParams.get("refreshToken");
-            const error = searchParams.get("error");
-            const twoFactor = searchParams.get("twoFactor");
-            const linked = searchParams.get("linked"); // OAuth linking action
+            const accessToken = getOAuthCallbackParam(searchParams, "accessToken");
+            const refreshToken = getOAuthCallbackParam(searchParams, "refreshToken");
+            const error = getOAuthCallbackParam(searchParams, "error");
+            const twoFactor = getOAuthCallbackParam(searchParams, "twoFactor");
+            const linked = getOAuthCallbackParam(searchParams, "linked"); // OAuth linking action
 
             // Check if this callback is from a link action initiated via new tab.
             // We use localStorage (shared across same-origin tabs) because backend cookies

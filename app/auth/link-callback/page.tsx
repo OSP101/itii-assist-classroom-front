@@ -6,6 +6,7 @@ import { Card, CardBody } from "@heroui/card";
 import { Spinner } from "@heroui/spinner";
 import { Icon } from "@iconify/react";
 import { authService } from "@/services";
+import { getOAuthCallbackParam } from "@/lib/oauth-callback-params";
 
 const AUTH_PAGE_SHELL = "flex min-h-screen items-center justify-center bg-background p-4 text-foreground";
 const AUTH_PAGE_CARD = "w-full max-w-md border border-default-200 bg-content1 shadow-2xl shadow-slate-200/40 dark:shadow-zinc-950/50";
@@ -16,10 +17,10 @@ function LinkCallbackContent() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const accessToken = searchParams.get("accessToken");
-    const refreshToken = searchParams.get("refreshToken");
-    const linked = searchParams.get("linked");
-    const error = searchParams.get("error");
+    const accessToken = getOAuthCallbackParam(searchParams, "accessToken");
+    const refreshToken = getOAuthCallbackParam(searchParams, "refreshToken");
+    const linked = getOAuthCallbackParam(searchParams, "linked");
+    const error = getOAuthCallbackParam(searchParams, "error");
 
     // Always clean up the localStorage flag when link-callback is reached
     if (typeof window !== "undefined") {
