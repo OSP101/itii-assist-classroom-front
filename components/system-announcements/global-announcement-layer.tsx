@@ -10,7 +10,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { adminSettingsService, type Announcement } from "@/services/admin-settings.service";
 import { authService } from "@/services/auth.service";
 import userNotificationService from "@/services/user-notification.service";
-import { API_BASE_URL } from "@/config/api";
+import { getBackendPublicAssetUrl } from "@/lib/public-asset-url";
 
 const DISMISSED_KEY_PREFIX = "system-announcement-dismissed";
 
@@ -21,14 +21,7 @@ type VisibleAnnouncement = Announcement & {
 };
 
 function getFrontendAbsoluteUrl(pathOrUrl: string): string {
-  const value = String(pathOrUrl || "").trim();
-  if (!value) return "";
-  if (/^https?:\/\//i.test(value)) return value;
-  if (!value.startsWith("/")) return value;
-
-  const apiBase = API_BASE_URL.replace(/\/$/, "");
-  const origin = apiBase.endsWith("/api") ? apiBase.slice(0, -4) : apiBase;
-  return `${origin}${value}`;
+  return getBackendPublicAssetUrl(pathOrUrl);
 }
 
 function matchesDisplayPathRule(rule: string, pathname: string): boolean {

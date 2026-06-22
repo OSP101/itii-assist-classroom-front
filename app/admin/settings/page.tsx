@@ -32,7 +32,7 @@ import {
 } from "@/services/admin-settings.service";
 import { stepUpService } from "@/services/step-up.service";
 import { userService, type User } from "@/services/user.service";
-import { API_BASE_URL } from "@/config/api";
+import { getBackendPublicAssetUrl } from "@/lib/public-asset-url";
 import TablePaginationFooter, { DEFAULT_TABLE_ROWS_PER_PAGE } from "@/components/ui/table-pagination-footer";
 
 const ANNOUNCEMENT_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
@@ -904,14 +904,7 @@ export default function AdminSettingsPage() {
     };
 
     const toAnnouncementImagePreviewUrl = (pathOrUrl?: string | null): string => {
-        const value = String(pathOrUrl || "").trim();
-        if (!value) return "";
-        if (/^https?:\/\//i.test(value)) return value;
-        if (!value.startsWith("/")) return value;
-
-        const apiBase = API_BASE_URL.replace(/\/$/, "");
-        const origin = apiBase.endsWith("/api") ? apiBase.slice(0, -4) : apiBase;
-        return `${origin}${value}`;
+        return getBackendPublicAssetUrl(pathOrUrl);
     };
 
     const resetAnnouncementCropModal = useCallback(() => {

@@ -13,8 +13,7 @@ import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import scoreEditRequestService, { type ScoreEditRequest } from "@/services/scoreEditRequest.service";
-import { API_BASE_URL } from "@/config/api";
-import Image from "next/image";
+import { getBackendPublicAssetUrl } from "@/lib/public-asset-url";
 
 interface ScoreApprovalTabProps {
     courseId: string;
@@ -80,13 +79,8 @@ const getStatusLabel = (status: string, isEnglish: boolean): string => {
     }
 };
 
-// Get image URL helper — point directly to backend server
-// <img> tags load cross-origin images without CORS restrictions
 const getImageUrl = (imagePath: string): string => {
-    // API_BASE_URL = "http://host:3001/api" → strip trailing "/api" to get server root
-    const backendRoot = API_BASE_URL.replace(/\/api\/?$/, '');
-    // imagePath format: "uploads/score-edit-requests/filename.jpg"
-    return `${backendRoot}/${imagePath}`;
+    return getBackendPublicAssetUrl(imagePath);
 };
 
 export default function ScoreApprovalTab({ courseId, userRole, onPendingCountChange, isCourseActive = true }: ScoreApprovalTabProps) {
