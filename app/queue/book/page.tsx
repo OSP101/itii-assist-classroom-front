@@ -58,6 +58,7 @@ interface BookingStatus {
     is_late_booking?: boolean;
     late_reason?: string;
     completed_at?: string;
+    worker_note?: string | null;
     zone?: {
         id: string;
         name: string;
@@ -824,7 +825,7 @@ function BookQueueContent() {
             clearBookingState();
             addToast({
                 title: "คิวถูกข้าม",
-                description: "กรุณาตรวจสอบสถานะล่าสุดบนหน้าจอนี้",
+                description: "ผู้ตรวจข้ามคิวของคุณแล้ว กรุณาจองคิวใหม่หากยังต้องการความช่วยเหลือ",
                 color: "warning",
             });
         });
@@ -1567,10 +1568,16 @@ function BookQueueContent() {
                                 <Icon icon={status.status === "cancelled" ? "solar:close-circle-bold" : "solar:user-cross-bold"} className="shrink-0 text-lg" />
                                 <span>
                                     {status.status === "cancelled"
-                                        ? "คิวนี้ถูกยกเลิกแล้ว ระบบอัปเดตให้โดยอัตโนมัติ"
-                                        : "คิวนี้ถูกข้ามหรือไม่อยู่ในสถานะรอแล้ว"}
+                                        ? "คิวนี้ถูกยกเลิกแล้ว"
+                                        : "คิวนี้ถูกผู้ตรวจข้ามแล้ว"}
                                 </span>
                             </div>
+                            {status.status === "no_show" && bookingStatus?.worker_note && (
+                                <div className="rounded-3xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                                    <span className="font-semibold">เหตุผลจากผู้ตรวจ: </span>
+                                    <span>{bookingStatus.worker_note}</span>
+                                </div>
+                            )}
 
                             <button
                                 type="button"

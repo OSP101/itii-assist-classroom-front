@@ -567,7 +567,7 @@ export default function QueueSessionReportPage() {
                                 <SelectItem key="in_progress">{t("กำลังตรวจ", "In Progress")}</SelectItem>
                                 <SelectItem key="completed">{t("เสร็จสิ้น", "Completed")}</SelectItem>
                                 <SelectItem key="cancelled">{t("ยกเลิก", "Cancelled")}</SelectItem>
-                                <SelectItem key="no_show">{t("ไม่มา", "No show")}</SelectItem>
+                                <SelectItem key="no_show">{t("ถูกข้าม", "Skipped")}</SelectItem>
                             </Select>
                             <Select
                                 placeholder={t("ทุกประเภท", "All types")}

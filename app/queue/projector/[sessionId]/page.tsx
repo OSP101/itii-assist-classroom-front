@@ -81,6 +81,9 @@ interface ProjectorViewData {
 
 const PROJECTOR_HEARTBEAT_MS = 30_000;
 const PAUSED_SESSION_LEASE_MINUTES = 2;
+const QR_BOX_MIN_SIZE = 180;
+const QR_BOX_MAX_SIZE = 420;
+const QR_BOX_PADDING = 16;
 
 export default function ProjectorViewPage() {
     const params = useParams();
@@ -114,10 +117,12 @@ export default function ProjectorViewPage() {
 
     // Real-time clock
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [qrBoxSize, setQrBoxSize] = useState(220);
 
     const socketRef = useRef<Socket | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const hasShownInitialWarningRef = useRef(false);
+    const qrResizeObserverRef = useRef<ResizeObserver | null>(null);
     const selectedDeskHasActiveBooking = Boolean(
         selectedDesk?.booking &&
         (selectedDesk.status.grading_status === "waiting" ||
@@ -219,6 +224,13 @@ export default function ProjectorViewPage() {
             window.clearInterval(intervalId);
         };
     }, [data?.session.course_id, data?.session.status, sessionId]);
+
+    useEffect(() => {
+        return () => {
+            qrResizeObserverRef.current?.disconnect();
+            qrResizeObserverRef.current = null;
+        };
+    }, []);
 
     // Socket connection for real-time updates
     useEffect(() => {
@@ -532,6 +544,38 @@ export default function ProjectorViewPage() {
         return getAppUrl(`/queue/book?pin=${encodeURIComponent(data?.session.pin_code || "")}`);
     };
 
+    const attachQrResizeRef = useCallback((node: HTMLDivElement | null) => {
+        qrResizeObserverRef.current?.disconnect();
+        qrResizeObserverRef.current = null;
+
+        if (!node) {
+            return;
+        }
+
+        const syncSize = (width: number, height: number) => {
+            const nextSize = Math.round(Math.min(width, height));
+            if (!Number.isFinite(nextSize)) {
+                return;
+            }
+            setQrBoxSize(Math.max(QR_BOX_MIN_SIZE, Math.min(nextSize, QR_BOX_MAX_SIZE)));
+        };
+
+        syncSize(node.clientWidth, node.clientHeight);
+
+        const observer = new ResizeObserver((entries) => {
+            const entry = entries[0];
+            if (!entry) {
+                return;
+            }
+            syncSize(entry.contentRect.width, entry.contentRect.height);
+        });
+
+        observer.observe(node);
+        qrResizeObserverRef.current = observer;
+    }, []);
+
+    const qrCodeSize = Math.max(QR_BOX_MIN_SIZE - QR_BOX_PADDING * 2, qrBoxSize - QR_BOX_PADDING * 2);
+
     const formatQueueStatusLabel = (status: string) => {
         switch (status) {
             case "active":
@@ -561,6 +605,8 @@ export default function ProjectorViewPage() {
                 return t("เสร็จสิ้น", "Completed");
             case "cancelled":
                 return t("ยกเลิกแล้ว", "Cancelled");
+            case "no_show":
+                return t("ถูกข้าม", "Skipped");
             default:
                 return status;
         }
@@ -910,8 +956,29 @@ export default function ProjectorViewPage() {
                             </div>
                         ) : (
                             <div className="flex items-center gap-4 shrink-0">
-                                <div className="bg-white p-2 rounded-xl inline-block">
-                                    <QRCode value={getBookingUrl()} size={200} bgColor="#ffffff" fgColor="#000000" level="L" />
+                                <div className="flex flex-col items-center gap-2">
+                                    <div
+                                        ref={attachQrResizeRef}
+                                        className="resize overflow-hidden rounded-2xl border border-default-200 bg-white shadow-sm"
+                                        style={{
+                                            width: qrBoxSize,
+                                            height: qrBoxSize,
+                                            minWidth: QR_BOX_MIN_SIZE,
+                                            minHeight: QR_BOX_MIN_SIZE,
+                                            maxWidth: QR_BOX_MAX_SIZE,
+                                            maxHeight: QR_BOX_MAX_SIZE,
+                                        }}
+                                    >
+                                        <div
+                                            className="flex h-full w-full items-center justify-center"
+                                            style={{ padding: QR_BOX_PADDING }}
+                                        >
+                                            <QRCode value={getBookingUrl()} size={qrCodeSize} bgColor="#ffffff" fgColor="#000000" level="L" />
+                                        </div>
+                                    </div>
+                                    <p className="text-center text-xs text-default-500">
+                                        {t('ลากมุมขวาล่างเพื่อขยาย QR', 'Drag the bottom-right corner to resize the QR code')}
+                                    </p>
                                 </div>
                                 <div className="bg-blue-100 dark:bg-blue-900/40 rounded-xl px-4 py-2">
                                     <span className="text-sm text-default-600">PIN Code</span>
@@ -998,12 +1065,33 @@ export default function ProjectorViewPage() {
                         ) : (
                             <div className="rounded-2xl border border-default-200 bg-content1 p-6 text-center shadow-sm">
                                 <div className="mb-3 flex justify-center">
-                                    <div className="bg-white p-2 rounded-xl inline-block">
-                                        <QRCode
-                                            value={getBookingUrl()}
-                                            size={180}
-                                            bgColor="#ffffff" fgColor="#000000" level="L"
-                                        />
+                                    <div className="flex flex-col items-center gap-2">
+                                        <div
+                                            ref={attachQrResizeRef}
+                                            className="resize overflow-hidden rounded-2xl border border-default-200 bg-white shadow-sm"
+                                            style={{
+                                                width: qrBoxSize,
+                                                height: qrBoxSize,
+                                                minWidth: QR_BOX_MIN_SIZE,
+                                                minHeight: QR_BOX_MIN_SIZE,
+                                                maxWidth: QR_BOX_MAX_SIZE,
+                                                maxHeight: QR_BOX_MAX_SIZE,
+                                            }}
+                                        >
+                                            <div
+                                                className="flex h-full w-full items-center justify-center"
+                                                style={{ padding: QR_BOX_PADDING }}
+                                            >
+                                                <QRCode
+                                                    value={getBookingUrl()}
+                                                    size={qrCodeSize}
+                                                    bgColor="#ffffff" fgColor="#000000" level="L"
+                                                />
+                                            </div>
+                                        </div>
+                                        <p className="text-center text-xs text-default-500">
+                                            {t('ลากมุมขวาล่างเพื่อขยาย QR', 'Drag the bottom-right corner to resize the QR code')}
+                                        </p>
                                     </div>
                                 </div>
                                 <div className="bg-blue-100 dark:bg-blue-900/40 rounded-xl px-4 py-2">

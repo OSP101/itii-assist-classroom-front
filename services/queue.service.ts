@@ -146,7 +146,7 @@ export function getQueueBookingStatusLabel(status: QueueBookingStatus, isEnglish
         case 'cancelled':
             return isEnglish ? 'Cancelled' : 'ยกเลิก';
         case 'no_show':
-            return isEnglish ? 'No Show' : 'ไม่มา';
+            return isEnglish ? 'Skipped' : 'ถูกข้าม';
         default:
             return status;
     }
