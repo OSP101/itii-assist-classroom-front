@@ -143,6 +143,24 @@ function containsThaiText(value: string): boolean {
     return /[\u0E00-\u0E7F]/.test(value);
 }
 
+function getAssignmentKindLabel(assignment: Assignment, isEnglish: boolean): string {
+    const normalizedName = assignment.name.trim().toLowerCase();
+
+    if (assignment.assignment_type === "permanent_group" || assignment.assignment_type === "weekly_group") {
+        return isEnglish ? "Group" : "กลุ่ม";
+    }
+
+    if (normalizedName.includes("lab")) {
+        return isEnglish ? "Lab" : "แลป";
+    }
+
+    if (normalizedName.includes("homework") || normalizedName.includes("hw")) {
+        return isEnglish ? "Homework" : "การบ้าน";
+    }
+
+    return isEnglish ? "Homework" : "การบ้าน";
+}
+
 // Status display
 function getStatusDisplay(isEnglish: boolean): Record<string, { label: string; color: "default" | "primary" | "secondary" | "success" | "warning" | "danger"; icon: string }> {
     return {
@@ -1456,17 +1474,16 @@ export default function QueueTab({
                                     >
                                         {assignments.map((assignment) => (
                                             <SelectItem key={assignment.id.toString()} textValue={assignment.name}>
-                                                <div className="flex items-center gap-3">
-                                                    <Icon
-                                                        icon={assignment.assignment_type === "individual" ? "solar:user-bold" : "solar:users-group-rounded-bold"}
-                                                        className={assignment.assignment_type === "individual" ? "text-indigo-500" : "text-purple-500"}
-                                                    />
+                                                <div className="flex items-center justify-between gap-3">
                                                     <div>
                                                         <span className="font-medium">{assignment.name}</span>
                                                         <span className="ml-2 text-xs text-default-500">
                                                             ({assignment.max_score} {localize("คะแนน", "pts")})
                                                         </span>
                                                     </div>
+                                                    <span className="shrink-0 text-xs font-medium text-default-500">
+                                                        {getAssignmentKindLabel(assignment, isEnglish)}
+                                                    </span>
                                                 </div>
                                             </SelectItem>
                                         ))}
@@ -1541,12 +1558,6 @@ export default function QueueTab({
                                         {attendanceSessions.map((session) => (
                                             <SelectItem key={session.id.toString()} textValue={session.title}>
                                                 <div className="flex items-center gap-3">
-                                                    <Icon
-                                                        icon={session.session_type === "lecture" ? "solar:presentation-graph-bold" :
-                                                            session.session_type === "lab" ? "solar:test-tube-bold" : "solar:laptop-bold"}
-                                                        className={session.session_type === "lecture" ? "text-blue-500" :
-                                                            session.session_type === "lab" ? "text-emerald-500" : "text-violet-500"}
-                                                    />
                                                     <div>
                                                         <span className="font-medium">{session.title}</span>
                                                         <span className="ml-2 text-xs text-default-500">
@@ -1766,17 +1777,16 @@ export default function QueueTab({
                                     >
                                         {assignments.map((assignment) => (
                                             <SelectItem key={assignment.id.toString()} textValue={assignment.name}>
-                                                <div className="flex items-center gap-3">
-                                                    <Icon
-                                                        icon={assignment.assignment_type === "individual" ? "solar:user-bold" : "solar:users-group-rounded-bold"}
-                                                        className={assignment.assignment_type === "individual" ? "text-indigo-500" : "text-purple-500"}
-                                                    />
+                                                <div className="flex items-center justify-between gap-3">
                                                     <div>
                                                         <span className="font-medium">{assignment.name}</span>
                                                         <span className="ml-2 text-xs text-default-500">
                                                             ({assignment.max_score} {localize("คะแนน", "pts")})
                                                         </span>
                                                     </div>
+                                                    <span className="shrink-0 text-xs font-medium text-default-500">
+                                                        {getAssignmentKindLabel(assignment, isEnglish)}
+                                                    </span>
                                                 </div>
                                             </SelectItem>
                                         ))}
@@ -1849,12 +1859,6 @@ export default function QueueTab({
                                         {attendanceSessions.map((session) => (
                                             <SelectItem key={session.id.toString()} textValue={session.title}>
                                                 <div className="flex items-center gap-3">
-                                                    <Icon
-                                                        icon={session.session_type === "lecture" ? "solar:presentation-graph-bold" :
-                                                            session.session_type === "lab" ? "solar:test-tube-bold" : "solar:laptop-bold"}
-                                                        className={session.session_type === "lecture" ? "text-blue-500" :
-                                                            session.session_type === "lab" ? "text-emerald-500" : "text-violet-500"}
-                                                    />
                                                     <div>
                                                         <span className="font-medium">{session.title}</span>
                                                         <span className="ml-2 text-xs text-default-500">

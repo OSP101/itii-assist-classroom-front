@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import type ExcelJS from "exceljs";
 import { addToast } from "@heroui/toast";
@@ -21,7 +21,6 @@ import {
 } from "@heroui/table";
 import { Icon } from "@iconify/react";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
-import { useSmartPolling } from "@/lib/realtime/use-smart-polling";
 import queueService, {
     getQueueBookingStatusLabel,
     getQueueBookingTypeLabel,
@@ -31,8 +30,7 @@ import queueService, {
     type QueueReportWorkerStat,
     type QueueSessionReport,
 } from "@/services/queue.service";
-
-const LIVE_INTERVAL_MS = 5000;
+import { getRealtimeSocketBaseUrl, io, type Socket } from "@/services/realtime-socket";
 
 type ReportSnapshot = {
     report: QueueSessionReport;
@@ -269,25 +267,51 @@ export default function QueueSessionReportPage() {
     const [bookingPage, setBookingPage] = useState(1);
     const [bookingsPerPage, setBookingsPerPage] = useState("10");
     const [isExporting, setIsExporting] = useState(false);
+    const socketRef = useRef<Socket | null>(null);
+    const refreshTimeoutRef = useRef<number | null>(null);
+    const isMountedRef = useRef(true);
+    const [snapshot, setSnapshot] = useState<ReportSnapshot | null>(null);
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [error, setError] = useState<unknown>(null);
 
-    const {
-        data: snapshot,
-        isInitialLoading,
-        isRefreshing,
-        error,
-        refetch,
-    } = useSmartPolling<ReportSnapshot>({
-        enabled: hasParams,
-        intervalMs: LIVE_INTERVAL_MS,
-        fetcher: async () => {
+    const fetchSnapshot = useCallback(async (background = false) => {
+        if (!hasParams) return;
+
+        if (background) {
+            setIsRefreshing(true);
+        } else {
+            setIsInitialLoading(true);
+        }
+
+        try {
             const [report, deskData] = await Promise.all([
                 queueService.getSessionReport(courseId as string, sessionId as string),
                 queueService.getDeskStatuses(courseId as string, sessionId as string),
             ]);
 
-            return { report, deskData };
-        },
-    });
+            if (!isMountedRef.current) return;
+            setSnapshot({ report, deskData });
+            setError(null);
+        } catch (fetchError) {
+            if (!isMountedRef.current) return;
+            setError(fetchError);
+        } finally {
+            if (!isMountedRef.current) return;
+            setIsInitialLoading(false);
+            setIsRefreshing(false);
+        }
+    }, [courseId, hasParams, sessionId]);
+
+    const scheduleRefresh = useCallback((delayMs = 120) => {
+        if (refreshTimeoutRef.current !== null) {
+            window.clearTimeout(refreshTimeoutRef.current);
+        }
+        refreshTimeoutRef.current = window.setTimeout(() => {
+            refreshTimeoutRef.current = null;
+            void fetchSnapshot(true);
+        }, delayMs);
+    }, [fetchSnapshot]);
 
     const report = snapshot?.report ?? null;
     const deskData = snapshot?.deskData ?? null;
@@ -296,6 +320,77 @@ export default function QueueSessionReportPage() {
     const errorMessage = error instanceof Error
         ? error.message
         : t("ไม่สามารถโหลดรีพอร์ตได้", "Unable to load the report.");
+
+    useEffect(() => {
+        isMountedRef.current = true;
+        void fetchSnapshot(false);
+
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, [fetchSnapshot]);
+
+    useEffect(() => {
+        if (!hasParams) return;
+
+        const socket = io(getRealtimeSocketBaseUrl());
+        socketRef.current = socket;
+
+        const refreshEvents = [
+            "new-booking",
+            "booking-assigned",
+            "booking-completed",
+            "booking-skipped",
+            "booking-cancelled",
+            "booking-requeued",
+            "worker-joined",
+            "worker-left",
+            "session-status-changed",
+            "session-cutoff-changed",
+            "pin-changed",
+            "queue-position-updated",
+        ] as const;
+
+        socket.on("connect", () => {
+            socket.emit("join-queue", sessionId);
+            void fetchSnapshot(true);
+        });
+
+        socket.on("queue-report-snapshot", (payload?: { snapshot?: ReportSnapshot }) => {
+            if (!payload?.snapshot || !isMountedRef.current) return;
+            setSnapshot(payload.snapshot);
+            setError(null);
+            setIsInitialLoading(false);
+            setIsRefreshing(false);
+        });
+
+        refreshEvents.forEach((eventName) => {
+            socket.on(eventName, () => {
+                scheduleRefresh();
+            });
+        });
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                void fetchSnapshot(true);
+            }
+        };
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+            socket.off("queue-report-snapshot");
+            refreshEvents.forEach((eventName) => socket.off(eventName));
+            socket.emit("leave-queue", sessionId);
+            socket.disconnect();
+            socketRef.current = null;
+            if (refreshTimeoutRef.current !== null) {
+                window.clearTimeout(refreshTimeoutRef.current);
+                refreshTimeoutRef.current = null;
+            }
+        };
+    }, [fetchSnapshot, hasParams, scheduleRefresh, sessionId]);
 
     useEffect(() => {
         setBookingPage(1);
@@ -452,52 +547,43 @@ export default function QueueSessionReportPage() {
         currentBookingPage * bookingPageSize,
     );
 
-    const summaryCards = [
+    const focusCards = [
         {
-            label: t("รายการทั้งหมด", "Total bookings"),
+            label: t("คิวทั้งหมด", "Total queue"),
             value: totalBookings,
-            hint: t("รวมทุกสถานะใน session นี้", "All queue entries in this session"),
-            icon: "solar:clipboard-list-bold",
-            colorClass: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200",
+            hint: t("จำนวนรายการทั้งหมดในคาบนี้", "All queue entries in this session"),
         },
         {
-            label: t("กำลังรอ / กำลังตรวจ", "Waiting / In progress"),
-            value: `${waitingCount} / ${inProgressCount}`,
-            hint: t("ดูคาบกำลังไหลแค่ไหน", "Live queue load right now"),
-            icon: "solar:clock-circle-bold",
-            colorClass: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-200",
+            label: t("กำลังค้างอยู่", "Still active"),
+            value: waitingCount + inProgressCount,
+            hint: t("รอคิว + กำลังตรวจ", "Waiting + in progress"),
         },
         {
-            label: t("เสร็จสิ้นแล้ว", "Completed"),
+            label: t("เสร็จแล้ว", "Completed"),
             value: completedCount,
-            hint: t("งานที่ปิดได้แล้ว", "Work finished so far"),
-            icon: "solar:check-circle-bold",
-            colorClass: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200",
+            hint: t("ปิดงานได้แล้ว", "Work already finished"),
         },
         {
-            label: t("ถูกข้าม / หมดเวลา", "Skipped / Timed out"),
-            value: `${skippedCount} / ${timeoutCount}`,
-            hint: t("รายการที่สะดุดระหว่าง flow", "Entries that broke the normal flow"),
-            icon: "solar:danger-triangle-bold",
-            colorClass: "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200",
+            label: t("มีปัญหา", "Needs attention"),
+            value: skippedCount + timeoutCount,
+            hint: t("ถูกข้าม + หมดเวลา", "Skipped + timed out"),
         },
-        {
-            label: t("ผู้ตรวจพร้อม / พักรับงาน", "Ready / Paused"),
-            value: `${activeWorkerCount} / ${autoPausedWorkers}`,
-            hint: t("ดูว่าใครยังช่วยรับงานได้อยู่", "Current worker availability"),
-            icon: "solar:users-group-rounded-bold",
-            colorClass: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-200",
-        },
-        {
-            label: t("ความต่างภาระงาน", "Workload spread"),
-            value: `${maxCompleted - minCompleted}`,
-            hint: t(
-                `เฉลี่ย ${averageCompleted.toFixed(1)} งานต่อคน`,
-                `Average ${averageCompleted.toFixed(1)} jobs per worker`,
-            ),
-            icon: "solar:chart-bold",
-            colorClass: "bg-slate-100 text-slate-700 dark:bg-slate-500/15 dark:text-slate-200",
-        },
+    ];
+    const topWorker = filteredWorkers[0] ?? null;
+    const slowResponseCount = sortedBookings.filter((booking) => (booking.offer_response_seconds || 0) >= 120).length;
+    const focusNotes = [
+        t(
+            `งานค้างตอนนี้ ${waitingCount + inProgressCount} รายการ`,
+            `${waitingCount + inProgressCount} entries are still active right now`,
+        ),
+        t(
+            `ผู้ตรวจพร้อมรับงาน ${activeWorkerCount} คน และพักรับงาน ${autoPausedWorkers} คน`,
+            `${activeWorkerCount} workers are available and ${autoPausedWorkers} are temporarily paused`,
+        ),
+        t(
+            `งานที่ตอบรับช้ากว่า 2 นาที ${slowResponseCount} รายการ`,
+            `${slowResponseCount} entries took longer than 2 minutes to accept`,
+        ),
     ];
 
     const handleExport = async () => {
@@ -665,12 +751,12 @@ export default function QueueSessionReportPage() {
                             </Chip>
                         ) : null}
                     </div>
-                    <p className="max-w-4xl text-sm text-default-500">
-                        {t(
-                            "ดูคาบนี้แบบละเอียดว่าใครรับงานอะไร รับได้ทันไหม กระจายงานสมดุลหรือไม่ และโต๊ะไหนถูกตรวจไปแล้วบ้าง ข้อมูลจะรีเฟรชอัตโนมัติทุกไม่กี่วินาที",
-                            "Review this session in detail: who handled what, how quickly offers were accepted, how balanced the workload is, and which desks each worker has touched. Data refreshes automatically every few seconds.",
-                        )}
-                    </p>
+                        <p className="max-w-4xl text-sm text-default-500">
+                            {t(
+                                "ดูคาบนี้แบบละเอียดว่าใครรับงานอะไร รับได้ทันไหม กระจายงานสมดุลหรือไม่ และโต๊ะไหนถูกตรวจไปแล้วบ้าง ข้อมูลจะอัปเดตตาม event ของคิวแบบเรียลไทม์",
+                                "Review this session in detail: who handled what, how quickly offers were accepted, how balanced the workload is, and which desks each worker has touched. Updates arrive in real time from queue events.",
+                            )}
+                        </p>
                     <div className="flex flex-wrap gap-3 text-xs text-default-500">
                         <span>
                             {t("อัปเดตล่าสุด", "Last refresh")}: {formatDateTime(report?.generated_at, isEnglish)}
@@ -684,7 +770,7 @@ export default function QueueSessionReportPage() {
                     </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    <Button variant="flat" startContent={<Icon icon="solar:refresh-bold" />} onPress={refetch}>
+                    <Button variant="flat" startContent={<Icon icon="solar:refresh-bold" />} onPress={() => void fetchSnapshot(true)}>
                         {t("รีเฟรชทันที", "Refresh now")}
                     </Button>
                     <Button
@@ -703,65 +789,77 @@ export default function QueueSessionReportPage() {
                 <Card className="border border-danger-200 bg-danger-50">
                     <CardBody className="flex flex-col gap-3 text-danger-700 md:flex-row md:items-center md:justify-between">
                         <span>{errorMessage}</span>
-                        <Button color="danger" variant="flat" onPress={refetch}>
+                        <Button color="danger" variant="flat" onPress={() => void fetchSnapshot(true)}>
                             {t("ลองใหม่", "Try again")}
                         </Button>
                     </CardBody>
                 </Card>
             ) : null}
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {summaryCards.map((card) => (
-                    <Card key={card.label} className="border border-default-200 bg-content1 shadow-sm">
-                        <CardBody className="flex flex-row items-start gap-4 p-5">
-                            <div className={`rounded-2xl p-3 ${card.colorClass}`}>
-                                <Icon icon={card.icon} width={24} />
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-sm text-default-500">{card.label}</p>
-                                <p className="text-2xl font-semibold text-foreground">{card.value}</p>
-                                <p className="text-xs text-default-400">{card.hint}</p>
-                            </div>
-                        </CardBody>
-                    </Card>
-                ))}
-            </div>
-
             <Card className="border border-default-200 bg-content1 shadow-sm">
                 <CardHeader className="pb-0">
                     <div>
-                        <h2 className="text-lg font-semibold">{t("สัดส่วนประเภทงาน", "Job Type Distribution")}</h2>
+                        <h2 className="text-lg font-semibold">{t("เริ่มดูจากตรงนี้ก่อน", "Start Here First")}</h2>
                         <p className="text-sm text-default-500">
                             {t(
-                                "ช่วยดูว่าคิวเอียงไปทางตรวจงานหรือช่วยเหลือมากน้อยแค่ไหนในคาบนี้",
-                                "Quickly see whether this session leaned more toward grading or help requests.",
+                                "สรุปเฉพาะตัวเลขที่อาจารย์ควรดูเป็นอันดับแรกก่อน แล้วค่อยไล่ลงไปที่ผู้ตรวจรายคน",
+                                "A short first-glance summary before drilling into individual workers.",
                             )}
                         </p>
                     </div>
                 </CardHeader>
-                <CardBody className="grid gap-4 md:grid-cols-2">
-                    <div className="rounded-2xl border border-default-200 bg-default-50 p-4 dark:bg-default-100/5">
-                        <div className="mb-2 flex items-center justify-between">
-                            <span className="text-sm text-default-500">{t("ตรวจงาน", "Grading")}</span>
-                            <span className="text-lg font-semibold">{gradingCount}</span>
-                        </div>
-                        <div className="h-3 overflow-hidden rounded-full bg-default-200">
-                            <div
-                                className="h-full rounded-full bg-sky-500"
-                                style={{ width: `${totalBookings > 0 ? (gradingCount / totalBookings) * 100 : 0}%` }}
-                            />
-                        </div>
+                <CardBody className="space-y-4">
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        {focusCards.map((card) => (
+                            <div key={card.label} className="rounded-2xl border border-default-200 bg-default-50 p-4 dark:bg-default-100/5">
+                                <p className="text-xs font-medium uppercase tracking-wide text-default-500">{card.label}</p>
+                                <p className="mt-2 text-3xl font-semibold text-foreground">{card.value}</p>
+                                <p className="mt-1 text-xs text-default-400">{card.hint}</p>
+                            </div>
+                        ))}
                     </div>
-                    <div className="rounded-2xl border border-default-200 bg-default-50 p-4 dark:bg-default-100/5">
-                        <div className="mb-2 flex items-center justify-between">
-                            <span className="text-sm text-default-500">{t("ช่วยเหลือ", "Help")}</span>
-                            <span className="text-lg font-semibold">{helpCount}</span>
+
+                    <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+                        <div className="rounded-2xl border border-default-200 bg-default-50 p-4 dark:bg-default-100/5">
+                            <p className="text-sm font-semibold text-foreground">{t("สิ่งที่ควรจับตา", "What to Watch")}</p>
+                            <div className="mt-3 space-y-2">
+                                {focusNotes.map((note) => (
+                                    <div key={note} className="flex items-start gap-2 text-sm text-default-600">
+                                        <Icon icon="solar:round-alt-arrow-right-linear" className="mt-0.5 text-default-400" />
+                                        <span>{note}</span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                        <div className="h-3 overflow-hidden rounded-full bg-default-200">
-                            <div
-                                className="h-full rounded-full bg-emerald-500"
-                                style={{ width: `${totalBookings > 0 ? (helpCount / totalBookings) * 100 : 0}%` }}
-                            />
+
+                        <div className="rounded-2xl border border-default-200 bg-default-50 p-4 dark:bg-default-100/5">
+                            <p className="text-sm font-semibold text-foreground">{t("ภาพรวมเร็ว", "Quick Snapshot")}</p>
+                            <div className="mt-3 space-y-3 text-sm">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-default-500">{t("ตรวจงาน / ช่วยเหลือ", "Grading / Help")}</span>
+                                    <span className="font-medium">{gradingCount} / {helpCount}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-default-500">{t("ปฏิเสธ / หมดเวลา", "Declined / Timed out")}</span>
+                                    <span className="font-medium">{rejectCount} / {timeoutCount}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-default-500">{t("ภาระงานต่างกันมากสุด", "Max workload gap")}</span>
+                                    <span className="font-medium">{maxCompleted - minCompleted}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-default-500">{t("เฉลี่ยต่อผู้ตรวจ", "Average per worker")}</span>
+                                    <span className="font-medium">{averageCompleted.toFixed(1)}</span>
+                                </div>
+                                {topWorker ? (
+                                    <div className="rounded-xl bg-content1 p-3">
+                                        <p className="text-xs text-default-500">{t("คนที่ทำงานเยอะสุดตอนนี้", "Most completed so far")}</p>
+                                        <p className="mt-1 font-medium text-foreground">
+                                            {topWorker.full_name || `#${topWorker.user_id}`} ({topWorker.total_completed})
+                                        </p>
+                                    </div>
+                                ) : null}
+                            </div>
                         </div>
                     </div>
                 </CardBody>
@@ -820,90 +918,55 @@ export default function QueueSessionReportPage() {
             <Card className="border border-default-200 bg-content1 shadow-sm">
                 <CardHeader className="pb-0">
                     <div>
-                        <h2 className="text-lg font-semibold">{t("ภาพรวมผู้ตรวจแต่ละคน", "Worker Performance Overview")}</h2>
+                        <h2 className="text-lg font-semibold">{t("ตารางผู้ตรวจ", "Worker Table")}</h2>
                         <p className="text-sm text-default-500">
                             {t(
-                                "ดูได้ทันทีว่าใครรับงานแบบไหน รับทันหรือหมดเวลาเท่าไร ถูกพักรับงานอยู่หรือไม่ และภาระงานกระจายสมดุลแค่ไหน",
-                                "See at a glance what each worker handled, how often offers timed out, whether they are temporarily paused, and how balanced the workload has been.",
+                                "ดูตารางนี้ก่อนเพื่อเทียบผู้ตรวจทั้งหมดในบรรทัดเดียว แล้วค่อยกดชื่อคนที่อยากเจาะรายละเอียด",
+                                "Use this table first to compare all workers in one place, then select one person for detail.",
                             )}
                         </p>
                     </div>
                 </CardHeader>
                 <CardBody className="space-y-4">
-                    <div className="grid gap-4 xl:grid-cols-2">
-                        {filteredWorkers.map((worker) => (
-                            <button
-                                type="button"
-                                key={worker.user_id}
-                                onClick={() => setSelectedWorkerId(String(worker.user_id))}
-                                className={`rounded-2xl border p-4 text-left transition ${
-                                    selectedWorkerId === String(worker.user_id)
-                                        ? "border-primary bg-primary-50 shadow-sm dark:bg-primary-500/10"
-                                        : "border-default-200 bg-default-50 hover:border-primary/40 dark:bg-default-100/5"
-                                }`}
-                            >
-                                <div className="flex flex-wrap items-start justify-between gap-3">
-                                    <div className="space-y-2">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <h3 className="text-base font-semibold text-foreground">
-                                                {worker.full_name || `#${worker.user_id}`}
-                                            </h3>
-                                            <Chip size="sm" color={getWorkerStatusColor(worker, now)} variant="flat">
-                                                {getWorkerStatusLabel(worker, isEnglish)}
-                                            </Chip>
+                    <Table removeWrapper aria-label={t("ตารางผู้ตรวจ", "Worker table")}>
+                        <TableHeader>
+                            <TableColumn>{t("ผู้ตรวจ", "Worker")}</TableColumn>
+                            <TableColumn>{t("สถานะ", "Status")}</TableColumn>
+                            <TableColumn>{t("รวม", "Total")}</TableColumn>
+                            <TableColumn>{t("ตรวจ/ช่วย", "Grading/Help")}</TableColumn>
+                            <TableColumn>{t("ตอบรับ", "Accept %")}</TableColumn>
+                            <TableColumn>{t("หมดเวลา", "Timed out")}</TableColumn>
+                            <TableColumn>{t("ค้างอยู่", "Active")}</TableColumn>
+                            <TableColumn>{t("โต๊ะตอนนี้", "Current desk")}</TableColumn>
+                        </TableHeader>
+                        <TableBody emptyContent={t("ยังไม่มีข้อมูลผู้ตรวจ", "No worker data found.")}>
+                            {filteredWorkers.map((worker) => (
+                                <TableRow
+                                    key={worker.user_id}
+                                    className={`cursor-pointer ${selectedWorkerId === String(worker.user_id) ? "bg-primary-50 dark:bg-primary-500/10" : ""}`}
+                                    onClick={() => setSelectedWorkerId(String(worker.user_id))}
+                                >
+                                    <TableCell>
+                                        <div>
+                                            <div className="font-medium text-foreground">{worker.full_name || `#${worker.user_id}`}</div>
+                                            <div className="text-xs text-default-500">{buildWorkerModeLabel(worker, isEnglish)}</div>
                                         </div>
-                                        <p className="text-sm text-default-500">{buildWorkerModeLabel(worker, isEnglish)}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-xs text-default-500">{t("งานเสร็จรวม", "Completed total")}</p>
-                                        <p className="text-2xl font-semibold text-foreground">{worker.total_completed}</p>
-                                    </div>
-                                </div>
-
-                                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                                    <div className="rounded-xl border border-default-200 bg-content1 p-3">
-                                        <p className="text-xs text-default-500">{t("ประเภทงานที่รับ", "Handled job types")}</p>
-                                        <p className="mt-1 text-sm font-medium">
-                                            {t("ตรวจงาน", "Grading")}: {worker.gradingAssignedCount} | {t("ช่วยเหลือ", "Help")}: {worker.helpAssignedCount}
-                                        </p>
-                                    </div>
-                                    <div className="rounded-xl border border-default-200 bg-content1 p-3">
-                                        <p className="text-xs text-default-500">{t("ตอบรับ / ปฏิเสธ / หมดเวลา", "Accept / Decline / Timeout")}</p>
-                                        <p className="mt-1 text-sm font-medium">
-                                            {worker.offer_accept_count || 0} / {worker.offer_reject_count || 0} / {worker.offer_timeout_count || 0}
-                                        </p>
-                                    </div>
-                                    <div className="rounded-xl border border-default-200 bg-content1 p-3">
-                                        <p className="text-xs text-default-500">{t("เปอร์เซ็นต์ตอบรับ / สัดส่วนงาน", "Accept rate / Work share")}</p>
-                                        <p className="mt-1 text-sm font-medium">
-                                            {formatPercent(worker.offer_accept_rate)} / {formatPercent(worker.percent)}
-                                        </p>
-                                    </div>
-                                    <div className="rounded-xl border border-default-200 bg-content1 p-3">
-                                        <p className="text-xs text-default-500">{t("ถูกข้าม / ค้างอยู่", "Skipped / Still assigned")}</p>
-                                        <p className="mt-1 text-sm font-medium">
-                                            {worker.skippedCount} / {worker.pendingAssignedCount}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-default-500">
-                                    <Chip size="sm" variant="flat">{t("โต๊ะที่เกี่ยวข้อง", "Touched desks")}: {worker.uniqueDeskNumbers.length}</Chip>
-                                    <Chip size="sm" variant="flat">{t("พร้อมรับงานรวม", "Active time")}: {formatDuration(worker.total_active_seconds, isEnglish)}</Chip>
-                                    {worker.currentDeskNumbers.length > 0 ? (
-                                        <Chip size="sm" color="warning" variant="flat">
-                                            {t("กำลังอยู่ที่โต๊ะ", "Current desk")}: {worker.currentDeskNumbers.join(", ")}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Chip size="sm" color={getWorkerStatusColor(worker, now)} variant="flat">
+                                            {getWorkerStatusLabel(worker, isEnglish)}
                                         </Chip>
-                                    ) : null}
-                                    {worker.offer_paused_until ? (
-                                        <Chip size="sm" color="danger" variant="flat">
-                                            {t("พักถึง", "Paused until")}: {formatDateTime(worker.offer_paused_until, isEnglish)}
-                                        </Chip>
-                                    ) : null}
-                                </div>
-                            </button>
-                        ))}
-                    </div>
+                                    </TableCell>
+                                    <TableCell>{worker.total_completed}</TableCell>
+                                    <TableCell>{worker.gradingAssignedCount} / {worker.helpAssignedCount}</TableCell>
+                                    <TableCell>{formatPercent(worker.offer_accept_rate)}</TableCell>
+                                    <TableCell>{worker.offer_timeout_count || 0}</TableCell>
+                                    <TableCell>{worker.pendingAssignedCount}</TableCell>
+                                    <TableCell>{worker.currentDeskNumbers.join(", ") || "-"}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
 
                     {selectedWorker ? (
                         <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
@@ -1008,37 +1071,25 @@ export default function QueueSessionReportPage() {
                 </CardBody>
             </Card>
 
-            <Card className="border border-default-200 bg-content1 shadow-sm">
-                <CardHeader className="pb-0">
-                    <div>
-                        <h2 className="text-lg font-semibold">{t("สรุปเหตุผลการปฏิเสธงาน", "Decline Reason Summary")}</h2>
-                        <p className="text-sm text-default-500">
-                            {t(
-                                "ไว้เช็กว่าคาบนี้ปัญหาเกิดจากภาระงานชนกัน ปัญหาเทคนิค หรือมีคนต้องพักรับงานบ่อยแค่ไหน",
-                                "Helpful for spotting whether the session was slowed down by worker load, technical issues, or repeated temporary pauses.",
-                            )}
-                        </p>
-                    </div>
-                </CardHeader>
-                <CardBody>
-                    <Table removeWrapper aria-label={t("สรุปเหตุผลการปฏิเสธ", "Decline reason summary")}>
-                        <TableHeader>
-                            <TableColumn>{t("เหตุผล", "Reason")}</TableColumn>
-                            <TableColumn>{t("จำนวนครั้ง", "Count")}</TableColumn>
-                            <TableColumn>{t("สัดส่วน", "Share")}</TableColumn>
-                        </TableHeader>
-                        <TableBody emptyContent={t("ยังไม่พบการปฏิเสธงาน", "No declined offers found.")}>
-                            {rejectReasonStats.map((reason) => (
-                                <TableRow key={reason.code}>
-                                    <TableCell>{isEnglish ? reason.label_en : reason.label_th}</TableCell>
-                                    <TableCell>{reason.count}</TableCell>
-                                    <TableCell>{formatPercent((reason.count / Math.max(1, totalRejectByReason)) * 100)}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardBody>
-            </Card>
+            {rejectReasonStats.length > 0 ? (
+                <Card className="border border-default-200 bg-content1 shadow-sm">
+                    <CardHeader className="pb-0">
+                        <div>
+                            <h2 className="text-lg font-semibold">{t("เหตุผลที่ปฏิเสธงานบ่อย", "Common Decline Reasons")}</h2>
+                            <p className="text-sm text-default-500">
+                                {t("เก็บไว้เป็นบล็อกสั้นๆ ด้านล่าง เพื่อไม่ให้แย่งความสนใจจากตารางหลัก", "Kept compact below the main table so it does not compete with the primary view.")}
+                            </p>
+                        </div>
+                    </CardHeader>
+                    <CardBody className="flex flex-wrap gap-2">
+                        {rejectReasonStats.map((reason) => (
+                            <Chip key={reason.code} variant="flat">
+                                {(isEnglish ? reason.label_en : reason.label_th)}: {reason.count} ({formatPercent((reason.count / Math.max(1, totalRejectByReason)) * 100)})
+                            </Chip>
+                        ))}
+                    </CardBody>
+                </Card>
+            ) : null}
 
             <Card className="border border-default-200 bg-content1 shadow-sm">
                 <CardHeader className="pb-0">
@@ -1053,7 +1104,7 @@ export default function QueueSessionReportPage() {
                     </div>
                 </CardHeader>
                 <CardBody>
-                    <Table removeWrapper aria-label={t("ประวัติการจองคิว", "Queue booking history")} classNames={{ base: "min-w-[1500px]" }}>
+                    <Table removeWrapper aria-label={t("ประวัติการจองคิว", "Queue booking history")} classNames={{ base: "min-w-[1180px]" }}>
                         <TableHeader>
                             <TableColumn>{t("เวลาจอง", "Booked at")}</TableColumn>
                             <TableColumn>{t("คิว", "Queue")}</TableColumn>
@@ -1062,12 +1113,9 @@ export default function QueueSessionReportPage() {
                             <TableColumn>{t("ผู้จอง", "Student")}</TableColumn>
                             <TableColumn>{t("สถานะ", "Status")}</TableColumn>
                             <TableColumn>{t("ผู้ตรวจ", "Worker")}</TableColumn>
-                            <TableColumn>{t("รอก่อนถูกเสนอ", "Queue wait")}</TableColumn>
                             <TableColumn>{t("เวลาตอบรับงาน", "Offer response")}</TableColumn>
                             <TableColumn>{t("เวลาตรวจ", "Service time")}</TableColumn>
-                            <TableColumn>{t("หมดเวลา", "Timed out")}</TableColumn>
-                            <TableColumn>{t("ปฏิเสธ", "Declined")}</TableColumn>
-                            <TableColumn>{t("หมายเหตุผู้ตรวจ", "Worker note")}</TableColumn>
+                            <TableColumn>{t("สะดุด", "Issues")}</TableColumn>
                         </TableHeader>
                         <TableBody emptyContent={t("ยังไม่มีประวัติการจองคิว", "No booking history found.")}>
                             {paginatedBookings.map((booking) => (
@@ -1088,12 +1136,9 @@ export default function QueueSessionReportPage() {
                                         </Chip>
                                     </TableCell>
                                     <TableCell>{booking.assigned_worker?.full_name || "-"}</TableCell>
-                                    <TableCell>{formatDuration(booking.queue_wait_seconds, isEnglish)}</TableCell>
                                     <TableCell>{formatDuration(booking.offer_response_seconds, isEnglish)}</TableCell>
                                     <TableCell>{formatDuration(booking.service_duration_seconds, isEnglish)}</TableCell>
-                                    <TableCell>{booking.timeout_count || 0}</TableCell>
-                                    <TableCell>{booking.reject_count || 0}</TableCell>
-                                    <TableCell>{booking.worker_note || "-"}</TableCell>
+                                    <TableCell>{`${booking.timeout_count || 0} / ${booking.reject_count || 0}`}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
