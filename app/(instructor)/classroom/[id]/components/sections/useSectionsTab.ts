@@ -1760,7 +1760,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         });
 
         try {
-            const response = await studentService.searchStudentsByIds(lines, course?.id, "all");
+            const response = await studentService.searchStudentsByIds(lines);
 
             if (!response.success || !response.data) {
                 studentModal.setParsedStudents([]);

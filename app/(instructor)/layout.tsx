@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, createContext, useContext } from "react";
+import { useEffect, useMemo, useState, createContext, useContext } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Skeleton } from "@heroui/skeleton";
 import { Avatar } from "@heroui/avatar";
@@ -20,6 +20,7 @@ import Link from "next/link";
 import { IoSchool } from "react-icons/io5";
 import { AppFooter } from "@/components/Footer";
 import { GlobalAnnouncementLayer } from "@/components/system-announcements/global-announcement-layer";
+import type { UserNotificationItem } from "@/services/user-notification.service";
 
 interface User {
     id: number;
@@ -87,7 +88,6 @@ export default function InstructorLayout({
     });
     const {
         notifications,
-        unreadCount,
         isInboxLoading,
         markNotificationRead,
         markAllNotificationsRead,
@@ -186,6 +186,33 @@ export default function InstructorLayout({
             return rawLink;
         }
     };
+
+    const isNotificationVisibleInInstructorShell = (notification: UserNotificationItem) => {
+        if (notification.type === "support_ticket") {
+            return false;
+        }
+
+        const rawLink = notification?.link ? String(notification.link) : "";
+        if (!rawLink) {
+            return true;
+        }
+
+        try {
+            const url = new URL(rawLink, typeof window !== "undefined" ? window.location.origin : "http://localhost");
+            return !url.pathname.startsWith("/admin/");
+        } catch {
+            return !rawLink.startsWith("/admin/");
+        }
+    };
+
+    const visibleNotifications = useMemo(
+        () => notifications.filter(isNotificationVisibleInInstructorShell),
+        [notifications]
+    );
+    const visibleUnreadCount = useMemo(
+        () => visibleNotifications.filter((n) => !n.is_read).length,
+        [visibleNotifications]
+    );
 
     // Extract course ID from pathname
     const courseId = pathname.includes("/classroom/")
@@ -490,9 +517,9 @@ export default function InstructorLayout({
                                         aria-label={t("notifications")}
                                     >
                                         <Icon icon="solar:bell-linear" className="text-xl text-default-600" />
-                                        {unreadCount > 0 && (
+                                        {visibleUnreadCount > 0 && (
                                             <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center leading-none">
-                                                {unreadCount > 99 ? "99+" : unreadCount}
+                                                {visibleUnreadCount > 99 ? "99+" : visibleUnreadCount}
                                             </span>
                                         )}
                                     </button>
@@ -500,8 +527,8 @@ export default function InstructorLayout({
                                 <PopoverContent className="overflow-hidden border border-default-200 bg-content1 p-0 shadow-xl shadow-black/10">
                                     {(() => {
                                         const filtered = notifTab === "unread"
-                                            ? notifications.filter((n) => !n.is_read)
-                                            : notifications;
+                                            ? visibleNotifications.filter((n) => !n.is_read)
+                                            : visibleNotifications;
                                         const unreadItems = filtered.filter((n) => !n.is_read);
                                         const readItems = filtered.filter((n) => n.is_read);
                                         const INITIAL_LIMIT = 5;
@@ -577,7 +604,7 @@ export default function InstructorLayout({
                                                                 onClick={() => setNotifTab("unread")}
                                                                 className="text-[11px] text-blue-500 hover:text-blue-700 font-medium"
                                                             >
-                                                                {t("unread")} {unreadCount > 0 ? `(${unreadCount})` : ""}
+                                                                {t("unread")} {visibleUnreadCount > 0 ? `(${visibleUnreadCount})` : ""}
                                                             </button>
                                                             <button
                                                                 type="button"

@@ -223,9 +223,7 @@ function AssignmentModalComponent({
                 description: formData.description.trim() || undefined,
                 assignment_type: formData.assignment_type,
                 week_number: (formData.assignment_type === "weekly_group") ? formData.week_number : undefined,
-                linked_attendance_session_ids: formData.linked_attendance_session_ids.length > 0 
-                    ? formData.linked_attendance_session_ids 
-                    : undefined,
+                linked_attendance_session_ids: formData.linked_attendance_session_ids,
                 attendance_condition: formData.linked_attendance_session_ids.length > 1 
                     ? formData.attendance_condition 
                     : undefined,

@@ -411,6 +411,7 @@ export const QRPreviewModal = memo(function QRPreviewModal({
     if (!session) return null;
 
     const checkInUrl = getAppUrl(`/check-in/${session.id}`);
+    const isStaticPinSession = session.pin_mode === "static" || (session.pin_mode == null && !session.auto_rotate_pin);
 
     const copyPIN = () => {
         if (session.pin_code) {
@@ -509,7 +510,9 @@ export const QRPreviewModal = memo(function QRPreviewModal({
                             </div>
                         ) : (
                             <div className="inline-block rounded-2xl border border-dashed border-default-300 bg-content2 px-6 py-5 text-sm text-default-500">
-                                {isEnglish ? "PIN will appear when check-in opens and rotate every minute." : "PIN จะปรากฏเมื่อเริ่มรอบเช็คชื่อ และจะเปลี่ยนทุก 1 นาที"}
+                                {isStaticPinSession
+                                    ? (isEnglish ? "This session uses one fixed PIN, but it is not ready yet." : "รอบนี้ใช้ PIN คงที่ แต่ยังไม่พร้อมแสดงในขณะนี้")
+                                    : (isEnglish ? "PIN will appear when check-in opens and rotate every minute." : "PIN จะปรากฏเมื่อเริ่มรอบเช็คชื่อ และจะเปลี่ยนทุก 1 นาที")}
                             </div>
                         )}
                     </div>
