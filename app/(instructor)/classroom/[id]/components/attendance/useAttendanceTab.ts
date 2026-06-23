@@ -445,8 +445,8 @@ export function useAttendanceTab(
                 });
                 if (result) {
                     addToast({
-                        title: isEnglish ? "Success" : "à¸ªà¸³à¹€à¸£à¹‡à¸ˆ",
-                        description: isEnglish ? "Attendance session updated successfully." : "à¹à¸à¹‰à¹„à¸‚à¸£à¸­à¸šà¸à¸²à¸£à¹€à¸Šà¹‡à¸„à¸Šà¸·à¹ˆà¸­à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§",
+                        title: isEnglish ? "Success" : "สำเร็จ",
+                        description: isEnglish ? "Attendance session updated successfully." : "แก้ไขรอบการเช็คชื่อเรียบร้อยแล้ว",
                         color: "success",
                         timeout: 3000,
                         shouldShowTimeoutProgress: true,
@@ -458,8 +458,8 @@ export function useAttendanceTab(
             } catch (error: unknown) {
                 console.error("Error updating session:", error);
                 addToast({
-                    title: isEnglish ? "Error" : "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”",
-                    description: error instanceof Error ? error.message : (isEnglish ? "Unable to update the attendance session." : "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¹à¸à¹‰à¹„à¸‚à¸£à¸­à¸šà¸à¸²à¸£à¹€à¸Šà¹‡à¸„à¸Šà¸·à¹ˆà¸­à¹„à¸”à¹‰"),
+                    title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                    description: error instanceof Error ? error.message : (isEnglish ? "Unable to update the attendance session." : "ไม่สามารถแก้ไขรอบการเช็คชื่อได้"),
                     color: "danger",
                     timeout: 3000,
                     shouldShowTimeoutProgress: true,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import type ExcelJS from "exceljs";
 import { addToast } from "@heroui/toast";
@@ -10,6 +10,7 @@ import { Chip } from "@heroui/chip";
 import { Input } from "@heroui/input";
 import { Pagination } from "@heroui/pagination";
 import { Select, SelectItem } from "@heroui/select";
+import { Spinner } from "@heroui/spinner";
 import {
     Table,
     TableBody,
@@ -18,14 +19,36 @@ import {
     TableHeader,
     TableRow,
 } from "@heroui/table";
-import { Spinner } from "@heroui/spinner";
 import { Icon } from "@iconify/react";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import { useSmartPolling } from "@/lib/realtime/use-smart-polling";
 import queueService, {
     getQueueBookingStatusLabel,
     getQueueBookingTypeLabel,
+    type DeskWithStatus,
+    type ProjectorViewData,
+    type QueueReportBooking,
+    type QueueReportWorkerStat,
     type QueueSessionReport,
 } from "@/services/queue.service";
+
+const LIVE_INTERVAL_MS = 5000;
+
+type ReportSnapshot = {
+    report: QueueSessionReport;
+    deskData: ProjectorViewData;
+};
+
+type WorkerSummary = QueueReportWorkerStat & {
+    assignedBookings: QueueReportBooking[];
+    currentDeskNumbers: number[];
+    uniqueDeskNumbers: number[];
+    completedCount: number;
+    skippedCount: number;
+    gradingAssignedCount: number;
+    helpAssignedCount: number;
+    pendingAssignedCount: number;
+};
 
 function getStatusColor(status: string): "default" | "primary" | "warning" | "success" | "danger" {
     switch (status) {
@@ -43,13 +66,33 @@ function getStatusColor(status: string): "default" | "primary" | "warning" | "su
     }
 }
 
+function getWorkerStatusColor(worker: QueueReportWorkerStat, now: Date): "default" | "primary" | "warning" | "success" | "danger" {
+    if (worker.offer_paused_until) {
+        const pausedUntil = new Date(worker.offer_paused_until);
+        if (!Number.isNaN(pausedUntil.getTime()) && pausedUntil > now) {
+            return "danger";
+        }
+    }
+
+    switch (worker.status) {
+        case "busy":
+            return "warning";
+        case "online":
+            return "success";
+        case "paused":
+            return "danger";
+        default:
+            return "default";
+    }
+}
+
 function sanitizeFileNameSegment(value?: string | null): string {
     return (value || "untitled")
         .trim()
-    .replace(/[\\/:*?"<>|]+/g, "_")
-    .replace(/\s+/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_|_$/g, "") || "untitled";
+        .replace(/[\\/:*?"<>|]+/g, "_")
+        .replace(/\s+/g, "_")
+        .replace(/_+/g, "_")
+        .replace(/^_|_$/g, "") || "untitled";
 }
 
 function formatExportDate(value: Date): string {
@@ -59,6 +102,156 @@ function formatExportDate(value: Date): string {
     return `${day}-${month}-${year}`;
 }
 
+function formatDateTime(value: string | null | undefined, isEnglish: boolean): string {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "-";
+    return date.toLocaleString(isEnglish ? "en-US" : "th-TH", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
+
+function formatDuration(totalSeconds: number | null | undefined, isEnglish: boolean): string {
+    if (!totalSeconds || totalSeconds <= 0) return "-";
+
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+    const parts: string[] = [];
+
+    if (hours > 0) {
+        parts.push(isEnglish ? `${hours} hr` : `${hours} ชม.`);
+    }
+    if (minutes > 0) {
+        parts.push(isEnglish ? `${minutes} min` : `${minutes} นาที`);
+    }
+    if (seconds > 0 && (hours === 0 || minutes < 5)) {
+        parts.push(isEnglish ? `${seconds} sec` : `${seconds} วินาที`);
+    }
+
+    return parts.join(" ");
+}
+
+function formatPercent(value: number | null | undefined): string {
+    return `${(value || 0).toFixed(1)}%`;
+}
+
+function getWorkerStatusLabel(worker: QueueReportWorkerStat, isEnglish: boolean): string {
+    if (worker.offer_paused_until) {
+        const pausedUntil = new Date(worker.offer_paused_until);
+        if (!Number.isNaN(pausedUntil.getTime()) && pausedUntil > new Date()) {
+            return isEnglish ? "Paused from offers" : "พักรับงานอัตโนมัติ";
+        }
+    }
+
+    switch (worker.status) {
+        case "online":
+            return isEnglish ? "Ready" : "พร้อมรับงาน";
+        case "busy":
+            return isEnglish ? "Busy" : "กำลังตรวจ";
+        case "paused":
+            return isEnglish ? "Paused" : "พักรับงาน";
+        default:
+            return isEnglish ? "Offline" : "ออฟไลน์";
+    }
+}
+
+function buildWorkerModeLabel(worker: QueueReportWorkerStat, isEnglish: boolean): string {
+    const accepts: string[] = [];
+    if (worker.accept_grading) accepts.push(isEnglish ? "Grading" : "ตรวจงาน");
+    if (worker.accept_help) accepts.push(isEnglish ? "Help" : "ช่วยเหลือ");
+    if (accepts.length === 0) return isEnglish ? "No queue types enabled" : "ยังไม่เปิดรับประเภทงาน";
+    return accepts.join(" / ");
+}
+
+function getSingleSelection(keys: unknown, fallback: string): string {
+    const first = Array.from(keys as Iterable<string>)[0];
+    return typeof first === "string" && first.length > 0 ? first : fallback;
+}
+
+function WorkerDeskMap({
+    desks,
+    highlightedDeskNumbers,
+    currentDeskNumbers,
+}: {
+    desks: DeskWithStatus[];
+    highlightedDeskNumbers: number[];
+    currentDeskNumbers: number[];
+}) {
+    const positionedDesks = desks.filter(
+        (desk) =>
+            typeof desk.x === "number" &&
+            typeof desk.y === "number" &&
+            (desk.is_enabled || desk.type === "teacher"),
+    );
+
+    if (positionedDesks.length === 0) {
+        return null;
+    }
+
+    const xs = positionedDesks.map((desk) => desk.x as number);
+    const ys = positionedDesks.map((desk) => desk.y as number);
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const width = 340;
+    const height = 220;
+    const pad = 18;
+    const rawWidth = Math.max(...xs) - minX;
+    const rawHeight = Math.max(...ys) - minY;
+    const scale = Math.min(
+        rawWidth > 0 ? (width - pad * 2) / rawWidth : 1,
+        rawHeight > 0 ? (height - pad * 2) / rawHeight : 1,
+    );
+
+    const currentSet = new Set(currentDeskNumbers.map(String));
+    const highlightedSet = new Set(highlightedDeskNumbers.map(String));
+
+    const cx = (desk: DeskWithStatus) => pad + ((desk.x as number) - minX) * scale;
+    const cy = (desk: DeskWithStatus) => pad + ((desk.y as number) - minY) * scale;
+
+    return (
+        <svg viewBox={`0 0 ${width} ${height}`} className="w-full rounded-2xl bg-slate-50 p-2 dark:bg-slate-950/40">
+            {positionedDesks.map((desk) => {
+                const x = cx(desk);
+                const y = cy(desk);
+                const deskKey = String(desk.number);
+                const isCurrent = currentSet.has(deskKey);
+                const isHighlighted = highlightedSet.has(deskKey);
+
+                if (desk.type === "teacher") {
+                    return (
+                        <g key={`teacher-${desk.id}`}>
+                            <rect x={x - 18} y={y - 6} width={36} height={12} rx={4} fill="#059669" />
+                            <text x={x} y={y - 10} textAnchor="middle" fontSize="9" fill="#0f172a">
+                                T
+                            </text>
+                        </g>
+                    );
+                }
+
+                const fill = isCurrent ? "#f59e0b" : isHighlighted ? "#38bdf8" : "#cbd5e1";
+                const labelFill = isCurrent || isHighlighted ? "#0f172a" : "#475569";
+
+                return (
+                    <g key={`desk-${desk.id}`}>
+                        {isCurrent ? <circle cx={x} cy={y} r={11} fill="#fde68a" opacity={0.65} /> : null}
+                        <circle cx={x} cy={y} r={7} fill={fill} />
+                        {(isCurrent || isHighlighted) ? (
+                            <text x={x} y={y - 12} textAnchor="middle" fontSize="9" fill={labelFill}>
+                                {desk.number}
+                            </text>
+                        ) : null}
+                    </g>
+                );
+            })}
+        </svg>
+    );
+}
+
 export default function QueueSessionReportPage() {
     const params = useParams<{ id: string; sessionId: string }>();
     const { language } = useGlobalSettings();
@@ -66,109 +259,191 @@ export default function QueueSessionReportPage() {
     const t = (thai: string, english: string) => (isEnglish ? english : thai);
     const courseId = params?.id;
     const sessionId = params?.sessionId;
-    const [loading, setLoading] = useState(true);
-    const [report, setReport] = useState<QueueSessionReport | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const hasParams = Boolean(courseId && sessionId);
+
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [bookingTypeFilter, setBookingTypeFilter] = useState("all");
     const [workerFilter, setWorkerFilter] = useState("all");
-    const [isExporting, setIsExporting] = useState(false);
+    const [selectedWorkerId, setSelectedWorkerId] = useState("all");
     const [bookingPage, setBookingPage] = useState(1);
     const [bookingsPerPage, setBookingsPerPage] = useState("10");
+    const [isExporting, setIsExporting] = useState(false);
 
-    useEffect(() => {
-        if (!courseId || !sessionId) {
-            setError(t("ไม่พบรหัสคอร์สหรือ session", "Course ID or session ID was not found."));
-            setLoading(false);
-            return;
-        }
+    const {
+        data: snapshot,
+        isInitialLoading,
+        isRefreshing,
+        error,
+        refetch,
+    } = useSmartPolling<ReportSnapshot>({
+        enabled: hasParams,
+        intervalMs: LIVE_INTERVAL_MS,
+        fetcher: async () => {
+            const [report, deskData] = await Promise.all([
+                queueService.getSessionReport(courseId as string, sessionId as string),
+                queueService.getDeskStatuses(courseId as string, sessionId as string),
+            ]);
 
-        const fetchReport = async () => {
-            try {
-                setLoading(true);
-                const data = await queueService.getSessionReport(courseId, sessionId);
-                setReport(data);
-                setError(null);
-            } catch (fetchError) {
-                const message = !isEnglish && fetchError instanceof Error
-                    ? fetchError.message
-                    : t("ไม่สามารถโหลดรีพอร์ตได้", "Unable to load the report.");
-                setError(message);
-            } finally {
-                setLoading(false);
-            }
-        };
+            return { report, deskData };
+        },
+    });
 
-        fetchReport();
-    }, [courseId, sessionId, isEnglish]);
+    const report = snapshot?.report ?? null;
+    const deskData = snapshot?.deskData ?? null;
+    const desks = deskData?.desks ?? [];
+    const now = new Date();
+    const errorMessage = error instanceof Error
+        ? error.message
+        : t("ไม่สามารถโหลดรีพอร์ตได้", "Unable to load the report.");
 
     useEffect(() => {
         setBookingPage(1);
     }, [searchQuery, statusFilter, bookingTypeFilter, workerFilter, bookingsPerPage]);
 
-    if (loading) {
-        return (
-            <div className="flex min-h-[40vh] items-center justify-center">
-                <Spinner label={t("กำลังโหลดรีพอร์ต...", "Loading report...")} />
-            </div>
-        );
-    }
+    const sortedBookings = useMemo(() => {
+        return [...(report?.bookings ?? [])].sort((left, right) => {
+            const diff = new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
+            return diff !== 0 ? diff : right.id - left.id;
+        });
+    }, [report?.bookings]);
 
-    const query = searchQuery.trim().toLowerCase();
-    const workerOptions = report?.worker_stats || [];
-    const workerSelectItems = [
-        { key: "all", label: t("ผู้ตรวจทั้งหมด", "All workers") },
-        ...workerOptions.map((worker) => ({
-            key: String(worker.user_id),
-            label: worker.full_name || `#${worker.user_id}`,
-        })),
-    ];
-    const filteredWorkers = (report?.worker_stats || []).filter((worker) => {
-        const matchesWorker = workerFilter === "all" || String(worker.user_id) === workerFilter;
-        if (!matchesWorker) return false;
-        if (!query) return true;
-        const haystack = [
-            worker.full_name || "",
-            String(worker.user_id),
-            String(worker.total_completed),
-            String(worker.opened_count || 0),
-            String(worker.closed_count || 0),
-            String(worker.offer_accept_count || 0),
-            String(worker.offer_reject_count || 0),
-            String(worker.offer_timeout_count || 0),
-        ].join(" ").toLowerCase();
-        return haystack.includes(query);
-    });
+    const workerSummaries = useMemo<WorkerSummary[]>(() => {
+        return (report?.worker_stats ?? []).map((worker) => {
+            const assignedBookings = sortedBookings.filter((booking) => booking.assigned_worker?.id === worker.user_id);
+            const uniqueDeskNumbers = Array.from(
+                new Set(
+                    assignedBookings
+                        .map((booking) => booking.desk_number)
+                        .filter((deskNumber) => deskNumber !== null && deskNumber !== undefined),
+                ),
+            ).sort((left, right) => left - right);
+            const currentDeskNumbers = Array.from(
+                new Set(
+                    desks
+                        .filter((desk) => desk.booking?.assigned_worker?.id === worker.user_id)
+                        .map((desk) => Number(desk.number))
+                        .filter((deskNumber) => !Number.isNaN(deskNumber)),
+                ),
+            );
+            const completedCount = assignedBookings.filter((booking) => booking.status === "completed").length;
+            const skippedCount = assignedBookings.filter((booking) => booking.status === "no_show").length;
+            const gradingAssignedCount = assignedBookings.filter((booking) => booking.booking_type === "grading").length;
+            const helpAssignedCount = assignedBookings.filter((booking) => booking.booking_type === "help").length;
+            const pendingAssignedCount = assignedBookings.filter(
+                (booking) => booking.status === "waiting" || booking.status === "in_progress",
+            ).length;
 
-    const filteredBookings = (report?.bookings || []).filter((booking) => {
-        const matchesStatus = statusFilter === "all" || booking.status === statusFilter;
-        const matchesType = bookingTypeFilter === "all" || booking.booking_type === bookingTypeFilter;
-        const matchesWorker = workerFilter === "all" || String(booking.assigned_worker?.id || "") === workerFilter;
-        if (!matchesStatus || !matchesType || !matchesWorker) return false;
-        if (!query) return true;
-        const haystack = [
-            booking.student?.full_name || "",
-            booking.student?.student_id || "",
-            booking.assigned_worker?.full_name || "",
-            booking.booking_ip || "",
-            booking.booking_device || "",
-            booking.booking_type || "",
-            booking.status || "",
-            String(booking.queue_number),
-            String(booking.desk_number),
-            booking.worker_note || "",
-        ].join(" ").toLowerCase();
-        return haystack.includes(query);
-    });
+            return {
+                ...worker,
+                assignedBookings,
+                currentDeskNumbers,
+                uniqueDeskNumbers,
+                completedCount,
+                skippedCount,
+                gradingAssignedCount,
+                helpAssignedCount,
+                pendingAssignedCount,
+            };
+        });
+    }, [desks, report?.worker_stats, sortedBookings]);
 
-    const completedCount = filteredBookings.filter((booking) => booking.status === "completed").length;
-    const waitingCount = filteredBookings.filter((booking) => booking.status === "waiting").length;
-    const inProgressCount = filteredBookings.filter((booking) => booking.status === "in_progress").length;
-    const timeoutCount = filteredBookings.reduce((sum, booking) => sum + (booking.timeout_count || 0), 0);
-    const rejectCount = filteredBookings.reduce((sum, booking) => sum + (booking.reject_count || 0), 0);
+    const workerSelectItems = useMemo(() => {
+        return [
+            { key: "all", label: t("ผู้ตรวจทั้งหมด", "All workers") },
+            ...workerSummaries.map((worker) => ({
+                key: String(worker.user_id),
+                label: worker.full_name || `#${worker.user_id}`,
+            })),
+        ];
+    }, [isEnglish, workerSummaries]);
+
+    const filteredWorkers = useMemo(() => {
+        const query = searchQuery.trim().toLowerCase();
+        return workerSummaries.filter((worker) => {
+            const matchesWorker = workerFilter === "all" || String(worker.user_id) === workerFilter;
+            if (!matchesWorker) return false;
+            if (!query) return true;
+
+            const haystack = [
+                worker.full_name || "",
+                String(worker.user_id),
+                String(worker.total_completed),
+                String(worker.offer_accept_count || 0),
+                String(worker.offer_reject_count || 0),
+                String(worker.offer_timeout_count || 0),
+                buildWorkerModeLabel(worker, isEnglish),
+                worker.uniqueDeskNumbers.join(" "),
+            ].join(" ").toLowerCase();
+
+            return haystack.includes(query);
+        });
+    }, [isEnglish, searchQuery, workerFilter, workerSummaries]);
+
+    useEffect(() => {
+        if (filteredWorkers.length === 0) {
+            setSelectedWorkerId("all");
+            return;
+        }
+
+        if (selectedWorkerId === "all" || !filteredWorkers.some((worker) => String(worker.user_id) === selectedWorkerId)) {
+            setSelectedWorkerId(String(filteredWorkers[0].user_id));
+        }
+    }, [filteredWorkers, selectedWorkerId]);
+
+    const selectedWorker = filteredWorkers.find((worker) => String(worker.user_id) === selectedWorkerId) || null;
+
+    const filteredBookings = useMemo(() => {
+        const query = searchQuery.trim().toLowerCase();
+        return sortedBookings.filter((booking) => {
+            const matchesStatus = statusFilter === "all" || booking.status === statusFilter;
+            const matchesType = bookingTypeFilter === "all" || booking.booking_type === bookingTypeFilter;
+            const matchesWorker = workerFilter === "all" || String(booking.assigned_worker?.id || "") === workerFilter;
+            if (!matchesStatus || !matchesType || !matchesWorker) return false;
+            if (!query) return true;
+
+            const haystack = [
+                booking.student?.full_name || "",
+                booking.student?.student_id || "",
+                booking.assigned_worker?.full_name || "",
+                booking.booking_ip || "",
+                booking.booking_device || "",
+                booking.booking_type,
+                booking.status,
+                String(booking.queue_number),
+                String(booking.desk_number),
+                booking.worker_note || "",
+            ].join(" ").toLowerCase();
+
+            return haystack.includes(query);
+        });
+    }, [bookingTypeFilter, searchQuery, sortedBookings, statusFilter, workerFilter]);
+
+    const totalBookings = sortedBookings.length;
+    const completedCount = sortedBookings.filter((booking) => booking.status === "completed").length;
+    const waitingCount = sortedBookings.filter((booking) => booking.status === "waiting").length;
+    const inProgressCount = sortedBookings.filter((booking) => booking.status === "in_progress").length;
+    const skippedCount = sortedBookings.filter((booking) => booking.status === "no_show").length;
+    const timeoutCount = sortedBookings.reduce((sum, booking) => sum + (booking.timeout_count || 0), 0);
+    const rejectCount = sortedBookings.reduce((sum, booking) => sum + (booking.reject_count || 0), 0);
+    const gradingCount = sortedBookings.filter((booking) => booking.booking_type === "grading").length;
+    const helpCount = sortedBookings.filter((booking) => booking.booking_type === "help").length;
+    const activeWorkerCount = workerSummaries.filter((worker) => worker.status === "online" || worker.status === "busy").length;
+    const autoPausedWorkers = workerSummaries.filter((worker) => {
+        if (!worker.offer_paused_until) return false;
+        const pausedUntil = new Date(worker.offer_paused_until);
+        return !Number.isNaN(pausedUntil.getTime()) && pausedUntil > now;
+    }).length;
+    const completedLoads = workerSummaries.map((worker) => worker.total_completed);
+    const maxCompleted = completedLoads.length > 0 ? Math.max(...completedLoads) : 0;
+    const minCompleted = completedLoads.length > 0 ? Math.min(...completedLoads) : 0;
+    const averageCompleted = completedLoads.length > 0
+        ? completedLoads.reduce((sum, value) => sum + value, 0) / completedLoads.length
+        : 0;
+
     const rejectReasonStats = report?.reject_reason_stats || [];
     const totalRejectByReason = rejectReasonStats.reduce((sum, item) => sum + (item.count || 0), 0);
+
     const bookingPageSize = Number(bookingsPerPage);
     const totalBookingPages = Math.max(1, Math.ceil(filteredBookings.length / bookingPageSize));
     const currentBookingPage = Math.min(bookingPage, totalBookingPages);
@@ -176,293 +451,178 @@ export default function QueueSessionReportPage() {
         (currentBookingPage - 1) * bookingPageSize,
         currentBookingPage * bookingPageSize,
     );
-    const statCards = [
+
+    const summaryCards = [
         {
-            label: t("ทั้งหมด", "Total"),
-            value: filteredBookings.length,
+            label: t("รายการทั้งหมด", "Total bookings"),
+            value: totalBookings,
+            hint: t("รวมทุกสถานะใน session นี้", "All queue entries in this session"),
             icon: "solar:clipboard-list-bold",
-            iconClass: "text-blue-600",
-            bgClass: "bg-blue-100 dark:bg-blue-500/15",
+            colorClass: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200",
         },
         {
-            label: t("กำลังรอ", "Waiting"),
-            value: waitingCount,
+            label: t("กำลังรอ / กำลังตรวจ", "Waiting / In progress"),
+            value: `${waitingCount} / ${inProgressCount}`,
+            hint: t("ดูคาบกำลังไหลแค่ไหน", "Live queue load right now"),
             icon: "solar:clock-circle-bold",
-            iconClass: "text-amber-600 dark:text-amber-300",
-            bgClass: "bg-amber-100 dark:bg-amber-500/15",
+            colorClass: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-200",
         },
         {
-            label: t("กำลังตรวจ", "In Progress"),
-            value: inProgressCount,
-            icon: "solar:play-circle-bold",
-            iconClass: "text-emerald-600 dark:text-emerald-300",
-            bgClass: "bg-emerald-100 dark:bg-emerald-500/15",
-        },
-        {
-            label: t("เสร็จแล้ว", "Completed"),
+            label: t("เสร็จสิ้นแล้ว", "Completed"),
             value: completedCount,
+            hint: t("งานที่ปิดได้แล้ว", "Work finished so far"),
             icon: "solar:check-circle-bold",
-            iconClass: "text-red-600 dark:text-red-300",
-            bgClass: "bg-red-100 dark:bg-red-500/15",
+            colorClass: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200",
+        },
+        {
+            label: t("ถูกข้าม / หมดเวลา", "Skipped / Timed out"),
+            value: `${skippedCount} / ${timeoutCount}`,
+            hint: t("รายการที่สะดุดระหว่าง flow", "Entries that broke the normal flow"),
+            icon: "solar:danger-triangle-bold",
+            colorClass: "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200",
+        },
+        {
+            label: t("ผู้ตรวจพร้อม / พักรับงาน", "Ready / Paused"),
+            value: `${activeWorkerCount} / ${autoPausedWorkers}`,
+            hint: t("ดูว่าใครยังช่วยรับงานได้อยู่", "Current worker availability"),
+            icon: "solar:users-group-rounded-bold",
+            colorClass: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-200",
+        },
+        {
+            label: t("ความต่างภาระงาน", "Workload spread"),
+            value: `${maxCompleted - minCompleted}`,
+            hint: t(
+                `เฉลี่ย ${averageCompleted.toFixed(1)} งานต่อคน`,
+                `Average ${averageCompleted.toFixed(1)} jobs per worker`,
+            ),
+            icon: "solar:chart-bold",
+            colorClass: "bg-slate-100 text-slate-700 dark:bg-slate-500/15 dark:text-slate-200",
         },
     ];
 
-    const formatDateTime = (value?: string | null) => {
-        if (!value) return "-";
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return "-";
-        return date.toLocaleString(isEnglish ? "en-US" : "th-TH", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-    };
-
-    const triggerDownload = (buffer: ArrayBuffer, fileName: string) => {
-        const blob = new Blob([buffer], {
-            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        });
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = fileName;
-        anchor.click();
-        URL.revokeObjectURL(url);
-    };
-
     const handleExport = async () => {
         if (!report) return;
+
         setIsExporting(true);
         try {
-            const ExcelJS = (await import("exceljs")).default;
+            const ExcelJSImport = await import("exceljs");
+            const workbook = new ExcelJSImport.default.Workbook();
             const exportDate = new Date();
-            const workbook = new ExcelJS.Workbook();
             workbook.creator = "ITII Assist";
             workbook.created = exportDate;
-            workbook.subject = report.session?.title || t("รีพอร์ตคิว", "Queue report");
             workbook.title = `${t("รีพอร์ตคิว", "Queue Report")} - ${report.session?.title || sessionId}`;
 
-            const solidFill = (argb: string) => ({ type: "pattern", pattern: "solid", fgColor: { argb } }) as const;
-            const thinBorder: Partial<ExcelJS.Borders> = {
-                top: { style: "thin", color: { argb: "FFE2E8F0" } },
-                bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
-                left: { style: "thin", color: { argb: "FFE2E8F0" } },
-                right: { style: "thin", color: { argb: "FFE2E8F0" } },
-            };
-            const workbookFontName = "TH Sarabun New";
-            const headerFont: Partial<ExcelJS.Font> = { bold: true, color: { argb: "FFFFFFFF" }, size: 16, name: workbookFontName };
-            const subHeaderFont: Partial<ExcelJS.Font> = { bold: true, color: { argb: "FF0F172A" }, size: 14, name: workbookFontName };
-            const titleFill = solidFill("FF0F766E");
-            const headerFill = solidFill("FF1E293B");
-            const subHeaderFill = solidFill("FFE2E8F0");
-            const accentFill = solidFill("FFD1FAE5");
-            const waitingFill = solidFill("FFDBEAFE");
-            const progressFill = solidFill("FFFEF3C7");
-            const completedFill = solidFill("FFDCFCE7");
-            const applyHeader = (cell: ExcelJS.Cell) => {
-                cell.fill = headerFill;
-                cell.font = headerFont;
-                cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
-                cell.border = thinBorder;
-            };
-            const applyBody = (cell: ExcelJS.Cell, centered = false) => {
-                cell.border = thinBorder;
-                cell.font = { size: 14, name: workbookFontName };
-                cell.alignment = { horizontal: centered ? "center" : "left", vertical: "middle", wrapText: true };
-            };
+            const summarySheet = workbook.addWorksheet(t("ภาพรวม", "Summary"));
+            summarySheet.columns = [{ width: 28 }, { width: 36 }];
+            summarySheet.addRows([
+                [t("session", "Session"), report.session?.title || sessionId || "-"],
+                [t("ส่งออกเมื่อ", "Exported at"), exportDate.toLocaleString(isEnglish ? "en-US" : "th-TH")],
+                [t("อัปเดตข้อมูลล่าสุด", "Last data refresh"), formatDateTime(report.generated_at, isEnglish)],
+                [t("รายการทั้งหมด", "Total bookings"), totalBookings],
+                [t("เสร็จสิ้นแล้ว", "Completed"), completedCount],
+                [t("กำลังรอ", "Waiting"), waitingCount],
+                [t("กำลังตรวจ", "In progress"), inProgressCount],
+                [t("ถูกข้าม", "Skipped"), skippedCount],
+                [t("หมดเวลา", "Timed out"), timeoutCount],
+                [t("ปฏิเสธ", "Declined"), rejectCount],
+                [t("ตรวจงาน", "Grading"), gradingCount],
+                [t("ช่วยเหลือ", "Help"), helpCount],
+            ]);
 
-            const summarySheet = workbook.addWorksheet(t("ภาพรวมรีพอร์ต", "Report Summary"));
-            summarySheet.columns = [
-                { width: 18 },
-                { width: 18 },
-                { width: 18 },
-                { width: 18 },
-                { width: 18 },
-                { width: 18 },
-            ];
-            summarySheet.mergeCells("A1:F2");
-            const titleCell = summarySheet.getCell("A1");
-            titleCell.value = `${t("รีพอร์ตการจองคิว", "Queue Booking Report")}\n${report.session?.title || sessionId}`;
-            titleCell.fill = titleFill;
-            titleCell.font = { bold: true, size: 22, color: { argb: "FFFFFFFF" }, name: workbookFontName };
-            titleCell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
-            titleCell.border = thinBorder;
-            summarySheet.getRow(1).height = 26;
-            summarySheet.getRow(2).height = 24;
-
-            const paintKpi = (range: string, label: string, value: string | number, fill: ReturnType<typeof solidFill>) => {
-                summarySheet.mergeCells(range);
-                const cell = summarySheet.getCell(range.split(":")[0]);
-                cell.value = `${label}\n${value}`;
-                cell.fill = fill;
-                cell.font = { bold: true, size: 18, color: { argb: "FF0F172A" }, name: workbookFontName };
-                cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
-                cell.border = thinBorder;
-            };
-
-            paintKpi("A4:B5", t("ผู้ตรวจที่พบ", "Workers Found"), filteredWorkers.length, accentFill);
-            paintKpi("C4:D5", t("คิวที่แสดง", "Bookings Shown"), filteredBookings.length, waitingFill);
-            paintKpi("E4:F5", t("คิวสำเร็จ", "Completed"), completedCount, completedFill);
-            paintKpi("A7:B8", t("กำลังรอ", "Waiting"), waitingCount, waitingFill);
-            paintKpi("C7:D8", t("กำลังตรวจ", "In Progress"), inProgressCount, progressFill);
-            paintKpi("E7:F8", t("หมดเวลา/ปฏิเสธ", "Timeout/Decline"), `${timeoutCount}/${rejectCount}`, accentFill);
-
-            summarySheet.mergeCells("A9:F9");
-            summarySheet.getCell("A9").value = `${t("ส่งออกเมื่อ", "Exported At")}: ${exportDate.toLocaleString(isEnglish ? "en-US" : "th-TH")}`;
-            summarySheet.getCell("A9").alignment = { horizontal: "center", vertical: "middle" };
-            summarySheet.getCell("A9").font = { bold: true, size: 13, color: { argb: "FF0F172A" }, name: workbookFontName };
-            summarySheet.getCell("A9").fill = accentFill;
-            summarySheet.getCell("A9").border = thinBorder;
-
-            summarySheet.mergeCells("A11:B11");
-            summarySheet.mergeCells("C11:F11");
-            summarySheet.getCell("A11").value = t("Filter ที่ใช้", "Applied Filters");
-            summarySheet.getCell("C11").value = [
-                `${t("คำค้น", "Search")}: ${searchQuery || t("ทั้งหมด", "All")}`,
-                `${t("สถานะ", "Status")}: ${statusFilter === "all" ? t("ทั้งหมด", "All") : getQueueBookingStatusLabel(statusFilter as "waiting" | "in_progress" | "completed" | "cancelled" | "no_show", isEnglish)}`,
-                `${t("ประเภท", "Type")}: ${bookingTypeFilter === "all" ? t("ทั้งหมด", "All") : getQueueBookingTypeLabel(bookingTypeFilter as "grading" | "help", isEnglish)}`,
-                `${t("ผู้ตรวจ", "Worker")}: ${workerFilter === "all" ? t("ทั้งหมด", "All") : workerOptions.find((worker) => String(worker.user_id) === workerFilter)?.full_name || workerFilter}`,
-            ].join(" | ");
-            ["A11", "C11"].forEach((address) => {
-                const cell = summarySheet.getCell(address);
-                cell.fill = subHeaderFill;
-                cell.font = subHeaderFont;
-                cell.border = thinBorder;
-                cell.alignment = { vertical: "middle", horizontal: address === "A11" ? "center" : "left", wrapText: true };
-            });
-
-            const workerSheet = workbook.addWorksheet(t("สถิติผู้ตรวจ", "Worker Statistics"));
+            const workerSheet = workbook.addWorksheet(t("ผู้ตรวจ", "Workers"));
             workerSheet.columns = [
-                { header: t("ผู้ตรวจ", "Worker"), key: "full_name", width: 28 },
-                { header: t("รวมงาน", "Total"), key: "total_completed", width: 12 },
-                { header: t("ตรวจงาน", "Grading"), key: "grading_completed", width: 12 },
-                { header: t("ช่วยเหลือ", "Help"), key: "help_completed", width: 12 },
-                { header: t("% งาน", "% Work"), key: "percent", width: 10 },
-                { header: t("เปิดรับงานครั้งแรก", "First Opened"), key: "first_opened_at", width: 22 },
-                { header: t("เปิดรับงานล่าสุด", "Last Opened"), key: "last_opened_at", width: 22 },
-                { header: t("ปิดรับงานล่าสุด", "Last Closed"), key: "last_closed_at", width: 22 },
-                { header: t("เปิดกี่ครั้ง", "Open Count"), key: "opened_count", width: 12 },
-                { header: t("ปิดกี่ครั้ง", "Close Count"), key: "closed_count", width: 12 },
-                { header: t("เวลาที่เปิดรวม", "Total Active Time"), key: "total_active_duration", width: 18 },
-                { header: t("รับงาน", "Accepted"), key: "offer_accept_count", width: 10 },
-                { header: t("ปฏิเสธ", "Declined"), key: "offer_reject_count", width: 10 },
-                { header: t("หมดเวลา", "Timeout"), key: "offer_timeout_count", width: 10 },
-                { header: t("ตอบรับ", "Accept Rate"), key: "offer_accept_rate", width: 12 },
-                { header: t("พักถึง", "Paused Until"), key: "offer_paused_until", width: 22 },
+                { header: t("ผู้ตรวจ", "Worker"), key: "name", width: 26 },
+                { header: t("สถานะ", "Status"), key: "status", width: 20 },
+                { header: t("โหมดรับงาน", "Queue types"), key: "mode", width: 22 },
+                { header: t("รวม", "Total"), key: "total", width: 10 },
+                { header: t("ตรวจงาน", "Grading"), key: "grading", width: 10 },
+                { header: t("ช่วยเหลือ", "Help"), key: "help", width: 10 },
+                { header: t("ตอบรับ", "Accepted"), key: "accept", width: 10 },
+                { header: t("ปฏิเสธ", "Declined"), key: "decline", width: 10 },
+                { header: t("หมดเวลา", "Timed out"), key: "timeout", width: 10 },
+                { header: t("% ตอบรับ", "Accept %"), key: "acceptRate", width: 12 },
+                { header: t("เวลาพร้อมรับงานรวม", "Active time"), key: "activeTime", width: 18 },
+                { header: t("โต๊ะที่ดูแล", "Desks"), key: "desks", width: 28 },
+                { header: t("พักรับงานถึง", "Paused until"), key: "pausedUntil", width: 22 },
             ];
-            workerSheet.getRow(1).eachCell(applyHeader);
-            filteredWorkers.forEach((worker) => {
-                const row = workerSheet.addRow({
-                    full_name: worker.full_name || `#${worker.user_id}`,
-                    total_completed: worker.total_completed,
-                    grading_completed: worker.grading_completed,
-                    help_completed: worker.help_completed,
-                    percent: `${worker.percent.toFixed(1)}%`,
-                    first_opened_at: formatDateTime(worker.first_opened_at),
-                    last_opened_at: formatDateTime(worker.last_opened_at),
-                    last_closed_at: formatDateTime(worker.last_closed_at),
-                    opened_count: worker.opened_count || 0,
-                    closed_count: worker.closed_count || 0,
-                    total_active_duration: worker.total_active_duration || "-",
-                    offer_accept_count: worker.offer_accept_count || 0,
-                    offer_reject_count: worker.offer_reject_count || 0,
-                    offer_timeout_count: worker.offer_timeout_count || 0,
-                    offer_accept_rate: `${(worker.offer_accept_rate || 0).toFixed(1)}%`,
-                    offer_paused_until: formatDateTime(worker.offer_paused_until),
-                });
-                row.eachCell((cell, columnNumber) => applyBody(cell, columnNumber !== 1 && columnNumber !== 6 && columnNumber !== 7 && columnNumber !== 8 && columnNumber !== 11 && columnNumber !== 16));
-                if ((worker.percent || 0) >= 50) {
-                    row.getCell(5).fill = completedFill;
-                }
-            });
+            workerSheet.addRows(filteredWorkers.map((worker) => ({
+                name: worker.full_name || `#${worker.user_id}`,
+                status: getWorkerStatusLabel(worker, isEnglish),
+                mode: buildWorkerModeLabel(worker, isEnglish),
+                total: worker.total_completed,
+                grading: worker.grading_completed,
+                help: worker.help_completed,
+                accept: worker.offer_accept_count || 0,
+                decline: worker.offer_reject_count || 0,
+                timeout: worker.offer_timeout_count || 0,
+                acceptRate: formatPercent(worker.offer_accept_rate),
+                activeTime: formatDuration(worker.total_active_seconds, isEnglish),
+                desks: worker.uniqueDeskNumbers.join(", "),
+                pausedUntil: formatDateTime(worker.offer_paused_until, isEnglish),
+            })));
 
-            const rejectReasonSheet = workbook.addWorksheet(t("เหตุผลการปฏิเสธ", "Decline Reasons"));
-            rejectReasonSheet.columns = [
-                { header: t("รหัสเหตุผล", "Reason Code"), key: "code", width: 24 },
-                { header: t("เหตุผล", "Reason"), key: "label", width: 40 },
-                { header: t("จำนวนครั้ง", "Count"), key: "count", width: 14 },
-                { header: t("สัดส่วน", "Share"), key: "percent", width: 14 },
-            ];
-            rejectReasonSheet.getRow(1).eachCell(applyHeader);
-            (report.reject_reason_stats || []).forEach((reason) => {
-                const row = rejectReasonSheet.addRow({
-                    code: reason.code,
-                    label: isEnglish ? reason.label_en : reason.label_th,
-                    count: reason.count,
-                    percent: `${((reason.count / Math.max(1, totalRejectByReason)) * 100).toFixed(1)}%`,
-                });
-                row.eachCell((cell, columnNumber) => applyBody(cell, columnNumber === 3 || columnNumber === 4));
-            });
-
-            const bookingSheet = workbook.addWorksheet(t("ประวัติคิว", "Booking History"));
+            const bookingSheet = workbook.addWorksheet(t("ประวัติการจองคิว", "Booking History"));
             bookingSheet.columns = [
-                { header: t("เวลาจอง", "Booked At"), key: "created_at", width: 22 },
-                { header: t("คิว", "Queue"), key: "queue_number", width: 10 },
-                { header: t("โต๊ะ", "Desk"), key: "desk_number", width: 10 },
-                { header: t("ประเภท", "Type"), key: "booking_type", width: 12 },
-                { header: t("ผู้จอง", "Student"), key: "student_name", width: 28 },
-                { header: t("รหัสนักศึกษา", "Student ID"), key: "student_code", width: 16 },
-                { header: "IP", key: "booking_ip", width: 18 },
-                { header: t("อุปกรณ์", "Device"), key: "booking_device", width: 24 },
+                { header: t("เวลาจอง", "Booked at"), key: "createdAt", width: 22 },
+                { header: t("คิว", "Queue"), key: "queueNumber", width: 8 },
+                { header: t("โต๊ะ", "Desk"), key: "deskNumber", width: 8 },
+                { header: t("ประเภท", "Type"), key: "type", width: 14 },
+                { header: t("ผู้จอง", "Student"), key: "student", width: 28 },
                 { header: t("สถานะ", "Status"), key: "status", width: 14 },
-                { header: t("ผู้ตรวจ", "Worker"), key: "worker_name", width: 24 },
-                { header: t("เวลารอ", "Wait Time"), key: "wait_duration", width: 16 },
-                { header: t("เวลาตรวจ", "Service Time"), key: "service_duration", width: 16 },
-                { header: t("หมดเวลา", "Timeout"), key: "timeout_count", width: 10 },
-                { header: t("ปฏิเสธ", "Declined"), key: "reject_count", width: 10 },
-                { header: t("หมายเหตุ", "Note"), key: "worker_note", width: 30 },
+                { header: t("ผู้ตรวจ", "Worker"), key: "worker", width: 24 },
+                { header: t("รอก่อนถูกเสนอ", "Queue wait"), key: "queueWait", width: 18 },
+                { header: t("เวลาตอบรับงาน", "Offer response"), key: "offerResponse", width: 18 },
+                { header: t("เวลาตรวจ", "Service time"), key: "serviceTime", width: 18 },
+                { header: t("หมดเวลา", "Timed out"), key: "timeout", width: 10 },
+                { header: t("ปฏิเสธ", "Declined"), key: "decline", width: 10 },
+                { header: t("หมายเหตุผู้ตรวจ", "Worker note"), key: "note", width: 30 },
             ];
-            bookingSheet.getRow(1).eachCell(applyHeader);
-            filteredBookings.forEach((booking) => {
-                const row = bookingSheet.addRow({
-                    created_at: formatDateTime(booking.created_at),
-                    queue_number: booking.queue_number,
-                    desk_number: booking.desk_number,
-                    booking_type: getQueueBookingTypeLabel(booking.booking_type, isEnglish),
-                    student_name: booking.student?.full_name || "-",
-                    student_code: booking.student?.student_id || "-",
-                    booking_ip: booking.booking_ip || "-",
-                    booking_device: booking.booking_device || "-",
-                    status: getQueueBookingStatusLabel(booking.status, isEnglish),
-                    worker_name: booking.assigned_worker?.full_name || "-",
-                    wait_duration: booking.wait_duration || "-",
-                    service_duration: booking.service_duration || "-",
-                    timeout_count: booking.timeout_count || 0,
-                    reject_count: booking.reject_count || 0,
-                    worker_note: booking.worker_note || "-",
-                });
-                row.eachCell((cell, columnNumber) => applyBody(cell, ![1, 5, 6, 7, 8, 10, 15].includes(columnNumber)));
-                const statusCell = row.getCell(9);
-                if (booking.status === "completed") statusCell.fill = completedFill;
-                if (booking.status === "waiting") statusCell.fill = waitingFill;
-                if (booking.status === "in_progress") statusCell.fill = progressFill;
-            });
+            bookingSheet.addRows(filteredBookings.map((booking) => ({
+                createdAt: formatDateTime(booking.created_at, isEnglish),
+                queueNumber: booking.queue_number,
+                deskNumber: booking.desk_number,
+                type: getQueueBookingTypeLabel(booking.booking_type, isEnglish),
+                student: booking.student?.full_name || "-",
+                status: getQueueBookingStatusLabel(booking.status, isEnglish),
+                worker: booking.assigned_worker?.full_name || "-",
+                queueWait: formatDuration(booking.queue_wait_seconds, isEnglish),
+                offerResponse: formatDuration(booking.offer_response_seconds, isEnglish),
+                serviceTime: formatDuration(booking.service_duration_seconds, isEnglish),
+                timeout: booking.timeout_count || 0,
+                decline: booking.reject_count || 0,
+                note: booking.worker_note || "-",
+            })));
 
-            [summarySheet, workerSheet, rejectReasonSheet, bookingSheet].forEach((sheet) => {
-                sheet.views = [{ state: "frozen", ySplit: 1 }];
+            const boldFont: Partial<ExcelJS.Font> = { bold: true };
+            [summarySheet, workerSheet, bookingSheet].forEach((sheet) => {
+                sheet.getRow(1).font = boldFont;
             });
 
             const buffer = await workbook.xlsx.writeBuffer();
-            const fileName = [
-                sanitizeFileNameSegment(report.course?.code || courseId),
+            const blob = new Blob([buffer], {
+                type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            });
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement("a");
+            anchor.href = url;
+            anchor.download = [
                 sanitizeFileNameSegment(report.session?.title || sessionId),
+                sanitizeFileNameSegment(report.course?.code || courseId),
                 formatExportDate(exportDate),
-            ].join("_");
-            triggerDownload(buffer as ArrayBuffer, `${fileName}.xlsx`);
+            ].join("_") + ".xlsx";
+            anchor.click();
+            URL.revokeObjectURL(url);
+
             addToast({
-                title: t("ส่งออกสำเร็จ", "Export complete"),
-                description: t("ดาวน์โหลดไฟล์รีพอร์ตเรียบร้อยแล้ว", "The report file has been downloaded successfully."),
+                title: t("ส่งออกรีพอร์ตแล้ว", "Report exported"),
+                description: t("ดาวน์โหลดไฟล์เรียบร้อยแล้ว", "The report file has been downloaded."),
                 color: "success",
             });
         } catch (exportError) {
             console.error("Export queue report failed:", exportError);
             addToast({
-                title: t("ส่งออกไม่สำเร็จ", "Export failed"),
-                description: !isEnglish && exportError instanceof Error
-                    ? exportError.message
-                    : t("ไม่สามารถสร้างไฟล์รีพอร์ตได้", "Unable to generate the report file."),
+                title: t("ส่งออกรีพอร์ตไม่สำเร็จ", "Export failed"),
+                description: t("ไม่สามารถสร้างไฟล์รีพอร์ตได้", "Unable to generate the report file."),
                 color: "danger",
             });
         } finally {
@@ -470,38 +630,97 @@ export default function QueueSessionReportPage() {
         }
     };
 
+    if (!hasParams) {
+        return (
+            <Card className="border border-danger-200 bg-danger-50">
+                <CardBody className="text-danger-700">
+                    {t("ไม่พบรหัสคอร์สหรือ session", "Course ID or session ID was not found.")}
+                </CardBody>
+            </Card>
+        );
+    }
+
+    if (isInitialLoading && !report) {
+        return (
+            <div className="flex min-h-[40vh] items-center justify-center">
+                <Spinner label={t("กำลังโหลดรีพอร์ต...", "Loading report...")} />
+            </div>
+        );
+    }
+
     return (
-        <div className="mx-auto w-full max-w-420 space-y-6 p-4 sm:p-6">
-            <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h1 className="text-lg font-semibold text-foreground">{t("รีพอร์ตการจองคิว", "Queue Booking Report")}</h1>
-                    <p className="text-sm text-default-500">{report?.session?.title || t("ดูประวัติการจองคิวและสถิติการทำงานใน session นี้", "Review booking history and worker performance for this session.")}</p>
+        <div className="space-y-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <h1 className="text-2xl font-semibold text-foreground">
+                            {t("ภาพรวมการทำงานของคิว", "Queue Session Performance")}
+                        </h1>
+                        <Chip size="sm" color={report?.session ? "primary" : "default"} variant="flat">
+                            {report?.session?.title || sessionId}
+                        </Chip>
+                        {isRefreshing ? (
+                            <Chip size="sm" color="success" variant="flat">
+                                {t("อัปเดตสด", "Live refresh")}
+                            </Chip>
+                        ) : null}
+                    </div>
+                    <p className="max-w-4xl text-sm text-default-500">
+                        {t(
+                            "ดูคาบนี้แบบละเอียดว่าใครรับงานอะไร รับได้ทันไหม กระจายงานสมดุลหรือไม่ และโต๊ะไหนถูกตรวจไปแล้วบ้าง ข้อมูลจะรีเฟรชอัตโนมัติทุกไม่กี่วินาที",
+                            "Review this session in detail: who handled what, how quickly offers were accepted, how balanced the workload is, and which desks each worker has touched. Data refreshes automatically every few seconds.",
+                        )}
+                    </p>
+                    <div className="flex flex-wrap gap-3 text-xs text-default-500">
+                        <span>
+                            {t("อัปเดตล่าสุด", "Last refresh")}: {formatDateTime(report?.generated_at, isEnglish)}
+                        </span>
+                        <span>
+                            {t("ห้อง", "Room")}: {deskData?.classroom?.name || "-"}
+                        </span>
+                        <span>
+                            {t("สถานะ session", "Session status")}: {deskData?.session?.status || "-"}
+                        </span>
+                    </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap gap-2">
+                    <Button variant="flat" startContent={<Icon icon="solar:refresh-bold" />} onPress={refetch}>
+                        {t("รีเฟรชทันที", "Refresh now")}
+                    </Button>
                     <Button
-                        color="success"
+                        color="primary"
+                        variant="solid"
+                        startContent={<Icon icon="solar:download-bold" />}
                         isLoading={isExporting}
-                        startContent={!isExporting ? <Icon icon="solar:download-bold" className="text-lg" /> : undefined}
                         onPress={handleExport}
-                        className="bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
                     >
                         {t("ส่งออก Excel", "Export Excel")}
                     </Button>
                 </div>
-            </section>
+            </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {statCards.map((item) => (
-                    <Card key={item.label} className="border border-default-200 bg-content1 shadow-sm">
-                        <CardBody className="p-4">
-                            <div className="flex items-center gap-3">
-                                <div className={`rounded-xl p-2.5 ${item.bgClass}`}>
-                                    <Icon icon={item.icon} className={`text-2xl ${item.iconClass}`} aria-label={item.label} />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-default-500">{item.label}</p>
-                                    <p className="text-2xl font-bold text-foreground">{item.value}</p>
-                                </div>
+            {error ? (
+                <Card className="border border-danger-200 bg-danger-50">
+                    <CardBody className="flex flex-col gap-3 text-danger-700 md:flex-row md:items-center md:justify-between">
+                        <span>{errorMessage}</span>
+                        <Button color="danger" variant="flat" onPress={refetch}>
+                            {t("ลองใหม่", "Try again")}
+                        </Button>
+                    </CardBody>
+                </Card>
+            ) : null}
+
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {summaryCards.map((card) => (
+                    <Card key={card.label} className="border border-default-200 bg-content1 shadow-sm">
+                        <CardBody className="flex flex-row items-start gap-4 p-5">
+                            <div className={`rounded-2xl p-3 ${card.colorClass}`}>
+                                <Icon icon={card.icon} width={24} />
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-sm text-default-500">{card.label}</p>
+                                <p className="text-2xl font-semibold text-foreground">{card.value}</p>
+                                <p className="text-xs text-default-400">{card.hint}</p>
                             </div>
                         </CardBody>
                     </Card>
@@ -511,27 +730,40 @@ export default function QueueSessionReportPage() {
             <Card className="border border-default-200 bg-content1 shadow-sm">
                 <CardHeader className="pb-0">
                     <div>
-                        <h2 className="text-lg font-semibold">{t("สรุปเหตุผลการปฏิเสธ", "Decline Reason Summary")}</h2>
-                        <p className="text-sm text-default-500">{t("สรุปจำนวนการปฏิเสธงานตามเหตุผลมาตรฐานใน session นี้", "Summary of declined offers by standard reason for this session.")}</p>
+                        <h2 className="text-lg font-semibold">{t("สัดส่วนประเภทงาน", "Job Type Distribution")}</h2>
+                        <p className="text-sm text-default-500">
+                            {t(
+                                "ช่วยดูว่าคิวเอียงไปทางตรวจงานหรือช่วยเหลือมากน้อยแค่ไหนในคาบนี้",
+                                "Quickly see whether this session leaned more toward grading or help requests.",
+                            )}
+                        </p>
                     </div>
                 </CardHeader>
-                <CardBody>
-                    <Table removeWrapper aria-label={t("สรุปเหตุผลการปฏิเสธ", "Decline reason summary")}>
-                        <TableHeader>
-                            <TableColumn>{t("เหตุผล", "Reason")}</TableColumn>
-                            <TableColumn>{t("จำนวนครั้ง", "Count")}</TableColumn>
-                            <TableColumn>{t("สัดส่วน", "Share")}</TableColumn>
-                        </TableHeader>
-                        <TableBody emptyContent={t("ยังไม่มีการปฏิเสธงาน", "No declined offers found.")}>
-                            {rejectReasonStats.map((reason) => (
-                                <TableRow key={reason.code}>
-                                    <TableCell>{isEnglish ? reason.label_en : reason.label_th}</TableCell>
-                                    <TableCell>{reason.count}</TableCell>
-                                    <TableCell>{`${((reason.count / Math.max(1, totalRejectByReason)) * 100).toFixed(1)}%`}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                <CardBody className="grid gap-4 md:grid-cols-2">
+                    <div className="rounded-2xl border border-default-200 bg-default-50 p-4 dark:bg-default-100/5">
+                        <div className="mb-2 flex items-center justify-between">
+                            <span className="text-sm text-default-500">{t("ตรวจงาน", "Grading")}</span>
+                            <span className="text-lg font-semibold">{gradingCount}</span>
+                        </div>
+                        <div className="h-3 overflow-hidden rounded-full bg-default-200">
+                            <div
+                                className="h-full rounded-full bg-sky-500"
+                                style={{ width: `${totalBookings > 0 ? (gradingCount / totalBookings) * 100 : 0}%` }}
+                            />
+                        </div>
+                    </div>
+                    <div className="rounded-2xl border border-default-200 bg-default-50 p-4 dark:bg-default-100/5">
+                        <div className="mb-2 flex items-center justify-between">
+                            <span className="text-sm text-default-500">{t("ช่วยเหลือ", "Help")}</span>
+                            <span className="text-lg font-semibold">{helpCount}</span>
+                        </div>
+                        <div className="h-3 overflow-hidden rounded-full bg-default-200">
+                            <div
+                                className="h-full rounded-full bg-emerald-500"
+                                style={{ width: `${totalBookings > 0 ? (helpCount / totalBookings) * 100 : 0}%` }}
+                            />
+                        </div>
+                    </div>
                 </CardBody>
             </Card>
 
@@ -541,42 +773,31 @@ export default function QueueSessionReportPage() {
                         <Input
                             value={searchQuery}
                             onValueChange={setSearchQuery}
-                            placeholder={t("ค้นหาผู้จอง, ผู้ตรวจ, IP, โต๊ะ...", "Search by student, worker, IP, or desk...")}
-                            size="md"
-                            variant="bordered"
+                            placeholder={t("ค้นหาผู้จอง ผู้ตรวจ โต๊ะ IP หรือหมายเหตุ...", "Search by student, worker, desk, IP, or notes...")}
                             isClearable
+                            variant="bordered"
                             startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
                             className="flex-1"
-                            classNames={{
-                                inputWrapper: "border-blue-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                label: "text-blue-400 text-sm",
-                            }}
                         />
-                        <div className="flex flex-col gap-2 sm:flex-row lg:flex-none">
+                        <div className="grid gap-2 sm:grid-cols-3 lg:w-auto">
                             <Select
-                                placeholder={t("ทุกสถานะ", "All statuses")}
-                                aria-label={t("กรองตามสถานะคิว", "Filter by queue status")}
+                                aria-label={t("กรองตามสถานะ", "Filter by status")}
                                 selectedKeys={[statusFilter]}
-                                onSelectionChange={(keys) => setStatusFilter((Array.from(keys)[0] as string) || "all")}
-                                className="w-full sm:w-40 lg:w-44"
+                                onSelectionChange={(keys) => setStatusFilter(getSingleSelection(keys, "all"))}
                                 variant="bordered"
-                                size="md"
                             >
                                 <SelectItem key="all">{t("ทุกสถานะ", "All statuses")}</SelectItem>
                                 <SelectItem key="waiting">{t("รอคิว", "Waiting")}</SelectItem>
-                                <SelectItem key="in_progress">{t("กำลังตรวจ", "In Progress")}</SelectItem>
+                                <SelectItem key="in_progress">{t("กำลังตรวจ", "In progress")}</SelectItem>
                                 <SelectItem key="completed">{t("เสร็จสิ้น", "Completed")}</SelectItem>
                                 <SelectItem key="cancelled">{t("ยกเลิก", "Cancelled")}</SelectItem>
                                 <SelectItem key="no_show">{t("ถูกข้าม", "Skipped")}</SelectItem>
                             </Select>
                             <Select
-                                placeholder={t("ทุกประเภท", "All types")}
-                                aria-label={t("กรองตามประเภทคิว", "Filter by queue type")}
+                                aria-label={t("กรองตามประเภทงาน", "Filter by booking type")}
                                 selectedKeys={[bookingTypeFilter]}
-                                onSelectionChange={(keys) => setBookingTypeFilter((Array.from(keys)[0] as string) || "all")}
-                                className="w-full sm:w-40 lg:w-44"
+                                onSelectionChange={(keys) => setBookingTypeFilter(getSingleSelection(keys, "all"))}
                                 variant="bordered"
-                                size="md"
                             >
                                 <SelectItem key="all">{t("ทุกประเภท", "All types")}</SelectItem>
                                 <SelectItem key="grading">{t("ตรวจงาน", "Grading")}</SelectItem>
@@ -586,10 +807,8 @@ export default function QueueSessionReportPage() {
                                 aria-label={t("กรองตามผู้ตรวจ", "Filter by worker")}
                                 items={workerSelectItems}
                                 selectedKeys={[workerFilter]}
-                                onSelectionChange={(keys) => setWorkerFilter((Array.from(keys)[0] as string) || "all")}
-                                className="w-full sm:w-48 lg:w-52"
+                                onSelectionChange={(keys) => setWorkerFilter(getSingleSelection(keys, "all"))}
                                 variant="bordered"
-                                size="md"
                             >
                                 {(item) => <SelectItem key={item.key}>{item.label}</SelectItem>}
                             </Select>
@@ -598,52 +817,222 @@ export default function QueueSessionReportPage() {
                 </CardBody>
             </Card>
 
-            {error ? (
-                <Card className="border border-danger-200 bg-danger-50">
-                    <CardBody className="text-danger-700">{error}</CardBody>
-                </Card>
-            ) : null}
+            <Card className="border border-default-200 bg-content1 shadow-sm">
+                <CardHeader className="pb-0">
+                    <div>
+                        <h2 className="text-lg font-semibold">{t("ภาพรวมผู้ตรวจแต่ละคน", "Worker Performance Overview")}</h2>
+                        <p className="text-sm text-default-500">
+                            {t(
+                                "ดูได้ทันทีว่าใครรับงานแบบไหน รับทันหรือหมดเวลาเท่าไร ถูกพักรับงานอยู่หรือไม่ และภาระงานกระจายสมดุลแค่ไหน",
+                                "See at a glance what each worker handled, how often offers timed out, whether they are temporarily paused, and how balanced the workload has been.",
+                            )}
+                        </p>
+                    </div>
+                </CardHeader>
+                <CardBody className="space-y-4">
+                    <div className="grid gap-4 xl:grid-cols-2">
+                        {filteredWorkers.map((worker) => (
+                            <button
+                                type="button"
+                                key={worker.user_id}
+                                onClick={() => setSelectedWorkerId(String(worker.user_id))}
+                                className={`rounded-2xl border p-4 text-left transition ${
+                                    selectedWorkerId === String(worker.user_id)
+                                        ? "border-primary bg-primary-50 shadow-sm dark:bg-primary-500/10"
+                                        : "border-default-200 bg-default-50 hover:border-primary/40 dark:bg-default-100/5"
+                                }`}
+                            >
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                    <div className="space-y-2">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <h3 className="text-base font-semibold text-foreground">
+                                                {worker.full_name || `#${worker.user_id}`}
+                                            </h3>
+                                            <Chip size="sm" color={getWorkerStatusColor(worker, now)} variant="flat">
+                                                {getWorkerStatusLabel(worker, isEnglish)}
+                                            </Chip>
+                                        </div>
+                                        <p className="text-sm text-default-500">{buildWorkerModeLabel(worker, isEnglish)}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs text-default-500">{t("งานเสร็จรวม", "Completed total")}</p>
+                                        <p className="text-2xl font-semibold text-foreground">{worker.total_completed}</p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                                    <div className="rounded-xl border border-default-200 bg-content1 p-3">
+                                        <p className="text-xs text-default-500">{t("ประเภทงานที่รับ", "Handled job types")}</p>
+                                        <p className="mt-1 text-sm font-medium">
+                                            {t("ตรวจงาน", "Grading")}: {worker.gradingAssignedCount} | {t("ช่วยเหลือ", "Help")}: {worker.helpAssignedCount}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-xl border border-default-200 bg-content1 p-3">
+                                        <p className="text-xs text-default-500">{t("ตอบรับ / ปฏิเสธ / หมดเวลา", "Accept / Decline / Timeout")}</p>
+                                        <p className="mt-1 text-sm font-medium">
+                                            {worker.offer_accept_count || 0} / {worker.offer_reject_count || 0} / {worker.offer_timeout_count || 0}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-xl border border-default-200 bg-content1 p-3">
+                                        <p className="text-xs text-default-500">{t("เปอร์เซ็นต์ตอบรับ / สัดส่วนงาน", "Accept rate / Work share")}</p>
+                                        <p className="mt-1 text-sm font-medium">
+                                            {formatPercent(worker.offer_accept_rate)} / {formatPercent(worker.percent)}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-xl border border-default-200 bg-content1 p-3">
+                                        <p className="text-xs text-default-500">{t("ถูกข้าม / ค้างอยู่", "Skipped / Still assigned")}</p>
+                                        <p className="mt-1 text-sm font-medium">
+                                            {worker.skippedCount} / {worker.pendingAssignedCount}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-default-500">
+                                    <Chip size="sm" variant="flat">{t("โต๊ะที่เกี่ยวข้อง", "Touched desks")}: {worker.uniqueDeskNumbers.length}</Chip>
+                                    <Chip size="sm" variant="flat">{t("พร้อมรับงานรวม", "Active time")}: {formatDuration(worker.total_active_seconds, isEnglish)}</Chip>
+                                    {worker.currentDeskNumbers.length > 0 ? (
+                                        <Chip size="sm" color="warning" variant="flat">
+                                            {t("กำลังอยู่ที่โต๊ะ", "Current desk")}: {worker.currentDeskNumbers.join(", ")}
+                                        </Chip>
+                                    ) : null}
+                                    {worker.offer_paused_until ? (
+                                        <Chip size="sm" color="danger" variant="flat">
+                                            {t("พักถึง", "Paused until")}: {formatDateTime(worker.offer_paused_until, isEnglish)}
+                                        </Chip>
+                                    ) : null}
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+
+                    {selectedWorker ? (
+                        <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+                            <Card className="border border-default-200 bg-default-50 shadow-none dark:bg-default-100/5">
+                                <CardHeader className="pb-0">
+                                    <div>
+                                        <h3 className="text-base font-semibold">
+                                            {t("รายละเอียดผู้ตรวจ", "Worker detail")}: {selectedWorker.full_name || `#${selectedWorker.user_id}`}
+                                        </h3>
+                                        <p className="text-sm text-default-500">
+                                            {t(
+                                                "โต๊ะที่ผู้ตรวจคนนี้เคยรับและสถานะการทำงานล่าสุด",
+                                                "Desks this worker has handled and their latest operating state.",
+                                            )}
+                                        </p>
+                                    </div>
+                                </CardHeader>
+                                <CardBody className="space-y-4">
+                                    <WorkerDeskMap
+                                        desks={desks}
+                                        highlightedDeskNumbers={selectedWorker.uniqueDeskNumbers}
+                                        currentDeskNumbers={selectedWorker.currentDeskNumbers}
+                                    />
+                                    <div className="flex flex-wrap gap-2">
+                                        {selectedWorker.uniqueDeskNumbers.length > 0 ? (
+                                            selectedWorker.uniqueDeskNumbers.map((deskNumber) => (
+                                                <Chip
+                                                    key={deskNumber}
+                                                    size="sm"
+                                                    color={selectedWorker.currentDeskNumbers.includes(deskNumber) ? "warning" : "primary"}
+                                                    variant="flat"
+                                                >
+                                                    {t("โต๊ะ", "Desk")} {deskNumber}
+                                                </Chip>
+                                            ))
+                                        ) : (
+                                            <span className="text-sm text-default-500">
+                                                {t("ยังไม่พบโต๊ะที่ผู้ตรวจคนนี้รับงาน", "No desks recorded for this worker yet.")}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="grid gap-3 md:grid-cols-2">
+                                        <div className="rounded-xl border border-default-200 bg-content1 p-3">
+                                            <p className="text-xs text-default-500">{t("เปิดรับงานครั้งแรก / ล่าสุด", "First / last opened")}</p>
+                                            <p className="mt-1 text-sm font-medium">
+                                                {formatDateTime(selectedWorker.first_opened_at, isEnglish)} | {formatDateTime(selectedWorker.last_opened_at, isEnglish)}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-xl border border-default-200 bg-content1 p-3">
+                                            <p className="text-xs text-default-500">{t("ปิดรับงานล่าสุด / active ล่าสุด", "Last closed / last active")}</p>
+                                            <p className="mt-1 text-sm font-medium">
+                                                {formatDateTime(selectedWorker.last_closed_at, isEnglish)} | {formatDateTime(selectedWorker.last_active_at, isEnglish)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </CardBody>
+                            </Card>
+
+                            <Card className="border border-default-200 bg-default-50 shadow-none dark:bg-default-100/5">
+                                <CardHeader className="pb-0">
+                                    <div>
+                                        <h3 className="text-base font-semibold">{t("ประวัติของผู้ตรวจคนนี้", "This worker's recent history")}</h3>
+                                        <p className="text-sm text-default-500">
+                                            {t(
+                                                "เรียงจากล่าสุดไปเก่าสุด เพื่อดูว่าเดินตรวจโต๊ะไหนบ้างและใช้เวลานานแค่ไหน",
+                                                "Sorted newest first so you can review which desks they handled and how long each step took.",
+                                            )}
+                                        </p>
+                                    </div>
+                                </CardHeader>
+                                <CardBody>
+                                    <Table removeWrapper aria-label={t("ประวัติผู้ตรวจ", "Worker booking history")}>
+                                        <TableHeader>
+                                            <TableColumn>{t("เวลา", "Time")}</TableColumn>
+                                            <TableColumn>{t("โต๊ะ", "Desk")}</TableColumn>
+                                            <TableColumn>{t("ประเภท", "Type")}</TableColumn>
+                                            <TableColumn>{t("สถานะ", "Status")}</TableColumn>
+                                            <TableColumn>{t("ตอบรับงาน", "Offer response")}</TableColumn>
+                                            <TableColumn>{t("เวลาตรวจ", "Service time")}</TableColumn>
+                                        </TableHeader>
+                                        <TableBody emptyContent={t("ยังไม่มีประวัติของผู้ตรวจคนนี้", "No history for this worker yet.")}>
+                                            {selectedWorker.assignedBookings.slice(0, 8).map((booking) => (
+                                                <TableRow key={booking.id}>
+                                                    <TableCell>{formatDateTime(booking.created_at, isEnglish)}</TableCell>
+                                                    <TableCell>{booking.desk_number}</TableCell>
+                                                    <TableCell>{getQueueBookingTypeLabel(booking.booking_type, isEnglish)}</TableCell>
+                                                    <TableCell>
+                                                        <Chip size="sm" color={getStatusColor(booking.status)} variant="flat">
+                                                            {getQueueBookingStatusLabel(booking.status, isEnglish)}
+                                                        </Chip>
+                                                    </TableCell>
+                                                    <TableCell>{formatDuration(booking.offer_response_seconds, isEnglish)}</TableCell>
+                                                    <TableCell>{formatDuration(booking.service_duration_seconds, isEnglish)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </CardBody>
+                            </Card>
+                        </div>
+                    ) : null}
+                </CardBody>
+            </Card>
 
             <Card className="border border-default-200 bg-content1 shadow-sm">
                 <CardHeader className="pb-0">
                     <div>
-                        <h2 className="text-lg font-semibold">{t("สถิติผู้ตรวจ", "Worker Statistics")}</h2>
-                        <p className="text-sm text-default-500">{t("สัดส่วนงานพร้อมเวลาเปิด-ปิดรับงานของผู้ตรวจใน session นี้", "Work distribution and queue availability timeline for workers in this session.")}</p>
+                        <h2 className="text-lg font-semibold">{t("สรุปเหตุผลการปฏิเสธงาน", "Decline Reason Summary")}</h2>
+                        <p className="text-sm text-default-500">
+                            {t(
+                                "ไว้เช็กว่าคาบนี้ปัญหาเกิดจากภาระงานชนกัน ปัญหาเทคนิค หรือมีคนต้องพักรับงานบ่อยแค่ไหน",
+                                "Helpful for spotting whether the session was slowed down by worker load, technical issues, or repeated temporary pauses.",
+                            )}
+                        </p>
                     </div>
                 </CardHeader>
                 <CardBody>
-                    <Table removeWrapper aria-label={t("สถิติผู้ตรวจในคิว", "Queue worker statistics")}>
+                    <Table removeWrapper aria-label={t("สรุปเหตุผลการปฏิเสธ", "Decline reason summary")}>
                         <TableHeader>
-                            <TableColumn>{t("ผู้ตรวจ", "Worker")}</TableColumn>
-                            <TableColumn>{t("รวม", "Total")}</TableColumn>
-                            <TableColumn>{t("ตรวจงาน", "Grading")}</TableColumn>
-                            <TableColumn>{t("ช่วยเหลือ", "Help")}</TableColumn>
-                            <TableColumn>{t("% งาน", "% Work")}</TableColumn>
-                            <TableColumn>{t("เปิดครั้งแรก", "First Opened")}</TableColumn>
-                            <TableColumn>{t("เปิดล่าสุด", "Last Opened")}</TableColumn>
-                            <TableColumn>{t("ปิดล่าสุด", "Last Closed")}</TableColumn>
-                            <TableColumn>{t("เปิด/ปิด", "Open/Close")}</TableColumn>
-                            <TableColumn>{t("เวลาเปิดรวม", "Total Active Time")}</TableColumn>
-                            <TableColumn>{t("รับ/ปฏิเสธ/หมดเวลา", "Accept/Decline/Timeout")}</TableColumn>
-                            <TableColumn>{t("% ตอบรับ", "Accept %")}</TableColumn>
-                            <TableColumn>{t("พักถึง", "Paused Until")}</TableColumn>
+                            <TableColumn>{t("เหตุผล", "Reason")}</TableColumn>
+                            <TableColumn>{t("จำนวนครั้ง", "Count")}</TableColumn>
+                            <TableColumn>{t("สัดส่วน", "Share")}</TableColumn>
                         </TableHeader>
-                        <TableBody emptyContent={t("ยังไม่มีข้อมูลผู้ตรวจ", "No worker data found.")}>
-                            {filteredWorkers.map((worker) => (
-                                <TableRow key={worker.user_id}>
-                                    <TableCell>{worker.full_name || `#${worker.user_id}`}</TableCell>
-                                    <TableCell>{worker.total_completed}</TableCell>
-                                    <TableCell>{worker.grading_completed}</TableCell>
-                                    <TableCell>{worker.help_completed}</TableCell>
-                                    <TableCell>{worker.percent.toFixed(1)}%</TableCell>
-                                    <TableCell>{formatDateTime(worker.first_opened_at)}</TableCell>
-                                    <TableCell>{formatDateTime(worker.last_opened_at)}</TableCell>
-                                    <TableCell>{formatDateTime(worker.last_closed_at)}</TableCell>
-                                    <TableCell>{`${worker.opened_count || 0} / ${worker.closed_count || 0}`}</TableCell>
-                                    <TableCell>{worker.total_active_duration || "-"}</TableCell>
-                                    <TableCell>{`${worker.offer_accept_count || 0} / ${worker.offer_reject_count || 0} / ${worker.offer_timeout_count || 0}`}</TableCell>
-                                    <TableCell>{`${(worker.offer_accept_rate || 0).toFixed(1)}%`}</TableCell>
-                                    <TableCell>{formatDateTime(worker.offer_paused_until)}</TableCell>
+                        <TableBody emptyContent={t("ยังไม่พบการปฏิเสธงาน", "No declined offers found.")}>
+                            {rejectReasonStats.map((reason) => (
+                                <TableRow key={reason.code}>
+                                    <TableCell>{isEnglish ? reason.label_en : reason.label_th}</TableCell>
+                                    <TableCell>{reason.count}</TableCell>
+                                    <TableCell>{formatPercent((reason.count / Math.max(1, totalRejectByReason)) * 100)}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -655,50 +1044,53 @@ export default function QueueSessionReportPage() {
                 <CardHeader className="pb-0">
                     <div>
                         <h2 className="text-lg font-semibold">{t("ประวัติการจองคิว", "Queue Booking History")}</h2>
-                        <p className="text-sm text-default-500">{t("ดูเวลาจอง โต๊ะ ผู้ตรวจ และระยะเวลาที่ใช้ในแต่ละคิว", "Review booking time, desk, worker, and durations for each queue entry.")}</p>
+                        <p className="text-sm text-default-500">
+                            {t(
+                                "เรียงจากปัจจุบันไปเก่าสุด และแยกเวลาเป็นช่วงชัดเจน: เวลารอก่อนถูกเสนอ, เวลาตอบรับงาน, และเวลาที่ใช้ตรวจจริง",
+                                "Sorted newest first and broken into clear stages: queue wait before first offer, offer response time, and active service time.",
+                            )}
+                        </p>
                     </div>
                 </CardHeader>
                 <CardBody>
-                    <Table removeWrapper aria-label={t("ประวัติการจองคิว", "Queue booking report")} classNames={{ base: "min-w-[1280px]" }}>
+                    <Table removeWrapper aria-label={t("ประวัติการจองคิว", "Queue booking history")} classNames={{ base: "min-w-[1500px]" }}>
                         <TableHeader>
-                            <TableColumn>{t("เวลาจอง", "Booked At")}</TableColumn>
+                            <TableColumn>{t("เวลาจอง", "Booked at")}</TableColumn>
                             <TableColumn>{t("คิว", "Queue")}</TableColumn>
                             <TableColumn>{t("โต๊ะ", "Desk")}</TableColumn>
                             <TableColumn>{t("ประเภท", "Type")}</TableColumn>
                             <TableColumn>{t("ผู้จอง", "Student")}</TableColumn>
-                            <TableColumn>IP</TableColumn>
-                            <TableColumn>{t("อุปกรณ์", "Device")}</TableColumn>
                             <TableColumn>{t("สถานะ", "Status")}</TableColumn>
                             <TableColumn>{t("ผู้ตรวจ", "Worker")}</TableColumn>
-                            <TableColumn>{t("เวลารอ", "Wait Time")}</TableColumn>
-                            <TableColumn>{t("เวลาตรวจ", "Service Time")}</TableColumn>
-                            <TableColumn>{t("หมดเวลา", "Timeout")}</TableColumn>
+                            <TableColumn>{t("รอก่อนถูกเสนอ", "Queue wait")}</TableColumn>
+                            <TableColumn>{t("เวลาตอบรับงาน", "Offer response")}</TableColumn>
+                            <TableColumn>{t("เวลาตรวจ", "Service time")}</TableColumn>
+                            <TableColumn>{t("หมดเวลา", "Timed out")}</TableColumn>
                             <TableColumn>{t("ปฏิเสธ", "Declined")}</TableColumn>
-                            <TableColumn>{t("หมายเหตุ", "Note")}</TableColumn>
+                            <TableColumn>{t("หมายเหตุผู้ตรวจ", "Worker note")}</TableColumn>
                         </TableHeader>
                         <TableBody emptyContent={t("ยังไม่มีประวัติการจองคิว", "No booking history found.")}>
                             {paginatedBookings.map((booking) => (
                                 <TableRow key={booking.id}>
-                                    <TableCell>{new Date(booking.created_at).toLocaleString(isEnglish ? "en-US" : "th-TH")}</TableCell>
+                                    <TableCell>{formatDateTime(booking.created_at, isEnglish)}</TableCell>
                                     <TableCell>{booking.queue_number}</TableCell>
                                     <TableCell>{booking.desk_number}</TableCell>
                                     <TableCell>{getQueueBookingTypeLabel(booking.booking_type, isEnglish)}</TableCell>
                                     <TableCell>
-                                        <div className="min-w-44">
+                                        <div className="min-w-48">
                                             <div className="font-medium text-foreground">{booking.student?.full_name || "-"}</div>
                                             <div className="text-xs text-default-500">{booking.student?.student_id || "-"}</div>
                                         </div>
                                     </TableCell>
-                                    <TableCell>{booking.booking_ip || "-"}</TableCell>
-                                    <TableCell>{booking.booking_device || "-"}</TableCell>
                                     <TableCell>
                                         <Chip size="sm" color={getStatusColor(booking.status)} variant="flat">
                                             {getQueueBookingStatusLabel(booking.status, isEnglish)}
                                         </Chip>
                                     </TableCell>
                                     <TableCell>{booking.assigned_worker?.full_name || "-"}</TableCell>
-                                    <TableCell>{booking.wait_duration || "-"}</TableCell>
-                                    <TableCell>{booking.service_duration || "-"}</TableCell>
+                                    <TableCell>{formatDuration(booking.queue_wait_seconds, isEnglish)}</TableCell>
+                                    <TableCell>{formatDuration(booking.offer_response_seconds, isEnglish)}</TableCell>
+                                    <TableCell>{formatDuration(booking.service_duration_seconds, isEnglish)}</TableCell>
                                     <TableCell>{booking.timeout_count || 0}</TableCell>
                                     <TableCell>{booking.reject_count || 0}</TableCell>
                                     <TableCell>{booking.worker_note || "-"}</TableCell>
@@ -717,7 +1109,7 @@ export default function QueueSessionReportPage() {
                                     <Select
                                         aria-label={t("จำนวนรายการต่อหน้า", "Rows per page")}
                                         selectedKeys={[bookingsPerPage]}
-                                        onSelectionChange={(keys) => setBookingsPerPage((Array.from(keys)[0] as string) || "10")}
+                                        onSelectionChange={(keys) => setBookingsPerPage(getSingleSelection(keys, "10"))}
                                         className="w-28"
                                         size="sm"
                                         variant="bordered"
@@ -728,17 +1120,15 @@ export default function QueueSessionReportPage() {
                                     </Select>
                                 </div>
                             </div>
-                            <div className="flex justify-end">
-                                <Pagination
-                                    page={currentBookingPage}
-                                    total={totalBookingPages}
-                                    onChange={setBookingPage}
-                                    showControls
-                                    isCompact
-                                    color="primary"
-                                    variant="flat"
-                                />
-                            </div>
+                            <Pagination
+                                page={currentBookingPage}
+                                total={totalBookingPages}
+                                onChange={setBookingPage}
+                                showControls
+                                isCompact
+                                color="primary"
+                                variant="flat"
+                            />
                         </div>
                     ) : null}
                 </CardBody>

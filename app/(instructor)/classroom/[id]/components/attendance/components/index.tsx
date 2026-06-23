@@ -750,7 +750,7 @@ const SessionRowActions = memo(function SessionRowActions({
                 </Link>
             </Tooltip>
             {canUpdateAttendanceSessions && (
-                <Tooltip content={isEnglish ? "Edit title" : "à¹à¸à¹‰à¹„à¸‚à¸Šà¸·à¹ˆà¸­"}>
+                <Tooltip content={isEnglish ? "Edit title" : "แก้ไขชื่อ"}>
                     <Button
                         isIconOnly
                         size="sm"

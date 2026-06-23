@@ -177,12 +177,25 @@ export interface DeskWithStatus {
     number: string;
     type: string;
     label?: string;
-    position_x?: number;
-    position_y?: number;
+    x?: number;
+    y?: number;
     is_enabled: boolean;
     status: {
         grading_status: 'not_started' | 'waiting' | 'in_progress' | 'completed';
         help_status: 'none' | 'waiting' | 'in_progress';
+    };
+    booking?: {
+        id: number;
+        queue_number: number;
+        booking_type: 'grading' | 'help';
+        status: 'waiting' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
+        student_name?: string;
+        student_code?: string;
+        assigned_worker?: {
+            id: number;
+            full_name: string;
+            avatar?: string;
+        };
     };
 }
 
@@ -260,17 +273,29 @@ export interface QueueReportWorkerStat {
     offer_total_count?: number;
     offer_accept_rate?: number;
     offer_paused_until?: string | null;
+    status?: 'online' | 'busy' | 'offline' | 'paused';
+    accept_grading?: boolean;
+    accept_help?: boolean;
+    current_booking_id?: number | null;
+    consecutive_offer_timeouts?: number;
+    last_active_at?: string | null;
+    total_active_seconds?: number;
 }
 
 export interface QueueReportBooking {
     id: number;
     created_at: string;
+    assigned_at?: string | null;
+    offer_expires_at?: string | null;
+    started_at?: string | null;
+    completed_at?: string | null;
     queue_number: number;
     desk_number: number;
     booking_type: 'grading' | 'help';
     status: 'waiting' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
-    wait_duration?: string;
-    service_duration?: string;
+    queue_wait_seconds?: number;
+    offer_response_seconds?: number;
+    service_duration_seconds?: number;
     timeout_count?: number;
     reject_count?: number;
     worker_note?: string;
@@ -296,6 +321,7 @@ export interface QueueRejectReasonStat {
 }
 
 export interface QueueSessionReport {
+    generated_at?: string;
     course?: {
         id: string;
         code: string;

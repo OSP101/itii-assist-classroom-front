@@ -515,8 +515,8 @@ export default function QueueTab({
 
         if (!formData.title.trim()) {
             addToast({
-                title: localize("à¸à¸£à¸¸à¸“à¸²à¸à¸£à¸­à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥", "Required field"),
-                description: localize("à¸à¸£à¸¸à¸“à¸²à¸à¸£à¸­à¸à¸Šà¸·à¹ˆà¸­à¸à¸²à¸£à¸ˆà¸­à¸‡à¸„à¸´à¸§", "Please enter a queue title"),
+                title: localize("กรุณากรอกข้อมูล", "Required field"),
+                description: localize("กรุณากรอกชื่อการจองคิว", "Please enter a queue title"),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -1074,7 +1074,7 @@ export default function QueueTab({
                                                                             </Tooltip>
                                                                         )}
                                                                         {canUpdateQueueSessions && (
-                                                                            <Tooltip content={localize("à¹à¸à¹‰à¹„à¸‚à¸Šà¸·à¹ˆà¸­", "Edit title")}>
+                                                                            <Tooltip content={localize("แก้ไขชื่อ", "Edit title")}>
                                                                                 <Button
                                                                                     isIconOnly
                                                                                     size="sm"

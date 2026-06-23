@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardBody } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
@@ -28,7 +28,6 @@ import {
   type TAStatsData,
   type TADetailScore,
   type TADetailData,
-  type TAPerAssignment,
   type KPIBreakdown,
   type AnomalyFlag,
 } from "@/services/courseActivityLog.service";
@@ -37,7 +36,20 @@ interface TAStatsTabProps {
   courseId: string;
 }
 
-// Helper to format date
+type SortField = "total-work" | "term-share" | "graded" | "name";
+type SortDirection = "asc" | "desc";
+
+type TAWorkRow = {
+  ta: TAStat;
+  gradedCount: number;
+  queueCompleted: number;
+  totalWork: number;
+  termSharePct: number;
+  equalSharePct: number;
+  assignmentCoveragePct: number;
+  hasQueueWork: boolean;
+};
+
 function formatDateTime(dateStr: string | null, isEnglish: boolean) {
   if (!dateStr) return "-";
   return new Date(dateStr).toLocaleDateString(isEnglish ? "en-US" : "th-TH", {
@@ -49,7 +61,15 @@ function formatDateTime(dateStr: string | null, isEnglish: boolean) {
   });
 }
 
-// Performance score color helpers
+function formatPercent(value: number) {
+  return `${value.toFixed(1)}%`;
+}
+
+function formatDecimal(value: number | null | undefined, digits = 1) {
+  if (value === null || value === undefined || Number.isNaN(value)) return "-";
+  return value.toFixed(digits);
+}
+
 function getScoreColor(score: number): string {
   if (score >= 80) return "text-emerald-600";
   if (score >= 60) return "text-blue-600";
@@ -57,7 +77,7 @@ function getScoreColor(score: number): string {
   return "text-rose-600";
 }
 
-function getScoreBgColor(score: number): string {
+function getScoreBg(score: number): string {
   if (score >= 80) return "bg-emerald-50";
   if (score >= 60) return "bg-blue-50";
   if (score >= 40) return "bg-amber-50";
@@ -68,7 +88,7 @@ function getScoreLabel(score: number, isEnglish: boolean): string {
   if (score >= 80) return isEnglish ? "Excellent" : "ดีมาก";
   if (score >= 60) return isEnglish ? "Good" : "ดี";
   if (score >= 40) return isEnglish ? "Fair" : "ปานกลาง";
-  return isEnglish ? "Needs improvement" : "ต้องปรับปรุง";
+  return isEnglish ? "Needs improvement" : "ควรติดตาม";
 }
 
 function getConfidenceChip(level: string, isEnglish: boolean) {
@@ -80,133 +100,36 @@ function getConfidenceChip(level: string, isEnglish: boolean) {
   return map[level] || map.low;
 }
 
-// Anomaly Flags Card Component
-function AnomalyFlagsCard({ anomalies }: { anomalies: AnomalyFlag[] }) {
-  const { language } = useGlobalSettings();
-  const isEnglish = language === "en";
-
-  if (anomalies.length === 0) return null;
-  return (
-    <Card className="shadow-sm border border-amber-200">
-      <CardBody className="p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="p-2 bg-amber-100 rounded-xl">
-            <Icon icon="solar:danger-triangle-bold" className="text-lg text-amber-600" />
-          </div>
-          <div>
-            <h3 className="text-base font-semibold text-foreground">{isEnglish ? "Flags" : "ข้อสังเกต"}</h3>
-            <p className="text-xs text-default-500">{anomalies.length} {isEnglish ? "items" : "รายการ"}</p>
-          </div>
-        </div>
-        <div className="space-y-2">
-          {anomalies.map((a, idx) => (
-            <div
-              key={idx}
-              className={`flex items-start gap-2 px-3 py-2 rounded-lg ${
-                a.severity === "danger" ? "bg-rose-50 border border-rose-100" : "bg-amber-50 border border-amber-100"
-              }`}
-            >
-              <Icon
-                icon={a.severity === "danger" ? "solar:close-circle-bold" : "solar:info-circle-bold"}
-                width={16}
-                className={`mt-0.5 shrink-0 ${a.severity === "danger" ? "text-rose-500" : "text-amber-500"}`}
-              />
-              <span className="text-sm text-default-600">{a.message}</span>
-            </div>
-          ))}
-        </div>
-      </CardBody>
-    </Card>
-  );
+function getWorkState(equalSharePct: number, isEnglish: boolean) {
+  if (equalSharePct >= 120) {
+    return {
+      label: isEnglish ? "Above expected" : "มากกว่าค่าเฉลี่ย",
+      className: "bg-blue-50 text-blue-600",
+    };
+  }
+  if (equalSharePct >= 80) {
+    return {
+      label: isEnglish ? "On track" : "ใกล้เคียงค่าเฉลี่ย",
+      className: "bg-emerald-50 text-emerald-600",
+    };
+  }
+  return {
+    label: isEnglish ? "Below expected" : "ต่ำกว่าค่าเฉลี่ย",
+    className: "bg-amber-50 text-amber-600",
+  };
 }
-
-// KPI Breakdown Card Component
-function KPIBreakdownCard({ kpi, confidenceLevel }: { kpi: KPIBreakdown; confidenceLevel?: string }) {
-  const { language } = useGlobalSettings();
-  const isEnglish = language === "en";
-  const items = [
-    { key: "workload", icon: "solar:case-round-bold", color: "text-blue-600", bg: "bg-blue-100", ...kpi.workload, label: isEnglish ? "Workload" : kpi.workload.label },
-    { key: "coverage", icon: "solar:clipboard-check-bold", color: "text-indigo-600", bg: "bg-indigo-100", ...kpi.coverage, label: isEnglish ? "Coverage" : kpi.coverage.label },
-    { key: "consistency", icon: "solar:scale-bold", color: "text-emerald-600", bg: "bg-emerald-100", ...kpi.consistency, label: isEnglish ? "Consistency" : kpi.consistency.label },
-    { key: "spread", icon: "solar:chart-bold", color: "text-violet-600", bg: "bg-violet-100", ...kpi.spread, label: isEnglish ? "Score spread" : kpi.spread.label },
-    { key: "queue", icon: "solar:sort-by-time-bold", color: "text-amber-600", bg: "bg-amber-100", ...kpi.queue, label: isEnglish ? "Queue" : kpi.queue.label },
-    { key: "anomaly", icon: "solar:shield-check-bold", color: "text-rose-600", bg: "bg-rose-100", ...kpi.anomaly, label: isEnglish ? "Anomalies" : kpi.anomaly.label },
-  ];
-
-  const confidenceInfo = getConfidenceChip(confidenceLevel || 'low', isEnglish);
-
-  return (
-    <Card className="border border-default-200 shadow-sm">
-      <CardBody className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-indigo-100 rounded-xl">
-              <Icon icon="solar:graph-up-bold" className="text-lg text-indigo-600" />
-            </div>
-            <div>
-              <h3 className="text-base font-semibold text-foreground">KPI Breakdown</h3>
-              <p className="text-xs text-default-500">{isEnglish ? "Breakdown by scoring dimension" : "รายละเอียดแต่ละมิติ"}</p>
-            </div>
-          </div>
-          <Tooltip content={isEnglish ? "Confidence depends on the amount of available data." : "ระดับความน่าเชื่อถือขึ้นอยู่กับจำนวนข้อมูลที่มี"}>
-            <Chip size="sm" variant="flat" className={confidenceInfo.className}>
-              {isEnglish ? "Confidence" : "ความน่าเชื่อถือ"}: {confidenceInfo.label}
-            </Chip>
-          </Tooltip>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          {items.map((item) => (
-            <div key={item.key} className="rounded-lg border border-default-200 bg-content2 p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <div className={`p-1.5 ${item.bg} rounded-lg`}>
-                  <Icon icon={item.icon} className={`text-sm ${item.color}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="truncate text-xs text-default-500">{item.label}</p>
-                  <p className="text-[10px] text-default-400">{isEnglish ? "Weight" : "น้ำหนัก"} {(item.weight * 100).toFixed(0)}%</p>
-                </div>
-                <span className={`text-lg font-bold ${getScoreColor(item.score)}`}>
-                  {item.score}
-                </span>
-              </div>
-              {/* Mini bar */}
-              <div className="h-1.5 w-full rounded-full bg-content3">
-                <div
-                  className={`h-1.5 rounded-full transition-all duration-500 ${
-                    item.score >= 80
-                      ? "bg-emerald-500"
-                      : item.score >= 60
-                        ? "bg-blue-500"
-                        : item.score >= 40
-                          ? "bg-amber-500"
-                          : "bg-rose-500"
-                  }`}
-                  style={{ width: `${Math.min(item.score, 100)}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardBody>
-    </Card>
-  );
-}
-
-// ============================================
-// Loading Skeletons (matching PeopleTab pattern)
-// ============================================
 
 function StatsCardSkeleton() {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-      {[1, 2, 3].map((i) => (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {[1, 2, 3, 4].map((i) => (
         <Card key={i} className="border border-default-200 shadow-sm">
           <CardBody className="p-4">
             <div className="flex items-center gap-3">
-              <Skeleton className="w-12 h-12 rounded-xl" />
+              <Skeleton className="h-11 w-11 rounded-2xl" />
               <div className="space-y-2">
-                <Skeleton className="w-20 h-3 rounded-lg" />
-                <Skeleton className="w-8 h-6 rounded-lg" />
+                <Skeleton className="h-3 w-28 rounded-lg" />
+                <Skeleton className="h-6 w-20 rounded-lg" />
               </div>
             </div>
           </CardBody>
@@ -219,18 +142,16 @@ function StatsCardSkeleton() {
 function TATableSkeleton() {
   return (
     <Card className="border border-default-200 shadow-sm">
-      <CardBody className="p-2">
+      <CardBody className="p-4">
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex items-center gap-4 p-3">
-              <Skeleton className="w-8 h-8 rounded-full" />
+            <div key={i} className="flex items-center gap-4">
+              <Skeleton className="h-10 w-10 rounded-full" />
               <div className="flex-1 space-y-2">
-                <Skeleton className="w-32 h-4 rounded-lg" />
-                <Skeleton className="w-48 h-3 rounded-lg" />
+                <Skeleton className="h-4 w-40 rounded-lg" />
+                <Skeleton className="h-3 w-56 rounded-lg" />
               </div>
-              <Skeleton className="w-12 h-5 rounded-full" />
-              <Skeleton className="w-12 h-5 rounded-full" />
-              <Skeleton className="w-24 h-8 rounded-lg" />
+              <Skeleton className="h-8 w-24 rounded-xl" />
             </div>
           ))}
         </div>
@@ -239,84 +160,193 @@ function TATableSkeleton() {
   );
 }
 
-// ============================================
-// Suspicious Behavior Detection
-// ============================================
-
-function SuspiciousAlert({
-  taStats,
-  assignments,
+function OverviewCard({
+  icon,
+  label,
+  value,
+  hint,
+  iconClassName,
 }: {
-  taStats: TAStat[];
-  assignments: { assignmentId: number; assignmentName: string; maxScore: number; avgScore: number | null }[];
+  icon: string;
+  label: string;
+  value: string;
+  hint: string;
+  iconClassName: string;
+}) {
+  return (
+    <Card className="border border-default-200 shadow-sm">
+      <CardBody className="p-4">
+        <div className="flex items-start gap-3">
+          <div className={`rounded-2xl p-2.5 ${iconClassName}`}>
+            <Icon icon={icon} className="text-xl" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-default-500">{label}</p>
+            <p className="mt-1 text-2xl font-semibold text-foreground">{value}</p>
+            <p className="mt-1 text-xs text-default-400">{hint}</p>
+          </div>
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+function AnomalyFlagsCard({ anomalies }: { anomalies: AnomalyFlag[] }) {
+  const { language } = useGlobalSettings();
+  const isEnglish = language === "en";
+
+  if (anomalies.length === 0) return null;
+
+  return (
+    <Card className="border border-amber-200 shadow-sm">
+      <CardBody className="space-y-3 p-4">
+        <div className="flex items-center gap-2">
+          <div className="rounded-xl bg-amber-100 p-2">
+            <Icon icon="solar:danger-triangle-bold" className="text-lg text-amber-600" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-foreground">
+              {isEnglish ? "Items to review" : "ประเด็นที่ควรตรวจสอบ"}
+            </h3>
+            <p className="text-xs text-default-500">
+              {anomalies.length} {isEnglish ? "flags" : "รายการ"}
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {anomalies.map((item, index) => (
+            <div
+              key={`${item.kind}-${index}`}
+              className={`rounded-xl border px-3 py-2 ${
+                item.severity === "danger"
+                  ? "border-rose-100 bg-rose-50"
+                  : "border-amber-100 bg-amber-50"
+              }`}
+            >
+              <p className="text-sm text-default-700">{item.message}</p>
+            </div>
+          ))}
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+function KPIBreakdownCard({
+  kpi,
+  confidenceLevel,
+}: {
+  kpi: KPIBreakdown;
+  confidenceLevel?: string;
 }) {
   const { language } = useGlobalSettings();
   const isEnglish = language === "en";
-  const alerts: { taName: string; message: string; severity: "warning" | "danger" }[] = [];
 
-  for (const ta of taStats) {
-    for (const pa of ta.perAssignment) {
-      const overallAssignment = assignments.find((a) => a.assignmentId === pa.assignmentId);
-      if (!overallAssignment || overallAssignment.avgScore === null || pa.avgScore === null) continue;
+  const items = [
+    {
+      key: "workload",
+      icon: "solar:case-round-bold",
+      color: "text-blue-600",
+      bg: "bg-blue-100",
+      ...kpi.workload,
+      label: isEnglish ? "Workload" : kpi.workload.label,
+    },
+    {
+      key: "coverage",
+      icon: "solar:clipboard-check-bold",
+      color: "text-indigo-600",
+      bg: "bg-indigo-100",
+      ...kpi.coverage,
+      label: isEnglish ? "Coverage" : kpi.coverage.label,
+    },
+    {
+      key: "consistency",
+      icon: "solar:scale-bold",
+      color: "text-emerald-600",
+      bg: "bg-emerald-100",
+      ...kpi.consistency,
+      label: isEnglish ? "Consistency" : kpi.consistency.label,
+    },
+    {
+      key: "spread",
+      icon: "solar:chart-bold",
+      color: "text-violet-600",
+      bg: "bg-violet-100",
+      ...kpi.spread,
+      label: isEnglish ? "Score spread" : kpi.spread.label,
+    },
+    {
+      key: "queue",
+      icon: "solar:sort-by-time-bold",
+      color: "text-amber-600",
+      bg: "bg-amber-100",
+      ...kpi.queue,
+      label: isEnglish ? "Queue work" : kpi.queue.label,
+    },
+    {
+      key: "anomaly",
+      icon: "solar:shield-warning-bold",
+      color: "text-rose-600",
+      bg: "bg-rose-100",
+      ...kpi.anomaly,
+      label: isEnglish ? "Anomaly check" : kpi.anomaly.label,
+    },
+  ];
 
-      const diff = Math.abs(pa.avgScore - overallAssignment.avgScore);
-      const threshold = overallAssignment.maxScore * 0.3;
-      if (diff > threshold && pa.totalGraded >= 3) {
-        alerts.push({
-          taName: ta.fullName,
-          message: isEnglish
-            ? `Average score for "${pa.assignmentName}" (${pa.avgScore}) differs from the overall average (${overallAssignment.avgScore}) by more than 30%.`
-            : `ค่าเฉลี่ยคะแนนงาน "${pa.assignmentName}" (${pa.avgScore}) ต่างจากค่าเฉลี่ยรวม (${overallAssignment.avgScore}) มากกว่า 30%`,
-          severity: diff > overallAssignment.maxScore * 0.5 ? "danger" : "warning",
-        });
-      }
-
-      if (pa.scoreDistribution.length > 0 && pa.totalGraded >= 5) {
-        const maxBucket = Math.max(...pa.scoreDistribution.map((d) => d.count));
-        if (maxBucket / pa.totalGraded > 0.8) {
-          alerts.push({
-            taName: ta.fullName,
-            message: isEnglish
-              ? `Scores for "${pa.assignmentName}" are clustered unusually in the same range (${maxBucket}/${pa.totalGraded} in one bucket).`
-              : `ตรวจงาน "${pa.assignmentName}" มีคะแนนซ้ำกันมากผิดปกติ (${maxBucket}/${pa.totalGraded} อยู่ในช่วงเดียวกัน)`,
-            severity: "warning",
-          });
-        }
-      }
-    }
-  }
-
-  if (alerts.length === 0) return null;
+  const confidenceInfo = getConfidenceChip(confidenceLevel || "low", isEnglish);
 
   return (
-    <Card className="shadow-sm border border-amber-200">
-      <CardBody className="p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="p-2 bg-amber-100 rounded-xl">
-            <Icon icon="solar:danger-triangle-bold" className="text-xl text-amber-600" />
-          </div>
+    <Card className="border border-default-200 shadow-sm">
+      <CardBody className="space-y-4 p-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-base font-semibold text-foreground">{isEnglish ? "Things to review" : "สิ่งที่ควรตรวจสอบ"}</h3>
-            <p className="text-xs text-default-500">{alerts.length} {isEnglish ? "flags found" : "รายการที่ตรวจพบ"}</p>
+            <h3 className="text-base font-semibold text-foreground">
+              {isEnglish ? "Evaluation breakdown" : "รายละเอียดคะแนนประเมิน"}
+            </h3>
+            <p className="text-xs text-default-500">
+              {isEnglish
+                ? "Use this as a conversation aid, not the only decision signal."
+                : "ใช้เป็นข้อมูลประกอบการประเมิน ไม่ควรใช้แทนการพิจารณาทั้งหมด"}
+            </p>
           </div>
+          <Chip size="sm" variant="flat" className={confidenceInfo.className}>
+            {isEnglish ? "Confidence" : "ความน่าเชื่อถือ"}: {confidenceInfo.label}
+          </Chip>
         </div>
-        <div className="space-y-2">
-          {alerts.map((alert, idx) => (
-            <div
-              key={idx}
-              className={`flex items-start gap-2 px-3 py-2 rounded-lg ${
-                alert.severity === "danger" ? "bg-rose-50 border border-rose-100" : "bg-amber-50 border border-amber-100"
-              }`}
-            >
-              <Icon
-                icon={alert.severity === "danger" ? "solar:close-circle-bold" : "solar:info-circle-bold"}
-                width={16}
-                className={`mt-0.5 shrink-0 ${alert.severity === "danger" ? "text-rose-500" : "text-amber-500"}`}
-              />
-              <div>
-                <span className="text-sm font-medium text-foreground">{alert.taName}: </span>
-                <span className="text-sm text-default-600">{alert.message}</span>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {items.map((item) => (
+            <div key={item.key} className="rounded-2xl border border-default-200 bg-content2 p-3">
+              <div className="mb-3 flex items-start gap-2">
+                <div className={`rounded-xl p-1.5 ${item.bg}`}>
+                  <Icon icon={item.icon} className={`text-sm ${item.color}`} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground">{item.label}</p>
+                  <p className="text-[11px] text-default-400">
+                    {isEnglish ? "Weight" : "น้ำหนัก"} {(item.weight * 100).toFixed(0)}%
+                  </p>
+                </div>
+                <span className={`text-lg font-semibold ${getScoreColor(item.score)}`}>{item.score}</span>
               </div>
+              <div className="h-2 rounded-full bg-content3">
+                <div
+                  className={`h-2 rounded-full ${
+                    item.score >= 80
+                      ? "bg-emerald-500"
+                      : item.score >= 60
+                        ? "bg-blue-500"
+                        : item.score >= 40
+                          ? "bg-amber-500"
+                          : "bg-rose-500"
+                  }`}
+                  style={{ width: `${Math.min(item.score, 100)}%` }}
+                />
+              </div>
+              {item.description ? (
+                <p className="mt-2 text-xs leading-relaxed text-default-500">{item.description}</p>
+              ) : null}
             </div>
           ))}
         </div>
@@ -324,10 +354,6 @@ function SuspiciousAlert({
     </Card>
   );
 }
-
-// ============================================
-// TA Detail View
-// ============================================
 
 function TADetailView({
   courseId,
@@ -348,18 +374,26 @@ function TADetailView({
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(30);
 
+  const queueCompleted = ta.queueStats?.totalCompleted || 0;
+  const totalWork = ta.totalScoresGraded + queueCompleted;
+
   const fetchDetail = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getTADetail(courseId, ta.userId, {
-        assignmentId: filterAssignment ? parseInt(filterAssignment) : undefined,
+      const result = await getTADetail(courseId, ta.userId, {
+        assignmentId: filterAssignment ? parseInt(filterAssignment, 10) : undefined,
         page,
         limit: rowsPerPage,
       });
-      setDetail(data);
+      setDetail(result);
     } catch {
-      addToast({ title: isEnglish ? "Error" : "เกิดข้อผิดพลาด", description: isEnglish ? "Unable to load TA details." : "ไม่สามารถโหลดข้อมูลรายละเอียด TA ได้", color: "danger",timeout: 3000,
-                shouldShowTimeoutProgress: true, });
+      addToast({
+        title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+        description: isEnglish ? "Unable to load TA details." : "ไม่สามารถโหลดรายละเอียดการทำงานของ TA ได้",
+        color: "danger",
+        timeout: 3000,
+        shouldShowTimeoutProgress: true,
+      });
     } finally {
       setLoading(false);
     }
@@ -371,62 +405,93 @@ function TADetailView({
 
   return (
     <div className="space-y-4">
-      {/* Detail Header */}
-      <div className="flex items-center justify-start gap-1">
-         <Button
-          size="sm"
-          variant="flat"
-          onPress={onClose}
-          startContent={<Icon icon="solar:arrow-left-linear" width={16} />}
-          className="bg-content2 text-default-600 hover:bg-content3"
-          isIconOnly
-        >
-        </Button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
+          <Button
+            isIconOnly
+            size="sm"
+            variant="flat"
+            onPress={onClose}
+            className="bg-content2 text-default-600 hover:bg-content3"
+          >
+            <Icon icon="solar:arrow-left-linear" width={18} />
+          </Button>
           <Avatar
             name={ta.fullName}
-            size="md"
+            size="lg"
             src={ta.avatar || undefined}
-            className="bg-linear-to-br from-indigo-500 to-blue-500"
+            className="bg-linear-to-br from-blue-500 to-indigo-500 text-white"
           />
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-base font-semibold text-foreground">{ta.fullName}</h3>
-              {/* {ta.performanceScore != null && (
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-lg font-semibold text-foreground">{ta.fullName}</h3>
+              {ta.performanceScore != null ? (
                 <Chip
                   size="sm"
                   variant="flat"
-                  className={`${getScoreBgColor(ta.performanceScore)} ${getScoreColor(ta.performanceScore)} font-bold`}
+                  className={`${getScoreBg(ta.performanceScore)} ${getScoreColor(ta.performanceScore)}`}
                 >
-                  {ta.performanceScore} — {getScoreLabel(ta.performanceScore)}
+                  {isEnglish ? "Evaluation" : "คะแนนประเมิน"} {ta.performanceScore}/100
                 </Chip>
-              )} */}
+              ) : null}
             </div>
-            <p className="text-xs text-default-500">{ta.email}</p>
+            <p className="text-sm text-default-500">{ta.email}</p>
           </div>
         </div>
-       
       </div>
 
-      {/* KPI Breakdown (only when data is present) */}
-      {/* {ta.kpiBreakdown && (
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <OverviewCard
+          icon="solar:clipboard-check-bold"
+          label={isEnglish ? "Regular grading" : "งานตรวจปกติ"}
+          value={String(ta.totalScoresGraded)}
+          hint={isEnglish ? "Items graded in this course" : "จำนวนรายการที่ตรวจในรายวิชานี้"}
+          iconClassName="bg-blue-100 text-blue-600"
+        />
+        <OverviewCard
+          icon="solar:sort-by-time-bold"
+          label={isEnglish ? "Queue work" : "งานจากคิว"}
+          value={String(queueCompleted)}
+          hint={isEnglish ? "Completed queue bookings" : "จำนวนคิวที่ปิดงานสำเร็จ"}
+          iconClassName="bg-amber-100 text-amber-600"
+        />
+        <OverviewCard
+          icon="solar:layers-bold"
+          label={isEnglish ? "Total workload" : "ภาระงานรวม"}
+          value={String(totalWork)}
+          hint={isEnglish ? "Regular grading + queue work" : "รวมงานตรวจปกติและงานจากคิว"}
+          iconClassName="bg-emerald-100 text-emerald-600"
+        />
+        <OverviewCard
+          icon="solar:notebook-bold"
+          label={isEnglish ? "Assignments touched" : "งานที่มีส่วนร่วม"}
+          value={String(ta.assignmentsGraded)}
+          hint={isEnglish ? "Different assignments graded" : "จำนวนงานที่เคยตรวจ"}
+          iconClassName="bg-violet-100 text-violet-600"
+        />
+      </div>
+
+      {ta.kpiBreakdown ? (
         <KPIBreakdownCard kpi={ta.kpiBreakdown} confidenceLevel={ta.confidenceLevel} />
-      )} */}
+      ) : null}
 
-      {/* Anomaly Flags (only when data is present) */}
-      {/* {ta.anomalies && ta.anomalies.length > 0 && (
-        <AnomalyFlagsCard anomalies={ta.anomalies} />
-      )} */}
+      {ta.anomalies && ta.anomalies.length > 0 ? <AnomalyFlagsCard anomalies={ta.anomalies} /> : null}
 
-      {/* Per-Assignment Stats Table */}
       <Card className="border border-default-200 shadow-sm">
         <CardBody className="p-2">
           <div className="px-3 py-2">
-            <h3 className="text-base font-semibold text-foreground">{isEnglish ? "Assignment statistics" : "สถิติตามงาน"}</h3>
+            <h3 className="text-base font-semibold text-foreground">
+              {isEnglish ? "Assignment-level summary" : "สรุประดับงาน"}
+            </h3>
+            <p className="text-xs text-default-500">
+              {isEnglish
+                ? "Shows how much work this TA handled on each assignment."
+                : "ใช้ดูว่า TA คนนี้รับผิดชอบงานไหนมากน้อยเพียงใด"}
+            </p>
           </div>
           <div className="overflow-x-auto">
             <Table
-              aria-label="TA per-assignment stats"
+              aria-label="TA assignment summary"
               removeWrapper
               classNames={{
                 th: "bg-content2 text-default-600 font-semibold text-sm",
@@ -434,69 +499,45 @@ function TADetailView({
               }}
             >
               <TableHeader>
-                <TableColumn>{isEnglish ? "Assignment" : "ชื่องาน"}</TableColumn>
-                <TableColumn align="center">{isEnglish ? "Full score" : "คะแนนเต็ม"}</TableColumn>
+                <TableColumn>{isEnglish ? "Assignment" : "งาน"}</TableColumn>
                 <TableColumn align="center">{isEnglish ? "Graded" : "ตรวจแล้ว"}</TableColumn>
-                <TableColumn align="center">{isEnglish ? "Average" : "เฉลี่ย"}</TableColumn>
-                <TableColumn align="center">{isEnglish ? "Lowest" : "ต่ำสุด"}</TableColumn>
-                <TableColumn align="center">{isEnglish ? "Highest" : "สูงสุด"}</TableColumn>
-                <TableColumn align="center">{isEnglish ? "Distribution" : "การกระจาย"}</TableColumn>
+                <TableColumn align="center">{isEnglish ? "Average" : "คะแนนเฉลี่ย"}</TableColumn>
+                <TableColumn align="center">{isEnglish ? "Range" : "ช่วงคะแนน"}</TableColumn>
+                <TableColumn align="center">{isEnglish ? "Sub-items" : "รายการย่อย"}</TableColumn>
               </TableHeader>
               <TableBody
                 emptyContent={
                   <div className="py-10 text-center">
                     <Icon icon="solar:clipboard-list-linear" className="mx-auto mb-3 text-5xl text-default-300" />
-                    <p className="text-default-400">{isEnglish ? "This TA has not graded any work yet." : "TA ยังไม่มีการตรวจงาน"}</p>
+                    <p className="text-default-400">
+                      {isEnglish ? "This TA has not graded any assignment yet." : "TA คนนี้ยังไม่มีข้อมูลการตรวจงาน"}
+                    </p>
                   </div>
                 }
               >
-                {ta.perAssignment.map((a) => (
-                  <TableRow key={a.assignmentId}>
+                {ta.perAssignment.map((item) => (
+                  <TableRow key={item.assignmentId}>
                     <TableCell>
-                      <span className="text-sm font-medium text-foreground">{a.assignmentName}</span>
+                      <div>
+                        <p className="font-medium text-foreground">{item.assignmentName}</p>
+                        <p className="text-xs text-default-400">
+                          {isEnglish ? "Full score" : "คะแนนเต็ม"} {item.maxScore}
+                        </p>
+                      </div>
                     </TableCell>
-                    <TableCell>
-                      <Chip size="sm" variant="flat" className="bg-content3 text-default-600">
-                        {a.maxScore}
-                      </Chip>
+                    <TableCell className="text-center">
+                      <span className="font-semibold text-blue-600">{item.totalGraded}</span>
                     </TableCell>
-                    <TableCell>
-                      <span className="text-sm font-bold text-blue-600">{a.totalGraded}</span>
+                    <TableCell className="text-center">
+                      <span className="font-semibold text-emerald-600">{formatDecimal(item.avgScore)}</span>
                     </TableCell>
-                    <TableCell>
-                      <span className="text-sm font-semibold text-emerald-600">
-                        {a.avgScore !== null ? a.avgScore : "-"}
+                    <TableCell className="text-center">
+                      <span className="text-default-600">
+                        {formatDecimal(item.minScore)} - {formatDecimal(item.maxScore_given)}
                       </span>
                     </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-amber-600">
-                        {a.minScore !== null ? a.minScore : "-"}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-rose-600">
-                        {a.maxScore_given !== null ? a.maxScore_given : "-"}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {a.scoreDistribution.length > 0 ? (
-                        <div className="flex items-end gap-0.5 h-6 min-w-15 justify-center">
-                          {a.scoreDistribution.map((bucket, idx) => {
-                            const maxCount = Math.max(...a.scoreDistribution.map((b) => b.count));
-                            const height = maxCount > 0 ? (bucket.count / maxCount) * 100 : 0;
-                            return (
-                              <Tooltip key={idx} content={`${bucket.range}: ${bucket.count} ${isEnglish ? "students" : "คน"}`}>
-                                <div
-                                  className="w-2.5 bg-blue-400 rounded-t transition-all cursor-help"
-                                  style={{ height: `${Math.max(height, 8)}%` }}
-                                />
-                              </Tooltip>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <span className="text-default-300">-</span>
-                      )}
+                    <TableCell className="text-center">
+                      <span className="text-default-600">{item.subItemScoresCount}</span>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -506,96 +547,33 @@ function TADetailView({
         </CardBody>
       </Card>
 
-      {/* Queue Stats */}
-      {/* {ta.queueStats && (
-        <Card className="shadow-sm border border-slate-200">
-          <CardBody className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="p-2 bg-amber-100 rounded-xl">
-                <Icon icon="solar:sort-by-time-bold" className="text-lg text-amber-600" />
-              </div>
-              <h3 className="text-base font-semibold text-slate-800">สถิติคิวตรวจงาน</h3>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Card className="shadow-none border border-slate-100">
-                <CardBody className="p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-blue-100 rounded-lg">
-                      <Icon icon="solar:check-circle-bold" className="text-sm text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">สำเร็จ</p>
-                      <p className="text-lg font-bold text-slate-800">{ta.queueStats.totalCompleted}</p>
-                    </div>
-                  </div>
-                </CardBody>
-              </Card>
-              <Card className="shadow-none border border-slate-100">
-                <CardBody className="p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-emerald-100 rounded-lg">
-                      <Icon icon="solar:chart-square-bold" className="text-sm text-emerald-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">เฉลี่ย</p>
-                      <p className="text-lg font-bold text-slate-800">
-                        {ta.queueStats.avgScore !== null ? ta.queueStats.avgScore : "-"}
-                      </p>
-                    </div>
-                  </div>
-                </CardBody>
-              </Card>
-              <Card className="shadow-none border border-slate-100">
-                <CardBody className="p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-amber-100 rounded-lg">
-                      <Icon icon="solar:arrow-down-bold" className="text-sm text-amber-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">ต่ำสุด</p>
-                      <p className="text-lg font-bold text-slate-800">
-                        {ta.queueStats.minScore !== null ? ta.queueStats.minScore : "-"}
-                      </p>
-                    </div>
-                  </div>
-                </CardBody>
-              </Card>
-              <Card className="shadow-none border border-slate-100">
-                <CardBody className="p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-rose-100 rounded-lg">
-                      <Icon icon="solar:arrow-up-bold" className="text-sm text-rose-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">สูงสุด</p>
-                      <p className="text-lg font-bold text-slate-800">
-                        {ta.queueStats.maxScore !== null ? ta.queueStats.maxScore : "-"}
-                      </p>
-                    </div>
-                  </div>
-                </CardBody>
-              </Card>
-            </div>
-          </CardBody>
-        </Card>
-      )} */}
-
-      {/* Score History Table */}
       <Card className="border border-default-200 shadow-sm">
         <CardBody className="p-2">
-          <div className="flex items-center justify-between px-3 py-2">
-            <h3 className="text-base font-semibold text-foreground">{isEnglish ? "Grading history" : "ประวัติการตรวจ"}</h3>
+          <div className="flex flex-col gap-3 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-foreground">
+                {isEnglish ? "Grading history" : "ประวัติการตรวจ"}
+              </h3>
+              <p className="text-xs text-default-500">
+                {isEnglish
+                  ? "Review recent score entries by this TA."
+                  : "ใช้ตรวจงานที่ TA คนนี้บันทึกไว้ล่าสุด"}
+              </p>
+            </div>
             <Dropdown>
               <DropdownTrigger>
                 <Button
                   variant="bordered"
                   size="sm"
-                  className="min-w-28 justify-between border-default-200 bg-content1"
-                  endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-default-400 text-sm" />}
+                  className="min-w-36 justify-between border-default-200 bg-content1"
+                  endContent={<Icon icon="solar:alt-arrow-down-linear" className="text-sm text-default-400" />}
                 >
                   {filterAssignment
-                    ? allAssignments.find((a) => String(a.assignmentId) === filterAssignment)?.assignmentName || (isEnglish ? "Assignment" : "งาน")
-                    : (isEnglish ? "All assignments" : "ทุกงาน")}
+                    ? allAssignments.find((item) => String(item.assignmentId) === filterAssignment)?.assignmentName ||
+                      (isEnglish ? "Assignment" : "งาน")
+                    : isEnglish
+                      ? "All assignments"
+                      : "ทุกงาน"}
                 </Button>
               </DropdownTrigger>
               <DropdownMenu
@@ -607,9 +585,9 @@ function TADetailView({
                 }}
                 items={[
                   { key: "", label: isEnglish ? "All assignments" : "ทุกงาน" },
-                  ...allAssignments.map((a) => ({
-                    key: String(a.assignmentId),
-                    label: a.assignmentName,
+                  ...allAssignments.map((item) => ({
+                    key: String(item.assignmentId),
+                    label: item.assignmentName,
                   })),
                 ]}
               >
@@ -626,12 +604,12 @@ function TADetailView({
             <>
               <div className="overflow-x-auto">
                 <Table
-                  aria-label="Score history table"
+                  aria-label="TA grading history"
                   removeWrapper
                   classNames={{
                     th: "bg-content2 text-default-600 font-semibold text-sm",
                     td: "py-3",
-                    tr: "hover:bg-content2/70",
+                    tr: "hover:bg-content2/60",
                   }}
                 >
                   <TableHeader>
@@ -645,36 +623,34 @@ function TADetailView({
                     emptyContent={
                       <div className="py-10 text-center">
                         <Icon icon="solar:clipboard-list-linear" className="mx-auto mb-3 text-5xl text-default-300" />
-                        <p className="text-default-400">{isEnglish ? "No grading history found." : "ไม่พบประวัติการตรวจ"}</p>
+                        <p className="text-default-400">
+                          {isEnglish ? "No grading history found." : "ไม่พบประวัติการตรวจ"}
+                        </p>
                       </div>
                     }
                   >
                     {(detail?.scores || []).map((score: TADetailScore) => (
                       <TableRow key={score.id}>
                         <TableCell>
-                          <span className="text-sm font-medium text-foreground">
-                            {score.assignment?.name || "-"}
-                          </span>
+                          <span className="font-medium text-foreground">{score.assignment?.name || "-"}</span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm text-default-500">{score.subItem?.name || "-"}</span>
+                          <span className="text-default-500">{score.subItem?.name || "-"}</span>
                         </TableCell>
                         <TableCell>
                           <div>
-                            <p className="text-sm text-foreground">{score.student?.full_name || "-"}</p>
+                            <p className="text-foreground">{score.student?.full_name || "-"}</p>
                             <p className="text-xs text-default-400">{score.student?.student_id}</p>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <div className="text-right">
-                            <span className="text-sm font-semibold text-foreground">{score.score}</span>
-                            <span className="text-xs text-default-400">
-                              /{score.subItem?.max_score || score.assignment?.max_score || "-"}
-                            </span>
-                          </div>
+                        <TableCell className="text-right">
+                          <span className="font-semibold text-foreground">{score.score}</span>
+                          <span className="text-xs text-default-400">
+                            /{score.subItem?.max_score || score.assignment?.max_score || "-"}
+                          </span>
                         </TableCell>
                         <TableCell>
-                          <span className="whitespace-nowrap text-sm text-default-500">
+                          <span className="whitespace-nowrap text-default-500">
                             {formatDateTime(score.graded_at, isEnglish)}
                           </span>
                         </TableCell>
@@ -700,48 +676,13 @@ function TADetailView({
                   setPage(1);
                 }}
               />
-
             </>
           )}
-
-          {/* Timeline chart */}
-          {/* {detail && detail.timeline.length > 0 && (
-            <div className="px-3 pb-3 pt-2 border-t border-slate-100">
-              <h4 className="text-sm font-medium text-slate-700 mb-2">จำนวนการตรวจรายวัน</h4>
-              <div className="flex items-end gap-1 h-16">
-                {detail.timeline.map((point, idx) => {
-                  const maxCount = Math.max(...detail.timeline.map((t) => Number(t.count)));
-                  const height = maxCount > 0 ? (Number(point.count) / maxCount) * 100 : 0;
-                  return (
-                    <Tooltip
-                      key={idx}
-                      content={`${point.date}: ${point.count} รายการ (เฉลี่ย ${parseFloat(String(point.avg_score)).toFixed(1)})`}
-                    >
-                      <div className="flex-1 flex flex-col items-center cursor-help">
-                        <div
-                          className="w-full bg-blue-400 rounded-t transition-all duration-300"
-                          style={{ height: `${Math.max(height, 4)}%` }}
-                        />
-                      </div>
-                    </Tooltip>
-                  );
-                })}
-              </div>
-              <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                <span>{detail.timeline[0]?.date}</span>
-                <span>{detail.timeline[detail.timeline.length - 1]?.date}</span>
-              </div>
-            </div>
-          )} */}
         </CardBody>
       </Card>
     </div>
   );
 }
-
-// ============================================
-// Main Component
-// ============================================
 
 export default function TAStatsTab({ courseId }: TAStatsTabProps) {
   const { language } = useGlobalSettings();
@@ -749,8 +690,8 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
   const [data, setData] = useState<TAStatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedTA, setSelectedTA] = useState<TAStat | null>(null);
-  const [sortField, setSortField] = useState<'name' | 'score' | 'workload'>('workload');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [sortField, setSortField] = useState<SortField>("total-work");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -758,8 +699,13 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
       const result = await getTAStats(courseId);
       setData(result);
     } catch {
-      addToast({ title: isEnglish ? "Error" : "เกิดข้อผิดพลาด", description: isEnglish ? "Unable to load TA statistics." : "ไม่สามารถโหลดสถิติ TA ได้", color: "danger",timeout: 3000,
-                shouldShowTimeoutProgress: true, });
+      addToast({
+        title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+        description: isEnglish ? "Unable to load TA statistics." : "ไม่สามารถโหลดสถิติการทำงานของ TA ได้",
+        color: "danger",
+        timeout: 3000,
+        shouldShowTimeoutProgress: true,
+      });
     } finally {
       setLoading(false);
     }
@@ -769,84 +715,148 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
     fetchData();
   }, [fetchData]);
 
-  // ============================================
-  // Aggregate course-level analytics
-  // Computed once per data change — O(T) where T = number of TAs
-  // ============================================
-  const analytics = useMemo(() => {
-    if (!data || data.taStats.length === 0) return null;
-    const tas = data.taStats;
-    const n = tas.length;
+  const derived = useMemo(() => {
+    if (!data) return null;
 
-    // Average performance score across all TAs
-    const perfScores = tas.map(t => t.performanceScore ?? 0);
-    const avgScore = parseFloat((perfScores.reduce((a, b) => a + b, 0) / n).toFixed(1));
+    const totalQueueCompleted = data.taStats.reduce((sum, ta) => sum + (ta.queueStats?.totalCompleted || 0), 0);
+    const totalCombinedWork = data.summary.totalScoresGraded + totalQueueCompleted;
+    const averageCombinedPerTA = data.summary.totalTAs > 0 ? totalCombinedWork / data.summary.totalTAs : 0;
+    const averageTermShare = data.summary.totalTAs > 0 ? 100 / data.summary.totalTAs : 0;
+    const fairnessGap =
+      averageCombinedPerTA > 0
+        ? data.taStats.reduce((sum, ta) => {
+            const totalWork = ta.totalScoresGraded + (ta.queueStats?.totalCompleted || 0);
+            return sum + Math.abs(totalWork - averageCombinedPerTA);
+          }, 0) / data.taStats.length
+        : 0;
 
-    // Workload fairness index: 1 - CV (coefficient of variation)
-    // 100 = perfectly equal distribution, 0 = highly unequal
-    const workloads = tas.map(t => t.totalScoresGraded);
-    const meanWorkload = workloads.reduce((a, b) => a + b, 0) / n;
-    const stdWorkload = Math.sqrt(workloads.reduce((sum, w) => sum + (w - meanWorkload) ** 2, 0) / n);
-    const cv = meanWorkload > 0 ? stdWorkload / meanWorkload : 0;
-    const fairnessIndex = Math.round(Math.max(0, (1 - Math.min(cv, 1)) * 100));
+    const workloadRows: TAWorkRow[] = data.taStats.map((ta) => {
+      const gradedCount = ta.totalScoresGraded;
+      const queueCompleted = ta.queueStats?.totalCompleted || 0;
+      const totalWork = gradedCount + queueCompleted;
+      const termSharePct = totalCombinedWork > 0 ? (totalWork / totalCombinedWork) * 100 : 0;
+      const equalSharePct = averageCombinedPerTA > 0 ? (totalWork / averageCombinedPerTA) * 100 : 0;
+      const assignmentCoveragePct =
+        data.summary.totalAssignments > 0
+          ? (ta.assignmentsGraded / data.summary.totalAssignments) * 100
+          : 0;
 
-    // Expected workload share per TA and max for bar normalization
-    const expectedShare = meanWorkload;
-    const maxWorkload = Math.max(...workloads, 1);
+      return {
+        ta,
+        gradedCount,
+        queueCompleted,
+        totalWork,
+        termSharePct,
+        equalSharePct,
+        assignmentCoveragePct,
+        hasQueueWork: queueCompleted > 0,
+      };
+    });
 
-    // Confidence level distribution
-    const confidenceDist = { high: 0, medium: 0, low: 0 };
-    for (const t of tas) confidenceDist[t.confidenceLevel || 'low']++;
+    const maxTotalWork = Math.max(...workloadRows.map((row) => row.totalWork), 1);
+    const maxTermSharePct = Math.max(...workloadRows.map((row) => row.termSharePct), 1);
+    const mostActiveTA = [...workloadRows].sort((a, b) => b.totalWork - a.totalWork)[0] || null;
+    const tasWithoutQueueWork = workloadRows.filter((row) => !row.hasQueueWork).length;
+    const flaggedTAs = data.taStats.filter((ta) => (ta.anomalies?.length || 0) > 0).length;
 
-    // Total anomaly flags
-    const totalAnomalies = tas.reduce((sum, t) => sum + (t.anomalies?.length || 0), 0);
-
-    return { avgScore, fairnessIndex, expectedShare, maxWorkload, confidenceDist, totalAnomalies };
+    return {
+      totalQueueCompleted,
+      totalCombinedWork,
+      averageCombinedPerTA,
+      averageTermShare,
+      fairnessGap,
+      workloadRows,
+      maxTotalWork,
+      maxTermSharePct,
+      mostActiveTA,
+      tasWithoutQueueWork,
+      flaggedTAs,
+    };
   }, [data]);
 
-  // Sorted TA list for the comparison table
-  const sortedTAs = useMemo(() => {
-    if (!data) return [];
-    return [...data.taStats].sort((a, b) => {
-      let va: number, vb: number;
-      switch (sortField) {
-        case 'score':
-          va = a.performanceScore ?? 0; vb = b.performanceScore ?? 0; break;
-        case 'workload':
-          va = a.totalScoresGraded; vb = b.totalScoresGraded; break;
-        default:
-          return sortDir === 'asc'
-            ? a.fullName.localeCompare(b.fullName, isEnglish ? 'en' : 'th')
-            : b.fullName.localeCompare(a.fullName, isEnglish ? 'en' : 'th');
-      }
-      return sortDir === 'asc' ? va - vb : vb - va;
-    });
-  }, [data, isEnglish, sortField, sortDir]);
+  const sortedRows = useMemo(() => {
+    if (!derived) return [];
 
-  // If a TA is selected, show detail view
+    return [...derived.workloadRows].sort((a, b) => {
+      if (sortField === "name") {
+        return sortDirection === "asc"
+          ? a.ta.fullName.localeCompare(b.ta.fullName, isEnglish ? "en" : "th")
+          : b.ta.fullName.localeCompare(a.ta.fullName, isEnglish ? "en" : "th");
+      }
+
+      const valueA =
+        sortField === "graded"
+          ? a.gradedCount
+          : sortField === "term-share"
+            ? a.termSharePct
+            : a.totalWork;
+      const valueB =
+        sortField === "graded"
+          ? b.gradedCount
+          : sortField === "term-share"
+            ? b.termSharePct
+            : b.totalWork;
+
+      return sortDirection === "asc" ? valueA - valueB : valueB - valueA;
+    });
+  }, [derived, isEnglish, sortDirection, sortField]);
+
+  const highlightedFlags = useMemo(() => {
+    if (!derived) return [];
+
+    return derived.workloadRows.flatMap((row) => {
+      const items = [...(row.ta.anomalies || [])];
+
+      if (row.equalSharePct < 60) {
+        items.unshift({
+          kind: "low_volume",
+          severity: "warning",
+          message: isEnglish
+            ? `${row.ta.fullName} handled only ${formatPercent(row.termSharePct)} of the total term workload.`
+            : `${row.ta.fullName} รับภาระงานรวมเพียง ${formatPercent(row.termSharePct)} ของทั้งเทอม`,
+        });
+      }
+
+      if (!row.hasQueueWork) {
+        items.push({
+          kind: "low_coverage",
+          severity: "warning",
+          message: isEnglish
+            ? `${row.ta.fullName} has no completed queue work recorded.`
+            : `${row.ta.fullName} ยังไม่มีข้อมูลงานคิวที่ปิดสำเร็จ`,
+        });
+      }
+
+      return items;
+    });
+  }, [derived, isEnglish]);
+
   if (selectedTA && data) {
     return (
-      <div className="space-y-4">
-        <TADetailView
-          courseId={courseId}
-          ta={selectedTA}
-          allAssignments={data.assignments.map((a) => ({
-            assignmentId: a.assignmentId,
-            assignmentName: a.assignmentName,
-          }))}
-          onClose={() => setSelectedTA(null)}
-        />
-      </div>
+      <TADetailView
+        courseId={courseId}
+        ta={selectedTA}
+        allAssignments={data.assignments.map((item) => ({
+          assignmentId: item.assignmentId,
+          assignmentName: item.assignmentName,
+        }))}
+        onClose={() => setSelectedTA(null)}
+      />
     );
   }
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">{isEnglish ? "TA stats" : "สถิติการทำงานของ TA"}</h2>
-          <p className="text-sm text-default-500">{isEnglish ? "Review grading and work distribution for teaching assistants." : "ดูภาพรวมการตรวจงานและให้คะแนนของผู้ช่วยสอน"}</p>
+          <h2 className="text-lg font-semibold text-foreground">
+            {isEnglish ? "TA workload overview" : "ภาพรวมการทำงานของ TA"}
+          </h2>
+          <p className="text-sm text-default-500">
+            {isEnglish
+              ? "Designed for end-of-term review by combining regular grading and queue work."
+              : "สรุปภาระงานทั้งเทอม โดยรวมทั้งงานตรวจปกติและงานจากคิวเพื่อช่วยประเมินผู้ช่วยสอน"}
+          </p>
         </div>
         <Button
           size="sm"
@@ -859,332 +869,402 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
         </Button>
       </div>
 
-      {/* Loading state — skeleton cards + table matching PeopleTab pattern */}
       {loading ? (
         <>
           <StatsCardSkeleton />
           <TATableSkeleton />
         </>
-      ) : !data ? (
+      ) : !data || !derived ? (
         <Card className="border border-dashed border-default-300 bg-content2/50 shadow-sm">
-          <CardBody className="text-center py-16">
-            <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-linear-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
+          <CardBody className="py-16 text-center">
+            <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-3xl bg-linear-to-br from-blue-100 to-indigo-100">
               <Icon icon="solar:chart-2-bold-duotone" className="text-5xl text-blue-500" />
             </div>
-            <h3 className="mb-2 text-lg font-semibold text-default-700">{isEnglish ? "Unable to load data" : "ไม่สามารถโหลดข้อมูลได้"}</h3>
+            <h3 className="mb-2 text-lg font-semibold text-default-700">
+              {isEnglish ? "Unable to load data" : "ไม่สามารถโหลดข้อมูลได้"}
+            </h3>
             <p className="mx-auto mb-6 max-w-md text-default-500">
-              {isEnglish ? "Please refresh and try again." : "กรุณาลองรีเฟรชอีกครั้ง"}
+              {isEnglish ? "Please refresh and try again." : "กรุณาลองรีเฟรชแล้วตรวจสอบอีกครั้ง"}
             </p>
-            <Button
-              color="primary"
-              onPress={fetchData}
-              className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
-            >
+            <Button color="primary" onPress={fetchData}>
               {isEnglish ? "Try again" : "ลองอีกครั้ง"}
             </Button>
           </CardBody>
         </Card>
       ) : (
         <>
-          {/* Section 1: Course Health Overview — 4 key indicators */}
-          {/* <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <OverviewCard
+              icon="solar:users-group-rounded-bold"
+              label={isEnglish ? "Teaching assistants" : "จำนวนผู้ช่วยสอน"}
+              value={String(data.summary.totalTAs)}
+              hint={
+                isEnglish
+                  ? "People included in this course evaluation"
+                  : "จำนวน TA ที่ถูกนำมาคิดในการประเมินรายวิชานี้"
+              }
+              iconClassName="bg-blue-100 text-blue-600"
+            />
+            <OverviewCard
+              icon="solar:clipboard-check-bold"
+              label={isEnglish ? "Regular grading items" : "งานตรวจปกติ"}
+              value={String(data.summary.totalScoresGraded)}
+              hint={
+                isEnglish
+                  ? "Score entries created across the whole term"
+                  : "จำนวนรายการคะแนนที่ถูกตรวจตลอดทั้งเทอม"
+              }
+              iconClassName="bg-emerald-100 text-emerald-600"
+            />
+            <OverviewCard
+              icon="solar:sort-by-time-bold"
+              label={isEnglish ? "Completed queue work" : "งานจากคิวที่สำเร็จ"}
+              value={String(derived.totalQueueCompleted)}
+              hint={
+                isEnglish
+                  ? "Finished queue bookings across all TAs"
+                  : "จำนวนคิวที่ปิดงานสำเร็จรวมของ TA ทุกคน"
+              }
+              iconClassName="bg-amber-100 text-amber-600"
+            />
+            <OverviewCard
+              icon="solar:layers-bold"
+              label={isEnglish ? "Total term workload" : "ภาระงานรวมทั้งเทอม"}
+              value={String(derived.totalCombinedWork)}
+              hint={
+                isEnglish
+                  ? "Regular grading + queue work"
+                  : "คำนวณจากงานตรวจปกติรวมกับงานจากคิว"
+              }
+              iconClassName="bg-violet-100 text-violet-600"
+            />
+          </div>
 
-            <Card className="shadow-sm border border-slate-200">
-              <CardBody className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-blue-100 rounded-xl">
-                    <Icon icon="solar:users-group-rounded-bold" className="text-2xl text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">TA ทั้งหมด</p>
-                    <p className="text-2xl font-bold text-slate-800">{data.summary.totalTAs}</p>
-                  </div>
+          <Card className="border border-default-200 shadow-sm">
+            <CardBody className="space-y-4 p-4">
+              <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <h3 className="text-base font-semibold text-foreground">
+                    {isEnglish ? "What this page adds" : "สิ่งที่หน้าใหม่นี้ช่วยเพิ่ม"}
+                  </h3>
+                  <p className="text-sm text-default-500">
+                    {isEnglish
+                      ? "It highlights end-of-term workload share, whether each TA is above or below an equal split, and who may need a closer review."
+                      : "หน้านี้เน้นให้เห็นสัดส่วนงานทั้งเทอมของแต่ละ TA เทียบกับการกระจายงานแบบเฉลี่ยเท่ากัน และชี้คนที่ควรตรวจสอบเพิ่มเติม"}
+                  </p>
                 </div>
-              </CardBody>
-            </Card>
-
-            <Card className="shadow-sm border border-slate-200">
-              <CardBody className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-indigo-100 rounded-xl">
-                    <Icon icon="solar:graph-up-bold" className="text-2xl text-indigo-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">ค่าเฉลี่ยประเมิน</p>
-                    <div className="flex items-baseline gap-1">
-                      <p className={`text-2xl font-bold ${analytics ? getScoreColor(analytics.avgScore) : 'text-slate-800'}`}>
-                        {analytics?.avgScore ?? '-'}
-                      </p>
-                      <span className="text-xs text-slate-400">/ 100</span>
-                    </div>
-                  </div>
+                <div className="flex flex-wrap gap-2">
+                  <Chip size="sm" variant="flat" className="bg-content2 text-default-600">
+                    {isEnglish ? "Average per TA" : "เฉลี่ยต่อ TA"} {derived.averageCombinedPerTA.toFixed(1)}
+                  </Chip>
+                  <Chip size="sm" variant="flat" className="bg-content2 text-default-600">
+                    {isEnglish ? "Average share" : "สัดส่วนเฉลี่ย"} {formatPercent(derived.averageTermShare)}
+                  </Chip>
                 </div>
-              </CardBody>
-            </Card>
+              </div>
 
-            <Card className="shadow-sm border border-slate-200">
-              <CardBody className="p-4">
-                <div className="flex items-center gap-3">
-                  <Tooltip content="ดัชนีความเท่าเทียม: 100 = กระจายงานเท่ากัน, ต่ำ = มีความเหลื่อมล้ำ">
-                    <div className="p-2.5 bg-emerald-100 rounded-xl cursor-help">
-                      <Icon icon="solar:scale-bold" className="text-2xl text-emerald-600" />
-                    </div>
-                  </Tooltip>
-                  <div>
-                    <p className="text-xs text-slate-500">ความเท่าเทียม</p>
-                    <div className="flex items-baseline gap-1">
-                      <p className={`text-2xl font-bold ${(analytics?.fairnessIndex ?? 0) >= 70 ? 'text-emerald-600' : (analytics?.fairnessIndex ?? 0) >= 40 ? 'text-amber-600' : 'text-rose-600'}`}>
-                        {analytics?.fairnessIndex ?? '-'}
-                      </p>
-                      <span className="text-xs text-slate-400">%</span>
-                    </div>
-                  </div>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div className="rounded-2xl border border-default-200 bg-content2 p-4">
+                  <p className="text-xs font-medium text-default-500">
+                    {isEnglish ? "Most active TA" : "TA ที่รับงานมากที่สุด"}
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-foreground">
+                    {derived.mostActiveTA?.ta.fullName || "-"}
+                  </p>
+                  <p className="mt-1 text-sm text-default-500">
+                    {derived.mostActiveTA
+                      ? `${derived.mostActiveTA.totalWork} ${isEnglish ? "items" : "รายการ"} • ${formatPercent(derived.mostActiveTA.termSharePct)}`
+                      : "-"}
+                  </p>
                 </div>
-              </CardBody>
-            </Card>
 
-            <Card className="shadow-sm border border-slate-200">
-              <CardBody className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-amber-100 rounded-xl">
-                    <Icon icon="solar:chart-square-bold" className="text-2xl text-amber-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">ตรวจงานทั้งหมด</p>
-                    <div className="flex items-baseline gap-1.5">
-                      <p className="text-2xl font-bold text-slate-800">{data.summary.totalScoresGraded}</p>
-                      <span className="text-xs text-slate-400">{data.summary.totalAssignments} งาน</span>
-                    </div>
-                  </div>
+                <div className="rounded-2xl border border-default-200 bg-content2 p-4">
+                  <p className="text-xs font-medium text-default-500">
+                    {isEnglish ? "TAs without queue work" : "TA ที่ยังไม่มีงานจากคิว"}
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-foreground">{derived.tasWithoutQueueWork}</p>
+                  <p className="mt-1 text-sm text-default-500">
+                    {isEnglish
+                      ? "Useful when queue support should be shared across the team."
+                      : "ช่วยเช็กได้ว่าภาระงานคิวกระจายถึงทุกคนหรือไม่"}
+                  </p>
                 </div>
-              </CardBody>
-            </Card>
-          </div> */}
 
-          {/* Section 2: Anomaly & Warning Indicators */}
-          {/* Suspicious Behavior Alerts */}
-          {/* <SuspiciousAlert taStats={data.taStats} assignments={data.assignments} /> */}
-
-          {/* Section 3: Workload Distribution — horizontal bar chart for fairness evaluation */}
-          {/* {data.taStats.length > 0 && analytics && analytics.expectedShare > 0 && (
-            <Card className="shadow-sm border border-slate-200">
-              <CardBody className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="p-2 bg-blue-100 rounded-xl">
-                    <Icon icon="solar:chart-2-bold" className="text-lg text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-semibold text-slate-800">การกระจายปริมาณงาน</h3>
-                    <p className="text-xs text-slate-500">เส้นประ = ส่วนแบ่งที่คาดหวัง ({Math.round(analytics.expectedShare)} รายการ/TA)</p>
-                  </div>
+                <div className="rounded-2xl border border-default-200 bg-content2 p-4">
+                  <p className="text-xs font-medium text-default-500">
+                    {isEnglish ? "TAs with review flags" : "TA ที่มีประเด็นให้ตรวจสอบ"}
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-foreground">{derived.flaggedTAs}</p>
+                  <p className="mt-1 text-sm text-default-500">
+                    {isEnglish
+                      ? "Combine this with instructor context before making a decision."
+                      : "ควรใช้ร่วมกับบริบทจริงจากอาจารย์ก่อนตัดสินผลประเมิน"}
+                  </p>
                 </div>
-                <div className="space-y-2">
-                  {[...data.taStats]
-                    .sort((a, b) => b.totalScoresGraded - a.totalScoresGraded)
-                    .map((ta) => {
-                      const barPct = analytics.maxWorkload > 0 ? (ta.totalScoresGraded / analytics.maxWorkload) * 100 : 0;
-                      const expectedPct = analytics.maxWorkload > 0 ? (analytics.expectedShare / analytics.maxWorkload) * 100 : 0;
-                      const sharePct = Math.round((ta.totalScoresGraded / analytics.expectedShare) * 100);
-                      return (
-                        <div key={ta.userId} className="flex items-center gap-3">
-                          <span className="text-sm text-slate-600 w-28 truncate text-right">{ta.fullName}</span>
-                          <div className="flex-1 relative h-5">
-                            <div className="absolute inset-0 bg-slate-100 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full rounded-full transition-all duration-500 ${sharePct >= 70 ? 'bg-blue-400' : 'bg-amber-400'}`}
-                                style={{ width: `${Math.min(barPct, 100)}%` }}
-                              />
-                            </div>
-                            <div
-                              className="absolute top-0 bottom-0 border-l-2 border-dashed border-slate-500/50"
-                              style={{ left: `${Math.min(expectedPct, 100)}%` }}
-                            />
-                          </div>
-                          <span className={`text-xs font-semibold w-14 text-right ${sharePct >= 70 ? 'text-blue-600' : 'text-amber-600'}`}>
-                            {ta.totalScoresGraded}{' '}
-                            <span className="font-normal text-slate-400">({sharePct}%)</span>
-                          </span>
+              </div>
+
+              <div className="rounded-2xl border border-dashed border-default-300 bg-content1 px-4 py-3 text-sm text-default-600">
+                {isEnglish
+                  ? "Term share percentage = (regular grading items + completed queue work of that TA) / (combined workload of all TAs in this course)."
+                  : "เปอร์เซ็นต์ของทั้งเทอม = (งานตรวจปกติ + งานจากคิวของ TA คนนั้น) / (ภาระงานรวมของ TA ทุกคนในรายวิชานี้)"}
+              </div>
+            </CardBody>
+          </Card>
+
+          {highlightedFlags.length > 0 ? <AnomalyFlagsCard anomalies={highlightedFlags} /> : null}
+
+          <Card className="border border-default-200 shadow-sm">
+            <CardBody className="space-y-4 p-4">
+              <div>
+                <h3 className="text-base font-semibold text-foreground">
+                  {isEnglish ? "Workload share by TA" : "สัดส่วนภาระงานรายคน"}
+                </h3>
+                <p className="text-sm text-default-500">
+                  {isEnglish
+                    ? "Solid bar = actual total work, dashed line = equal-share expectation."
+                    : "แท่งสีคือภาระงานจริง และเส้นประคือระดับงานที่ควรได้หากแบ่งเท่ากัน"}
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {sortedRows.map((row) => {
+                  const fillPct = derived.maxTotalWork > 0 ? (row.totalWork / derived.maxTotalWork) * 100 : 0;
+                  const expectedPct =
+                    derived.maxTotalWork > 0 ? (derived.averageCombinedPerTA / derived.maxTotalWork) * 100 : 0;
+
+                  return (
+                    <div key={row.ta.userId} className="grid gap-2 lg:grid-cols-[220px_minmax(0,1fr)_180px] lg:items-center">
+                      <div className="flex items-center gap-3">
+                        <Avatar
+                          name={row.ta.fullName}
+                          size="sm"
+                          src={row.ta.avatar || undefined}
+                          className="bg-linear-to-br from-blue-500 to-indigo-500 text-white"
+                        />
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-foreground">{row.ta.fullName}</p>
+                          <p className="truncate text-xs text-default-400">{row.ta.email}</p>
                         </div>
-                      );
-                    })}
-                </div>
-              </CardBody>
-            </Card>
-          )} */}
+                      </div>
 
-          {/* Section 4: Per-TA Comparison Table */}
+                      <div className="relative h-5 overflow-hidden rounded-full bg-content3">
+                        <div
+                          className={`h-full rounded-full ${row.equalSharePct >= 80 ? "bg-blue-500" : "bg-amber-500"}`}
+                          style={{ width: `${Math.min(fillPct, 100)}%` }}
+                        />
+                        <div
+                          className="absolute inset-y-0 border-l-2 border-dashed border-default-500/60"
+                          style={{ left: `${Math.min(expectedPct, 100)}%` }}
+                        />
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                        <Chip size="sm" variant="flat" className="bg-content2 text-default-700">
+                          {row.totalWork} {isEnglish ? "items" : "รายการ"}
+                        </Chip>
+                        <Chip size="sm" variant="flat" className="bg-blue-50 text-blue-600">
+                          {formatPercent(row.termSharePct)}
+                        </Chip>
+                        <Chip size="sm" variant="flat" className={getWorkState(row.equalSharePct, isEnglish).className}>
+                          {getWorkState(row.equalSharePct, isEnglish).label}
+                        </Chip>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardBody>
+          </Card>
+
           <Card className="border border-default-200 bg-content1 shadow-sm">
             <CardBody className="p-2">
-              <div className="flex items-center justify-between px-3 py-2">
-                <h3 className="text-base font-semibold text-foreground">{isEnglish ? "Per-person statistics" : "สถิติรายบุคคล"}</h3>
+              <div className="flex flex-col gap-3 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-base font-semibold text-foreground">
+                    {isEnglish ? "Per-person summary" : "สรุปรายบุคคล"}
+                  </h3>
+                  <p className="text-sm text-default-500">
+                    {isEnglish
+                      ? "Use this table when discussing contribution, workload balance, and assignment coverage."
+                      : "เหมาะสำหรับใช้คุยเรื่องภาระงาน ความสมดุล และการมีส่วนร่วมของแต่ละคน"}
+                  </p>
+                </div>
                 <Dropdown>
                   <DropdownTrigger>
-                    <Button
-                      size="sm"
-                      variant="flat"
-                      className="min-w-25 justify-between bg-content3 text-default-600"
-                    >
-                      {sortField === 'score' ? (isEnglish ? 'Score' : 'คะแนน') : sortField === 'workload' ? (isEnglish ? 'Workload' : 'ปริมาณงาน') : (isEnglish ? 'Name' : 'ชื่อ')}
+                    <Button size="sm" variant="flat" className="min-w-36 justify-between bg-content3 text-default-600">
+                      {sortField === "total-work"
+                        ? isEnglish
+                          ? "Total work"
+                          : "ภาระงานรวม"
+                        : sortField === "term-share"
+                          ? isEnglish
+                            ? "Term share"
+                            : "สัดส่วนทั้งเทอม"
+                          : sortField === "graded"
+                            ? isEnglish
+                              ? "Regular grading"
+                              : "งานตรวจปกติ"
+                            : isEnglish
+                              ? "Name"
+                              : "ชื่อ"}
                     </Button>
                   </DropdownTrigger>
                   <DropdownMenu
                     selectionMode="single"
                     selectedKeys={new Set([sortField])}
                     onSelectionChange={(keys) => {
-                      const key = Array.from(keys)[0] as typeof sortField;
-                      if (key === sortField) {
-                        setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-                      } else {
-                        setSortField(key);
-                        setSortDir('desc');
+                      const next = Array.from(keys)[0] as SortField;
+                      if (!next) return;
+                      if (next === sortField) {
+                        setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+                        return;
                       }
+                      setSortField(next);
+                      setSortDirection(next === "name" ? "asc" : "desc");
                     }}
+                    items={[
+                      { key: "total-work", label: isEnglish ? "Total work" : "ภาระงานรวม" },
+                      { key: "term-share", label: isEnglish ? "Term share" : "สัดส่วนทั้งเทอม" },
+                      { key: "graded", label: isEnglish ? "Regular grading" : "งานตรวจปกติ" },
+                      { key: "name", label: isEnglish ? "Name" : "ชื่อ" },
+                    ]}
                   >
-                    <DropdownItem key="score">{isEnglish ? "Evaluation score" : "คะแนนประเมิน"}</DropdownItem>
-                    <DropdownItem key="workload">{isEnglish ? "Workload" : "ปริมาณงาน"}</DropdownItem>
-                    <DropdownItem key="name">{isEnglish ? "Full name" : "ชื่อ-นามสกุล"}</DropdownItem>
+                    {(item) => <DropdownItem key={item.key}>{item.label}</DropdownItem>}
                   </DropdownMenu>
                 </Dropdown>
               </div>
-              {data.taStats.length === 0 ? (
-                <Card className="m-2 border border-dashed border-default-300 bg-content2/50 shadow-none">
-                  <CardBody className="text-center py-12">
-                    <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-linear-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
-                      <Icon icon="solar:users-group-rounded-bold-duotone" className="text-4xl text-blue-500" />
-                    </div>
-                    <h3 className="mb-1 text-base font-semibold text-default-700">{isEnglish ? "No teaching assistants yet" : "ยังไม่มี TA"}</h3>
-                    <p className="text-sm text-default-500">{isEnglish ? "Add teaching assistants in the People tab first." : "เพิ่มผู้ช่วยสอนในหน้าบุคลากรก่อน"}</p>
+
+              {sortedRows.length === 0 ? (
+                <Card className="m-3 border border-dashed border-default-200 bg-content2 shadow-none">
+                  <CardBody className="py-12 text-center">
+                    <Icon icon="solar:users-group-rounded-linear" className="mx-auto mb-3 text-5xl text-default-300" />
+                    <p className="font-medium text-default-500">
+                      {isEnglish ? "No TA has been added to this course yet." : "ยังไม่มีผู้ช่วยสอนในรายวิชานี้"}
+                    </p>
+                    <p className="mt-1 text-sm text-default-400">
+                      {isEnglish
+                        ? "Add teaching assistants from the People tab first."
+                        : "กรุณาเพิ่มผู้ช่วยสอนจากแท็บรายชื่อก่อน"}
+                    </p>
                   </CardBody>
                 </Card>
               ) : (
                 <div className="overflow-x-auto">
                   <Table
-                    aria-label="TA stats overview"
+                    aria-label="TA workload summary table"
                     removeWrapper
                     classNames={{
                       th: "bg-content2 text-default-600 font-semibold text-sm",
-                      td: "py-3",
+                      td: "py-3 align-top",
                     }}
                   >
                     <TableHeader>
-                      <TableColumn>{isEnglish ? "Full name" : "ชื่อ-นามสกุล"}</TableColumn>
-                      {/* <TableColumn align="center">คะแนนประเมิน</TableColumn> */}
-                      <TableColumn align="center">{isEnglish ? "Total graded" : "ตรวจทั้งหมด"}</TableColumn>
-                      <TableColumn align="center">{isEnglish ? "Assignments graded" : "งานที่ตรวจ"}</TableColumn>
-                      <TableColumn align="center">{isEnglish ? "Queue completed" : "คิวสำเร็จ"}</TableColumn>
-                      {/* <TableColumn align="center">คะแนนเฉลี่ย (คิว)</TableColumn> */}
-                      <TableColumn align="center">{isEnglish ? "Actions" : "จัดการ"}</TableColumn>
+                      <TableColumn>{isEnglish ? "TA" : "ผู้ช่วยสอน"}</TableColumn>
+                      <TableColumn align="center">{isEnglish ? "Regular grading" : "งานตรวจปกติ"}</TableColumn>
+                      <TableColumn align="center">{isEnglish ? "Queue work" : "งานจากคิว"}</TableColumn>
+                      <TableColumn align="center">{isEnglish ? "Total work" : "ภาระงานรวม"}</TableColumn>
+                      <TableColumn align="center">{isEnglish ? "Term share" : "สัดส่วนทั้งเทอม"}</TableColumn>
+                      <TableColumn align="center">{isEnglish ? "Assignment coverage" : "ความครอบคลุมงาน"}</TableColumn>
+                      <TableColumn align="center">{isEnglish ? "Evaluation" : "คะแนนประเมิน"}</TableColumn>
+                      <TableColumn align="center">{isEnglish ? "Action" : "การจัดการ"}</TableColumn>
                     </TableHeader>
                     <TableBody>
-                      {sortedTAs.map((ta) => (
-                        <TableRow key={ta.userId}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <Avatar
-                                name={ta.fullName}
-                                size="sm"
-                                src={ta.avatar || undefined}
-                                className="bg-linear-to-br from-blue-500 to-indigo-500 text-white"
-                              />
-                              <div>
-                                <p className="font-medium text-foreground">{ta.fullName}</p>
-                                <p className="text-xs text-default-400">{ta.email}</p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          {/* <TableCell>
-                            {ta.performanceScore != null ? (
-                              <Tooltip
-                                content={
-                                  <div className="px-1 py-1 text-xs">
-                                    <p className="font-semibold mb-1">{getScoreLabel(ta.performanceScore)} ({ta.performanceScore}/100)</p>
-                                    <p>ความน่าเชื่อถือ: {getConfidenceChip(ta.confidenceLevel || 'low').label}</p>
-                                    {ta.confidence && (
-                                      <p className="mt-0.5">ข้อมูล {ta.confidence.sampleSize} รายการ (แนะนำ ≥{ta.confidence.minRecommended})</p>
-                                    )}
-                                    {ta.anomalies && ta.anomalies.length > 0 && (
-                                      <p className="mt-0.5 text-amber-400">{ta.anomalies.length} ข้อสังเกต</p>
-                                    )}
-                                  </div>
-                                }
-                              >
-                                <div className="flex flex-col items-center gap-0.5 cursor-help">
-                                  <div className="flex items-center gap-1">
-                                    <span className={`text-sm font-bold ${getScoreColor(ta.performanceScore)}`}>
-                                      {ta.performanceScore}
-                                    </span>
-                                    {ta.anomalies && ta.anomalies.length > 0 && (
-                                      <Icon icon="solar:danger-triangle-bold" width={12} className="text-amber-500" />
-                                    )}
-                                  </div>
-                                  <div className="w-10 bg-slate-200 rounded-full h-1">
-                                    <div
-                                      className={`h-1 rounded-full ${
-                                        ta.performanceScore >= 80
-                                          ? "bg-emerald-500"
-                                          : ta.performanceScore >= 60
-                                            ? "bg-blue-500"
-                                            : ta.performanceScore >= 40
-                                              ? "bg-amber-500"
-                                              : "bg-rose-500"
-                                      }`}
-                                      style={{ width: `${Math.min(ta.performanceScore, 100)}%` }}
-                                    />
-                                  </div>
+                      {sortedRows.map((row) => {
+                        const workState = getWorkState(row.equalSharePct, isEnglish);
+
+                        return (
+                          <TableRow key={row.ta.userId}>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <Avatar
+                                  name={row.ta.fullName}
+                                  size="sm"
+                                  src={row.ta.avatar || undefined}
+                                  className="bg-linear-to-br from-blue-500 to-indigo-500 text-white"
+                                />
+                                <div className="min-w-0">
+                                  <p className="truncate font-medium text-foreground">{row.ta.fullName}</p>
+                                  <p className="truncate text-xs text-default-400">{row.ta.email}</p>
                                 </div>
-                              </Tooltip>
-                            ) : (
-                              <span className="text-slate-300 text-sm">-</span>
-                            )}
-                          </TableCell> */}
-                          <TableCell>
-                            <div className="flex flex-col items-center gap-0.5">
-                              <span className="text-sm font-bold text-blue-600">{ta.totalScoresGraded}</span>
-                              {analytics && analytics.expectedShare > 0 && (
-                                <Tooltip content={isEnglish ? `${Math.round(ta.totalScoresGraded / analytics.expectedShare * 100)}% of expected share` : `${Math.round(ta.totalScoresGraded / analytics.expectedShare * 100)}% ของส่วนแบ่งที่คาดหวัง`}>
-                                  <div className="h-1 w-10 cursor-help rounded-full bg-content3">
-                                    <div
-                                      className={`h-1 rounded-full ${ta.totalScoresGraded / analytics.expectedShare >= 0.7 ? 'bg-blue-500' : 'bg-amber-500'}`}
-                                      style={{ width: `${Math.min(ta.totalScoresGraded / analytics.expectedShare * 100, 100)}%` }}
-                                    />
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <span className="font-semibold text-blue-600">{row.gradedCount}</span>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <span className="font-semibold text-amber-600">{row.queueCompleted}</span>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex flex-col items-center gap-1">
+                                <span className="font-semibold text-foreground">{row.totalWork}</span>
+                                <Chip size="sm" variant="flat" className={workState.className}>
+                                  {formatPercent(row.equalSharePct)}
+                                </Chip>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex flex-col items-center gap-1">
+                                <span className="font-semibold text-emerald-600">
+                                  {formatPercent(row.termSharePct)}
+                                </span>
+                                <span className="text-xs text-default-400">
+                                  {isEnglish ? "of all TA work" : "ของภาระงาน TA ทั้งหมด"}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex flex-col items-center gap-1">
+                                <span className="font-semibold text-violet-600">
+                                  {formatPercent(row.assignmentCoveragePct)}
+                                </span>
+                                <span className="text-xs text-default-400">
+                                  {row.ta.assignmentsGraded}/{data.summary.totalAssignments}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {row.ta.performanceScore != null ? (
+                                <Tooltip
+                                  content={
+                                    <div className="max-w-64 px-1 py-1 text-xs">
+                                      <p className="font-semibold">
+                                        {getScoreLabel(row.ta.performanceScore, isEnglish)} ({row.ta.performanceScore}/100)
+                                      </p>
+                                      <p className="mt-1 text-default-300">
+                                        {isEnglish
+                                          ? "This is a support signal based on workload, coverage, consistency, queue work, and anomaly checks."
+                                          : "เป็นคะแนนประกอบจากภาระงาน ความครอบคลุม ความสม่ำเสมอ งานคิว และจุดที่ระบบตั้งข้อสังเกต"}
+                                      </p>
+                                    </div>
+                                  }
+                                >
+                                  <div className="cursor-help">
+                                    <Chip
+                                      size="sm"
+                                      variant="flat"
+                                      className={`${getScoreBg(row.ta.performanceScore)} ${getScoreColor(row.ta.performanceScore)}`}
+                                    >
+                                      {row.ta.performanceScore}
+                                    </Chip>
                                   </div>
                                 </Tooltip>
+                              ) : (
+                                <span className="text-default-300">-</span>
                               )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm font-semibold text-emerald-600">{ta.assignmentsGraded}</span>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm font-semibold text-amber-600">
-                              {ta.queueStats?.totalCompleted || 0}
-                            </span>
-                          </TableCell>
-                          {/* <TableCell>
-                            {ta.queueStats?.avgScore !== null && ta.queueStats?.avgScore !== undefined ? (
-                              <Chip size="sm" variant="flat" className="bg-emerald-50 text-emerald-600">
-                                {ta.queueStats.avgScore}
-                              </Chip>
-                            ) : (
-                              <span className="text-slate-300">-</span>
-                            )}
-                          </TableCell> */}
-                          <TableCell>
-                            <div className="flex items-center justify-center">
-                              <Tooltip content={isEnglish ? "View grading details" : "ดูรายละเอียดการตรวจ"}>
-                                <Button
-                                  size="sm"
-                                  variant="flat"
-                                  onPress={() => setSelectedTA(ta)}
-                                  className="bg-blue-50 text-blue-600 hover:bg-blue-100"
-                                >
-                                  {isEnglish ? "View details" : "ดูรายละเอียด"}
-                                </Button>
-                              </Tooltip>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Button
+                                size="sm"
+                                variant="flat"
+                                onPress={() => setSelectedTA(row.ta)}
+                                className="bg-blue-50 text-blue-600 hover:bg-blue-100"
+                              >
+                                {isEnglish ? "View details" : "ดูรายละเอียด"}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -1192,70 +1272,97 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
             </CardBody>
           </Card>
 
-          {/* Overall Assignment Comparison */}
           <Card className="border border-default-200 bg-content1 shadow-sm">
             <CardBody className="p-2">
               <div className="px-3 py-2">
-                <h3 className="text-base font-semibold text-foreground">{isEnglish ? "TA comparison by assignment" : "เปรียบเทียบ TA ตามงาน"}</h3>
+                <h3 className="text-base font-semibold text-foreground">
+                  {isEnglish ? "Comparison by assignment" : "เปรียบเทียบตามงาน"}
+                </h3>
+                <p className="text-sm text-default-500">
+                  {isEnglish
+                    ? "Helps spot which assignments are concentrated on a small set of TAs."
+                    : "ช่วยดูว่างานไหนกระจุกอยู่ที่ TA บางคนมากเกินไป"}
+                </p>
               </div>
-              {data.assignments.filter((a) => a.totalGraded > 0).length === 0 ? (
-                <div className="text-center py-12 px-3">
+
+              {data.assignments.filter((item) => item.totalGraded > 0).length === 0 ? (
+                <div className="px-3 py-12 text-center">
                   <Icon icon="solar:chart-2-linear" className="mx-auto mb-3 text-5xl text-default-300" />
-                  <p className="text-default-400">{isEnglish ? "No score data yet." : "ยังไม่มีข้อมูลคะแนน"}</p>
+                  <p className="text-default-400">
+                    {isEnglish ? "No graded assignment data yet." : "ยังไม่มีข้อมูลการตรวจงาน"}
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3 px-3 pb-3">
                   {data.assignments
-                    .filter((a) => a.totalGraded > 0)
+                    .filter((item) => item.totalGraded > 0)
                     .map((assignment) => {
-                      const tasForAssignment = data.taStats
+                      const rows = data.taStats
                         .map((ta) => {
-                          const pa = ta.perAssignment.find((p) => p.assignmentId === assignment.assignmentId);
-                          return pa ? { taName: ta.fullName, ...pa } : null;
-                        })
-                        .filter(Boolean) as (TAPerAssignment & { taName: string })[];
+                          const assignmentStat = ta.perAssignment.find((item) => item.assignmentId === assignment.assignmentId);
+                          if (!assignmentStat) return null;
 
-                      if (tasForAssignment.length === 0) return null;
+                          return {
+                            ta,
+                            assignmentStat,
+                          };
+                        })
+                        .filter(Boolean) as { ta: TAStat; assignmentStat: TAStat["perAssignment"][number] }[];
+
+                      if (rows.length === 0) return null;
 
                       return (
-                        <div key={assignment.assignmentId} className="rounded-lg border border-default-200 bg-content2 p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-sm font-medium text-foreground">{assignment.assignmentName}</h4>
+                        <div key={assignment.assignmentId} className="rounded-2xl border border-default-200 bg-content2 p-3">
+                          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <h4 className="font-medium text-foreground">{assignment.assignmentName}</h4>
+                              <p className="text-xs text-default-400">
+                                {assignment.totalGraded} {isEnglish ? "graded items" : "รายการตรวจ"} •{" "}
+                                {isEnglish ? "Full score" : "คะแนนเต็ม"} {assignment.maxScore}
+                              </p>
+                            </div>
                             <Chip size="sm" variant="flat" className="bg-blue-50 text-blue-600">
-                              {isEnglish ? "Overall average" : "ค่าเฉลี่ยรวม"}: {assignment.avgScore ?? "-"} / {assignment.maxScore}
+                              {isEnglish ? "Overall average" : "ค่าเฉลี่ยรวม"} {formatDecimal(assignment.avgScore)} / {assignment.maxScore}
                             </Chip>
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                            {tasForAssignment.map((ta_a) => (
-                              <div
-                                key={ta_a.taName}
-                                className="flex items-center justify-between rounded-md border border-default-200 bg-content1 px-3 py-2"
-                              >
-                                <span className="text-sm text-default-700">{ta_a.taName}</span>
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-xs text-default-400">{ta_a.totalGraded} {isEnglish ? "items" : "รายการ"}</span>
-                                  <Chip
-                                    size="sm"
-                                    variant="flat"
-                                    className={
-                                      assignment.avgScore !== null && ta_a.avgScore !== null
-                                        ? Math.abs(ta_a.avgScore - assignment.avgScore) > assignment.maxScore * 0.2
-                                          ? "bg-amber-50 text-amber-600"
-                                          : "bg-emerald-50 text-emerald-600"
-                                        : "bg-content3 text-default-600"
-                                    }
-                                  >
-                                    {ta_a.avgScore ?? "-"}
-                                  </Chip>
-                                  {assignment.avgScore !== null && ta_a.avgScore !== null && (
-                                    <span className={`text-[10px] font-medium ${ta_a.avgScore >= assignment.avgScore ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                      {ta_a.avgScore >= assignment.avgScore ? '▲' : '▼'}
-                                      {Math.abs(ta_a.avgScore - assignment.avgScore).toFixed(1)}
-                                    </span>
-                                  )}
+
+                          <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+                            {rows.map(({ ta, assignmentStat }) => {
+                              const ratio =
+                                assignment.totalGraded > 0
+                                  ? (assignmentStat.totalGraded / assignment.totalGraded) * 100
+                                  : 0;
+                              const avgDiff =
+                                assignment.avgScore !== null && assignmentStat.avgScore !== null
+                                  ? assignmentStat.avgScore - assignment.avgScore
+                                  : null;
+
+                              return (
+                                <div
+                                  key={`${assignment.assignmentId}-${ta.userId}`}
+                                  className="rounded-xl border border-default-200 bg-content1 px-3 py-2"
+                                >
+                                  <div className="flex items-center justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <p className="truncate text-sm font-medium text-foreground">{ta.fullName}</p>
+                                      <p className="text-xs text-default-400">
+                                        {assignmentStat.totalGraded} {isEnglish ? "items" : "รายการ"} • {formatPercent(ratio)}
+                                      </p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-sm font-semibold text-foreground">
+                                        {formatDecimal(assignmentStat.avgScore)}
+                                      </p>
+                                      <p className={`text-xs ${avgDiff === null ? "text-default-400" : avgDiff >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+                                        {avgDiff === null
+                                          ? "-"
+                                          : `${avgDiff >= 0 ? "+" : ""}${avgDiff.toFixed(1)}`}
+                                      </p>
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       );
@@ -1264,45 +1371,6 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
               )}
             </CardBody>
           </Card>
-
-          {/* Section 6: Evaluation Methodology — transparency & explainability */}
-          {/* <Card className="shadow-sm border border-slate-200">
-            <CardBody className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="p-2 bg-slate-100 rounded-xl">
-                  <Icon icon="solar:document-text-bold" className="text-lg text-slate-600" />
-                </div>
-                <div>
-                  <h3 className="text-base font-semibold text-slate-800">เกณฑ์การประเมินผล</h3>
-                  <p className="text-xs text-slate-500">วิธีคำนวณคะแนนประเมิน TA — โปร่งใสและตรวจสอบได้</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {[
-                  { label: 'ปริมาณงาน', weight: '30%', desc: 'สัดส่วนงานที่ตรวจเทียบกับค่าเฉลี่ยต่อ TA', icon: 'solar:case-round-bold', color: 'text-blue-600', bg: 'bg-blue-100' },
-                  { label: 'ความสม่ำเสมอ', weight: '25%', desc: 'ค่าเฉลี่ยคะแนนใกล้เคียงค่าเฉลี่ยรวมแค่ไหน', icon: 'solar:scale-bold', color: 'text-emerald-600', bg: 'bg-emerald-100' },
-                  { label: 'ความครอบคลุม', weight: '15%', desc: 'จำนวนงานที่ได้ตรวจเทียบกับงานทั้งหมด', icon: 'solar:clipboard-check-bold', color: 'text-indigo-600', bg: 'bg-indigo-100' },
-                  { label: 'คิวตรวจงาน', weight: '15%', desc: 'จำนวนคิวที่สำเร็จเทียบกับค่าเฉลี่ยต่อ TA', icon: 'solar:sort-by-time-bold', color: 'text-amber-600', bg: 'bg-amber-100' },
-                  { label: 'การกระจายคะแนน', weight: '10%', desc: 'ความแปรปรวนคะแนนสอดคล้องกับภาพรวม', icon: 'solar:chart-bold', color: 'text-violet-600', bg: 'bg-violet-100' },
-                  { label: 'สิ่งผิดปกติ', weight: '5%', desc: 'หักคะแนนเมื่อตรวจพบพฤติกรรมที่ควรตรวจสอบ', icon: 'solar:shield-check-bold', color: 'text-rose-600', bg: 'bg-rose-100' },
-                ].map((item) => (
-                  <div key={item.label} className="bg-slate-50 rounded-lg px-3 py-2.5 border border-slate-100">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className={`p-1 ${item.bg} rounded-md`}>
-                        <Icon icon={item.icon} className={`text-xs ${item.color}`} />
-                      </div>
-                      <span className="text-sm font-medium text-slate-700 flex-1">{item.label}</span>
-                      <Chip size="sm" variant="flat" className="bg-slate-200 text-slate-600 text-[10px] h-5">{item.weight}</Chip>
-                    </div>
-                    <p className="text-xs text-slate-500 pl-7">{item.desc}</p>
-                  </div>
-                ))}
-              </div>
-              <p className="text-[11px] text-slate-400 mt-3 leading-relaxed">
-                คะแนนรวม (0–100) = Σ(น้ำหนัก × คะแนนแต่ละมิติ) · ความน่าเชื่อถือ: สูง (≥20 รายการ), ปานกลาง (10–19), ต่ำ (&lt;10) · ดัชนีความเท่าเทียมคำนวณจาก 1 − สัมประสิทธิ์ความแปรปรวน (CV) ของปริมาณงาน
-              </p>
-            </CardBody>
-          </Card> */}
         </>
       )}
     </div>
