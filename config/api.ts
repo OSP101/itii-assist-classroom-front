@@ -65,6 +65,7 @@ export const API_ENDPOINTS = {
     // Students
     SECTION_STUDENTS: (courseId: string, sectionId: number) => `/courses/${courseId}/sections/${sectionId}/students`,
     ADD_STUDENT: (courseId: string, sectionId: number) => `/courses/${courseId}/sections/${sectionId}/students`,
+    MOVE_STUDENT: (courseId: string, sectionId: number, studentId: number) => `/courses/${courseId}/sections/${sectionId}/students/${studentId}/move`,
     REMOVE_STUDENT: (courseId: string, sectionId: number, studentId: number) => `/courses/${courseId}/sections/${sectionId}/students/${studentId}`,
     REMOVED_STUDENTS: (courseId: string) => `/courses/${courseId}/students/removed`,
     RESTORE_STUDENT: (courseId: string, sectionId: number, studentId: number) => `/courses/${courseId}/sections/${sectionId}/students/${studentId}/restore`,

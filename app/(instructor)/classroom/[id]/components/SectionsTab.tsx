@@ -107,6 +107,7 @@ export default function SectionsTab({
         bulkDeleteModal,
         editSectionModal,
         restoreModal,
+        moveStudentModal,
         isSubmitting,
         
         // UI Handlers
@@ -123,6 +124,7 @@ export default function SectionsTab({
         handleAddStudent,
         handleBulkAddStudents,
         handleRemoveStudent,
+        handleMoveStudent,
         handleRestoreStudent,
         confirmRestoreStudent,
         handleCreateTeam,
@@ -134,6 +136,7 @@ export default function SectionsTab({
         // Modal Openers
         openAddStudentModal,
         openDeleteStudentModal,
+        openMoveStudentModal,
         openCreateTeamModal,
         openEditTeamModal,
         openDeleteTeamModal,
@@ -474,6 +477,7 @@ export default function SectionsTab({
                 onOpenAddStudentModal={openAddStudentModal}
                 onRemoveSection={handleRemoveSection}
                 onOpenDeleteStudentModal={openDeleteStudentModal}
+                onOpenMoveStudentModal={openMoveStudentModal}
                 onRestoreRemovedStudent={handleRestoreStudent}
                 onOpenCreateTeamModal={openCreateTeamModal}
                 onOpenDeleteTeamModal={openDeleteTeamModal}
@@ -835,6 +839,78 @@ export default function SectionsTab({
                                     : `เพิ่มนักศึกษา (${studentModal.parsedStudents.filter(p => p.status === "matched").length})`}
                             </Button>
                         )}
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
+            {/* Move Student Modal */}
+            <Modal
+                isOpen={moveStudentModal.isOpen}
+                onClose={moveStudentModal.reset}
+                size="md"
+                placement="center"
+            >
+                <ModalContent>
+                    <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
+                        <div className="flex items-center gap-4">
+                            <div className="rounded-xl bg-linear-to-br from-emerald-400 to-teal-500 p-3 shadow-lg shadow-emerald-500/30">
+                                <Icon icon="solar:transfer-horizontal-bold" className="text-2xl text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-foreground">
+                                    {isEnglish ? "Move student" : "ย้ายนักศึกษา"}
+                                </h3>
+                                <p className="mt-1 text-sm font-normal text-default-500">
+                                    {moveStudentModal.studentName} {moveStudentModal.studentCode ? `(${moveStudentModal.studentCode})` : ""}
+                                </p>
+                            </div>
+                        </div>
+                    </ModalHeader>
+                    <ModalBody className="px-6 py-4">
+                        <div className="space-y-4">
+                            <div className="rounded-xl border border-default-200 bg-content2/60 p-4 text-sm text-default-600">
+                                {isEnglish
+                                    ? "Choose a new section. The student's attendance and scores stay in place because only the active section membership changes."
+                                    : "เลือกกลุ่มใหม่ ระบบจะย้ายเฉพาะสมาชิกที่ใช้งานอยู่ โดยไม่แตะข้อมูลเช็คชื่อหรือคะแนนย้อนหลัง"}
+                            </div>
+                            <Select
+                                label={isEnglish ? "Target section" : "กลุ่มเป้าหมาย"}
+                                labelPlacement="outside"
+                                placeholder={isEnglish ? "Select a section" : "เลือกกลุ่มเรียน"}
+                                variant="bordered"
+                                selectedKeys={moveStudentModal.targetSectionId ? [String(moveStudentModal.targetSectionId)] : []}
+                                onSelectionChange={(keys) => {
+                                    const selectedKey = keys === "all" ? null : Array.from(keys)[0];
+                                    moveStudentModal.setTargetSectionId(selectedKey ? Number(selectedKey) : null);
+                                }}
+                                isDisabled={!(course.sections?.filter(section => section.id !== moveStudentModal.fromSectionId).length)}
+                                classNames={{
+                                    trigger: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                    label: "text-sm font-medium text-default-600",
+                                }}
+                            >
+                                {(course.sections || [])
+                                    .filter(section => section.id !== moveStudentModal.fromSectionId)
+                                    .map(section => (
+                                        <SelectItem key={String(section.id)}>
+                                            {isEnglish ? `Section ${section.section_no}` : `กลุ่ม ${section.section_no}`}
+                                        </SelectItem>
+                                    ))}
+                            </Select>
+                        </div>
+                    </ModalBody>
+                    <ModalFooter className="border-t border-divider px-6 py-4">
+                        <Button variant="light" onPress={moveStudentModal.reset}>
+                            {isEnglish ? "Cancel" : "ยกเลิก"}
+                        </Button>
+                        <Button
+                            onPress={handleMoveStudent}
+                            isLoading={isSubmitting}
+                            isDisabled={!isCourseActive || !moveStudentModal.targetSectionId}
+                            className="bg-linear-to-r from-emerald-400 to-teal-500 text-white shadow-lg shadow-emerald-400/25"
+                        >
+                            {isEnglish ? "Move student" : "ย้ายนักศึกษา"}
+                        </Button>
                     </ModalFooter>
                 </ModalContent>
             </Modal>

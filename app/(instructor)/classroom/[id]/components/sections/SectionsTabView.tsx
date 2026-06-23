@@ -66,6 +66,7 @@ interface SectionsTabViewProps {
     onOpenAddStudentModal: (sectionId: number) => void;
     onRemoveSection: (sectionId: number) => void;
     onOpenDeleteStudentModal: (sectionId: number, student: SectionStudent) => void;
+    onOpenMoveStudentModal: (sectionId: number, student: SectionStudent) => void;
     onRestoreRemovedStudent: (removed: RemovedSectionStudent) => void;
     onOpenCreateTeamModal: (type: TeamType, method: TeamFormationMethod) => void;
     onOpenDeleteTeamModal: (teamId: number, type: TeamType, weekNumber?: number) => void;
@@ -343,6 +344,7 @@ function SectionsTabViewComponent({
     onRemoveSection,
     onOpenDeleteStudentModal,
     onRestoreRemovedStudent,
+    onOpenMoveStudentModal,
     onOpenCreateTeamModal,
     onOpenDeleteTeamModal,
     onOpenEditTeamModal,
@@ -447,6 +449,7 @@ function SectionsTabViewComponent({
                     onOpenAddStudentModal={onOpenAddStudentModal}
                     onRemoveSection={onRemoveSection}
                     onOpenDeleteStudentModal={onOpenDeleteStudentModal}
+                    onOpenMoveStudentModal={onOpenMoveStudentModal}
                     removedStudents={removedStudents}
                     onRestoreRemovedStudent={onRestoreRemovedStudent}
                     onOpenEditSectionModal={onOpenEditSectionModal}
@@ -514,6 +517,7 @@ interface StudentsSubTabProps {
     onOpenAddStudentModal: (sectionId: number) => void;
     onRemoveSection: (sectionId: number) => void;
     onOpenDeleteStudentModal: (sectionId: number, student: SectionStudent) => void;
+    onOpenMoveStudentModal: (sectionId: number, student: SectionStudent) => void;
     onRestoreRemovedStudent: (removed: RemovedSectionStudent) => void;
     onOpenEditSectionModal: (sectionId: number) => void;
     getFilteredSectionStudents: (sectionId: number) => SectionStudent[];
@@ -537,6 +541,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
     onOpenAddStudentModal,
     onRemoveSection,
     onOpenDeleteStudentModal,
+    onOpenMoveStudentModal,
     onRestoreRemovedStudent,
     onOpenEditSectionModal,
     getFilteredSectionStudents,
@@ -794,18 +799,35 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                                             </TableCell>
                                                             <TableCell>
                                                                 {canManageSectionStudents && (
-                                                                    <Tooltip content={isEnglish ? "Remove from section" : "นำออกจากกลุ่ม"} color="danger">
-                                                                        <Button
-                                                                            isIconOnly
-                                                                            size="sm"
-                                                                            variant="light"
-                                                                            color="danger"
-                                                                            isDisabled={!isCourseActive}
-                                                                            onPress={() => onOpenDeleteStudentModal(section.id, student)}
-                                                                        >
-                                                                            <Icon icon="solar:user-minus-bold" className="text-lg" />
-                                                                        </Button>
-                                                                    </Tooltip>
+                                                                    <Dropdown>
+                                                                        <DropdownTrigger>
+                                                                            <Button
+                                                                                isIconOnly
+                                                                                size="sm"
+                                                                                variant="light"
+                                                                                isDisabled={!isCourseActive}
+                                                                            >
+                                                                                <Icon icon="solar:menu-dots-bold" className="text-lg" />
+                                                                            </Button>
+                                                                        </DropdownTrigger>
+                                                                        <DropdownMenu aria-label={isEnglish ? "Student actions" : "จัดการนักศึกษา"}>
+                                                                            <DropdownItem
+                                                                                key="move"
+                                                                                startContent={<Icon icon="solar:transfer-horizontal-bold" className="text-base" />}
+                                                                                onPress={() => onOpenMoveStudentModal(section.id, student)}
+                                                                            >
+                                                                                {isEnglish ? "Move to another section" : "ย้ายไปกลุ่มอื่น"}
+                                                                            </DropdownItem>
+                                                                            <DropdownItem
+                                                                                key="remove"
+                                                                                color="danger"
+                                                                                startContent={<Icon icon="solar:user-minus-bold" className="text-base" />}
+                                                                                onPress={() => onOpenDeleteStudentModal(section.id, student)}
+                                                                            >
+                                                                                {isEnglish ? "Remove from section" : "นำออกจากกลุ่ม"}
+                                                                            </DropdownItem>
+                                                                        </DropdownMenu>
+                                                                    </Dropdown>
                                                                 )}
                                                             </TableCell>
                                                         </TableRow>

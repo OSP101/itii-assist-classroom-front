@@ -576,6 +576,11 @@ export interface BulkAddStudentsResponse {
   addedStudentIds: number[];
 }
 
+export interface MoveStudentResponse {
+  from_section_id: number;
+  to_section_id: number;
+}
+
 export interface MyCoursesStats {
   total: number;
   byStatus: {
@@ -937,6 +942,15 @@ class CourseService {
    */
   async addStudentToSection(courseId: string, sectionId: number, studentId: number) {
     return apiService.post(API_ENDPOINTS.COURSES.ADD_STUDENT(courseId, sectionId), { student_id: studentId });
+  }
+
+  /**
+   * Move student between sections
+   */
+  async moveStudentToSection(courseId: string, fromSectionId: number, studentId: number, targetSectionId: number) {
+    return apiService.post<MoveStudentResponse>(API_ENDPOINTS.COURSES.MOVE_STUDENT(courseId, fromSectionId, studentId), {
+      target_section_id: targetSectionId,
+    });
   }
 
   /**

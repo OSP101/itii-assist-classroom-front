@@ -155,6 +155,15 @@ interface DeleteModalState {
     target: DeleteModalTarget | null;
 }
 
+interface MoveStudentModalState {
+    isOpen: boolean;
+    studentId: number | null;
+    studentName: string;
+    studentCode: string;
+    fromSectionId: number | null;
+    targetSectionId: number | null;
+}
+
 // ============================================
 // Hook Return Type
 // ============================================
@@ -226,6 +235,11 @@ export interface UseSectionsTabReturn {
         confirmInput: string;
         setConfirmInput: (value: string) => void;
     };
+    moveStudentModal: MoveStudentModalState & {
+        setIsOpen: (open: boolean) => void;
+        setTargetSectionId: (sectionId: number | null) => void;
+        reset: () => void;
+    };
     editSectionModal: {
         isOpen: boolean;
         sectionId: number | null;
@@ -263,6 +277,7 @@ export interface UseSectionsTabReturn {
     handleAddStudent: () => Promise<void>;
     handleBulkAddStudents: () => Promise<void>;
     handleRemoveStudent: () => Promise<void>;
+    handleMoveStudent: () => Promise<void>;
     handleRestoreStudent: (removed: RemovedSectionStudent) => void;
     confirmRestoreStudent: () => Promise<void>;
     handleCreateTeam: () => Promise<void>;
@@ -274,6 +289,7 @@ export interface UseSectionsTabReturn {
     // Modal Openers
     openAddStudentModal: (sectionId: number) => void;
     openDeleteStudentModal: (sectionId: number, student: SectionStudent) => void;
+    openMoveStudentModal: (sectionId: number, student: SectionStudent) => void;
     openCreateTeamModal: (type: TeamType, method: TeamFormationMethod) => void;
     openEditTeamModal: (teamId: number, type: TeamType, weekNumber?: number) => void;
     openDeleteTeamModal: (teamId: number, type: TeamType, weekNumber?: number) => void;
@@ -379,6 +395,15 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
     const [deleteModalState, setDeleteModalState] = useState<DeleteModalState>({
         isOpen: false,
         target: null,
+    });
+
+    const [moveStudentModalState, setMoveStudentModalState] = useState<MoveStudentModalState>({
+        isOpen: false,
+        studentId: null,
+        studentName: "",
+        studentCode: "",
+        fromSectionId: null,
+        targetSectionId: null,
     });
     
     // Delete confirmation input
@@ -845,6 +870,20 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         confirmInput: deleteConfirmInput,
         setConfirmInput: setDeleteConfirmInput,
     }), [deleteModalState, deleteConfirmInput]);
+
+    const moveStudentModal = useMemo(() => ({
+        ...moveStudentModalState,
+        setIsOpen: (open: boolean) => setMoveStudentModalState(prev => ({ ...prev, isOpen: open })),
+        setTargetSectionId: (sectionId: number | null) => setMoveStudentModalState(prev => ({ ...prev, targetSectionId: sectionId })),
+        reset: () => setMoveStudentModalState({
+            isOpen: false,
+            studentId: null,
+            studentName: "",
+            studentCode: "",
+            fromSectionId: null,
+            targetSectionId: null,
+        }),
+    }), [moveStudentModalState]);
     
     const bulkDeleteModal = useMemo(() => ({
         isOpen: bulkDeleteModalOpen,
@@ -1322,6 +1361,85 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         }
     }, [courseId, deleteModalState.target, deleteModal, emitUpdate, fetchRemovedStudents, isEnglish]);
 
+    const handleMoveStudent = useCallback(async () => {
+        const target = moveStudentModalState;
+        if (!target.fromSectionId || !target.studentId || !target.targetSectionId) {
+            addToast({
+                title: isEnglish ? "Incomplete information" : "ข้อมูลไม่ครบ",
+                description: isEnglish ? "Please choose a target section." : "กรุณาเลือกกลุ่มเป้าหมาย",
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+
+        if (target.fromSectionId === target.targetSectionId) {
+            addToast({
+                title: isEnglish ? "Invalid target" : "เลือกกลุ่มไม่ถูกต้อง",
+                description: isEnglish ? "The target section must be different from the current section." : "กลุ่มเป้าหมายต้องไม่ซ้ำกับกลุ่มเดิม",
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const response = await courseService.moveStudentToSection(
+                courseId,
+                target.fromSectionId,
+                target.studentId,
+                target.targetSectionId
+            );
+
+            if (!response.success) {
+                const errObj = response.error as unknown;
+                const errMsg =
+                    (typeof errObj === "object" && errObj !== null && "message" in errObj
+                        ? (errObj as { message: string }).message
+                        : null) ||
+                    response.message ||
+                    "ไม่สามารถย้ายนักศึกษาได้";
+                addToast({
+                    title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                    description: getLocalizedErrorMessage(isEnglish, "Unable to move the student.", "ไม่สามารถย้ายนักศึกษาได้", errMsg),
+                    color: "danger",
+                    timeout: 5000,
+                    shouldShowTimeoutProgress: true,
+                });
+                return;
+            }
+
+            await Promise.all([fetchCourse(true), fetchAllSectionStudents()]);
+
+            addToast({
+                title: isEnglish ? "Success" : "สำเร็จ",
+                description: isEnglish
+                    ? `Moved ${target.studentName} successfully.`
+                    : `ย้าย ${target.studentName} สำเร็จ`,
+                color: "success",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+
+            emitUpdate("student", "update", target.studentId);
+            moveStudentModal.reset();
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            addToast({
+                title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                description: getLocalizedErrorMessage(isEnglish, "Unable to move the student.", "ไม่สามารถย้ายนักศึกษาได้", err.message),
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [courseId, moveStudentModalState, fetchAllSectionStudents, fetchCourse, emitUpdate, isEnglish, moveStudentModal]);
+
     const handleRestoreStudent = useCallback((removed: RemovedSectionStudent) => {
         setRestoreModalState({ isOpen: true, target: removed });
     }, []);
@@ -1673,6 +1791,31 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
             sectionNo: section?.section_no,
         });
     }, [course?.sections, deleteModal]);
+
+    const openMoveStudentModal = useCallback((sectionId: number, student: SectionStudent) => {
+        const sections = course?.sections || [];
+        const targetSection = sections.find(section => section.id !== sectionId);
+
+        if (!targetSection) {
+            addToast({
+                title: isEnglish ? "No target section" : "ไม่มีกลุ่มเป้าหมาย",
+                description: isEnglish ? "Create another section before moving students." : "กรุณาสร้างกลุ่มเรียนอื่นก่อนย้ายนักศึกษา",
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+
+        setMoveStudentModalState({
+            isOpen: true,
+            studentId: student.id,
+            studentName: student.full_name,
+            studentCode: student.student_id,
+            fromSectionId: sectionId,
+            targetSectionId: targetSection.id,
+        });
+    }, [course?.sections, isEnglish]);
     
     const openCreateTeamModal = useCallback((type: TeamType, method: TeamFormationMethod) => {
         teamModal.setType(type);
@@ -1930,6 +2073,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         bulkDeleteModal,
         editSectionModal,
         restoreModal,
+        moveStudentModal,
         isSubmitting,
         
         // UI Handlers
@@ -1946,6 +2090,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         handleAddStudent,
         handleBulkAddStudents,
         handleRemoveStudent,
+        handleMoveStudent,
         handleRestoreStudent,
         confirmRestoreStudent,
         handleCreateTeam,
@@ -1957,6 +2102,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         // Modal Openers
         openAddStudentModal,
         openDeleteStudentModal,
+        openMoveStudentModal,
         openCreateTeamModal,
         openEditTeamModal,
         openDeleteTeamModal,
