@@ -435,9 +435,7 @@ export function useAttendanceTab(
         }
 
         const currentEditTarget = editTarget;
-        if (!currentEditTarget) return;
-
-        if (currentEditTarget.status === "closed") {
+        if (currentEditTarget?.status === "closed") {
             setIsSubmitting(true);
             try {
                 const result = await attendanceService.updateSession(currentEditTarget.id, {

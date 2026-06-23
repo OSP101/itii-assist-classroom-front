@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { DropdownItem } from "@heroui/dropdown";
 import type { CollectionElement } from "@react-types/shared";
 import { Icon } from "@iconify/react";
+import { usePathname } from "next/navigation";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { useI18n } from "@/hooks/useI18n";
 
@@ -273,6 +274,8 @@ export const useSettingsMenuItems = ({
 };
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = () => {
+  const pathname = usePathname();
+  const isStudentThemeLocked = pathname?.startsWith("/student") ?? false;
   const {
     theme,
     resolvedTheme,
@@ -303,43 +306,47 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = () => {
     <div className={containerClassName}>
       <div className="mb-4 space-y-1">
         <>
-          <h2 className="text-base font-semibold text-foreground">{t("themeLanguageFontForThisAccount")}</h2>
+          <h2 className="text-base font-semibold text-foreground">
+            {isStudentThemeLocked ? `${t("language")} / ${t("fontSize")}` : t("themeLanguageFontForThisAccount")}
+          </h2>
           <p className="text-sm text-default-500">{t("savedToAccount")}</p>
         </>
       </div>
 
       <div className="space-y-3">
-        <section className={sectionClassName}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
-                <Icon icon="solar:settings-linear" className="text-lg" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">{t("theme")}</p>
-                <p className="text-xs text-default-500">{currentThemeLabel}</p>
+        {!isStudentThemeLocked ? (
+          <section className={sectionClassName}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+                  <Icon icon="solar:settings-linear" className="text-lg" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{t("theme")}</p>
+                  <p className="text-xs text-default-500">{currentThemeLabel}</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {THEME_OPTIONS.map((value) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={theme === value}
-                className={optionButtonClassName(theme === value)}
-                disabled={isLoading}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setTheme(value);
-                }}
-              >
-                <span className="block text-sm font-semibold">{t(value)}</span>
-              </button>
-            ))}
-          </div>
-        </section>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {THEME_OPTIONS.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={theme === value}
+                  className={optionButtonClassName(theme === value)}
+                  disabled={isLoading}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setTheme(value);
+                  }}
+                >
+                  <span className="block text-sm font-semibold">{t(value)}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <section className={sectionClassName}>
           <div className="flex items-start justify-between gap-3">

@@ -208,7 +208,16 @@ export default function AttendanceSummaryPage() {
             });
             if (result) {
                 setRecords((prev) =>
-                    prev.map((r) => (r.id === selectedRecord.id ? result : r))
+                    prev.map((r) =>
+                        r.id === selectedRecord.id
+                            ? {
+                                ...r,
+                                ...result,
+                                student: result.student ?? r.student,
+                                section_no: result.section_no ?? r.section_no,
+                            }
+                            : r
+                    )
                 );
                 setIsStatusModalOpen(false);
                 setSelectedRecord(null);
@@ -453,8 +462,8 @@ export default function AttendanceSummaryPage() {
                             }}
                         >
                             <TableHeader>
-                                <TableColumn>{t("Section", "Section")}</TableColumn>
                                 <TableColumn>{t("นักศึกษา", "Student")}</TableColumn>
+                                <TableColumn>{t("Section", "Section")}</TableColumn>
                                 <TableColumn>{t("เวลาเช็คชื่อ", "Check-in time")}</TableColumn>
                                 <TableColumn>{t("สถานะ", "Status")}</TableColumn>
                                 <TableColumn>{t("การยืนยัน", "Verification")}</TableColumn>
@@ -476,11 +485,6 @@ export default function AttendanceSummaryPage() {
                                 {filteredRecords.map((record) => (
                                     <TableRow key={record.id}>
                                         <TableCell>
-                                            <span className="text-sm text-default-600">
-                                                {record.section_no || "-"}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell>
                                             <div className="flex items-center gap-3">
                                                 <Avatar
                                                     name={record.student?.full_name || "?"}
@@ -500,6 +504,11 @@ export default function AttendanceSummaryPage() {
                                                     </p>
                                                 </div>
                                             </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="text-sm text-default-600">
+                                                {record.section_no || "-"}
+                                            </span>
                                         </TableCell>
                                         <TableCell>
                                             <span

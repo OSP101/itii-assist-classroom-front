@@ -9,6 +9,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { usePathname } from "next/navigation";
 import {
   authService,
   AUTH_USER_UPDATED_EVENT,
@@ -205,6 +206,8 @@ export const GlobalSettingsProvider: React.FC<{
   children: React.ReactNode;
   initialSettings?: InitialGlobalSettings;
 }> = ({ children, initialSettings }) => {
+  const pathname = usePathname();
+  const isStudentThemeLocked = pathname?.startsWith("/student") ?? false;
   const normalizedInitialSettings = initialSettings
     ? normalizeInitialSettings(initialSettings)
     : null;
@@ -284,6 +287,9 @@ export const GlobalSettingsProvider: React.FC<{
     setLanguageState(nextLanguage);
     authService.cachePendingPreferences({ language: nextLanguage });
   }, []);
+
+  const displayTheme = isStudentThemeLocked ? "light" : theme;
+  const displayResolvedTheme = isStudentThemeLocked ? "light" : resolvedTheme;
 
   useEffect(() => {
     const storedUser = authService.getStoredUser();
@@ -395,6 +401,11 @@ export const GlobalSettingsProvider: React.FC<{
       return undefined;
     }
 
+    if (isStudentThemeLocked) {
+      setResolvedTheme("light");
+      return undefined;
+    }
+
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
     const syncResolvedTheme = () => {
@@ -410,15 +421,15 @@ export const GlobalSettingsProvider: React.FC<{
     mediaQuery.addEventListener("change", syncResolvedTheme);
 
     return () => mediaQuery.removeEventListener("change", syncResolvedTheme);
-  }, [theme]);
+  }, [isStudentThemeLocked, theme]);
 
   useEffect(() => {
     const root = document.documentElement;
-    const palette = ROOT_THEME_PALETTE[resolvedTheme];
+    const palette = ROOT_THEME_PALETTE[displayResolvedTheme];
 
-    root.classList.toggle("dark", resolvedTheme === "dark");
-    root.dataset.theme = resolvedTheme;
-    root.style.colorScheme = resolvedTheme;
+    root.classList.toggle("dark", displayResolvedTheme === "dark");
+    root.dataset.theme = displayResolvedTheme;
+    root.style.colorScheme = displayResolvedTheme;
     root.style.backgroundColor = palette.background;
     root.style.color = palette.foreground;
 
@@ -426,7 +437,7 @@ export const GlobalSettingsProvider: React.FC<{
       document.body.style.backgroundColor = palette.background;
       document.body.style.color = palette.foreground;
     }
-  }, [resolvedTheme]);
+  }, [displayResolvedTheme]);
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -437,8 +448,8 @@ export const GlobalSettingsProvider: React.FC<{
   }, [fontSize]);
 
   useEffect(() => {
-    persistAppearanceHintCookie({ theme, fontSize, language }, resolvedTheme);
-  }, [fontSize, language, resolvedTheme, theme]);
+    persistAppearanceHintCookie({ theme: displayTheme, fontSize, language }, displayResolvedTheme);
+  }, [displayResolvedTheme, displayTheme, fontSize, language]);
 
   useEffect(() => {
     if (!isReadyToPersistRef.current || !authService.isAuthenticated()) {
@@ -475,18 +486,18 @@ export const GlobalSettingsProvider: React.FC<{
 
   const value = useMemo(
     () => ({
-      theme,
-      resolvedTheme,
+      theme: displayTheme,
+      resolvedTheme: displayResolvedTheme,
       isLoading,
       isSaving,
       syncError,
-      setTheme,
+      setTheme: isStudentThemeLocked ? (() => {}) : setTheme,
       fontSize,
       setFontSize,
       language,
       setLanguage,
     }),
-    [fontSize, isLoading, isSaving, language, resolvedTheme, syncError, theme],
+    [displayResolvedTheme, displayTheme, fontSize, isLoading, isSaving, isStudentThemeLocked, language, setTheme, syncError],
   );
 
   return (
