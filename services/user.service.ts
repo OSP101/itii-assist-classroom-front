@@ -14,6 +14,9 @@ export interface User {
   email: string | null;
   role: AppRole;
   is_active: boolean;
+  two_factor_enabled: boolean;
+  two_factor_method?: string | null;
+  two_factor_confirmed_at?: string | null;
   provider: 'local' | 'google';
   google_id: string | null;
   avatar: string | null;

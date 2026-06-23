@@ -146,7 +146,7 @@ export function PublicPageShell({
     const resolvedBackLabel = backLabel ?? t('goHome');
 
     return (
-        <div className="min-h-screen bg-white">
+        <div data-theme-scope="adaptive public" className="min-h-screen bg-white">
 
             {/* ── Sticky header ── */}
             <header className={`sticky top-0 z-40 border-b ${isLanding ? 'border-white/10 bg-[#0d1117]' : 'border-slate-200 bg-white/95 backdrop-blur-sm'}`}>

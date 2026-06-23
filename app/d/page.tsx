@@ -329,7 +329,10 @@ export default function AttendanceDisplayPage() {
     }, [bootstrapPairing]);
 
     return (
-        <div className="min-h-screen bg-[radial-gradient(circle_at_top,#dbeafe,transparent_34%),linear-gradient(180deg,#f8fafc_0%,#eff6ff_100%)] px-4 py-6 text-slate-900 lg:px-8">
+        <div
+            data-theme-scope="adaptive display"
+            className="min-h-screen bg-[radial-gradient(circle_at_top,#dbeafe,transparent_34%),linear-gradient(180deg,#f8fafc_0%,#eff6ff_100%)] px-4 py-6 text-slate-900 dark:bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.18),transparent_32%),linear-gradient(180deg,#020617_0%,#0f172a_100%)] dark:text-slate-100 lg:px-8"
+        >
             <div className="mx-auto max-w-6xl space-y-6">
                 {pageState === "loading" && (
                     <Card className="border border-slate-200 bg-white/80">

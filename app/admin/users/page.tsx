@@ -42,6 +42,7 @@ const columnDefs = [
     { key: "email", labelKey: "email", sortable: true },
     { key: "role", labelKey: "role", sortable: true },
     { key: "status", labelKey: "status", sortable: true },
+    { key: "two_factor_enabled", labelKey: "twoFactorStatus", sortable: false },
     { key: "provider", labelKey: "type", sortable: false },
     { key: "actions", labelKey: "actions", sortable: false },
 ];
@@ -666,6 +667,16 @@ export default function UsersPage() {
                         {user.is_active ? t("active") : t("inactive")}
                     </Chip>
                 );
+            case "two_factor_enabled":
+                return (
+                    <Chip
+                        color={user.two_factor_enabled ? "success" : "default"}
+                        variant="flat"
+                        size="sm"
+                    >
+                        {user.two_factor_enabled ? t("twoFactorEnabled") : t("twoFactorDisabled")}
+                    </Chip>
+                );
             case "provider":
                 return (
                     <div className="flex items-center gap-1">
@@ -937,7 +948,7 @@ export default function UsersPage() {
                                     loadingContent={
                                         <TableRowsSkeleton
                                             rows={limit}
-                                            columns={["w-24", "w-32", "w-40", "w-16", "w-16", "w-16", "w-14"]}
+                                            columns={["w-24", "w-32", "w-40", "w-16", "w-16", "w-20", "w-16", "w-14"]}
                                         />
                                     }
                                 >

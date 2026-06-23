@@ -216,7 +216,7 @@ export default function DevicePermissionCheckClient() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-6">
+    <div data-theme-scope="adaptive device" className="min-h-screen bg-slate-50 px-4 py-6">
       <div className="mx-auto max-w-3xl space-y-4">
         <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-start gap-4">

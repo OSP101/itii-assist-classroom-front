@@ -65,6 +65,7 @@ export interface AttendanceRecord {
     id: number;
     attendance_session_id: number;
     student_id: number;
+    section_no?: string | null;
     check_in_time: string | null;
     status: 'present' | 'late' | 'leave' | 'absent';
     google_email: string | null;

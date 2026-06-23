@@ -113,6 +113,7 @@ function getPermissionSections(isEnglish: boolean): Array<{
         {
             title: isEnglish ? "People and course structure" : "บุคลากรและโครงสร้างรายวิชา",
             items: [
+                { key: "update_course", label: isEnglish ? "Edit course details" : "แก้ไขข้อมูลรายวิชา", description: isEnglish ? "Update course settings such as code, name, semester, cover image, and attention threshold." : "แก้ไขการตั้งค่ารายวิชา เช่น รหัสวิชา ชื่อวิชา ภาคการศึกษา รูปปก และเกณฑ์แจ้งเตือน" },
                 { key: "view_people", label: isEnglish ? "View people" : "ดูรายชื่อบุคลากร", description: isEnglish ? "Open the People tab and view instructors or TAs in this course." : "เปิดแท็บบุคลากรและดูรายชื่ออาจารย์หรือ TA ในรายวิชา" },
                 { key: "add_people", label: isEnglish ? "Add people" : "เพิ่มบุคลากร", description: isEnglish ? "Add instructors or teaching assistants to this course." : "เพิ่มอาจารย์ผู้สอนหรือผู้ช่วยสอนเข้าสู่รายวิชา" },
                 { key: "remove_people", label: isEnglish ? "Remove people" : "นำบุคลากรออก", description: isEnglish ? "Remove instructors or TAs from this course." : "ลบอาจารย์หรือ TA ออกจากรายวิชา" },
@@ -194,6 +195,7 @@ function getPermissionPresets(isEnglish: boolean): Array<{
 
 function summarizePermissions(permissions: CourseMemberPermissions, isEnglish: boolean) {
     const labels = [
+        permissions.update_course ? (isEnglish ? "Course settings" : "แก้ไขรายวิชา") : null,
         permissions.view_people || permissions.add_people || permissions.remove_people || permissions.edit_member_permissions ? (isEnglish ? "People" : "บุคลากร") : null,
         permissions.view_sections || permissions.create_sections || permissions.update_sections || permissions.delete_sections || permissions.manage_section_students ? (isEnglish ? "Sections" : "กลุ่มเรียน") : null,
         permissions.view_teams || permissions.create_teams || permissions.update_teams || permissions.delete_teams || permissions.manage_team_members ? (isEnglish ? "Teams" : "กลุ่มงาน") : null,

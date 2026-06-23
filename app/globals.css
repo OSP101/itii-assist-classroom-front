@@ -24,10 +24,10 @@ html[data-font-size="lg"] {
 	font-size: 18px;
 }
 
-html,
-body {
-	height: 100%;
-}
+	html,
+	body {
+		height: 100%;
+	}
 
 @layer base {
 	html {
@@ -393,6 +393,195 @@ body {
 	.dark [data-auth-shell="true"].to-slate-200,
 	.dark [data-auth-shell="true"] .to-slate-200 {
 		--tw-gradient-to: hsl(var(--heroui-content1)) var(--tw-gradient-to-position);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-white,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"].bg-white {
+		background-color: hsl(var(--heroui-content1));
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-white\/95,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"].bg-white\/95 {
+		background-color: hsl(var(--heroui-content1) / 0.95);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-white\/90,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"].bg-white\/90 {
+		background-color: hsl(var(--heroui-content1) / 0.9);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-white\/80,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"].bg-white\/80 {
+		background-color: hsl(var(--heroui-content1) / 0.8);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-white\/70,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"].bg-white\/70 {
+		background-color: hsl(var(--heroui-content1) / 0.7);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-white\/60,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"].bg-white\/60 {
+		background-color: hsl(var(--heroui-content1) / 0.6);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-slate-50,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .hover\:bg-slate-50:hover,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"].bg-slate-50 {
+		background-color: hsl(var(--heroui-content2));
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-slate-50\/80,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-slate-50\/70,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-slate-50\/60,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-slate-50\/50,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-slate-50\/30 {
+		background-color: hsl(var(--heroui-content2) / 0.84);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-slate-100,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .hover\:bg-slate-100:hover {
+		background-color: hsl(var(--heroui-content3));
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-slate-200,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .hover\:bg-slate-200:hover {
+		background-color: hsl(var(--heroui-content4));
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-slate-300 {
+		background-color: hsl(var(--heroui-content4) / 0.92);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .border-slate-50,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .border-slate-100,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .border-slate-200,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .border-slate-300,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .border-gray-200,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .hover\:border-slate-200:hover,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .hover\:border-slate-300:hover {
+		border-color: hsl(var(--heroui-divider));
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .border-slate-400,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .focus-within\:\!border-slate-400:focus-within,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .focus\:border-slate-400:focus,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .focus\:border-blue-400:focus,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .focus-within\:\!border-blue-400:focus-within {
+		border-color: hsl(var(--heroui-default-400));
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .text-slate-900,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .text-slate-800,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .hover\:text-slate-900:hover {
+		color: hsl(var(--heroui-foreground));
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .text-slate-700,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .text-slate-600,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .hover\:text-slate-700:hover {
+		color: hsl(var(--heroui-foreground) / 0.84);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .text-slate-500,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .hover\:text-slate-600:hover,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .text-slate-400 {
+		color: hsl(var(--heroui-foreground) / 0.68);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .text-slate-300,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .text-gray-400 {
+		color: hsl(var(--heroui-foreground) / 0.52);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+		border-color: hsl(var(--heroui-divider));
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .placeholder\:text-slate-400::placeholder,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .placeholder\:text-slate-500::placeholder {
+		color: hsl(var(--heroui-foreground) / 0.52);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .ring-slate-200 {
+		--tw-ring-color: hsl(var(--heroui-default-400) / 0.35);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .shadow-slate-200\/40,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .shadow-slate-200\/50,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .shadow-slate-200\/60 {
+		--tw-shadow-color: hsl(var(--heroui-default-400) / 0.22);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .from-white,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .from-slate-50,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .from-slate-100 {
+		--tw-gradient-from: hsl(var(--heroui-content2)) var(--tw-gradient-from-position);
+		--tw-gradient-to: hsl(var(--heroui-content2) / 0) var(--tw-gradient-to-position);
+		--tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-from), var(--tw-gradient-to));
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .to-white,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .to-slate-50,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .to-slate-200 {
+		--tw-gradient-to: hsl(var(--heroui-content1)) var(--tw-gradient-to-position);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-blue-50,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-blue-50\/60,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-emerald-50,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-amber-50,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-red-50 {
+		background-color: hsl(var(--heroui-content2));
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-blue-100,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-emerald-100,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-amber-100,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .bg-red-100 {
+		background-color: hsl(var(--heroui-content3));
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .border-blue-100,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .border-blue-200,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .hover\:border-blue-300:hover {
+		border-color: rgb(96 165 250 / 0.34);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .border-amber-200,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .hover\:border-amber-300:hover {
+		border-color: rgb(251 191 36 / 0.34);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .border-emerald-200 {
+		border-color: rgb(52 211 153 / 0.32);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .border-red-200,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .border-red-300 {
+		border-color: rgb(248 113 113 / 0.4);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .text-blue-600,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .text-blue-700,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .text-blue-800 {
+		color: rgb(219 234 254);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .text-emerald-600,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .text-emerald-700 {
+		color: rgb(167 243 208);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .text-amber-600,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .text-amber-700 {
+		color: rgb(254 243 199);
+	}
+
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .text-red-600,
+	:is(html.dark, html[data-theme="dark"]) [data-theme-scope~="adaptive"] .text-red-700 {
+		color: rgb(254 202 202);
 	}
 }
 

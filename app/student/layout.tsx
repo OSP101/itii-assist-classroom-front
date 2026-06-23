@@ -91,7 +91,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
   if (isLoading) {
     return (
-      <div className="app-mobile-screen flex items-center justify-center bg-[#f5f7fb]">
+      <div data-theme-scope="adaptive student" className="app-mobile-screen flex items-center justify-center bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
         <div className="flex flex-col items-center gap-4 rounded-4xl border border-slate-200/80 bg-white px-8 py-10 shadow-sm shadow-slate-200/70">
           <Spinner size="lg" color="primary" />
           <div className="text-center">
@@ -104,7 +104,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   }
 
   return (
-    <div className="app-mobile-screen bg-[#f5f7fb] text-slate-900">
+    <div data-theme-scope="adaptive student" className="app-mobile-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <div className="mx-auto flex h-full w-full max-w-5xl flex-col overflow-hidden app-safe-x">
         <GlobalAnnouncementLayer />
 

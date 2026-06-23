@@ -422,7 +422,7 @@ export default function StudentCheckInPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div data-theme-scope="adaptive check-in" className="min-h-screen bg-slate-50">
 
             {/* ── Loading ── */}
             {step === "loading" && (

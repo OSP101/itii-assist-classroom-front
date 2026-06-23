@@ -141,7 +141,8 @@ export default function AttendanceSummaryPage() {
     const filteredRecords = records.filter((record) => {
         const matchesSearch =
             record.student?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            record.student?.student_id?.includes(searchQuery);
+            record.student?.student_id?.includes(searchQuery) ||
+            record.section_no?.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesStatus = statusFilter === "all" || record.status === statusFilter;
         return matchesSearch && matchesStatus;
     });
@@ -240,11 +241,12 @@ export default function AttendanceSummaryPage() {
         if (!session || records.length === 0) return;
 
         const headers = isEnglish
-            ? ["Student ID", "Student name", "Status", "Check-in time", "Note"]
-            : ["รหัสนักศึกษา", "ชื่อ-นามสกุล", "สถานะ", "เวลาเช็คชื่อ", "หมายเหตุ"];
+            ? ["Student ID", "Student name", "Section", "Status", "Check-in time", "Note"]
+            : ["รหัสนักศึกษา", "ชื่อ-นามสกุล", "Section", "สถานะ", "เวลาเช็คชื่อ", "หมายเหตุ"];
         const rows = records.map((r) => [
             r.student?.student_id || "",
             r.student?.full_name || "",
+            r.section_no || "",
             getStatusLabel(r.status, isEnglish),
             r.check_in_time ? formatTime(r.check_in_time, isEnglish) : "-",
             r.note || "",
@@ -451,6 +453,7 @@ export default function AttendanceSummaryPage() {
                             }}
                         >
                             <TableHeader>
+                                <TableColumn>{t("Section", "Section")}</TableColumn>
                                 <TableColumn>{t("นักศึกษา", "Student")}</TableColumn>
                                 <TableColumn>{t("เวลาเช็คชื่อ", "Check-in time")}</TableColumn>
                                 <TableColumn>{t("สถานะ", "Status")}</TableColumn>
@@ -472,6 +475,11 @@ export default function AttendanceSummaryPage() {
                             >
                                 {filteredRecords.map((record) => (
                                     <TableRow key={record.id}>
+                                        <TableCell>
+                                            <span className="text-sm text-default-600">
+                                                {record.section_no || "-"}
+                                            </span>
+                                        </TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-3">
                                                 <Avatar

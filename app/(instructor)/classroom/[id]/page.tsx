@@ -397,6 +397,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
         || currentCoursePermissions.update_queue_sessions
         || currentCoursePermissions.delete_queue_sessions
         || currentCoursePermissions.manage_queue_bookings;
+    const canAccessSettings = isAdminAccess || currentCoursePermissions.update_course;
     const approvalRole = currentCoursePermissions.review_all_score_requests || isAdminAccess ? "instructor" : "ta";
 
     const availableTAs = useMemo(() => {
@@ -1244,6 +1245,8 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
         if (userRole === "instructor" || isAdminAccess) {
             items.push({ key: "ta-stats", label: t("taStats"), icon: "solar:graph-new-up-bold", groupKey: "course-settings" });
             items.push({ key: "activity-log", label: t("activityLog"), icon: "solar:document-text-bold", groupKey: "course-settings" });
+        }
+        if (canAccessSettings) {
             items.push({ key: "settings", label: t("courseSettings"), icon: "solar:settings-bold", groupKey: "course-settings" });
         }
 
@@ -1256,6 +1259,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
         canAccessExamScores,
         canAccessQueue,
         canAccessScores,
+        canAccessSettings,
         canAccessSections,
         canViewPeople,
         isAdminAccess,
@@ -2095,7 +2099,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                         />
                                     )}
 
-                                    {activeTab === "settings" && (userRole === "instructor" || isAdminAccess) && (
+                                    {activeTab === "settings" && canAccessSettings && (
                                         <SettingsTab
                                             courseId={String(course.id)}
                                             course={course}

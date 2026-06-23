@@ -921,7 +921,7 @@ function BookQueueContent() {
     // Show loading while initializing
     if (isInitializing) {
         return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+            <div data-theme-scope="adaptive queue" className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
                 {deskNoticeModal}
                 <div className="flex flex-col items-center gap-4">
                     <div className="h-16 w-16 flex items-center justify-center rounded-3xl bg-linear-to-br from-sky-600 to-cyan-500 shadow-xl shadow-sky-300/40">
@@ -937,7 +937,7 @@ function BookQueueContent() {
     // Render PIN step
     if (step === "pin") {
         return (
-            <div className="min-h-screen bg-slate-50 px-4 pb-10 pt-6 flex flex-col">
+            <div data-theme-scope="adaptive queue" className="min-h-screen bg-slate-50 px-4 pb-10 pt-6 flex flex-col">
                 {deskNoticeModal}
                 <div className="mx-auto w-full max-w-md space-y-4">
                     {/* Hero card */}
@@ -1003,7 +1003,7 @@ function BookQueueContent() {
         // When from QR scan + logged in: show auto-booking loader instead of full form
         if (fromScan && loggedInUser && isBooking) {
             return (
-                <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+                <div data-theme-scope="adaptive queue" className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
                     {deskNoticeModal}
                     <div className="flex flex-col items-center gap-4 text-center">
                         <div className="h-16 w-16 flex items-center justify-center rounded-3xl bg-linear-to-br from-sky-600 to-cyan-500 shadow-xl shadow-sky-300/40">
@@ -1020,7 +1020,7 @@ function BookQueueContent() {
         }
 
         return (
-            <div className="min-h-screen bg-slate-50 px-4 pb-10 pt-6 flex flex-col">
+            <div data-theme-scope="adaptive queue" className="min-h-screen bg-slate-50 px-4 pb-10 pt-6 flex flex-col">
                 {deskNoticeModal}
                 <div className="mx-auto w-full max-w-md space-y-4">
 
@@ -1326,7 +1326,7 @@ function BookQueueContent() {
             : "bg-white/20 text-white";
 
         return (
-            <div className="min-h-screen bg-slate-50 px-4 pb-10 pt-6 flex flex-col">
+            <div data-theme-scope="adaptive queue" className="min-h-screen bg-slate-50 px-4 pb-10 pt-6 flex flex-col">
                 {deskNoticeModal}
                 <div className="mx-auto w-full max-w-md space-y-4">
 

@@ -7,6 +7,7 @@ import { API_ENDPOINTS } from '@/config/api';
 
 // Types
 export interface CourseMemberPermissions {
+  update_course: boolean;
   view_people: boolean;
   add_people: boolean;
   remove_people: boolean;
@@ -67,6 +68,7 @@ type LegacyCourseMemberPermissions = Partial<{
 }>;
 
 export const DEFAULT_INSTRUCTOR_COURSE_PERMISSIONS: CourseMemberPermissions = {
+  update_course: true,
   view_people: true,
   add_people: true,
   remove_people: true,
@@ -108,6 +110,7 @@ export const DEFAULT_INSTRUCTOR_COURSE_PERMISSIONS: CourseMemberPermissions = {
 };
 
 export const DEFAULT_TA_COURSE_PERMISSIONS: CourseMemberPermissions = {
+  update_course: false,
   view_people: false,
   add_people: false,
   remove_people: false,
@@ -149,6 +152,7 @@ export const DEFAULT_TA_COURSE_PERMISSIONS: CourseMemberPermissions = {
 };
 
 export const EMPTY_COURSE_MEMBER_PERMISSIONS: CourseMemberPermissions = {
+  update_course: false,
   view_people: false,
   add_people: false,
   remove_people: false,
