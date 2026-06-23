@@ -304,6 +304,7 @@ function formatBookingStatusLabel(status: string, isEnglish = false): string {
 // ============================================================
 
 export default function WorkerDashboardPage() {
+    const OFFER_TIMEOUT_SECONDS = 30;
     const params = useParams();
     const router = useRouter();
     const { language } = useGlobalSettings();
@@ -346,6 +347,8 @@ export default function WorkerDashboardPage() {
     const [isJoining, setIsJoining] = useState(false);
     const [isLeaving, setIsLeaving] = useState(false);
     const [isPausedAfterComplete, setIsPausedAfterComplete] = useState(false); // Stop receiving after completing current
+    const [workerOfferPausedUntil, setWorkerOfferPausedUntil] = useState<string | null>(null);
+    const [workerPauseSecondsLeft, setWorkerPauseSecondsLeft] = useState<number | null>(null);
 
     // Complete booking modal
     const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
@@ -381,6 +384,7 @@ export default function WorkerDashboardPage() {
     const [isRejectOfferModalOpen, setIsRejectOfferModalOpen] = useState(false);
     const [rejectOfferReason, setRejectOfferReason] = useState("busy_with_student");
     const [isRejectingOffer, setIsRejectingOffer] = useState(false);
+    const previousOfferPausedUntilRef = useRef<string | null>(null);
 
     // Mini room map
     const [deskLayout, setDeskLayout] = useState<MiniDeskInfo[]>([]);
@@ -399,6 +403,57 @@ export default function WorkerDashboardPage() {
         fcmToken,
     } = useNotification();
 
+    const isWorkerOfferPaused = Boolean(
+        workerOfferPausedUntil && new Date(workerOfferPausedUntil).getTime() > Date.now()
+    );
+
+    const formatSecondsAsClock = (seconds: number): string => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, "0")}`;
+    };
+
+    const syncWorkerState = useCallback((worker: QueueWorker | null) => {
+        if (!worker) {
+            setIsWorkerOnline(false);
+            setIsPausedAfterComplete(false);
+            setWorkerOfferPausedUntil(null);
+            previousOfferPausedUntilRef.current = null;
+            return;
+        }
+
+        const nextOfferPausedUntil = worker.offer_paused_until ?? null;
+        const now = Date.now();
+        const previousPauseMs = previousOfferPausedUntilRef.current ? new Date(previousOfferPausedUntilRef.current).getTime() : NaN;
+        const nextPauseMs = nextOfferPausedUntil ? new Date(nextOfferPausedUntil).getTime() : NaN;
+        const wasOfferPaused = Number.isFinite(previousPauseMs) && previousPauseMs > now;
+        const isOfferPausedNow = Number.isFinite(nextPauseMs) && nextPauseMs > now;
+
+        setWorkerPreferences({
+            accept_grading: worker.accept_grading,
+            accept_help: worker.accept_help,
+        });
+
+        setWorkerOfferPausedUntil(nextOfferPausedUntil);
+        setIsPausedAfterComplete(worker.status === "paused");
+        setIsWorkerOnline(worker.status === "online" || worker.status === "busy" || worker.status === "paused");
+
+        if (isOfferPausedNow && !wasOfferPaused) {
+            const pauseSeconds = Math.max(0, Math.ceil((nextPauseMs - now) / 1000));
+            addToast({
+                title: t("ระบบพักรับงานอัตโนมัติ", "Task offers auto-paused"),
+                description: isEnglish
+                    ? `You missed 3 task offers in a row. Auto-resume in ${formatSecondsAsClock(pauseSeconds)}.`
+                    : `คุณพลาดรับงาน 3 ครั้งติด ระบบพักรับงานชั่วคราว และจะปลดพักในอีก ${formatSecondsAsClock(pauseSeconds)} นาที`,
+                color: "warning",
+                timeout: 3500,
+                shouldShowTimeoutProgress: true,
+            });
+        }
+
+        previousOfferPausedUntilRef.current = nextOfferPausedUntil;
+    }, [isEnglish, t]);
+
     useEffect(() => {
         document.title = isEnglish
             ? "Queue Worker - LabTAS"
@@ -409,6 +464,33 @@ export default function WorkerDashboardPage() {
         const pageLabel = isEnglish ? "Queue Worker" : "หน้ารับงาน";
         document.title = buildPageTitle(pageLabel, courseContext);
     }, [courseContext, isEnglish]);
+
+    useEffect(() => {
+        if (!workerOfferPausedUntil) {
+            setWorkerPauseSecondsLeft(null);
+            return;
+        }
+
+        const updatePauseCountdown = () => {
+            const pausedUntilMs = new Date(workerOfferPausedUntil).getTime();
+            if (Number.isNaN(pausedUntilMs)) {
+                setWorkerPauseSecondsLeft(null);
+                setWorkerOfferPausedUntil(null);
+                return;
+            }
+
+            const seconds = Math.max(0, Math.ceil((pausedUntilMs - Date.now()) / 1000));
+            setWorkerPauseSecondsLeft(seconds);
+
+            if (seconds <= 0) {
+                setWorkerOfferPausedUntil(null);
+            }
+        };
+
+        updatePauseCountdown();
+        const timer = setInterval(updatePauseCountdown, 1000);
+        return () => clearInterval(timer);
+    }, [workerOfferPausedUntil]);
 
     // Get current user
     useEffect(() => {
@@ -477,18 +559,11 @@ export default function WorkerDashboardPage() {
                 const result = await queueService.getWorkerCurrentBooking(courseId, sessionId);
                 
                 const { worker, currentBooking } = result;
+                syncWorkerState(worker);
                 
                 if (currentBooking) {
                     // Has pending booking - restore state
                     setCurrentBooking(currentBooking);
-                    setIsWorkerOnline(true);
-                    
-                    if (worker) {
-                        setWorkerPreferences({
-                            accept_grading: worker.accept_grading,
-                            accept_help: worker.accept_help,
-                        });
-                    }
                     
                     addToast({
                         title: t("พบงานที่ค้างอยู่", "Pending task restored"),
@@ -500,12 +575,8 @@ export default function WorkerDashboardPage() {
                 } else if (currentUser && data.workers) {
                     // No pending booking - check if user is a worker
                     const myWorker = data.workers.find((w) => w.user_id === currentUser.id);
-                    if (myWorker && myWorker.status !== "offline") {
-                        setIsWorkerOnline(true);
-                        setWorkerPreferences({
-                            accept_grading: myWorker.accept_grading,
-                            accept_help: myWorker.accept_help,
-                        });
+                    if (myWorker) {
+                        syncWorkerState(myWorker as QueueWorker);
                     }
                 }
             } catch (err) {
@@ -523,7 +594,7 @@ export default function WorkerDashboardPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [courseId, sessionId, currentUser, isEnglish, t]);
+    }, [courseId, sessionId, currentUser, isEnglish, t, syncWorkerState]);
 
     useEffect(() => {
         if (currentUser) {
@@ -573,6 +644,14 @@ export default function WorkerDashboardPage() {
         
         try {
             const result = await queueService.getWorkerCurrentBooking(courseId, sessionId);
+            syncWorkerState(result.worker);
+
+            if (result.worker && result.worker.status === "offline" && result.worker.offer_paused_until) {
+                setCurrentBooking(null);
+                skipPollingRef.current = false;
+                return;
+            }
+
             if (result.currentBooking) {
                 // Double check - don't accept if paused
                 if (isPausedRef.current) {
@@ -584,7 +663,7 @@ export default function WorkerDashboardPage() {
                 addToast({
                     title: t("มีงานใหม่!", "New task assigned"),
                     description: result.currentBooking.status === "waiting"
-                        ? t("กรุณากดรับงานภายใน 20 วินาที", "Please accept this task within 20 seconds.")
+                        ? t("กรุณากดรับงานภายใน 30 วินาที", "Please accept this task within 30 seconds.")
                         : `${formatDeskLabel(result.currentBooking.desk_number, isEnglish)} - ${formatBookingTypeLabel(result.currentBooking.booking_type, isEnglish)}`,
                     color: "primary",
                     timeout: 3000,
@@ -594,7 +673,7 @@ export default function WorkerDashboardPage() {
         } catch (err) {
             console.error("Polling error:", err);
         }
-    }, [courseId, sessionId, isWorkerOnline, currentBooking, isEnglish]);
+    }, [courseId, sessionId, isWorkerOnline, currentBooking, isEnglish, t, syncWorkerState]);
 
     // Socket connection - connect only when worker is online
     useEffect(() => {
@@ -628,7 +707,7 @@ export default function WorkerDashboardPage() {
             addToast({
                 title: t("มีงานใหม่!", "New task assigned"),
                 description: data.booking.status === "waiting"
-                    ? t("กรุณากดรับงานภายใน 20 วินาที", "Please accept this task within 20 seconds.")
+                    ? t("กรุณากดรับงานภายใน 30 วินาที", "Please accept this task within 30 seconds.")
                     : `${formatDeskLabel(data.booking.desk_number, isEnglish)} - ${formatBookingTypeLabel(data.booking.booking_type, isEnglish)}`,
                 color: "primary",
                 timeout: 3000,
@@ -659,14 +738,14 @@ export default function WorkerDashboardPage() {
 
         socketRef.current = socket;
 
-        // Start polling as fallback (every 30 seconds) - socket handles real-time updates
+        // Start polling as fallback (every 5 seconds) in case sockets are unavailable
         pollingRef.current = setInterval(() => {
             // Only poll if no current booking
             if (!currentBooking) {
                 skipPollingRef.current = false;
                 pollForBooking();
             }
-        }, 30000);
+        }, 5000);
 
         return () => {
             socket.emit("leave-queue", sessionId);
@@ -713,6 +792,8 @@ export default function WorkerDashboardPage() {
 
             const result = await queueService.joinAsWorker(courseId, sessionId, workerPreferences);
             setIsWorkerOnline(true);
+            setIsPausedAfterComplete(false);
+            setWorkerOfferPausedUntil(null);
             
             // If there was a waiting booking that got assigned immediately
             if (result.assignedBooking) {
@@ -720,7 +801,7 @@ export default function WorkerDashboardPage() {
                 addToast({
                     title: t("มีงานรอตรวจ!", "Task assigned immediately"),
                     description: result.assignedBooking.status === "waiting"
-                        ? t("กรุณากดรับงานภายใน 20 วินาที", "Please accept this task within 20 seconds.")
+                        ? t("กรุณากดรับงานภายใน 30 วินาที", "Please accept this task within 30 seconds.")
                         : `${formatDeskLabel(result.assignedBooking.desk_number, isEnglish)} - ${formatBookingTypeLabel(result.assignedBooking.booking_type, isEnglish)}`,
                     color: "primary",
                     timeout: 3000,
@@ -1286,6 +1367,36 @@ export default function WorkerDashboardPage() {
     return (
         <div className="min-h-screen bg-background p-4 text-foreground md:p-6">
             <div className="max-w-4xl mx-auto space-y-6">
+                {isWorkerOfferPaused && (
+                    <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="p-2 rounded-xl bg-rose-100 shrink-0">
+                                    <Icon icon="solar:alarm-pause-bold" className="text-rose-600 text-xl" />
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-rose-800">{t("พักรับงานอัตโนมัติ", "Auto-paused from task offers")}</h3>
+                                    <p className="text-sm text-rose-700">
+                                        {isEnglish
+                                            ? `Offer timed out 3 consecutive times. Auto-resume in ${formatSecondsAsClock(workerPauseSecondsLeft ?? 0)}.`
+                                            : `พลาดรับงานครบ 3 ครั้งติด ระบบพักรับงานชั่วคราว จะปลดพักในอีก ${formatSecondsAsClock(workerPauseSecondsLeft ?? 0)} นาที`}
+                                    </p>
+                                </div>
+                            </div>
+                            <Button
+                                color="primary"
+                                variant="flat"
+                                size="sm"
+                                startContent={<Icon icon="solar:play-bold" />}
+                                onPress={handleJoinAsWorker}
+                                isLoading={isJoining}
+                                isDisabled={!isCourseActive}
+                            >
+                                {t("ยกเลิกพักและเริ่มรับงาน", "Cancel pause and resume now")}
+                            </Button>
+                        </div>
+                    </div>
+                )}
                 {/* Session paused/closed banner */}
                 {session.status === "paused" && (
                     <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
@@ -1507,7 +1618,7 @@ export default function WorkerDashboardPage() {
                                                         <div className="flex items-center gap-2 text-amber-700">
                                                             <Icon icon="solar:alarm-bold" className="text-lg" />
                                                             <p className="text-sm font-medium">
-                                                                {t("กรุณากดรับงานภายใน 20 วินาที", "Please accept this task within 20 seconds")}
+                                                                {t("กรุณากดรับงานภายใน 30 วินาที", "Please accept this task within 30 seconds")}
                                                             </p>
                                                         </div>
                                                         <div className="flex items-center gap-2">
@@ -1522,7 +1633,7 @@ export default function WorkerDashboardPage() {
                                                                         stroke="currentColor"
                                                                         strokeWidth="3"
                                                                         className={offerSecondsLeft !== null && offerSecondsLeft <= 5 ? "text-rose-500" : "text-amber-600"}
-                                                                        strokeDasharray={`${Math.max(0, Math.min(1, (offerSecondsLeft ?? 0) / 20)) * 100}, 100`}
+                                                                        strokeDasharray={`${Math.max(0, Math.min(1, (offerSecondsLeft ?? 0) / OFFER_TIMEOUT_SECONDS)) * 100}, 100`}
                                                                     />
                                                                 </svg>
                                                                 <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-amber-700">

@@ -55,6 +55,22 @@ const initialFormData: AssignmentFormData = {
     description: "",
 };
 
+function getLinkedAttendanceSessionIds(assignment: AssignmentType): number[] {
+    if (assignment.linkedAttendanceSessions && assignment.linkedAttendanceSessions.length > 0) {
+        return assignment.linkedAttendanceSessions.map((session) => session.id);
+    }
+
+    if (assignment.linkedAttendanceSession) {
+        return [assignment.linkedAttendanceSession.id];
+    }
+
+    if (assignment.linked_attendance_session_id) {
+        return [assignment.linked_attendance_session_id];
+    }
+
+    return [];
+}
+
 function AssignmentModalComponent({
     isOpen,
     onClose,
@@ -91,12 +107,13 @@ function AssignmentModalComponent({
         if (isOpen) {
             if (editingAssignment) {
                 // Populate form with existing assignment data
+                const linkedAttendanceSessionIds = getLinkedAttendanceSessionIds(editingAssignment);
                 setFormData({
                     name: editingAssignment.name,
                     assignment_type: editingAssignment.assignment_type,
                     week_number: editingAssignment.week_number,
-                    linked_attendance_session_ids: editingAssignment.linkedAttendanceSessions?.map(s => s.id) || [],
-                    linked_attendance_session_id: editingAssignment.linkedAttendanceSessions?.[0]?.id || null,
+                    linked_attendance_session_ids: linkedAttendanceSessionIds,
+                    linked_attendance_session_id: linkedAttendanceSessionIds[0] || null,
                     attendance_condition: editingAssignment.attendance_condition || "or",
                     hasSubItems: !!(editingAssignment.subItems && editingAssignment.subItems.length > 0),
                     subItems: editingAssignment.subItems?.map(s => ({

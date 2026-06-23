@@ -69,8 +69,10 @@ export interface QueueWorker {
     user_id: number;
     accept_grading: boolean;
     accept_help: boolean;
-    status: 'online' | 'busy' | 'offline';
+    status: 'online' | 'busy' | 'offline' | 'paused';
     current_booking_id?: number | null;
+    offer_paused_until?: string | null;
+    consecutive_offer_timeouts?: number;
     total_grading_completed: number;
     total_help_completed: number;
     last_active_at: string;
