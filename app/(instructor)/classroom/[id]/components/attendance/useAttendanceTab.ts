@@ -434,6 +434,42 @@ export function useAttendanceTab(
             return;
         }
 
+        const currentEditTarget = editTarget;
+        if (!currentEditTarget) return;
+
+        if (currentEditTarget.status === "closed") {
+            setIsSubmitting(true);
+            try {
+                const result = await attendanceService.updateSession(currentEditTarget.id, {
+                    title: formData.title.trim(),
+                });
+                if (result) {
+                    addToast({
+                        title: isEnglish ? "Success" : "à¸ªà¸³à¹€à¸£à¹‡à¸ˆ",
+                        description: isEnglish ? "Attendance session updated successfully." : "à¹à¸à¹‰à¹„à¸‚à¸£à¸­à¸šà¸à¸²à¸£à¹€à¸Šà¹‡à¸„à¸Šà¸·à¹ˆà¸­à¹€à¸£à¸µà¸¢à¸šà¸£à¹‰à¸­à¸¢à¹à¸¥à¹‰à¸§",
+                        color: "success",
+                        timeout: 3000,
+                        shouldShowTimeoutProgress: true,
+                    });
+                    closeEditModal();
+                    fetchSessions(false);
+                    emitDataUpdate("attendance", "update", currentEditTarget.id, { courseId: course.id });
+                }
+            } catch (error: unknown) {
+                console.error("Error updating session:", error);
+                addToast({
+                    title: isEnglish ? "Error" : "à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”",
+                    description: error instanceof Error ? error.message : (isEnglish ? "Unable to update the attendance session." : "à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¹à¸à¹‰à¹„à¸‚à¸£à¸­à¸šà¸à¸²à¸£à¹€à¸Šà¹‡à¸„à¸Šà¸·à¹ˆà¸­à¹„à¸”à¹‰"),
+                    color: "danger",
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+                });
+            } finally {
+                setIsSubmitting(false);
+            }
+            return;
+        }
+
         if (!formData.course_section_ids || formData.course_section_ids.length === 0) {
             addToast({
                 title: isEnglish ? "Select sections" : "กรุณาเลือกกลุ่มเรียน",

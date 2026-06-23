@@ -91,6 +91,7 @@ interface DateTimeInputProps {
     onChange: (value: DateValue) => void;
     description?: string;
     isRequired?: boolean;
+    isDisabled?: boolean;
     colorScheme?: "blue" | "amber";
     /** HTML datetime-local min constraint ("YYYY-MM-DDTHH:MM") */
     min?: string;
@@ -104,6 +105,7 @@ const DateTimeInput = memo(function DateTimeInput({
     onChange,
     description,
     isRequired = false,
+    isDisabled = false,
     colorScheme = "blue",
     min,
     max,
@@ -143,12 +145,13 @@ const DateTimeInput = memo(function DateTimeInput({
                 type="datetime-local"
                 value={toDateTimeLocalStr(value)}
                 onChange={handleChange}
+                disabled={isDisabled}
                 min={min}
                 max={max}
                 className={`box-border h-10 min-w-0 w-full max-w-full rounded-xl border-2 bg-content1 px-4 py-0 ${borderColor}
                     text-foreground text-sm transition-all duration-200
                     focus:outline-none focus:ring-4
-                    placeholder:text-default-400`}
+                    placeholder:text-default-400 disabled:cursor-not-allowed disabled:opacity-60`}
             />
             {description && (
                 <p className={`text-xs font-medium ${colorScheme === "amber" ? "text-amber-600" : "text-default-500"}`}>
@@ -746,6 +749,20 @@ const SessionRowActions = memo(function SessionRowActions({
                     <Icon icon="solar:chart-bold" className="text-lg" />
                 </Link>
             </Tooltip>
+            {canUpdateAttendanceSessions && (
+                <Tooltip content={isEnglish ? "Edit title" : "à¹à¸à¹‰à¹„à¸‚à¸Šà¸·à¹ˆà¸­"}>
+                    <Button
+                        isIconOnly
+                        size="sm"
+                        variant="light"
+                        color="primary"
+                        isDisabled={!isCourseActive}
+                        onPress={() => onEdit(session)}
+                    >
+                        <Icon icon="solar:pen-bold" className="text-lg" />
+                    </Button>
+                </Tooltip>
+            )}
 
             {canDeleteAttendanceSessions && (
                 <Tooltip content={isEnglish ? "Delete" : "ลบ"} color="danger">
@@ -1522,6 +1539,7 @@ export const EditSessionModal = memo(function EditSessionModal({
     const { language } = useGlobalSettings();
     const isEnglish = language === "en";
     const [originalFormData, setOriginalFormData] = useState<CreateAttendanceData | null>(null);
+    const isClosedSession = editTarget?.status === "closed";
 
     useEffect(() => {
         if (!isOpen || !editTarget) {
@@ -1540,6 +1558,10 @@ export const EditSessionModal = memo(function EditSessionModal({
 
     const hasFormChanges = () => {
         if (!originalFormData) return false;
+
+        if (isClosedSession) {
+            return formData.title !== originalFormData.title;
+        }
 
         const currentSectionIds = [...(formData.course_section_ids || [])].sort((a, b) => a - b);
         const originalSectionIds = [...(originalFormData.course_section_ids || [])].sort((a, b) => a - b);
@@ -1596,6 +1618,12 @@ export const EditSessionModal = memo(function EditSessionModal({
                                 label: "text-default-600 font-medium text-sm",
                             }}
                         />
+                        {isClosedSession && (
+                            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                                {isEnglish ? "Closed sessions can only update the session title." : "รอบที่ปิดใช้งานแล้วจะแก้ไขได้เฉพาะชื่อ session เท่านั้น"}
+                            </div>
+                        )}
+                        <div className={isClosedSession ? "pointer-events-none space-y-3 opacity-60 select-none" : "space-y-3"}>
 
                         {/* Section - Multi-select */}
                         <Select
@@ -1661,6 +1689,7 @@ export const EditSessionModal = memo(function EditSessionModal({
                                 value={startDateTime}
                                 onChange={setStartDateTime}
                                 isRequired
+                                isDisabled={isClosedSession}
                                 colorScheme="amber"
                             />
                             <DateTimeInput
@@ -1668,6 +1697,7 @@ export const EditSessionModal = memo(function EditSessionModal({
                                 value={endDateTime}
                                 onChange={setEndDateTime}
                                 isRequired
+                                isDisabled={isClosedSession}
                                 colorScheme="amber"
                                 min={toDateTimeLocalStr(startDateTime)}
                                 max={endOfDayStr(startDateTime)}
@@ -1681,6 +1711,7 @@ export const EditSessionModal = memo(function EditSessionModal({
                                 value={lateThresholdTime}
                                 onChange={setLateThresholdTime}
                                 isRequired
+                                isDisabled={isClosedSession}
                                 colorScheme="amber"
                                 description={isEnglish ? "Check-ins after this time will be marked late." : "เช็คอินหลังเวลานี้จะถูกนับเป็นสาย"}
                                 min={toDateTimeLocalStr(startDateTime)}
@@ -1699,6 +1730,7 @@ export const EditSessionModal = memo(function EditSessionModal({
                                 <Switch
                                     isSelected={formData.auto_rotate_pin}
                                     color="warning"
+                                    isDisabled={isClosedSession}
                                     onValueChange={(value) => setFormData((prev: CreateAttendanceData) => ({ ...prev, auto_rotate_pin: value }))}
                                 />
                             </CardBody>
@@ -1716,6 +1748,7 @@ export const EditSessionModal = memo(function EditSessionModal({
                                     <Switch
                                         isSelected={formData.check_location}
                                         color="primary"
+                                        isDisabled={isClosedSession}
                                         onValueChange={(value) => setFormData((prev: CreateAttendanceData) => ({ ...prev, check_location: value }))}
                                     />
                                 </div>
@@ -1785,6 +1818,7 @@ export const EditSessionModal = memo(function EditSessionModal({
                                 )}
                             </CardBody>
                         </Card>
+                        </div>
                     </div>
                 </ModalBody>
                 <ModalFooter className="sticky bottom-0 z-20 flex-col-reverse gap-2 border-t border-divider bg-content1 px-4 py-3 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] sm:flex-row sm:px-6 sm:py-4">

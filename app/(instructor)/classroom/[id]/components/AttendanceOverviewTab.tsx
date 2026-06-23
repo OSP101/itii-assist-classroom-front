@@ -66,6 +66,16 @@ interface SelectedAttendanceCell {
     record: AttendanceCellData | null;
 }
 
+interface StudentAttendanceSummary {
+    present: number;
+    late: number;
+    leave: number;
+    absent: number;
+    attended: number;
+    applicableSessions: number;
+    rate: number;
+}
+
 export default function AttendanceOverviewTab({
     courseId,
     sections,
@@ -86,9 +96,50 @@ export default function AttendanceOverviewTab({
     const [selectedCell, setSelectedCell] = useState<SelectedAttendanceCell | null>(null);
     const [showMap, setShowMap] = useState(false);
 
+    const sectionIdBySectionNo = useMemo(() => {
+        return new Map(sections.map((section) => [section.section_no, section.id]));
+    }, [sections]);
+
+    const getSessionTargetSectionIds = (session: AttendanceSession): number[] => {
+        if (Array.isArray(session.course_section_ids) && session.course_section_ids.length > 0) {
+            return session.course_section_ids;
+        }
+        if (session.course_section_id) {
+            return [session.course_section_id];
+        }
+        return [];
+    };
+
+    const isStudentTargetedBySession = (student: CourseStudent, session: AttendanceSession): boolean => {
+        const targetSectionIds = getSessionTargetSectionIds(session);
+        if (targetSectionIds.length === 0) {
+            return true;
+        }
+
+        const studentSectionId = sectionIdBySectionNo.get(student.section_no);
+        if (!studentSectionId) {
+            return false;
+        }
+
+        return targetSectionIds.includes(studentSectionId);
+    };
+
     const visibleSessions = useMemo(() => {
-        return [...sessions].sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
-    }, [sessions]);
+        const orderedSessions = [...sessions].sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+        if (selectedSection === "all") {
+            return orderedSessions;
+        }
+
+        const selectedSectionId = sectionIdBySectionNo.get(selectedSection);
+        if (!selectedSectionId) {
+            return orderedSessions;
+        }
+
+        return orderedSessions.filter((session) => {
+            const targetSectionIds = getSessionTargetSectionIds(session);
+            return targetSectionIds.length === 0 || targetSectionIds.includes(selectedSectionId);
+        });
+    }, [sectionIdBySectionNo, selectedSection, sessions]);
 
     useEffect(() => {
         let isMounted = true;
@@ -201,21 +252,33 @@ export default function AttendanceOverviewTab({
         });
     }, [students, searchQuery, selectedSection]);
 
+    const perSessionAttendanceRate = useMemo(() => {
+        return visibleSessions.reduce<Record<number, number>>((acc, session) => {
+            const records = matrix[session.id] || {};
+            const targetedStudents = filteredStudents.filter((student) => isStudentTargetedBySession(student, session));
+            if (targetedStudents.length === 0) {
+                acc[session.id] = 0;
+                return acc;
+            }
+
+            const attendedCount = targetedStudents.reduce((count, student) => {
+                const status = records[student.id]?.status ?? "absent";
+                return status === "present" || status === "late" || status === "leave"
+                    ? count + 1
+                    : count;
+            }, 0);
+
+            acc[session.id] = (attendedCount / targetedStudents.length) * 100;
+            return acc;
+        }, {});
+    }, [filteredStudents, matrix, visibleSessions]);
+
     const summary = useMemo(() => {
-        const total = sessions.length;
-        const active = sessions.filter((session) => session.status === "active").length;
-        const closed = sessions.filter((session) => session.status === "closed").length;
-
-        const sessionsWithStats = sessions.filter(
-            (session) => (session.stats?.total_students ?? 0) > 0
-        );
-
-        const averageCheckInRate = sessionsWithStats.length
-            ? sessionsWithStats.reduce((acc, session) => {
-                const totalStudents = session.stats?.total_students ?? 0;
-                const checkedIn = session.stats?.checked_in ?? 0;
-                return acc + ((checkedIn / totalStudents) * 100);
-            }, 0) / sessionsWithStats.length
+        const total = visibleSessions.length;
+        const active = visibleSessions.filter((session) => session.status === "active").length;
+        const closed = visibleSessions.filter((session) => session.status === "closed").length;
+        const averageCheckInRate = visibleSessions.length > 0
+            ? visibleSessions.reduce((acc, session) => acc + (perSessionAttendanceRate[session.id] ?? 0), 0) / visibleSessions.length
             : 0;
 
         return {
@@ -224,24 +287,7 @@ export default function AttendanceOverviewTab({
             closed,
             averageCheckInRate,
         };
-    }, [sessions]);
-
-    const perSessionAttendanceRate = useMemo(() => {
-        const denominator = filteredStudents.length || 1;
-
-        return visibleSessions.reduce<Record<number, number>>((acc, session) => {
-            const records = matrix[session.id] || {};
-            const attendedCount = filteredStudents.reduce((count, student) => {
-                const status = records[student.id]?.status ?? "absent";
-                return status === "present" || status === "late" || status === "leave"
-                    ? count + 1
-                    : count;
-            }, 0);
-
-            acc[session.id] = (attendedCount / denominator) * 100;
-            return acc;
-        }, {});
-    }, [filteredStudents, matrix, visibleSessions]);
+    }, [perSessionAttendanceRate, visibleSessions]);
 
     const getStatusView = (status: AttendanceMatrixStatus) => {
         if (status === "present") {
@@ -256,25 +302,32 @@ export default function AttendanceOverviewTab({
         return { label: t("attendanceStatusAbsent"), className: "bg-red-50 text-red-500" };
     };
 
-    const getStudentSummary = (studentId: number) => {
+    const getStudentSummary = (student: CourseStudent): StudentAttendanceSummary => {
         const counts = {
             present: 0,
             late: 0,
             leave: 0,
             absent: 0,
         };
+        let applicableSessions = 0;
 
         visibleSessions.forEach((session) => {
-            const status = matrix[session.id]?.[studentId]?.status ?? "absent";
+            if (!isStudentTargetedBySession(student, session)) {
+                return;
+            }
+
+            applicableSessions += 1;
+            const status = matrix[session.id]?.[student.id]?.status ?? "absent";
             counts[status] += 1;
         });
 
         const attended = counts.present + counts.late + counts.leave;
-        const rate = visibleSessions.length > 0 ? (attended / visibleSessions.length) * 100 : 0;
+        const rate = applicableSessions > 0 ? (attended / applicableSessions) * 100 : 0;
 
         return {
             ...counts,
             attended,
+            applicableSessions,
             rate,
         };
     };
@@ -505,7 +558,7 @@ export default function AttendanceOverviewTab({
                                 </thead>
                                 <tbody className="divide-y divide-divider">
                                     {filteredStudents.map((student, index) => {
-                                        const studentSummary = getStudentSummary(student.id);
+                                        const studentSummary = getStudentSummary(student);
 
                                         return (
                                             <tr
@@ -519,6 +572,20 @@ export default function AttendanceOverviewTab({
                                                 <td className="px-3 py-3 whitespace-nowrap font-medium text-foreground">{student.full_name}</td>
                                                 <td className="px-2 py-3 text-center text-default-600">{student.section_no}</td>
                                                 {visibleSessions.map((session) => {
+                                                    const isTargeted = isStudentTargetedBySession(student, session);
+                                                    if (!isTargeted) {
+                                                        return (
+                                                            <td
+                                                                key={`${student.id}-${session.id}`}
+                                                                onMouseEnter={() => setHoverColKey(session.id)}
+                                                                onMouseLeave={() => setHoverColKey(null)}
+                                                                className={`border-l border-divider px-2 py-2 text-center text-default-400 transition-colors ${hoverColKey === session.id ? "bg-primary/10" : ""}`}
+                                                            >
+                                                                -
+                                                            </td>
+                                                        );
+                                                    }
+
                                                     const record = matrix[session.id]?.[student.id] ?? null;
                                                     const status = record?.status ?? "absent";
                                                     const statusView = getStatusView(status);
@@ -570,7 +637,7 @@ export default function AttendanceOverviewTab({
                                 </thead>
                                 <tbody className="divide-y divide-divider">
                                     {filteredStudents.map((student, index) => {
-                                        const studentSummary = getStudentSummary(student.id);
+                                        const studentSummary = getStudentSummary(student);
                                         return (
                                             <tr
                                                 key={student.id}

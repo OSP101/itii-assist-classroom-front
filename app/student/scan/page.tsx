@@ -8,6 +8,8 @@ import { addToast } from "@heroui/toast";
 
 import jsQR from "jsqr";
 import { parseStudentQrPayload, type StudentQrParseResult } from "@/lib/qr-deeplink";
+import { API_BASE_URL } from "@/config/api";
+import attendanceService from "@/services/attendance.service";
 
 type BarcodeDetectorResult = { rawValue: string };
 
@@ -323,6 +325,7 @@ export default function StudentScanPage() {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<StudentQrParseResult | null>(null);
   const [activeCameraLabel, setActiveCameraLabel] = useState<string | null>(null);
+  const [isResolvingPin, setIsResolvingPin] = useState(false);
 
   const stopCamera = useCallback(() => {
     if (frameRef.current !== null) {
@@ -369,10 +372,69 @@ export default function StudentScanPage() {
     router.push(result.target.href);
   }, [router, stopCamera]);
 
-  const handleDecodedValue = useCallback((value: string) => {
+  const resolvePinTarget = useCallback(async (pin: string): Promise<StudentQrParseResult> => {
+    try {
+      const attendance = await attendanceService.verifyPin(pin);
+      if (attendance?.session_id) {
+        return {
+          ok: true,
+          target: {
+            kind: "attendance",
+            href: `/check-in/${encodeURIComponent(String(attendance.session_id))}`,
+            title: "เช็กชื่อเข้าเรียน",
+            description: `เปิดหน้าเช็กชื่อด้วย PIN ${pin}`,
+          },
+        };
+      }
+    } catch {
+      // Fall through to queue lookup.
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/queue/verify-pin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin_code: pin }),
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        return {
+          ok: true,
+          target: {
+            kind: "queue",
+            href: `/queue/book?pin=${encodeURIComponent(pin)}`,
+            title: "จองคิว",
+            description: `เปิดหน้าจองคิวด้วย PIN ${pin}`,
+          },
+        };
+      }
+    } catch {
+      // Ignore and return a user-friendly error below.
+    }
+
+    return {
+      ok: false,
+      reason: "PIN ไม่ถูกต้อง หรือไม่มีการเปิดรับจองคิว/เช็กชื่อ",
+    };
+  }, []);
+
+  const handleDecodedValue = useCallback(async (value: string) => {
+    const raw = value.trim();
+    if (/^\d{6}$/.test(raw)) {
+      setIsResolvingPin(true);
+      try {
+        const result = await resolvePinTarget(raw);
+        routeToScanTarget(result);
+      } finally {
+        setIsResolvingPin(false);
+      }
+      return;
+    }
+
     const result = parseStudentQrPayload(value, typeof window !== "undefined" ? window.location.origin : undefined);
     routeToScanTarget(result);
-  }, [routeToScanTarget]);
+  }, [resolvePinTarget, routeToScanTarget]);
 
   const scanLoop = useCallback(() => {
     if (!videoRef.current) return;
@@ -470,7 +532,7 @@ export default function StudentScanPage() {
 
   useEffect(() => {
     if (initialData) {
-      handleDecodedValue(initialData);
+      void handleDecodedValue(initialData);
     }
   }, [handleDecodedValue, initialData]);
 
@@ -491,6 +553,18 @@ export default function StudentScanPage() {
   const preview = useMemo(() => {
     if (!manualValue.trim()) {
       return null;
+    }
+    const raw = manualValue.trim();
+    if (/^\d{6}$/.test(raw)) {
+      return {
+        ok: true as const,
+        target: {
+          kind: "queue" as const,
+          href: "",
+          title: "ตรวจสอบ PIN",
+          description: `จะตรวจสอบว่า PIN ${raw} ใช้สำหรับเช็กชื่อหรือจองคิว`,
+        },
+      };
     }
     return parseStudentQrPayload(manualValue, typeof window !== "undefined" ? window.location.origin : undefined);
   }, [manualValue]);
@@ -599,18 +673,22 @@ export default function StudentScanPage() {
             value={manualValue}
             onValueChange={setManualValue}
             placeholder="PIN 6 หลัก หรือวางลิงก์ QR"
-            onKeyDown={(e) => { if (e.key === "Enter" && manualValue.trim()) handleDecodedValue(manualValue); }}
+            onKeyDown={(e) => { if (e.key === "Enter" && manualValue.trim() && !isResolvingPin) void handleDecodedValue(manualValue); }}
             classNames={{
               inputWrapper: "h-12 rounded-2xl border border-slate-200 bg-slate-50 shadow-none data-[focused=true]:border-sky-400",
               input: "text-slate-900 placeholder:text-slate-400",
             }}
           />
           <button
-            onClick={() => handleDecodedValue(manualValue)}
-            disabled={!manualValue.trim()}
+            onClick={() => { void handleDecodedValue(manualValue); }}
+            disabled={!manualValue.trim() || isResolvingPin}
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-600 text-white shadow-sm transition hover:bg-sky-500 active:scale-95 disabled:opacity-40"
           >
-            <Icon icon="solar:arrow-right-bold" className="text-xl" />
+            {isResolvingPin ? (
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            ) : (
+              <Icon icon="solar:arrow-right-bold" className="text-xl" />
+            )}
           </button>
         </div>
 

@@ -35,6 +35,7 @@ import queueService, {
     type ClassroomConflictInfo,
     type QueueSession,
     type CreateQueueSessionData,
+    type UpdateQueueSessionData,
 } from "@/services/queue.service";
 import { classroomService, type Classroom } from "@/services/classroom.service";
 import assignmentService, { type Assignment } from "@/services/assignment.service";
@@ -226,6 +227,7 @@ export default function QueueTab({
         cutoff_note: "",
     });
     const [originalFormData, setOriginalFormData] = useState<CreateQueueSessionData | null>(null);
+    const isClosedEditSession = editTarget?.status === "closed";
 
     const showCourseClosedReadOnlyToast = () => {
         addToast({
@@ -239,6 +241,9 @@ export default function QueueTab({
 
     const hasFormChanges = () => {
         if (!originalFormData) return false;
+        if (isClosedEditSession) {
+            return formData.title !== originalFormData.title;
+        }
         return JSON.stringify(formData) !== JSON.stringify(originalFormData);
     };
 
@@ -508,7 +513,18 @@ export default function QueueTab({
 
         if (!editTarget) return;
 
-        if (formData.is_cutoff_enabled && !formData.cutoff_at) {
+        if (!formData.title.trim()) {
+            addToast({
+                title: localize("à¸à¸£à¸¸à¸“à¸²à¸à¸£à¸­à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥", "Required field"),
+                description: localize("à¸à¸£à¸¸à¸“à¸²à¸à¸£à¸­à¸à¸Šà¸·à¹ˆà¸­à¸à¸²à¸£à¸ˆà¸­à¸‡à¸„à¸´à¸§", "Please enter a queue title"),
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+
+        if (!isClosedEditSession && formData.is_cutoff_enabled && !formData.cutoff_at) {
             addToast({
                 title: localize("กรุณาตั้งเวลา Cutoff", "Set the cutoff time"),
                 description: localize("เมื่อเปิดใช้งาน cutoff ต้องระบุวันและเวลา", "A date and time are required when cutoff is enabled"),
@@ -521,16 +537,19 @@ export default function QueueTab({
 
         setIsSubmitting(true);
         try {
-            await queueService.updateQueueSession(course.id, editTarget.id, {
-                title: formData.title,
-                description: formData.description,
-                linked_assignment_id: formData.linked_assignment_id,
-                require_attendance: formData.require_attendance,
-                linked_attendance_session_id: formData.linked_attendance_session_id,
-                is_cutoff_enabled: Boolean(formData.is_cutoff_enabled),
-                cutoff_at: formData.is_cutoff_enabled ? formData.cutoff_at || null : null,
-                cutoff_note: formData.is_cutoff_enabled ? formData.cutoff_note : "",
-            });
+            const updateData: UpdateQueueSessionData = isClosedEditSession
+                ? { title: formData.title.trim() }
+                : {
+                    title: formData.title.trim(),
+                    description: formData.description,
+                    linked_assignment_id: formData.linked_assignment_id,
+                    require_attendance: formData.require_attendance,
+                    linked_attendance_session_id: formData.linked_attendance_session_id,
+                    is_cutoff_enabled: Boolean(formData.is_cutoff_enabled),
+                    cutoff_at: formData.is_cutoff_enabled ? formData.cutoff_at || null : null,
+                    cutoff_note: formData.is_cutoff_enabled ? formData.cutoff_note : "",
+                };
+            await queueService.updateQueueSession(course.id, editTarget.id, updateData);
             addToast({
                 title: localize("สำเร็จ", "Success"),
                 description: localize("อัพเดทการจองคิวเรียบร้อยแล้ว", "Queue updated successfully"),
@@ -1054,6 +1073,20 @@ export default function QueueTab({
                                                                                 </Button>
                                                                             </Tooltip>
                                                                         )}
+                                                                        {canUpdateQueueSessions && (
+                                                                            <Tooltip content={localize("à¹à¸à¹‰à¹„à¸‚à¸Šà¸·à¹ˆà¸­", "Edit title")}>
+                                                                                <Button
+                                                                                    isIconOnly
+                                                                                    size="sm"
+                                                                                    variant="light"
+                                                                                    color="primary"
+                                                                                    isDisabled={!isCourseActive}
+                                                                                    onPress={() => handleOpenEditModal(session)}
+                                                                                >
+                                                                                    <Icon icon="solar:pen-bold" className="text-lg" />
+                                                                                </Button>
+                                                                            </Tooltip>
+                                                                        )}
                                                                         {canDeleteQueueSessions && (
                                                                             <Tooltip content={localize("ลบ", "Delete")} color="danger">
                                                                                 <Button
@@ -1216,6 +1249,20 @@ export default function QueueTab({
                                                                 })()}
                                                                 {session.status === 'closed' && (
                                                                     <>
+                                                                        {canUpdateQueueSessions && (
+                                                                            <Tooltip content={localize("Edit title", "Edit title")}>
+                                                                                <Button
+                                                                                    isIconOnly
+                                                                                    size="sm"
+                                                                                    variant="light"
+                                                                                    color="primary"
+                                                                                    isDisabled={!isCourseActive}
+                                                                                    onPress={() => handleOpenEditModal(session)}
+                                                                                >
+                                                                                    <Icon icon="solar:pen-bold" className="text-lg" />
+                                                                                </Button>
+                                                                            </Tooltip>
+                                                                        )}
                                                                         <Chip size="sm" variant="flat" className="bg-content3 text-default-500">{localize("ปิดแล้ว", "Closed")}</Chip>
                                                                         {canDeleteQueueSessions && (
                                                                             <Tooltip content={localize("ลบ", "Delete")} color="danger">
@@ -1287,8 +1334,8 @@ export default function QueueTab({
                                     {localize("กำหนดรายละเอียดการจองคิวตรวจงาน", "Set up the grading queue details")}
                                 </p>
                             </div>
-                        </div>
-                    </ModalHeader>
+                            </div>
+                        </ModalHeader>
                     <ModalBody className="px-6 py-4">
                         <div className="space-y-5">
                             <Input
@@ -1350,6 +1397,7 @@ export default function QueueTab({
                                 placeholder={localize("รายละเอียดเพิ่มเติม", "Additional details")}
                                 value={formData.description || ""}
                                 onValueChange={(value) => setFormData({ ...formData, description: value })}
+                                isDisabled={isClosedEditSession}
                                 labelPlacement="outside"
                                 variant="bordered"
                                 size="md"
@@ -1375,6 +1423,7 @@ export default function QueueTab({
                                         size="sm"
                                         variant={formData.linked_assignment_id ? "solid" : "bordered"}
                                         color={formData.linked_assignment_id ? "warning" : "default"}
+                                        isDisabled={isClosedEditSession}
                                         onPress={() => {
                                             if (formData.linked_assignment_id) {
                                                 setFormData({ ...formData, linked_assignment_id: null });
@@ -1390,6 +1439,7 @@ export default function QueueTab({
                                         placeholder={localize("เลือกหัวข้องานที่ต้องการลิงก์", "Select an assignment to link")}
                                         aria-label={localize("เลือกหัวข้องาน", "Select assignment")}
                                         isLoading={isOptionsLoading}
+                                        isDisabled={isClosedEditSession}
                                         selectedKeys={formData.linked_assignment_id ? new Set([formData.linked_assignment_id.toString()]) : new Set([])}
                                         onSelectionChange={(keys) => {
                                             const selected = Array.from(keys as Set<string>)[0];
@@ -1456,6 +1506,7 @@ export default function QueueTab({
                                         size="sm"
                                         variant={formData.linked_attendance_session_id ? "solid" : "bordered"}
                                         color={formData.linked_attendance_session_id ? "primary" : "default"}
+                                        isDisabled={isClosedEditSession}
                                         onPress={() => {
                                             if (formData.linked_attendance_session_id) {
                                                 setFormData({ ...formData, require_attendance: false, linked_attendance_session_id: null });
@@ -1471,6 +1522,7 @@ export default function QueueTab({
                                         placeholder={localize("เลือกรอบเช็คชื่อที่ต้องการลิงก์", "Select an attendance session to link")}
                                         aria-label={localize("เลือกรอบเช็คชื่อ", "Select attendance session")}
                                         isLoading={isOptionsLoading}
+                                        isDisabled={isClosedEditSession}
                                         selectedKeys={formData.linked_attendance_session_id ? [formData.linked_attendance_session_id.toString()] : undefined}
                                         onSelectionChange={(keys) => {
                                             const selected = Array.from(keys)[0];
@@ -1590,6 +1642,11 @@ export default function QueueTab({
                                     label: "text-default-600 font-medium text-sm",
                                 }}
                             />
+                            {isClosedEditSession && (
+                                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                                    {localize("รอบที่ปิดใช้งานแล้วจะแก้ไขได้เฉพาะชื่อ session เท่านั้น", "Closed sessions can only update the session title.")}
+                                </div>
+                            )}
                             <Input
                                 label={localize("คำอธิบาย (ถ้ามี)", "Description (optional)")}
                                 placeholder={localize("รายละเอียดเพิ่มเติม", "Additional details")}
@@ -1842,7 +1899,7 @@ export default function QueueTab({
                             color="primary"
                             onPress={handleUpdateSession}
                             isLoading={isSubmitting}
-                            isDisabled={!isCourseActive || !hasFormChanges()}
+                            isDisabled={!isCourseActive || !formData.title.trim() || !hasFormChanges()}
                             className={instructorPrimaryButtonClass()}
                         >
                             {localize("บันทึกการแก้ไข", "Save changes")}

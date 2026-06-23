@@ -398,6 +398,56 @@ const attendanceService = {
         return response.data || null;
     },
 
+    async verifyPin(pinCode: string): Promise<{
+        session_id: number;
+        title: string;
+        status: 'draft' | 'active' | 'closed';
+        session_type: 'lecture' | 'lab' | 'online';
+        check_location: boolean;
+        auto_rotate_pin: boolean;
+        pin_mode?: 'static' | 'rotating';
+        course?: {
+            id: string;
+            code: string;
+            name: string;
+            year: number;
+            semester: number;
+        };
+        section?: {
+            id: number;
+            section_no: number;
+        };
+    } | null> {
+        const response = await api.post<{
+            session_id: number;
+            title: string;
+            status: 'draft' | 'active' | 'closed';
+            session_type: 'lecture' | 'lab' | 'online';
+            check_location: boolean;
+            auto_rotate_pin: boolean;
+            pin_mode?: 'static' | 'rotating';
+            course?: {
+                id: string;
+                code: string;
+                name: string;
+                year: number;
+                semester: number;
+            };
+            section?: {
+                id: number;
+                section_no: number;
+            };
+        }>('/attendance/verify-pin', {
+            pin_code: pinCode,
+        });
+
+        if (!response.success) {
+            throw new Error(response.message || 'PIN ไม่ถูกต้อง หรือไม่มีการเปิดเช็คชื่อ');
+        }
+
+        return response.data || null;
+    },
+
     /**
      * Verify student by Google email (public)
      */
