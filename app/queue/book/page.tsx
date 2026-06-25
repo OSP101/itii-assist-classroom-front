@@ -224,6 +224,22 @@ function BookQueueContent() {
     // Current user (if logged in)
     const [loggedInUser] = useState(() => authService.getStoredUser());
 
+    const buildQueueRequestHeaders = useCallback((includeContentType: boolean = true) => {
+        const headers: Record<string, string> = {};
+        if (includeContentType) {
+            headers["Content-Type"] = "application/json";
+        }
+
+        if (typeof window !== "undefined") {
+            const accessToken = localStorage.getItem("accessToken");
+            if (accessToken) {
+                headers.Authorization = `Bearer ${accessToken}`;
+            }
+        }
+
+        return headers;
+    }, []);
+
     // Booking form
     const [studentId, setStudentId] = useState(() => authService.getStoredUser()?.username ?? "");
     const [deskNumber, setDeskNumber] = useState(initialDesk);
@@ -275,7 +291,7 @@ function BookQueueContent() {
                     // Check if booking still exists
                     const response = await fetch(`${API_BASE_URL}/queue/check-existing`, {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
+                        headers: buildQueueRequestHeaders(),
                         body: JSON.stringify({
                             pin_code: savedState.pinCode,
                             student_id: savedState.studentId,
@@ -287,7 +303,7 @@ function BookQueueContent() {
                         // Restore session info first
                         const pinResponse = await fetch(`${API_BASE_URL}/queue/verify-pin`, {
                             method: "POST",
-                            headers: { "Content-Type": "application/json" },
+                            headers: buildQueueRequestHeaders(),
                             body: JSON.stringify({ pin_code: savedState.pinCode }),
                         });
                         const pinResult = await pinResponse.json();
@@ -332,7 +348,7 @@ function BookQueueContent() {
         };
 
         checkSavedBooking();
-    }, []);
+    }, [buildQueueRequestHeaders]);
 
     // Auto verify PIN when set from URL (after initialization)
     useEffect(() => {
@@ -368,7 +384,7 @@ function BookQueueContent() {
         try {
             const response = await fetch(`${API_BASE_URL}/queue/validate`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: buildQueueRequestHeaders(),
                 body: JSON.stringify({
                     pin_code: pinCode,
                     student_id: studentId,
@@ -391,12 +407,12 @@ function BookQueueContent() {
         } finally {
             setIsValidating(false);
         }
-    }, [pinCode, studentId, deskNumber, bookingType]);
+    }, [pinCode, studentId, deskNumber, bookingType, buildQueueRequestHeaders]);
 
     const validateBookingForSubmit = useCallback(async (): Promise<BookingValidationResult | null> => {
         const response = await fetch(`${API_BASE_URL}/queue/validate`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: buildQueueRequestHeaders(),
             body: JSON.stringify({
                 pin_code: pinCode,
                 student_id: studentId,
@@ -411,7 +427,7 @@ function BookQueueContent() {
         }
 
         return result.data as BookingValidationResult;
-    }, [pinCode, studentId, deskNumber, bookingType]);
+    }, [pinCode, studentId, deskNumber, bookingType, buildQueueRequestHeaders]);
 
     // Debounced validation when inputs change
     useEffect(() => {
@@ -457,7 +473,7 @@ function BookQueueContent() {
         try {
             const response = await fetch(`${API_BASE_URL}/queue/verify-pin`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: buildQueueRequestHeaders(),
                 body: JSON.stringify({ pin_code: pinCode }),
             });
 
@@ -490,7 +506,7 @@ function BookQueueContent() {
     const createBookingRequest = useCallback(async () => {
         const response = await fetch(`${API_BASE_URL}/queue/bookings`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: buildQueueRequestHeaders(),
             body: JSON.stringify({
                 pin_code: pinCode,
                 student_id: studentId,
@@ -501,7 +517,7 @@ function BookQueueContent() {
         });
 
         return response.json();
-    }, [pinCode, studentId, deskNumber, bookingType, note]);
+    }, [pinCode, studentId, deskNumber, bookingType, note, buildQueueRequestHeaders]);
 
     const handleCreateBooking = async () => {
         if (!studentId.trim()) {
@@ -727,7 +743,7 @@ function BookQueueContent() {
         try {
             const response = await fetch(`${API_BASE_URL}/queue/bookings/${bookingResult.id}/cancel`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: buildQueueRequestHeaders(),
             });
 
             const result = await response.json();
