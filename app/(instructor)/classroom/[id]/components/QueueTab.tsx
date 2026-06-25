@@ -795,7 +795,7 @@ export default function QueueTab({
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
                     <h2 className="text-lg font-semibold text-foreground">{localize("จองคิวตรวจงาน", "Assignment Queue")}</h2>
-                    <p className="text-sm text-default-500">{localize("จัดการคิวตรวจงานและติดตามความคืบหน้า", "Manage grading queues and track progress")}</p>
+                                <p className="text-sm text-default-500">{localize("จัดการคิวตรวจงานและติดตามความคืบหน้า", "Manage grading queues and track progress")}</p>
                 </div>
                 {canCreateQueueSessions && (
                     <Button
@@ -1009,10 +1009,6 @@ export default function QueueTab({
                                                         <TableCell>
                                                             <div>
                                                                 <p className="font-medium text-foreground">{session.title}</p>
-                                                                <p className="text-xs text-default-500">
-                                                                    PIN: <span className="font-mono font-bold text-blue-600">{session.pin_code}</span>
-                                                                    {session.created_at && ` • ${formatDate(session.created_at, locale)}`}
-                                                                </p>
                                                             </div>
                                                         </TableCell>
                                                         <TableCell>
@@ -1089,20 +1085,6 @@ export default function QueueTab({
                                                                         )}
                                                                         {canUpdateQueueSessions && (
                                                                             <Tooltip content={localize("แก้ไข", "Edit")}>
-                                                                                <Button
-                                                                                    isIconOnly
-                                                                                    size="sm"
-                                                                                    variant="light"
-                                                                                    color="primary"
-                                                                                    isDisabled={!isCourseActive}
-                                                                                    onPress={() => handleOpenEditModal(session)}
-                                                                                >
-                                                                                    <Icon icon="solar:pen-bold" className="text-lg" />
-                                                                                </Button>
-                                                                            </Tooltip>
-                                                                        )}
-                                                                        {canUpdateQueueSessions && (
-                                                                            <Tooltip content={localize("แก้ไขชื่อ", "Edit title")}>
                                                                                 <Button
                                                                                     isIconOnly
                                                                                     size="sm"
@@ -1278,7 +1260,7 @@ export default function QueueTab({
                                                                 {session.status === 'closed' && (
                                                                     <>
                                                                         {canUpdateQueueSessions && (
-                                                                            <Tooltip content={localize("Edit title", "Edit title")}>
+                                                                            <Tooltip content={localize("แก้ไขชื่อ", "Edit title")}>
                                                                                 <Button
                                                                                     isIconOnly
                                                                                     size="sm"
@@ -1442,7 +1424,7 @@ export default function QueueTab({
                                         </div>
                                         <div>
                                             <span className="font-semibold text-default-700">{localize("ลิงก์กับหัวข้องาน", "Link assignment")}</span>
-                                            <p className="text-xs text-default-500">{localize("เชื่อมโยงกับ Assignment เพื่อลงคะแนนอัตโนมัติ", "Connect an assignment for automatic scoring")}</p>
+                                            <p className="text-xs text-default-500">{localize("เชื่อมโยงกับหัวข้องานเพื่อลงคะแนนอัตโนมัติ", "Connect an assignment for automatic scoring")}</p>
                                         </div>
                                     </div>
                                     <Button
@@ -1663,7 +1645,7 @@ export default function QueueTab({
                             />
                             {isClosedEditSession && (
                                 <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                                    {localize("รอบที่ปิดใช้งานแล้วจะแก้ไขได้เฉพาะชื่อ session เท่านั้น", "Closed sessions can only update the session title.")}
+                                        {localize("รอบที่ปิดใช้งานแล้วจะแก้ไขได้เฉพาะชื่อคิวเท่านั้น", "Closed sessions can only update the session title.")}
                                 </div>
                             )}
                             <Input
@@ -1684,8 +1666,8 @@ export default function QueueTab({
                             <div className="p-4 bg-rose-50 rounded-xl border border-rose-200 space-y-3">
                                 <div className="flex items-start justify-between gap-3">
                                     <div>
-                                        <p className="font-semibold text-rose-700">{localize("Cutoff เวลาในการจอง", "Booking cutoff")}</p>
-                                        <p className="text-xs text-rose-600">{localize("จองหลังเวลานี้จะถูกติดป้ายว่า Late Booking", "Bookings after this time will be tagged as Late Booking")}</p>
+                                        <p className="font-semibold text-rose-700">{localize("เวลาตัดรอบการจอง", "Booking cutoff")}</p>
+                                        <p className="text-xs text-rose-600">{localize("การจองหลังเวลานี้จะถูกติดป้ายว่าจองล่าช้า", "Bookings after this time will be tagged as Late Booking")}</p>
                                     </div>
                                     <Checkbox
                                         isSelected={Boolean(formData.is_cutoff_enabled)}
@@ -1705,7 +1687,7 @@ export default function QueueTab({
                                 {formData.is_cutoff_enabled && (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         <div>
-                                            <label className="block mb-1 text-rose-700 font-medium text-sm">{localize("เวลา Cutoff", "Cutoff time")}</label>
+                                            <label className="block mb-1 text-rose-700 font-medium text-sm">{localize("เวลาตัดรอบ", "Cutoff time")}</label>
                                             <input
                                                 type="datetime-local"
                                                 value={toLocalDateTimeInputValue(formData.cutoff_at)}
@@ -1747,7 +1729,7 @@ export default function QueueTab({
                                         </div>
                                         <div>
                                             <span className="font-semibold text-default-700">{localize("ลิงก์กับหัวข้องาน", "Link assignment")}</span>
-                                            <p className="text-xs text-default-500">{localize("เชื่อมโยงกับ Assignment เพื่อลงคะแนนอัตโนมัติ", "Connect an assignment for automatic scoring")}</p>
+                                            <p className="text-xs text-default-500">{localize("เชื่อมโยงกับหัวข้องานเพื่อลงคะแนนอัตโนมัติ", "Connect an assignment for automatic scoring")}</p>
                                         </div>
                                     </div>
                                     <Button
@@ -1962,7 +1944,7 @@ export default function QueueTab({
                                     <p>{localize("เมื่อเริ่มแล้ว:", "Once started:")}</p>
                                     <ul className="list-disc list-inside mt-1 space-y-0.5">
                                         <li>{localize("นักศึกษาจะสามารถจองคิวได้", "Students will be able to book the queue")}</li>
-                                        <li>{localize("QR Code และ PIN จะเปิดใช้งาน", "The QR code and PIN will become active")}</li>
+                                                <li>{localize("คิวอาร์โค้ดและรหัส PIN จะเปิดใช้งาน", "The QR code and PIN will become active")}</li>
                                         <li>{localize("TA สามารถเข้าหน้ารับคิวได้", "TAs will be able to open the worker view")}</li>
                                     </ul>
                                 </div>
@@ -2011,7 +1993,7 @@ export default function QueueTab({
                                         <p>{localize("เมื่อหยุดรับคิว:", "When paused:")}</p>
                                         <ul className="list-disc list-inside mt-1 space-y-0.5">
                                             <li>{localize("นักศึกษาจะไม่สามารถจองคิวใหม่ได้", "Students will not be able to create new bookings")}</li>
-                                            <li>{localize("QR Code และ PIN จะถูกซ่อน", "The QR code and PIN will be hidden")}</li>
+                                                <li>{localize("คิวอาร์โค้ดและรหัส PIN จะถูกซ่อน", "The QR code and PIN will be hidden")}</li>
                                             <li>{localize("คิวที่จองไว้แล้วยังสามารถทำงานต่อได้", "Existing bookings can still continue")}</li>
                                             <li>{localize("สามารถเปิดรับคิวใหม่ได้ทุกเมื่อ", "You can resume the queue at any time")}</li>
                                         </ul>
@@ -2026,7 +2008,7 @@ export default function QueueTab({
                                         <p>{localize("เมื่อเปิดรับคิว:", "When resumed:")}</p>
                                         <ul className="list-disc list-inside mt-1 space-y-0.5">
                                             <li>{localize("นักศึกษาจะสามารถจองคิวได้อีกครั้ง", "Students will be able to book the queue again")}</li>
-                                            <li>{localize("QR Code และ PIN จะแสดงอีกครั้ง", "The QR code and PIN will be shown again")}</li>
+                                                <li>{localize("คิวอาร์โค้ดและรหัส PIN จะแสดงอีกครั้ง", "The QR code and PIN will be shown again")}</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -2070,7 +2052,7 @@ export default function QueueTab({
                                     <div className="flex items-start gap-2">
                                         <Icon icon="solar:play-circle-bold" className="text-danger-500 text-lg mt-0.5 shrink-0" />
                                         <div className="text-sm text-danger-700 dark:text-danger-300 space-y-0.5">
-                                            <p><span className="font-medium">{localize("คิว", "Session")}:</span> {classroomConflict.session_title}</p>
+                                            <p><span className="font-medium">{localize("เซสชัน", "Session")}:</span> {classroomConflict.session_title}</p>
                                             <p><span className="font-medium">{localize("วิชา", "Course")}:</span> {classroomConflict.course_name}</p>
                                             {classroomConflict.started_at && (
                                                 <p><span className="font-medium">{localize("เริ่มเมื่อ", "Started")}:</span> {formatDateTime(classroomConflict.started_at, locale)}</p>
