@@ -26,8 +26,10 @@ interface SettingsTabViewProps {
     hasWarningChanges: boolean;
     isDisablingCourse: boolean;
     isExporting: boolean;
+    isCoverSaving: boolean;
     stats: UseSettingsTabReturn["stats"];
     onUpdateField: <K extends keyof SettingsFormData>(field: K, value: SettingsFormData[K]) => void;
+    onUpdateCover: (cover: Pick<SettingsFormData, "image" | "cover_position_x" | "cover_position_y" | "cover_zoom">) => void;
     onSave: () => void;
     onCancel: () => void;
     onStartEditing: () => void;
@@ -93,8 +95,10 @@ function SettingsTabViewComponent({
     hasWarningChanges,
     isDisablingCourse,
     isExporting,
+    isCoverSaving,
     stats,
     onUpdateField,
+    onUpdateCover,
     onSave,
     onCancel,
     onStartEditing,
@@ -244,16 +248,16 @@ function SettingsTabViewComponent({
                     cover_position_y: formData.cover_position_y,
                     cover_zoom: formData.cover_zoom,
                 }}
-                onChange={(value) => {
-                    onUpdateField("image", value.image);
-                    onUpdateField("cover_position_x", value.cover_position_x);
-                    onUpdateField("cover_position_y", value.cover_position_y);
-                    onUpdateField("cover_zoom", value.cover_zoom);
-                }}
+                onChange={(value) => onUpdateCover(value)}
                 text={courseCoverEditorText}
                 accentClassName="text-indigo-500"
                 disabled={!isEditing || !course.is_active}
             />
+            {isEditing && course.is_active && isCoverSaving && (
+                <div className="-mt-2 rounded-lg border border-default-200 bg-content1 px-3 py-2 text-xs text-default-500">
+                    {isEnglish ? "Saving cover changes..." : "กำลังบันทึกการปรับรูปปกรายวิชา..."}
+                </div>
+            )}
 
             <Card className="border border-default-200 bg-content1 shadow-sm">
                 <SectionCardHeader

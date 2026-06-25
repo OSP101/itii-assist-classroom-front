@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { addToast } from "@heroui/toast";
 import type ExcelJS from "exceljs";
 import { courseService } from "@/services/course.service";
@@ -26,6 +26,8 @@ export interface SettingsFormData {
     is_active: boolean;
 }
 
+type CoverFields = Pick<SettingsFormData, "image" | "cover_position_x" | "cover_position_y" | "cover_zoom">;
+
 interface UseSettingsTabProps {
     courseId: string;
     course: Course;
@@ -38,38 +40,32 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
-    
+    const [isCoverSaving, setIsCoverSaving] = useState(false);
+    const coverAutosaveInFlightRef = useRef(false);
+    const pendingCoverAutosaveRef = useRef<CoverFields | null>(null);
+
+    const buildFormDataFromCourse = useCallback((sourceCourse: Course): SettingsFormData => ({
+        code: sourceCourse.code || "",
+        name: sourceCourse.name || "",
+        year: sourceCourse.year || new Date().getFullYear() + 543,
+        semester: sourceCourse.semester || 1,
+        description: sourceCourse.description || "",
+        image: sourceCourse.image || "",
+        cover_position_x: sourceCourse.cover_position_x ?? 50,
+        cover_position_y: sourceCourse.cover_position_y ?? 50,
+        cover_zoom: sourceCourse.cover_zoom ?? 1,
+        attention_threshold: sourceCourse.attention_threshold ?? 60,
+        is_active: sourceCourse.is_active ?? true,
+    }), []);
+
     // Form state
-    const [formData, setFormData] = useState<SettingsFormData>(() => ({
-        code: course.code || "",
-        name: course.name || "",
-        year: course.year || new Date().getFullYear() + 543,
-        semester: course.semester || 1,
-        description: course.description || "",
-        image: course.image || "",
-        cover_position_x: course.cover_position_x ?? 50,
-        cover_position_y: course.cover_position_y ?? 50,
-        cover_zoom: course.cover_zoom ?? 1,
-        attention_threshold: course.attention_threshold ?? 60,
-        is_active: course.is_active ?? true,
-    }));
+    const [formData, setFormData] = useState<SettingsFormData>(() => buildFormDataFromCourse(course));
 
     // Reset form when course changes
     useEffect(() => {
-        setFormData({
-            code: course.code || "",
-            name: course.name || "",
-            year: course.year || new Date().getFullYear() + 543,
-            semester: course.semester || 1,
-            description: course.description || "",
-            image: course.image || "",
-            cover_position_x: course.cover_position_x ?? 50,
-            cover_position_y: course.cover_position_y ?? 50,
-            cover_zoom: course.cover_zoom ?? 1,
-            attention_threshold: course.attention_threshold ?? 60,
-            is_active: course.is_active ?? true,
-        });
-    }, [course]);
+        if (isEditing) return;
+        setFormData(buildFormDataFromCourse(course));
+    }, [course, isEditing, buildFormDataFromCourse]);
 
     // Check if form has changes that trigger warning
     const hasWarningChanges = useMemo(() => {
@@ -101,6 +97,62 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
     ) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     }, []);
+
+    const queueCoverAutosave = useCallback(async (nextCover: CoverFields) => {
+        if (!isEditing || !course.is_active) return;
+
+        pendingCoverAutosaveRef.current = nextCover;
+        if (coverAutosaveInFlightRef.current) return;
+
+        coverAutosaveInFlightRef.current = true;
+        setIsCoverSaving(true);
+
+        while (pendingCoverAutosaveRef.current) {
+            const payload = pendingCoverAutosaveRef.current;
+            pendingCoverAutosaveRef.current = null;
+
+            try {
+                const response = await courseService.updateCourse(course.id, {
+                    image: payload.image,
+                    cover_position_x: payload.cover_position_x,
+                    cover_position_y: payload.cover_position_y,
+                    cover_zoom: payload.cover_zoom,
+                });
+
+                if (response.success && response.data) {
+                    onCourseUpdate(response.data);
+                } else {
+                    const errorMessage = typeof response.error === "object" && response.error !== null
+                        ? (response.error as { message?: string }).message
+                        : response.error || response.message || (isEnglish ? "Unable to save course cover." : "ไม่สามารถบันทึกรูปปกรายวิชาได้");
+
+                    addToast({
+                        title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                        description: errorMessage,
+                        color: "danger",
+                        timeout: 3000,
+                        shouldShowTimeoutProgress: true,
+                    });
+                }
+            } catch (error: any) {
+                addToast({
+                    title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                    description: error.message || (isEnglish ? "Unable to save course cover." : "ไม่สามารถบันทึกรูปปกรายวิชาได้"),
+                    color: "danger",
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+                });
+            }
+        }
+
+        coverAutosaveInFlightRef.current = false;
+        setIsCoverSaving(false);
+    }, [course.id, course.is_active, isEditing, isEnglish, onCourseUpdate]);
+
+    const updateCover = useCallback((cover: CoverFields) => {
+        setFormData(prev => ({ ...prev, ...cover }));
+        void queueCoverAutosave(cover);
+    }, [queueCoverAutosave]);
 
     // Handle save
     const handleSave = useCallback(async () => {
@@ -168,21 +220,9 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
 
     // Handle cancel
     const handleCancel = useCallback(() => {
-        setFormData({
-            code: course.code || "",
-            name: course.name || "",
-            year: course.year || new Date().getFullYear() + 543,
-            semester: course.semester || 1,
-            description: course.description || "",
-            image: course.image || "",
-            cover_position_x: course.cover_position_x ?? 50,
-            cover_position_y: course.cover_position_y ?? 50,
-            cover_zoom: course.cover_zoom ?? 1,
-            attention_threshold: course.attention_threshold ?? 60,
-            is_active: course.is_active ?? true,
-        });
+        setFormData(buildFormDataFromCourse(course));
         setIsEditing(false);
-    }, [course]);
+    }, [course, buildFormDataFromCourse]);
 
     // Start editing
     const startEditing = useCallback(() => {
@@ -1194,6 +1234,7 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
         isSaving,
         formData,
         isExporting,
+        isCoverSaving,
 
         // Computed
         hasWarningChanges,
@@ -1202,6 +1243,7 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
 
         // Actions
         updateField,
+        updateCover,
         handleSave,
         handleCancel,
         startEditing,

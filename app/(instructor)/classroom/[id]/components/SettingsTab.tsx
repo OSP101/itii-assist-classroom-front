@@ -28,12 +28,14 @@ export default function SettingsTab({ courseId, course, onCourseUpdate }: Settin
         isSaving,
         formData,
         isExporting,
+        isCoverSaving,
         // Computed
         hasWarningChanges,
         isDisablingCourse,
         stats,
         // Actions
         updateField,
+        updateCover,
         handleSave,
         handleCancel,
         startEditing,
@@ -50,8 +52,10 @@ export default function SettingsTab({ courseId, course, onCourseUpdate }: Settin
             hasWarningChanges={hasWarningChanges}
             isDisablingCourse={isDisablingCourse}
             isExporting={isExporting}
+            isCoverSaving={isCoverSaving}
             stats={stats}
             onUpdateField={updateField}
+            onUpdateCover={updateCover}
             onSave={handleSave}
             onCancel={handleCancel}
             onStartEditing={startEditing}

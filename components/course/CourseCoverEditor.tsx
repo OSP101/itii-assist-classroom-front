@@ -116,9 +116,9 @@ export function CourseCoverEditor({
     useEffect(() => {
         if (isAdjustOpen && cropMetrics) {
             initCropBox(
-                value.cover_position_x || COURSE_COVER_DEFAULT_POSITION_X,
-                value.cover_position_y || COURSE_COVER_DEFAULT_POSITION_Y,
-                value.cover_zoom || COURSE_COVER_DEFAULT_ZOOM,
+                value.cover_position_x ?? COURSE_COVER_DEFAULT_POSITION_X,
+                value.cover_position_y ?? COURSE_COVER_DEFAULT_POSITION_Y,
+                value.cover_zoom ?? COURSE_COVER_DEFAULT_ZOOM,
                 cropMetrics,
             );
         }
@@ -153,9 +153,9 @@ export function CourseCoverEditor({
 
     const openAdjustModal = () => {
         initCropBox(
-            value.cover_position_x || COURSE_COVER_DEFAULT_POSITION_X,
-            value.cover_position_y || COURSE_COVER_DEFAULT_POSITION_Y,
-            value.cover_zoom || COURSE_COVER_DEFAULT_ZOOM,
+            value.cover_position_x ?? COURSE_COVER_DEFAULT_POSITION_X,
+            value.cover_position_y ?? COURSE_COVER_DEFAULT_POSITION_Y,
+            value.cover_zoom ?? COURSE_COVER_DEFAULT_ZOOM,
             cropMetrics,
         );
         setIsAdjustOpen(true);
