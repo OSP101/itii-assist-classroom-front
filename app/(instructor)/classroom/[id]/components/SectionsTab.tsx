@@ -193,6 +193,7 @@ export default function SectionsTab({
             }));
         }
         const query = studentModal.searchQuery.toLowerCase();
+        const targetSectionNo = course?.sections?.find(section => section.id === studentModal.sectionId)?.section_no || null;
         return candidates
             .filter(s =>
                 s.student_id.toLowerCase().includes(query) ||
@@ -200,13 +201,118 @@ export default function SectionsTab({
             )
             .map(student => ({
                 student,
-                status: enrolledSections.has(student.id) ? "already_enrolled" as const : "matched" as const,
+                status: enrolledSections.has(student.id)
+                    ? (enrolledSections.get(student.id) === targetSectionNo ? "already_enrolled_same_section" as const : "already_enrolled_other_section" as const)
+                    : "matched" as const,
                 enrolledSectionNo: enrolledSections.get(student.id) || null,
             }));
     };
 
     const [bulkTeamPasteData, setBulkTeamPasteData] = useState("");
     const [isBulkImportSubmitting, setIsBulkImportSubmitting] = useState(false);
+    const [validationViewMode, setValidationViewMode] = useState<"all" | "conflicts" | "actionable">("all");
+    const [validationSearchQuery, setValidationSearchQuery] = useState("");
+
+    const bulkStudentImportSummary = useMemo(() => {
+        const parsed = studentModal.parsedStudents;
+        let addCount = 0;
+        let moveCount = 0;
+        let sameSectionCount = 0;
+        let skipConflictCount = 0;
+        let notFoundCount = 0;
+
+        parsed.forEach((entry) => {
+            if (entry.status === "matched") {
+                addCount++;
+                return;
+            }
+            if (entry.status === "already_enrolled_same_section") {
+                sameSectionCount++;
+                return;
+            }
+            if (entry.status === "already_enrolled_other_section") {
+                if (!entry.matchedStudent) {
+                    skipConflictCount++;
+                    return;
+                }
+                const action = studentModal.conflictActions[entry.matchedStudent.id] ?? studentModal.conflictPolicy;
+                if (action === "move") {
+                    moveCount++;
+                } else {
+                    skipConflictCount++;
+                }
+                return;
+            }
+            if (entry.status === "not_found") {
+                notFoundCount++;
+            }
+        });
+
+        return {
+            total: parsed.length,
+            addCount,
+            moveCount,
+            sameSectionCount,
+            skipConflictCount,
+            notFoundCount,
+            actionableCount: addCount + moveCount,
+            skippedCount: sameSectionCount + skipConflictCount + notFoundCount,
+        };
+    }, [studentModal.parsedStudents, studentModal.conflictActions, studentModal.conflictPolicy]);
+
+    const applyConflictActionToAll = useCallback((action: "skip" | "move") => {
+        const actions: Record<number, "skip" | "move"> = {};
+        studentModal.parsedStudents.forEach((entry) => {
+            if (entry.status === "already_enrolled_other_section" && entry.matchedStudent) {
+                actions[entry.matchedStudent.id] = action;
+            }
+        });
+        studentModal.setConflictActions(actions);
+    }, [studentModal]);
+
+    const visibleParsedStudents = useMemo(() => {
+        const query = validationSearchQuery.trim().toLowerCase();
+
+        const filteredByMode = studentModal.parsedStudents.filter((entry) => {
+            if (validationViewMode === "all") {
+                return true;
+            }
+            if (validationViewMode === "conflicts") {
+                return entry.status === "already_enrolled_same_section" || entry.status === "already_enrolled_other_section";
+            }
+            if (validationViewMode === "actionable") {
+                if (entry.status === "matched") {
+                    return true;
+                }
+                if (entry.status === "already_enrolled_other_section" && entry.matchedStudent) {
+                    return (studentModal.conflictActions[entry.matchedStudent.id] ?? studentModal.conflictPolicy) === "move";
+                }
+                return false;
+            }
+            return true;
+        });
+
+        if (!query) {
+            return filteredByMode;
+        }
+
+        return filteredByMode.filter((entry) => {
+            const sections = [
+                entry.inputValue,
+                entry.matchedStudent?.student_id || "",
+                entry.matchedStudent?.full_name || "",
+                entry.enrolledSectionNo || "",
+            ].map((v) => v.toLowerCase());
+            return sections.some((value) => value.includes(query));
+        });
+    }, [studentModal.parsedStudents, studentModal.conflictActions, studentModal.conflictPolicy, validationSearchQuery, validationViewMode]);
+
+    useEffect(() => {
+        if (!studentModal.isOpen) {
+            setValidationViewMode("all");
+            setValidationSearchQuery("");
+        }
+    }, [studentModal.isOpen]);
 
     const allEnrolledStudents = useMemo(() => getAllEnrolledStudents(), [getAllEnrolledStudents]);
 
@@ -701,7 +807,7 @@ export default function SectionsTab({
                                                 <div
                                                     key={student.id}
                                                     className={`flex items-center justify-between border-b border-divider p-3 transition-colors last:border-0 ${
-                                                        status === "already_enrolled"
+                                                        status === "already_enrolled_same_section" || status === "already_enrolled_other_section"
                                                             ? "cursor-not-allowed bg-amber-50"
                                                             : ""
                                                     } ${
@@ -710,7 +816,7 @@ export default function SectionsTab({
                                                             : "hover:bg-content2"
                                                     }`}
                                                     onClick={() => {
-                                                        if (status === "already_enrolled") return;
+                                                        if (status === "already_enrolled_same_section" || status === "already_enrolled_other_section") return;
                                                         studentModal.setStudentId(student.id.toString());
                                                     }}
                                                 >
@@ -723,7 +829,7 @@ export default function SectionsTab({
                                                         <div>
                                                             <p className="font-medium text-foreground">{student.full_name}</p>
                                                             <p className="text-sm text-default-500">{student.student_id}</p>
-                                                            {status === "already_enrolled" && (
+                                                            {(status === "already_enrolled_same_section" || status === "already_enrolled_other_section") && (
                                                                 <p className="text-xs text-amber-700">
                                                                     {isEnglish
                                                                         ? `Already in this course${enrolledSectionNo ? ` (${enrolledSectionNo})` : ""}`
@@ -732,9 +838,11 @@ export default function SectionsTab({
                                                             )}
                                                         </div>
                                                     </div>
-                                                    {status === "already_enrolled" ? (
+                                                    {status === "already_enrolled_same_section" || status === "already_enrolled_other_section" ? (
                                                         <Chip size="sm" color="warning" variant="flat">
-                                                            {isEnglish ? "Already in course" : "อยู่ในรายวิชาแล้ว"}
+                                                            {status === "already_enrolled_other_section"
+                                                                ? (isEnglish ? "In another section" : "อยู่ใน Section อื่น")
+                                                                : (isEnglish ? "Already in this section" : "อยู่ใน Section นี้แล้ว")}
                                                         </Chip>
                                                     ) : studentModal.studentId === student.id.toString() && (
                                                         <Icon icon="solar:check-circle-bold" className="text-xl text-blue-500" />
@@ -757,6 +865,30 @@ export default function SectionsTab({
                                             <Icon icon="solar:info-circle-bold" className="inline mr-1" />
                                             {isEnglish ? "Paste one student ID per line from Excel or plain text." : "วางรหัสนักศึกษา (1 รหัสต่อบรรทัด) จาก Excel หรือ Text"}
                                         </p>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 rounded-xl bg-content2 p-1">
+                                        <button
+                                            onClick={() => studentModal.setConflictPolicy("skip")}
+                                            className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                                                studentModal.conflictPolicy === "skip"
+                                                    ? "bg-content1 text-blue-700 shadow-sm"
+                                                    : "text-default-600 hover:bg-content3"
+                                            }`}
+                                        >
+                                            <Icon icon="solar:close-circle-linear" />
+                                            {isEnglish ? "Skip duplicates" : "ข้ามรายการซ้ำ"}
+                                        </button>
+                                        <button
+                                            onClick={() => studentModal.setConflictPolicy("move")}
+                                            className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                                                studentModal.conflictPolicy === "move"
+                                                    ? "bg-content1 text-blue-700 shadow-sm"
+                                                    : "text-default-600 hover:bg-content3"
+                                            }`}
+                                        >
+                                            <Icon icon="solar:transfer-horizontal-linear" />
+                                            {isEnglish ? "Move duplicates" : "ย้ายรายการซ้ำ"}
+                                        </button>
                                     </div>
                                     <Textarea
                                         label={isEnglish ? "Student IDs" : "รหัสนักศึกษา"}
@@ -783,30 +915,156 @@ export default function SectionsTab({
                                                         {isEnglish ? "Found" : "พบ"} {studentModal.parsedStudents.filter(p => p.status === "matched").length}
                                                     </span>
                                                     <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-full">
-                                                        {isEnglish ? "Already enrolled" : "ลงทะเบียนแล้ว"} {studentModal.parsedStudents.filter(p => p.status === "already_enrolled").length}
+                                                        {isEnglish ? "Already in this section" : "อยู่ใน Section นี้แล้ว"} {studentModal.parsedStudents.filter(p => p.status === "already_enrolled_same_section").length}
+                                                    </span>
+                                                    <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-full">
+                                                        {isEnglish ? "In another section" : "อยู่ใน Section อื่น"} {studentModal.parsedStudents.filter(p => p.status === "already_enrolled_other_section").length}
+                                                    </span>
+                                                    <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full">
+                                                        {isEnglish ? "Will move" : "จะย้าย"} {studentModal.parsedStudents.filter((p) => p.status === "already_enrolled_other_section" && p.matchedStudent && (studentModal.conflictActions[p.matchedStudent.id] ?? studentModal.conflictPolicy) === "move").length}
                                                     </span>
                                                     <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full">
                                                         {isEnglish ? "Not found" : "ไม่พบ"} {studentModal.parsedStudents.filter(p => p.status === "not_found").length}
                                                     </span>
                                                 </div>
                                             </div>
+                                            <div className="flex items-center justify-between gap-2 border-b border-divider bg-content1 px-4 py-2">
+                                                <p className="text-xs text-default-500">
+                                                    {isEnglish ? "Apply to all conflicts:" : "จัดการรายการซ้ำทั้งหมด:"}
+                                                </p>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-1 rounded-lg bg-content2 p-1">
+                                                        <button
+                                                            onClick={() => setValidationViewMode("all")}
+                                                            className={`rounded-md px-2 py-1 text-[11px] font-medium transition-colors ${
+                                                                validationViewMode === "all"
+                                                                    ? "bg-content1 text-blue-700"
+                                                                    : "text-default-500 hover:bg-content3"
+                                                            }`}
+                                                        >
+                                                            {isEnglish ? "All" : "ทั้งหมด"}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setValidationViewMode("conflicts")}
+                                                            className={`rounded-md px-2 py-1 text-[11px] font-medium transition-colors ${
+                                                                validationViewMode === "conflicts"
+                                                                    ? "bg-content1 text-amber-700"
+                                                                    : "text-default-500 hover:bg-content3"
+                                                            }`}
+                                                        >
+                                                            {isEnglish ? "Conflicts" : "รายการซ้ำ"}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setValidationViewMode("actionable")}
+                                                            className={`rounded-md px-2 py-1 text-[11px] font-medium transition-colors ${
+                                                                validationViewMode === "actionable"
+                                                                    ? "bg-content1 text-emerald-700"
+                                                                    : "text-default-500 hover:bg-content3"
+                                                            }`}
+                                                        >
+                                                            {isEnglish ? "Actionable" : "นำเข้าได้"}
+                                                        </button>
+                                                    </div>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="flat"
+                                                        className="bg-emerald-100 text-emerald-700"
+                                                        onPress={() => applyConflictActionToAll("move")}
+                                                    >
+                                                        {isEnglish ? "Move all" : "ย้ายทั้งหมด"}
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="flat"
+                                                        className="bg-amber-100 text-amber-700"
+                                                        onPress={() => applyConflictActionToAll("skip")}
+                                                    >
+                                                        {isEnglish ? "Skip all" : "ข้ามทั้งหมด"}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                            <div className="border-b border-divider bg-content1 px-4 py-2">
+                                                <Input
+                                                    size="sm"
+                                                    variant="bordered"
+                                                    value={validationSearchQuery}
+                                                    onValueChange={setValidationSearchQuery}
+                                                    placeholder={isEnglish ? "Search in validation rows..." : "ค้นหาในรายการตรวจสอบ..."}
+                                                    startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
+                                                    classNames={{
+                                                        inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                                    }}
+                                                    isClearable
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2 border-b border-divider bg-content1 px-4 py-3 text-xs sm:grid-cols-4">
+                                                <div className="rounded-lg bg-blue-50 px-3 py-2 text-blue-700">
+                                                    <p className="font-semibold">{isEnglish ? "Add" : "เพิ่มใหม่"}</p>
+                                                    <p>{bulkStudentImportSummary.addCount}</p>
+                                                </div>
+                                                <div className="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-700">
+                                                    <p className="font-semibold">{isEnglish ? "Move" : "ย้าย"}</p>
+                                                    <p>{bulkStudentImportSummary.moveCount}</p>
+                                                </div>
+                                                <div className="rounded-lg bg-amber-50 px-3 py-2 text-amber-700">
+                                                    <p className="font-semibold">{isEnglish ? "Skip" : "ข้าม"}</p>
+                                                    <p>{bulkStudentImportSummary.skippedCount}</p>
+                                                </div>
+                                                <div className="rounded-lg bg-indigo-50 px-3 py-2 text-indigo-700">
+                                                    <p className="font-semibold">{isEnglish ? "Will import" : "นำเข้าได้"}</p>
+                                                    <p>{bulkStudentImportSummary.actionableCount}</p>
+                                                </div>
+                                            </div>
                                             <div className="max-h-40 overflow-y-auto">
-                                                {studentModal.parsedStudents.map((result, idx) => (
+                                                {visibleParsedStudents.map((result, idx) => (
                                                     <div
                                                         key={idx}
                                                         className={`flex items-center justify-between border-b border-divider p-3 last:border-0 ${
                                                             result.status === "matched" ? "bg-blue-50" :
-                                                            result.status === "already_enrolled" ? "bg-amber-50" : "bg-red-50"
+                                                            result.status === "already_enrolled_same_section" ? "bg-amber-50" :
+                                                            result.status === "already_enrolled_other_section" ? "bg-orange-50" : "bg-red-50"
                                                         }`}
                                                     >
                                                         <span className="font-medium">{result.inputValue}</span>
-                                                        <span className="text-xs">
-                                                            {result.status === "matched" && result.matchedStudent?.full_name}
-                                                            {result.status === "already_enrolled" && (isEnglish ? "Already enrolled" : "ลงทะเบียนแล้ว")}
-                                                            {result.status === "not_found" && (isEnglish ? "Not found" : "ไม่พบ")}
-                                                        </span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs">
+                                                                {result.status === "matched" && result.matchedStudent?.full_name}
+                                                                {result.status === "already_enrolled_same_section" && (isEnglish ? "Already in this section" : "อยู่ใน Section นี้แล้ว")}
+                                                                {result.status === "already_enrolled_other_section" && (isEnglish ? `In section ${result.enrolledSectionNo || "-"}` : `อยู่ใน Section ${result.enrolledSectionNo || "-"}`)}
+                                                                {result.status === "not_found" && (isEnglish ? "Not found" : "ไม่พบ")}
+                                                            </span>
+                                                            {result.status === "already_enrolled_other_section" && result.matchedStudent && (
+                                                                <div className="flex items-center gap-1 rounded-lg bg-content2 p-1">
+                                                                    <button
+                                                                        onClick={() => studentModal.setConflictAction(result.matchedStudent!.id, "move")}
+                                                                        className={`rounded-md px-2 py-1 text-[11px] font-medium transition-colors ${
+                                                                            (studentModal.conflictActions[result.matchedStudent.id] ?? studentModal.conflictPolicy) === "move"
+                                                                                ? "bg-emerald-100 text-emerald-700"
+                                                                                : "text-default-500 hover:bg-content3"
+                                                                        }`}
+                                                                    >
+                                                                        {isEnglish ? "Move" : "ย้าย"}
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => studentModal.setConflictAction(result.matchedStudent!.id, "skip")}
+                                                                        className={`rounded-md px-2 py-1 text-[11px] font-medium transition-colors ${
+                                                                            (studentModal.conflictActions[result.matchedStudent.id] ?? studentModal.conflictPolicy) === "skip"
+                                                                                ? "bg-amber-100 text-amber-700"
+                                                                                : "text-default-500 hover:bg-content3"
+                                                                        }`}
+                                                                    >
+                                                                        {isEnglish ? "Skip" : "ข้าม"}
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 ))}
+                                                {visibleParsedStudents.length === 0 && (
+                                                    <div className="p-4 text-center text-xs text-default-500">
+                                                        {isEnglish ? "No rows matched this filter." : "ไม่พบรายการที่ตรงกับตัวกรอง"}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     )}
@@ -831,12 +1089,12 @@ export default function SectionsTab({
                             <Button 
                                 onPress={handleBulkAddStudents}
                                 isLoading={isSubmitting}
-                                isDisabled={!isCourseActive || studentModal.parsedStudents.filter(p => p.status === "matched").length === 0}
+                                isDisabled={!isCourseActive || bulkStudentImportSummary.actionableCount === 0}
                                 className="bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg shadow-blue-400/25"
                             >
                                 {isEnglish
-                                    ? `Add students (${studentModal.parsedStudents.filter(p => p.status === "matched").length})`
-                                    : `เพิ่มนักศึกษา (${studentModal.parsedStudents.filter(p => p.status === "matched").length})`}
+                                    ? `Add students (${bulkStudentImportSummary.actionableCount})`
+                                    : `เพิ่มนักศึกษา (${bulkStudentImportSummary.actionableCount})`}
                             </Button>
                         )}
                     </ModalFooter>

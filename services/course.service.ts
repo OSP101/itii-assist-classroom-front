@@ -575,9 +575,14 @@ export interface BulkCreateTeamsResponse {
   }>;
 }
 export interface BulkAddStudentsResponse {
-  addedCount: number;
-  skippedCount: number;
-  addedStudentIds: number[];
+  added: number;
+  moved: number;
+  skipped: number;
+  conflicts: Array<{
+    student_id: number;
+    current_section_id: number;
+    current_section_no: string;
+  }>;
 }
 
 export interface MoveStudentResponse {
@@ -960,8 +965,16 @@ class CourseService {
   /**
    * Bulk add students to section
    */
-  async bulkAddStudentsToSection(courseId: string, sectionId: number, studentIds: number[]) {
-    return apiService.post<BulkAddStudentsResponse>(`/courses/${courseId}/sections/${sectionId}/students/bulk`, { student_ids: studentIds });
+  async bulkAddStudentsToSection(
+    courseId: string,
+    sectionId: number,
+    studentIds: number[],
+    resolveConflicts: "skip" | "move" = "skip"
+  ) {
+    return apiService.post<BulkAddStudentsResponse>(`/courses/${courseId}/sections/${sectionId}/students/bulk`, {
+      student_ids: studentIds,
+      resolve_conflicts: resolveConflicts,
+    });
   }
 
   /**

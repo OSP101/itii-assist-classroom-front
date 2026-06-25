@@ -96,11 +96,13 @@ interface StudentModalState {
     studentId: string;
     searchQuery: string;
     mode: "single" | "bulk";
+    conflictPolicy: "skip" | "move";
+    conflictActions: Record<number, "skip" | "move">;
     pasteData: string;
     parsedStudents: Array<{
         inputValue: string;
         matchedStudent: Student | null;
-        status: "matched" | "not_found" | "already_enrolled";
+        status: "matched" | "not_found" | "already_enrolled_same_section" | "already_enrolled_other_section";
         enrolledSectionNo?: string | null;
     }>;
 }
@@ -206,6 +208,9 @@ export interface UseSectionsTabReturn {
         setStudentId: (id: string) => void;
         setSearchQuery: (query: string) => void;
         setMode: (mode: "single" | "bulk") => void;
+        setConflictPolicy: (policy: "skip" | "move") => void;
+        setConflictAction: (studentId: number, action: "skip" | "move") => void;
+        setConflictActions: (actions: Record<number, "skip" | "move">) => void;
         setPasteData: (data: string) => void;
         setParsedStudents: (students: StudentModalState["parsedStudents"]) => void;
         reset: () => void;
@@ -368,6 +373,8 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         studentId: "",
         searchQuery: "",
         mode: "single",
+        conflictPolicy: "skip",
+        conflictActions: {},
         pasteData: "",
         parsedStudents: [],
     });
@@ -812,12 +819,41 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         setStudentId: (id: string) => setStudentModalState(prev => ({ ...prev, studentId: id })),
         setSearchQuery: (query: string) => setStudentModalState(prev => ({ ...prev, searchQuery: query })),
         setMode: (mode: "single" | "bulk") => setStudentModalState(prev => ({ ...prev, mode })),
+        setConflictPolicy: (policy: "skip" | "move") => setStudentModalState(prev => {
+            const nextActions = { ...prev.conflictActions };
+            prev.parsedStudents.forEach((student) => {
+                if (student.status === "already_enrolled_other_section" && student.matchedStudent) {
+                    nextActions[student.matchedStudent.id] = policy;
+                }
+            });
+            return {
+                ...prev,
+                conflictPolicy: policy,
+                conflictActions: nextActions,
+            };
+        }),
+        setConflictAction: (studentId: number, action: "skip" | "move") =>
+            setStudentModalState(prev => ({
+                ...prev,
+                conflictActions: {
+                    ...prev.conflictActions,
+                    [studentId]: action,
+                },
+            })),
+        setConflictActions: (actions: Record<number, "skip" | "move">) =>
+            setStudentModalState(prev => ({
+                ...prev,
+                conflictActions: {
+                    ...prev.conflictActions,
+                    ...actions,
+                },
+            })),
         setPasteData: (data: string) => setStudentModalState(prev => ({ ...prev, pasteData: data })),
         setParsedStudents: (students: StudentModalState["parsedStudents"]) => 
             setStudentModalState(prev => ({ ...prev, parsedStudents: students })),
         reset: () => setStudentModalState({
             isOpen: false, sectionId: null, studentId: "", searchQuery: "",
-            mode: "single", pasteData: "", parsedStudents: [],
+            mode: "single", conflictPolicy: "skip", conflictActions: {}, pasteData: "", parsedStudents: [],
         }),
     }), [studentModalState]);
     
@@ -1225,52 +1261,121 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
     }, [courseId, studentModalState.sectionId, studentModalState.studentId, studentSearchResults, studentsList, studentModal, emitUpdate, isEnglish]);
     
     const handleBulkAddStudents = useCallback(async () => {
-        const studentsToAdd = studentModalState.parsedStudents
-            .filter(p => p.status === "matched" && p.matchedStudent)
-            .map(p => p.matchedStudent!.id);
-        
-        if (studentsToAdd.length === 0 || !studentModalState.sectionId) return;
+        if (!studentModalState.sectionId) return;
+
+        const matchedIds = new Set<number>();
+        const moveIds = new Set<number>();
+        const skipIds = new Set<number>();
+
+        studentModalState.parsedStudents.forEach((entry) => {
+            if (!entry.matchedStudent) {
+                return;
+            }
+
+            const studentId = entry.matchedStudent.id;
+            if (entry.status === "matched") {
+                matchedIds.add(studentId);
+                return;
+            }
+
+            if (entry.status === "already_enrolled_other_section") {
+                const action = studentModalState.conflictActions[studentId] ?? studentModalState.conflictPolicy;
+                if (action === "move") {
+                    moveIds.add(studentId);
+                } else {
+                    skipIds.add(studentId);
+                }
+            }
+        });
+
+        const requestMoveIds = Array.from(new Set<number>([...matchedIds, ...moveIds]));
+        const requestSkipIds = Array.from(skipIds);
+
+        if (requestMoveIds.length === 0 && requestSkipIds.length === 0) {
+            return;
+        }
         
         setIsSubmitting(true);
         try {
-            const response = await courseService.bulkAddStudentsToSection(
-                courseId,
-                studentModalState.sectionId,
-                studentsToAdd
-            );
-            
-            if (response.success) {
-                await fetchAllSectionStudents();
-                await fetchCourse(true);
-                
-                addToast({
-                    title: isEnglish ? "Success" : "สำเร็จ",
-                    description: isEnglish
-                        ? `Added ${studentsToAdd.length} students successfully.`
-                        : `เพิ่มนักศึกษา ${studentsToAdd.length} คนเรียบร้อย`,
-                    color: "success",
-                    timeout: 3000,
-                shouldShowTimeoutProgress: true,
-                });
-                
-                emitUpdate("student", "bulk");
-                studentModal.reset();
-            } else {
-                const errObj = response.error as unknown;
-                const errMsg =
-                    (typeof errObj === "object" && errObj !== null && "message" in errObj
-                        ? (errObj as { message: string }).message
-                        : null) ||
-                    response.message ||
-                    "ไม่สามารถเพิ่มนักศึกษาได้";
-                addToast({
-                    title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
-                    description: getLocalizedErrorMessage(isEnglish, "Unable to add the students.", "ไม่สามารถเพิ่มนักศึกษาได้", errMsg),
-                    color: "danger",
-                    timeout: 5000,
-                    shouldShowTimeoutProgress: true,
-                });
+            let addedCount = 0;
+            let movedCount = 0;
+            let skippedCount = 0;
+
+            if (requestMoveIds.length > 0) {
+                const response = await courseService.bulkAddStudentsToSection(
+                    courseId,
+                    studentModalState.sectionId,
+                    requestMoveIds,
+                    "move"
+                );
+
+                if (!response.success) {
+                    const errObj = response.error as unknown;
+                    const errMsg =
+                        (typeof errObj === "object" && errObj !== null && "message" in errObj
+                            ? (errObj as { message: string }).message
+                            : null) ||
+                        response.message ||
+                        "ไม่สามารถเพิ่มนักศึกษาได้";
+                    addToast({
+                        title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                        description: getLocalizedErrorMessage(isEnglish, "Unable to add the students.", "ไม่สามารถเพิ่มนักศึกษาได้", errMsg),
+                        color: "danger",
+                        timeout: 5000,
+                        shouldShowTimeoutProgress: true,
+                    });
+                    return;
+                }
+
+                addedCount += response.data?.added ?? 0;
+                movedCount += response.data?.moved ?? 0;
+                skippedCount += response.data?.skipped ?? 0;
             }
+
+            if (requestSkipIds.length > 0) {
+                const skipResponse = await courseService.bulkAddStudentsToSection(
+                    courseId,
+                    studentModalState.sectionId,
+                    requestSkipIds,
+                    "skip"
+                );
+
+                if (!skipResponse.success) {
+                    const errObj = skipResponse.error as unknown;
+                    const errMsg =
+                        (typeof errObj === "object" && errObj !== null && "message" in errObj
+                            ? (errObj as { message: string }).message
+                            : null) ||
+                        skipResponse.message ||
+                        "ไม่สามารถเพิ่มนักศึกษาได้";
+                    addToast({
+                        title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                        description: getLocalizedErrorMessage(isEnglish, "Unable to add the students.", "ไม่สามารถเพิ่มนักศึกษาได้", errMsg),
+                        color: "danger",
+                        timeout: 5000,
+                        shouldShowTimeoutProgress: true,
+                    });
+                    return;
+                }
+
+                skippedCount += skipResponse.data?.skipped ?? 0;
+            }
+            
+            await fetchAllSectionStudents();
+            await fetchCourse(true);
+
+            addToast({
+                title: isEnglish ? "Success" : "สำเร็จ",
+                description: isEnglish
+                    ? `Imported students: ${addedCount} added, ${movedCount} moved, ${skippedCount} skipped.`
+                    : `นำเข้านักศึกษาเรียบร้อย: เพิ่มใหม่ ${addedCount} คน, ย้าย ${movedCount} คน, ข้าม ${skippedCount} คน`,
+                color: "success",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+
+            emitUpdate("student", "bulk");
+            studentModal.reset();
         } catch (error: unknown) {
             const err = error as { message?: string };
             addToast({
@@ -1283,7 +1388,7 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
         } finally {
             setIsSubmitting(false);
         }
-    }, [courseId, studentModalState.sectionId, studentModalState.parsedStudents, fetchAllSectionStudents, fetchCourse, studentModal, emitUpdate, isEnglish]);
+    }, [courseId, studentModalState.sectionId, studentModalState.parsedStudents, studentModalState.conflictActions, studentModalState.conflictPolicy, fetchAllSectionStudents, fetchCourse, studentModal, emitUpdate, isEnglish]);
     
     
     const handleRemoveStudent = useCallback(async () => {
@@ -1930,18 +2035,32 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
                     inputValue,
                     matchedStudent,
                     status: enrolledStudentSections.has(matchedStudent.student_id.toLowerCase())
-                        ? "already_enrolled" as const
+                        ? (enrolledStudentSections.get(matchedStudent.student_id.toLowerCase()) === (course?.sections?.find(section => section.id === studentModalState.sectionId)?.section_no || null)
+                            ? "already_enrolled_same_section" as const
+                            : "already_enrolled_other_section" as const)
                         : "matched" as const,
                     enrolledSectionNo: enrolledStudentSections.get(matchedStudent.student_id.toLowerCase()) || null,
                 };
             });
 
-            studentModal.setParsedStudents(results);
+            const nextConflictActions: Record<number, "skip" | "move"> = {};
+            results.forEach((item) => {
+                if (item.status === "already_enrolled_other_section" && item.matchedStudent) {
+                    nextConflictActions[item.matchedStudent.id] = studentModalState.conflictPolicy;
+                }
+            });
+
+            setStudentModalState((prev) => ({
+                ...prev,
+                parsedStudents: results,
+                conflictActions: nextConflictActions,
+            }));
+
         } catch (error) {
             console.error("Error parsing student IDs:", error);
             studentModal.setParsedStudents([]);
         }
-    }, [studentModalState.sectionId, sectionStudents, studentModal, course?.id, course?.sections]);
+    }, [studentModalState.sectionId, studentModalState.conflictPolicy, sectionStudents, studentModal, course?.id, course?.sections]);
     
     const parseTeamExcelData = useCallback(async (pasteData: string) => {
         if (!pasteData.trim()) {
