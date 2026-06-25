@@ -89,6 +89,8 @@ export default function DisplayLivePage() {
     const [searchQuery, setSearchQuery] = useState("");
 
     const socketRef = useRef<Socket | null>(null);
+    const lastKnownPinRef = useRef("");
+    const pinSyncInFlightRef = useRef(false);
     const socketUrl = getRealtimeSocketBaseUrl();
 
     const session = current?.session ?? null;
@@ -198,9 +200,88 @@ export default function DisplayLivePage() {
         setIsLoading(false);
     }, [sessionId, courseId, handleAccessDenied, handleGrantExpired]);
 
+    const refreshPinState = useCallback(async () => {
+        const currentData = await attendanceDisplayService.getCurrent();
+        if (
+            currentData.attendance_session_id !== sessionId ||
+            currentData.course_id !== courseId
+        ) {
+            handleAccessDenied("ลิงก์นี้ไม่ตรงกับสิทธิ์ของอุปกรณ์ที่ยืนยันไว้");
+            return;
+        }
+        setCurrent(currentData);
+    }, [courseId, handleAccessDenied, sessionId]);
+
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
+    useEffect(() => {
+        lastKnownPinRef.current = session?.pin_code || "";
+    }, [session?.pin_code]);
+
+    useEffect(() => {
+        const isRotatingMode =
+            session?.status === "active" &&
+            (session.pin_mode === "rotating" || (session.pin_mode == null && !!session.auto_rotate_pin));
+
+        if (!isRotatingMode || pinCountdown === null || pinCountdown > 2 || !session?.pin_code) {
+            return;
+        }
+
+        if (session.pin_code !== lastKnownPinRef.current) {
+            return;
+        }
+
+        let disposed = false;
+        let attempts = 0;
+        const maxAttempts = 20;
+
+        const syncPinState = () => {
+            if (disposed || pinSyncInFlightRef.current) {
+                return;
+            }
+            pinSyncInFlightRef.current = true;
+            refreshPinState().catch((error) => {
+                const status = error instanceof AttendanceDisplayError ? error.status : 0;
+                if (status === 401 || status === 403) {
+                    handleAccessDenied("อุปกรณ์นี้ยังไม่ได้รับสิทธิ์ กรุณายืนยันสิทธิ์บนอุปกรณ์นี้ก่อน");
+                    return;
+                }
+                if (status === 410) {
+                    handleGrantExpired();
+                    return;
+                }
+                console.error("Display live pin sync fallback failed:", error);
+            }).finally(() => {
+                pinSyncInFlightRef.current = false;
+            });
+        };
+
+        syncPinState();
+        const interval = window.setInterval(() => {
+            attempts += 1;
+            if (attempts >= maxAttempts) {
+                window.clearInterval(interval);
+                return;
+            }
+            syncPinState();
+        }, 500);
+
+        return () => {
+            disposed = true;
+            window.clearInterval(interval);
+        };
+    }, [
+        handleAccessDenied,
+        handleGrantExpired,
+        pinCountdown,
+        refreshPinState,
+        session?.auto_rotate_pin,
+        session?.pin_code,
+        session?.pin_mode,
+        session?.status,
+    ]);
 
     useEffect(() => {
         if (isExpired) return;

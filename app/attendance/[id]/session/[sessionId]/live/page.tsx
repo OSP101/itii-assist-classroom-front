@@ -129,6 +129,8 @@ export default function LiveAttendancePage() {
     // Socket
     const socketRef = useRef<Socket | null>(null);
     const hasWarnedAboutConnectError = useRef(false);
+    const lastKnownPinRef = useRef("");
+    const pinSyncInFlightRef = useRef(false);
 
     // Modal states
     const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null);
@@ -279,6 +281,62 @@ export default function LiveAttendancePage() {
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
+    useEffect(() => {
+        lastKnownPinRef.current = session?.pin_code || "";
+    }, [session?.pin_code]);
+
+    useEffect(() => {
+        const isRotatingMode =
+            session?.status === "active" &&
+            (session.pin_mode === "rotating" || (session.pin_mode == null && !!session.auto_rotate_pin));
+
+        if (!isRotatingMode || pinCountdown === null || pinCountdown > 2 || !session?.pin_code) {
+            return;
+        }
+
+        if (session.pin_code !== lastKnownPinRef.current) {
+            return;
+        }
+
+        let disposed = false;
+        let attempts = 0;
+        const maxAttempts = 20;
+
+        const syncPinState = () => {
+            if (disposed || pinSyncInFlightRef.current) {
+                return;
+            }
+            pinSyncInFlightRef.current = true;
+            refreshSession().catch((error) => {
+                console.error("Live attendance pin sync fallback failed:", error);
+            }).finally(() => {
+                pinSyncInFlightRef.current = false;
+            });
+        };
+
+        syncPinState();
+        const interval = window.setInterval(() => {
+            attempts += 1;
+            if (attempts >= maxAttempts) {
+                window.clearInterval(interval);
+                return;
+            }
+            syncPinState();
+        }, 500);
+
+        return () => {
+            disposed = true;
+            window.clearInterval(interval);
+        };
+    }, [
+        pinCountdown,
+        refreshSession,
+        session?.auto_rotate_pin,
+        session?.pin_code,
+        session?.pin_mode,
+        session?.status,
+    ]);
 
     useEffect(() => {
         const interval = window.setInterval(() => {
