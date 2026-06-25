@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useSocket } from "@/contexts/SocketContext";
@@ -11,6 +11,7 @@ import { Tooltip } from "@heroui/tooltip";
 import { Skeleton } from "@heroui/skeleton";
 import { Input } from "@heroui/input";
 import { Checkbox } from "@heroui/checkbox";
+import { Autocomplete, AutocompleteItem } from "@heroui/autocomplete";
 import { Select, SelectItem } from "@heroui/select";
 import {
     Table,
@@ -228,6 +229,15 @@ export default function QueueTab({
     const [assignments, setAssignments] = useState<Assignment[]>([]);
     const [attendanceSessions, setAttendanceSessions] = useState<AttendanceSession[]>([]);
     const [isOptionsLoading, setIsOptionsLoading] = useState(false);
+
+    const sortedClassrooms = useMemo(
+        () => [...classrooms].sort((a, b) => {
+            const nameCompare = a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
+            if (nameCompare !== 0) return nameCompare;
+            return a.building.localeCompare(b.building, undefined, { numeric: true, sensitivity: "base" });
+        }),
+        [classrooms]
+    );
 
     // Ref to track which queue rooms we've joined
     const joinedQueueRoomsRef = useRef<Set<string>>(new Set());
@@ -1371,43 +1381,41 @@ export default function QueueTab({
                                 }}
                             />
 
-                            <Select
+                            <Autocomplete
                                 label={localize("เลือกห้องเรียน", "Classroom")}
                                 placeholder={localize("เลือกห้อง", "Select a room")}
                                 isLoading={isOptionsLoading}
-                                selectedKeys={
-                                    formData.classroom_id
-                                        ? new Set([formData.classroom_id])
-                                        : new Set()
-                                }
-                                onSelectionChange={(keys) => {
-                                    const selected = Array.from(keys)[0];
-                                    if (selected) {
-                                        setFormData({
-                                            ...formData,
-                                            classroom_id: selected as string,
-                                        });
-                                    }
+                                selectedKey={formData.classroom_id || null}
+                                onSelectionChange={(key) => {
+                                    setFormData({
+                                        ...formData,
+                                        classroom_id: key ? String(key) : "",
+                                    });
                                 }}
                                 isRequired
                                 labelPlacement="outside"
                                 variant="bordered"
                                 size="md"
-                                className="py-3"
                                 classNames={{
-                                    trigger: "bg-content1 border-default-200",
-                                    label: "text-default-600 font-medium text-sm",
+                                    base: "py-3",
+                                    selectorButton: "text-default-400",
+                                }}
+                                inputProps={{
+                                    classNames: {
+                                        label: "text-default-600 font-medium text-sm",
+                                        inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                    },
                                 }}
                             >
-                                {classrooms.map((room) => (
-                                    <SelectItem
+                                {sortedClassrooms.map((room) => (
+                                    <AutocompleteItem
                                         key={room.id.toString()}
                                         textValue={`${room.name} - ${room.building}`}
                                     >
                                         {room.name} - {room.building}
-                                    </SelectItem>
+                                    </AutocompleteItem>
                                 ))}
-                            </Select>
+                            </Autocomplete>
 
 
                             <Input
