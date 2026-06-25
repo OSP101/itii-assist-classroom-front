@@ -71,6 +71,12 @@ interface SubItemScore {
     maxScore: number;
 }
 
+interface GroupGradeWarningState {
+    isOpen: boolean;
+    scoredMembers: { id: number; full_name: string; student_id: string }[];
+    skippedMembers: { id: number; full_name: string; student_id: string }[];
+}
+
 // Interface for existing score info
 interface ExistingScoreInfo {
     score: number | null;
@@ -214,6 +220,11 @@ export default function ScoreModal({
     const [subItemExistingScores, setSubItemExistingScores] = useState<SubItemExistingScore[]>([]);
     const [groupSearchQuery, setGroupSearchQuery] = useState("");
     const [isCheckingScore, setIsCheckingScore] = useState(false);
+    const [groupGradeWarning, setGroupGradeWarning] = useState<GroupGradeWarningState>({
+        isOpen: false,
+        scoredMembers: [],
+        skippedMembers: [],
+    });
 
     // ✅ FIX: "assignment" and "individual" are both individual assignments
     // Only "permanent_group" and "weekly_group" are group assignments
@@ -355,6 +366,11 @@ export default function ScoreModal({
         setEditGroupMode("all");
         setEditGroupMemberScores({});
         setEditGroupMemberSubItemScores({});
+        setGroupGradeWarning({
+            isOpen: false,
+            scoredMembers: [],
+            skippedMembers: [],
+        });
     };
 
     // Helper function to get final edit reason
@@ -1314,7 +1330,7 @@ export default function ScoreModal({
         }
     }, [assignment, selectedStudent, selectedGroup, mainScore, subItemScores, hasSubItems, isCourseActive, isGroupAssignment, existingScore, subItemExistingScores, isCheckingScore, canScoreSelected, gradeGroupMode, selectedGradeMembers, allMembersHaveScores, gradeGroupMemberScores, gradeGroupMemberSubItemScores, scoresData, gradeGroupMembers]);
 
-    const handleSubmitGrade = async () => {
+    const handleSubmitGrade = async (skipWarning = false) => {
         if (!isCourseActive) {
             addToast({
                 title: t("รายวิชาถูกปิดแล้ว", "Course is closed"),
@@ -1327,6 +1343,82 @@ export default function ScoreModal({
         }
 
         if (!assignment || !canSubmitGrade) return;
+
+        if (isGroupAssignment && selectedGroup) {
+            const linkedSessionsCount = scoresData?.assignment?.linked_sessions_count ?? 0;
+            if (linkedSessionsCount > 0) {
+                const membersById = new Map(selectedGroup.members.map((member) => [member.id, member]));
+                const targetStudentIdSet = new Set<number>();
+
+                if (hasSubItems) {
+                    if (gradeGroupMode === "selected") {
+                        for (const studentId of selectedGradeMembers) {
+                            const memberScores = gradeGroupMemberSubItemScores[studentId] || {};
+                            const hasAnySubmittable = subItemScores.some((item) => {
+                                const existingSubScore = getMemberSubItemScoreData(studentId, item.subItemId);
+                                if (existingSubScore?.score !== null && existingSubScore?.score !== undefined) {
+                                    return false;
+                                }
+                                const value = memberScores[item.subItemId] ?? "";
+                                return value !== "";
+                            });
+                            if (hasAnySubmittable) {
+                                targetStudentIdSet.add(studentId);
+                            }
+                        }
+                    } else {
+                        const filledItems = subItemScores.filter(item => item.score !== "");
+                        for (const member of gradeGroupMembers) {
+                            if (!member.canScore) {
+                                continue;
+                            }
+                            const hasAnySubmittable = filledItems.some((item) => {
+                                const existingSubScore = getMemberSubItemScoreData(member.studentId, item.subItemId);
+                                return existingSubScore?.score === null || existingSubScore?.score === undefined;
+                            });
+                            if (hasAnySubmittable) {
+                                targetStudentIdSet.add(member.studentId);
+                            }
+                        }
+                    }
+                } else {
+                    selectedGradeMembers.forEach((studentId) => targetStudentIdSet.add(studentId));
+                }
+
+                const skippedMembers = selectedGroup.members.filter((member) => {
+                    const info = getStudentAttendanceInfo(member.id);
+                    return !info.canScore;
+                });
+
+                if (skippedMembers.length > 0 && !skipWarning) {
+                    const willReceiveMembers = Array.from(targetStudentIdSet)
+                        .map((studentId) => membersById.get(studentId))
+                        .filter((member): member is Student => Boolean(member));
+                    setGroupGradeWarning({
+                        isOpen: true,
+                        scoredMembers: willReceiveMembers.map((member) => ({
+                            id: member.id,
+                            full_name: member.full_name,
+                            student_id: member.student_id,
+                        })),
+                        skippedMembers: skippedMembers.map((member) => ({
+                            id: member.id,
+                            full_name: member.full_name,
+                            student_id: member.student_id,
+                        })),
+                    });
+                    return;
+                }
+            }
+        }
+
+        if (skipWarning) {
+            setGroupGradeWarning({
+                isOpen: false,
+                scoredMembers: [],
+                skippedMembers: [],
+            });
+        }
 
         setIsSubmitting(true);
         try {
@@ -1576,7 +1668,7 @@ export default function ScoreModal({
                 setPendingEditSubItemByStudent(pendingSubItemByStudent);
 
                 // Collect scores for ALL members in the group
-        const memberScoresData = group.members.map(member => {
+                const memberScoresData = group.members.map(member => {
                     const studentScore = scoresData?.student_scores.find(
                         ss => ss.student.id === member.id
                     );
@@ -2381,6 +2473,7 @@ export default function ScoreModal({
     const editConfirmationLines = activeTab === "edit" ? buildEditConfirmationLines() : [];
 
     return (
+        <>
         <Modal
             isOpen={isOpen}
             onClose={onClose}
@@ -4223,7 +4316,7 @@ export default function ScoreModal({
                             {activeTab === "grade" ? (
                                 <Button
                                     color="primary"
-                                    onPress={handleSubmitGrade}
+                                    onPress={() => handleSubmitGrade()}
                                     isDisabled={!canSubmitGrade || !isCourseActive}
                                     isLoading={isSubmitting}
                                     className="bg-linear-to-r from-blue-400 to-indigo-500 text-white"
@@ -4245,5 +4338,80 @@ export default function ScoreModal({
                 </ModalFooter>
             </ModalContent>
         </Modal>
+        <Modal
+            isOpen={groupGradeWarning.isOpen}
+            onClose={() => setGroupGradeWarning({ isOpen: false, scoredMembers: [], skippedMembers: [] })}
+            size="lg"
+        >
+            <ModalContent>
+                <ModalHeader className="px-6 pt-6 pb-4">
+                    <div className="flex items-center gap-3">
+                        <div className="rounded-xl bg-amber-100 p-2">
+                            <Icon icon="solar:danger-triangle-bold" className="text-xl text-amber-600" />
+                        </div>
+                        <div>
+                            <p className="text-lg font-semibold text-slate-800">
+                                {t("พบสมาชิกที่ไม่ได้เช็กชื่อ", "Unchecked attendance members found")}
+                            </p>
+                            <p className="text-sm font-normal text-slate-500">
+                                {t(
+                                    "ระบบจะบันทึกคะแนนเฉพาะสมาชิกที่เช็กชื่อแล้ว และจะข้ามสมาชิกที่ไม่ได้เช็กชื่อ",
+                                    "The system will score only checked-in members and skip unchecked members.",
+                                )}
+                            </p>
+                        </div>
+                    </div>
+                </ModalHeader>
+                <ModalBody className="px-6 py-2">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                            <p className="mb-2 text-sm font-semibold text-emerald-800">
+                                {t("สมาชิกที่ได้คะแนน", "Members who will receive scores")}
+                            </p>
+                            <div className="max-h-52 space-y-1 overflow-y-auto pr-1">
+                                {groupGradeWarning.scoredMembers.length > 0 ? (
+                                    groupGradeWarning.scoredMembers.map((member) => (
+                                        <p key={`modal-scored-${member.id}`} className="text-xs text-emerald-900">
+                                            {member.full_name} ({member.student_id})
+                                        </p>
+                                    ))
+                                ) : (
+                                    <p className="text-xs text-emerald-700">-</p>
+                                )}
+                            </div>
+                        </div>
+                        <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
+                            <p className="mb-2 text-sm font-semibold text-rose-800">
+                                {t("สมาชิกที่ลงคะแนนไม่ได้", "Members who will be skipped")}
+                            </p>
+                            <div className="max-h-52 space-y-1 overflow-y-auto pr-1">
+                                {groupGradeWarning.skippedMembers.map((member) => (
+                                    <p key={`modal-skipped-${member.id}`} className="text-xs text-rose-900">
+                                        {member.full_name} ({member.student_id})
+                                    </p>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </ModalBody>
+                <ModalFooter className="px-6 py-4">
+                    <Button
+                        variant="light"
+                        onPress={() => setGroupGradeWarning({ isOpen: false, scoredMembers: [], skippedMembers: [] })}
+                    >
+                        {t("ยกเลิก", "Cancel")}
+                    </Button>
+                    <Button
+                        color="warning"
+                        onPress={() => handleSubmitGrade(true)}
+                        isLoading={isSubmitting}
+                        className="bg-linear-to-r from-amber-500 to-orange-500 text-white"
+                    >
+                        {t("ยืนยันและบันทึก", "Confirm and save")}
+                    </Button>
+                </ModalFooter>
+            </ModalContent>
+        </Modal>
+        </>
     );
 }

@@ -8,6 +8,18 @@ import { isScoreInputValid, parseScoreInput } from "@/lib/score-input";
 import type { Assignment as AssignmentType, AssignmentSubItem } from "@/services/assignment.service";
 import type { ScoresData, Group } from "@/services/score.service";
 
+interface GroupScoreWarningMember {
+    id: number;
+    full_name: string;
+    student_id: string;
+}
+
+interface GroupScoreWarningState {
+    isOpen: boolean;
+    scoredMembers: GroupScoreWarningMember[];
+    skippedMembers: GroupScoreWarningMember[];
+}
+
 interface UseScoresOptions {
     onOverviewRefresh?: () => void;
     emitUpdate?: (resource: string, action: string, id?: string | number) => void;
@@ -32,6 +44,11 @@ export function useScores(options: UseScoresOptions = {}) {
     const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
     const [groupScoreValue, setGroupScoreValue] = useState<string>("");
     const [groupSubItemScores, setGroupSubItemScores] = useState<Record<number, number>>({});
+    const [groupScoreWarning, setGroupScoreWarning] = useState<GroupScoreWarningState>({
+        isOpen: false,
+        scoredMembers: [],
+        skippedMembers: [],
+    });
 
     // Fetch scores for assignment
     const fetchScores = useCallback(async (assignment: AssignmentType) => {
@@ -160,7 +177,7 @@ export function useScores(options: UseScoresOptions = {}) {
     }, [selectedAssignment, scoresData, scoreEntries, fetchScores, onOverviewRefresh, emitUpdate, isEnglish]);
 
     // Save group score
-    const saveGroupScore = useCallback(async () => {
+    const saveGroupScore = useCallback(async (options?: { skipConfirmation?: boolean }) => {
         if (!selectedAssignment || !selectedGroup) return;
         if (!isScoreInputValid(groupScoreValue, selectedAssignment.max_score)) {
             addToast({
@@ -173,6 +190,30 @@ export function useScores(options: UseScoresOptions = {}) {
                 shouldShowTimeoutProgress: true,
             });
             return false;
+        }
+
+        const linkedSessionsCount = scoresData?.assignment?.linked_sessions_count ?? 0;
+        if (linkedSessionsCount > 0) {
+            const studentScoreMap = new Map((scoresData?.student_scores ?? []).map((row) => [row.student.id, row]));
+            const scoredMembers = selectedGroup.members.filter((member) => (studentScoreMap.get(member.id)?.can_score ?? true));
+            const skippedMembers = selectedGroup.members.filter((member) => !(studentScoreMap.get(member.id)?.can_score ?? true));
+
+            if (skippedMembers.length > 0 && !options?.skipConfirmation) {
+                setGroupScoreWarning({
+                    isOpen: true,
+                    scoredMembers: scoredMembers.map((member) => ({
+                        id: member.id,
+                        full_name: member.full_name,
+                        student_id: member.student_id,
+                    })),
+                    skippedMembers: skippedMembers.map((member) => ({
+                        id: member.id,
+                        full_name: member.full_name,
+                        student_id: member.student_id,
+                    })),
+                });
+                return false;
+            }
         }
         
         setIsSaving(true);
@@ -211,7 +252,21 @@ export function useScores(options: UseScoresOptions = {}) {
         } finally {
             setIsSaving(false);
         }
-    }, [selectedAssignment, selectedGroup, groupScoreValue, fetchScores, onOverviewRefresh, emitUpdate, isEnglish]);
+    }, [selectedAssignment, selectedGroup, groupScoreValue, scoresData, fetchScores, onOverviewRefresh, emitUpdate, isEnglish]);
+
+    const cancelGroupScoreWarning = useCallback(() => {
+        setGroupScoreWarning({
+            isOpen: false,
+            scoredMembers: [],
+            skippedMembers: [],
+        });
+    }, []);
+
+    const confirmGroupScoreWarning = useCallback(async () => {
+        const success = await saveGroupScore({ skipConfirmation: true });
+        cancelGroupScoreWarning();
+        return success;
+    }, [saveGroupScore, cancelGroupScoreWarning]);
 
     // Reset score states
     const resetScores = useCallback(() => {
@@ -222,6 +277,11 @@ export function useScores(options: UseScoresOptions = {}) {
         setSelectedGroup(null);
         setGroupScoreValue("");
         setGroupSubItemScores({});
+        setGroupScoreWarning({
+            isOpen: false,
+            scoredMembers: [],
+            skippedMembers: [],
+        });
     }, []);
 
     return {
@@ -242,6 +302,9 @@ export function useScores(options: UseScoresOptions = {}) {
         setGroupScoreValue,
         groupSubItemScores,
         setGroupSubItemScores,
+        groupScoreWarning,
+        confirmGroupScoreWarning,
+        cancelGroupScoreWarning,
 
         // Actions
         fetchScores,

@@ -4140,6 +4140,82 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                 </ModalContent>
             </Modal>
 
+            <Modal
+                isOpen={scores.groupScoreWarning.isOpen}
+                onClose={scores.cancelGroupScoreWarning}
+                size="lg"
+            >
+                <ModalContent>
+                    <ModalHeader className="px-6 pt-6 pb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="rounded-xl bg-amber-100 p-2">
+                                <Icon icon="solar:danger-triangle-bold" className="text-xl text-amber-600" />
+                            </div>
+                            <div>
+                                <p className="text-lg font-semibold text-slate-800">
+                                    {isEnglish ? "Unchecked attendance members found" : "พบสมาชิกที่ไม่ได้เช็กชื่อ"}
+                                </p>
+                                <p className="text-sm font-normal text-slate-500">
+                                    {isEnglish
+                                        ? "The system will score only checked-in members and skip unchecked members."
+                                        : "ระบบจะบันทึกคะแนนเฉพาะสมาชิกที่เช็กชื่อแล้ว และจะข้ามสมาชิกที่ไม่ได้เช็กชื่อ"}
+                                </p>
+                            </div>
+                        </div>
+                    </ModalHeader>
+                    <ModalBody className="px-6 py-2">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                                <p className="mb-2 text-sm font-semibold text-emerald-800">
+                                    {isEnglish ? "Members who will receive scores" : "สมาชิกที่ได้คะแนน"}
+                                </p>
+                                <div className="max-h-52 space-y-1 overflow-y-auto pr-1">
+                                    {scores.groupScoreWarning.scoredMembers.length > 0 ? (
+                                        scores.groupScoreWarning.scoredMembers.map((member) => (
+                                            <p key={`scored-${member.id}`} className="text-xs text-emerald-900">
+                                                {member.full_name} ({member.student_id})
+                                            </p>
+                                        ))
+                                    ) : (
+                                        <p className="text-xs text-emerald-700">-</p>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
+                                <p className="mb-2 text-sm font-semibold text-rose-800">
+                                    {isEnglish ? "Members who will be skipped" : "สมาชิกที่ลงคะแนนไม่ได้"}
+                                </p>
+                                <div className="max-h-52 space-y-1 overflow-y-auto pr-1">
+                                    {scores.groupScoreWarning.skippedMembers.map((member) => (
+                                        <p key={`skipped-${member.id}`} className="text-xs text-rose-900">
+                                            {member.full_name} ({member.student_id})
+                                        </p>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </ModalBody>
+                    <ModalFooter className="px-6 py-4">
+                        <Button variant="light" onPress={scores.cancelGroupScoreWarning}>
+                            {isEnglish ? "Cancel" : "ยกเลิก"}
+                        </Button>
+                        <Button
+                            color="warning"
+                            onPress={async () => {
+                                const success = await scores.confirmGroupScoreWarning();
+                                if (success) {
+                                    modals.scoreModals.setIsGroupScoreModalOpen(false);
+                                }
+                            }}
+                            isLoading={scores.isSaving}
+                            className="bg-linear-to-r from-amber-500 to-orange-500 text-white"
+                        >
+                            {isEnglish ? "Confirm and save" : "ยืนยันและบันทึก"}
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
             {/* Assignment Pending Update Toast - Portaled to body to escape all stacking contexts */}
             {pendingAssignmentUpdate && createPortal(
                 <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-9999 sm:max-w-sm sm:w-full animate-toast-slide-up">
