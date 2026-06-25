@@ -864,7 +864,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
         }}
         placement="center"
       >
-        <ModalContent>
+        <ModalContent className="border border-slate-200 bg-white text-slate-900 shadow-2xl shadow-slate-900/10">
           {(onClose) => {
             const providerName = providerToUnlink 
               ? oauthService.getProviderDisplayName(providerToUnlink) 

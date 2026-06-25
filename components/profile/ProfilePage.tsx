@@ -495,7 +495,7 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
 
       {/* Revoke All Sessions Modal */}
       <Modal isOpen={showRevokeAllModal} onClose={() => setShowRevokeAllModal(false)}>
-        <ModalContent>
+        <ModalContent className="border border-slate-200 bg-white text-slate-900 shadow-2xl shadow-slate-900/10">
           <ModalHeader className="flex items-center gap-3">
             <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
               <Icon icon="solar:logout-3-bold" className="text-xl text-white" />
@@ -528,7 +528,7 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
           }
         }}
       >
-        <ModalContent>
+        <ModalContent className="border border-slate-200 bg-white text-slate-900 shadow-2xl shadow-slate-900/10">
           <ModalHeader className="flex items-center gap-3">
             <div className="p-2 bg-linear-to-br from-red-500 to-red-500 rounded-lg shadow-lg shadow-rose-500/30">
               <Icon icon="solar:logout-2-bold" className="text-xl text-white" />

@@ -9,7 +9,7 @@ import { Avatar } from "@heroui/avatar";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket";
-import attendanceService, { type AttendanceSession } from "@/services/attendance.service";
+import attendanceService, { AttendanceRequestError, type AttendanceSession } from "@/services/attendance.service";
 import { authService } from "@/services/auth.service";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { useI18n } from "@/hooks/useI18n";
@@ -66,6 +66,28 @@ function decodeJWT(token: string): { email: string; name: string; sub: string; p
 // Check-in step type
 type Step = "loading" | "session-info" | "google-login" | "location" | "pin-entry" | "success" | "error" | "already-checked-in";
 
+function getAttendanceErrorInfo(error: unknown, fallbackTitle: string, fallbackMessage: string) {
+    if (error instanceof AttendanceRequestError) {
+        return {
+            title: error.title || fallbackTitle,
+            message: error.message || fallbackMessage,
+            code: error.code,
+        };
+    }
+
+    if (error instanceof Error) {
+        return {
+            title: fallbackTitle,
+            message: error.message || fallbackMessage,
+        };
+    }
+
+    return {
+        title: fallbackTitle,
+        message: fallbackMessage,
+    };
+}
+
 export default function StudentCheckInPage() {
     const params = useParams();
     const sessionId = Number(params.sessionId);
@@ -99,6 +121,7 @@ export default function StudentCheckInPage() {
         location_verified: boolean;
         distance_meters: number | null;
     } | null>(null);
+    const [errorTitle, setErrorTitle] = useState<string>("");
     const [errorMessage, setErrorMessage] = useState<string>("");
     const [alreadyCheckedIn, setAlreadyCheckedIn] = useState<{
         status: string;
@@ -153,26 +176,33 @@ export default function StudentCheckInPage() {
                                 }
                             }
                         } catch (err: unknown) {
-                            setErrorMessage((err as Error).message || t("studentNotFoundInSystem"));
+                            const info = getAttendanceErrorInfo(err, t("accessUnavailable"), t("studentNotFoundInSystem"));
+                            setErrorTitle(info.title);
+                            setErrorMessage(info.message);
                             setStep("error");
                         }
                     } else {
                         setStep("google-login");
                     }
                 } else if (data.status === "closed") {
+                    setErrorTitle(t("accessUnavailable"));
                     setErrorMessage(t("sessionClosedAlready"));
                     setStep("error");
                 } else {
+                    setErrorTitle(t("accessUnavailable"));
                     setErrorMessage(t("sessionNotOpenYet"));
                     setStep("error");
                 }
             } else {
+                setErrorTitle(t("accessUnavailable"));
                 setErrorMessage(t("attendanceSessionNotFound"));
                 setStep("error");
             }
         } catch (error: unknown) {
             console.error("Error fetching session:", error);
-            setErrorMessage((error as Error).message || t("unableToLoadData"));
+            const info = getAttendanceErrorInfo(error, t("accessUnavailable"), t("unableToLoadData"));
+            setErrorTitle(info.title);
+            setErrorMessage(info.message);
             setStep("error");
         }
     }, [sessionId, t]);
@@ -257,7 +287,9 @@ export default function StudentCheckInPage() {
             }
         } catch (error: unknown) {
             console.error("Error verifying student:", error);
-            setErrorMessage((error as Error).message || t("studentNotFoundInSystem"));
+            const info = getAttendanceErrorInfo(error, t("accessUnavailable"), t("studentNotFoundInSystem"));
+            setErrorTitle(info.title);
+            setErrorMessage(info.message);
             setStep("error");
         }
     };
@@ -349,10 +381,11 @@ export default function StudentCheckInPage() {
             }
         } catch (error: unknown) {
             console.error("Error checking in:", error);
-            const msg = (error as Error).message || t("pleaseCheckPinAndTryAgain");
-            const isLocationError = msg.includes("นอกพื้นที่") || msg.includes("ห่าง") || msg.includes("location");
+            const info = getAttendanceErrorInfo(error, t("checkInFailed"), t("pleaseCheckPinAndTryAgain"));
+            const msg = info.message;
+            const isLocationError = info.title.includes("ตำแหน่ง") || info.title.includes("พื้นที่") || msg.includes("ตำแหน่ง") || msg.includes("พื้นที่") || msg.includes("location");
             addToast({
-                title: isLocationError ? "ตำแหน่งไม่อยู่ในพื้นที่" : t("checkInFailed"),
+                title: info.title || (isLocationError ? "ตำแหน่งไม่อยู่ในพื้นที่" : t("checkInFailed")),
                 description: msg,
                 color: "danger",
                 timeout: isLocationError ? 6000 : 3000,
@@ -374,6 +407,7 @@ export default function StudentCheckInPage() {
         });
 
         socket.on("session-closed", () => {
+            setErrorTitle(t("accessUnavailable"));
             setErrorMessage(t("sessionHasBeenClosed"));
             setStep("error");
         });
@@ -441,7 +475,7 @@ export default function StudentCheckInPage() {
                     <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-4xl bg-rose-50 border border-rose-100">
                         <Icon icon="solar:danger-triangle-bold-duotone" className="text-4xl text-rose-500" />
                     </div>
-                    <h2 className="text-xl font-bold text-slate-900 mb-2">{t("accessUnavailable")}</h2>
+                    <h2 className="text-xl font-bold text-slate-900 mb-2">{errorTitle || t("accessUnavailable")}</h2>
                     <p className="text-sm text-slate-500 mb-6 max-w-xs">{errorMessage}</p>
                     <button
                         onClick={() => window.location.reload()}

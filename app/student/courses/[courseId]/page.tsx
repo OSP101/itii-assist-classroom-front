@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { useI18n } from "@/hooks/useI18n";
+import { formatScoreValue } from "@/lib/score-input";
 import {
   studentService,
   type AttendanceRecordData,
@@ -100,6 +101,10 @@ function notifTypeColor(type: string) {
   return "bg-sky-50 text-sky-600";
 }
 
+function displayScore(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) ? formatScoreValue(value) : "-";
+}
+
 // ─── sub-components ───────────────────────────────────────────────────────────
 
 function AttendanceRow({ record }: { record: AttendanceRecordData }) {
@@ -144,7 +149,7 @@ function AssignmentCard({ a }: { a: AssignmentScore }) {
                 <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: pct != null ? `${pct}%` : "0%" }} />
               </div>
               <span className={`text-sm font-bold tabular-nums ${scoreColor}`}>
-                {a.score != null ? a.score : "-"} / {a.max_score}
+                {displayScore(a.score)} / {displayScore(a.max_score)}
               </span>
             </div>
           </div>
@@ -198,7 +203,7 @@ function AssignmentCard({ a }: { a: AssignmentScore }) {
                 {si.grader && <p className="text-[10px] text-slate-400">{si.grader}{si.graded_at ? ` · ${fmt(si.graded_at)}` : ""}</p>}
               </div>
               <span className="text-xs font-bold tabular-nums text-slate-700">
-                {si.score != null ? si.score : "-"} / {si.max_score}
+                {displayScore(si.score)} / {displayScore(si.max_score)}
               </span>
             </div>
           ))}
@@ -230,7 +235,7 @@ function ExamCard({ e }: { e: ExamScoreData }) {
               <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: pct != null ? `${pct}%` : "0%" }} />
             </div>
             <span className={`text-sm font-bold tabular-nums ${scoreColor}`}>
-              {e.score != null ? e.score : "-"} / {e.max_score}
+              {displayScore(e.score)} / {displayScore(e.max_score)}
             </span>
           </div>
         </div>
@@ -590,7 +595,7 @@ export default function StudentCourseDetailPage() {
                         <span className={`flex h-6 w-6 items-center justify-center rounded-xl border text-xs ${g.cls}`}><Icon icon={g.icon} /></span>
                         <p className="text-xs font-semibold text-slate-700">{g.label}</p>
                         <span className="ml-auto text-xs text-slate-400">ตรวจแล้ว {graded}/{count}</span>
-                        <span className="text-xs font-bold text-slate-800 tabular-nums">{total.toFixed(1)} / {maxTotal.toFixed(1)}</span>
+                        <span className="text-xs font-bold text-slate-800 tabular-nums">{displayScore(total)} / {displayScore(maxTotal)}</span>
                       </div>
                       <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
                         <div className={`h-full rounded-full bg-linear-to-r ${barCls} transition-all`} style={{ width: `${pct}%` }} />
@@ -621,7 +626,7 @@ export default function StudentCourseDetailPage() {
                       <div className="flex items-center gap-2 mb-1.5">
                         <Icon icon="solar:diploma-bold-duotone" className="text-indigo-500 text-sm shrink-0" />
                         <p className="text-xs font-semibold text-slate-700">{examTypeTH(e.exam_type, e.component)}</p>
-                        <span className="ml-auto text-xs font-bold text-slate-800 tabular-nums">{e.score != null ? e.score : "-"} / {e.max_score}</span>
+                        <span className="ml-auto text-xs font-bold text-slate-800 tabular-nums">{displayScore(e.score)} / {displayScore(e.max_score)}</span>
                       </div>
                       <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
                         <div className={`h-full rounded-full transition-all ${barCls}`} style={{ width: pct != null ? `${pct}%` : "0%" }} />
@@ -657,7 +662,7 @@ export default function StudentCourseDetailPage() {
             <div className="flex items-center justify-between">
               <p className="text-xs font-bold uppercase tracking-wide text-slate-700">คะแนนรวม (งาน)</p>
               <span className="text-xl font-bold text-slate-900 tabular-nums">
-                {visibleTotalScore.toFixed(1)} <span className="text-sm font-medium text-slate-400">/ {visibleTotalMaxScore.toFixed(1)}</span>
+                {displayScore(visibleTotalScore)} <span className="text-sm font-medium text-slate-400">/ {displayScore(visibleTotalMaxScore)}</span>
               </span>
             </div>
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">

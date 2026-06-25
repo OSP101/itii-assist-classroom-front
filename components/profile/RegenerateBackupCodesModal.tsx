@@ -311,7 +311,7 @@ ${copy.fileWarningLine2}
       placement="center"
       size="md"
     >
-      <ModalContent>
+      <ModalContent className="border border-slate-200 bg-white text-slate-900 shadow-2xl shadow-slate-900/10">
         <ModalHeader className="flex items-center gap-3 border-b border-default-200">
           <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
             <Icon icon="solar:refresh-bold" className="text-xl text-white" />

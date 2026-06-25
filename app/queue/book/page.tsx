@@ -884,9 +884,15 @@ function BookQueueContent() {
             isKeyboardDismissDisabled
             size="sm"
             placement="center"
-            classNames={{ backdrop: "bg-black/60" }}
+            classNames={{
+                backdrop: "bg-slate-900/35 backdrop-blur-[2px]",
+                base: "border border-slate-200 bg-white shadow-2xl shadow-slate-900/10",
+                header: "bg-white",
+                body: "bg-white",
+                footer: "bg-white",
+            }}
         >
-            <ModalContent>
+            <ModalContent className="bg-white">
                 <ModalHeader className="flex flex-col items-center gap-2 pt-6 pb-2">
                     <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center">
                         <Icon icon="solar:monitor-bold-duotone" className="text-3xl text-amber-600" />
@@ -900,7 +906,7 @@ function BookQueueContent() {
                         เท่านั้น
                     </p>
                 </ModalBody>
-                <ModalFooter className="justify-center pb-6">
+                <ModalFooter className="justify-center pb-6 pt-3">
                     <Button
                         color="primary"
                         size="lg"
@@ -1266,7 +1272,7 @@ function BookQueueContent() {
 
                 {/* Late confirm modal */}
                 <Modal isOpen={isLateConfirmOpen} onClose={() => setIsLateConfirmOpen(false)}>
-                    <ModalContent>
+                    <ModalContent className="border border-slate-200 bg-white text-slate-900 shadow-2xl shadow-slate-900/10">
                         <ModalHeader>
                             <div className="flex items-center gap-2 text-rose-700">
                                 <Icon icon="solar:danger-triangle-bold" className="text-xl" />

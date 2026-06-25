@@ -4,6 +4,34 @@
 
 import api from './api.service';
 
+interface AttendanceErrorPayload {
+    success?: boolean;
+    code?: string;
+    title?: string;
+    message?: string;
+    error?: string | { message?: string };
+}
+
+export class AttendanceRequestError extends Error {
+    code?: string;
+    title?: string;
+
+    constructor(payload: AttendanceErrorPayload, fallbackMessage: string) {
+        super(
+            payload.message ||
+            (typeof payload.error === "string" ? payload.error : payload.error?.message) ||
+            fallbackMessage
+        );
+        this.name = "AttendanceRequestError";
+        this.code = payload.code;
+        this.title = payload.title;
+    }
+}
+
+function throwAttendanceRequestError(payload: AttendanceErrorPayload, fallbackMessage: string): never {
+    throw new AttendanceRequestError(payload, fallbackMessage);
+}
+
 export interface AttendanceSession {
     id: number;
     course_id: string;
@@ -352,6 +380,9 @@ const attendanceService = {
      */
     async getSessionInfo(sessionId: number): Promise<AttendanceSession | null> {
         const response = await api.get<AttendanceSession>(`/attendance/check-in/${sessionId}/info`);
+        if (!response.success) {
+            throwAttendanceRequestError(response as AttendanceErrorPayload, 'ไม่พบรอบการเช็คชื่อ');
+        }
         return response.data || null;
     },
 
@@ -373,9 +404,8 @@ const attendanceService = {
             distance_meters: number | null;
         }>(`/attendance/check-in/${sessionId}`, data);
         
-        // Check for error response
         if (!response.success) {
-            throw new Error(response.message || 'เช็คชื่อไม่สำเร็จ');
+            throwAttendanceRequestError(response as AttendanceErrorPayload, 'เช็คชื่อไม่สำเร็จ');
         }
         
         return response.data || null;
@@ -394,7 +424,7 @@ const attendanceService = {
             distance_meters: number | null;
         }>('/attendance/check-in', data);
         if (!response.success) {
-            throw new Error(response.message || 'Attendance check-in failed');
+            throwAttendanceRequestError(response as AttendanceErrorPayload, 'Attendance check-in failed');
         }
         return response.data || null;
     },
@@ -468,10 +498,8 @@ const attendanceService = {
             session_id: sessionId,
         });
         
-        // Check for error response
         if (!response.success) {
-            const errorResponse = response as unknown as { error?: { message?: string } };
-            throw new Error(errorResponse.error?.message || 'ไม่พบข้อมูลนักศึกษา');
+            throwAttendanceRequestError(response as AttendanceErrorPayload, 'ไม่พบข้อมูลนักศึกษา');
         }
         
         return response.data || null;

@@ -94,7 +94,7 @@ function ConfirmPasswordModal({
         backdrop: "bg-black/50 backdrop-blur-sm",
       }}
     >
-      <ModalContent>
+      <ModalContent className="border border-slate-200 bg-white text-slate-900 shadow-2xl shadow-slate-900/10">
         <ModalHeader className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg shadow-lg shadow-blue-500/30">
