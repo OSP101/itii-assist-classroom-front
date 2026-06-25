@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { ContactSupportForm } from '@/components/support/contact-support-form';
 import { Icon } from '@iconify/react';
 import Link from 'next/link';
 
@@ -16,13 +15,17 @@ function getContactPageCopy(language: 'th' | 'en') {
     if (language === 'en') {
         return {
             metadataTitle: 'Contact Support',
-            metadataDescription: 'Send a support request with the context the team needs to diagnose the issue immediately, including the category, course, role, and relevant details.',
+            metadataDescription: 'Add our LINE Official Account to get help directly. Include the course, role, and a brief description of the issue when you message us.',
             eyebrow: 'Contact Support',
-            title: 'Send a support request with the context the team needs right away',
-            description: 'Include the issue category, course, role, and relevant details so the support team can triage and respond more accurately.',
+            title: 'Add LINE OA and message us directly',
+            description: 'The fastest way to get help is via LINE OA. Include the course code, your role, and a brief description of the issue when you message us.',
             openGuides: 'Open guides before submitting',
             reportSecurity: 'Report a security issue',
-            checklistTitle: 'Checklist before you submit',
+            lineAddFriendTitle: 'Add LINE OA',
+            lineAddFriendDescription: 'Tap the button below to add our LINE Official Account. Message us directly with your course, role, and issue details.',
+            lineAddFriendButton: 'Add Friend on LINE',
+            lineIdLabel: 'LINE ID',
+            checklistTitle: 'Tips before you message',
             guidesTitle: 'Topics that often help immediately',
             additionalChannelsTitle: 'Additional channels',
             securityNote: 'Use the subject prefix [SECURITY] when reporting incidents with security impact.',
@@ -60,13 +63,17 @@ function getContactPageCopy(language: 'th' | 'en') {
 
     return {
         metadataTitle: 'ติดต่อทีมสนับสนุน',
-        metadataDescription: 'ส่งคำขอช่วยเหลือพร้อมบริบทที่ทีมงานใช้แก้ปัญหาได้ทันที ระบุหมวดปัญหา รายวิชา บทบาท และรายละเอียดที่เกี่ยวข้อง',
+        metadataDescription: 'เพิ่มเพื่อน LINE OA เพื่อติดต่อทีมสนับสนุนโดยตรง แจ้งรหัสรายวิชา บทบาท และรายละเอียดปัญหาสั้นๆ เมื่อส่งข้อความมา',
         eyebrow: 'ติดต่อทีมสนับสนุน',
-        title: 'ส่งคำขอช่วยเหลือพร้อมบริบทที่ทีมงานใช้แก้ปัญหาได้ทันที',
-        description: 'ระบุหมวดปัญหา รายวิชา บทบาท และรายละเอียดที่เกี่ยวข้องให้ครบ เพื่อให้ทีม support triage และตอบกลับได้แม่นยำขึ้น',
-        openGuides: 'เปิดคู่มือก่อนส่งเคส',
+        title: 'เพิ่มเพื่อน LINE OA แล้วแชทหาเราได้เลย',
+        description: 'วิธีที่เร็วที่สุดคือผ่าน LINE OA แจ้งรหัสรายวิชา บทบาท และรายละเอียดปัญหาสั้นๆ มาพร้อมกับข้อความแรก',
+        openGuides: 'เปิดคู่มือก่อนติดต่อ',
         reportSecurity: 'แจ้งเหตุด้านความปลอดภัย',
-        checklistTitle: 'Checklist ก่อนส่งคำขอ',
+        lineAddFriendTitle: 'เพิ่มเพื่อน LINE OA',
+        lineAddFriendDescription: 'กดปุ่มด้านล่างเพื่อเพิ่มเพื่อน LINE Official Account แล้วส่งรหัสรายวิชา บทบาท และรายละเอียดปัญหาสั้นๆ มาได้เลย',
+        lineAddFriendButton: 'เพิ่มเพื่อนบน LINE',
+        lineIdLabel: 'LINE ID',
+        checklistTitle: 'เตรียมข้อมูลก่อนส่งข้อความ',
         guidesTitle: 'ลองดูหัวข้อที่มักช่วยได้ทันที',
         additionalChannelsTitle: 'ช่องทางเพิ่มเติม',
         securityNote: 'ใช้หัวข้อ [SECURITY] เมื่อต้องการแจ้งเหตุที่มีผลกระทบด้านความปลอดภัย',
@@ -140,9 +147,10 @@ export default async function ContactSupportPage() {
             icon="solar:chat-round-dots-bold"
             actions={
                 <>
-                    <Link href="/docs" className="inline-flex min-h-10 items-center justify-center rounded-lg bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-400">
-                        {copy.openGuides}
-                    </Link>
+                    <a href="https://lin.ee/X7s0Nev" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#06C755] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#05b04b]">
+                        <Icon icon="simple-icons:line" className="text-base" />
+                        {copy.lineAddFriendButton}
+                    </a>
                     <Link href="/security" className="inline-flex min-h-10 items-center justify-center rounded-lg border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20">
                         {copy.reportSecurity}
                     </Link>
@@ -168,7 +176,37 @@ export default async function ContactSupportPage() {
         >
             <div className="grid gap-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
                 <div>
-                    <ContactSupportForm />
+                    <div className="rounded-4xl border border-slate-200 bg-white p-8 shadow-sm shadow-slate-200/50">
+                        <div className="flex items-center gap-4">
+                            <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#06C755]">
+                                <Icon icon="simple-icons:line" className="text-3xl text-white" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-semibold text-slate-900">{copy.lineAddFriendTitle}</h2>
+                                <p className="mt-0.5 text-sm text-slate-500">{copy.lineIdLabel}: @411lpkyx</p>
+                            </div>
+                        </div>
+                        <p className="mt-5 text-sm leading-7 text-slate-600">{copy.lineAddFriendDescription}</p>
+                        <div className="mt-6 flex flex-col gap-3">
+                            <a
+                                href="https://lin.ee/X7s0Nev"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl bg-[#06C755] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-[#05b04b] active:scale-[0.98]"
+                            >
+                                <Icon icon="simple-icons:line" className="text-xl" />
+                                {copy.lineAddFriendButton}
+                            </a>
+                        </div>
+                        <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                            <p className="text-xs leading-5 text-slate-500">
+                                <span className="font-medium text-slate-700">{copy.lineIdLabel}:</span>{' '}
+                                <span className="font-mono select-all text-slate-700">@411lpkyx</span>
+                                {' · '}
+                                <a href="https://lin.ee/X7s0Nev" target="_blank" rel="noopener noreferrer" className="text-[#06C755] hover:underline">lin.ee/X7s0Nev</a>
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="space-y-6">
@@ -208,9 +246,20 @@ export default async function ContactSupportPage() {
                             {copy.additionalChannelsTitle}
                         </h3>
                         <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-                            <p><span className="font-medium text-slate-900">Email:</span> support@itii.ac.th</p>
-                            <p><span className="font-medium text-slate-900">LINE:</span> @itii-classroom</p>
-                            <p><span className="font-medium text-slate-900">Security:</span> {copy.securityNote}</p>
+                            <p className="flex items-center gap-2">
+                                <Icon icon="simple-icons:line" className="shrink-0 text-base text-[#06C755]" />
+                                <span className="font-medium text-slate-900">LINE OA:</span>
+                                <a href="https://lin.ee/X7s0Nev" target="_blank" rel="noopener noreferrer" className="font-mono text-[#06C755] hover:underline">@411lpkyx</a>
+                            </p>
+                            <p className="flex items-center gap-2">
+                                <Icon icon="solar:letter-bold" className="shrink-0 text-base text-blue-500" />
+                                <span className="font-medium text-slate-900">Email:</span>
+                                <a href="mailto:supphitan.p@kkumail.com" className="text-blue-600 hover:underline">supphitan.p@kkumail.com</a>
+                            </p>
+                            <p className="flex items-start gap-2">
+                                <Icon icon="solar:shield-warning-bold" className="mt-0.5 shrink-0 text-base text-amber-500" />
+                                <span>{copy.securityNote}</span>
+                            </p>
                         </div>
                     </div>
                 </div>
