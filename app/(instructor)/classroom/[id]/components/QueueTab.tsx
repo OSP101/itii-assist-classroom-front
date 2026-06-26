@@ -415,7 +415,9 @@ export default function QueueTab({
         };
         setFormData(editData);
         setOriginalFormData(editData);
-        fetchOptions();
+        if (session.status !== "closed") {
+            fetchOptions();
+        }
         setIsEditModalOpen(true);
     };
 
@@ -1358,224 +1360,183 @@ export default function QueueTab({
                                 variant="bordered"
                                 size="md"
                                 classNames={{
-                                    inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                    inputWrapper: "bg-content1 border-default-200 hover:border-amber-300 focus-within:!border-amber-400",
                                     label: "text-default-600 font-medium text-sm",
                                 }}
                             />
-
-                            <Autocomplete
-                                label={localize("เลือกห้องเรียน", "Classroom")}
-                                placeholder={localize("เลือกห้อง", "Select a room")}
-                                isLoading={isOptionsLoading}
-                                selectedKey={formData.classroom_id || null}
-                                onSelectionChange={(key) => {
-                                    setFormData({
-                                        ...formData,
-                                        classroom_id: key ? String(key) : "",
-                                    });
-                                }}
-                                isRequired
-                                labelPlacement="outside"
-                                variant="bordered"
-                                size="md"
-                                classNames={{
-                                    base: "py-3",
-                                    selectorButton: "text-default-400",
-                                }}
-                                inputProps={{
-                                    classNames: {
-                                        label: "text-default-600 font-medium text-sm",
-                                        inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                    },
-                                }}
-                            >
-                                {sortedClassrooms.map((room) => (
-                                    <AutocompleteItem
-                                        key={room.id.toString()}
-                                        textValue={`${room.name} - ${room.building}`}
-                                    >
-                                        {room.name} - {room.building}
-                                    </AutocompleteItem>
-                                ))}
-                            </Autocomplete>
-
-
-                            <Input
-                                label={localize("คำอธิบาย (ถ้ามี)", "Description (optional)")}
-                                placeholder={localize("รายละเอียดเพิ่มเติม", "Additional details")}
-                                value={formData.description || ""}
-                                onValueChange={(value) => setFormData({ ...formData, description: value })}
-                                isDisabled={isClosedEditSession}
-                                labelPlacement="outside"
-                                variant="bordered"
-                                size="md"
-                                classNames={{
-                                    inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                    label: "text-default-600 font-medium text-sm",
-                                }}
-                            />
-
-                            {/* ลิงก์กับหัวข้องาน */}
-                            <div className="rounded-xl border border-default-200 bg-content2 p-4">
-                                <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-amber-100 rounded-lg">
-                                            <Icon icon="solar:document-bold" className="text-lg text-amber-600" />
-                                        </div>
-                                        <div>
-                                            <span className="font-semibold text-default-700">{localize("ลิงก์กับหัวข้องาน", "Link assignment")}</span>
-                                            <p className="text-xs text-default-500">{localize("เชื่อมโยงกับหัวข้องานเพื่อลงคะแนนอัตโนมัติ", "Connect an assignment for automatic scoring")}</p>
-                                        </div>
-                                    </div>
-                                    <Button
-                                        size="sm"
-                                        variant={formData.linked_assignment_id ? "solid" : "bordered"}
-                                        color={formData.linked_assignment_id ? "warning" : "default"}
-                                        isDisabled={isClosedEditSession}
-                                        onPress={() => {
-                                            if (formData.linked_assignment_id) {
-                                                setFormData({ ...formData, linked_assignment_id: null });
-                                            }
-                                        }}
-                                    >
-                                        {formData.linked_assignment_id ? localize("ลิงก์แล้ว", "Linked") : localize("ไม่ลิงก์", "Not linked")}
-                                    </Button>
+                            {isClosedEditSession ? (
+                                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                                    {localize("รอบที่ปิดใช้งานแล้วจะแก้ไขได้เฉพาะชื่อคิวเท่านั้น", "Closed sessions can only update the session title.")}
                                 </div>
-
-                                {assignments.length > 0 ? (
-                                    <Select
-                                        placeholder={localize("เลือกหัวข้องานที่ต้องการลิงก์", "Select an assignment to link")}
-                                        aria-label={localize("เลือกหัวข้องาน", "Select assignment")}
-                                        isLoading={isOptionsLoading}
-                                        isDisabled={isClosedEditSession}
-                                        selectedKeys={formData.linked_assignment_id ? new Set([formData.linked_assignment_id.toString()]) : new Set([])}
-                                        onSelectionChange={(keys) => {
-                                            const selected = Array.from(keys as Set<string>)[0];
-                                            setFormData({
-                                                ...formData,
-                                                linked_assignment_id: selected ? parseInt(selected) : null
-                                            });
-                                        }}
+                            ) : (
+                                <>
+                                    <Input
+                                        label={localize("คำอธิบาย (ถ้ามี)", "Description (optional)")}
+                                        placeholder={localize("รายละเอียดเพิ่มเติม", "Additional details")}
+                                        value={formData.description || ""}
+                                        onValueChange={(value) => setFormData({ ...formData, description: value })}
+                                        labelPlacement="outside"
                                         variant="bordered"
+                                        size="md"
                                         classNames={{
-                                            trigger: "bg-content1 border-default-200",
-                                            value: "text-default-700",
+                                            inputWrapper: "bg-content1 border-default-200 hover:border-amber-300 focus-within:!border-amber-400",
+                                            label: "text-default-600 font-medium text-sm",
                                         }}
-                                    >
-                                        {assignments.map((assignment) => (
-                                            <SelectItem key={assignment.id.toString()} textValue={assignment.name}>
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <div>
-                                                        <span className="font-medium">{assignment.name}</span>
-                                                        <span className="ml-2 text-xs text-default-500">
-                                                            ({assignment.max_score} {localize("คะแนน", "pts")})
-                                                        </span>
-                                                    </div>
-                                                    <span className="shrink-0 text-xs font-medium text-default-500">
-                                                        {getAssignmentKindLabel(assignment, isEnglish)}
+                                    />
+
+                                    <div className="rounded-xl border border-default-200 bg-content2 p-4">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-amber-100 rounded-lg">
+                                                    <Icon icon="solar:document-bold" className="text-lg text-amber-600" />
+                                                </div>
+                                                <div>
+                                                    <span className="font-semibold text-default-700">{localize("ลิงก์กับหัวข้องาน", "Link assignment")}</span>
+                                                    <p className="text-xs text-default-500">{localize("เชื่อมโยงกับหัวข้องานเพื่อลงคะแนนอัตโนมัติ", "Connect an assignment for automatic scoring")}</p>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                size="sm"
+                                                variant={formData.linked_assignment_id ? "solid" : "bordered"}
+                                                color={formData.linked_assignment_id ? "warning" : "default"}
+                                                onPress={() => {
+                                                    if (formData.linked_assignment_id) {
+                                                        setFormData({ ...formData, linked_assignment_id: null });
+                                                    }
+                                                }}
+                                            >
+                                                {formData.linked_assignment_id ? localize("ลิงก์แล้ว", "Linked") : localize("ไม่ลิงก์", "Not linked")}
+                                            </Button>
+                                        </div>
+
+                                        {assignments.length > 0 ? (
+                                            <Select
+                                                placeholder={localize("เลือกหัวข้องานที่ต้องการลิงก์", "Select an assignment to link")}
+                                                aria-label={localize("เลือกหัวข้องาน", "Select assignment")}
+                                                isLoading={isOptionsLoading}
+                                                selectedKeys={formData.linked_assignment_id ? new Set([formData.linked_assignment_id.toString()]) : new Set([])}
+                                                onSelectionChange={(keys) => {
+                                                    const selected = Array.from(keys as Set<string>)[0];
+                                                    setFormData({
+                                                        ...formData,
+                                                        linked_assignment_id: selected ? parseInt(selected) : null,
+                                                    });
+                                                }}
+                                                variant="bordered"
+                                                classNames={{
+                                                    trigger: "bg-content1 border-default-200",
+                                                    value: "text-default-700",
+                                                }}
+                                            >
+                                                {assignments.map((assignment) => (
+                                                    <SelectItem key={assignment.id.toString()} textValue={assignment.name}>
+                                                        <div className="flex items-center justify-between gap-3">
+                                                            <div>
+                                                                <span className="font-medium">{assignment.name}</span>
+                                                                <span className="ml-2 text-xs text-default-500">({assignment.max_score} {localize("คะแนน", "pts")})</span>
+                                                            </div>
+                                                            <span className="shrink-0 text-xs font-medium text-default-500">
+                                                                {getAssignmentKindLabel(assignment, isEnglish)}
+                                                            </span>
+                                                        </div>
+                                                    </SelectItem>
+                                                ))}
+                                            </Select>
+                                        ) : (
+                                            <div className="rounded-lg bg-content3 p-3 text-center">
+                                                <Icon icon="solar:document-linear" className="mb-1 text-xl text-default-400" />
+                                                <p className="text-sm text-default-500">{localize("ยังไม่มีหัวข้องาน", "No assignments yet")}</p>
+                                            </div>
+                                        )}
+
+                                        {formData.linked_assignment_id && (
+                                            <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                                                <div className="flex items-center gap-2 text-amber-700">
+                                                    <Icon icon="solar:info-circle-bold" />
+                                                    <span className="text-sm font-medium">
+                                                        {localize("เมื่อตรวจงานเสร็จ คะแนนจะถูกบันทึกไปยังหัวข้องานนี้โดยอัตโนมัติ", "When grading is completed, scores will be saved to this assignment automatically")}
                                                     </span>
                                                 </div>
-                                            </SelectItem>
-                                        ))}
-                                    </Select>
-                                ) : (
-                                    <div className="rounded-lg bg-content3 p-3 text-center">
-                                        <Icon icon="solar:document-linear" className="mb-1 text-xl text-default-400" />
-                                        <p className="text-sm text-default-500">{localize("ยังไม่มีหัวข้องาน", "No assignments yet")}</p>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
 
-                                {formData.linked_assignment_id && (
-                                    <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                                        <div className="flex items-center gap-2 text-amber-700">
-                                            <Icon icon="solar:info-circle-bold" />
-                                            <span className="text-sm font-medium">
-                                                {localize("เมื่อตรวจงานเสร็จ คะแนนจะถูกบันทึกไปยังหัวข้องานนี้โดยอัตโนมัติ", "When grading is completed, scores will be saved to this assignment automatically")}
-                                            </span>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* ลิงก์กับการเช็คชื่อ */}
-                            <div className="rounded-xl border border-default-200 bg-content2 p-4">
-                                <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-blue-100 rounded-lg">
-                                            <Icon icon="solar:clipboard-check-bold" className="text-lg text-blue-600" />
-                                        </div>
-                                        <div>
-                                            <span className="font-semibold text-default-700">{localize("ลิงก์กับการเช็คชื่อ", "Link attendance")}</span>
-                                            <p className="text-xs text-default-500">{localize("ถ้านักศึกษาขาดเรียน จะไม่อนุญาตให้จองคิว", "Students marked absent will not be allowed to book the queue")}</p>
-                                        </div>
-                                    </div>
-                                    <Button
-                                        size="sm"
-                                        variant={formData.linked_attendance_session_id ? "solid" : "bordered"}
-                                        color={formData.linked_attendance_session_id ? "primary" : "default"}
-                                        isDisabled={isClosedEditSession}
-                                        onPress={() => {
-                                            if (formData.linked_attendance_session_id) {
-                                                setFormData({ ...formData, require_attendance: false, linked_attendance_session_id: null });
-                                            }
-                                        }}
-                                    >
-                                        {formData.linked_attendance_session_id ? localize("ลิงก์แล้ว", "Linked") : localize("ไม่ลิงก์", "Not linked")}
-                                    </Button>
-                                </div>
-
-                                {attendanceSessions.length > 0 ? (
-                                    <Select
-                                        placeholder={localize("เลือกรอบเช็คชื่อที่ต้องการลิงก์", "Select an attendance session to link")}
-                                        aria-label={localize("เลือกรอบเช็คชื่อ", "Select attendance session")}
-                                        isLoading={isOptionsLoading}
-                                        isDisabled={isClosedEditSession}
-                                        selectedKeys={formData.linked_attendance_session_id ? [formData.linked_attendance_session_id.toString()] : undefined}
-                                        onSelectionChange={(keys) => {
-                                            const selected = Array.from(keys)[0];
-                                            setFormData({
-                                                ...formData,
-                                                require_attendance: selected ? true : false,
-                                                linked_attendance_session_id: selected ? parseInt(selected as string) : null
-                                            });
-                                        }}
-                                        variant="bordered"
-                                        classNames={{
-                                            trigger: "bg-content1 border-default-200",
-                                            value: "text-default-700",
-                                        }}
-                                    >
-                                        {attendanceSessions.map((session) => (
-                                            <SelectItem key={session.id.toString()} textValue={session.title}>
-                                                <div className="flex items-center gap-3">
-                                                    <div>
-                                                        <span className="font-medium">{session.title}</span>
-                                                        <span className="ml-2 text-xs text-default-500">
-                                                            {formatShortDate(session.start_time, locale)}
-                                                        </span>
-                                                    </div>
+                                    <div className="rounded-xl border border-default-200 bg-content2 p-4">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-blue-100 rounded-lg">
+                                                    <Icon icon="solar:clipboard-check-bold" className="text-lg text-blue-600" />
                                                 </div>
-                                            </SelectItem>
-                                        ))}
-                                    </Select>
-                                ) : (
-                                    <div className="rounded-lg bg-content3 p-3 text-center">
-                                        <Icon icon="solar:clipboard-list-linear" className="mb-1 text-xl text-default-400" />
-                                        <p className="text-sm text-default-500">{localize("ยังไม่มีรอบเช็คชื่อ", "No attendance sessions yet")}</p>
-                                    </div>
-                                )}
-
-                                {formData.linked_attendance_session_id && (
-                                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                                        <div className="flex items-center gap-2 text-blue-700">
-                                            <Icon icon="solar:info-circle-bold" />
-                                            <span className="text-sm font-medium">
-                                                {localize("นักศึกษาที่ขาดเรียนในรอบเช็คชื่อนี้ จะไม่สามารถจองคิวได้", "Students absent in this attendance session will not be able to book the queue")}
-                                            </span>
+                                                <div>
+                                                    <span className="font-semibold text-default-700">{localize("ลิงก์กับการเช็คชื่อ", "Link attendance")}</span>
+                                                    <p className="text-xs text-default-500">{localize("ถ้านักศึกษาขาดเรียน จะไม่อนุญาตให้จองคิว", "Students marked absent will not be allowed to book the queue")}</p>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                size="sm"
+                                                variant={formData.linked_attendance_session_id ? "solid" : "bordered"}
+                                                color={formData.linked_attendance_session_id ? "primary" : "default"}
+                                                onPress={() => {
+                                                    if (formData.linked_attendance_session_id) {
+                                                        setFormData({ ...formData, require_attendance: false, linked_attendance_session_id: null });
+                                                    }
+                                                }}
+                                            >
+                                                {formData.linked_attendance_session_id ? localize("ลิงก์แล้ว", "Linked") : localize("ไม่ลิงก์", "Not linked")}
+                                            </Button>
                                         </div>
+
+                                        {attendanceSessions.length > 0 ? (
+                                            <Select
+                                                placeholder={localize("เลือกรอบเช็คชื่อที่ต้องการลิงก์", "Select an attendance session to link")}
+                                                aria-label={localize("เลือกรอบเช็คชื่อ", "Select attendance session")}
+                                                isLoading={isOptionsLoading}
+                                                selectedKeys={formData.linked_attendance_session_id ? [formData.linked_attendance_session_id.toString()] : undefined}
+                                                onSelectionChange={(keys) => {
+                                                    const selected = Array.from(keys)[0];
+                                                    setFormData({
+                                                        ...formData,
+                                                        require_attendance: selected ? true : false,
+                                                        linked_attendance_session_id: selected ? parseInt(selected as string) : null,
+                                                    });
+                                                }}
+                                                variant="bordered"
+                                                classNames={{
+                                                    trigger: "bg-content1 border-default-200",
+                                                    value: "text-default-700",
+                                                }}
+                                            >
+                                                {attendanceSessions.map((session) => (
+                                                    <SelectItem key={session.id.toString()} textValue={session.title}>
+                                                        <div className="flex items-center gap-3">
+                                                            <div>
+                                                                <span className="font-medium">{session.title}</span>
+                                                                <span className="ml-2 text-xs text-default-500">{formatShortDate(session.start_time, locale)}</span>
+                                                            </div>
+                                                        </div>
+                                                    </SelectItem>
+                                                ))}
+                                            </Select>
+                                        ) : (
+                                            <div className="rounded-lg bg-content3 p-3 text-center">
+                                                <Icon icon="solar:clipboard-list-linear" className="mb-1 text-xl text-default-400" />
+                                                <p className="text-sm text-default-500">{localize("ยังไม่มีรอบเช็คชื่อ", "No attendance sessions yet")}</p>
+                                            </div>
+                                        )}
+
+                                        {formData.linked_attendance_session_id && (
+                                            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                                <div className="flex items-center gap-2 text-blue-700">
+                                                    <Icon icon="solar:info-circle-bold" />
+                                                    <span className="text-sm font-medium">
+                                                        {localize("นักศึกษาที่ขาดเรียนในรอบเช็คชื่อนี้ จะไม่สามารถจองคิวได้", "Students absent in this attendance session will not be able to book the queue")}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
+                                </>
+                            )}
                         </div>
                     </ModalBody>
                     <ModalFooter className="border-t border-divider px-6 py-4">
