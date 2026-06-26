@@ -115,6 +115,7 @@ export default function StudentCheckInPage() {
     const [isGettingLocation, setIsGettingLocation] = useState(false);
     const [pinCode, setPinCode] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitElapsedSeconds, setSubmitElapsedSeconds] = useState(0);
     const [checkInResult, setCheckInResult] = useState<{
         status: string;
         check_in_time: string;
@@ -136,6 +137,7 @@ export default function StudentCheckInPage() {
 
     // Socket ref
     const socketRef = useRef<Socket | null>(null);
+    const checkInRequestIdRef = useRef("");
 
     // Google Sign In ref
     const googleButtonRef = useRef<HTMLDivElement>(null);
@@ -346,6 +348,10 @@ export default function StudentCheckInPage() {
 
     // Submit check-in
     const handleCheckIn = async () => {
+        if (isSubmitting) {
+            return;
+        }
+
         if (!googleUser || pinCode.length !== 6) {
             addToast({
                 title: t("incompleteInformation"),
@@ -357,19 +363,37 @@ export default function StudentCheckInPage() {
             return;
         }
 
+        if (!checkInRequestIdRef.current) {
+            checkInRequestIdRef.current = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                ? crypto.randomUUID()
+                : `${sessionId}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        }
+
+        setSubmitElapsedSeconds(0);
         setIsSubmitting(true);
         try {
             const result = await attendanceService.studentCheckIn(sessionId, {
                 pin_code: pinCode,
                 google_email: googleUser.email,
                 google_id: googleUser.googleId,
+                client_request_id: checkInRequestIdRef.current,
                 location_lat: location?.lat,
                 location_lng: location?.lng,
             });
 
             if (result) {
+                if (result.is_duplicate) {
+                    addToast({
+                        title: language === "en" ? "Already checked in" : "เช็คชื่อไว้แล้ว",
+                        description: language === "en" ? "Your previous check-in was already recorded." : "ระบบบันทึกการเช็คชื่อก่อนหน้านี้ไว้แล้ว",
+                        color: "primary",
+                        timeout: 3500,
+                        shouldShowTimeoutProgress: true,
+                    });
+                }
                 setCheckInResult(result);
                 setStep("success");
+                checkInRequestIdRef.current = "";
 
                 // Emit socket event
                 if (socketRef.current) {
@@ -393,8 +417,29 @@ export default function StudentCheckInPage() {
             });
         } finally {
             setIsSubmitting(false);
+            setSubmitElapsedSeconds(0);
         }
     };
+
+    const handlePinValueChange = (value: string) => {
+        setPinCode(value);
+        checkInRequestIdRef.current = "";
+    };
+
+    useEffect(() => {
+        if (!isSubmitting) {
+            return;
+        }
+
+        const startedAt = Date.now();
+        const interval = window.setInterval(() => {
+            setSubmitElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+        }, 1000);
+
+        return () => {
+            window.clearInterval(interval);
+        };
+    }, [isSubmitting]);
 
     // Initialize socket
     useEffect(() => {
@@ -664,7 +709,7 @@ export default function StudentCheckInPage() {
                                     <InputOtp
                                         length={6}
                                         value={pinCode}
-                                        onValueChange={setPinCode}
+                                        onValueChange={handlePinValueChange}
                                         size="lg"
                                         variant="bordered"
                                         color="primary"
@@ -690,6 +735,17 @@ export default function StudentCheckInPage() {
                                         {isSubmitting ? <Spinner size="sm" color="white" /> : <Icon icon="solar:check-circle-bold" className="text-lg" />}
                                         {t("checkInAction")}
                                     </button>
+                                    {isSubmitting && (
+                                        <p className="text-xs text-slate-500">
+                                            {submitElapsedSeconds < 4
+                                                ? (language === "en" ? "Submitting check-in request..." : "กำลังส่งคำขอเช็คชื่อ...")
+                                                : submitElapsedSeconds < 10
+                                                ? (language === "en" ? "Confirming your attendance with server..." : "กำลังยืนยันข้อมูลกับเซิร์ฟเวอร์...")
+                                                : (language === "en"
+                                                    ? "Still processing due to high traffic. Please keep this page open."
+                                                    : "ระบบกำลังประมวลผลจากผู้ใช้งานจำนวนมาก กรุณาอย่าปิดหน้านี้")}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         </div>

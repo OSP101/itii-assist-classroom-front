@@ -140,6 +140,7 @@ export interface StudentCheckInData {
     pin_code: string;
     google_email: string;
     google_id: string;
+    client_request_id?: string;
     student_id?: number;
     location_lat?: number;
     location_lng?: number;
@@ -395,6 +396,7 @@ const attendanceService = {
         check_in_time: string;
         location_verified: boolean;
         distance_meters: number | null;
+        is_duplicate?: boolean;
     } | null> {
         const response = await api.post<{
             status: string;
@@ -402,6 +404,7 @@ const attendanceService = {
             check_in_time: string;
             location_verified: boolean;
             distance_meters: number | null;
+            is_duplicate?: boolean;
         }>(`/attendance/check-in/${sessionId}`, data);
         
         if (!response.success) {
