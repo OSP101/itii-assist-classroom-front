@@ -81,6 +81,11 @@ export default function StudentLoginPage() {
     window.location.href = authService.getGoogleAuthUrl("student");
   };
 
+  const handleKKULogin = () => {
+    storeOAuthReturnPath(nextPath);
+    window.location.href = authService.getKKUAuthUrl('student');
+  };
+
   return (
     <div data-auth-shell="true" className="flex min-h-dvh flex-col bg-background text-foreground">
       <header className="flex h-20 items-center justify-between bg-transparent px-6 max-sm:bg-transparent dark:max-sm:bg-slate-950 sm:px-10">
@@ -118,6 +123,18 @@ export default function StudentLoginPage() {
             >
               เข้าสู่ระบบด้วย Google
             </Button>
+            {process.env.NEXT_PUBLIC_KKU_SSO_ENABLED === 'true' && (
+              <Button
+                type="button"
+                variant="bordered"
+                radius="sm"
+                className="h-10.5 w-full border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:text-white dark:max-sm:data-[hover=true]:border-sky-400/45 dark:max-sm:data-[hover=true]:bg-sky-400/10"
+                onPress={handleKKULogin}
+                startContent={<Icon icon="solar:key-minimalistic-linear" className="text-[17px] text-blue-500" />}
+              >
+                เข้าสู่ระบบด้วย KKU Account
+              </Button>
+            )}
           </div>
         </section>
       </main>

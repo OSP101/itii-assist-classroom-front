@@ -493,6 +493,14 @@ class AuthService {
     return `${apiBaseUrl}/auth/github`;
   }
 
+  getKKUAuthUrl(audience?: 'student'): string {
+    const apiBaseUrl = getOAuthApiBaseUrl();
+    if (audience === 'student') {
+      return `${apiBaseUrl}/auth/kku?audience=student`;
+    }
+    return `${apiBaseUrl}/auth/kku`;
+  }
+
   /**
    * Force change password (for first login)
    */

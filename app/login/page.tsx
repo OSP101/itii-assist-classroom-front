@@ -275,6 +275,11 @@ export default function LoginPage() {
         window.location.href = authService.getGitHubAuthUrl();
     };
 
+    const handleKKULogin = () => {
+        storeOAuthReturnPath(nextPath);
+        window.location.href = authService.getKKUAuthUrl();
+    };
+
     const handleUnavailableLogin = (provider: string) => {
         addToast({
             title: t("unsupportedSignInWithProvider", { provider }),
@@ -398,16 +403,18 @@ export default function LoginPage() {
                         ) : null}
                     </div>
 
-                    {/* <Button
-                        type="button"
-                        variant="bordered"
-                        radius="sm"
-                        className="mt-2 h-[42px] w-full border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50"
-                        onPress={() => handleUnavailableLogin("SSO")}
-                        startContent={<Icon icon="solar:lock-keyhole-minimalistic-linear" className="text-[17px] text-blue-400" />}
-                    >
-                        เข้าสู่ระบบด้วย SSO
-                    </Button> */}
+                    {process.env.NEXT_PUBLIC_KKU_SSO_ENABLED === 'true' && (
+                        <Button
+                            type="button"
+                            variant="bordered"
+                            radius="sm"
+                            className="mt-2 h-10.5 w-full border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:text-white dark:max-sm:data-[hover=true]:border-sky-400/45 dark:max-sm:data-[hover=true]:bg-sky-400/10"
+                            onPress={handleKKULogin}
+                            startContent={<Icon icon="solar:key-minimalistic-linear" className="text-[17px] text-blue-500" />}
+                        >
+                            {t("loginWithKKUAccount")}
+                        </Button>
+                    )}
 
                     {!isStudentLoginMode ? (
                         <>
