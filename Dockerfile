@@ -32,6 +32,9 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/package-lock.json ./package-lock.json
 COPY --from=deps /app/node_modules ./node_modules
 
+RUN chmod -R a+rX /app/.next /app/public /app/node_modules
+USER node
+
 EXPOSE 3000
 
 CMD ["npm", "run", "start"]
