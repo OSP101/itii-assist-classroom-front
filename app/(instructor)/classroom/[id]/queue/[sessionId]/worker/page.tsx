@@ -716,18 +716,29 @@ export default function WorkerDashboardPage() {
         });
 
         // Listen for session status changes
-        socket.on("session-status-changed", (data: { sessionId: string; status: string }) => {
-            if (data.sessionId === sessionId) {
-                setSession((prev) => (prev ? { ...prev, status: data.status as QueueSession["status"] } : null));
-                if (data.status === "closed") {
-                    addToast({
-                        title: t("Session ถูกปิด", "Session closed"),
-                        description: t("การรับคิวถูกยกเลิก", "Queue intake has been cancelled."),
-                        color: "warning",
-                        timeout: 3000,
-                shouldShowTimeoutProgress: true,
-                    });
-                }
+        socket.on("session-status-changed", (data: { sessionId?: string; session_id?: string; status: string; session?: { id?: string } }) => {
+            const eventSessionId = data.sessionId || data.session_id || data.session?.id;
+            if (eventSessionId && eventSessionId !== sessionId) return;
+
+            setSession((prev) => (prev ? { ...prev, status: data.status as QueueSession["status"] } : null));
+
+            if (data.status === "closed") {
+                setIsWorkerOnline(false);
+                setIsPausedAfterComplete(false);
+                setWorkerOfferPausedUntil(null);
+                setWorkerPauseSecondsLeft(null);
+                setOfferSecondsLeft(null);
+                setCurrentBooking(null);
+                skipPollingRef.current = true;
+                isPausedRef.current = false;
+
+                addToast({
+                    title: t("Session ถูกปิด", "Session closed"),
+                    description: t("ปิดรับงานถาวรแล้ว ระบบตั้งผู้รับงานเป็นออฟไลน์อัตโนมัติ", "Task intake is permanently closed. Workers were set offline automatically."),
+                    color: "warning",
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+                });
             }
         });
 

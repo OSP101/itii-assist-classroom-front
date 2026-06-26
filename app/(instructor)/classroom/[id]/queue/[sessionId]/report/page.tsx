@@ -11,6 +11,7 @@ import { Input } from "@heroui/input";
 import { Pagination } from "@heroui/pagination";
 import { Select, SelectItem } from "@heroui/select";
 import { Spinner } from "@heroui/spinner";
+import { Tab, Tabs } from "@heroui/tabs";
 import {
     Table,
     TableBody,
@@ -36,6 +37,16 @@ type ReportSnapshot = {
     report: QueueSessionReport;
     deskData: ProjectorViewData;
 };
+
+type ReportTabKey = "overview" | "ta" | "history";
+
+type DeskVisualState =
+    | "help_in_progress"
+    | "help_waiting"
+    | "grading_in_progress"
+    | "grading_waiting"
+    | "completed"
+    | "idle";
 
 type WorkerSummary = QueueReportWorkerStat & {
     assignedBookings: QueueReportBooking[];
@@ -171,6 +182,35 @@ function getSingleSelection(keys: unknown, fallback: string): string {
     return typeof first === "string" && first.length > 0 ? first : fallback;
 }
 
+function getDeskVisualState(desk: DeskWithStatus): DeskVisualState {
+    const help = desk.status?.help_status;
+    const grading = desk.status?.grading_status;
+
+    if (help === "in_progress") return "help_in_progress";
+    if (help === "waiting") return "help_waiting";
+    if (grading === "in_progress") return "grading_in_progress";
+    if (grading === "waiting") return "grading_waiting";
+    if (grading === "completed") return "completed";
+    return "idle";
+}
+
+function getDeskVisualTone(state: DeskVisualState): { fill: string; stroke: string; text: string } {
+    switch (state) {
+        case "help_in_progress":
+            return { fill: "#f59e0b", stroke: "#d97706", text: "#111827" };
+        case "help_waiting":
+            return { fill: "#fcd34d", stroke: "#f59e0b", text: "#111827" };
+        case "grading_in_progress":
+            return { fill: "#3b82f6", stroke: "#2563eb", text: "#ffffff" };
+        case "grading_waiting":
+            return { fill: "#93c5fd", stroke: "#3b82f6", text: "#0f172a" };
+        case "completed":
+            return { fill: "#10b981", stroke: "#059669", text: "#052e16" };
+        default:
+            return { fill: "#cbd5e1", stroke: "#94a3b8", text: "#334155" };
+    }
+}
+
 function WorkerDeskMap({
     desks,
     highlightedDeskNumbers,
@@ -231,18 +271,17 @@ function WorkerDeskMap({
                     );
                 }
 
-                const fill = isCurrent ? "#f59e0b" : isHighlighted ? "#38bdf8" : "#cbd5e1";
-                const labelFill = isCurrent || isHighlighted ? "#0f172a" : "#475569";
+                const state = getDeskVisualState(desk);
+                const tone = getDeskVisualTone(state);
 
                 return (
                     <g key={`desk-${desk.id}`}>
-                        {isCurrent ? <circle cx={x} cy={y} r={11} fill="#fde68a" opacity={0.65} /> : null}
-                        <circle cx={x} cy={y} r={7} fill={fill} />
-                        {(isCurrent || isHighlighted) ? (
-                            <text x={x} y={y - 12} textAnchor="middle" fontSize="9" fill={labelFill}>
-                                {desk.number}
-                            </text>
-                        ) : null}
+                        {isHighlighted ? <circle cx={x} cy={y} r={11} fill="none" stroke="#7c3aed" strokeWidth="1.5" /> : null}
+                        {isCurrent ? <circle cx={x} cy={y} r={13} fill="none" stroke="#111827" strokeWidth="2" /> : null}
+                        <rect x={x - 10} y={y - 7} width={20} height={14} rx={5} fill={tone.fill} stroke={tone.stroke} strokeWidth="1" />
+                        <text x={x} y={y + 3} textAnchor="middle" fontSize="8.5" fontWeight="700" fill={tone.text}>
+                            {desk.number}
+                        </text>
                     </g>
                 );
             })}
@@ -259,10 +298,14 @@ export default function QueueSessionReportPage() {
     const sessionId = params?.sessionId;
     const hasParams = Boolean(courseId && sessionId);
 
-    const [searchQuery, setSearchQuery] = useState("");
-    const [statusFilter, setStatusFilter] = useState("all");
-    const [bookingTypeFilter, setBookingTypeFilter] = useState("all");
-    const [workerFilter, setWorkerFilter] = useState("all");
+    const [taSearchQuery, setTaSearchQuery] = useState("");
+    const [taWorkerFilter, setTaWorkerFilter] = useState("all");
+    const [historySearchQuery, setHistorySearchQuery] = useState("");
+    const [historyStatusFilter, setHistoryStatusFilter] = useState("all");
+    const [historyBookingTypeFilter, setHistoryBookingTypeFilter] = useState("all");
+    const [historyWorkerFilter, setHistoryWorkerFilter] = useState("all");
+    const [activeTab, setActiveTab] = useState<ReportTabKey>("overview");
+    const [isMobileLegendOpen, setIsMobileLegendOpen] = useState(false);
     const [selectedWorkerId, setSelectedWorkerId] = useState("all");
     const [bookingPage, setBookingPage] = useState(1);
     const [bookingsPerPage, setBookingsPerPage] = useState("10");
@@ -317,9 +360,64 @@ export default function QueueSessionReportPage() {
     const deskData = snapshot?.deskData ?? null;
     const desks = deskData?.desks ?? [];
     const now = new Date();
+    const mobileLegendStorageKey = useMemo(
+        () => `queue-report-mobile-legend-open:${courseId || "-"}:${sessionId || "-"}`,
+        [courseId, sessionId],
+    );
+    const mobileLegendBroadcastKey = useMemo(
+        () => `queue-report-mobile-legend-broadcast:${courseId || "-"}:${sessionId || "-"}`,
+        [courseId, sessionId],
+    );
     const errorMessage = error instanceof Error
         ? error.message
         : t("ไม่สามารถโหลดรีพอร์ตได้", "Unable to load the report.");
+
+    useEffect(() => {
+        if (!hasParams) return;
+        const storedValue = window.sessionStorage.getItem(mobileLegendStorageKey);
+        if (storedValue === "1") {
+            setIsMobileLegendOpen(true);
+            return;
+        }
+        if (storedValue === "0") {
+            setIsMobileLegendOpen(false);
+            return;
+        }
+        setIsMobileLegendOpen(false);
+    }, [hasParams, mobileLegendStorageKey]);
+
+    useEffect(() => {
+        if (!hasParams) return;
+        window.sessionStorage.setItem(mobileLegendStorageKey, isMobileLegendOpen ? "1" : "0");
+
+        // Broadcast to sibling tabs for the same course/session.
+        try {
+            window.localStorage.setItem(
+                mobileLegendBroadcastKey,
+                JSON.stringify({ open: isMobileLegendOpen, at: Date.now() }),
+            );
+        } catch {
+            // Ignore storage quota or private-mode write failures.
+        }
+    }, [hasParams, isMobileLegendOpen, mobileLegendBroadcastKey, mobileLegendStorageKey]);
+
+    useEffect(() => {
+        if (!hasParams) return;
+
+        const onStorage = (event: StorageEvent) => {
+            if (event.key !== mobileLegendBroadcastKey || !event.newValue) return;
+            try {
+                const payload = JSON.parse(event.newValue) as { open?: boolean };
+                if (typeof payload.open !== "boolean") return;
+                setIsMobileLegendOpen(payload.open);
+            } catch {
+                // Ignore malformed payload.
+            }
+        };
+
+        window.addEventListener("storage", onStorage);
+        return () => window.removeEventListener("storage", onStorage);
+    }, [hasParams, mobileLegendBroadcastKey]);
 
     useEffect(() => {
         isMountedRef.current = true;
@@ -345,6 +443,7 @@ export default function QueueSessionReportPage() {
             "booking-requeued",
             "worker-joined",
             "worker-left",
+            "worker-status-updated",
             "session-status-changed",
             "session-cutoff-changed",
             "pin-changed",
@@ -394,7 +493,7 @@ export default function QueueSessionReportPage() {
 
     useEffect(() => {
         setBookingPage(1);
-    }, [searchQuery, statusFilter, bookingTypeFilter, workerFilter, bookingsPerPage]);
+    }, [historySearchQuery, historyStatusFilter, historyBookingTypeFilter, historyWorkerFilter, bookingsPerPage]);
 
     const sortedBookings = useMemo(() => {
         return [...(report?.bookings ?? [])].sort((left, right) => {
@@ -454,9 +553,9 @@ export default function QueueSessionReportPage() {
     }, [isEnglish, workerSummaries]);
 
     const filteredWorkers = useMemo(() => {
-        const query = searchQuery.trim().toLowerCase();
+        const query = taSearchQuery.trim().toLowerCase();
         return workerSummaries.filter((worker) => {
-            const matchesWorker = workerFilter === "all" || String(worker.user_id) === workerFilter;
+            const matchesWorker = taWorkerFilter === "all" || String(worker.user_id) === taWorkerFilter;
             if (!matchesWorker) return false;
             if (!query) return true;
 
@@ -473,27 +572,39 @@ export default function QueueSessionReportPage() {
 
             return haystack.includes(query);
         });
-    }, [isEnglish, searchQuery, workerFilter, workerSummaries]);
+    }, [isEnglish, taSearchQuery, taWorkerFilter, workerSummaries]);
+
+    const rankedWorkers = useMemo(() => {
+        return [...filteredWorkers].sort((left, right) => {
+            if (right.pendingAssignedCount !== left.pendingAssignedCount) {
+                return right.pendingAssignedCount - left.pendingAssignedCount;
+            }
+            if (right.total_completed !== left.total_completed) {
+                return right.total_completed - left.total_completed;
+            }
+            return left.user_id - right.user_id;
+        });
+    }, [filteredWorkers]);
 
     useEffect(() => {
-        if (filteredWorkers.length === 0) {
+        if (rankedWorkers.length === 0) {
             setSelectedWorkerId("all");
             return;
         }
 
-        if (selectedWorkerId === "all" || !filteredWorkers.some((worker) => String(worker.user_id) === selectedWorkerId)) {
-            setSelectedWorkerId(String(filteredWorkers[0].user_id));
+        if (selectedWorkerId === "all" || !rankedWorkers.some((worker) => String(worker.user_id) === selectedWorkerId)) {
+            setSelectedWorkerId(String(rankedWorkers[0].user_id));
         }
-    }, [filteredWorkers, selectedWorkerId]);
+    }, [rankedWorkers, selectedWorkerId]);
 
-    const selectedWorker = filteredWorkers.find((worker) => String(worker.user_id) === selectedWorkerId) || null;
+    const selectedWorker = rankedWorkers.find((worker) => String(worker.user_id) === selectedWorkerId) || null;
 
     const filteredBookings = useMemo(() => {
-        const query = searchQuery.trim().toLowerCase();
+        const query = historySearchQuery.trim().toLowerCase();
         return sortedBookings.filter((booking) => {
-            const matchesStatus = statusFilter === "all" || booking.status === statusFilter;
-            const matchesType = bookingTypeFilter === "all" || booking.booking_type === bookingTypeFilter;
-            const matchesWorker = workerFilter === "all" || String(booking.assigned_worker?.id || "") === workerFilter;
+            const matchesStatus = historyStatusFilter === "all" || booking.status === historyStatusFilter;
+            const matchesType = historyBookingTypeFilter === "all" || booking.booking_type === historyBookingTypeFilter;
+            const matchesWorker = historyWorkerFilter === "all" || String(booking.assigned_worker?.id || "") === historyWorkerFilter;
             if (!matchesStatus || !matchesType || !matchesWorker) return false;
             if (!query) return true;
 
@@ -512,7 +623,7 @@ export default function QueueSessionReportPage() {
 
             return haystack.includes(query);
         });
-    }, [bookingTypeFilter, searchQuery, sortedBookings, statusFilter, workerFilter]);
+    }, [historyBookingTypeFilter, historySearchQuery, sortedBookings, historyStatusFilter, historyWorkerFilter]);
 
     const totalBookings = sortedBookings.length;
     const completedCount = sortedBookings.filter((booking) => booking.status === "completed").length;
@@ -569,7 +680,7 @@ export default function QueueSessionReportPage() {
             hint: t("ถูกข้าม + หมดเวลา", "Skipped + timed out"),
         },
     ];
-    const topWorker = filteredWorkers[0] ?? null;
+    const topWorker = rankedWorkers[0] ?? null;
     const slowResponseCount = sortedBookings.filter((booking) => (booking.offer_response_seconds || 0) >= 120).length;
     const focusNotes = [
         t(
@@ -585,6 +696,31 @@ export default function QueueSessionReportPage() {
             `${slowResponseCount} entries took longer than 2 minutes to accept`,
         ),
     ];
+
+    const sessionStatus = deskData?.session?.status || "-";
+    const sessionStatusColor: "default" | "success" | "warning" | "danger" =
+        sessionStatus === "active" ? "success" : sessionStatus === "paused" ? "warning" : sessionStatus === "closed" ? "danger" : "default";
+
+    const healthStrip = [
+        { key: "waiting", label: t("รอคิว", "Waiting"), value: waitingCount, className: "bg-amber-100 text-amber-700" },
+        { key: "progress", label: t("กำลังตรวจ", "In progress"), value: inProgressCount, className: "bg-blue-100 text-blue-700" },
+        { key: "done", label: t("เสร็จแล้ว", "Completed"), value: completedCount, className: "bg-emerald-100 text-emerald-700" },
+        { key: "issue", label: t("สะดุด", "Needs attention"), value: skippedCount + timeoutCount + rejectCount, className: "bg-rose-100 text-rose-700" },
+    ];
+
+    const deskLegendItems = [
+        { key: "help_in_progress", label: t("ช่วยเหลือกำลังทำ", "Help in progress"), swatch: "#f59e0b" },
+        { key: "help_waiting", label: t("รอช่วยเหลือ", "Help waiting"), swatch: "#fcd34d" },
+        { key: "grading_in_progress", label: t("ตรวจงานกำลังทำ", "Grading in progress"), swatch: "#3b82f6" },
+        { key: "grading_waiting", label: t("รอตรวจ", "Grading waiting"), swatch: "#93c5fd" },
+        { key: "completed", label: t("เสร็จแล้ว", "Completed"), swatch: "#10b981" },
+        { key: "idle", label: t("ว่าง", "Idle"), swatch: "#cbd5e1" },
+    ];
+
+    const activeDeskNumbers = desks
+        .filter((desk) => getDeskVisualState(desk) !== "idle")
+        .map((desk) => Number(desk.number))
+        .filter((deskNumber) => !Number.isNaN(deskNumber));
 
     const handleExport = async () => {
         if (!report) return;
@@ -745,18 +881,21 @@ export default function QueueSessionReportPage() {
                         <Chip size="sm" color={report?.session ? "primary" : "default"} variant="flat">
                             {report?.session?.title || sessionId}
                         </Chip>
+                        <Chip size="sm" color={sessionStatusColor} variant="flat">
+                            {t("สถานะ", "Status")}: {sessionStatus}
+                        </Chip>
                         {isRefreshing ? (
                             <Chip size="sm" color="success" variant="flat">
                                 {t("อัปเดตสด", "Live refresh")}
                             </Chip>
                         ) : null}
                     </div>
-                        <p className="max-w-4xl text-sm text-default-500">
-                            {t(
-                                "ดูคาบนี้แบบละเอียดว่าใครรับงานอะไร รับได้ทันไหม กระจายงานสมดุลหรือไม่ และโต๊ะไหนถูกตรวจไปแล้วบ้าง ข้อมูลจะอัปเดตตาม event ของคิวแบบเรียลไทม์",
-                                "Review this session in detail: who handled what, how quickly offers were accepted, how balanced the workload is, and which desks each worker has touched. Updates arrive in real time from queue events.",
-                            )}
-                        </p>
+                    <p className="max-w-4xl text-sm text-default-500">
+                        {t(
+                            "เริ่มจาก KPI สำคัญก่อน จากนั้นดูผลงาน TA และเจาะประวัติการจองคิวในแท็บถัดไป",
+                            "Start with top KPI signals, then inspect TA performance and drill into booking history in the next tabs.",
+                        )}
+                    </p>
                     <div className="flex flex-wrap gap-3 text-xs text-default-500">
                         <span>
                             {t("อัปเดตล่าสุด", "Last refresh")}: {formatDateTime(report?.generated_at, isEnglish)}
@@ -765,7 +904,7 @@ export default function QueueSessionReportPage() {
                             {t("ห้อง", "Room")}: {deskData?.classroom?.name || "-"}
                         </span>
                         <span>
-                            {t("สถานะ session", "Session status")}: {deskData?.session?.status || "-"}
+                            {t("คอร์ส", "Course")}: {report?.course?.code || "-"}
                         </span>
                     </div>
                 </div>
@@ -773,15 +912,17 @@ export default function QueueSessionReportPage() {
                     <Button variant="flat" startContent={<Icon icon="solar:refresh-bold" />} onPress={() => void fetchSnapshot(true)}>
                         {t("รีเฟรชทันที", "Refresh now")}
                     </Button>
-                    <Button
-                        color="primary"
-                        variant="solid"
-                        startContent={<Icon icon="solar:download-bold" />}
-                        isLoading={isExporting}
-                        onPress={handleExport}
-                    >
-                        {t("ส่งออก Excel", "Export Excel")}
-                    </Button>
+                    {activeTab === "history" ? (
+                        <Button
+                            color="primary"
+                            variant="solid"
+                            startContent={<Icon icon="solar:download-bold" />}
+                            isLoading={isExporting}
+                            onPress={handleExport}
+                        >
+                            {t("ส่งออก Excel", "Export Excel")}
+                        </Button>
+                    ) : null}
                 </div>
             </div>
 
@@ -796,386 +937,449 @@ export default function QueueSessionReportPage() {
                 </Card>
             ) : null}
 
-            <Card className="border border-default-200 bg-content1 shadow-sm">
-                <CardHeader className="pb-0">
-                    <div>
-                        <h2 className="text-lg font-semibold">{t("เริ่มดูจากตรงนี้ก่อน", "Start Here First")}</h2>
-                        <p className="text-sm text-default-500">
-                            {t(
-                                "สรุปเฉพาะตัวเลขที่อาจารย์ควรดูเป็นอันดับแรกก่อน แล้วค่อยไล่ลงไปที่ผู้ตรวจรายคน",
-                                "A short first-glance summary before drilling into individual workers.",
-                            )}
-                        </p>
-                    </div>
-                </CardHeader>
-                <CardBody className="space-y-4">
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                        {focusCards.map((card) => (
-                            <div key={card.label} className="rounded-2xl border border-default-200 bg-default-50 p-4 dark:bg-default-100/5">
-                                <p className="text-xs font-medium uppercase tracking-wide text-default-500">{card.label}</p>
-                                <p className="mt-2 text-3xl font-semibold text-foreground">{card.value}</p>
-                                <p className="mt-1 text-xs text-default-400">{card.hint}</p>
+            <Card className="border border-default-200 bg-content1 shadow-sm md:sticky md:top-20 md:z-20">
+                <CardBody className="space-y-4 p-4">
+                    <div className="space-y-2 md:hidden">
+                        <div className="flex items-center justify-between gap-2 rounded-xl border border-default-200 bg-content2 px-3 py-2">
+                            <div className="flex items-center gap-2 text-xs">
+                                <Chip size="sm" variant="flat" color="danger">{t("เร่งด่วน", "Urgent")}</Chip>
+                                <Chip size="sm" variant="flat" color="warning">{t("กำลังดำเนินการ", "In progress")}</Chip>
+                                <Chip size="sm" variant="flat" color="success">{t("เสร็จแล้ว", "Completed")}</Chip>
                             </div>
-                        ))}
-                    </div>
+                            <Button
+                                size="sm"
+                                variant="flat"
+                                onPress={() => setIsMobileLegendOpen((prev) => !prev)}
+                                endContent={<Icon icon={isMobileLegendOpen ? "solar:alt-arrow-up-linear" : "solar:alt-arrow-down-linear"} />}
+                            >
+                                {isMobileLegendOpen ? t("ย่อ", "Hide") : t("ดูสีทั้งหมด", "Legend")}
+                            </Button>
+                        </div>
 
-                    <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-                        <div className="rounded-2xl border border-default-200 bg-default-50 p-4 dark:bg-default-100/5">
-                            <p className="text-sm font-semibold text-foreground">{t("สิ่งที่ควรจับตา", "What to Watch")}</p>
-                            <div className="mt-3 space-y-2">
-                                {focusNotes.map((note) => (
-                                    <div key={note} className="flex items-start gap-2 text-sm text-default-600">
-                                        <Icon icon="solar:round-alt-arrow-right-linear" className="mt-0.5 text-default-400" />
-                                        <span>{note}</span>
+                        {isMobileLegendOpen ? (
+                            <div className="grid gap-2 rounded-xl border border-default-200 bg-content2/70 p-3 text-xs sm:grid-cols-2">
+                                {deskLegendItems.map((item) => (
+                                    <div key={item.key} className="inline-flex items-center gap-2">
+                                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.swatch }} />
+                                        <span className="text-default-600">{item.label}</span>
                                     </div>
                                 ))}
                             </div>
-                        </div>
+                        ) : null}
+                    </div>
 
-                        <div className="rounded-2xl border border-default-200 bg-default-50 p-4 dark:bg-default-100/5">
-                            <p className="text-sm font-semibold text-foreground">{t("ภาพรวมเร็ว", "Quick Snapshot")}</p>
-                            <div className="mt-3 space-y-3 text-sm">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-default-500">{t("ตรวจงาน / ช่วยเหลือ", "Grading / Help")}</span>
-                                    <span className="font-medium">{gradingCount} / {helpCount}</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-default-500">{t("ปฏิเสธ / หมดเวลา", "Declined / Timed out")}</span>
-                                    <span className="font-medium">{rejectCount} / {timeoutCount}</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-default-500">{t("ภาระงานต่างกันมากสุด", "Max workload gap")}</span>
-                                    <span className="font-medium">{maxCompleted - minCompleted}</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-default-500">{t("เฉลี่ยต่อผู้ตรวจ", "Average per worker")}</span>
-                                    <span className="font-medium">{averageCompleted.toFixed(1)}</span>
-                                </div>
-                                {topWorker ? (
-                                    <div className="rounded-xl bg-content1 p-3">
-                                        <p className="text-xs text-default-500">{t("คนที่ทำงานเยอะสุดตอนนี้", "Most completed so far")}</p>
-                                        <p className="mt-1 font-medium text-foreground">
-                                            {topWorker.full_name || `#${topWorker.user_id}`} ({topWorker.total_completed})
-                                        </p>
-                                    </div>
-                                ) : null}
+                    <div className="hidden flex-wrap items-center gap-2 text-xs md:flex">
+                        {deskLegendItems.map((item) => (
+                            <div key={item.key} className="inline-flex items-center gap-2 rounded-full border border-default-200 bg-content2 px-3 py-1">
+                                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.swatch }} />
+                                <span className="text-default-600">{item.label}</span>
                             </div>
-                        </div>
+                        ))}
+                        <Chip size="sm" variant="flat" color="danger">
+                            {t("ไฟจราจร: แดงเร่งด่วน", "Traffic light: red is urgent")}
+                        </Chip>
+                    </div>
+
+                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                        {healthStrip.map((item) => (
+                            <div key={item.key} className={`rounded-xl px-3 py-2 text-sm font-medium ${item.className}`}>
+                                <div className="text-xs uppercase tracking-wide">{item.label}</div>
+                                <div className="mt-1 text-2xl font-semibold">{item.value}</div>
+                            </div>
+                        ))}
                     </div>
                 </CardBody>
             </Card>
 
             <Card className="border border-default-200 bg-content1 shadow-sm">
                 <CardBody className="p-4">
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-                        <Input
-                            value={searchQuery}
-                            onValueChange={setSearchQuery}
-                            placeholder={t("ค้นหาผู้จอง ผู้ตรวจ โต๊ะ IP หรือหมายเหตุ...", "Search by student, worker, desk, IP, or notes...")}
-                            isClearable
-                            variant="bordered"
-                            startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
-                            className="flex-1"
-                        />
-                        <div className="grid gap-2 sm:grid-cols-3 lg:w-auto">
-                            <Select
-                                aria-label={t("กรองตามสถานะ", "Filter by status")}
-                                selectedKeys={[statusFilter]}
-                                onSelectionChange={(keys) => setStatusFilter(getSingleSelection(keys, "all"))}
-                                variant="bordered"
-                            >
-                                <SelectItem key="all">{t("ทุกสถานะ", "All statuses")}</SelectItem>
-                                <SelectItem key="waiting">{t("รอคิว", "Waiting")}</SelectItem>
-                                <SelectItem key="in_progress">{t("กำลังตรวจ", "In progress")}</SelectItem>
-                                <SelectItem key="completed">{t("เสร็จสิ้น", "Completed")}</SelectItem>
-                                <SelectItem key="cancelled">{t("ยกเลิก", "Cancelled")}</SelectItem>
-                                <SelectItem key="no_show">{t("ถูกข้าม", "Skipped")}</SelectItem>
-                            </Select>
-                            <Select
-                                aria-label={t("กรองตามประเภทงาน", "Filter by booking type")}
-                                selectedKeys={[bookingTypeFilter]}
-                                onSelectionChange={(keys) => setBookingTypeFilter(getSingleSelection(keys, "all"))}
-                                variant="bordered"
-                            >
-                                <SelectItem key="all">{t("ทุกประเภท", "All types")}</SelectItem>
-                                <SelectItem key="grading">{t("ตรวจงาน", "Grading")}</SelectItem>
-                                <SelectItem key="help">{t("ช่วยเหลือ", "Help")}</SelectItem>
-                            </Select>
-                            <Select
-                                aria-label={t("กรองตามผู้ตรวจ", "Filter by worker")}
-                                items={workerSelectItems}
-                                selectedKeys={[workerFilter]}
-                                onSelectionChange={(keys) => setWorkerFilter(getSingleSelection(keys, "all"))}
-                                variant="bordered"
-                            >
-                                {(item) => <SelectItem key={item.key}>{item.label}</SelectItem>}
-                            </Select>
-                        </div>
-                    </div>
-                </CardBody>
-            </Card>
-
-            <Card className="border border-default-200 bg-content1 shadow-sm">
-                <CardHeader className="pb-0">
-                    <div>
-                        <h2 className="text-lg font-semibold">{t("ตารางผู้ตรวจ", "Worker Table")}</h2>
-                        <p className="text-sm text-default-500">
-                            {t(
-                                "ดูตารางนี้ก่อนเพื่อเทียบผู้ตรวจทั้งหมดในบรรทัดเดียว แล้วค่อยกดชื่อคนที่อยากเจาะรายละเอียด",
-                                "Use this table first to compare all workers in one place, then select one person for detail.",
-                            )}
-                        </p>
-                    </div>
-                </CardHeader>
-                <CardBody className="space-y-4">
-                    <Table removeWrapper aria-label={t("ตารางผู้ตรวจ", "Worker table")}>
-                        <TableHeader>
-                            <TableColumn>{t("ผู้ตรวจ", "Worker")}</TableColumn>
-                            <TableColumn>{t("สถานะ", "Status")}</TableColumn>
-                            <TableColumn>{t("รวม", "Total")}</TableColumn>
-                            <TableColumn>{t("ตรวจ/ช่วย", "Grading/Help")}</TableColumn>
-                            <TableColumn>{t("ตอบรับ", "Accept %")}</TableColumn>
-                            <TableColumn>{t("หมดเวลา", "Timed out")}</TableColumn>
-                            <TableColumn>{t("ค้างอยู่", "Active")}</TableColumn>
-                            <TableColumn>{t("โต๊ะตอนนี้", "Current desk")}</TableColumn>
-                        </TableHeader>
-                        <TableBody emptyContent={t("ยังไม่มีข้อมูลผู้ตรวจ", "No worker data found.")}>
-                            {filteredWorkers.map((worker) => (
-                                <TableRow
-                                    key={worker.user_id}
-                                    className={`cursor-pointer ${selectedWorkerId === String(worker.user_id) ? "bg-primary-50 dark:bg-primary-500/10" : ""}`}
-                                    onClick={() => setSelectedWorkerId(String(worker.user_id))}
-                                >
-                                    <TableCell>
-                                        <div>
-                                            <div className="font-medium text-foreground">{worker.full_name || `#${worker.user_id}`}</div>
-                                            <div className="text-xs text-default-500">{buildWorkerModeLabel(worker, isEnglish)}</div>
+                    <Tabs
+                        selectedKey={activeTab}
+                        onSelectionChange={(key) => setActiveTab(key as ReportTabKey)}
+                        variant="underlined"
+                        color="primary"
+                    >
+                        <Tab key="overview" title={t("ภาพรวม", "Overview")}>
+                            <div className="mt-4 space-y-4">
+                                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                                    {focusCards.map((card) => (
+                                        <div key={card.label} className="rounded-2xl border border-default-200 bg-default-50 p-4 dark:bg-default-100/5">
+                                            <p className="text-xs font-medium uppercase tracking-wide text-default-500">{card.label}</p>
+                                            <p className="mt-2 text-3xl font-semibold text-foreground">{card.value}</p>
+                                            <p className="mt-1 text-xs text-default-400">{card.hint}</p>
                                         </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Chip size="sm" color={getWorkerStatusColor(worker, now)} variant="flat">
-                                            {getWorkerStatusLabel(worker, isEnglish)}
-                                        </Chip>
-                                    </TableCell>
-                                    <TableCell>{worker.total_completed}</TableCell>
-                                    <TableCell>{worker.gradingAssignedCount} / {worker.helpAssignedCount}</TableCell>
-                                    <TableCell>{formatPercent(worker.offer_accept_rate)}</TableCell>
-                                    <TableCell>{worker.offer_timeout_count || 0}</TableCell>
-                                    <TableCell>{worker.pendingAssignedCount}</TableCell>
-                                    <TableCell>{worker.currentDeskNumbers.join(", ") || "-"}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-
-                    {selectedWorker ? (
-                        <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-                            <Card className="border border-default-200 bg-default-50 shadow-none dark:bg-default-100/5">
-                                <CardHeader className="pb-0">
-                                    <div>
-                                        <h3 className="text-base font-semibold">
-                                            {t("รายละเอียดผู้ตรวจ", "Worker detail")}: {selectedWorker.full_name || `#${selectedWorker.user_id}`}
-                                        </h3>
-                                        <p className="text-sm text-default-500">
-                                            {t(
-                                                "โต๊ะที่ผู้ตรวจคนนี้เคยรับและสถานะการทำงานล่าสุด",
-                                                "Desks this worker has handled and their latest operating state.",
-                                            )}
-                                        </p>
-                                    </div>
-                                </CardHeader>
-                                <CardBody className="space-y-4">
-                                    <WorkerDeskMap
-                                        desks={desks}
-                                        highlightedDeskNumbers={selectedWorker.uniqueDeskNumbers}
-                                        currentDeskNumbers={selectedWorker.currentDeskNumbers}
-                                    />
-                                    <div className="flex flex-wrap gap-2">
-                                        {selectedWorker.uniqueDeskNumbers.length > 0 ? (
-                                            selectedWorker.uniqueDeskNumbers.map((deskNumber) => (
-                                                <Chip
-                                                    key={deskNumber}
-                                                    size="sm"
-                                                    color={selectedWorker.currentDeskNumbers.includes(deskNumber) ? "warning" : "primary"}
-                                                    variant="flat"
-                                                >
-                                                    {t("โต๊ะ", "Desk")} {deskNumber}
-                                                </Chip>
-                                            ))
-                                        ) : (
-                                            <span className="text-sm text-default-500">
-                                                {t("ยังไม่พบโต๊ะที่ผู้ตรวจคนนี้รับงาน", "No desks recorded for this worker yet.")}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="grid gap-3 md:grid-cols-2">
-                                        <div className="rounded-xl border border-default-200 bg-content1 p-3">
-                                            <p className="text-xs text-default-500">{t("เปิดรับงานครั้งแรก / ล่าสุด", "First / last opened")}</p>
-                                            <p className="mt-1 text-sm font-medium">
-                                                {formatDateTime(selectedWorker.first_opened_at, isEnglish)} | {formatDateTime(selectedWorker.last_opened_at, isEnglish)}
-                                            </p>
-                                        </div>
-                                        <div className="rounded-xl border border-default-200 bg-content1 p-3">
-                                            <p className="text-xs text-default-500">{t("ปิดรับงานล่าสุด / active ล่าสุด", "Last closed / last active")}</p>
-                                            <p className="mt-1 text-sm font-medium">
-                                                {formatDateTime(selectedWorker.last_closed_at, isEnglish)} | {formatDateTime(selectedWorker.last_active_at, isEnglish)}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </CardBody>
-                            </Card>
-
-                            <Card className="border border-default-200 bg-default-50 shadow-none dark:bg-default-100/5">
-                                <CardHeader className="pb-0">
-                                    <div>
-                                        <h3 className="text-base font-semibold">{t("ประวัติของผู้ตรวจคนนี้", "This worker's recent history")}</h3>
-                                        <p className="text-sm text-default-500">
-                                            {t(
-                                                "เรียงจากล่าสุดไปเก่าสุด เพื่อดูว่าเดินตรวจโต๊ะไหนบ้างและใช้เวลานานแค่ไหน",
-                                                "Sorted newest first so you can review which desks they handled and how long each step took.",
-                                            )}
-                                        </p>
-                                    </div>
-                                </CardHeader>
-                                <CardBody>
-                                    <Table removeWrapper aria-label={t("ประวัติผู้ตรวจ", "Worker booking history")}>
-                                        <TableHeader>
-                                            <TableColumn>{t("เวลา", "Time")}</TableColumn>
-                                            <TableColumn>{t("โต๊ะ", "Desk")}</TableColumn>
-                                            <TableColumn>{t("ประเภท", "Type")}</TableColumn>
-                                            <TableColumn>{t("สถานะ", "Status")}</TableColumn>
-                                            <TableColumn>{t("ตอบรับงาน", "Offer response")}</TableColumn>
-                                            <TableColumn>{t("เวลาตรวจ", "Service time")}</TableColumn>
-                                        </TableHeader>
-                                        <TableBody emptyContent={t("ยังไม่มีประวัติของผู้ตรวจคนนี้", "No history for this worker yet.")}>
-                                            {selectedWorker.assignedBookings.slice(0, 8).map((booking) => (
-                                                <TableRow key={booking.id}>
-                                                    <TableCell>{formatDateTime(booking.created_at, isEnglish)}</TableCell>
-                                                    <TableCell>{booking.desk_number}</TableCell>
-                                                    <TableCell>{getQueueBookingTypeLabel(booking.booking_type, isEnglish)}</TableCell>
-                                                    <TableCell>
-                                                        <Chip size="sm" color={getStatusColor(booking.status)} variant="flat">
-                                                            {getQueueBookingStatusLabel(booking.status, isEnglish)}
-                                                        </Chip>
-                                                    </TableCell>
-                                                    <TableCell>{formatDuration(booking.offer_response_seconds, isEnglish)}</TableCell>
-                                                    <TableCell>{formatDuration(booking.service_duration_seconds, isEnglish)}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </CardBody>
-                            </Card>
-                        </div>
-                    ) : null}
-                </CardBody>
-            </Card>
-
-            {rejectReasonStats.length > 0 ? (
-                <Card className="border border-default-200 bg-content1 shadow-sm">
-                    <CardHeader className="pb-0">
-                        <div>
-                            <h2 className="text-lg font-semibold">{t("เหตุผลที่ปฏิเสธงานบ่อย", "Common Decline Reasons")}</h2>
-                            <p className="text-sm text-default-500">
-                                {t("เก็บไว้เป็นบล็อกสั้นๆ ด้านล่าง เพื่อไม่ให้แย่งความสนใจจากตารางหลัก", "Kept compact below the main table so it does not compete with the primary view.")}
-                            </p>
-                        </div>
-                    </CardHeader>
-                    <CardBody className="flex flex-wrap gap-2">
-                        {rejectReasonStats.map((reason) => (
-                            <Chip key={reason.code} variant="flat">
-                                {(isEnglish ? reason.label_en : reason.label_th)}: {reason.count} ({formatPercent((reason.count / Math.max(1, totalRejectByReason)) * 100)})
-                            </Chip>
-                        ))}
-                    </CardBody>
-                </Card>
-            ) : null}
-
-            <Card className="border border-default-200 bg-content1 shadow-sm">
-                <CardHeader className="pb-0">
-                    <div>
-                        <h2 className="text-lg font-semibold">{t("ประวัติการจองคิว", "Queue Booking History")}</h2>
-                        <p className="text-sm text-default-500">
-                            {t(
-                                "เรียงจากปัจจุบันไปเก่าสุด และแยกเวลาเป็นช่วงชัดเจน: เวลารอก่อนถูกเสนอ, เวลาตอบรับงาน, และเวลาที่ใช้ตรวจจริง",
-                                "Sorted newest first and broken into clear stages: queue wait before first offer, offer response time, and active service time.",
-                            )}
-                        </p>
-                    </div>
-                </CardHeader>
-                <CardBody>
-                    <Table removeWrapper aria-label={t("ประวัติการจองคิว", "Queue booking history")} classNames={{ base: "min-w-[1180px]" }}>
-                        <TableHeader>
-                            <TableColumn>{t("เวลาจอง", "Booked at")}</TableColumn>
-                            <TableColumn>{t("คิว", "Queue")}</TableColumn>
-                            <TableColumn>{t("โต๊ะ", "Desk")}</TableColumn>
-                            <TableColumn>{t("ประเภท", "Type")}</TableColumn>
-                            <TableColumn>{t("ผู้จอง", "Student")}</TableColumn>
-                            <TableColumn>{t("สถานะ", "Status")}</TableColumn>
-                            <TableColumn>{t("ผู้ตรวจ", "Worker")}</TableColumn>
-                            <TableColumn>{t("เวลาตอบรับงาน", "Offer response")}</TableColumn>
-                            <TableColumn>{t("เวลาตรวจ", "Service time")}</TableColumn>
-                            <TableColumn>{t("สะดุด", "Issues")}</TableColumn>
-                        </TableHeader>
-                        <TableBody emptyContent={t("ยังไม่มีประวัติการจองคิว", "No booking history found.")}>
-                            {paginatedBookings.map((booking) => (
-                                <TableRow key={booking.id}>
-                                    <TableCell>{formatDateTime(booking.created_at, isEnglish)}</TableCell>
-                                    <TableCell>{booking.queue_number}</TableCell>
-                                    <TableCell>{booking.desk_number}</TableCell>
-                                    <TableCell>{getQueueBookingTypeLabel(booking.booking_type, isEnglish)}</TableCell>
-                                    <TableCell>
-                                        <div className="min-w-48">
-                                            <div className="font-medium text-foreground">{booking.student?.full_name || "-"}</div>
-                                            <div className="text-xs text-default-500">{booking.student?.student_id || "-"}</div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Chip size="sm" color={getStatusColor(booking.status)} variant="flat">
-                                            {getQueueBookingStatusLabel(booking.status, isEnglish)}
-                                        </Chip>
-                                    </TableCell>
-                                    <TableCell>{booking.assigned_worker?.full_name || "-"}</TableCell>
-                                    <TableCell>{formatDuration(booking.offer_response_seconds, isEnglish)}</TableCell>
-                                    <TableCell>{formatDuration(booking.service_duration_seconds, isEnglish)}</TableCell>
-                                    <TableCell>{`${booking.timeout_count || 0} / ${booking.reject_count || 0}`}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                    {filteredBookings.length > 0 ? (
-                        <div className="mt-4 flex flex-col gap-3 border-t border-default-200 pt-4 lg:flex-row lg:items-center lg:justify-between">
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                                <p className="text-sm text-default-500">
-                                    {t("แสดง", "Showing")} {(currentBookingPage - 1) * bookingPageSize + 1}-{Math.min(currentBookingPage * bookingPageSize, filteredBookings.length)} {t("จาก", "of")} {filteredBookings.length} {t("รายการ", "items")}
-                                </p>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm text-default-500">{t("ต่อหน้า", "per page")}</span>
-                                    <Select
-                                        aria-label={t("จำนวนรายการต่อหน้า", "Rows per page")}
-                                        selectedKeys={[bookingsPerPage]}
-                                        onSelectionChange={(keys) => setBookingsPerPage(getSingleSelection(keys, "10"))}
-                                        className="w-28"
-                                        size="sm"
-                                        variant="bordered"
-                                    >
-                                        <SelectItem key="10">10</SelectItem>
-                                        <SelectItem key="20">20</SelectItem>
-                                        <SelectItem key="50">50</SelectItem>
-                                    </Select>
+                                    ))}
                                 </div>
+
+                                <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+                                    <div className="rounded-2xl border border-default-200 bg-default-50 p-4 dark:bg-default-100/5">
+                                        <p className="text-sm font-semibold text-foreground">{t("สิ่งที่ควรจับตา", "What to watch")}</p>
+                                        <div className="mt-3 space-y-2">
+                                            {focusNotes.map((note) => (
+                                                <div key={note} className="flex items-start gap-2 text-sm text-default-600">
+                                                    <Icon icon="solar:round-alt-arrow-right-linear" className="mt-0.5 text-default-400" />
+                                                    <span>{note}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="rounded-2xl border border-default-200 bg-default-50 p-4 dark:bg-default-100/5">
+                                        <p className="text-sm font-semibold text-foreground">{t("ภาพรวมเร็ว", "Quick snapshot")}</p>
+                                        <div className="mt-3 space-y-3 text-sm">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-default-500">{t("ตรวจงาน / ช่วยเหลือ", "Grading / Help")}</span>
+                                                <span className="font-medium">{gradingCount} / {helpCount}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-default-500">{t("ปฏิเสธ / หมดเวลา", "Declined / Timed out")}</span>
+                                                <span className="font-medium">{rejectCount} / {timeoutCount}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-default-500">{t("ภาระงานต่างกันมากสุด", "Max workload gap")}</span>
+                                                <span className="font-medium">{maxCompleted - minCompleted}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-default-500">{t("เฉลี่ยต่อผู้ตรวจ", "Average per worker")}</span>
+                                                <span className="font-medium">{averageCompleted.toFixed(1)}</span>
+                                            </div>
+                                            {topWorker ? (
+                                                <div className="rounded-xl bg-content1 p-3">
+                                                    <p className="text-xs text-default-500">{t("ภาระงานสูงสุดตอนนี้", "Highest active load")}</p>
+                                                    <p className="mt-1 font-medium text-foreground">
+                                                        {topWorker.full_name || `#${topWorker.user_id}`} ({topWorker.pendingAssignedCount})
+                                                    </p>
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {rejectReasonStats.length > 0 ? (
+                                    <div className="flex flex-wrap gap-2 rounded-2xl border border-default-200 bg-content2/40 p-3">
+                                        {rejectReasonStats.map((reason) => (
+                                            <Chip key={reason.code} variant="flat" size="sm">
+                                                {(isEnglish ? reason.label_en : reason.label_th)}: {reason.count} ({formatPercent((reason.count / Math.max(1, totalRejectByReason)) * 100)})
+                                            </Chip>
+                                        ))}
+                                    </div>
+                                ) : null}
                             </div>
-                            <Pagination
-                                page={currentBookingPage}
-                                total={totalBookingPages}
-                                onChange={setBookingPage}
-                                showControls
-                                isCompact
-                                color="primary"
-                                variant="flat"
-                            />
-                        </div>
-                    ) : null}
+                        </Tab>
+
+                        <Tab key="ta" title={t("ประสิทธิภาพผู้ตรวจ", "TA Performance")}>
+                            <div className="mt-4 space-y-4">
+                                <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                                    <Input
+                                        value={taSearchQuery}
+                                        onValueChange={setTaSearchQuery}
+                                        placeholder={t("ค้นหาผู้ตรวจ โต๊ะ หรือโหมดรับงาน...", "Search worker, desks, or queue mode...")}
+                                        isClearable
+                                        variant="bordered"
+                                        startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
+                                        className="flex-1"
+                                    />
+                                    <div className="grid gap-2 sm:grid-cols-1 lg:w-64">
+                                        <Select
+                                            aria-label={t("กรองตามผู้ตรวจ", "Filter by worker")}
+                                            items={workerSelectItems}
+                                            selectedKeys={[taWorkerFilter]}
+                                            onSelectionChange={(keys) => setTaWorkerFilter(getSingleSelection(keys, "all"))}
+                                            variant="bordered"
+                                        >
+                                            {(item) => <SelectItem key={item.key}>{item.label}</SelectItem>}
+                                        </Select>
+                                    </div>
+                                </div>
+
+                                <Table removeWrapper aria-label={t("ตารางผู้ตรวจ", "Worker table")}>
+                                    <TableHeader>
+                                        <TableColumn>{t("ผู้ตรวจ", "Worker")}</TableColumn>
+                                        <TableColumn>{t("สถานะ", "Status")}</TableColumn>
+                                        <TableColumn>{t("ค้างอยู่", "Active")}</TableColumn>
+                                        <TableColumn>{t("เสร็จแล้ว", "Completed")}</TableColumn>
+                                        <TableColumn>{t("ตอบรับ", "Accept %")}</TableColumn>
+                                        <TableColumn>{t("หมดเวลา", "Timed out")}</TableColumn>
+                                        <TableColumn>{t("โต๊ะตอนนี้", "Current desk")}</TableColumn>
+                                    </TableHeader>
+                                    <TableBody emptyContent={t("ยังไม่มีข้อมูลผู้ตรวจ", "No worker data found.")}>
+                                        {rankedWorkers.map((worker) => (
+                                            <TableRow
+                                                key={worker.user_id}
+                                                className={`cursor-pointer ${selectedWorkerId === String(worker.user_id) ? "bg-primary-50 dark:bg-primary-500/10" : ""}`}
+                                                onClick={() => setSelectedWorkerId(String(worker.user_id))}
+                                            >
+                                                <TableCell>
+                                                    <div>
+                                                        <div className="font-medium text-foreground">{worker.full_name || `#${worker.user_id}`}</div>
+                                                        <div className="text-xs text-default-500">{buildWorkerModeLabel(worker, isEnglish)}</div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Chip size="sm" color={getWorkerStatusColor(worker, now)} variant="flat">
+                                                        {getWorkerStatusLabel(worker, isEnglish)}
+                                                    </Chip>
+                                                </TableCell>
+                                                <TableCell>{worker.pendingAssignedCount}</TableCell>
+                                                <TableCell>{worker.total_completed}</TableCell>
+                                                <TableCell>{formatPercent(worker.offer_accept_rate)}</TableCell>
+                                                <TableCell>{worker.offer_timeout_count || 0}</TableCell>
+                                                <TableCell>{worker.currentDeskNumbers.join(", ") || "-"}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+
+                                {selectedWorker ? (
+                                    <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+                                        <Card className="border border-default-200 bg-default-50 shadow-none dark:bg-default-100/5">
+                                            <CardHeader className="pb-0">
+                                                <div>
+                                                    <h3 className="text-base font-semibold">
+                                                        {t("แผนผังโต๊ะของผู้ตรวจ", "Worker desk map")}: {selectedWorker.full_name || `#${selectedWorker.user_id}`}
+                                                    </h3>
+                                                    <p className="text-sm text-default-500">
+                                                        {t(
+                                                            "ผังนี้ใช้สีชุดเดียวกับโปรเจกเตอร์ เพื่อดูโต๊ะที่ทำงานอยู่ได้ทันที",
+                                                            "This map uses the projector color language to identify active desks quickly.",
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            </CardHeader>
+                                            <CardBody className="space-y-4">
+                                                <WorkerDeskMap
+                                                    desks={desks}
+                                                    highlightedDeskNumbers={selectedWorker.uniqueDeskNumbers}
+                                                    currentDeskNumbers={selectedWorker.currentDeskNumbers}
+                                                />
+                                                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                                                    {deskLegendItems.map((item) => (
+                                                        <div key={item.key} className="flex items-center gap-2 rounded-lg border border-default-200 bg-content1 px-2 py-1.5 text-xs">
+                                                            <span className="inline-block h-3.5 w-3.5 rounded-full border border-black/10" style={{ backgroundColor: item.swatch }} />
+                                                            <span className="text-default-600">{item.label}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {selectedWorker.uniqueDeskNumbers.length > 0 ? (
+                                                        selectedWorker.uniqueDeskNumbers.map((deskNumber) => (
+                                                            <Chip
+                                                                key={deskNumber}
+                                                                size="sm"
+                                                                color={selectedWorker.currentDeskNumbers.includes(deskNumber) ? "warning" : "primary"}
+                                                                variant="flat"
+                                                            >
+                                                                {t("โต๊ะ", "Desk")} {deskNumber}
+                                                            </Chip>
+                                                        ))
+                                                    ) : (
+                                                        <span className="text-sm text-default-500">
+                                                            {t("ยังไม่พบโต๊ะที่ผู้ตรวจคนนี้รับงาน", "No desks recorded for this worker yet.")}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="grid gap-3 md:grid-cols-2">
+                                                    <div className="rounded-xl border border-default-200 bg-content1 p-3">
+                                                        <p className="text-xs text-default-500">{t("เปิดรับงานครั้งแรก / ล่าสุด", "First / last opened")}</p>
+                                                        <p className="mt-1 text-sm font-medium">
+                                                            {formatDateTime(selectedWorker.first_opened_at, isEnglish)} | {formatDateTime(selectedWorker.last_opened_at, isEnglish)}
+                                                        </p>
+                                                    </div>
+                                                    <div className="rounded-xl border border-default-200 bg-content1 p-3">
+                                                        <p className="text-xs text-default-500">{t("ปิดรับงานล่าสุด / active ล่าสุด", "Last closed / last active")}</p>
+                                                        <p className="mt-1 text-sm font-medium">
+                                                            {formatDateTime(selectedWorker.last_closed_at, isEnglish)} | {formatDateTime(selectedWorker.last_active_at, isEnglish)}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </CardBody>
+                                        </Card>
+
+                                        <Card className="border border-default-200 bg-default-50 shadow-none dark:bg-default-100/5">
+                                            <CardHeader className="pb-0">
+                                                <div>
+                                                    <h3 className="text-base font-semibold">{t("งานล่าสุดของผู้ตรวจ", "Recent tasks")}</h3>
+                                                    <p className="text-sm text-default-500">
+                                                        {t(
+                                                            "เรียงจากล่าสุดไปเก่าสุด เพื่อดูความต่อเนื่องของงาน",
+                                                            "Sorted newest first to inspect execution continuity.",
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            </CardHeader>
+                                            <CardBody>
+                                                <Table removeWrapper aria-label={t("ประวัติผู้ตรวจ", "Worker booking history")}>
+                                                    <TableHeader>
+                                                        <TableColumn>{t("เวลา", "Time")}</TableColumn>
+                                                        <TableColumn>{t("โต๊ะ", "Desk")}</TableColumn>
+                                                        <TableColumn>{t("ประเภท", "Type")}</TableColumn>
+                                                        <TableColumn>{t("สถานะ", "Status")}</TableColumn>
+                                                        <TableColumn>{t("ตอบรับงาน", "Offer response")}</TableColumn>
+                                                        <TableColumn>{t("เวลาตรวจ", "Service time")}</TableColumn>
+                                                    </TableHeader>
+                                                    <TableBody emptyContent={t("ยังไม่มีประวัติของผู้ตรวจคนนี้", "No history for this worker yet.")}>
+                                                        {selectedWorker.assignedBookings.slice(0, 8).map((booking) => (
+                                                            <TableRow key={booking.id}>
+                                                                <TableCell>{formatDateTime(booking.created_at, isEnglish)}</TableCell>
+                                                                <TableCell>{booking.desk_number}</TableCell>
+                                                                <TableCell>{getQueueBookingTypeLabel(booking.booking_type, isEnglish)}</TableCell>
+                                                                <TableCell>
+                                                                    <Chip size="sm" color={getStatusColor(booking.status)} variant="flat">
+                                                                        {getQueueBookingStatusLabel(booking.status, isEnglish)}
+                                                                    </Chip>
+                                                                </TableCell>
+                                                                <TableCell>{formatDuration(booking.offer_response_seconds, isEnglish)}</TableCell>
+                                                                <TableCell>{formatDuration(booking.service_duration_seconds, isEnglish)}</TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </CardBody>
+                                        </Card>
+                                    </div>
+                                ) : null}
+                            </div>
+                        </Tab>
+
+                        <Tab key="history" title={t("ประวัติการจอง", "Booking History")}>
+                            <div className="mt-4 space-y-4">
+                                <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                                    <Input
+                                        value={historySearchQuery}
+                                        onValueChange={setHistorySearchQuery}
+                                        placeholder={t("ค้นหาผู้จอง ผู้ตรวจ โต๊ะ IP หรือหมายเหตุ...", "Search by student, worker, desk, IP, or notes...")}
+                                        isClearable
+                                        variant="bordered"
+                                        startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
+                                        className="flex-1"
+                                    />
+                                    <div className="grid gap-2 sm:grid-cols-3 lg:w-auto">
+                                        <Select
+                                            aria-label={t("กรองตามสถานะ", "Filter by status")}
+                                            selectedKeys={[historyStatusFilter]}
+                                            onSelectionChange={(keys) => setHistoryStatusFilter(getSingleSelection(keys, "all"))}
+                                            variant="bordered"
+                                        >
+                                            <SelectItem key="all">{t("ทุกสถานะ", "All statuses")}</SelectItem>
+                                            <SelectItem key="waiting">{t("รอคิว", "Waiting")}</SelectItem>
+                                            <SelectItem key="in_progress">{t("กำลังตรวจ", "In progress")}</SelectItem>
+                                            <SelectItem key="completed">{t("เสร็จสิ้น", "Completed")}</SelectItem>
+                                            <SelectItem key="cancelled">{t("ยกเลิก", "Cancelled")}</SelectItem>
+                                            <SelectItem key="no_show">{t("ถูกข้าม", "Skipped")}</SelectItem>
+                                        </Select>
+                                        <Select
+                                            aria-label={t("กรองตามประเภทงาน", "Filter by booking type")}
+                                            selectedKeys={[historyBookingTypeFilter]}
+                                            onSelectionChange={(keys) => setHistoryBookingTypeFilter(getSingleSelection(keys, "all"))}
+                                            variant="bordered"
+                                        >
+                                            <SelectItem key="all">{t("ทุกประเภท", "All types")}</SelectItem>
+                                            <SelectItem key="grading">{t("ตรวจงาน", "Grading")}</SelectItem>
+                                            <SelectItem key="help">{t("ช่วยเหลือ", "Help")}</SelectItem>
+                                        </Select>
+                                        <Select
+                                            aria-label={t("กรองตามผู้ตรวจ", "Filter by worker")}
+                                            items={workerSelectItems}
+                                            selectedKeys={[historyWorkerFilter]}
+                                            onSelectionChange={(keys) => setHistoryWorkerFilter(getSingleSelection(keys, "all"))}
+                                            variant="bordered"
+                                        >
+                                            {(item) => <SelectItem key={item.key}>{item.label}</SelectItem>}
+                                        </Select>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-default-200 bg-content2/40 px-3 py-2 text-xs text-default-600">
+                                    <span>{t("รวมรายการ", "Total entries")}: {filteredBookings.length}</span>
+                                    <span>{t("โต๊ะที่มีสถานะงาน", "Active desks")}: {activeDeskNumbers.length}</span>
+                                    <span>{t("ส่งออกตามชุดกรองปัจจุบัน", "Export uses current filters")}</span>
+                                </div>
+
+                                <Table removeWrapper aria-label={t("ประวัติการจองคิว", "Queue booking history")} classNames={{ base: "min-w-[1120px]" }}>
+                                    <TableHeader>
+                                        <TableColumn>{t("เวลาจอง", "Booked at")}</TableColumn>
+                                        <TableColumn>{t("คิว", "Queue")}</TableColumn>
+                                        <TableColumn>{t("โต๊ะ", "Desk")}</TableColumn>
+                                        <TableColumn>{t("ประเภท", "Type")}</TableColumn>
+                                        <TableColumn>{t("ผู้จอง", "Student")}</TableColumn>
+                                        <TableColumn>{t("สถานะ", "Status")}</TableColumn>
+                                        <TableColumn>{t("ผู้ตรวจ", "Worker")}</TableColumn>
+                                        <TableColumn>{t("เวลาตอบรับงาน", "Offer response")}</TableColumn>
+                                        <TableColumn>{t("เวลาตรวจ", "Service time")}</TableColumn>
+                                        <TableColumn>{t("สะดุด", "Issues")}</TableColumn>
+                                    </TableHeader>
+                                    <TableBody emptyContent={t("ยังไม่มีประวัติการจองคิว", "No booking history found.")}>
+                                        {paginatedBookings.map((booking) => (
+                                            <TableRow key={booking.id}>
+                                                <TableCell>{formatDateTime(booking.created_at, isEnglish)}</TableCell>
+                                                <TableCell>{booking.queue_number}</TableCell>
+                                                <TableCell>{booking.desk_number}</TableCell>
+                                                <TableCell>{getQueueBookingTypeLabel(booking.booking_type, isEnglish)}</TableCell>
+                                                <TableCell>
+                                                    <div className="min-w-48">
+                                                        <div className="font-medium text-foreground">{booking.student?.full_name || "-"}</div>
+                                                        <div className="text-xs text-default-500">{booking.student?.student_id || "-"}</div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Chip size="sm" color={getStatusColor(booking.status)} variant="flat">
+                                                        {getQueueBookingStatusLabel(booking.status, isEnglish)}
+                                                    </Chip>
+                                                </TableCell>
+                                                <TableCell>{booking.assigned_worker?.full_name || "-"}</TableCell>
+                                                <TableCell>{formatDuration(booking.offer_response_seconds, isEnglish)}</TableCell>
+                                                <TableCell>{formatDuration(booking.service_duration_seconds, isEnglish)}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        <Chip size="sm" variant="flat" color={(booking.timeout_count || 0) > 0 ? "danger" : "default"}>
+                                                            TO {booking.timeout_count || 0}
+                                                        </Chip>
+                                                        <Chip size="sm" variant="flat" color={(booking.reject_count || 0) > 0 ? "warning" : "default"}>
+                                                            RJ {booking.reject_count || 0}
+                                                        </Chip>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+
+                                {filteredBookings.length > 0 ? (
+                                    <div className="mt-2 flex flex-col gap-3 border-t border-default-200 pt-4 lg:flex-row lg:items-center lg:justify-between">
+                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                                            <p className="text-sm text-default-500">
+                                                {t("แสดง", "Showing")} {(currentBookingPage - 1) * bookingPageSize + 1}-{Math.min(currentBookingPage * bookingPageSize, filteredBookings.length)} {t("จาก", "of")} {filteredBookings.length} {t("รายการ", "items")}
+                                            </p>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm text-default-500">{t("ต่อหน้า", "per page")}</span>
+                                                <Select
+                                                    aria-label={t("จำนวนรายการต่อหน้า", "Rows per page")}
+                                                    selectedKeys={[bookingsPerPage]}
+                                                    onSelectionChange={(keys) => setBookingsPerPage(getSingleSelection(keys, "10"))}
+                                                    className="w-28"
+                                                    size="sm"
+                                                    variant="bordered"
+                                                >
+                                                    <SelectItem key="10">10</SelectItem>
+                                                    <SelectItem key="20">20</SelectItem>
+                                                    <SelectItem key="50">50</SelectItem>
+                                                </Select>
+                                            </div>
+                                        </div>
+                                        <Pagination
+                                            page={currentBookingPage}
+                                            total={totalBookingPages}
+                                            onChange={setBookingPage}
+                                            showControls
+                                            isCompact
+                                            color="primary"
+                                            variant="flat"
+                                        />
+                                    </div>
+                                ) : null}
+                            </div>
+                        </Tab>
+                    </Tabs>
                 </CardBody>
             </Card>
         </div>

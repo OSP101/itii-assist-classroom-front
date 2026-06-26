@@ -345,31 +345,31 @@ function AssignmentModalComponent({
                         <div
                             className={`rounded-xl border p-4 ${
                                 isEditingPublished
-                                    ? "border-emerald-200 bg-emerald-50"
-                                    : "border-yellow-200 bg-yellow-50"
+                                    ? "border-emerald-200 bg-emerald-50 dark:border-emerald-500/35 dark:bg-emerald-500/12"
+                                    : "border-yellow-200 bg-yellow-50 dark:border-yellow-500/35 dark:bg-yellow-500/12"
                             }`}
                         >
                             <div className="flex items-start gap-3">
-                                <div className={`rounded-lg p-2 ${isEditingPublished ? "bg-emerald-100" : "bg-yellow-100"}`}>
+                                <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${isEditingPublished ? "bg-emerald-100 dark:bg-emerald-500/20" : "bg-yellow-100 dark:bg-yellow-500/20"}`}>
                                     <Icon
                                         icon={isEditingPublished ? "solar:check-circle-bold" : "solar:pen-new-square-bold"}
-                                        className={isEditingPublished ? "text-emerald-600" : "text-yellow-700"}
+                                        className={isEditingPublished ? "text-emerald-600 dark:text-emerald-300" : "text-yellow-700 dark:text-yellow-300"}
                                     />
                                 </div>
-                                <div className="space-y-1">
+                                <div className="min-w-0 space-y-1">
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <p className="text-sm font-semibold text-default-800">
+                                        <p className="text-sm font-semibold text-default-800 dark:text-default-100">
                                             {isEditingPublished ? (isEnglish ? "Published assignment" : "งานที่เผยแพร่แล้ว") : (isEnglish ? "Draft workflow" : "โหมดฉบับร่าง")}
                                         </p>
                                         <Chip
                                             size="sm"
                                             variant="flat"
-                                            className={isEditingPublished ? "bg-emerald-100 text-emerald-700" : "bg-yellow-100 text-yellow-700"}
+                                            className={isEditingPublished ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200" : "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-200"}
                                         >
                                             {isEditingPublished ? (isEnglish ? "Published" : "เผยแพร่แล้ว") : (isEnglish ? "Draft" : "ฉบับร่าง")}
                                         </Chip>
                                     </div>
-                                    <p className={`text-xs ${isEditingPublished ? "text-emerald-700" : "text-yellow-800"}`}>
+                                    <p className={`text-xs ${isEditingPublished ? "text-emerald-700 dark:text-emerald-200" : "text-yellow-800 dark:text-yellow-200"}`}>
                                         {isEditingPublished
                                             ? (isEnglish
                                                 ? "This assignment is already visible in the course. It can be edited, but it cannot be moved back to draft."
@@ -503,10 +503,10 @@ function AssignmentModalComponent({
                                             ))}
                                     </Select>
                                 ) : (
-                                    <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-center">
-                                        <Icon icon="solar:info-circle-bold" className="text-amber-500 text-xl mb-1" />
-                                        <p className="text-sm text-amber-700">{isEnglish ? "No weekly groups yet" : "ยังไม่มีกลุ่มประจำสัปดาห์"}</p>
-                                        <p className="text-xs text-amber-600 mt-1">{isEnglish ? "Create weekly groups first." : "กรุณาสร้างกลุ่มประจำสัปดาห์ก่อน"}</p>
+                                    <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-center dark:bg-amber-500/10 dark:border-amber-500/35">
+                                        <Icon icon="solar:info-circle-bold" className="text-amber-500 text-xl mb-1 dark:text-amber-300" />
+                                        <p className="text-sm text-amber-700 dark:text-amber-200">{isEnglish ? "No weekly groups yet" : "ยังไม่มีกลุ่มประจำสัปดาห์"}</p>
+                                        <p className="text-xs text-amber-600 mt-1 dark:text-amber-300">{isEnglish ? "Create weekly groups first." : "กรุณาสร้างกลุ่มประจำสัปดาห์ก่อน"}</p>
                                     </div>
                                 )}
                             </div>
@@ -608,7 +608,7 @@ function AssignmentModalComponent({
                                             onClick={() => setFormData(prev => ({ ...prev, attendance_condition: "or" }))}
                                             className={`p-3 rounded-lg border-2 transition-all text-left ${
                                                 formData.attendance_condition === "or"
-                                                    ? "border-blue-500 bg-blue-50"
+                                                    ? "border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-500/12"
                                                     : "border-default-200 hover:border-default-300"
                                             }`}
                                         >
@@ -617,7 +617,7 @@ function AssignmentModalComponent({
                                                     icon="solar:alt-arrow-right-bold" 
                                                     className={formData.attendance_condition === "or" ? "text-blue-600" : "text-default-400"} 
                                                 />
-                                                <span className={`font-semibold ${formData.attendance_condition === "or" ? "text-blue-700" : "text-default-600"}`}>
+                                                <span className={`font-semibold ${formData.attendance_condition === "or" ? "text-blue-700 dark:text-blue-200" : "text-default-600"}`}>
                                                     {isEnglish ? "At least one session" : "อย่างน้อย 1 รอบ"}
                                                 </span>
                                             </div>
@@ -628,7 +628,7 @@ function AssignmentModalComponent({
                                             onClick={() => setFormData(prev => ({ ...prev, attendance_condition: "and" }))}
                                             className={`p-3 rounded-lg border-2 transition-all text-left ${
                                                 formData.attendance_condition === "and"
-                                                    ? "border-amber-500 bg-amber-50"
+                                                    ? "border-amber-500 bg-amber-50 dark:border-amber-400 dark:bg-amber-500/12"
                                                     : "border-default-200 hover:border-default-300"
                                             }`}
                                         >
@@ -637,7 +637,7 @@ function AssignmentModalComponent({
                                                     icon="solar:check-circle-bold" 
                                                     className={formData.attendance_condition === "and" ? "text-amber-600" : "text-default-400"} 
                                                 />
-                                                <span className={`font-semibold ${formData.attendance_condition === "and" ? "text-amber-700" : "text-default-600"}`}>
+                                                <span className={`font-semibold ${formData.attendance_condition === "and" ? "text-amber-700 dark:text-amber-200" : "text-default-600"}`}>
                                                     {isEnglish ? "Every session" : "ทุกรอบ"}
                                                 </span>
                                             </div>
@@ -648,8 +648,8 @@ function AssignmentModalComponent({
                             )}
                             
                             {formData.linked_attendance_session_ids.length > 0 && (
-                                <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                                    <div className="flex items-start gap-2 text-blue-700">
+                                <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200 dark:bg-blue-500/12 dark:border-blue-500/35">
+                                    <div className="flex items-start gap-2 text-blue-700 dark:text-blue-200">
                                         <Icon icon="solar:info-circle-bold" className="mt-0.5" />
                                         <div className="text-sm">
                                             <span className="font-medium">
@@ -889,8 +889,8 @@ function AssignmentModalComponent({
                                 />
                             </div>
                             {!formData.isScoreVisible && (
-                                <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                                    <p className="text-xs text-amber-700 flex items-start gap-2">
+                                <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200 dark:bg-amber-500/12 dark:border-amber-500/35">
+                                    <p className="text-xs text-amber-700 dark:text-amber-200 flex items-start gap-2">
                                         <Icon icon="solar:info-circle-bold" className="mt-0.5 shrink-0" />
                                         <span>
                                             {isEnglish
