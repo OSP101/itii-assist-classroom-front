@@ -22,6 +22,7 @@ class ApiService {
   private baseURL: string;
   private isRefreshing = false;
   private refreshSubscribers: Array<(token: string) => void> = [];
+  private inFlightRequests = new Map<string, Promise<ApiResponse<unknown>>>();
   
   // Rate limit handling
   private readonly MAX_RETRIES = 3;
@@ -128,6 +129,17 @@ class ApiService {
       ...options?.headers,
     };
     const allowRateLimitRetry = options?.retryOnRateLimit !== false;
+    const shouldDeduplicate = method === 'GET' && !body;
+    const requestKey = shouldDeduplicate
+      ? `${method}:${endpoint}:${JSON.stringify(options?.params ?? {})}`
+      : null;
+
+    if (shouldDeduplicate && requestKey) {
+      const existing = this.inFlightRequests.get(requestKey);
+      if (existing) {
+        return existing as Promise<ApiResponse<T>>;
+      }
+    }
 
     // Only set Content-Type for non-FormData requests
     const isFormData = body instanceof FormData;
@@ -141,7 +153,7 @@ class ApiService {
       headers['Authorization'] = `Bearer ${accessToken}`;
     }
 
-    try {
+    const executeRequest = async (): Promise<ApiResponse<T>> => {
       const response = await fetch(url.toString(), {
         method,
         headers,
@@ -239,7 +251,12 @@ class ApiService {
       return {
         success: true,
       };
-    } catch (error) {
+    };
+
+    const requestPromise = (async (): Promise<ApiResponse<T>> => {
+      try {
+        return await executeRequest();
+      } catch (error) {
       // Retry on network errors (but not too many times)
       if (retryCount < this.MAX_RETRIES && error instanceof TypeError && error.message.includes('fetch')) {
         const delay = this.INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
@@ -253,6 +270,19 @@ class ApiService {
         success: false,
         error: error instanceof Error ? error.message : 'Network error',
       };
+      }
+    })();
+
+    if (shouldDeduplicate && requestKey) {
+      this.inFlightRequests.set(requestKey, requestPromise as Promise<ApiResponse<unknown>>);
+    }
+
+    try {
+      return await requestPromise;
+    } finally {
+      if (shouldDeduplicate && requestKey) {
+        this.inFlightRequests.delete(requestKey);
+      }
     }
   }
 

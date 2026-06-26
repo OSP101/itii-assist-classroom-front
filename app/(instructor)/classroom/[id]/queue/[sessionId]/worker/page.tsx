@@ -622,8 +622,9 @@ export default function WorkerDashboardPage() {
         };
     }, [isWorkerOnline, currentBooking, isEnglish]);
 
-    // Polling interval ref
-    const pollingRef = useRef<NodeJS.Timeout | null>(null);
+    // Polling timer ref (adaptive timeout instead of fixed interval)
+    const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pollingBackoffStepRef = useRef(0);
 
     // Poll for current booking (fallback if socket fails)
     // Use ref to track if we should skip polling (to avoid stale closure issues)
@@ -640,11 +641,13 @@ export default function WorkerDashboardPage() {
         // Skip if not online, already have booking, or paused (unless forced)
         if (!isWorkerOnline) return;
         if (isPausedRef.current) return; // Don't poll for new tasks when paused
+        if (!force && socketRef.current?.connected) return;
         if (!force && (currentBooking || skipPollingRef.current)) return;
         
         try {
             const result = await queueService.getWorkerCurrentBooking(courseId, sessionId);
             syncWorkerState(result.worker);
+            pollingBackoffStepRef.current = 0;
 
             if (result.worker && result.worker.status === "offline" && result.worker.offer_paused_until) {
                 setCurrentBooking(null);
@@ -671,6 +674,7 @@ export default function WorkerDashboardPage() {
                 });
             }
         } catch (err) {
+            pollingBackoffStepRef.current = Math.min(pollingBackoffStepRef.current + 1, 6);
             console.error("Polling error:", err);
         }
     }, [courseId, sessionId, isWorkerOnline, currentBooking, isEnglish, t, syncWorkerState]);
@@ -683,6 +687,7 @@ export default function WorkerDashboardPage() {
 
         socket.on("connect", () => {
             hasWarnedAboutConnectError.current = false;
+            pollingBackoffStepRef.current = 0;
             // Join queue and worker rooms
             socket.emit("join-queue", sessionId);
             socket.emit("join-worker", String(currentUser.id));
@@ -749,21 +754,31 @@ export default function WorkerDashboardPage() {
 
         socketRef.current = socket;
 
-        // Start polling as fallback (every 5 seconds) in case sockets are unavailable
-        pollingRef.current = setInterval(() => {
-            // Only poll if no current booking
-            if (!currentBooking) {
-                skipPollingRef.current = false;
-                pollForBooking();
-            }
-        }, 5000);
+        // Adaptive fallback polling: poll only when socket is not connected,
+        // and back off when requests fail to reduce pressure during outages.
+        const scheduleNextPoll = () => {
+            const nextIntervalMs = Math.min(
+                5000 * Math.pow(1.5, pollingBackoffStepRef.current),
+                30000
+            );
+
+            pollingRef.current = setTimeout(async () => {
+                if (!currentBooking) {
+                    skipPollingRef.current = false;
+                    await pollForBooking();
+                }
+                scheduleNextPoll();
+            }, nextIntervalMs);
+        };
+
+        scheduleNextPoll();
 
         return () => {
             socket.emit("leave-queue", sessionId);
             socket.emit("leave-worker", String(currentUser.id));
             socket.disconnect();
             if (pollingRef.current) {
-                clearInterval(pollingRef.current);
+                clearTimeout(pollingRef.current);
                 pollingRef.current = null;
             }
         };
