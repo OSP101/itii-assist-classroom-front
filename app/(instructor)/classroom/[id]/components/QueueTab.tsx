@@ -1399,7 +1399,6 @@ export default function QueueTab({
                                         labelPlacement="outside"
                                         variant="bordered"
                                         size="md"
-                                        className="pt-2"
                                         classNames={{
                                             inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
                                             label: "text-default-600 font-medium text-sm",
@@ -1421,8 +1420,12 @@ export default function QueueTab({
                                                 classroom_id: key ? String(key) : "",
                                             }));
                                         }}
-                                        classNames={{
-                                            base: "pt-2",
+                                        inputProps={{
+                                            classNames: {
+                                                inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                                input: "text-sm text-default-700",
+                                                label: "text-default-600 font-medium text-sm",
+                                            },
                                         }}
                                     >
                                         {(classroom) => (
@@ -1680,7 +1683,6 @@ export default function QueueTab({
                                 labelPlacement="outside"
                                 variant="bordered"
                                 size="md"
-                                className="pt-2"
                                 classNames={{
                                     inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
                                     label: "text-default-600 font-medium text-sm",
@@ -1717,8 +1719,12 @@ export default function QueueTab({
                                             classroom_id: key ? String(key) : "",
                                         }));
                                     }}
-                                    classNames={{
-                                        base: "pt-2",
+                                    inputProps={{
+                                        classNames: {
+                                            inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
+                                            input: "text-sm text-default-700",
+                                            label: "text-default-600 font-medium text-sm",
+                                        },
                                     }}
                                 >
                                     {(classroom) => (
