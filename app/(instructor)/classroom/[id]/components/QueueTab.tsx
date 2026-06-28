@@ -1387,6 +1387,7 @@ export default function QueueTab({
                                         labelPlacement="outside"
                                         variant="bordered"
                                         size="md"
+                                        className="pt-2"
                                         classNames={{
                                             inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
                                             label: "text-default-600 font-medium text-sm",
@@ -1626,6 +1627,7 @@ export default function QueueTab({
                                 labelPlacement="outside"
                                 variant="bordered"
                                 size="md"
+                                className="pt-2"
                                 classNames={{
                                     inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
                                     label: "text-default-600 font-medium text-sm",
