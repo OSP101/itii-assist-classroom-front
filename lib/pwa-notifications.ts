@@ -65,8 +65,8 @@ export async function showBrowserNotification(
 
   const notificationOptions: ExtendedNotificationOptions = {
     body: options.body,
-    icon: options.icon || "/images/logo-itii.png",
-    badge: options.badge || "/images/logo-itii.png",
+    icon: options.icon || "/icons/icon-192.png",
+    badge: options.badge || "/icons/badge-96.png",
     tag: options.tag,
     data: {
       url: options.url,

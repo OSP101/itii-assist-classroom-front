@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["10.199.10.10"],
   poweredByHeader: false,
+  output: "standalone",
   experimental: {
     useCache: true,
   },

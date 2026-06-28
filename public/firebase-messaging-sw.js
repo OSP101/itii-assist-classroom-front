@@ -1,7 +1,8 @@
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
 
-const APP_ICON = '/images/logo-itii.png';
+const APP_ICON = '/icons/icon-192.png';
+const APP_BADGE = '/icons/badge-96.png';
 const DEFAULT_VIBRATION_PATTERN = [180, 80, 240];
 
 firebase.initializeApp({
@@ -29,7 +30,7 @@ messaging.onBackgroundMessage((payload) => {
       payload.data?.body ||
       '',
     icon: payload.notification?.icon || APP_ICON,
-    badge: APP_ICON,
+    badge: APP_BADGE,
     data: {
       ...(payload.data || {}),
       url: targetUrl,
