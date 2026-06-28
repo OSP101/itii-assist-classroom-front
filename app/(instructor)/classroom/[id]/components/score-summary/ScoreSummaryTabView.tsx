@@ -9,6 +9,7 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@herou
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
 import { Button } from "@heroui/button";
 import { Divider } from "@heroui/divider";
+import { Tooltip } from "@heroui/tooltip";
 import { Icon } from "@iconify/react";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { ScoresSkeleton } from "../Skeletons";
@@ -400,7 +401,7 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                         <th rowSpan={2} className="w-14 border-r border-divider bg-content2 px-2 py-2 text-center font-semibold text-default-600">Sec</th>
                                         {isPermanentGroupTab && (
                                             <th rowSpan={2} className="w-20 border-r border-divider bg-content2 px-2 py-2 text-center font-semibold text-default-600">
-                                                {isEnglish ? "Group code" : "รหัสกลุ่ม"}
+                                                {isEnglish ? "Group name" : "ชื่อกลุ่ม"}
                                             </th>
                                         )}
                                         {assignmentGroups.map((group) => (
@@ -485,13 +486,12 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                                 </td>
                                                 {isPermanentGroupTab && (
                                                     <td className="px-2 py-3 text-center text-default-600">
-                                                        {student.group_id ? (
-                                                            <span
-                                                                className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700"
-                                                                title={student.group_name || "-"}
-                                                            >
-                                                                G{student.group_id}
-                                                            </span>
+                                                        {student.group_name ? (
+                                                            <Tooltip content={student.group_name} placement="top" delay={300}>
+                                                                <span className="inline-block max-w-32 cursor-help truncate rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
+                                                                    {student.group_name}
+                                                                </span>
+                                                            </Tooltip>
                                                         ) : (
                                                             <span className="text-default-300">-</span>
                                                         )}
