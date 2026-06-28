@@ -486,6 +486,17 @@ export default function QueueTab({
             return;
         }
 
+        if (!isClosedEditSession && (!formData.classroom_id || formData.classroom_id.length === 0)) {
+            addToast({
+                title: localize("กรุณาเลือกห้อง", "Select a classroom"),
+                description: localize("กรุณาเลือกห้องเรียน", "Please select a classroom"),
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+
         if (!formData.classroom_id || formData.classroom_id.length === 0) {
             addToast({
                 title: localize("กรุณาเลือกห้อง", "Select a classroom"),
@@ -581,6 +592,7 @@ export default function QueueTab({
                 : {
                     title: formData.title.trim(),
                     description: formData.description,
+                    classroom_id: formData.classroom_id,
                     linked_assignment_id: formData.linked_assignment_id,
                     require_attendance: formData.require_attendance,
                     linked_attendance_session_id: formData.linked_attendance_session_id,
@@ -1394,6 +1406,47 @@ export default function QueueTab({
                                         }}
                                     />
 
+                                    <Autocomplete
+                                        label={localize("ห้องที่ใช้งาน", "Classroom")}
+                                        labelPlacement="outside"
+                                        placeholder={localize("เลือกห้องเรียนสำหรับการจองคิว", "Select a classroom for this queue")}
+                                        isRequired
+                                        variant="bordered"
+                                        isLoading={isOptionsLoading}
+                                        defaultItems={sortedClassrooms}
+                                        selectedKey={formData.classroom_id ? String(formData.classroom_id) : null}
+                                        onSelectionChange={(key) => {
+                                            setFormData((prev) => ({
+                                                ...prev,
+                                                classroom_id: key ? String(key) : "",
+                                            }));
+                                        }}
+                                        classNames={{
+                                            base: "pt-2",
+                                        }}
+                                    >
+                                        {(classroom) => (
+                                            <AutocompleteItem
+                                                key={String(classroom.id)}
+                                                textValue={`${classroom.name} ${classroom.building}`}
+                                            >
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <span className="font-medium text-default-700">{classroom.name}</span>
+                                                    <span className="text-xs text-default-500">
+                                                        {classroom.building}
+                                                        {classroom.floor ? ` • ${localize("ชั้น", "Floor")} ${classroom.floor}` : ""}
+                                                    </span>
+                                                </div>
+                                            </AutocompleteItem>
+                                        )}
+                                    </Autocomplete>
+
+                                    {!isOptionsLoading && sortedClassrooms.length === 0 && (
+                                        <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-500/35 dark:bg-rose-500/12 dark:text-rose-200">
+                                            {localize("ไม่พบห้องเรียนในระบบ กรุณาสร้างห้องเรียนก่อนสร้างคิว", "No classrooms found. Please create a classroom before creating a queue.")}
+                                        </div>
+                                    )}
+
                                     <div className="rounded-xl border border-default-200 bg-content2 p-5">
                                         <div className="mb-4 flex items-start justify-between gap-3">
                                             <div className="flex items-center gap-3">
@@ -1563,7 +1616,7 @@ export default function QueueTab({
                             color="primary"
                             onPress={handleCreateSession}
                             isLoading={isSubmitting}
-                            isDisabled={!isCourseActive || !formData.title.trim() || isOptionsLoading}
+                            isDisabled={!isCourseActive || !formData.title.trim() || isOptionsLoading || !formData.classroom_id || sortedClassrooms.length === 0}
                             className={instructorPrimaryButtonClass()}
                         >
                             {localize("สร้างการจองคิว", "Create queue")}
@@ -1633,6 +1686,57 @@ export default function QueueTab({
                                     label: "text-default-600 font-medium text-sm",
                                 }}
                             />
+
+                            {isClosedEditSession ? (
+                                <Input
+                                    label={localize("ห้องที่ใช้งาน", "Classroom")}
+                                    labelPlacement="outside"
+                                    value={editTarget?.classroom ? `${editTarget.classroom.name} (${editTarget.classroom.building}${editTarget.classroom.floor ? ` • Floor ${editTarget.classroom.floor}` : ""})` : formData.classroom_id}
+                                    isReadOnly
+                                    variant="bordered"
+                                    size="md"
+                                    className="pt-2"
+                                    classNames={{
+                                        inputWrapper: "bg-content2 border-default-200",
+                                        label: "text-default-600 font-medium text-sm",
+                                    }}
+                                />
+                            ) : (
+                                <Autocomplete
+                                    label={localize("ห้องที่ใช้งาน", "Classroom")}
+                                    labelPlacement="outside"
+                                    placeholder={localize("เลือกห้องเรียนสำหรับการจองคิว", "Select a classroom for this queue")}
+                                    isRequired
+                                    variant="bordered"
+                                    isLoading={isOptionsLoading}
+                                    defaultItems={sortedClassrooms}
+                                    selectedKey={formData.classroom_id ? String(formData.classroom_id) : null}
+                                    onSelectionChange={(key) => {
+                                        setFormData((prev) => ({
+                                            ...prev,
+                                            classroom_id: key ? String(key) : "",
+                                        }));
+                                    }}
+                                    classNames={{
+                                        base: "pt-2",
+                                    }}
+                                >
+                                    {(classroom) => (
+                                        <AutocompleteItem
+                                            key={String(classroom.id)}
+                                            textValue={`${classroom.name} ${classroom.building}`}
+                                        >
+                                            <div className="flex items-center justify-between gap-3">
+                                                <span className="font-medium text-default-700">{classroom.name}</span>
+                                                <span className="text-xs text-default-500">
+                                                    {classroom.building}
+                                                    {classroom.floor ? ` • ${localize("ชั้น", "Floor")} ${classroom.floor}` : ""}
+                                                </span>
+                                            </div>
+                                        </AutocompleteItem>
+                                    )}
+                                </Autocomplete>
+                            )}
 
                             {false && (
                             <div className="p-4 bg-rose-50 rounded-xl border border-rose-200 space-y-3">

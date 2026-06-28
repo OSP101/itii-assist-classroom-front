@@ -214,6 +214,7 @@ export interface CreateQueueSessionData {
 export interface UpdateQueueSessionData {
     title?: string;
     description?: string;
+    classroom_id?: string;
     linked_assignment_id?: number | null;
     require_attendance?: boolean;
     linked_attendance_session_id?: number | null;
