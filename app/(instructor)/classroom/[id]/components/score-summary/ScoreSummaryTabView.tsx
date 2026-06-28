@@ -45,6 +45,10 @@ interface StudentType {
     student_id: string;
     full_name: string;
     section_number: string | number;
+    group_id?: number | null;
+    group_name?: string | null;
+    weekly_group_ids?: Record<string, number>;
+    weekly_group_names?: Record<string, string>;
     total_score: number;
     total_max_score: number;
     bonus_score: number;
@@ -56,6 +60,8 @@ interface StudentType {
         graded_at?: string | null;
         updated_at?: string | null;
         comment?: string | null;
+        group_id?: number | null;
+        group_name?: string | null;
         edit_requests?: {
             old_score: number | null;
             new_score: number;
@@ -72,6 +78,8 @@ interface ScoreSummaryTabViewProps {
     // State
     selectedTab: AssignmentTabType;
     selectedSection: string;
+    weeklySortWeek: string;
+    weeklySortMode: "group" | "student";
     searchQuery: string;
     isLoading: boolean;
     hoverRowId: string | null;
@@ -88,10 +96,14 @@ interface ScoreSummaryTabViewProps {
     labCount: number;
     assignmentCount: number;
     groupCount: number;
+    weeklyGroupCount: number;
+    weeklySortWeekOptions: string[];
 
     // Actions
     onSetSelectedTab: (tab: AssignmentTabType) => void;
     onSetSelectedSection: (section: string) => void;
+    onSetWeeklySortWeek: (week: string) => void;
+    onSetWeeklySortMode: (mode: "group" | "student") => void;
     onSetSearchQuery: (query: string) => void;
     onSetHoverRowId: (id: string | null) => void;
     onSetHoverColKey: (key: string | null) => void;
@@ -106,6 +118,8 @@ interface ScoreSummaryTabViewProps {
             graded_at?: string | null;
             updated_at?: string | null;
             comment?: string | null;
+            group_id?: number | null;
+            group_name?: string | null;
             edit_requests?: {
                 old_score: number | null;
                 new_score: number;
@@ -124,6 +138,8 @@ interface ScoreSummaryTabViewProps {
 const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
     selectedTab,
     selectedSection,
+    weeklySortWeek,
+    weeklySortMode,
     searchQuery,
     isLoading,
     hoverRowId,
@@ -138,8 +154,12 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
     labCount,
     assignmentCount,
     groupCount,
+    weeklyGroupCount,
+    weeklySortWeekOptions,
     onSetSelectedTab,
     onSetSelectedSection,
+    onSetWeeklySortWeek,
+    onSetWeeklySortMode,
     onSetSearchQuery,
     onSetHoverRowId,
     onSetHoverColKey,
@@ -152,6 +172,7 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
     const [isEditHistoryOpen, setIsEditHistoryOpen] = useState(false);
 
     const hasEditHistory = useMemo(() => (scoreModal.editRequests?.length ?? 0) > 0, [scoreModal.editRequests]);
+    const isPermanentGroupTab = selectedTab === "group";
     const gradedAtLabel = useMemo(() => formatDate(scoreModal.gradedAt, isEnglish), [scoreModal.gradedAt, isEnglish]);
     const updatedAtLabel = useMemo(() => formatDate(scoreModal.updatedAt, isEnglish), [scoreModal.updatedAt, isEnglish]);
     const shouldShowUpdatedAt = useMemo(() => {
@@ -230,6 +251,19 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                         </div>
                     }
                 />
+                <Tab
+                    key="weekly_group"
+                    title={
+                        <div className="flex items-center gap-2">
+                            <span>{isEnglish ? "Weekly group work" : "งานกลุ่มสัปดาห์"}</span>
+                            {weeklyGroupCount > 0 && (
+                                <Chip size="sm" variant="flat" className="bg-cyan-100 text-cyan-700 h-5 px-1.5 text-xs">
+                                    {weeklyGroupCount}
+                                </Chip>
+                            )}
+                        </div>
+                    }
+                />
             </Tabs>
 
             {/* Filter Bar */}
@@ -279,6 +313,55 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                     {(item) => <DropdownItem key={item.key}>{item.label}</DropdownItem>}
                                 </DropdownMenu>
                             </Dropdown>
+
+                            {selectedTab === "weekly_group" && (
+                                <div className="flex items-center gap-2">
+                                    <div className="inline-flex items-center rounded-lg border border-cyan-200 bg-cyan-50/40 p-1">
+                                        <Button
+                                            size="sm"
+                                            variant={weeklySortMode === "group" ? "solid" : "light"}
+                                            color={weeklySortMode === "group" ? "primary" : "default"}
+                                            className={weeklySortMode === "group" ? "text-white" : "text-cyan-700"}
+                                            onPress={() => onSetWeeklySortMode("group")}
+                                        >
+                                            {isEnglish ? "By group" : "ตามกลุ่ม"}
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant={weeklySortMode === "student" ? "solid" : "light"}
+                                            color={weeklySortMode === "student" ? "primary" : "default"}
+                                            className={weeklySortMode === "student" ? "text-white" : "text-cyan-700"}
+                                            onPress={() => onSetWeeklySortMode("student")}
+                                        >
+                                            {isEnglish ? "By student" : "ตามรหัส"}
+                                        </Button>
+                                    </div>
+                                    <Dropdown isDisabled={weeklySortMode === "student"}>
+                                        <DropdownTrigger>
+                                            <Button
+                                                variant="bordered"
+                                                size="md"
+                                                className="min-w-36 justify-between border-cyan-200 bg-cyan-50/40 text-cyan-700"
+                                            >
+                                                {weeklySortWeek
+                                                    ? (isEnglish ? `Week ${weeklySortWeek}` : `สัปดาห์ ${weeklySortWeek}`)
+                                                    : (isEnglish ? "Select week" : "เลือกสัปดาห์")}
+                                            </Button>
+                                        </DropdownTrigger>
+                                        <DropdownMenu
+                                            selectionMode="single"
+                                            selectedKeys={new Set(weeklySortWeek ? [weeklySortWeek] : [])}
+                                            onSelectionChange={(keys) => onSetWeeklySortWeek(Array.from(keys)[0] as string)}
+                                            items={weeklySortWeekOptions.map((week) => ({
+                                                key: week,
+                                                label: isEnglish ? `Week ${week}` : `สัปดาห์ ${week}`,
+                                            }))}
+                                        >
+                                            {(item) => <DropdownItem key={item.key}>{item.label}</DropdownItem>}
+                                        </DropdownMenu>
+                                    </Dropdown>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </CardBody>
@@ -295,6 +378,8 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                     ? (isEnglish ? "No labs yet" : "ยังไม่มีLab")
                                     : selectedTab === "assignment"
                                         ? (isEnglish ? "No assignments yet" : "ยังไม่มีAssignment")
+                                        : selectedTab === "weekly_group"
+                                            ? (isEnglish ? "No weekly group work yet" : "ยังไม่มีงานกลุ่มสัปดาห์")
                                         : (isEnglish ? "No group work yet" : "ยังไม่มีงานกลุ่ม")}
                             </p>
                         </div>
@@ -313,6 +398,11 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                         <th rowSpan={2} className="min-w-30 border-r border-divider bg-content2 px-3 py-2 text-center font-semibold text-default-600">{isEnglish ? "Student ID" : "รหัสนักศึกษา"}</th>
                                         <th rowSpan={2} className="min-w-50 border-r border-divider bg-content2 px-3 py-2 text-center font-semibold text-default-600">{isEnglish ? "Student name" : "ชื่อ-นามสกุล"}</th>
                                         <th rowSpan={2} className="w-14 border-r border-divider bg-content2 px-2 py-2 text-center font-semibold text-default-600">Sec</th>
+                                        {isPermanentGroupTab && (
+                                            <th rowSpan={2} className="w-20 border-r border-divider bg-content2 px-2 py-2 text-center font-semibold text-default-600">
+                                                {isEnglish ? "Group code" : "รหัสกลุ่ม"}
+                                            </th>
+                                        )}
                                         {assignmentGroups.map((group) => (
                                             <th
                                                 key={group.id}
@@ -358,7 +448,7 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                     </tr>
                                     {/* Average Row */}
                                     <tr className="bg-blue-50 border-b-2 border-blue-200">
-                                        <td colSpan={4} className="px-3 py-2 text-center text-blue-700 font-semibold bg-blue-50">{isEnglish ? "Average" : "ค่าเฉลี่ย"}</td>
+                                        <td colSpan={isPermanentGroupTab ? 5 : 4} className="px-3 py-2 text-center text-blue-700 font-semibold bg-blue-50">{isEnglish ? "Average" : "ค่าเฉลี่ย"}</td>
                                         {columns.map((col) => (
                                             <td key={col.key} className="px-2 py-2 text-center text-blue-600 font-medium border-l border-blue-100 bg-blue-50">
                                                 {matrixData.averages?.[col.key] ?? "-"}
@@ -393,6 +483,20 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                                 <td className="px-2 py-3 text-center text-default-600">
                                                     {student.section_number}
                                                 </td>
+                                                {isPermanentGroupTab && (
+                                                    <td className="px-2 py-3 text-center text-default-600">
+                                                        {student.group_id ? (
+                                                            <span
+                                                                className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700"
+                                                                title={student.group_name || "-"}
+                                                            >
+                                                                G{student.group_id}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-default-300">-</span>
+                                                        )}
+                                                    </td>
+                                                )}
                                                 {columns.map((col) => {
                                                     const scoreData = student.scores?.[col.key];
                                                     const score = scoreData?.score !== null && scoreData?.score !== undefined
@@ -412,6 +516,7 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                                             <button
                                                                 onClick={() => onScoreClick(student, col, scoreData)}
                                                                 disabled={!isCourseActive}
+                                                                title={scoreData?.group_name || undefined}
                                                                 className={`inline-flex min-w-10 items-center justify-center rounded-md px-2 text-sm font-medium transition-all h-7 ${!isCourseActive ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 hover:shadow-sm'} ${color.bg} ${color.text}`}
                                                             >
                                                                 {fmtScore(score)}

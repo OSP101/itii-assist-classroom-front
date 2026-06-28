@@ -20,6 +20,10 @@ interface StudentType {
     student_id: string;
     full_name: string;
     section_number: string | number;
+    group_id?: number | null;
+    group_name?: string | null;
+    weekly_group_ids?: Record<string, number>;
+    weekly_group_names?: Record<string, string>;
     total_score: number;
     total_max_score: number;
     bonus_score: number;
@@ -31,6 +35,8 @@ interface StudentType {
         graded_at?: string | null;
         updated_at?: string | null;
         comment?: string | null;
+        group_id?: number | null;
+        group_name?: string | null;
         edit_requests?: {
             old_score: number | null;
             new_score: number;
@@ -50,6 +56,8 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
     // Tab & Filter state
     const [selectedTab, setSelectedTab] = useState<AssignmentTabType>("lab");
     const [selectedSection, setSelectedSection] = useState<string>("all");
+    const [weeklySortWeek, setWeeklySortWeek] = useState<string>("");
+    const [weeklySortMode, setWeeklySortMode] = useState<"group" | "student">("group");
     const [searchQuery, setSearchQuery] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
@@ -61,13 +69,20 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
     const [labData, setLabData] = useState<ScoreSummaryMatrix | null>(null);
     const [assignmentData, setAssignmentData] = useState<ScoreSummaryMatrix | null>(null);
     const [groupData, setGroupData] = useState<ScoreSummaryMatrix | null>(null);
-    const hasFetchedRef = useRef({ lab: false, assignment: false, group: false });
+    const [weeklyGroupData, setWeeklyGroupData] = useState<ScoreSummaryMatrix | null>(null);
+    const hasFetchedRef = useRef({ lab: false, assignment: false, group: false, weekly_group: false });
 
     // Score detail modal
     const [scoreModal, setScoreModal] = useState<ScoreDetailModal>(INITIAL_SCORE_MODAL);
 
     // Get current matrix data based on selected tab
-    const matrixData = selectedTab === "lab" ? labData : selectedTab === "assignment" ? assignmentData : groupData;
+    const matrixData = selectedTab === "lab"
+        ? labData
+        : selectedTab === "assignment"
+            ? assignmentData
+            : selectedTab === "group"
+                ? groupData
+                : weeklyGroupData;
 
     // Fetch matrix data (with caching)
     const fetchMatrix = useCallback(async (type: AssignmentTabType, forceRefresh = false, showLoading = true) => {
@@ -79,7 +94,13 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
         }
         try {
             // Map tab type to API assignment type
-            const apiType = type === "lab" ? "individual" : type === "assignment" ? "assignment" : "group";
+            const apiType = type === "lab"
+                ? "individual"
+                : type === "assignment"
+                    ? "assignment"
+                    : type === "group"
+                        ? "permanent_group"
+                        : "weekly_group";
             const data = await scoreService.getScoreSummaryMatrix(courseId, {
                 assignmentType: apiType,
             });
@@ -87,8 +108,10 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
                 setLabData(data);
             } else if (type === "assignment") {
                 setAssignmentData(data);
-            } else {
+            } else if (type === "group") {
                 setGroupData(data);
+            } else {
+                setWeeklyGroupData(data);
             }
             hasFetchedRef.current[type] = true;
         } catch (error) {
@@ -107,7 +130,7 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
 
     // Prefetch remaining tabs so all chip counts are visible on first paint.
     useEffect(() => {
-        const tabs: AssignmentTabType[] = ["lab", "assignment", "group"];
+        const tabs: AssignmentTabType[] = ["lab", "assignment", "group", "weekly_group"];
         const tabsToPrefetch = tabs.filter((tab) => tab !== selectedTab && !hasFetchedRef.current[tab]);
         if (tabsToPrefetch.length === 0) return;
 
@@ -116,10 +139,32 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
         });
     }, [selectedTab, fetchMatrix]);
 
-    // Filter students by search query and section
+    const weeklySortWeekOptions = useMemo(() => {
+        const source = weeklyGroupData?.assignments ?? [];
+        const weeks = new Set<number>();
+        for (const assignment of source) {
+            if (assignment.week_number !== null && assignment.week_number !== undefined) {
+                weeks.add(assignment.week_number);
+            }
+        }
+        return Array.from(weeks).sort((a, b) => a - b).map((week) => String(week));
+    }, [weeklyGroupData?.assignments]);
+
+    useEffect(() => {
+        if (selectedTab !== "weekly_group") return;
+        if (weeklySortWeekOptions.length === 0) {
+            if (weeklySortWeek !== "") setWeeklySortWeek("");
+            return;
+        }
+        if (!weeklySortWeek || !weeklySortWeekOptions.includes(weeklySortWeek)) {
+            setWeeklySortWeek(weeklySortWeekOptions[0]);
+        }
+    }, [selectedTab, weeklySortWeek, weeklySortWeekOptions]);
+
+    // Filter + sort students by search query, section, and weekly group code when applicable
     const filteredStudents = useMemo(() => {
         if (!matrixData?.students) return [];
-        return matrixData.students.filter(student => {
+        const students = matrixData.students.filter(student => {
             // Section filter
             if (selectedSection !== "all") {
                 const sectionId = matrixData.sections?.find(s => String(s.id) === selectedSection);
@@ -135,7 +180,26 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
                 student.full_name.toLowerCase().includes(query)
             );
         });
-    }, [matrixData?.students, matrixData?.sections, searchQuery, selectedSection]);
+
+        if (selectedTab !== "weekly_group") {
+            return students;
+        }
+
+        if (weeklySortMode === "student" || !weeklySortWeek) {
+            return [...students].sort((a, b) => a.student_id.localeCompare(b.student_id));
+        }
+
+        return [...students].sort((a, b) => {
+            const groupA = a.weekly_group_ids?.[weeklySortWeek] ?? Number.MAX_SAFE_INTEGER;
+            const groupB = b.weekly_group_ids?.[weeklySortWeek] ?? Number.MAX_SAFE_INTEGER;
+
+            if (groupA !== groupB) {
+                return groupA - groupB;
+            }
+
+            return a.student_id.localeCompare(b.student_id);
+        });
+    }, [matrixData?.students, matrixData?.sections, searchQuery, selectedSection, selectedTab, weeklySortWeek, weeklySortMode]);
 
     // Get assignment columns
     const columns = useMemo((): ColumnDef[] => {
@@ -218,6 +282,8 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
             graded_at?: string | null;
             updated_at?: string | null;
             comment?: string | null;
+            group_id?: number | null;
+            group_name?: string | null;
             edit_requests?: {
                 old_score: number | null;
                 new_score: number;
@@ -254,11 +320,14 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
     const labCount = labData?.assignments?.length || 0;
     const assignmentCount = assignmentData?.assignments?.length || 0;
     const groupCount = groupData?.assignments?.length || 0;
+    const weeklyGroupCount = weeklyGroupData?.assignments?.length || 0;
 
     return {
         // State
         selectedTab,
         selectedSection,
+        weeklySortWeek,
+        weeklySortMode,
         searchQuery,
         isLoading,
         hoverRowId,
@@ -275,10 +344,14 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
         labCount,
         assignmentCount,
         groupCount,
+        weeklyGroupCount,
+        weeklySortWeekOptions,
 
         // Actions
         setSelectedTab,
         setSelectedSection,
+        setWeeklySortWeek,
+        setWeeklySortMode,
         setSearchQuery,
         setHoverRowId,
         setHoverColKey,

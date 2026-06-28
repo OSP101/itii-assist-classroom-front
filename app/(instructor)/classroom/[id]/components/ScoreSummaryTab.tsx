@@ -24,6 +24,8 @@ export default function ScoreSummaryTab({ courseId, isCourseActive = true }: Sco
         // State
         selectedTab,
         selectedSection,
+        weeklySortWeek,
+        weeklySortMode,
         searchQuery,
         isLoading,
         hoverRowId,
@@ -40,10 +42,14 @@ export default function ScoreSummaryTab({ courseId, isCourseActive = true }: Sco
         labCount,
         assignmentCount,
         groupCount,
+        weeklyGroupCount,
+        weeklySortWeekOptions,
 
         // Actions
         setSelectedTab,
         setSelectedSection,
+        setWeeklySortWeek,
+        setWeeklySortMode,
         setSearchQuery,
         setHoverRowId,
         setHoverColKey,
@@ -55,6 +61,8 @@ export default function ScoreSummaryTab({ courseId, isCourseActive = true }: Sco
         <ScoreSummaryTabView
             selectedTab={selectedTab}
             selectedSection={selectedSection}
+            weeklySortWeek={weeklySortWeek}
+            weeklySortMode={weeklySortMode}
             searchQuery={searchQuery}
             isLoading={isLoading}
             hoverRowId={hoverRowId}
@@ -69,8 +77,12 @@ export default function ScoreSummaryTab({ courseId, isCourseActive = true }: Sco
             labCount={labCount}
             assignmentCount={assignmentCount}
             groupCount={groupCount}
+            weeklyGroupCount={weeklyGroupCount}
+            weeklySortWeekOptions={weeklySortWeekOptions}
             onSetSelectedTab={setSelectedTab}
             onSetSelectedSection={setSelectedSection}
+            onSetWeeklySortWeek={setWeeklySortWeek}
+            onSetWeeklySortMode={setWeeklySortMode}
             onSetSearchQuery={setSearchQuery}
             onSetHoverRowId={setHoverRowId}
             onSetHoverColKey={setHoverColKey}

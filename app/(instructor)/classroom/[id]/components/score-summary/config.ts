@@ -1,5 +1,5 @@
 // Types
-export type AssignmentTabType = "lab" | "assignment" | "group";
+export type AssignmentTabType = "lab" | "assignment" | "group" | "weekly_group";
 
 export interface ScoreDetailModal {
     isOpen: boolean;

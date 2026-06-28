@@ -498,6 +498,7 @@ export interface ScoreSummaryMatrixStudent {
             graded_at?: string | null;
             updated_at?: string | null;
             comment?: string | null;
+            group_id?: number | null;
             group_name?: string | null;
             edit_requests?: {
                 old_score: number | null;
