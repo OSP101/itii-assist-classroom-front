@@ -9,6 +9,7 @@ import { NotificationProvider } from "@/contexts/NotificationContext";
 import { GlobalSettingsProvider, type InitialGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { authService } from "@/services/auth.service";
 import { IconifyPreload } from "@/components/IconifyPreload";
+import { PwaBootstrap } from "@/components/system/PwaBootstrap";
 
 export interface ProvidersProps {
   children: React.ReactNode;
@@ -53,6 +54,7 @@ export function Providers({ children, initialSettings }: ProvidersProps) {
 
   return (
     <HeroUIProvider navigate={router.push}>
+      <PwaBootstrap />
       <IconifyPreload />
       <GlobalSettingsProvider initialSettings={initialSettings}>
         <SocketProvider>

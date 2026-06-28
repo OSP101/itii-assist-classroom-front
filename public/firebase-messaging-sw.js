@@ -1,6 +1,9 @@
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
 
+const APP_ICON = '/images/logo-itii.png';
+const DEFAULT_VIBRATION_PATTERN = [180, 80, 240];
+
 firebase.initializeApp({
   apiKey: "AIzaSyAOgm56BteZP_ipSdv8il8r6knK3i4vTFc",
   authDomain: "itii-assist-classrooms.firebaseapp.com",
@@ -18,15 +21,23 @@ messaging.onBackgroundMessage((payload) => {
     payload.data?.title ||
     'แจ้งเตือนใหม่';
 
+  const targetUrl = payload.data?.url || payload.data?.link || payload.data?.workerUrl || payload.data?.bookingUrl || '/';
+
   const options = {
     body:
       payload.notification?.body ||
       payload.data?.body ||
       '',
-    icon: payload.notification?.icon || '/images/logo.png',
-    badge: '/images/badge.png',
-    data: payload.data || {},
+    icon: payload.notification?.icon || APP_ICON,
+    badge: APP_ICON,
+    data: {
+      ...(payload.data || {}),
+      url: targetUrl,
+    },
     requireInteraction: payload.data?.requireInteraction === 'true',
+    renotify: true,
+    tag: payload.data?.type || 'labtas-notification',
+    vibrate: DEFAULT_VIBRATION_PATTERN,
   };
 
   self.registration.showNotification(title, options);

@@ -1,5 +1,6 @@
 import { initializeApp, getApps, FirebaseApp } from "firebase/app";
 import { getMessaging, Messaging, getToken, onMessage, MessagePayload } from "firebase/messaging";
+import { registerPwaServiceWorker } from "@/lib/pwa-notifications";
 
 
 const firebaseConfig = {
@@ -88,7 +89,10 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
   
   try {
     // Register service worker first
-    const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+    const registration = await registerPwaServiceWorker();
+    if (!registration) {
+      return null;
+    }
     
     // Get FCM token
     const token = await getToken(messagingInstance, {

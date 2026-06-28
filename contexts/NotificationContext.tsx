@@ -16,6 +16,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { getNotificationHeadline, getNotificationMessage } from "@/lib/notification-display";
 import { useSocket } from "@/contexts/SocketContext";
 import userNotificationService, { UserNotificationItem } from "@/services/user-notification.service";
+import { showBrowserNotification, triggerNotificationVibration } from "@/lib/pwa-notifications";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
@@ -35,8 +36,8 @@ interface NotificationContextType {
     fcmToken: string | null;
 
     // Actions
-    requestPermission: () => Promise<boolean>;
-    registerFcmToken: (userType: "worker" | "student", targetId?: number) => Promise<boolean>;
+    requestPermission: () => Promise<{ granted: boolean; token: string | null }>;
+    registerFcmToken: (userType: "worker" | "student", targetId?: number, tokenOverride?: string | null) => Promise<boolean>;
     unregisterFcmToken: () => Promise<boolean>;
 
     // Latest notification (for in-app handling)
@@ -66,6 +67,51 @@ export const useNotification = () => {
 interface NotificationProviderProps {
     children: React.ReactNode;
 }
+
+const resolveNotificationUrl = (source: {
+    link?: string;
+    data?: Record<string, unknown>;
+}): string | undefined => {
+    const rawUrl =
+        (typeof source.data?.url === "string" && source.data.url) ||
+        (typeof source.data?.link === "string" && source.data.link) ||
+        source.link;
+
+    if (!rawUrl) {
+        return undefined;
+    }
+
+    if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
+        return rawUrl;
+    }
+
+    return rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`;
+};
+
+const notifyDevice = async ({
+    title,
+    body,
+    type,
+    url,
+}: {
+    title: string;
+    body?: string;
+    type?: string;
+    url?: string;
+}) => {
+    triggerNotificationVibration();
+
+    if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        return;
+    }
+
+    await showBrowserNotification(title, {
+        body,
+        url,
+        tag: type || "notification",
+        data: type ? { type } : undefined,
+    });
+};
 
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
     const { joinUserRoom, onNotification } = useSocket();
@@ -124,7 +170,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     }, []);
 
     // Request notification permission
-    const requestPermission = useCallback(async (): Promise<boolean> => {
+    const requestPermission = useCallback(async (): Promise<{ granted: boolean; token: string | null }> => {
         if (!isSupported) {
             addToast({
                 title: t("notificationsNotSupportedTitle"),
@@ -133,66 +179,80 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
             });
-            return false;
+            return { granted: false, token: null };
         }
 
         setIsLoading(true);
 
         try {
             const token = await requestNotificationPermission();
+            const nextPermissionStatus = getNotificationPermissionStatus();
+            setPermissionStatus(nextPermissionStatus);
 
-            if (token) {
+            if (nextPermissionStatus === "granted") {
                 setFcmToken(token);
-                setPermissionStatus("granted");
 
                 // Setup foreground message listener
-                const unsubscribe = onForegroundMessage((payload) => {
-                    setLastNotification(payload);
+                if (token) {
+                    if (unsubscribeRef.current) {
+                        unsubscribeRef.current();
+                    }
 
-                    // Show in-app toast for foreground notifications
-                    const preview = {
-                        type: payload.data?.type,
-                        title: payload.notification?.title || payload.data?.title || t("notification"),
-                        message: payload.notification?.body || payload.data?.body || "",
-                        data: payload.data,
-                    };
+                    const unsubscribe = onForegroundMessage((payload) => {
+                        setLastNotification(payload);
 
-                    addToast({
-                        title: getNotificationHeadline(preview, language, t),
-                        description: getNotificationMessage(preview, language, t),
-                        color: getToastColor(payload.data?.type),
-                        timeout: 3000,
-                shouldShowTimeoutProgress: true,
+                        // Show in-app toast for foreground notifications
+                        const preview = {
+                            type: payload.data?.type,
+                            title: payload.notification?.title || payload.data?.title || t("notification"),
+                            message: payload.notification?.body || payload.data?.body || "",
+                            data: payload.data,
+                        };
+                        const previewTitle = getNotificationHeadline(preview, language, t);
+                        const previewMessage = getNotificationMessage(preview, language, t);
+
+                        addToast({
+                            title: previewTitle,
+                            description: previewMessage,
+                            color: getToastColor(payload.data?.type),
+                            timeout: 3000,
+                            shouldShowTimeoutProgress: true,
+                        });
+
+                        void notifyDevice({
+                            title: previewTitle,
+                            body: previewMessage,
+                            type: payload.data?.type,
+                            url: resolveNotificationUrl({ data: payload.data }),
+                        });
                     });
-                });
 
-                if (unsubscribe) {
-                    unsubscribeRef.current = unsubscribe;
+                    if (unsubscribe) {
+                        unsubscribeRef.current = unsubscribe;
+                    }
                 }
 
                 addToast({
                     title: t("notificationsEnabledTitle"),
-                    description: t("notificationsEnabledDescription"),
+                    description: token ? t("notificationsEnabledDescription") : t("notificationsEnabledLimitedDescription"),
                     color: "success",
                     timeout: 3000,
-                shouldShowTimeoutProgress: true,
+                    shouldShowTimeoutProgress: true,
                 });
 
-                return true;
+                return { granted: true, token };
             } else {
-                setPermissionStatus(Notification.permission);
-
-                if (Notification.permission === "denied") {
+                if (nextPermissionStatus === "denied") {
                     addToast({
                         title: t("notificationsDisabledTitle"),
                         description: t("enableNotificationsInBrowserSettings"),
                         color: "warning",
                         timeout: 3000,
-                shouldShowTimeoutProgress: true,
+                        shouldShowTimeoutProgress: true,
                     });
                 }
 
-                return false;
+                return { granted: false, token: null };
             }
         } catch (error) {
             console.error("Error requesting permission:", error);
@@ -203,7 +263,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
             });
-            return false;
+            return { granted: false, token: null };
         } finally {
             setIsLoading(false);
         }
@@ -212,9 +272,11 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     // Register FCM token with backend
     const registerFcmToken = useCallback(async (
         userType: "worker" | "student",
-        targetId?: number
+        targetId?: number,
+        tokenOverride?: string | null,
     ): Promise<boolean> => {
-        if (!fcmToken) {
+        const activeToken = tokenOverride ?? fcmToken;
+        if (!activeToken) {
             console.warn("No FCM token available");
             return false;
         }
@@ -229,10 +291,11 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
                     ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
                 },
                 body: JSON.stringify({
-                    fcm_token: fcmToken,
+                    fcm_token: activeToken,
                     user_type: userType,
                     user_id: user?.id,
                     target_id: targetId, // session_id for workers, booking_id for students
+                    student_id: user?.student_id,
                     device_info: {
                         userAgent: navigator.userAgent,
                         platform: navigator.platform,
@@ -361,6 +424,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
                 created_at: data?.created_at || new Date().toISOString(),
             };
 
+            const previewTitle = getNotificationHeadline(incoming, language, t);
+            const previewMessage = getNotificationMessage(incoming, language, t);
+
             setNotifications((prev) => {
                 if (incoming.id > 0 && prev.some((item) => item.id === incoming.id)) {
                     return prev;
@@ -373,8 +439,25 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
             } else if (!incoming.is_read) {
                 setUnreadCount((prev) => prev + 1);
             }
+
+            if (!incoming.is_read) {
+                addToast({
+                    title: previewTitle,
+                    description: previewMessage,
+                    color: getToastColor(incoming.type),
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+                });
+
+                void notifyDevice({
+                    title: previewTitle,
+                    body: previewMessage,
+                    type: incoming.type,
+                    url: resolveNotificationUrl(incoming),
+                });
+            }
         });
-    }, [joinUserRoom, onNotification, refreshNotifications, t]);
+    }, [joinUserRoom, language, onNotification, refreshNotifications, t]);
 
     const value: NotificationContextType = {
         isSupported,

@@ -806,10 +806,10 @@ export default function WorkerDashboardPage() {
         try {
             // Request notification permission and register FCM token
             if (notificationSupported && permissionStatus !== "granted") {
-                const granted = await requestPermission();
-                if (granted) {
+                const permissionResult = await requestPermission();
+                if (permissionResult.granted) {
                     // Register FCM token for this worker and session
-                    await registerFcmToken("worker", parseInt(sessionId));
+                    await registerFcmToken("worker", parseInt(sessionId), permissionResult.token);
                 }
             } else if (fcmToken) {
                 // Already have permission, just register token

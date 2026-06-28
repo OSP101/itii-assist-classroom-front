@@ -124,6 +124,7 @@ export const metadata: Metadata = {
     default: siteConfig.name,
     template: `%s - ${siteConfig.name}`,
   },
+  manifest: "/manifest.webmanifest",
   applicationName: siteConfig.name,
   description: siteConfig.description,
   keywords: siteConfig.keywords,
@@ -131,6 +132,11 @@ export const metadata: Metadata = {
   creator: siteConfig.organization.name,
   publisher: siteConfig.organization.name,
   category: "education",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: siteConfig.name,
+  },
   referrer: "origin-when-cross-origin",
   openGraph: {
     title: siteConfig.name,
@@ -145,11 +151,13 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: "/favicon.ico",
+    apple: "/images/logo-itii.png",
   },
 };
 
 export const viewport: Viewport = {
   themeColor: "#2b7fff",
+  interactiveWidget: "resizes-content",
   viewportFit: "cover",
 };
 

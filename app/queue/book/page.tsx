@@ -608,9 +608,9 @@ function BookQueueContent() {
                 
                 // Request notification permission and register for push notifications
                 if (notificationSupported && permissionStatus !== "granted") {
-                    const granted = await requestPermission();
-                    if (granted) {
-                        await registerFcmToken("student", result.data.id);
+                    const permissionResult = await requestPermission();
+                    if (permissionResult.granted) {
+                        await registerFcmToken("student", result.data.id, permissionResult.token);
                     }
                 } else if (fcmToken) {
                     await registerFcmToken("student", result.data.id);
@@ -655,9 +655,9 @@ function BookQueueContent() {
                 saveBookingState(pinCode, studentId, result.data.id);
 
                 if (notificationSupported && permissionStatus !== "granted") {
-                    const granted = await requestPermission();
-                    if (granted) {
-                        await registerFcmToken("student", result.data.id);
+                    const permissionResult = await requestPermission();
+                    if (permissionResult.granted) {
+                        await registerFcmToken("student", result.data.id, permissionResult.token);
                     }
                 } else if (fcmToken) {
                     await registerFcmToken("student", result.data.id);
@@ -1442,9 +1442,9 @@ function BookQueueContent() {
                                 <button
                                     type="button"
                                     onClick={async () => {
-                                        const granted = await requestPermission();
-                                        if (granted && bookingResult) {
-                                            await registerFcmToken("student", bookingResult.id);
+                                        const permissionResult = await requestPermission();
+                                        if (permissionResult.granted && bookingResult) {
+                                            await registerFcmToken("student", bookingResult.id, permissionResult.token);
                                         }
                                     }}
                                     className="flex w-full items-center gap-3 rounded-3xl border border-violet-100 bg-violet-50 px-4 py-3 text-left text-sm transition active:scale-[0.98] hover:bg-violet-100"
