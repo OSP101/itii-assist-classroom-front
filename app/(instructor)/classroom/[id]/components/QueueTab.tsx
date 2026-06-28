@@ -308,6 +308,15 @@ export default function QueueTab({
             // Handle paginated response - classrooms is inside ApiResponse.data
             const classroomsData = classroomsResponse?.data?.classrooms || [];
             setClassrooms(classroomsData);
+            if (classroomsData.length > 0) {
+                setFormData((prev) => {
+                    if (prev.classroom_id) return prev;
+                    return {
+                        ...prev,
+                        classroom_id: classroomsData[0].id,
+                    };
+                });
+            }
             setAssignments(assignmentsData || []);
             // แสดงทุกรอบเช็คชื่อ (ไม่ต้อง filter เพราะอาจต้องการลิงก์กับรอบที่จบไปแล้ว)
             setAttendanceSessions(attendanceData || []);
@@ -1348,8 +1357,8 @@ export default function QueueTab({
                             </div>
                             </div>
                         </ModalHeader>
-                    <ModalBody className="px-6 py-4">
-                        <div className="space-y-5">
+                    <ModalBody className="px-6 py-5">
+                        <div className="space-y-6">
                             <Input
                                 label={localize("ชื่อการจองคิว", "Queue title")}
                                 placeholder={localize("เช่น ตรวจ Lab 1", "e.g. Lab 1 review")}
@@ -1360,7 +1369,7 @@ export default function QueueTab({
                                 variant="bordered"
                                 size="md"
                                 classNames={{
-                                    inputWrapper: "bg-content1 border-default-200 hover:border-amber-300 focus-within:!border-amber-400",
+                                    inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
                                     label: "text-default-600 font-medium text-sm",
                                 }}
                             />
@@ -1379,13 +1388,13 @@ export default function QueueTab({
                                         variant="bordered"
                                         size="md"
                                         classNames={{
-                                            inputWrapper: "bg-content1 border-default-200 hover:border-amber-300 focus-within:!border-amber-400",
+                                            inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
                                             label: "text-default-600 font-medium text-sm",
                                         }}
                                     />
 
-                                    <div className="rounded-xl border border-default-200 bg-content2 p-4">
-                                        <div className="flex items-center justify-between mb-3">
+                                    <div className="rounded-xl border border-default-200 bg-content2 p-5">
+                                        <div className="mb-4 flex items-start justify-between gap-3">
                                             <div className="flex items-center gap-3">
                                                 <div className="p-2 bg-amber-100 rounded-lg">
                                                     <Icon icon="solar:document-bold" className="text-lg text-amber-600" />
@@ -1398,7 +1407,7 @@ export default function QueueTab({
                                             <Button
                                                 size="sm"
                                                 variant={formData.linked_assignment_id ? "solid" : "bordered"}
-                                                color={formData.linked_assignment_id ? "warning" : "default"}
+                                                color={formData.linked_assignment_id ? "primary" : "default"}
                                                 onPress={() => {
                                                     if (formData.linked_assignment_id) {
                                                         setFormData({ ...formData, linked_assignment_id: null });
@@ -1450,8 +1459,8 @@ export default function QueueTab({
                                         )}
 
                                         {formData.linked_assignment_id && (
-                                            <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                                                <div className="flex items-center gap-2 text-amber-700">
+                                            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200 dark:bg-blue-500/12 dark:border-blue-500/35">
+                                                <div className="flex items-center gap-2 text-blue-700 dark:text-blue-200">
                                                     <Icon icon="solar:info-circle-bold" />
                                                     <span className="text-sm font-medium">
                                                         {localize("เมื่อตรวจงานเสร็จ คะแนนจะถูกบันทึกไปยังหัวข้องานนี้โดยอัตโนมัติ", "When grading is completed, scores will be saved to this assignment automatically")}
@@ -1461,8 +1470,8 @@ export default function QueueTab({
                                         )}
                                     </div>
 
-                                    <div className="rounded-xl border border-default-200 bg-content2 p-4">
-                                        <div className="flex items-center justify-between mb-3">
+                                    <div className="rounded-xl border border-default-200 bg-content2 p-5">
+                                        <div className="mb-4 flex items-start justify-between gap-3">
                                             <div className="flex items-center gap-3">
                                                 <div className="p-2 bg-blue-100 rounded-lg">
                                                     <Icon icon="solar:clipboard-check-bold" className="text-lg text-blue-600" />
@@ -1553,7 +1562,7 @@ export default function QueueTab({
                             color="primary"
                             onPress={handleCreateSession}
                             isLoading={isSubmitting}
-                            isDisabled={!isCourseActive || !formData.title.trim() || !formData.classroom_id}
+                            isDisabled={!isCourseActive || !formData.title.trim() || isOptionsLoading}
                             className={instructorPrimaryButtonClass()}
                         >
                             {localize("สร้างการจองคิว", "Create queue")}
@@ -1588,8 +1597,8 @@ export default function QueueTab({
                             </div>
                         </div>
                     </ModalHeader>
-                    <ModalBody className="px-6 py-4">
-                        <div className="space-y-5">
+                    <ModalBody className="px-6 py-5">
+                        <div className="space-y-6">
                             <Input
                                 label={localize("ชื่อการจองคิว", "Queue title")}
                                 placeholder={localize("เช่น ตรวจ Lab 1", "e.g. Lab 1 review")}
@@ -1600,7 +1609,7 @@ export default function QueueTab({
                                 variant="bordered"
                                 size="md"
                                 classNames={{
-                                    inputWrapper: "bg-content1 border-default-200 hover:border-amber-300 focus-within:!border-amber-400",
+                                    inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
                                     label: "text-default-600 font-medium text-sm",
                                 }}
                             />
@@ -1618,7 +1627,7 @@ export default function QueueTab({
                                 variant="bordered"
                                 size="md"
                                 classNames={{
-                                    inputWrapper: "bg-content1 border-default-200 hover:border-amber-300 focus-within:!border-amber-400",
+                                    inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
                                     label: "text-default-600 font-medium text-sm",
                                 }}
                             />
@@ -1682,8 +1691,8 @@ export default function QueueTab({
                             )}
 
                             {/* ลิงก์กับหัวข้องาน */}
-                            <div className="rounded-xl border border-default-200 bg-content2 p-4">
-                                <div className="flex items-center justify-between mb-3">
+                            <div className="rounded-xl border border-default-200 bg-content2 p-5">
+                                <div className="mb-4 flex items-start justify-between gap-3">
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 bg-amber-100 rounded-lg">
                                             <Icon icon="solar:document-bold" className="text-lg text-amber-600" />
@@ -1696,7 +1705,7 @@ export default function QueueTab({
                                     <Button
                                         size="sm"
                                         variant={formData.linked_assignment_id ? "solid" : "bordered"}
-                                        color={formData.linked_assignment_id ? "warning" : "default"}
+                                        color={formData.linked_assignment_id ? "primary" : "default"}
                                         onPress={() => {
                                             if (formData.linked_assignment_id) {
                                                 setFormData({ ...formData, linked_assignment_id: null });
@@ -1750,8 +1759,8 @@ export default function QueueTab({
                                 )}
 
                                 {formData.linked_assignment_id && (
-                                    <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                                        <div className="flex items-center gap-2 text-amber-700">
+                                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200 dark:bg-blue-500/12 dark:border-blue-500/35">
+                                        <div className="flex items-center gap-2 text-blue-700 dark:text-blue-200">
                                             <Icon icon="solar:info-circle-bold" />
                                             <span className="text-sm font-medium">
                                                 {localize("เมื่อตรวจงานเสร็จ คะแนนจะถูกบันทึกไปยังหัวข้องานนี้โดยอัตโนมัติ", "When grading is completed, scores will be saved to this assignment automatically")}
@@ -1762,8 +1771,8 @@ export default function QueueTab({
                             </div>
 
                             {/* ลิงก์กับการเช็คชื่อ */}
-                            <div className="rounded-xl border border-default-200 bg-content2 p-4">
-                                <div className="flex items-center justify-between mb-3">
+                            <div className="rounded-xl border border-default-200 bg-content2 p-5">
+                                <div className="mb-4 flex items-start justify-between gap-3">
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 bg-blue-100 rounded-lg">
                                             <Icon icon="solar:clipboard-check-bold" className="text-lg text-blue-600" />
