@@ -408,6 +408,20 @@ export interface CourseSection {
   studentCount?: number;
 }
 
+export interface StudentCourseGroupMember {
+  id: number;
+  student_id: string;
+  full_name: string;
+}
+
+export interface StudentCourseGroup {
+  id: number;
+  name: string;
+  group_type: 'permanent' | 'temporary';
+  week_number: number | null;
+  members: StudentCourseGroupMember[];
+}
+
 export interface Course {
   id: string;
   code: string;
@@ -430,6 +444,7 @@ export interface Course {
   taCount?: number;
   studentCount?: number;
   my_section_no?: string;
+  my_groups?: StudentCourseGroup[];
   instructors?: Instructor[];
 }
 
