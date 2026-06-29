@@ -136,6 +136,20 @@ export interface ExamScoreData {
   comment: string | null;
 }
 
+export interface StudentCourseGroupMember {
+  id: number;
+  student_id: string;
+  full_name: string;
+}
+
+export interface StudentCourseGroup {
+  id: number;
+  name: string;
+  group_type: 'permanent' | 'temporary';
+  week_number: number | null;
+  members: StudentCourseGroupMember[];
+}
+
 export interface CourseScoreData {
   course: {
     id: string;
@@ -149,6 +163,7 @@ export interface CourseScoreData {
     cover_zoom: number;
     is_active: boolean;
     sections: Array<{ id: number; section_no?: string; name?: string; week_number?: number | null }>;
+    my_groups?: StudentCourseGroup[];
   };
   assignments: AssignmentScore[];
   totalScore: number;

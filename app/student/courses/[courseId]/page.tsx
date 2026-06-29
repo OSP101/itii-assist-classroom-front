@@ -12,6 +12,7 @@ import {
   type AssignmentScore,
   type ExamScoreData,
   type MyStudentCourseResponse,
+  type StudentCourseGroup,
 } from "@/services/student.service";
 import userNotificationService, { type UserNotificationItem } from "@/services/user-notification.service";
 import { getMyExamSeats, type MyExamSeat } from "@/services/examSeat.service";
@@ -103,6 +104,12 @@ function notifTypeColor(type: string) {
 
 function displayScore(value: number | null | undefined) {
   return typeof value === "number" && Number.isFinite(value) ? formatScoreValue(value) : "-";
+}
+
+function studentGroupTypeLabel(group: StudentCourseGroup) {
+  if (group.group_type === "permanent") return "กลุ่มโปรเจกต์";
+  if (group.week_number != null) return `กลุ่มสัปดาห์ ${group.week_number}`;
+  return "กลุ่มสัปดาห์";
 }
 
 // ─── sub-components ───────────────────────────────────────────────────────────
@@ -546,6 +553,53 @@ export default function StudentCourseDetailPage() {
       {/* ── OVERVIEW tab ───────────────────────────────── */}
       {activeTab === "Overview" && (
         <div className="space-y-4">
+          {/* My groups */}
+          <div className="rounded-4xl border border-slate-100 bg-white/90 p-5 shadow-sm">
+            <div className="mb-3 flex items-center gap-2">
+              <Icon icon="solar:users-group-rounded-bold-duotone" className="text-base text-slate-700" />
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-600">กลุ่มของฉัน</p>
+            </div>
+            {course.course.my_groups && course.course.my_groups.length > 0 ? (
+              <div className="space-y-2.5">
+                {course.course.my_groups.map((group) => (
+                  <div key={group.id} className="rounded-3xl border border-slate-200/80 bg-slate-50/90 p-3.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-200/70 px-2 py-0.5 text-[10px] font-bold text-slate-700">
+                        <Icon icon="solar:users-group-rounded-bold" className="text-[11px]" />
+                        {group.name}
+                      </span>
+                      <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                        {studentGroupTypeLabel(group)}
+                      </span>
+                    </div>
+                    {group.members.length > 0 ? (
+                      <div className="mt-2 rounded-2xl border border-slate-200/80 bg-white/90 p-2">
+                        <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">สมาชิก</p>
+                        <ul className="mt-1 space-y-1">
+                          {group.members.map((member) => (
+                            <li key={member.id} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2 py-1 text-[11px] text-slate-600">
+                              <span className="truncate font-medium text-slate-700">{member.full_name}</span>
+                              <span className="shrink-0 rounded-full bg-slate-200/80 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+                                {member.student_id}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-[11px] text-slate-500">ยังไม่มีสมาชิกในกลุ่ม</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 rounded-3xl border border-dashed border-slate-200 bg-white/60 p-4">
+                <Icon icon="solar:users-group-rounded-bold-duotone" className="text-xl text-slate-300 shrink-0" />
+                <p className="text-xs text-slate-400">ยังไม่ถูกจัดกลุ่มในรายวิชานี้</p>
+              </div>
+            )}
+          </div>
+
           {/* Course notifications */}
           <div>
             <div className="mb-2 flex items-center gap-2">

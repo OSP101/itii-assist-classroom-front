@@ -55,12 +55,6 @@ function CourseInitialBadge({ code }: { code: string }) {
   );
 }
 
-function groupTypeLabel(groupType: "permanent" | "temporary", weekNumber: number | null | undefined): string {
-  if (groupType === "permanent") return "กลุ่มโปรเจกต์";
-  if (weekNumber != null) return `กลุ่มสัปดาห์ ${weekNumber}`;
-  return "กลุ่มสัปดาห์";
-}
-
 // ─── page ─────────────────────────────────────────────────────────────────────
 
 export default function StudentHomePage() {
@@ -380,40 +374,6 @@ export default function StudentHomePage() {
                     )}
                   </div>
 
-                  {course.my_groups && course.my_groups.length > 0 && (
-                    <div className="mt-2 space-y-1.5">
-                      {course.my_groups.map((group) => (
-                        <div key={group.id} className="rounded-2xl border border-slate-100 bg-slate-50/90 px-2.5 py-2">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-200/70 px-2 py-0.5 text-[10px] font-bold text-slate-700">
-                              <Icon icon="solar:users-group-rounded-bold" className="text-[11px]" />
-                              {group.name}
-                            </span>
-                            <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                              {groupTypeLabel(group.group_type, group.week_number)}
-                            </span>
-                          </div>
-                          {group.members.length > 0 ? (
-                            <div className="mt-1.5 rounded-xl border border-slate-200/80 bg-white/80 p-1.5">
-                              <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">สมาชิก</p>
-                              <ul className="mt-1 space-y-1">
-                                {group.members.map((member) => (
-                                  <li key={member.id} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2 py-1 text-[11px] text-slate-600">
-                                    <span className="truncate font-medium text-slate-700">{member.full_name}</span>
-                                    <span className="shrink-0 rounded-full bg-slate-200/80 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
-                                      {member.student_id}
-                                    </span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          ) : (
-                            <p className="mt-1.5 text-[11px] text-slate-500">ยังไม่มีสมาชิกในกลุ่ม</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
 
                 <Icon
