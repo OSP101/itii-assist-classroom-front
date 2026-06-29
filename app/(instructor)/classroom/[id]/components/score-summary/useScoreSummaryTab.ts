@@ -49,6 +49,29 @@ interface StudentType {
     }>;
 }
 
+function getDisplayedStudentTotal(student: StudentType, columns: ColumnDef[]): number {
+    return columns.reduce((sum, col) => {
+        const score = student.scores?.[col.key]?.score;
+        return sum + (score === null || score === undefined ? 0 : toNum(score));
+    }, 0);
+}
+
+function compareOptionalGroupNames(aName: string | undefined, bName: string | undefined, isEnglish: boolean): number {
+    const normalizedA = aName?.trim() ?? "";
+    const normalizedB = bName?.trim() ?? "";
+
+    if (!normalizedA && !normalizedB) return 0;
+    if (!normalizedA) return 1;
+    if (!normalizedB) return -1;
+
+    const collator = new Intl.Collator(isEnglish ? ["en", "th"] : ["th", "en"], {
+        sensitivity: "base",
+        numeric: true,
+    });
+
+    return collator.compare(normalizedA, normalizedB);
+}
+
 export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
     const { language } = useGlobalSettings();
     const isEnglish = language === "en";
@@ -58,6 +81,7 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
     const [selectedSection, setSelectedSection] = useState<string>("all");
     const [weeklySortWeek, setWeeklySortWeek] = useState<string>("");
     const [weeklySortMode, setWeeklySortMode] = useState<"group" | "student">("group");
+    const [groupSortDirection, setGroupSortDirection] = useState<"asc" | "desc">("asc");
     const [searchQuery, setSearchQuery] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
@@ -182,6 +206,17 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
         });
 
         if (selectedTab !== "weekly_group") {
+            if (selectedTab === "group") {
+                return [...students].sort((a, b) => {
+                    const byGroupName = compareOptionalGroupNames(a.group_name ?? undefined, b.group_name ?? undefined, isEnglish);
+                    if (byGroupName !== 0) {
+                        return groupSortDirection === "asc" ? byGroupName : -byGroupName;
+                    }
+
+                    return a.student_id.localeCompare(b.student_id);
+                });
+            }
+
             return students;
         }
 
@@ -190,24 +225,34 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
         }
 
         return [...students].sort((a, b) => {
-            const groupA = a.weekly_group_ids?.[weeklySortWeek] ?? Number.MAX_SAFE_INTEGER;
-            const groupB = b.weekly_group_ids?.[weeklySortWeek] ?? Number.MAX_SAFE_INTEGER;
+            const groupAName = a.weekly_group_names?.[weeklySortWeek];
+            const groupBName = b.weekly_group_names?.[weeklySortWeek];
+            const byGroupName = compareOptionalGroupNames(groupAName, groupBName, isEnglish);
 
-            if (groupA !== groupB) {
-                return groupA - groupB;
+            if (byGroupName !== 0) {
+                return groupSortDirection === "asc" ? byGroupName : -byGroupName;
             }
 
             return a.student_id.localeCompare(b.student_id);
         });
-    }, [matrixData?.students, matrixData?.sections, searchQuery, selectedSection, selectedTab, weeklySortWeek, weeklySortMode]);
+    }, [groupSortDirection, isEnglish, matrixData?.students, matrixData?.sections, searchQuery, selectedSection, selectedTab, weeklySortWeek, weeklySortMode]);
+
+    const visibleAssignments = useMemo(() => {
+        if (!matrixData?.assignments) return [];
+        if (selectedTab !== "weekly_group" || !weeklySortWeek) {
+            return matrixData.assignments;
+        }
+
+        return matrixData.assignments.filter((assignment) => String(assignment.week_number ?? "") === weeklySortWeek);
+    }, [matrixData?.assignments, selectedTab, weeklySortWeek]);
 
     // Get assignment columns
     const columns = useMemo((): ColumnDef[] => {
-        if (!matrixData?.assignments) return [];
+        if (visibleAssignments.length === 0) return [];
 
         const cols: ColumnDef[] = [];
 
-        for (const assignment of matrixData.assignments) {
+        for (const assignment of visibleAssignments) {
             const title = assignment.title || (isEnglish ? `Assignment #${assignment.id}` : `งาน #${assignment.id}`);
             const shortTitle = assignment.short_title || title;
 
@@ -235,18 +280,18 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
         }
 
         return cols;
-    }, [isEnglish, matrixData?.assignments]);
+    }, [isEnglish, visibleAssignments]);
 
     // Group assignments for header (for colspan)
     const assignmentGroups = useMemo((): AssignmentGroup[] => {
-        if (!matrixData?.assignments) return [];
-        return matrixData.assignments.map(a => ({
+        if (visibleAssignments.length === 0) return [];
+        return visibleAssignments.map(a => ({
             id: a.id,
             title: a.title || a.short_title || (isEnglish ? `Assignment #${a.id}` : `งาน #${a.id}`),
             colSpan: a.subItems && a.subItems.length > 0 ? a.subItems.length : 1,
             hasSubItems: a.subItems && a.subItems.length > 0,
         }));
-    }, [isEnglish, matrixData?.assignments]);
+    }, [isEnglish, visibleAssignments]);
 
     // Total max score
     const totalMaxScore = useMemo(() => columns.reduce((sum, c) => sum + c.maxScore, 0), [columns]);
@@ -256,19 +301,18 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
         if (totalMaxScore === 0) return 0;
 
         const studentsWithScores = filteredStudents.filter(s => {
-            if (toNum(s.total_score) > 0) return true;
-            if (s.scores) {
-                return Object.values(s.scores).some(score => score?.score !== null && score?.score !== undefined);
-            }
-            return false;
+            return columns.some((col) => {
+                const score = s.scores?.[col.key]?.score;
+                return score !== null && score !== undefined;
+            });
         });
 
         if (studentsWithScores.length === 0) return 0;
 
-        const total = studentsWithScores.reduce((sum, s) => sum + toNum(s.total_score), 0);
+        const total = studentsWithScores.reduce((sum, s) => sum + getDisplayedStudentTotal(s, columns), 0);
         const avgScore = total / studentsWithScores.length;
         return (avgScore / totalMaxScore) * 100;
-    }, [filteredStudents, totalMaxScore]);
+    }, [columns, filteredStudents, totalMaxScore]);
 
     // Handle score cell click
     const handleScoreClick = useCallback((
@@ -328,6 +372,7 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
         selectedSection,
         weeklySortWeek,
         weeklySortMode,
+        groupSortDirection,
         searchQuery,
         isLoading,
         hoverRowId,
@@ -352,6 +397,7 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
         setSelectedSection,
         setWeeklySortWeek,
         setWeeklySortMode,
+        setGroupSortDirection,
         setSearchQuery,
         setHoverRowId,
         setHoverColKey,

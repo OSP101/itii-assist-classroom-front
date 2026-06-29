@@ -42,6 +42,13 @@ function localizeGeneratedSubItemName(name: string | undefined, isEnglish: boole
     return name;
 }
 
+function getDisplayedStudentTotal(student: StudentType, columns: ColumnDef[]): number {
+    return columns.reduce((sum, col) => {
+        const score = student.scores?.[col.key]?.score;
+        return sum + (score === null || score === undefined ? 0 : toNum(score));
+    }, 0);
+}
+
 interface StudentType {
     student_id: string;
     full_name: string;
@@ -81,6 +88,7 @@ interface ScoreSummaryTabViewProps {
     selectedSection: string;
     weeklySortWeek: string;
     weeklySortMode: "group" | "student";
+    groupSortDirection: "asc" | "desc";
     searchQuery: string;
     isLoading: boolean;
     hoverRowId: string | null;
@@ -105,6 +113,7 @@ interface ScoreSummaryTabViewProps {
     onSetSelectedSection: (section: string) => void;
     onSetWeeklySortWeek: (week: string) => void;
     onSetWeeklySortMode: (mode: "group" | "student") => void;
+    onSetGroupSortDirection: (direction: "asc" | "desc") => void;
     onSetSearchQuery: (query: string) => void;
     onSetHoverRowId: (id: string | null) => void;
     onSetHoverColKey: (key: string | null) => void;
@@ -141,6 +150,7 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
     selectedSection,
     weeklySortWeek,
     weeklySortMode,
+    groupSortDirection,
     searchQuery,
     isLoading,
     hoverRowId,
@@ -161,6 +171,7 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
     onSetSelectedSection,
     onSetWeeklySortWeek,
     onSetWeeklySortMode,
+    onSetGroupSortDirection,
     onSetSearchQuery,
     onSetHoverRowId,
     onSetHoverColKey,
@@ -174,6 +185,9 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
 
     const hasEditHistory = useMemo(() => (scoreModal.editRequests?.length ?? 0) > 0, [scoreModal.editRequests]);
     const isPermanentGroupTab = selectedTab === "group";
+    const isWeeklyGroupTab = selectedTab === "weekly_group";
+    const showGroupNameColumn = isPermanentGroupTab || isWeeklyGroupTab;
+    const showGroupSortControls = isPermanentGroupTab || (isWeeklyGroupTab && weeklySortMode === "group");
     const gradedAtLabel = useMemo(() => formatDate(scoreModal.gradedAt, isEnglish), [scoreModal.gradedAt, isEnglish]);
     const updatedAtLabel = useMemo(() => formatDate(scoreModal.updatedAt, isEnglish), [scoreModal.updatedAt, isEnglish]);
     const shouldShowUpdatedAt = useMemo(() => {
@@ -315,6 +329,29 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                 </DropdownMenu>
                             </Dropdown>
 
+                            {showGroupSortControls && (
+                                <div className="inline-flex items-center rounded-lg border border-emerald-200 bg-emerald-50/40 p-1">
+                                    <Button
+                                        size="sm"
+                                        variant={groupSortDirection === "asc" ? "solid" : "light"}
+                                        color={groupSortDirection === "asc" ? "success" : "default"}
+                                        className={groupSortDirection === "asc" ? "text-white" : "text-emerald-700"}
+                                        onPress={() => onSetGroupSortDirection("asc")}
+                                    >
+                                        A-Z
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant={groupSortDirection === "desc" ? "solid" : "light"}
+                                        color={groupSortDirection === "desc" ? "success" : "default"}
+                                        className={groupSortDirection === "desc" ? "text-white" : "text-emerald-700"}
+                                        onPress={() => onSetGroupSortDirection("desc")}
+                                    >
+                                        Z-A
+                                    </Button>
+                                </div>
+                            )}
+
                             {selectedTab === "weekly_group" && (
                                 <div className="flex items-center gap-2">
                                     <div className="inline-flex items-center rounded-lg border border-cyan-200 bg-cyan-50/40 p-1">
@@ -371,7 +408,7 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
             {/* Score Matrix */}
             <Card className="border border-default-200 bg-content1 shadow-sm">
                 <CardBody className="p-0">
-                    {!matrixData || matrixData.assignments.length === 0 ? (
+                    {!matrixData || assignmentGroups.length === 0 ? (
                         <div className="text-center py-20">
                             <Icon icon="solar:clipboard-list-linear" className="mx-auto mb-3 text-5xl text-default-300" />
                             <p className="text-default-500">
@@ -380,7 +417,7 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                     : selectedTab === "assignment"
                                         ? (isEnglish ? "No assignments yet" : "ยังไม่มีAssignment")
                                         : selectedTab === "weekly_group"
-                                            ? (isEnglish ? "No weekly group work yet" : "ยังไม่มีงานกลุ่มสัปดาห์")
+                                            ? (isEnglish ? "No weekly group work for this week" : "ยังไม่มีงานกลุ่มสัปดาห์ในสัปดาห์ที่เลือก")
                                         : (isEnglish ? "No group work yet" : "ยังไม่มีงานกลุ่ม")}
                             </p>
                         </div>
@@ -399,7 +436,7 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                         <th rowSpan={2} className="min-w-30 border-r border-divider bg-content2 px-3 py-2 text-center font-semibold text-default-600">{isEnglish ? "Student ID" : "รหัสนักศึกษา"}</th>
                                         <th rowSpan={2} className="min-w-50 border-r border-divider bg-content2 px-3 py-2 text-center font-semibold text-default-600">{isEnglish ? "Student name" : "ชื่อ-นามสกุล"}</th>
                                         <th rowSpan={2} className="w-14 border-r border-divider bg-content2 px-2 py-2 text-center font-semibold text-default-600">Sec</th>
-                                        {isPermanentGroupTab && (
+                                        {showGroupNameColumn && (
                                             <th rowSpan={2} className="w-20 border-r border-divider bg-content2 px-2 py-2 text-center font-semibold text-default-600">
                                                 {isEnglish ? "Group name" : "ชื่อกลุ่ม"}
                                             </th>
@@ -449,7 +486,7 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                     </tr>
                                     {/* Average Row */}
                                     <tr className="bg-blue-50 border-b-2 border-blue-200">
-                                        <td colSpan={isPermanentGroupTab ? 5 : 4} className="px-3 py-2 text-center text-blue-700 font-semibold bg-blue-50">{isEnglish ? "Average" : "ค่าเฉลี่ย"}</td>
+                                        <td colSpan={showGroupNameColumn ? 5 : 4} className="px-3 py-2 text-center text-blue-700 font-semibold bg-blue-50">{isEnglish ? "Average" : "ค่าเฉลี่ย"}</td>
                                         {columns.map((col) => (
                                             <td key={col.key} className="px-2 py-2 text-center text-blue-600 font-medium border-l border-blue-100 bg-blue-50">
                                                 {matrixData.averages?.[col.key] ?? "-"}
@@ -465,9 +502,12 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                 </thead>
                                 <tbody className="divide-y divide-divider">
                                     {filteredStudents.map((student, index) => {
-                                        const studentTotal = toNum(student.total_score);
-                                        const studentMax = toNum(student.total_max_score);
+                                        const studentTotal = getDisplayedStudentTotal(student, columns);
+                                        const studentMax = totalMaxScore;
                                         const totalColor = getScoreColor(studentTotal, studentMax);
+                                        const displayedGroupName = isWeeklyGroupTab
+                                            ? (weeklySortWeek ? student.weekly_group_names?.[weeklySortWeek] : undefined)
+                                            : student.group_name;
 
                                         return (
                                             <tr
@@ -484,12 +524,12 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                                 <td className="px-2 py-3 text-center text-default-600">
                                                     {student.section_number}
                                                 </td>
-                                                {isPermanentGroupTab && (
+                                                {showGroupNameColumn && (
                                                     <td className="px-2 py-3 text-center text-default-600">
-                                                        {student.group_name ? (
-                                                            <Tooltip content={student.group_name} placement="top" delay={300}>
+                                                        {displayedGroupName ? (
+                                                            <Tooltip content={displayedGroupName} placement="top" delay={300}>
                                                                 <span className="inline-block max-w-32 cursor-help truncate rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
-                                                                    {student.group_name}
+                                                                    {displayedGroupName}
                                                                 </span>
                                                             </Tooltip>
                                                         ) : (

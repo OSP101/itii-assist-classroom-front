@@ -26,6 +26,7 @@ export default function ScoreSummaryTab({ courseId, isCourseActive = true }: Sco
         selectedSection,
         weeklySortWeek,
         weeklySortMode,
+        groupSortDirection,
         searchQuery,
         isLoading,
         hoverRowId,
@@ -50,6 +51,7 @@ export default function ScoreSummaryTab({ courseId, isCourseActive = true }: Sco
         setSelectedSection,
         setWeeklySortWeek,
         setWeeklySortMode,
+        setGroupSortDirection,
         setSearchQuery,
         setHoverRowId,
         setHoverColKey,
@@ -63,6 +65,7 @@ export default function ScoreSummaryTab({ courseId, isCourseActive = true }: Sco
             selectedSection={selectedSection}
             weeklySortWeek={weeklySortWeek}
             weeklySortMode={weeklySortMode}
+            groupSortDirection={groupSortDirection}
             searchQuery={searchQuery}
             isLoading={isLoading}
             hoverRowId={hoverRowId}
@@ -83,6 +86,7 @@ export default function ScoreSummaryTab({ courseId, isCourseActive = true }: Sco
             onSetSelectedSection={setSelectedSection}
             onSetWeeklySortWeek={setWeeklySortWeek}
             onSetWeeklySortMode={setWeeklySortMode}
+            onSetGroupSortDirection={setGroupSortDirection}
             onSetSearchQuery={setSearchQuery}
             onSetHoverRowId={setHoverRowId}
             onSetHoverColKey={setHoverColKey}
