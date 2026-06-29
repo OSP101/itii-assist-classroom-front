@@ -37,24 +37,50 @@ class ApiService {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  private normalizeStoredToken(token: string | null): string | null {
+    if (!token) {
+      return null;
+    }
+
+    const normalized = token.trim();
+    if (!normalized) {
+      return null;
+    }
+
+    const lowered = normalized.toLowerCase();
+    if (lowered === 'undefined' || lowered === 'null') {
+      return null;
+    }
+
+    return normalized;
+  }
+
   private getAccessToken(): string | null {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('accessToken');
+      return this.normalizeStoredToken(localStorage.getItem('accessToken'));
     }
     return null;
   }
 
   private getRefreshToken(): string | null {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('refreshToken');
+      return this.normalizeStoredToken(localStorage.getItem('refreshToken'));
     }
     return null;
   }
 
   private setTokens(accessToken: string, refreshToken: string): void {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
+      const normalizedAccessToken = this.normalizeStoredToken(accessToken);
+      const normalizedRefreshToken = this.normalizeStoredToken(refreshToken);
+
+      if (!normalizedAccessToken || !normalizedRefreshToken) {
+        this.clearTokens();
+        return;
+      }
+
+      localStorage.setItem('accessToken', normalizedAccessToken);
+      localStorage.setItem('refreshToken', normalizedRefreshToken);
     }
   }
 
@@ -85,7 +111,10 @@ class ApiService {
 
   private async refreshAccessToken(): Promise<boolean> {
     const refreshToken = this.getRefreshToken();
-    if (!refreshToken) return false;
+    if (!refreshToken) {
+      this.clearTokens();
+      return false;
+    }
 
     try {
       const response = await fetch(`${this.baseURL}/auth/refresh`, {
@@ -330,7 +359,7 @@ class ApiService {
   }
 
   isAuthenticated(): boolean {
-    return !!this.getAccessToken();
+    return this.getAccessToken() !== null;
   }
 }
 

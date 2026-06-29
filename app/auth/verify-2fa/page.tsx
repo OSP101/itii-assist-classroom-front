@@ -126,13 +126,28 @@ export default function VerifyTwoFactorPage() {
       );
 
       if (result.success && result.data) {
+        const accessToken = result.data.accessToken?.trim();
+        const refreshToken = result.data.refreshToken?.trim();
+        const hasInvalidTokens =
+          !accessToken ||
+          !refreshToken ||
+          accessToken.toLowerCase() === "undefined" ||
+          accessToken.toLowerCase() === "null" ||
+          refreshToken.toLowerCase() === "undefined" ||
+          refreshToken.toLowerCase() === "null";
+
+        if (hasInvalidTokens) {
+          setError(t("pleaseTryAgain"));
+          return;
+        }
+
         // Clear stored 2FA data
         sessionStorage.removeItem("twoFactorData");
 
         // Store tokens
         if (typeof window !== "undefined") {
-          localStorage.setItem("accessToken", result.data.accessToken);
-          localStorage.setItem("refreshToken", result.data.refreshToken);
+          localStorage.setItem("accessToken", accessToken);
+          localStorage.setItem("refreshToken", refreshToken);
           localStorage.setItem("user", JSON.stringify(result.data.user));
         }
 

@@ -28,6 +28,10 @@ const getAccessToken = (): string | null => {
     return null;
 };
 
+const hasAuthenticatedSession = (): boolean => {
+    return authService.isAuthenticated() && !!getAccessToken();
+};
+
 interface NotificationContextType {
     // Permission states
     isSupported: boolean;
@@ -284,6 +288,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         try {
             const user = authService.getStoredUser();
             const accessToken = getAccessToken();
+            if (!accessToken || !user?.id) {
+                return false;
+            }
+
             const response = await fetch(`${API_BASE_URL}/notifications/register`, {
                 method: "POST",
                 headers: {
@@ -324,6 +332,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
         try {
             const accessToken = getAccessToken();
+            if (!accessToken) {
+                return true;
+            }
+
             const response = await fetch(`${API_BASE_URL}/notifications/unregister`, {
                 method: "POST",
                 headers: {
@@ -347,6 +359,12 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     }, []);
 
     const refreshNotifications = useCallback(async () => {
+        if (!hasAuthenticatedSession() || !authService.getStoredUser()?.id) {
+            setNotifications([]);
+            setUnreadCount(0);
+            return;
+        }
+
         setIsInboxLoading(true);
         try {
             const [listResult, count] = await Promise.all([
@@ -401,7 +419,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
     useEffect(() => {
         const user = authService.getStoredUser();
-        if (!user?.id) {
+        if (!user?.id || !hasAuthenticatedSession()) {
+            setNotifications([]);
+            setUnreadCount(0);
             return;
         }
 
