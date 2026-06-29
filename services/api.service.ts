@@ -21,7 +21,7 @@ interface RequestOptions {
 class ApiService {
   private baseURL: string;
   private isRefreshing = false;
-  private refreshSubscribers: Array<(token: string) => void> = [];
+  private refreshSubscribers: Array<(token: string | null) => void> = [];
   private inFlightRequests = new Map<string, Promise<ApiResponse<unknown>>>();
   
   // Rate limit handling
@@ -67,13 +67,19 @@ class ApiService {
   }
 
   // Subscribe to token refresh
-  private subscribeTokenRefresh(callback: (token: string) => void): void {
+  private subscribeTokenRefresh(callback: (token: string | null) => void): void {
     this.refreshSubscribers.push(callback);
   }
 
   // Notify all subscribers with new token
   private onTokenRefreshed(token: string): void {
     this.refreshSubscribers.forEach(callback => callback(token));
+    this.refreshSubscribers = [];
+  }
+
+  // Notify all waiting requests that refresh has failed so they don't hang forever.
+  private onTokenRefreshFailed(): void {
+    this.refreshSubscribers.forEach(callback => callback(null));
     this.refreshSubscribers = [];
   }
 
@@ -178,7 +184,12 @@ class ApiService {
         // If already refreshing, wait for the refresh to complete
         if (this.isRefreshing) {
           return new Promise((resolve) => {
-            this.subscribeTokenRefresh((newToken: string) => {
+            this.subscribeTokenRefresh((newToken: string | null) => {
+              if (!newToken) {
+                resolve({ success: false, error: 'Session expired. Please login again.' });
+                return;
+              }
+
               headers['Authorization'] = `Bearer ${newToken}`;
               // Retry the request with new token
               resolve(this.request<T>(method, endpoint, body, options, false));
@@ -193,6 +204,8 @@ class ApiService {
         if (refreshed) {
           return this.request<T>(method, endpoint, body, options, false);
         }
+
+        this.onTokenRefreshFailed();
         
         // Redirect to login if refresh failed (but not if already on login)
         if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
