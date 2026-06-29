@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Button } from "@heroui/button";
@@ -28,8 +28,10 @@ import { Select, SelectItem } from "@heroui/select";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import { useInstructor } from "../../../../../layout";
 import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
-import { courseService } from "@/services/course.service";
+import { courseService, getCurrentCourseMemberPermissions } from "@/services/course.service";
+import type { CourseMemberPermissions } from "@/services/course.service";
 import attendanceService, {
     type AttendanceSession,
     type AttendanceRecord,
@@ -107,10 +109,14 @@ export default function AttendanceSummaryPage() {
     const sessionId = Number(params.sessionId);
     const t = (thai: string, english: string) => (isEnglish ? english : thai);
 
+    // Get current user from instructor layout context
+    const { user } = useInstructor();
+
     // State
     const [session, setSession] = useState<AttendanceSession | null>(null);
     const [records, setRecords] = useState<AttendanceRecord[]>([]);
     const [courseContext, setCourseContext] = useState<string | null>(null);
+    const [courseData, setCourseData] = useState<{ instructors?: any[]; tas?: any[]; is_active: boolean } | null>(null);
     const [isCourseActive, setIsCourseActive] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -137,6 +143,13 @@ export default function AttendanceSummaryPage() {
         ? ((stats.present + stats.late) / stats.total) * 100 
         : 0;
 
+    // Compute whether the current user can edit attendance status
+    const canEditStatus = useMemo(() => {
+        if (!user || !courseData) return false;
+        const permissions = getCurrentCourseMemberPermissions(courseData, user.id, user.role);
+        return permissions.update_attendance_status;
+    }, [user, courseData]);
+
     // Filter records
     const filteredRecords = records.filter((record) => {
         const matchesSearch =
@@ -160,6 +173,7 @@ export default function AttendanceSummaryPage() {
             if (courseResponse.success && courseResponse.data) {
                 setIsCourseActive(courseResponse.data.is_active);
                 setCourseContext(buildCourseTitleContext(courseResponse.data));
+                setCourseData(courseResponse.data);
             }
 
             if (sessionData) {
@@ -462,13 +476,20 @@ export default function AttendanceSummaryPage() {
                             }}
                         >
                             <TableHeader>
-                                <TableColumn>{t("นักศึกษา", "Student")}</TableColumn>
-                                <TableColumn>{t("Section", "Section")}</TableColumn>
-                                <TableColumn>{t("เวลาเช็คชื่อ", "Check-in time")}</TableColumn>
-                                <TableColumn>{t("สถานะ", "Status")}</TableColumn>
-                                <TableColumn>{t("การยืนยัน", "Verification")}</TableColumn>
-                                <TableColumn>{t("หมายเหตุ", "Note")}</TableColumn>
-                                <TableColumn align="center">{t("จัดการ", "Manage")}</TableColumn>
+                                {(() => {
+                                    const columns = [
+                                        <TableColumn key="student">{t("นักศึกษา", "Student")}</TableColumn>,
+                                        <TableColumn key="section">{t("Section", "Section")}</TableColumn>,
+                                        <TableColumn key="checkin">{t("เวลาเช็คชื่อ", "Check-in time")}</TableColumn>,
+                                        <TableColumn key="status">{t("สถานะ", "Status")}</TableColumn>,
+                                        <TableColumn key="verification">{t("การยืนยัน", "Verification")}</TableColumn>,
+                                        <TableColumn key="note">{t("หมายเหตุ", "Note")}</TableColumn>,
+                                    ];
+                                    if (canEditStatus) {
+                                        columns.push(<TableColumn key="manage" align="center">{t("จัดการ", "Manage")}</TableColumn>);
+                                    }
+                                    return columns;
+                                })()}
                             </TableHeader>
                             <TableBody
                                 emptyContent={
@@ -484,107 +505,116 @@ export default function AttendanceSummaryPage() {
                             >
                                 {filteredRecords.map((record) => (
                                     <TableRow key={record.id}>
-                                        <TableCell>
-                                            <div className="flex items-center gap-3">
-                                                <Avatar
-                                                    name={record.student?.full_name || "?"}
-                                                    size="sm"
-                                                    className={
-                                                        record.status === "present" || record.status === "late"
-                                                            ? "bg-linear-to-br from-emerald-500 to-teal-500"
-                                                            : "bg-content4"
-                                                    }
-                                                />
-                                                <div>
-                                                    <p className="font-medium text-foreground">
-                                                        {record.student?.full_name || "-"}
-                                                    </p>
-                                                    <p className="text-sm text-default-500">
-                                                        {record.student?.student_id || "-"}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <span className="text-sm text-default-600">
-                                                {record.section_no || "-"}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell>
-                                            <span
-                                                className={
-                                                    record.check_in_time
-                                                        ? "font-mono text-default-700"
-                                                        : "text-default-400"
-                                                }
-                                            >
-                                                {formatTime(record.check_in_time, isEnglish)}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Chip
-                                                size="sm"
-                                                color={statusConfig[record.status].color}
-                                                variant="flat"
-                                                startContent={
-                                                    <Icon
-                                                        icon={statusConfig[record.status].icon}
-                                                        className="text-sm"
-                                                    />
-                                                }
-                                            >
-                                                {getStatusLabel(record.status, isEnglish)}
-                                            </Chip>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                {record.pin_verified && (
-                                                    <Tooltip content={t("ยืนยัน PIN แล้ว", "PIN verified")}> 
-                                                        <Chip size="sm" color="primary" variant="flat">
-                                                            <Icon icon="solar:key-bold" className="text-xs" />
-                                                        </Chip>
-                                                    </Tooltip>
-                                                )}
-                                                {record.location_verified && (
-                                                    <Tooltip
-                                                        content={t(
-                                                            `ยืนยันตำแหน่ง (${record.distance_meters?.toFixed(0) || "-"}m)`,
-                                                            `Location verified (${record.distance_meters?.toFixed(0) || "-"}m)`
-                                                        )}
+                                        {(() => {
+                                            const cells = [
+                                                <TableCell key="student">
+                                                    <div className="flex items-center gap-3">
+                                                        <Avatar
+                                                            name={record.student?.full_name || "?"}
+                                                            size="sm"
+                                                            className={
+                                                                record.status === "present" || record.status === "late"
+                                                                    ? "bg-linear-to-br from-emerald-500 to-teal-500"
+                                                                    : "bg-content4"
+                                                            }
+                                                        />
+                                                        <div>
+                                                            <p className="font-medium text-foreground">
+                                                                {record.student?.full_name || "-"}
+                                                            </p>
+                                                            <p className="text-sm text-default-500">
+                                                                {record.student?.student_id || "-"}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>,
+                                                <TableCell key="section">
+                                                    <span className="text-sm text-default-600">
+                                                        {record.section_no || "-"}
+                                                    </span>
+                                                </TableCell>,
+                                                <TableCell key="checkin">
+                                                    <span
+                                                        className={
+                                                            record.check_in_time
+                                                                ? "font-mono text-default-700"
+                                                                : "text-default-400"
+                                                        }
                                                     >
-                                                        <Chip size="sm" color="success" variant="flat">
-                                                            <Icon icon="solar:map-point-bold" className="text-xs" />
-                                                        </Chip>
-                                                    </Tooltip>
-                                                )}
-                                                {!record.pin_verified && !record.location_verified && (
-                                                    <span className="text-default-400">-</span>
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <span className="text-sm text-default-500">
-                                                {record.note || "-"}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Tooltip content={t("แก้ไขสถานะ", "Edit status")}>
-                                                <Button
-                                                    isIconOnly
-                                                    size="sm"
-                                                    variant="light"
-                                                    isDisabled={!isCourseActive}
-                                                    onPress={() => {
-                                                        setSelectedRecord(record);
-                                                        setNewStatus(record.status);
-                                                        setStatusNote(record.note || "");
-                                                        setIsStatusModalOpen(true);
-                                                    }}
-                                                >
-                                                    <Icon icon="solar:pen-bold" className="text-lg text-default-400" />
-                                                </Button>
-                                            </Tooltip>
-                                        </TableCell>
+                                                        {formatTime(record.check_in_time, isEnglish)}
+                                                    </span>
+                                                </TableCell>,
+                                                <TableCell key="status">
+                                                    <Chip
+                                                        size="sm"
+                                                        color={statusConfig[record.status].color}
+                                                        variant="flat"
+                                                        startContent={
+                                                            <Icon
+                                                                icon={statusConfig[record.status].icon}
+                                                                className="text-sm"
+                                                            />
+                                                        }
+                                                    >
+                                                        {getStatusLabel(record.status, isEnglish)}
+                                                    </Chip>
+                                                </TableCell>,
+                                                <TableCell key="verification">
+                                                    <div className="flex items-center gap-2">
+                                                        {record.pin_verified && (
+                                                            <Tooltip content={t("ยืนยัน PIN แล้ว", "PIN verified")}> 
+                                                                <Chip size="sm" color="primary" variant="flat">
+                                                                    <Icon icon="solar:key-bold" className="text-xs" />
+                                                                </Chip>
+                                                            </Tooltip>
+                                                        )}
+                                                        {record.location_verified && (
+                                                            <Tooltip
+                                                                content={t(
+                                                                    `ยืนยันตำแหน่ง (${record.distance_meters?.toFixed(0) || "-"}m)`,
+                                                                    `Location verified (${record.distance_meters?.toFixed(0) || "-"}m)`
+                                                                )}
+                                                            >
+                                                                <Chip size="sm" color="success" variant="flat">
+                                                                    <Icon icon="solar:map-point-bold" className="text-xs" />
+                                                                </Chip>
+                                                            </Tooltip>
+                                                        )}
+                                                        {!record.pin_verified && !record.location_verified && (
+                                                            <span className="text-default-400">-</span>
+                                                        )}
+                                                    </div>
+                                                </TableCell>,
+                                                <TableCell key="note">
+                                                    <span className="text-sm text-default-500">
+                                                        {record.note || "-"}
+                                                    </span>
+                                                </TableCell>,
+                                            ];
+                                            if (canEditStatus) {
+                                                cells.push(
+                                                    <TableCell key="manage">
+                                                        <Tooltip content={t("แก้ไขสถานะ", "Edit status")}>
+                                                            <Button
+                                                                isIconOnly
+                                                                size="sm"
+                                                                variant="light"
+                                                                isDisabled={!isCourseActive}
+                                                                onPress={() => {
+                                                                    setSelectedRecord(record);
+                                                                    setNewStatus(record.status);
+                                                                    setStatusNote(record.note || "");
+                                                                    setIsStatusModalOpen(true);
+                                                                }}
+                                                            >
+                                                                <Icon icon="solar:pen-bold" className="text-lg text-default-400" />
+                                                            </Button>
+                                                        </Tooltip>
+                                                    </TableCell>
+                                                );
+                                            }
+                                            return cells;
+                                        })()}
                                     </TableRow>
                                 ))}
                             </TableBody>
