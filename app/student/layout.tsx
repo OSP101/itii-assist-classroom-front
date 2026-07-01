@@ -62,8 +62,16 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
         }
 
         // If we already showed cached user, verify silently in background
+        const cachedUser = authService.getStoredUser();
         const currentUser = await authService.getCurrentUser();
         if (!currentUser) {
+          // Server call failed (e.g. flaky mobile network / timeout) rather than
+          // an explicit "unauthenticated" response — keep using the cached
+          // session instead of kicking the student out and blocking PIN entry.
+          if (cachedUser) {
+            setUser(cachedUser);
+            return;
+          }
           router.replace(buildStudentLoginHref(getCurrentAppPath()));
           return;
         }
@@ -76,7 +84,12 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
         setUser(currentUser);
       } catch (error) {
         console.error("Student auth check failed:", error);
-        router.replace(buildStudentLoginHref(getCurrentAppPath()));
+        const cachedUser = authService.getStoredUser();
+        if (cachedUser) {
+          setUser(cachedUser);
+        } else {
+          router.replace(buildStudentLoginHref(getCurrentAppPath()));
+        }
       } finally {
         setIsLoading(false);
       }

@@ -28,6 +28,10 @@ class ApiService {
   private readonly MAX_RETRIES = 3;
   private readonly INITIAL_RETRY_DELAY = 1000; // 1 second
 
+  // Requests that hang (e.g. flaky mobile network) must fail instead of
+  // blocking the UI (auth check spinner, PIN entry, etc.) forever.
+  private readonly REQUEST_TIMEOUT_MS = 15000;
+
   constructor(baseURL: string) {
     this.baseURL = baseURL;
   }
@@ -35,6 +39,24 @@ class ApiService {
   // Sleep utility for retry delays
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // fetch() wrapper that aborts after REQUEST_TIMEOUT_MS so a stalled
+  // connection never hangs the caller indefinitely.
+  private async fetchWithTimeout(input: string, init?: RequestInit): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.REQUEST_TIMEOUT_MS);
+
+    try {
+      return await fetch(input, { ...init, signal: controller.signal });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new Error('Request timed out. Please check your connection and try again.');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   private normalizeStoredToken(token: string | null): string | null {
@@ -117,7 +139,7 @@ class ApiService {
     }
 
     try {
-      const response = await fetch(`${this.baseURL}/auth/refresh`, {
+      const response = await this.fetchWithTimeout(`${this.baseURL}/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -189,7 +211,7 @@ class ApiService {
     }
 
     const executeRequest = async (): Promise<ApiResponse<T>> => {
-      const response = await fetch(url.toString(), {
+      const response = await this.fetchWithTimeout(url.toString(), {
         method,
         headers,
         body: body ? (isFormData ? body as FormData : JSON.stringify(body)) : undefined,
