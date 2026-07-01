@@ -67,8 +67,19 @@ export default function InstructorLayout({
     const pathname = usePathname();
     const { language } = useGlobalSettings();
     const t = useI18n();
-    const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const allowedInstructorRoles = ["admin", "instructor", "ta"];
+    // Lazy initialisers — run only on the client, so a page reload with a still-valid
+    // cached session skips the loading/redirect flash entirely.
+    const [user, setUser] = useState<User | null>(() => {
+        if (typeof window === "undefined") return null;
+        const cached = authService.getStoredUser();
+        return cached && allowedInstructorRoles.includes(cached.role) ? (cached as unknown as User) : null;
+    });
+    const [isLoading, setIsLoading] = useState(() => {
+        if (typeof window === "undefined") return true;
+        const cached = authService.getStoredUser();
+        return !authService.isAuthenticated() || !cached || !allowedInstructorRoles.includes(cached.role);
+    });
     const [courseInfo, setCourseInfo] = useState<CourseInfo | null>(null);
     const [activeCourses, setActiveCourses] = useState<Course[]>([]);
     const [isCoursesLoading, setIsCoursesLoading] = useState(false);
@@ -228,20 +239,37 @@ export default function InstructorLayout({
                     return;
                 }
 
+                // If we already showed a cached user (see lazy initialiser above),
+                // verify silently in the background instead of blocking on it.
+                const cachedUser = authService.getStoredUser();
                 const userData = await authService.getCurrentUser();
                 if (userData) {
-                    const allowedRoles = ["admin", "instructor", "ta"];
-                    if (allowedRoles.includes(userData.role)) {
-                        setUser(userData);
+                    if (allowedInstructorRoles.includes(userData.role)) {
+                        setUser(userData as unknown as User);
                     } else {
                         router.push("/login");
                     }
+                    return;
+                }
+
+                // /auth/me failed (e.g. transient network error, or it lost a
+                // concurrent token-refresh race). Don't force-logout a still-valid
+                // session — fall back to the cached user instead of stranding the
+                // page on AuthLoadingScreen or bouncing to /login unnecessarily.
+                if (cachedUser && allowedInstructorRoles.includes(cachedUser.role)) {
+                    setUser(cachedUser as unknown as User);
+                    return;
+                }
+
+                router.push("/login");
+            } catch (error) {
+                console.error("Auth check failed:", error);
+                const cachedUser = authService.getStoredUser();
+                if (cachedUser && allowedInstructorRoles.includes(cachedUser.role)) {
+                    setUser(cachedUser as unknown as User);
                 } else {
                     router.push("/login");
                 }
-            } catch (error) {
-                console.error("Auth check failed:", error);
-                router.push("/login");
             } finally {
                 setIsLoading(false);
             }
