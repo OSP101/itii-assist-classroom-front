@@ -62,15 +62,21 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
         }
 
         // If we already showed cached user, verify silently in background
-        const cachedUser = authService.getStoredUser();
         const currentUser = await authService.getCurrentUser();
         if (!currentUser) {
-          // Server call failed (e.g. flaky mobile network / timeout) rather than
-          // an explicit "unauthenticated" response — keep using the cached
-          // session instead of kicking the student out and blocking PIN entry.
-          if (cachedUser) {
-            setUser(cachedUser);
-            return;
+          // Server call failed. If it was a transient network error, tokens are
+          // still intact and we can fall back to the cached user. But if the
+          // failure was an expired/invalid session, api.service's 401 handler
+          // already tried to refresh and, on failure, cleared accessToken,
+          // refreshToken AND the cached user from localStorage — re-read
+          // everything fresh here (don't reuse a variable captured before the
+          // await) so we don't resurrect a session that was just invalidated.
+          if (authService.isAuthenticated()) {
+            const cachedUser = authService.getStoredUser();
+            if (cachedUser) {
+              setUser(cachedUser);
+              return;
+            }
           }
           router.replace(buildStudentLoginHref(getCurrentAppPath()));
           return;

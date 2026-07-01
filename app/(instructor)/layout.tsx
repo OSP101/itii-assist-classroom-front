@@ -241,7 +241,6 @@ export default function InstructorLayout({
 
                 // If we already showed a cached user (see lazy initialiser above),
                 // verify silently in the background instead of blocking on it.
-                const cachedUser = authService.getStoredUser();
                 const userData = await authService.getCurrentUser();
                 if (userData) {
                     if (allowedInstructorRoles.includes(userData.role)) {
@@ -252,13 +251,19 @@ export default function InstructorLayout({
                     return;
                 }
 
-                // /auth/me failed (e.g. transient network error, or it lost a
-                // concurrent token-refresh race). Don't force-logout a still-valid
-                // session — fall back to the cached user instead of stranding the
-                // page on AuthLoadingScreen or bouncing to /login unnecessarily.
-                if (cachedUser && allowedInstructorRoles.includes(cachedUser.role)) {
-                    setUser(cachedUser as unknown as User);
-                    return;
+                // /auth/me failed. If it was a transient network error, tokens are
+                // still intact and we can fall back to the cached user. But if the
+                // failure was an expired/invalid session, api.service's 401 handler
+                // already tried to refresh and, on failure, cleared accessToken,
+                // refreshToken AND the cached user from localStorage — re-read
+                // everything fresh here (don't reuse a variable captured before the
+                // await) so we don't resurrect a session that was just invalidated.
+                if (authService.isAuthenticated()) {
+                    const cachedUser = authService.getStoredUser();
+                    if (cachedUser && allowedInstructorRoles.includes(cachedUser.role)) {
+                        setUser(cachedUser as unknown as User);
+                        return;
+                    }
                 }
 
                 router.push("/login");
