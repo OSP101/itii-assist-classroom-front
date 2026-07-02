@@ -221,7 +221,7 @@ function WorkerDeskMap({
     const minY = Math.min(...ys);
     const width = 360;
     const height = 240;
-    const pad = 22;
+    const pad = 34;
     const rawWidth = Math.max(...xs) - minX;
     const rawHeight = Math.max(...ys) - minY;
     const scale = Math.min(
@@ -240,7 +240,8 @@ function WorkerDeskMap({
     const cy = (desk: DeskWithStatus) => offsetY + ((desk.y as number) - minY) * scale;
 
     return (
-        <svg viewBox={`0 0 ${width} ${height}`} className="w-full rounded-2xl bg-slate-50 p-2 dark:bg-slate-950/40">
+        <div className="rounded-2xl bg-slate-50 p-4 sm:p-6 dark:bg-slate-950/40">
+            <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
             {positionedDesks.map((desk) => {
                 const x = cx(desk);
                 const y = cy(desk);
@@ -289,7 +290,8 @@ function WorkerDeskMap({
                     </g>
                 );
             })}
-        </svg>
+            </svg>
+        </div>
     );
 }
 

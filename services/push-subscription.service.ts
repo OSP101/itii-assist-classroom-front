@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "@/config/api";
 import { registerPwaServiceWorker } from "@/lib/pwa-notifications";
+import { addToast } from "@heroui/toast";
 
 // Converts a URL-safe base64 VAPID public key into the Uint8Array shape
 // required by PushManager.subscribe({ applicationServerKey }).
@@ -49,11 +50,28 @@ export async function ensurePushSubscription(): Promise<PushSubscriptionJSON | n
     try {
         const publicKey = await fetchVapidPublicKey();
         if (!publicKey) {
+            // Backend has no VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY configured (or the
+            // /api/push/vapid-public-key endpoint is unreachable). No subscription
+            // can ever be created until this is fixed server-side.
+            addToast({
+                title: "เปิดใช้งานการแจ้งเตือนไม่สำเร็จ",
+                description: "เซิร์ฟเวอร์ยังไม่ได้ตั้งค่าการแจ้งเตือนแบบพุช กรุณาติดต่อผู้ดูแลระบบ",
+                color: "danger",
+                timeout: 5000,
+                shouldShowTimeoutProgress: true,
+            });
             return null;
         }
 
         const registration = await registerPwaServiceWorker();
         if (!registration) {
+            addToast({
+                title: "เปิดใช้งานการแจ้งเตือนไม่สำเร็จ",
+                description: "ไม่สามารถลงทะเบียน Service Worker ได้ กรุณาตรวจสอบว่าเปิดผ่าน HTTPS",
+                color: "danger",
+                timeout: 5000,
+                shouldShowTimeoutProgress: true,
+            });
             return null;
         }
 
@@ -79,6 +97,13 @@ export async function ensurePushSubscription(): Promise<PushSubscriptionJSON | n
         return subscription.toJSON();
     } catch (error) {
         console.error("Failed to create web push subscription:", error);
+        addToast({
+            title: "เปิดใช้งานการแจ้งเตือนไม่สำเร็จ",
+            description: error instanceof Error ? error.message : "เบราว์เซอร์ปฏิเสธการสมัครรับการแจ้งเตือนแบบพุช",
+            color: "danger",
+            timeout: 5000,
+            shouldShowTimeoutProgress: true,
+        });
         return null;
     }
 }
@@ -93,7 +118,7 @@ interface RegisterPushOptions {
 // (user_type/target_id/student_id) but carries a standard Push subscription.
 export async function registerPushSubscription(
     userType: "worker" | "student",
-    targetId?: number,
+    targetId?: number | string,
     options: RegisterPushOptions = {},
 ): Promise<boolean> {
     const subscription = await ensurePushSubscription();

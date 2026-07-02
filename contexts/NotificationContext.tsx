@@ -32,7 +32,7 @@ interface NotificationContextType {
 
     // Actions
     requestPermission: () => Promise<{ granted: boolean }>;
-    registerPushToken: (userType: "worker" | "student", targetId?: number) => Promise<boolean>;
+    registerPushToken: (userType: "worker" | "student", targetId?: number | string) => Promise<boolean>;
     unregisterPushToken: () => Promise<boolean>;
 
     // Navbar notification inbox (DB-backed)
@@ -187,7 +187,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     // VAPID) with the backend for the current authenticated user.
     const registerPushToken = useCallback(async (
         userType: "worker" | "student",
-        targetId?: number,
+        targetId?: number | string,
     ): Promise<boolean> => {
         const user = authService.getStoredUser();
         const accessToken = getAccessToken();

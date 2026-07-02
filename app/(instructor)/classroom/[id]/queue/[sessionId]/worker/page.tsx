@@ -33,6 +33,7 @@ import scoreService from "@/services/score.service";
 import { useNotification } from "@/contexts/NotificationContext";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { IosInstallHint } from "@/components/system/IosInstallHint";
+import { triggerNotificationVibration } from "@/lib/pwa-notifications";
 import { API_BASE_URL } from "@/config/api";
 import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
 import { formatScoreValue, parseScoreInput, SCORE_INPUT_PATTERN, sanitizeScoreInput } from "@/lib/score-input";
@@ -710,6 +711,10 @@ export default function WorkerDashboardPage() {
             }
             
             setCurrentBooking(data.booking);
+            // Buzz even while the tab stays open in the foreground (Android;
+            // iOS Safari doesn't implement the Vibration API at all, so iOS
+            // workers only feel a buzz via the OS-level Web Push notification).
+            triggerNotificationVibration();
             addToast({
                 title: t("มีงานใหม่!", "New task assigned"),
                 description: data.booking.status === "waiting"
@@ -812,10 +817,10 @@ export default function WorkerDashboardPage() {
             if (notificationSupported && permissionStatus !== "granted") {
                 const permissionResult = await requestPermission();
                 if (permissionResult.granted) {
-                    await registerPushToken("worker", parseInt(sessionId));
+                    await registerPushToken("worker", sessionId);
                 }
             } else if (pushSubscribed || permissionStatus === "granted") {
-                await registerPushToken("worker", parseInt(sessionId));
+                await registerPushToken("worker", sessionId);
             }
 
             const result = await queueService.joinAsWorker(courseId, sessionId, workerPreferences);
