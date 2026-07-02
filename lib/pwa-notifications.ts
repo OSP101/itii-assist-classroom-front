@@ -1,4 +1,4 @@
-const PWA_SERVICE_WORKER_PATH = "/firebase-messaging-sw.js";
+const PWA_SERVICE_WORKER_PATH = "/push-sw.js";
 
 const DEFAULT_VIBRATION_PATTERN = [180, 80, 240] as const;
 

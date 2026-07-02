@@ -394,13 +394,13 @@ export default function WorkerDashboardPage() {
     const socketRef = useRef<Socket | null>(null);
     const hasWarnedAboutConnectError = useRef(false);
 
-    // Notification (FCM)
+    // Notification (self-hosted Web Push, VAPID)
     const { 
         isSupported: notificationSupported, 
         permissionStatus, 
         requestPermission, 
-        registerFcmToken,
-        fcmToken,
+        registerPushToken,
+        pushSubscribed,
     } = useNotification();
 
     const isWorkerOfferPaused = Boolean(
@@ -804,16 +804,17 @@ export default function WorkerDashboardPage() {
 
         setIsJoining(true);
         try {
-            // Request notification permission and register FCM token
+            // Request notification permission and register this device's
+            // self-hosted Web Push subscription (webpush-go, VAPID) — wakes the
+            // worker with a notification + vibration for new tasks even when the
+            // screen is off or another app is in the foreground.
             if (notificationSupported && permissionStatus !== "granted") {
                 const permissionResult = await requestPermission();
                 if (permissionResult.granted) {
-                    // Register FCM token for this worker and session
-                    await registerFcmToken("worker", parseInt(sessionId), permissionResult.token);
+                    await registerPushToken("worker", parseInt(sessionId));
                 }
-            } else if (fcmToken) {
-                // Already have permission, just register token
-                await registerFcmToken("worker", parseInt(sessionId));
+            } else if (pushSubscribed || permissionStatus === "granted") {
+                await registerPushToken("worker", parseInt(sessionId));
             }
 
             const result = await queueService.joinAsWorker(courseId, sessionId, workerPreferences);

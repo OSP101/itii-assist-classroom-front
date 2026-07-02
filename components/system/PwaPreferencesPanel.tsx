@@ -65,7 +65,7 @@ function StatusPill({ tone, label }: { tone: "success" | "warning" | "default"; 
 
 export function PwaPreferencesPanel() {
   const t = useI18n();
-  const { isSupported, permissionStatus, isLoading, requestPermission, registerFcmToken, fcmToken } = useNotification();
+  const { isSupported, permissionStatus, isLoading, requestPermission, registerPushToken, pushSubscribed } = useNotification();
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
@@ -158,8 +158,8 @@ export function PwaPreferencesPanel() {
     setIsSendingTest(true);
     try {
       const permissionResult =
-        livePermissionStatus === "granted" && fcmToken
-          ? { granted: true, token: fcmToken }
+        livePermissionStatus === "granted" && pushSubscribed
+          ? { granted: true }
           : await requestPermission();
 
       if (!permissionResult.granted) {
@@ -168,12 +168,8 @@ export function PwaPreferencesPanel() {
 
       const user = authService.getStoredUser();
       let linkedToAccount = false;
-      if (user && permissionResult.token) {
-        linkedToAccount = await registerFcmToken(
-          user.role === "student" ? "student" : "worker",
-          undefined,
-          permissionResult.token,
-        );
+      if (user) {
+        linkedToAccount = await registerPushToken(user.role === "student" ? "student" : "worker");
       }
 
       triggerNotificationVibration();
@@ -189,9 +185,7 @@ export function PwaPreferencesPanel() {
         description: shown
           ? linkedToAccount
             ? t("testNotificationLinkedHint")
-            : permissionResult.token
-              ? t("testNotificationHint")
-              : t("notificationsEnabledLimitedDescription")
+            : t("testNotificationHint")
           : t("notificationPermissionErrorDescription"),
         color: shown ? "success" : "warning",
         timeout: 3000,

@@ -273,13 +273,13 @@ function BookQueueContent() {
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const currentBookingIdRef = useRef<number | null>(null);
 
-    // Notification (FCM)
+    // Notification (self-hosted Web Push, VAPID)
     const { 
         isSupported: notificationSupported, 
         permissionStatus, 
         requestPermission, 
-        registerFcmToken,
-        fcmToken,
+        registerPushToken,
+        pushSubscribed,
     } = useNotification();
 
     // Check for existing booking on mount
@@ -610,10 +610,10 @@ function BookQueueContent() {
                 if (notificationSupported && permissionStatus !== "granted") {
                     const permissionResult = await requestPermission();
                     if (permissionResult.granted) {
-                        await registerFcmToken("student", result.data.id, permissionResult.token);
+                        await registerPushToken("student", result.data.id);
                     }
-                } else if (fcmToken) {
-                    await registerFcmToken("student", result.data.id);
+                } else if (pushSubscribed || permissionStatus === "granted") {
+                    await registerPushToken("student", result.data.id);
                 }
                 
                 addToast({
@@ -657,10 +657,10 @@ function BookQueueContent() {
                 if (notificationSupported && permissionStatus !== "granted") {
                     const permissionResult = await requestPermission();
                     if (permissionResult.granted) {
-                        await registerFcmToken("student", result.data.id, permissionResult.token);
+                        await registerPushToken("student", result.data.id);
                     }
-                } else if (fcmToken) {
-                    await registerFcmToken("student", result.data.id);
+                } else if (pushSubscribed || permissionStatus === "granted") {
+                    await registerPushToken("student", result.data.id);
                 }
 
                 addToast({
@@ -1444,7 +1444,7 @@ function BookQueueContent() {
                                     onClick={async () => {
                                         const permissionResult = await requestPermission();
                                         if (permissionResult.granted && bookingResult) {
-                                            await registerFcmToken("student", bookingResult.id, permissionResult.token);
+                                            await registerPushToken("student", bookingResult.id);
                                         }
                                     }}
                                     className="flex w-full items-center gap-3 rounded-3xl border border-violet-100 bg-violet-50 px-4 py-3 text-left text-sm transition active:scale-[0.98] hover:bg-violet-100"

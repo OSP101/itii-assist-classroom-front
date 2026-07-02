@@ -1,15 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
-import { MessagePayload } from "firebase/messaging";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { addToast } from "@heroui/toast";
-import {
-    initializeFirebase,
-    requestNotificationPermission,
-    onForegroundMessage,
-    isPushNotificationSupported,
-    getNotificationPermissionStatus,
-} from "@/config/firebase";
+import { isWebPushSupported, registerPushSubscription, unregisterPushSubscription } from "@/services/push-subscription.service";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { authService } from "@/services/auth.service";
 import { useI18n } from "@/hooks/useI18n";
@@ -17,8 +10,6 @@ import { getNotificationHeadline, getNotificationMessage } from "@/lib/notificat
 import { useSocket } from "@/contexts/SocketContext";
 import userNotificationService, { UserNotificationItem } from "@/services/user-notification.service";
 import { showBrowserNotification, triggerNotificationVibration } from "@/lib/pwa-notifications";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
 // Helper to get access token from localStorage
 const getAccessToken = (): string | null => {
@@ -37,16 +28,12 @@ interface NotificationContextType {
     isSupported: boolean;
     permissionStatus: NotificationPermission | null;
     isLoading: boolean;
-    fcmToken: string | null;
+    pushSubscribed: boolean;
 
     // Actions
-    requestPermission: () => Promise<{ granted: boolean; token: string | null }>;
-    registerFcmToken: (userType: "worker" | "student", targetId?: number, tokenOverride?: string | null) => Promise<boolean>;
-    unregisterFcmToken: () => Promise<boolean>;
-
-    // Latest notification (for in-app handling)
-    lastNotification: MessagePayload | null;
-    clearLastNotification: () => void;
+    requestPermission: () => Promise<{ granted: boolean }>;
+    registerPushToken: (userType: "worker" | "student", targetId?: number) => Promise<boolean>;
+    unregisterPushToken: () => Promise<boolean>;
 
     // Navbar notification inbox (DB-backed)
     notifications: UserNotificationItem[];
@@ -124,57 +111,23 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     const [isSupported, setIsSupported] = useState(false);
     const [permissionStatus, setPermissionStatus] = useState<NotificationPermission | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [fcmToken, setFcmToken] = useState<string | null>(null);
-    const [lastNotification, setLastNotification] = useState<MessagePayload | null>(null);
+    const [pushSubscribed, setPushSubscribed] = useState(false);
     const [notifications, setNotifications] = useState<UserNotificationItem[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isInboxLoading, setIsInboxLoading] = useState(false);
 
-    const unsubscribeRef = useRef<(() => void) | null>(null);
-
-    // Initialize Firebase and check support
+    // Check for standard Push API support (self-hosted Web Push, no Firebase)
     useEffect(() => {
-        const init = async () => {
-            const supported = isPushNotificationSupported();
-            setIsSupported(supported);
-
-            if (supported) {
-                initializeFirebase();
-                const status = getNotificationPermissionStatus();
-                setPermissionStatus(status);
-
-                // Send config to service worker
-                if ("serviceWorker" in navigator) {
-                    navigator.serviceWorker.ready.then((registration) => {
-                        registration.active?.postMessage({
-                            type: "FIREBASE_CONFIG",
-                            config: {
-                                apiKey: "AIzaSyAOgm56BteZP_ipSdv8il8r6knK3i4vTFc",
-                                authDomain: "itii-assist-classrooms.firebaseapp.com",
-                                projectId: "itii-assist-classrooms",
-                                storageBucket: "itii-assist-classrooms.firebasestorage.app",
-                                messagingSenderId: "217696858922",
-                                appId: "1:217696858922:web:27341ecb0e7b7ca971e453"
-                            },
-                        });
-                    });
-                }
-            }
-
-            setIsLoading(false);
-        };
-
-        init();
-
-        return () => {
-            if (unsubscribeRef.current) {
-                unsubscribeRef.current();
-            }
-        };
+        const supported = isWebPushSupported();
+        setIsSupported(supported);
+        if (supported && typeof Notification !== "undefined") {
+            setPermissionStatus(Notification.permission);
+        }
+        setIsLoading(false);
     }, []);
 
-    // Request notification permission
-    const requestPermission = useCallback(async (): Promise<{ granted: boolean; token: string | null }> => {
+    // Request notification permission (standard Notification API)
+    const requestPermission = useCallback(async (): Promise<{ granted: boolean }> => {
         if (!isSupported) {
             addToast({
                 title: t("notificationsNotSupportedTitle"),
@@ -183,70 +136,27 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
             });
-            return { granted: false, token: null };
+            return { granted: false };
         }
 
         setIsLoading(true);
 
         try {
-            const token = await requestNotificationPermission();
-            const nextPermissionStatus = getNotificationPermissionStatus();
-            setPermissionStatus(nextPermissionStatus);
+            const permission = await Notification.requestPermission();
+            setPermissionStatus(permission);
 
-            if (nextPermissionStatus === "granted") {
-                setFcmToken(token);
-
-                // Setup foreground message listener
-                if (token) {
-                    if (unsubscribeRef.current) {
-                        unsubscribeRef.current();
-                    }
-
-                    const unsubscribe = onForegroundMessage((payload) => {
-                        setLastNotification(payload);
-
-                        // Show in-app toast for foreground notifications
-                        const preview = {
-                            type: payload.data?.type,
-                            title: payload.notification?.title || payload.data?.title || t("notification"),
-                            message: payload.notification?.body || payload.data?.body || "",
-                            data: payload.data,
-                        };
-                        const previewTitle = getNotificationHeadline(preview, language, t);
-                        const previewMessage = getNotificationMessage(preview, language, t);
-
-                        addToast({
-                            title: previewTitle,
-                            description: previewMessage,
-                            color: getToastColor(payload.data?.type),
-                            timeout: 3000,
-                            shouldShowTimeoutProgress: true,
-                        });
-
-                        void notifyDevice({
-                            title: previewTitle,
-                            body: previewMessage,
-                            type: payload.data?.type,
-                            url: resolveNotificationUrl({ data: payload.data }),
-                        });
-                    });
-
-                    if (unsubscribe) {
-                        unsubscribeRef.current = unsubscribe;
-                    }
-                }
-
+            if (permission === "granted") {
                 addToast({
                     title: t("notificationsEnabledTitle"),
-                    description: token ? t("notificationsEnabledDescription") : t("notificationsEnabledLimitedDescription"),
+                    description: t("notificationsEnabledDescription"),
                     color: "success",
                     timeout: 3000,
                     shouldShowTimeoutProgress: true,
                 });
 
-                return { granted: true, token };
+                return { granted: true };
             } else {
-                if (nextPermissionStatus === "denied") {
+                if (permission === "denied") {
                     addToast({
                         title: t("notificationsDisabledTitle"),
                         description: t("enableNotificationsInBrowserSettings"),
@@ -256,7 +166,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
                     });
                 }
 
-                return { granted: false, token: null };
+                return { granted: false };
             }
         } catch (error) {
             console.error("Error requesting permission:", error);
@@ -267,95 +177,40 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
             });
-            return { granted: false, token: null };
+            return { granted: false };
         } finally {
             setIsLoading(false);
         }
-    }, [isSupported, language, t]);
+    }, [isSupported, t]);
 
-    // Register FCM token with backend
-    const registerFcmToken = useCallback(async (
+    // Registers this device's self-hosted Web Push subscription (webpush-go,
+    // VAPID) with the backend for the current authenticated user.
+    const registerPushToken = useCallback(async (
         userType: "worker" | "student",
         targetId?: number,
-        tokenOverride?: string | null,
     ): Promise<boolean> => {
-        const activeToken = tokenOverride ?? fcmToken;
-        if (!activeToken) {
-            console.warn("No FCM token available");
+        const user = authService.getStoredUser();
+        const accessToken = getAccessToken();
+        if (!accessToken || !user?.id) {
             return false;
         }
 
-        try {
-            const user = authService.getStoredUser();
-            const accessToken = getAccessToken();
-            if (!accessToken || !user?.id) {
-                return false;
-            }
-
-            const response = await fetch(`${API_BASE_URL}/notifications/register`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-                },
-                body: JSON.stringify({
-                    fcm_token: activeToken,
-                    user_type: userType,
-                    user_id: user?.id,
-                    target_id: targetId, // session_id for workers, booking_id for students
-                    student_id: user?.student_id,
-                    device_info: {
-                        userAgent: navigator.userAgent,
-                        platform: navigator.platform,
-                        language: navigator.language,
-                    },
-                }),
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                return true;
-            } else {
-                console.error("Failed to register FCM token:", result.error);
-                return false;
-            }
-        } catch (error) {
-            console.error("Error registering FCM token:", error);
-            return false;
+        const success = await registerPushSubscription(userType, targetId, {
+            userId: user.id,
+            studentId: user.student_id,
+        });
+        if (success) {
+            setPushSubscribed(true);
         }
-    }, [fcmToken]);
+        return success;
+    }, []);
 
-    // Unregister FCM token
-    const unregisterFcmToken = useCallback(async (): Promise<boolean> => {
-        if (!fcmToken) return true;
-
-        try {
-            const accessToken = getAccessToken();
-            if (!accessToken) {
-                return true;
-            }
-
-            const response = await fetch(`${API_BASE_URL}/notifications/unregister`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-                },
-                body: JSON.stringify({ fcm_token: fcmToken }),
-            });
-
-            const result = await response.json();
-            return result.success;
-        } catch (error) {
-            console.error("Error unregistering FCM token:", error);
-            return false;
+    const unregisterPushToken = useCallback(async (): Promise<boolean> => {
+        const success = await unregisterPushSubscription();
+        if (success) {
+            setPushSubscribed(false);
         }
-    }, [fcmToken]);
-
-    // Clear last notification
-    const clearLastNotification = useCallback(() => {
-        setLastNotification(null);
+        return success;
     }, []);
 
     const refreshNotifications = useCallback(async () => {
@@ -483,12 +338,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         isSupported,
         permissionStatus,
         isLoading,
-        fcmToken,
+        pushSubscribed,
         requestPermission,
-        registerFcmToken,
-        unregisterFcmToken,
-        lastNotification,
-        clearLastNotification,
+        registerPushToken,
+        unregisterPushToken,
         notifications,
         unreadCount,
         isInboxLoading,
