@@ -355,6 +355,131 @@ function KPIBreakdownCard({
   );
 }
 
+function TASnapshotCard({
+  row,
+  totalAssignments,
+  averageTermShare,
+  isEnglish,
+  onView,
+}: {
+  row: TAWorkRow;
+  totalAssignments: number;
+  averageTermShare: number;
+  isEnglish: boolean;
+  onView: () => void;
+}) {
+  const workState = getWorkState(row.equalSharePct, isEnglish);
+  const flagCount = row.ta.anomalies?.length || 0;
+  const score = row.ta.performanceScore;
+  const barMax = Math.max(row.termSharePct, averageTermShare * 1.5, 1);
+
+  return (
+    <Card className="border border-default-200 shadow-sm">
+      <CardBody className="space-y-3 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <Avatar
+              name={row.ta.fullName}
+              size="md"
+              src={row.ta.avatar || undefined}
+              className="bg-linear-to-br from-blue-500 to-indigo-500 text-white"
+            />
+            <div className="min-w-0">
+              <p className="truncate font-medium text-foreground">{row.ta.fullName}</p>
+              <p className="truncate text-xs text-default-400">{row.ta.email}</p>
+            </div>
+          </div>
+          {score != null ? (
+            <Tooltip
+              content={
+                <div className="max-w-64 px-1 py-1 text-xs">
+                  <p className="font-semibold">
+                    {getScoreLabel(score, isEnglish)} ({score}/100)
+                  </p>
+                  <p className="mt-1 text-default-300">
+                    {isEnglish
+                      ? "Support signal based on workload, coverage, consistency, queue work, and anomaly checks."
+                      : "คะแนนประกอบจากภาระงาน ความครอบคลุม ความสม่ำเสมอ งานคิว และจุดที่ระบบตั้งข้อสังเกต"}
+                  </p>
+                </div>
+              }
+            >
+              <div className={`flex shrink-0 flex-col items-center rounded-2xl px-3 py-1.5 ${getScoreBg(score)}`}>
+                <span className={`text-lg font-bold leading-none ${getScoreColor(score)}`}>{score}</span>
+                <span className={`mt-0.5 text-[10px] font-medium leading-none ${getScoreColor(score)}`}>
+                  {getScoreLabel(score, isEnglish)}
+                </span>
+              </div>
+            </Tooltip>
+          ) : (
+            <span className="shrink-0 text-xs text-default-300">-</span>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Chip size="sm" variant="flat" className={workState.className}>
+            {workState.label}
+          </Chip>
+          {flagCount > 0 ? (
+            <Chip size="sm" variant="flat" className="bg-amber-50 text-amber-600">
+              <Icon icon="solar:danger-triangle-bold" className="mr-1 inline text-xs" />
+              {flagCount} {isEnglish ? "flags" : "ประเด็น"}
+            </Chip>
+          ) : null}
+        </div>
+
+        <div className="grid grid-cols-4 gap-2">
+          <div className="rounded-xl bg-content2 px-1 py-2 text-center">
+            <p className="text-sm font-semibold text-blue-600">{row.gradedCount}</p>
+            <p className="text-[10px] text-default-400">{isEnglish ? "Grading" : "ตรวจปกติ"}</p>
+          </div>
+          <div className="rounded-xl bg-content2 px-1 py-2 text-center">
+            <p className="text-sm font-semibold text-amber-600">{row.queueCompleted}</p>
+            <p className="text-[10px] text-default-400">{isEnglish ? "Queue" : "งานคิว"}</p>
+          </div>
+          <div className="rounded-xl bg-content2 px-1 py-2 text-center">
+            <p className="text-sm font-semibold text-foreground">{row.totalWork}</p>
+            <p className="text-[10px] text-default-400">{isEnglish ? "Total" : "รวม"}</p>
+          </div>
+          <div className="rounded-xl bg-content2 px-1 py-2 text-center">
+            <p className="text-sm font-semibold text-violet-600">
+              {row.ta.assignmentsGraded}/{totalAssignments}
+            </p>
+            <p className="text-[10px] text-default-400">{isEnglish ? "Coverage" : "ครอบคลุม"}</p>
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-1 flex items-center justify-between text-xs text-default-500">
+            <span>{isEnglish ? "Term share" : "สัดส่วนทั้งเทอม"}</span>
+            <span className="font-medium text-foreground">{formatPercent(row.termSharePct)}</span>
+          </div>
+          <div className="relative h-1.5 overflow-hidden rounded-full bg-content3">
+            <div
+              className={`h-full rounded-full ${row.equalSharePct >= 80 ? "bg-blue-500" : "bg-amber-500"}`}
+              style={{ width: `${Math.min((row.termSharePct / barMax) * 100, 100)}%` }}
+            />
+            <div
+              className="absolute inset-y-0 border-l-2 border-dashed border-default-500/60"
+              style={{ left: `${Math.min((averageTermShare / barMax) * 100, 100)}%` }}
+            />
+          </div>
+        </div>
+
+        <Button
+          size="sm"
+          variant="flat"
+          onPress={onView}
+          fullWidth
+          className="bg-blue-50 text-blue-600 hover:bg-blue-100"
+        >
+          {isEnglish ? "View details" : "ดูรายละเอียด"}
+        </Button>
+      </CardBody>
+    </Card>
+  );
+}
+
 function TADetailView({
   courseId,
   ta,
@@ -692,6 +817,7 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
   const [selectedTA, setSelectedTA] = useState<TAStat | null>(null);
   const [sortField, setSortField] = useState<SortField>("total-work");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -1085,53 +1211,88 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                   </h3>
                   <p className="text-sm text-default-500">
                     {isEnglish
-                      ? "Use this table when discussing contribution, workload balance, and assignment coverage."
-                      : "เหมาะสำหรับใช้คุยเรื่องภาระงาน ความสมดุล และการมีส่วนร่วมของแต่ละคน"}
+                      ? "See how each TA is doing, then switch to the table for exact numbers."
+                      : "ดูภาพรวมของ TA แต่ละคนได้ทันที แล้วสลับไปดูตัวเลขละเอียดในมุมมองตาราง"}
                   </p>
                 </div>
-                <Dropdown>
-                  <DropdownTrigger>
-                    <Button size="sm" variant="flat" className="min-w-36 justify-between bg-content3 text-default-600">
-                      {sortField === "total-work"
-                        ? isEnglish
-                          ? "Total work"
-                          : "ภาระงานรวม"
-                        : sortField === "term-share"
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center overflow-hidden rounded-lg border border-default-200 bg-content1">
+                    <Tooltip content={isEnglish ? "Grid view" : "มุมมองการ์ด"}>
+                      <Button
+                        aria-label={isEnglish ? "Show grid view" : "แสดงมุมมองการ์ด"}
+                        isIconOnly
+                        size="sm"
+                        variant="light"
+                        className={`rounded-none ${viewMode === "grid" ? "bg-content3" : ""}`}
+                        onPress={() => setViewMode("grid")}
+                      >
+                        <Icon
+                          icon="solar:widget-bold"
+                          className={`text-base ${viewMode === "grid" ? "text-blue-600" : "text-default-400"}`}
+                        />
+                      </Button>
+                    </Tooltip>
+                    <div className="h-5 w-px bg-divider" />
+                    <Tooltip content={isEnglish ? "List view" : "มุมมองตาราง"}>
+                      <Button
+                        aria-label={isEnglish ? "Show list view" : "แสดงมุมมองตาราง"}
+                        isIconOnly
+                        size="sm"
+                        variant="light"
+                        className={`rounded-none ${viewMode === "list" ? "bg-content3" : ""}`}
+                        onPress={() => setViewMode("list")}
+                      >
+                        <Icon
+                          icon="solar:list-bold"
+                          className={`text-base ${viewMode === "list" ? "text-blue-600" : "text-default-400"}`}
+                        />
+                      </Button>
+                    </Tooltip>
+                  </div>
+                  <Dropdown>
+                    <DropdownTrigger>
+                      <Button size="sm" variant="flat" className="min-w-36 justify-between bg-content3 text-default-600">
+                        {sortField === "total-work"
                           ? isEnglish
-                            ? "Term share"
-                            : "สัดส่วนทั้งเทอม"
-                          : sortField === "graded"
+                            ? "Total work"
+                            : "ภาระงานรวม"
+                          : sortField === "term-share"
                             ? isEnglish
-                              ? "Regular grading"
-                              : "งานตรวจปกติ"
-                            : isEnglish
-                              ? "Name"
-                              : "ชื่อ"}
-                    </Button>
-                  </DropdownTrigger>
-                  <DropdownMenu
-                    selectionMode="single"
-                    selectedKeys={new Set([sortField])}
-                    onSelectionChange={(keys) => {
-                      const next = Array.from(keys)[0] as SortField;
-                      if (!next) return;
-                      if (next === sortField) {
-                        setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
-                        return;
-                      }
-                      setSortField(next);
-                      setSortDirection(next === "name" ? "asc" : "desc");
-                    }}
-                    items={[
-                      { key: "total-work", label: isEnglish ? "Total work" : "ภาระงานรวม" },
-                      { key: "term-share", label: isEnglish ? "Term share" : "สัดส่วนทั้งเทอม" },
-                      { key: "graded", label: isEnglish ? "Regular grading" : "งานตรวจปกติ" },
-                      { key: "name", label: isEnglish ? "Name" : "ชื่อ" },
-                    ]}
-                  >
-                    {(item) => <DropdownItem key={item.key}>{item.label}</DropdownItem>}
-                  </DropdownMenu>
-                </Dropdown>
+                              ? "Term share"
+                              : "สัดส่วนทั้งเทอม"
+                            : sortField === "graded"
+                              ? isEnglish
+                                ? "Regular grading"
+                                : "งานตรวจปกติ"
+                              : isEnglish
+                                ? "Name"
+                                : "ชื่อ"}
+                      </Button>
+                    </DropdownTrigger>
+                    <DropdownMenu
+                      selectionMode="single"
+                      selectedKeys={new Set([sortField])}
+                      onSelectionChange={(keys) => {
+                        const next = Array.from(keys)[0] as SortField;
+                        if (!next) return;
+                        if (next === sortField) {
+                          setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+                          return;
+                        }
+                        setSortField(next);
+                        setSortDirection(next === "name" ? "asc" : "desc");
+                      }}
+                      items={[
+                        { key: "total-work", label: isEnglish ? "Total work" : "ภาระงานรวม" },
+                        { key: "term-share", label: isEnglish ? "Term share" : "สัดส่วนทั้งเทอม" },
+                        { key: "graded", label: isEnglish ? "Regular grading" : "งานตรวจปกติ" },
+                        { key: "name", label: isEnglish ? "Name" : "ชื่อ" },
+                      ]}
+                    >
+                      {(item) => <DropdownItem key={item.key}>{item.label}</DropdownItem>}
+                    </DropdownMenu>
+                  </Dropdown>
+                </div>
               </div>
 
               {sortedRows.length === 0 ? (
@@ -1148,6 +1309,19 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                     </p>
                   </CardBody>
                 </Card>
+              ) : viewMode === "grid" ? (
+                <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {sortedRows.map((row) => (
+                    <TASnapshotCard
+                      key={row.ta.userId}
+                      row={row}
+                      totalAssignments={data.summary.totalAssignments}
+                      averageTermShare={derived.averageTermShare}
+                      isEnglish={isEnglish}
+                      onView={() => setSelectedTA(row.ta)}
+                    />
+                  ))}
+                </div>
               ) : (
                 <div className="overflow-x-auto">
                   <Table
