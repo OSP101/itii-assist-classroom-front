@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { Icon } from "@iconify/react";
+import { Accordion, AccordionItem } from "@heroui/accordion";
 import { useI18n } from "@/hooks/useI18n";
 import { formatScoreValue } from "@/lib/score-input";
 import {
@@ -560,20 +561,39 @@ export default function StudentCourseDetailPage() {
               <p className="text-xs font-bold uppercase tracking-wide text-slate-600">กลุ่มของฉัน</p>
             </div>
             {course.course.my_groups && course.course.my_groups.length > 0 ? (
-              <div className="space-y-2.5">
+              <Accordion
+                variant="splitted"
+                selectionMode="multiple"
+                className="gap-2.5 p-0"
+                itemClasses={{
+                  base: "rounded-3xl border border-slate-200/80 bg-slate-50/90 shadow-none",
+                  heading: "px-0",
+                  trigger: "rounded-3xl px-3.5 py-3 data-[hover=true]:bg-slate-100/70",
+                  indicator: "text-slate-400",
+                  content: "px-3.5 pb-3.5 pt-0",
+                }}
+              >
                 {course.course.my_groups.map((group) => (
-                  <div key={group.id} className="rounded-3xl border border-slate-200/80 bg-slate-50/90 p-3.5">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-200/70 px-2 py-0.5 text-[10px] font-bold text-slate-700">
-                        <Icon icon="solar:users-group-rounded-bold" className="text-[11px]" />
-                        {group.name}
-                      </span>
-                      <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                        {studentGroupTypeLabel(group)}
-                      </span>
-                    </div>
+                  <AccordionItem
+                    key={group.id}
+                    aria-label={group.name}
+                    title={
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-200/70 px-2 py-0.5 text-[10px] font-bold text-slate-700">
+                          <Icon icon="solar:users-group-rounded-bold" className="text-[11px]" />
+                          {group.name}
+                        </span>
+                        <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                          {studentGroupTypeLabel(group)}
+                        </span>
+                        <span className="ml-auto text-[10px] font-medium text-slate-400">
+                          {group.members.length} สมาชิก
+                        </span>
+                      </div>
+                    }
+                  >
                     {group.members.length > 0 ? (
-                      <div className="mt-2 rounded-2xl border border-slate-200/80 bg-white/90 p-2">
+                      <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-2">
                         <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">สมาชิก</p>
                         <ul className="mt-1 space-y-1">
                           {group.members.map((member) => (
@@ -587,11 +607,11 @@ export default function StudentCourseDetailPage() {
                         </ul>
                       </div>
                     ) : (
-                      <p className="mt-2 text-[11px] text-slate-500">ยังไม่มีสมาชิกในกลุ่ม</p>
+                      <p className="text-[11px] text-slate-500">ยังไม่มีสมาชิกในกลุ่ม</p>
                     )}
-                  </div>
+                  </AccordionItem>
                 ))}
-              </div>
+              </Accordion>
             ) : (
               <div className="flex items-center gap-3 rounded-3xl border border-dashed border-slate-200 bg-white/60 p-4">
                 <Icon icon="solar:users-group-rounded-bold-duotone" className="text-xl text-slate-300 shrink-0" />
