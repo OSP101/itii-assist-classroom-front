@@ -195,23 +195,6 @@ function getDeskVisualState(desk: DeskWithStatus): DeskVisualState {
     return "idle";
 }
 
-function getDeskVisualTone(state: DeskVisualState): { fill: string; stroke: string; text: string } {
-    switch (state) {
-        case "help_in_progress":
-            return { fill: "#f59e0b", stroke: "#d97706", text: "#111827" };
-        case "help_waiting":
-            return { fill: "#fcd34d", stroke: "#f59e0b", text: "#111827" };
-        case "grading_in_progress":
-            return { fill: "#3b82f6", stroke: "#2563eb", text: "#ffffff" };
-        case "grading_waiting":
-            return { fill: "#93c5fd", stroke: "#3b82f6", text: "#0f172a" };
-        case "completed":
-            return { fill: "#10b981", stroke: "#059669", text: "#052e16" };
-        default:
-            return { fill: "#cbd5e1", stroke: "#94a3b8", text: "#334155" };
-    }
-}
-
 function WorkerDeskMap({
     desks,
     highlightedDeskNumbers,
@@ -236,21 +219,25 @@ function WorkerDeskMap({
     const ys = positionedDesks.map((desk) => desk.y as number);
     const minX = Math.min(...xs);
     const minY = Math.min(...ys);
-    const width = 340;
-    const height = 220;
-    const pad = 18;
+    const width = 360;
+    const height = 240;
+    const pad = 22;
     const rawWidth = Math.max(...xs) - minX;
     const rawHeight = Math.max(...ys) - minY;
     const scale = Math.min(
         rawWidth > 0 ? (width - pad * 2) / rawWidth : 1,
         rawHeight > 0 ? (height - pad * 2) / rawHeight : 1,
     );
+    const drawnWidth = rawWidth * scale;
+    const drawnHeight = rawHeight * scale;
+    const offsetX = pad + Math.max(0, (width - pad * 2 - drawnWidth) / 2);
+    const offsetY = pad + Math.max(0, (height - pad * 2 - drawnHeight) / 2);
 
     const currentSet = new Set(currentDeskNumbers.map(String));
-    const highlightedSet = new Set(highlightedDeskNumbers.map(String));
+    const visitedSet = new Set(highlightedDeskNumbers.map(String));
 
-    const cx = (desk: DeskWithStatus) => pad + ((desk.x as number) - minX) * scale;
-    const cy = (desk: DeskWithStatus) => pad + ((desk.y as number) - minY) * scale;
+    const cx = (desk: DeskWithStatus) => offsetX + ((desk.x as number) - minX) * scale;
+    const cy = (desk: DeskWithStatus) => offsetY + ((desk.y as number) - minY) * scale;
 
     return (
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full rounded-2xl bg-slate-50 p-2 dark:bg-slate-950/40">
@@ -259,7 +246,7 @@ function WorkerDeskMap({
                 const y = cy(desk);
                 const deskKey = String(desk.number);
                 const isCurrent = currentSet.has(deskKey);
-                const isHighlighted = highlightedSet.has(deskKey);
+                const isVisited = visitedSet.has(deskKey);
 
                 if (desk.type === "teacher") {
                     return (
@@ -272,15 +259,31 @@ function WorkerDeskMap({
                     );
                 }
 
-                const state = getDeskVisualState(desk);
-                const tone = getDeskVisualTone(state);
+                const fill = isCurrent ? "#f59e0b" : isVisited ? "#bfdbfe" : "#e2e8f0";
+                const stroke = isCurrent ? "#b45309" : isVisited ? "#60a5fa" : "#cbd5e1";
+                const textColor = isCurrent ? "#451a03" : isVisited ? "#1e3a8a" : "#94a3b8";
 
                 return (
                     <g key={`desk-${desk.id}`}>
-                        {isHighlighted ? <circle cx={x} cy={y} r={11} fill="none" stroke="#7c3aed" strokeWidth="1.5" /> : null}
-                        {isCurrent ? <circle cx={x} cy={y} r={13} fill="none" stroke="#111827" strokeWidth="2" /> : null}
-                        <rect x={x - 10} y={y - 7} width={20} height={14} rx={5} fill={tone.fill} stroke={tone.stroke} strokeWidth="1" />
-                        <text x={x} y={y + 3} textAnchor="middle" fontSize="8.5" fontWeight="700" fill={tone.text}>
+                        {isCurrent ? <circle cx={x} cy={y} r={13} fill="none" stroke="#b45309" strokeWidth="2" /> : null}
+                        <rect
+                            x={x - 10}
+                            y={y - 7}
+                            width={20}
+                            height={14}
+                            rx={5}
+                            fill={fill}
+                            stroke={stroke}
+                            strokeWidth={isCurrent || isVisited ? 1.5 : 1}
+                        />
+                        <text
+                            x={x}
+                            y={y + 3}
+                            textAnchor="middle"
+                            fontSize="8.5"
+                            fontWeight={isCurrent || isVisited ? 700 : 500}
+                            fill={textColor}
+                        >
                             {desk.number}
                         </text>
                     </g>
@@ -630,6 +633,12 @@ export default function QueueSessionReportPage() {
         { key: "grading_waiting", label: t("รอตรวจ", "Grading waiting"), swatch: "#93c5fd" },
         { key: "completed", label: t("เสร็จแล้ว", "Completed"), swatch: "#10b981" },
         { key: "idle", label: t("ว่าง", "Idle"), swatch: "#cbd5e1" },
+    ];
+
+    const workerDeskLegend = [
+        { key: "current", label: t("โต๊ะปัจจุบัน", "Current desk"), swatch: "#f59e0b" },
+        { key: "visited", label: t("เคยไปโต๊ะนี้", "Previously visited"), swatch: "#60a5fa" },
+        { key: "other", label: t("โต๊ะอื่นในห้อง", "Other desks"), swatch: "#cbd5e1" },
     ];
 
     const activeDeskNumbers = desks
@@ -1031,8 +1040,8 @@ export default function QueueSessionReportPage() {
                                                     </h3>
                                                     <p className="text-sm text-default-500">
                                                         {t(
-                                                            "ผังนี้ใช้สีชุดเดียวกับโปรเจกเตอร์ เพื่อดูโต๊ะที่ทำงานอยู่ได้ทันที",
-                                                            "This map uses the projector color language to identify active desks quickly.",
+                                                            "ไฮไลต์เฉพาะโต๊ะที่ผู้ตรวจคนนี้เคยไปหรือกำลังไปตอนนี้ เพื่อดูตำแหน่งได้ทันที",
+                                                            "Only the desks this worker has visited or is currently at are highlighted.",
                                                         )}
                                                     </p>
                                                 </div>
@@ -1043,10 +1052,10 @@ export default function QueueSessionReportPage() {
                                                     highlightedDeskNumbers={selectedWorker.uniqueDeskNumbers}
                                                     currentDeskNumbers={selectedWorker.currentDeskNumbers}
                                                 />
-                                                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                                                    {deskLegendItems.map((item) => (
+                                                <div className="grid gap-2 grid-cols-3">
+                                                    {workerDeskLegend.map((item) => (
                                                         <div key={item.key} className="flex items-center gap-2 rounded-lg border border-default-200 bg-content1 px-2 py-1.5 text-xs">
-                                                            <span className="inline-block h-3.5 w-3.5 rounded-full border border-black/10" style={{ backgroundColor: item.swatch }} />
+                                                            <span className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-black/10" style={{ backgroundColor: item.swatch }} />
                                                             <span className="text-default-600">{item.label}</span>
                                                         </div>
                                                     ))}
