@@ -81,3 +81,43 @@ export async function showBrowserNotification(
 
   return true;
 }
+
+// Standard Web Push (webpush-go, VAPID) requires a secure context and a
+// service worker. On iOS/iPadOS Safari, push additionally only works once
+// the site is installed to the home screen (standalone display mode) —
+// there is no `beforeinstallprompt` on iOS, so callers must guide users to
+// the manual Share → "Add to Home Screen" flow themselves.
+export function isStandaloneMode(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const navigatorWithStandalone = window.navigator as Navigator & { standalone?: boolean };
+
+  return window.matchMedia("(display-mode: standalone)").matches || navigatorWithStandalone.standalone === true;
+}
+
+export function isSafariBrowser(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const userAgent = window.navigator.userAgent;
+  return /Safari/i.test(userAgent) && !/Chrome|CriOS|Chromium|Edg|OPR|Firefox|FxiOS|SamsungBrowser|Android/i.test(userAgent);
+}
+
+export function isAppleMobileBrowser(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const userAgent = window.navigator.userAgent;
+  return /iPad|iPhone|iPod/.test(userAgent) || (window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
+}
+
+// True when this device needs the manual "Add to Home Screen" flow before
+// push notifications (or the notification permission prompt) can work at all.
+export function requiresHomeScreenInstallForPush(): boolean {
+  return isAppleMobileBrowser() && isSafariBrowser() && !isStandaloneMode();
+}
+

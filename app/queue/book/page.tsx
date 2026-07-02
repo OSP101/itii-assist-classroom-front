@@ -13,6 +13,7 @@ import { authService } from "@/services/auth.service";
 
 import { API_BASE_URL } from "@/config/api";
 import { useNotification } from "@/contexts/NotificationContext";
+import { IosInstallHint } from "@/components/system/IosInstallHint";
 import { getQueueBookingStatusLabel, getQueueBookingTypeLabel } from "@/services/queue.service";
 
 const STORAGE_KEY = "queue_booking_state";
@@ -1438,6 +1439,7 @@ function BookQueueContent() {
                                 <Icon icon="solar:info-circle-bold" className="shrink-0 text-lg" />
                                 <span>กรุณารออยู่ที่โต๊ะ {status.desk_number}{bookingStatus?.zone ? ` (${bookingStatus.zone.name})` : ""} ระบบจะแจ้งเตือนเมื่อถึงคิว</span>
                             </div>
+                            <IosInstallHint />
                             {notificationSupported && permissionStatus !== "granted" && (
                                 <button
                                     type="button"

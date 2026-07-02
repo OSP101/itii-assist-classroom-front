@@ -10,6 +10,9 @@ import {
   showBrowserNotification,
   supportsVibrationApi,
   triggerNotificationVibration,
+  isStandaloneMode,
+  isSafariBrowser,
+  isAppleMobileBrowser,
 } from "@/lib/pwa-notifications";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -18,34 +21,6 @@ interface BeforeInstallPromptEvent extends Event {
     outcome: "accepted" | "dismissed";
     platform: string;
   }>;
-}
-
-function isStandaloneMode(): boolean {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  const navigatorWithStandalone = window.navigator as Navigator & { standalone?: boolean };
-
-  return window.matchMedia("(display-mode: standalone)").matches || navigatorWithStandalone.standalone === true;
-}
-
-function isSafariBrowser(): boolean {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  const userAgent = window.navigator.userAgent;
-  return /Safari/i.test(userAgent) && !/Chrome|CriOS|Chromium|Edg|OPR|Firefox|FxiOS|SamsungBrowser|Android/i.test(userAgent);
-}
-
-function isAppleMobileBrowser(): boolean {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  const userAgent = window.navigator.userAgent;
-  return /iPad|iPhone|iPod/.test(userAgent) || (window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
 }
 
 function StatusPill({ tone, label }: { tone: "success" | "warning" | "default"; label: string }) {

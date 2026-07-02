@@ -32,6 +32,7 @@ import { authService } from "@/services/auth.service";
 import scoreService from "@/services/score.service";
 import { useNotification } from "@/contexts/NotificationContext";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import { IosInstallHint } from "@/components/system/IosInstallHint";
 import { API_BASE_URL } from "@/config/api";
 import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
 import { formatScoreValue, parseScoreInput, SCORE_INPUT_PATTERN, sanitizeScoreInput } from "@/lib/score-input";
@@ -1394,6 +1395,8 @@ export default function WorkerDashboardPage() {
     return (
         <div className="min-h-screen bg-background p-4 text-foreground md:p-6">
             <div className="max-w-4xl mx-auto space-y-6">
+                <IosInstallHint />
+
                 {isWorkerOfferPaused && (
                     <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4">
                         <div className="flex flex-wrap items-center justify-between gap-3">
