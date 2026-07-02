@@ -186,7 +186,16 @@ class ApiService {
       ...options?.headers,
     };
     const allowRateLimitRetry = options?.retryOnRateLimit !== false;
-    const shouldDeduplicate = method === 'GET' && !body;
+    // Only the initial, externally-triggered call should participate in
+    // de-duplication. Internal retries (401->refresh retry, 429 backoff retry,
+    // network-error retry) recurse back into this same method with the same
+    // method/endpoint/params — if they looked themselves up in
+    // `inFlightRequests` they'd find their OWN still-pending outer promise
+    // (registered below, before it's awaited) and return that instead of
+    // firing a new fetch, deadlocking forever since the outer promise can
+    // only resolve once the retry it's "reusing" resolves.
+    const isInitialAttempt = retry === true && retryCount === 0;
+    const shouldDeduplicate = method === 'GET' && !body && isInitialAttempt;
     const requestKey = shouldDeduplicate
       ? `${method}:${endpoint}:${JSON.stringify(options?.params ?? {})}`
       : null;
