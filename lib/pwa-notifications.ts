@@ -46,6 +46,23 @@ export function triggerNotificationVibration(pattern: readonly number[] = DEFAUL
   return navigator.vibrate([...pattern]);
 }
 
+let _notificationAudio: HTMLAudioElement | null = null;
+
+export function playNotificationSound(): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (!_notificationAudio) {
+      _notificationAudio = new Audio("/notification.mp3");
+    }
+    _notificationAudio.currentTime = 0;
+    _notificationAudio.play().catch(() => {
+      // Autoplay may be blocked before user interaction; silently ignore
+    });
+  } catch {
+    // Silently ignore audio errors
+  }
+}
+
 export async function showBrowserNotification(
   title: string,
   options: BrowserNotificationOptions = {},

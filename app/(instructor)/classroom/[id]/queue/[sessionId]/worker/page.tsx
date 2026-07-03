@@ -33,7 +33,7 @@ import scoreService from "@/services/score.service";
 import { useNotification } from "@/contexts/NotificationContext";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { IosInstallHint } from "@/components/system/IosInstallHint";
-import { triggerNotificationVibration } from "@/lib/pwa-notifications";
+import { triggerNotificationVibration, playNotificationSound } from "@/lib/pwa-notifications";
 import { API_BASE_URL } from "@/config/api";
 import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
 import { formatScoreValue, parseScoreInput, SCORE_INPUT_PATTERN, sanitizeScoreInput } from "@/lib/score-input";
@@ -665,6 +665,7 @@ export default function WorkerDashboardPage() {
                 
                 setCurrentBooking(result.currentBooking);
                 skipPollingRef.current = true;
+                playNotificationSound();
                 addToast({
                     title: t("มีงานใหม่!", "New task assigned"),
                     description: result.currentBooking.status === "waiting"
@@ -715,6 +716,7 @@ export default function WorkerDashboardPage() {
             // iOS Safari doesn't implement the Vibration API at all, so iOS
             // workers only feel a buzz via the OS-level Web Push notification).
             triggerNotificationVibration();
+            playNotificationSound();
             addToast({
                 title: t("มีงานใหม่!", "New task assigned"),
                 description: data.booking.status === "waiting"
@@ -1403,34 +1405,70 @@ export default function WorkerDashboardPage() {
                 <IosInstallHint />
 
                 {isWorkerOfferPaused && (
-                    <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div className="flex items-center gap-3 min-w-0">
-                                <div className="p-2 rounded-xl bg-rose-100 shrink-0">
-                                    <Icon icon="solar:alarm-pause-bold" className="text-rose-600 text-xl" />
+                    <Card className="border-2 border-rose-300 bg-rose-50 shadow-lg">
+                        <CardBody className="p-5">
+                            <div className="flex flex-col gap-4">
+                                {/* Header */}
+                                <div className="flex items-start gap-3">
+                                    <div className="p-2.5 rounded-xl bg-rose-100 shrink-0">
+                                        <Icon icon="solar:alarm-pause-bold" className="text-rose-600 text-2xl" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="font-bold text-rose-800 text-base">
+                                            {t("ถูกพักรับงานอัตโนมัติ", "Temporarily banned from offers")}
+                                        </h3>
+                                        <p className="text-sm text-rose-700 mt-0.5">
+                                            {t(
+                                                "พลาดรับงาน 3 ครั้งติดกัน ระบบพักการส่งงานให้ชั่วคราว",
+                                                "You missed 3 consecutive task offers. Task assignment is temporarily paused."
+                                            )}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 className="font-semibold text-rose-800">{t("พักรับงานอัตโนมัติ", "Auto-paused from task offers")}</h3>
-                                    <p className="text-sm text-rose-700">
-                                        {isEnglish
-                                            ? `Offer timed out 3 consecutive times. Auto-resume in ${formatSecondsAsClock(workerPauseSecondsLeft ?? 0)}.`
-                                            : `พลาดรับงานครบ 3 ครั้งติด ระบบพักรับงานชั่วคราว จะปลดพักในอีก ${formatSecondsAsClock(workerPauseSecondsLeft ?? 0)} นาที`}
-                                    </p>
+
+                                {/* Countdown clock */}
+                                <div className="flex items-center justify-center gap-3 rounded-xl bg-rose-100 px-4 py-3">
+                                    <Icon icon="solar:clock-circle-bold" className="shrink-0 text-2xl text-rose-600" />
+                                    <div className="text-center">
+                                        <p className="text-xs font-medium text-rose-600">
+                                            {t("ปลดพักอัตโนมัติใน", "Auto-resume in")}
+                                        </p>
+                                        <p className="font-mono text-3xl font-bold text-rose-700 tabular-nums">
+                                            {formatSecondsAsClock(workerPauseSecondsLeft ?? 0)}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Action buttons */}
+                                <div className="flex gap-2">
+                                    <Button
+                                        color="primary"
+                                        variant="solid"
+                                        size="md"
+                                        className="flex-1"
+                                        startContent={<Icon icon="solar:play-bold" />}
+                                        onPress={handleJoinAsWorker}
+                                        isLoading={isJoining}
+                                        isDisabled={!isCourseActive}
+                                    >
+                                        {t("ปลดพักรับงานเลย", "Unban & resume now")}
+                                    </Button>
+                                    <Button
+                                        color="danger"
+                                        variant="flat"
+                                        size="md"
+                                        className="flex-1"
+                                        startContent={<Icon icon="solar:logout-2-bold" />}
+                                        onPress={handleLeaveAsWorker}
+                                        isLoading={isLeaving}
+                                        isDisabled={!isCourseActive}
+                                    >
+                                        {t("ปิดรับงาน", "Stop receiving tasks")}
+                                    </Button>
                                 </div>
                             </div>
-                            <Button
-                                color="primary"
-                                variant="flat"
-                                size="sm"
-                                startContent={<Icon icon="solar:play-bold" />}
-                                onPress={handleJoinAsWorker}
-                                isLoading={isJoining}
-                                isDisabled={!isCourseActive}
-                            >
-                                {t("ยกเลิกพักและเริ่มรับงาน", "Cancel pause and resume now")}
-                            </Button>
-                        </div>
-                    </div>
+                        </CardBody>
+                    </Card>
                 )}
                 {/* Session paused/closed banner */}
                 {session.status === "paused" && (

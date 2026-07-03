@@ -19,6 +19,7 @@ import { Icon } from "@iconify/react";
 import { IoSchool } from "react-icons/io5";
 import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket";
 import queueService from "@/services/queue.service";
+import { playNotificationSound } from "@/lib/pwa-notifications";
 import QRCode from "react-qr-code";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 
@@ -95,6 +96,7 @@ export default function ProjectorViewPage() {
     const [data, setData] = useState<ProjectorViewData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isDataStale, setIsDataStale] = useState(false);
     const [zoom, setZoom] = useState(1);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [sidebarPosition, setSidebarPosition] = useState<'right' | 'bottom'>('right');
@@ -122,6 +124,7 @@ export default function ProjectorViewPage() {
     const socketRef = useRef<Socket | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const hasShownInitialWarningRef = useRef(false);
+    const hasLoadedDataRef = useRef(false);
     const qrResizeObserverRef = useRef<ResizeObserver | null>(null);
     const selectedDeskHasActiveBooking = Boolean(
         selectedDesk?.booking &&
@@ -138,6 +141,12 @@ export default function ProjectorViewPage() {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
+
+    useEffect(() => {
+        if (data) {
+            hasLoadedDataRef.current = true;
+        }
+    }, [data]);
 
     useEffect(() => {
         document.title = isEnglish
@@ -160,12 +169,24 @@ export default function ProjectorViewPage() {
             if (result.success) {
                 setData(result.data);
                 setError(null);
+                setIsDataStale(false);
             } else {
-                setError(isEnglish ? "Unable to load the data." : (result.error?.message || "ไม่สามารถโหลดข้อมูลได้"));
+                const nextError = isEnglish ? "Unable to load the data." : (result.error?.message || "ไม่สามารถโหลดข้อมูลได้");
+                if (hasLoadedDataRef.current) {
+                    setIsDataStale(true);
+                    console.warn("Projector data fetch failed; keeping latest snapshot:", nextError);
+                } else {
+                    setError(nextError);
+                }
             }
         } catch (err) {
             console.error("Error fetching data:", err);
-            setError(isEnglish ? "A connection error occurred." : "เกิดข้อผิดพลาดในการเชื่อมต่อ");
+            const nextError = isEnglish ? "A connection error occurred." : "เกิดข้อผิดพลาดในการเชื่อมต่อ";
+            if (hasLoadedDataRef.current) {
+                setIsDataStale(true);
+            } else {
+                setError(nextError);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -173,6 +194,16 @@ export default function ProjectorViewPage() {
 
     useEffect(() => {
         fetchData();
+    }, [fetchData]);
+
+    useEffect(() => {
+        const intervalId = window.setInterval(() => {
+            void fetchData();
+        }, 15_000);
+
+        return () => {
+            window.clearInterval(intervalId);
+        };
     }, [fetchData]);
 
     useEffect(() => {
@@ -206,7 +237,7 @@ export default function ProjectorViewPage() {
 
         const sendHeartbeat = async () => {
             try {
-                await queueService.heartbeatProjectorSession(data.session.course_id!, sessionId);
+                await queueService.heartbeatProjectorSessionPublic(sessionId);
             } catch (error) {
                 if (!cancelled) {
                     console.error("Failed to send projector heartbeat:", error);
@@ -234,14 +265,29 @@ export default function ProjectorViewPage() {
 
     // Socket connection for real-time updates
     useEffect(() => {
-        const socket = io(getRealtimeSocketBaseUrl());
+        const socket = io(getRealtimeSocketBaseUrl(), {
+            reconnection: true,
+            reconnectionAttempts: Number.POSITIVE_INFINITY,
+            reconnectionDelay: 2000,
+        });
 
         socket.on("connect", () => {
+            setIsDataStale(false);
             socket.emit("join-queue", sessionId);
+            fetchData();
+        });
+
+        socket.on("disconnect", () => {
+            setIsDataStale(true);
+        });
+
+        socket.on("connect_error", () => {
+            setIsDataStale(true);
         });
 
         // Listen for booking updates
         socket.on("new-booking", () => {
+            playNotificationSound();
             fetchData();
         });
 
@@ -651,7 +697,7 @@ export default function ProjectorViewPage() {
         );
     }
 
-    if (error || !data) {
+    if (!data) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-background">
                 <div className="text-center">
@@ -718,6 +764,16 @@ export default function ProjectorViewPage() {
                             startContent={<Icon icon="solar:danger-triangle-bold" />}
                         >
                             {t("Cutoff เปิดอยู่", "Cutoff enabled")}
+                        </Chip>
+                    )}
+                    {isDataStale && (
+                        <Chip
+                            size="lg"
+                            color="warning"
+                            variant="flat"
+                            startContent={<Icon icon="solar:wifi-router-minimalistic-bold" />}
+                        >
+                            {t("เครือข่ายไม่เสถียร แสดงข้อมูลล่าสุดที่มี", "Connection unstable, showing latest available data")}
                         </Chip>
                     )}
                 </div>
