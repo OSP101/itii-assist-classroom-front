@@ -566,6 +566,7 @@ export default function WorkerDashboardPage() {
                 if (currentBooking) {
                     // Has pending booking - restore state
                     setCurrentBooking(currentBooking);
+                    skipPollingRef.current = true; // Prevent redundant polls while booking is active
                     
                     addToast({
                         title: t("พบงานที่ค้างอยู่", "Pending task restored"),
@@ -640,11 +641,11 @@ export default function WorkerDashboardPage() {
     }, [isPausedAfterComplete]);
     
     const pollForBooking = useCallback(async (force: boolean = false) => {
-        // Skip if not online, already have booking, or paused (unless forced)
+        // Skip if not online or paused (unless forced)
         if (!isWorkerOnline) return;
         if (isPausedRef.current) return; // Don't poll for new tasks when paused
         if (!force && socketRef.current?.connected) return;
-        if (!force && (currentBooking || skipPollingRef.current)) return;
+        if (!force && skipPollingRef.current) return; // Skip only via flag, not currentBooking (allows re-validation)
         
         try {
             const result = await queueService.getWorkerCurrentBooking(courseId, sessionId);
@@ -662,19 +663,30 @@ export default function WorkerDashboardPage() {
                 if (isPausedRef.current) {
                     return;
                 }
-                
+
+                // Only play sound/toast for genuinely new bookings (avoid duplicate on re-validation)
+                const isNewBooking = !currentBooking || currentBooking.id !== result.currentBooking.id;
                 setCurrentBooking(result.currentBooking);
                 skipPollingRef.current = true;
-                playNotificationSound();
-                addToast({
-                    title: t("มีงานใหม่!", "New task assigned"),
-                    description: result.currentBooking.status === "waiting"
-                        ? t("กรุณากดรับงานภายใน 30 วินาที", "Please accept this task within 30 seconds.")
-                        : `${formatDeskLabel(result.currentBooking.desk_number, isEnglish)} - ${formatBookingTypeLabel(result.currentBooking.booking_type, isEnglish)}`,
-                    color: "primary",
-                    timeout: 3000,
-                shouldShowTimeoutProgress: true,
-                });
+                if (isNewBooking) {
+                    playNotificationSound();
+                    addToast({
+                        title: t("มีงานใหม่!", "New task assigned"),
+                        description: result.currentBooking.status === "waiting"
+                            ? t("กรุณากดรับงานภายใน 30 วินาที", "Please accept this task within 30 seconds.")
+                            : `${formatDeskLabel(result.currentBooking.desk_number, isEnglish)} - ${formatBookingTypeLabel(result.currentBooking.booking_type, isEnglish)}`,
+                        color: "primary",
+                        timeout: 3000,
+                        shouldShowTimeoutProgress: true,
+                    });
+                }
+            } else {
+                // Backend reports no active booking — clear any stale state
+                // (handles: cancelled from projector, expired on server, missed socket events)
+                if (currentBooking) {
+                    setCurrentBooking(null);
+                }
+                skipPollingRef.current = false;
             }
         } catch (err) {
             pollingBackoffStepRef.current = Math.min(pollingBackoffStepRef.current + 1, 6);
@@ -760,6 +772,18 @@ export default function WorkerDashboardPage() {
             // Refresh if needed
         });
 
+        // Listen for external booking cancellation (e.g. projector page cancels it).
+        // Without this, the worker page stays frozen on the cancelled booking forever.
+        socket.on("booking-cancelled", () => {
+            skipPollingRef.current = false;
+            setTimeout(() => pollForBooking(true), 200);
+        });
+
+        socket.on("booking-skipped", () => {
+            skipPollingRef.current = false;
+            setTimeout(() => pollForBooking(true), 200);
+        });
+
         socketRef.current = socket;
 
         // Adaptive fallback polling: poll only when socket is not connected,
@@ -771,10 +795,11 @@ export default function WorkerDashboardPage() {
             );
 
             pollingRef.current = setTimeout(async () => {
-                if (!currentBooking) {
-                    skipPollingRef.current = false;
-                    await pollForBooking();
-                }
+                // Always re-validate — re-syncs stale state if socket missed a cancel/expire event.
+                // pollForBooking returns early when socket is connected, so this only hits the API
+                // when socket is disconnected (acting as a reliable fallback).
+                skipPollingRef.current = false;
+                await pollForBooking();
                 scheduleNextPoll();
             }, nextIntervalMs);
         };
