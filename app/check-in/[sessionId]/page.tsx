@@ -10,7 +10,6 @@ import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket";
 import attendanceService, { AttendanceRequestError, type AttendanceSession } from "@/services/attendance.service";
-import { authService } from "@/services/auth.service";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { useI18n } from "@/hooks/useI18n";
 import { useAttendancePinPresentation } from "@/hooks/useAttendancePinPresentation";
@@ -102,6 +101,7 @@ export default function StudentCheckInPage() {
         email: string;
         name: string;
         googleId: string;
+        idToken: string;
         picture?: string;
     } | null>(null);
     const [studentInfo, setStudentInfo] = useState<{
@@ -152,40 +152,7 @@ export default function StudentCheckInPage() {
             if (data) {
                 setSession(data);
                 if (data.status === "active") {
-                    // If already logged in, skip Google login — use stored user directly
-                    const storedUser = authService.getStoredUser();
-                    if (storedUser?.email) {
-                        setGoogleUser({
-                            email: storedUser.email,
-                            name: storedUser.full_name,
-                            googleId: "",
-                            picture: storedUser.avatar ?? undefined,
-                        });
-                        try {
-                            const result = await attendanceService.verifyStudent(storedUser.email, sessionId);
-                            if (result) {
-                                setStudentInfo(result.student);
-                                if (result.already_checked_in) {
-                                    setAlreadyCheckedIn({
-                                        status: result.status || "present",
-                                        check_in_time: result.check_in_time || "",
-                                    });
-                                    setStep("already-checked-in");
-                                } else if (data.check_location) {
-                                    setStep("location");
-                                } else {
-                                    setStep("pin-entry");
-                                }
-                            }
-                        } catch (err: unknown) {
-                            const info = getAttendanceErrorInfo(err, t("accessUnavailable"), t("studentNotFoundInSystem"));
-                            setErrorTitle(info.title);
-                            setErrorMessage(info.message);
-                            setStep("error");
-                        }
-                    } else {
-                        setStep("google-login");
-                    }
+                    setStep("google-login");
                 } else if (data.status === "closed") {
                     setErrorTitle(t("accessUnavailable"));
                     setErrorMessage(t("sessionClosedAlready"));
@@ -267,12 +234,13 @@ export default function StudentCheckInPage() {
             email: decoded.email,
             name: decoded.name,
             googleId: decoded.sub,
+            idToken: response.credential,
             picture: decoded.picture,
         });
 
         // Verify student
         try {
-            const result = await attendanceService.verifyStudent(decoded.email, sessionId);
+            const result = await attendanceService.verifyStudentIdentity(sessionId, response.credential, decoded.email);
             if (result) {
                 setStudentInfo(result.student);
                 if (result.already_checked_in) {
@@ -352,7 +320,7 @@ export default function StudentCheckInPage() {
             return;
         }
 
-        if (!googleUser || pinCode.length !== 6) {
+        if (!googleUser || !googleUser.idToken || pinCode.length !== 6) {
             addToast({
                 title: t("incompleteInformation"),
                 description: t("pleaseEnterSixDigitPin"),
@@ -376,6 +344,7 @@ export default function StudentCheckInPage() {
                 pin_code: pinCode,
                 google_email: googleUser.email,
                 google_id: googleUser.googleId,
+                google_token: googleUser.idToken,
                 client_request_id: checkInRequestIdRef.current,
                 student_id: studentInfo?.id,
                 location_lat: location?.lat,
@@ -571,7 +540,7 @@ export default function StudentCheckInPage() {
                         <div className="relative mt-4 flex gap-2">
                             {(["google-login", "location", "pin-entry"] as const)
                                 .filter((s) => {
-                                    if (s === "google-login") return !authService.getStoredUser();
+                                    if (s === "google-login") return true;
                                     if (s === "location") return session?.check_location;
                                     return true;
                                 })

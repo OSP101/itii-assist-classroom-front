@@ -140,6 +140,7 @@ export interface StudentCheckInData {
     pin_code: string;
     google_email: string;
     google_id: string;
+    google_token: string;
     client_request_id?: string;
     student_id?: number;
     location_lat?: number;
@@ -505,6 +506,30 @@ const attendanceService = {
             throwAttendanceRequestError(response as AttendanceErrorPayload, 'ไม่พบข้อมูลนักศึกษา');
         }
         
+        return response.data || null;
+    },
+
+    async verifyStudentIdentity(sessionId: number, googleToken: string, googleEmail?: string): Promise<{
+        student: { id: number; student_id: string; full_name: string; email: string };
+        already_checked_in: boolean;
+        status?: string;
+        check_in_time?: string;
+    } | null> {
+        const response = await api.post<{
+            student: { id: number; student_id: string; full_name: string; email: string };
+            already_checked_in: boolean;
+            status?: string;
+            check_in_time?: string;
+        }>("/attendance/verify-student", {
+            session_id: sessionId,
+            google_token: googleToken,
+            google_email: googleEmail,
+        });
+
+        if (!response.success) {
+            throwAttendanceRequestError(response as AttendanceErrorPayload, "ไม่พบข้อมูลนักศึกษา");
+        }
+
         return response.data || null;
     },
 
