@@ -1590,22 +1590,27 @@ function BookQueueContent() {
                             <button
                                 type="button"
                                 onClick={() => {
+                                    const nextBookingType = status.booking_type === "help" ? "help" : "grading";
                                     cleanupPolling();
                                     currentBookingIdRef.current = null;
                                     clearBookingState();
-                                    setStep("pin");
-                                    setPinCode("");
-                                    if (!loggedInUser) setStudentId("");
-                                    setDeskNumber("");
+                                    setStep("form");
+                                    if (loggedInUser) {
+                                        setStudentId(loggedInUser.username ?? "");
+                                    }
+                                    setDeskNumber(status.desk_number || "");
+                                    setBookingType(nextBookingType);
                                     setNote("");
                                     setShowNote(false);
                                     setBookingResult(null);
                                     setBookingStatus(null);
-                                    setSessionInfo(null);
                                     setStudentInfo(null);
                                     setDeskInfo(null);
                                     setValidationErrors([]);
                                     setValidationWarnings([]);
+                                    setBookingTypeAvailability(null);
+                                    setLatePreviewInfo(null);
+                                    setIsLateConfirmOpen(false);
                                 }}
                                 className="w-full rounded-full bg-linear-to-r from-sky-600 to-cyan-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-300/40 transition active:scale-[0.98]"
                             >
