@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useDeferredValue, useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardBody, CardFooter } from "@heroui/card";
 import { Button } from "@heroui/button";
@@ -41,7 +41,14 @@ export default function HomePage() {
     const router = useRouter();
     const t = useI18n();
     const { subscribeToCourseUpdates, unsubscribeFromCourseUpdates, onCourseUpdate, emitCourseUpdate, isConnected } = useSocket();
-    const [allCourses, setAllCourses] = useState<Course[]>([]); // All courses from API
+    const [courses, setCourses] = useState<Course[]>([]);
+    const [pagination, setPagination] = useState({
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: 0,
+        itemsPerPage: 12,
+        hasMore: false,
+    });
     const [stats, setStats] = useState<Stats | null>(null);
     const [isInitialCoursesLoading, setIsInitialCoursesLoading] = useState(true);
     const [isRefreshingCourses, setIsRefreshingCourses] = useState(false);
@@ -90,8 +97,14 @@ export default function HomePage() {
     const [search, setSearch] = useState("");
     const [yearFilter, setYearFilter] = useState("");
     const [semesterFilter, setSemesterFilter] = useState("");
+    const deferredSearch = useDeferredValue(search);
 
     const hasLoadedCoursesRef = useRef(false);
+    const filterSignature = useMemo(
+        () => `${deferredSearch.trim()}|${yearFilter}|${semesterFilter}`,
+        [deferredSearch, yearFilter, semesterFilter],
+    );
+    const lastFilterSignatureRef = useRef(filterSignature);
 
     // Get user role and ID
     useEffect(() => {
@@ -125,7 +138,7 @@ export default function HomePage() {
         fetchInstructors();
     }, [fetchInstructors]);
 
-    // Fetch all courses once on load
+    // Fetch courses with server-side pagination and filters
     const fetchCourses = useCallback(async (background = false) => {
         if (!hasLoadedCoursesRef.current) {
             setIsInitialCoursesLoading(true);
@@ -134,10 +147,19 @@ export default function HomePage() {
         }
 
         try {
-            // Fetch all courses without pagination (set high limit)
-            const response = await courseService.getMyCourses({ limit: 1000 });
+            const response = await courseService.getMyCourses({
+                page: currentPage,
+                limit: itemsPerPage,
+                search: deferredSearch.trim() || undefined,
+                year: yearFilter ? Number(yearFilter) : undefined,
+                semester: semesterFilter ? Number(semesterFilter) : undefined,
+                status: "active",
+                sortBy: "year",
+                sortOrder: "DESC",
+            });
             if (response.success && response.data) {
-                setAllCourses(response.data.courses);
+                setCourses(response.data.courses);
+                setPagination(response.data.pagination);
             }
         } catch (error) {
             console.error("Failed to fetch courses:", error);
@@ -146,7 +168,7 @@ export default function HomePage() {
             setIsInitialCoursesLoading(false);
             setIsRefreshingCourses(false);
         }
-    }, []);
+    }, [currentPage, deferredSearch, itemsPerPage, semesterFilter, yearFilter]);
 
     // Fetch stats
     const fetchStats = useCallback(async () => {
@@ -161,9 +183,20 @@ export default function HomePage() {
     }, []);
 
     useEffect(() => {
-        fetchCourses(false);
         fetchStats();
-    }, [fetchCourses, fetchStats]);
+    }, [fetchStats]);
+
+    useEffect(() => {
+        if (lastFilterSignatureRef.current !== filterSignature) {
+            lastFilterSignatureRef.current = filterSignature;
+            if (currentPage !== 1) {
+                setCurrentPage(1);
+                return;
+            }
+        }
+
+        fetchCourses(false);
+    }, [currentPage, filterSignature, fetchCourses]);
 
     // Subscribe to real-time course updates
     useEffect(() => {
@@ -198,46 +231,8 @@ export default function HomePage() {
         };
     }, [onCourseUpdate, fetchCourses, fetchStats, t]);
 
-    // Client-side filtering - show only active courses
-    const filteredCourses = useMemo(() => {
-        // Show only active courses on this page
-        let result = allCourses.filter(course => course.is_active === true);
-
-        // Search filter
-        if (search.trim()) {
-            const searchLower = search.toLowerCase().trim();
-            result = result.filter(course =>
-                course.code.toLowerCase().includes(searchLower) ||
-                course.name.toLowerCase().includes(searchLower)
-            );
-        }
-
-        // Year filter
-        if (yearFilter) {
-            const year = parseInt(yearFilter);
-            result = result.filter(course => course.year === year);
-        }
-
-        // Semester filter
-        if (semesterFilter) {
-            const semester = parseInt(semesterFilter);
-            result = result.filter(course => course.semester === semester);
-        }
-
-        return result;
-    }, [allCourses, search, yearFilter, semesterFilter]);
-
-    // Client-side pagination
-    const totalPages = Math.ceil(filteredCourses.length / itemsPerPage);
-    const paginatedCourses = useMemo(() => {
-        const start = (currentPage - 1) * itemsPerPage;
-        return filteredCourses.slice(start, start + itemsPerPage);
-    }, [filteredCourses, currentPage]);
-
-    // Reset page when filters change
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [search, yearFilter, semesterFilter]);
+    const paginatedCourses = courses;
+    const totalPages = pagination.totalPages || 1;
 
     const clearFilters = () => {
         setSearch("");
@@ -245,16 +240,16 @@ export default function HomePage() {
         setSemesterFilter("");
     };
 
-    const hasActiveFilters = search || yearFilter || semesterFilter;
+    const hasActiveFilters = Boolean(search.trim() || yearFilter || semesterFilter);
 
-    // Generate year options from actual data
+    // Generate year options from server stats to avoid loading the full course list
     const yearOptions = useMemo(() => {
-        const years = Array.from(new Set(allCourses.map(c => c.year))).sort((a, b) => b - a);
+        const years = stats?.years ?? [];
         return years.map(year => ({
             value: year.toString(),
             label: `${year}`,
         }));
-    }, [allCourses]);
+    }, [stats?.years]);
 
     const getSemesterLabel = (semester: number, short = false) => {
         if (semester === 3) {
@@ -519,19 +514,42 @@ export default function HomePage() {
 
         // If trying to activate (currently inactive), check for duplicate active course
         if (!course.is_active) {
-            const duplicateActiveCourse = allCourses.find(
-                c => c.id !== course.id &&
-                    c.code === course.code &&
-                    c.year === course.year &&
-                    c.semester === course.semester &&
-                    c.is_active === true
-            );
+            const checkDuplicateActiveCourse = async () => {
+                try {
+                    const response = await courseService.getMyCourses({
+                        status: "active",
+                        search: course.code,
+                        year: course.year,
+                        semester: course.semester,
+                        limit: 20,
+                    });
 
-            if (duplicateActiveCourse) {
-                setDuplicateCourse(duplicateActiveCourse);
-                setIsDuplicateWarningModalOpen(true);
-                return;
-            }
+                    const duplicateActiveCourse = response.success && response.data
+                        ? response.data.courses.find(
+                            (c) =>
+                                c.id !== course.id &&
+                                c.code === course.code &&
+                                c.year === course.year &&
+                                c.semester === course.semester &&
+                                c.is_active === true,
+                        )
+                        : null;
+
+                    if (duplicateActiveCourse) {
+                        setDuplicateCourse(duplicateActiveCourse);
+                        setIsDuplicateWarningModalOpen(true);
+                        return;
+                    }
+
+                    setIsToggleStatusModalOpen(true);
+                } catch (error) {
+                    console.error("Failed to check duplicate active course:", error);
+                    setIsToggleStatusModalOpen(true);
+                }
+            };
+
+            void checkDuplicateActiveCourse();
+            return;
         }
 
         setIsToggleStatusModalOpen(true);
