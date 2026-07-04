@@ -101,7 +101,7 @@ export default function DeskScanPage() {
   // ── Loading ──────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-sky-500 via-sky-600 to-cyan-600 flex items-center justify-center p-4">
+      <div data-theme="light" style={{ colorScheme: "light" }} className="min-h-screen bg-linear-to-br from-sky-50 via-cyan-50 to-sky-100 flex items-center justify-center p-4">
         <Card className="w-full max-w-md shadow-2xl">
           <CardBody className="p-8 flex flex-col items-center gap-4">
             <div className="w-16 h-16 bg-linear-to-br from-sky-400 to-cyan-500 rounded-2xl flex items-center justify-center">
@@ -118,7 +118,7 @@ export default function DeskScanPage() {
   // ── Error ─────────────────────────────────────────────────────────────────
   if (error || !info) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-sky-500 via-sky-600 to-cyan-600 flex items-center justify-center p-4">
+      <div data-theme="light" style={{ colorScheme: "light" }} className="min-h-screen bg-linear-to-br from-sky-50 via-cyan-50 to-sky-100 flex items-center justify-center p-4">
         <Card className="w-full max-w-md shadow-2xl">
           <CardBody className="p-8 flex flex-col items-center gap-4 text-center">
             <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center">
@@ -151,7 +151,7 @@ export default function DeskScanPage() {
   // ── Active session(s) found ───────────────────────────────────────────────
   if (hasActiveSessions) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-sky-500 via-sky-600 to-cyan-600 flex items-center justify-center p-4">
+      <div data-theme="light" style={{ colorScheme: "light" }} className="min-h-screen bg-linear-to-br from-sky-50 via-cyan-50 to-sky-100 flex items-center justify-center p-4">
         <div className="w-full max-w-md space-y-3">
           {/* Desk header card */}
           <Card className="shadow-2xl">
@@ -247,10 +247,16 @@ export default function DeskScanPage() {
           isOpen={!!confirmSession}
           onClose={() => setConfirmSession(null)}
           placement="bottom"
-          size="sm"
-          classNames={{ backdrop: "bg-black/50" }}
+          size="md"
+          classNames={{
+            backdrop: "bg-black/25",
+            base: "border border-slate-200 bg-white text-slate-900 shadow-2xl shadow-slate-900/10",
+            header: "bg-white text-slate-900",
+            body: "bg-white text-slate-900",
+            footer: "bg-white text-slate-900",
+          }}
         >
-          <ModalContent>
+          <ModalContent className="bg-white text-slate-900">
             {() => (
               <>
                 <ModalHeader className="flex flex-col gap-1 pb-2">
@@ -264,9 +270,9 @@ export default function DeskScanPage() {
                     </div>
                   </div>
                 </ModalHeader>
-                <ModalBody className="pt-0 pb-2">
+                <ModalBody className="pt-0 pb-3">
                   <p className="text-sm font-semibold text-slate-700 mb-3">คุณต้องการจองคิวเพื่ออะไร?</p>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <button
                       type="button"
                       onClick={() => setConfirmType("grading")}
@@ -303,16 +309,16 @@ export default function DeskScanPage() {
                     </button>
                   </div>
                 </ModalBody>
-                <ModalFooter className="pt-3">
+                <ModalFooter className="flex flex-col-reverse gap-2 border-t border-slate-200 px-5 py-4 sm:flex-row sm:justify-end">
                   <Button
                     variant="flat"
                     onPress={() => setConfirmSession(null)}
-                    className="flex-1"
+                    className="w-full sm:w-auto"
                   >
                     ยกเลิก
                   </Button>
                   <Button
-                    className="flex-1 bg-linear-to-r from-sky-500 to-cyan-500 text-white font-semibold"
+                    className="w-full bg-linear-to-r from-sky-500 to-cyan-500 text-white font-semibold sm:w-auto"
                     onPress={handleConfirmBooking}
                     startContent={<Icon icon="solar:ticket-bold" />}
                   >
@@ -329,7 +335,7 @@ export default function DeskScanPage() {
 
   // ── No active sessions – show desk info ──────────────────────────────────
   return (
-    <div className="min-h-screen bg-linear-to-br from-sky-500 via-sky-600 to-cyan-600 flex items-center justify-center p-4">
+    <div data-theme="light" style={{ colorScheme: "light" }} className="min-h-screen bg-linear-to-br from-sky-50 via-cyan-50 to-sky-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-3">
         <Card className="shadow-2xl">
           <CardBody className="p-7">

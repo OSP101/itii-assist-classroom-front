@@ -128,6 +128,7 @@ export default function ProjectorViewPage() {
     // Real-time clock
     const [currentTime, setCurrentTime] = useState(new Date());
     const [qrBoxSize, setQrBoxSize] = useState(QR_DEFAULT_SIZE);
+    const [isQrSettingsOpen, setIsQrSettingsOpen] = useState(false);
 
     const socketRef = useRef<Socket | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -628,66 +629,86 @@ export default function ProjectorViewPage() {
     };
 
     const renderQrSizeControls = () => (
-        <div className="w-full min-w-65 rounded-xl border border-default-200 bg-content2 p-3">
-            <div className="mb-2 flex items-center justify-between text-xs text-default-600">
-                <span>{t("ขนาด QR", "QR size")}</span>
-                <span className="font-semibold text-default-700">{qrBoxSize}px</span>
-            </div>
-            <input
-                type="range"
-                min={QR_BOX_MIN_SIZE}
-                max={QR_BOX_MAX_SIZE}
-                step={QR_BOX_STEP}
-                value={qrBoxSize}
-                onChange={handleQrSizeSliderChange}
-                className="h-2 w-full cursor-pointer accent-primary"
-                aria-label={t("ปรับขนาด QR", "Adjust QR size")}
-            />
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-                <Button
-                    size="sm"
-                    variant="flat"
-                    onPress={handleDecreaseQrSize}
-                    isDisabled={qrBoxSize <= QR_BOX_MIN_SIZE}
-                    startContent={<Icon icon="solar:minus-circle-bold" className="text-base" />}
-                >
-                    {t("ย่อ", "Smaller")}
-                </Button>
-                <Button
-                    size="sm"
-                    variant="flat"
-                    onPress={handleIncreaseQrSize}
-                    isDisabled={qrBoxSize >= QR_BOX_MAX_SIZE}
-                    startContent={<Icon icon="solar:add-circle-bold" className="text-base" />}
-                >
-                    {t("ขยาย", "Larger")}
-                </Button>
-                <Button
-                    size="sm"
-                    variant="light"
-                    onPress={handleResetQrSize}
-                    className="ml-auto"
-                >
-                    {t("รีเซ็ต", "Reset")}
-                </Button>
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-                {QR_SIZE_PRESETS.map((preset) => (
-                    <Button
-                        key={preset.key}
-                        size="sm"
-                        variant={qrBoxSize === preset.size ? "solid" : "flat"}
-                        color={qrBoxSize === preset.size ? "primary" : "default"}
-                        onPress={() => handleSetQrPreset(preset.size)}
-                        className="min-w-10"
-                    >
-                        {preset.key}
-                    </Button>
-                ))}
-                <span className="ml-auto text-[11px] text-default-500">
-                    {t("คีย์ลัด: [ ย่อ, ] ขยาย, \\ รีเซ็ต", "Shortcuts: [ smaller, ] larger, \\ reset")}
-                </span>
-            </div>
+        <div className="w-full">
+            <Button
+                size="sm"
+                variant="flat"
+                className="w-full justify-between border border-default-200 bg-content2"
+                onPress={() => setIsQrSettingsOpen((prev) => !prev)}
+                endContent={
+                    <Icon
+                        icon={isQrSettingsOpen ? "solar:alt-arrow-up-bold" : "solar:alt-arrow-down-bold"}
+                        className="text-base"
+                    />
+                }
+                startContent={<Icon icon="solar:settings-bold" className="text-base" />}
+            >
+                {isQrSettingsOpen ? t("ซ่อนการตั้งค่า QR", "Hide QR settings") : t("ตั้งค่า QR", "QR settings")}
+            </Button>
+
+            {isQrSettingsOpen && (
+                <div className="mt-2 w-full min-w-65 rounded-xl border border-default-200 bg-content2 p-3">
+                    <div className="mb-2 flex items-center justify-between text-xs text-default-600">
+                        <span>{t("ขนาด QR", "QR size")}</span>
+                        <span className="font-semibold text-default-700">{qrBoxSize}px</span>
+                    </div>
+                    <input
+                        type="range"
+                        min={QR_BOX_MIN_SIZE}
+                        max={QR_BOX_MAX_SIZE}
+                        step={QR_BOX_STEP}
+                        value={qrBoxSize}
+                        onChange={handleQrSizeSliderChange}
+                        className="h-2 w-full cursor-pointer accent-primary"
+                        aria-label={t("ปรับขนาด QR", "Adjust QR size")}
+                    />
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <Button
+                            size="sm"
+                            variant="flat"
+                            onPress={handleDecreaseQrSize}
+                            isDisabled={qrBoxSize <= QR_BOX_MIN_SIZE}
+                            startContent={<Icon icon="solar:minus-circle-bold" className="text-base" />}
+                        >
+                            {t("ย่อ", "Smaller")}
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="flat"
+                            onPress={handleIncreaseQrSize}
+                            isDisabled={qrBoxSize >= QR_BOX_MAX_SIZE}
+                            startContent={<Icon icon="solar:add-circle-bold" className="text-base" />}
+                        >
+                            {t("ขยาย", "Larger")}
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="light"
+                            onPress={handleResetQrSize}
+                            className="ml-auto"
+                        >
+                            {t("รีเซ็ต", "Reset")}
+                        </Button>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                        {QR_SIZE_PRESETS.map((preset) => (
+                            <Button
+                                key={preset.key}
+                                size="sm"
+                                variant={qrBoxSize === preset.size ? "solid" : "flat"}
+                                color={qrBoxSize === preset.size ? "primary" : "default"}
+                                onPress={() => handleSetQrPreset(preset.size)}
+                                className="min-w-10"
+                            >
+                                {preset.key}
+                            </Button>
+                        ))}
+                        <span className="ml-auto text-[11px] text-default-500">
+                            {t("คีย์ลัด: [ ย่อ, ] ขยาย, \\ รีเซ็ต", "Shortcuts: [ smaller, ] larger, \\ reset")}
+                        </span>
+                    </div>
+                </div>
+            )}
         </div>
     );
 
@@ -1102,50 +1123,7 @@ export default function ProjectorViewPage() {
                                             <QRCode value={getBookingUrl()} size={qrCodeSize} bgColor="#ffffff" fgColor="#000000" level="L" />
                                         </div>
                                     </div>
-                                    <div className="w-full min-w-65 rounded-xl border border-default-200 bg-content2 p-3">
-                                        <div className="mb-2 flex items-center justify-between text-xs text-default-600">
-                                            <span>{t("ขนาด QR", "QR size")}</span>
-                                            <span className="font-semibold text-default-700">{qrBoxSize}px</span>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min={QR_BOX_MIN_SIZE}
-                                            max={QR_BOX_MAX_SIZE}
-                                            step={QR_BOX_STEP}
-                                            value={qrBoxSize}
-                                            onChange={handleQrSizeSliderChange}
-                                            className="h-2 w-full cursor-pointer accent-primary"
-                                            aria-label={t("ปรับขนาด QR", "Adjust QR size")}
-                                        />
-                                        <div className="mt-3 flex items-center gap-2">
-                                            <Button
-                                                size="sm"
-                                                variant="flat"
-                                                onPress={handleDecreaseQrSize}
-                                                isDisabled={qrBoxSize <= QR_BOX_MIN_SIZE}
-                                                startContent={<Icon icon="solar:minus-circle-bold" className="text-base" />}
-                                            >
-                                                {t("ย่อ", "Smaller")}
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="flat"
-                                                onPress={handleIncreaseQrSize}
-                                                isDisabled={qrBoxSize >= QR_BOX_MAX_SIZE}
-                                                startContent={<Icon icon="solar:add-circle-bold" className="text-base" />}
-                                            >
-                                                {t("ขยาย", "Larger")}
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="light"
-                                                onPress={handleResetQrSize}
-                                                className="ml-auto"
-                                            >
-                                                {t("รีเซ็ต", "Reset")}
-                                            </Button>
-                                        </div>
-                                    </div>
+                                    {renderQrSizeControls()}
                                 </div>
                                 <div className="bg-blue-100 dark:bg-blue-900/40 rounded-xl px-4 py-2">
                                     <span className="text-sm text-default-600">PIN Code</span>
@@ -1211,7 +1189,10 @@ export default function ProjectorViewPage() {
                     </div>
                 ) : (
                     /* ── Right sidebar layout (original) ── */
-                    <div className="w-72 flex flex-col gap-4">
+                    <div
+                        className="flex shrink-0 flex-col gap-4"
+                        style={{ width: isClosed || isPaused ? 288 : Math.max(288, qrBoxSize + 56) }}
+                    >
                         {/* QR Code - Hide when paused or closed */}
                         {isClosed ? (
                             <div className="bg-rose-50 rounded-2xl p-6 text-center border-2 border-rose-200">
@@ -1255,50 +1236,7 @@ export default function ProjectorViewPage() {
                                                 />
                                             </div>
                                         </div>
-                                        <div className="w-full min-w-65 rounded-xl border border-default-200 bg-content2 p-3">
-                                            <div className="mb-2 flex items-center justify-between text-xs text-default-600">
-                                                <span>{t("ขนาด QR", "QR size")}</span>
-                                                <span className="font-semibold text-default-700">{qrBoxSize}px</span>
-                                            </div>
-                                            <input
-                                                type="range"
-                                                min={QR_BOX_MIN_SIZE}
-                                                max={QR_BOX_MAX_SIZE}
-                                                step={QR_BOX_STEP}
-                                                value={qrBoxSize}
-                                                onChange={handleQrSizeSliderChange}
-                                                className="h-2 w-full cursor-pointer accent-primary"
-                                                aria-label={t("ปรับขนาด QR", "Adjust QR size")}
-                                            />
-                                            <div className="mt-3 flex items-center gap-2">
-                                                <Button
-                                                    size="sm"
-                                                    variant="flat"
-                                                    onPress={handleDecreaseQrSize}
-                                                    isDisabled={qrBoxSize <= QR_BOX_MIN_SIZE}
-                                                    startContent={<Icon icon="solar:minus-circle-bold" className="text-base" />}
-                                                >
-                                                    {t("ย่อ", "Smaller")}
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="flat"
-                                                    onPress={handleIncreaseQrSize}
-                                                    isDisabled={qrBoxSize >= QR_BOX_MAX_SIZE}
-                                                    startContent={<Icon icon="solar:add-circle-bold" className="text-base" />}
-                                                >
-                                                    {t("ขยาย", "Larger")}
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="light"
-                                                    onPress={handleResetQrSize}
-                                                    className="ml-auto"
-                                                >
-                                                    {t("รีเซ็ต", "Reset")}
-                                                </Button>
-                                            </div>
-                                        </div>
+                                        {renderQrSizeControls()}
                                     </div>
                                 </div>
                                 <div className="bg-blue-100 dark:bg-blue-900/40 rounded-xl px-4 py-2">
