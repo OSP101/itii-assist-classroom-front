@@ -164,6 +164,9 @@ const ZONE_COLORS = [
     "#84cc16", // lime
 ];
 
+const QR_CODE_SIZE = 180;
+const QR_LOGO_SRC = "/cp-logo.png";
+
 // Table columns
 const columns = [
     { key: "name", label: "ชื่อห้อง", sortable: true },
@@ -864,23 +867,28 @@ export default function ClassroomsPage() {
         printWindow.document.write(`<!DOCTYPE html><html lang="th"><head>
 <meta charset="utf-8">
 <title>QR — ${qrClassroom.name}</title>
+<base href="${window.location.origin}/">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: sans-serif; background: #fff; padding: 24px; }
-.header { margin-bottom: 20px; }
-.header h1 { font-size: 20px; font-weight: 700; color: #1e293b; }
-.header p { font-size: 12px; color: #64748b; margin-top: 4px; }
-.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-.card { border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 16px 12px; text-align: center; page-break-inside: avoid; break-inside: avoid; }
-.card svg { display: block; margin: 0 auto 8px; }
-.num { font-size: 28px; font-weight: 800; color: #0f172a; line-height: 1; margin-top: 4px; }
-.type { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }
-.room { font-size: 10px; color: #64748b; margin-top: 6px; }
-@media print { @page { size: A4 portrait; margin: 1cm; } body { padding: 0; } }
+body { font-family: Arial, sans-serif; background: #fff; padding: 0; color: #0f172a; }
+.sheet { padding: 8mm; }
+.header { margin-bottom: 6mm; }
+.header h1 { font-size: 16pt; font-weight: 700; color: #0f172a; }
+.header p { font-size: 9pt; color: #475569; margin-top: 1.5mm; }
+.grid { display: grid; grid-template-columns: repeat(2, 70mm); gap: 6mm; justify-content: center; align-content: start; }
+.qr-card { width: 70mm; height: 70mm; border: 0.35mm solid #dbe3ea; border-radius: 4mm; padding: 4mm 3.5mm 3.5mm; text-align: center; page-break-inside: avoid; break-inside: avoid; display: flex; flex-direction: column; align-items: center; justify-content: space-between; }
+.qr-code-wrap { display: flex; align-items: center; justify-content: center; width: 100%; flex: 1 1 auto; }
+.qr-code-svg { width: 43mm !important; height: 43mm !important; display: block; }
+.qr-number { font-size: 15pt; font-weight: 800; color: #0f172a; line-height: 1; margin-top: 0.5mm; }
+.qr-type { font-size: 7.5pt; color: #64748b; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.5mm; }
+.qr-room { font-size: 7.5pt; color: #475569; margin-top: 1mm; }
+@media print { @page { size: A4 portrait; margin: 8mm; } body { padding: 0; } .sheet { padding: 0; } }
 </style></head><body>
+<div class="sheet">
 <div class="header"><h1>QR Code: ${qrClassroom.name}</h1>
 <p>อาคาร ${qrClassroom.building} ชั้น ${qrClassroom.floor}</p></div>
 <div class="grid">${gridHtml}</div>
+</div>
 </body></html>`);
         printWindow.document.close();
         printWindow.focus();
@@ -2677,7 +2685,7 @@ body { font-family: sans-serif; background: #fff; padding: 24px; }
                 <ModalContent>
                     <ModalHeader className="px-6 pt-5 pb-4">
                         <div className="flex items-center gap-3">
-                            <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-purple-500/30">
+                            <div className="p-2.5 rounded-xl bg-linear-to-br from-violet-500 to-purple-600 shadow-lg shadow-purple-500/30">
                                 <Icon icon="solar:qr-code-bold" className="text-2xl text-white" />
                             </div>
                             <div>
@@ -2692,7 +2700,7 @@ body { font-family: sans-serif; background: #fff; padding: 24px; }
                         {qrClassroom && (
                             <div
                                 ref={qrGridRef}
-                                className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
+                                className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2"
                             >
                                 {qrClassroom.desks
                                     .filter(d => d.isEnabled)
@@ -2704,13 +2712,29 @@ body { font-family: sans-serif; background: #fff; padding: 24px; }
                                             desk.type === "teacher" ? "อาจารย์" :
                                             desk.type === "computer" ? "คอมพิวเตอร์" : "ทั่วไป";
                                         return (
-                                            <div key={desk.id} className="card border border-divider rounded-xl p-4 text-center">
-                                                <div className="qr-wrap flex justify-center mb-2">
-                                                    <QRCodeSVG value={url} size={100} />
+                                            <div key={desk.id} className="qr-card mx-auto w-full max-w-[7cm] rounded-2xl border border-divider bg-content1 p-4 text-center shadow-sm">
+                                                <div className="qr-code-wrap mb-2 flex justify-center">
+                                                    <QRCodeSVG
+                                                        value={url}
+                                                        size={QR_CODE_SIZE}
+                                                        level="H"
+                                                        marginSize={4}
+                                                        bgColor="#ffffff"
+                                                        fgColor="#111827"
+                                                        boostLevel
+                                                        imageSettings={{
+                                                            src: QR_LOGO_SRC,
+                                                            width: 34,
+                                                            height: 34,
+                                                            excavate: true,
+                                                            opacity: 1,
+                                                        }}
+                                                        className="qr-code-svg"
+                                                    />
                                                 </div>
-                                                <p className="num text-2xl font-black text-foreground leading-tight">{desk.number}</p>
-                                                <p className="type text-[10px] text-default-400 uppercase tracking-wide mt-0.5">{typeLabel}</p>
-                                                <p className="room text-[10px] text-default-500 mt-1.5">{qrClassroom.name}</p>
+                                                <p className="qr-number text-4xl font-black leading-tight text-foreground sm:text-5xl">{desk.number}</p>
+                                                <p className="qr-type mt-0.5 text-[11px] uppercase tracking-[0.2em] text-default-400">{typeLabel}</p>
+                                                <p className="qr-room mt-1.5 text-[11px] text-default-500">{qrClassroom.name}</p>
                                             </div>
                                         );
                                     })
