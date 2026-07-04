@@ -377,6 +377,7 @@ export default function StudentCheckInPage() {
                 google_email: googleUser.email,
                 google_id: googleUser.googleId,
                 client_request_id: checkInRequestIdRef.current,
+                student_id: studentInfo?.id,
                 location_lat: location?.lat,
                 location_lng: location?.lng,
             });
