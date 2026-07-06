@@ -797,7 +797,7 @@ export default function QueueSessionReportPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
@@ -1002,7 +1002,7 @@ export default function QueueSessionReportPage() {
                                         <TableColumn>{t("เสร็จสิ้น", "Completed")}</TableColumn>
                                         <TableColumn>{t("ตอบรับ", "Accept %")}</TableColumn>
                                         <TableColumn>{t("หมดเวลา", "Timed out")}</TableColumn>
-                                        <TableColumn>{t("โต๊ะตอนนี้", "Current desk")}</TableColumn>
+                                        <TableColumn>{t("โต๊ะปัจจุบัน / รวม", "Active desk / total")}</TableColumn>
                                     </TableHeader>
                                     <TableBody emptyContent={t("ยังไม่มีข้อมูลผู้ตรวจ", "No worker data found.")}>
                                         {rankedWorkers.map((worker) => (
@@ -1026,7 +1026,18 @@ export default function QueueSessionReportPage() {
                                                 <TableCell>{worker.total_completed}</TableCell>
                                                 <TableCell>{formatPercent(worker.offer_accept_rate)}</TableCell>
                                                 <TableCell>{worker.offer_timeout_count || 0}</TableCell>
-                                                <TableCell>{worker.currentDeskNumbers.join(", ") || "-"}</TableCell>
+                                                <TableCell>
+                                                    <div>
+                                                        <div className="font-medium text-foreground">
+                                                            {worker.currentDeskNumbers.length > 0
+                                                                ? worker.currentDeskNumbers.map((n) => `#${n}`).join(", ")
+                                                                : <span className="text-default-400">{t("ว่าง", "—")}</span>}
+                                                        </div>
+                                                        <div className="text-xs text-default-500">
+                                                            {t(`${worker.uniqueDeskNumbers.length} โต๊ะทั้งหมด`, `${worker.uniqueDeskNumbers.length} desks total`)}
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
