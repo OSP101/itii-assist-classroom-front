@@ -430,6 +430,44 @@ export default function QueueTab({
         setIsEditModalOpen(true);
     };
 
+    const buildDuplicatedTitle = (sourceTitle: string) => {
+        const trimmedTitle = sourceTitle.trim();
+        if (!trimmedTitle) {
+            return localize("คิวใหม่", "New queue");
+        }
+        if (isEnglish) {
+            return /\(copy\)$/i.test(trimmedTitle) ? trimmedTitle : `${trimmedTitle} (Copy)`;
+        }
+        return /\(คัดลอก\)$/.test(trimmedTitle) ? trimmedTitle : `${trimmedTitle} (คัดลอก)`;
+    };
+
+    const handleDuplicateSession = (session: QueueSession) => {
+        if (!isCourseActive) {
+            showCourseClosedReadOnlyToast();
+            return;
+        }
+        if (!canCreateQueueSessions) {
+            return;
+        }
+
+        const duplicatedData: CreateQueueSessionData = {
+            title: buildDuplicatedTitle(session.title),
+            description: session.description || "",
+            classroom_id: session.classroom_id,
+            linked_assignment_id: session.linked_assignment_id || null,
+            require_attendance: Boolean(session.require_attendance),
+            linked_attendance_session_id: session.linked_attendance_session_id || null,
+            is_cutoff_enabled: Boolean(session.is_cutoff_enabled),
+            cutoff_at: session.cutoff_at || null,
+            cutoff_note: session.cutoff_note || "",
+        };
+
+        setFormData(duplicatedData);
+        setOriginalFormData(null);
+        fetchOptions();
+        setIsCreateModalOpen(true);
+    };
+
     // Filter sessions
     const filteredSessions = sessions.filter((session) => {
         const matchesSearch = session.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -1089,6 +1127,20 @@ export default function QueueTab({
                                                                         <Icon icon="solar:chart-2-bold" className="text-lg" />
                                                                     </Button>
                                                                 </Tooltip>
+                                                                {canCreateQueueSessions && (
+                                                                    <Tooltip content={localize("คัดลอกคิวนี้", "Duplicate this queue")}>
+                                                                        <Button
+                                                                            isIconOnly
+                                                                            size="sm"
+                                                                            variant="light"
+                                                                            color="default"
+                                                                            isDisabled={!isCourseActive}
+                                                                            onPress={() => handleDuplicateSession(session)}
+                                                                        >
+                                                                            <Icon icon="solar:copy-bold" className="text-lg" />
+                                                                        </Button>
+                                                                    </Tooltip>
+                                                                )}
                                                                 {/* Draft status: Start, Edit, Delete */}
                                                                 {session.status === 'draft' && (
                                                                     <>

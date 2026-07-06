@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, ChangeEvent } from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
@@ -84,7 +84,15 @@ const PROJECTOR_HEARTBEAT_MS = 30_000;
 const PAUSED_SESSION_LEASE_MINUTES = 2;
 const QR_BOX_MIN_SIZE = 180;
 const QR_BOX_MAX_SIZE = 420;
+const QR_BOX_STEP = 20;
 const QR_BOX_PADDING = 16;
+const QR_DEFAULT_SIZE = 240;
+const QR_SIZE_PRESETS = [
+    { key: "S", size: 200 },
+    { key: "M", size: 240 },
+    { key: "L", size: 300 },
+    { key: "XL", size: 360 },
+] as const;
 
 export default function ProjectorViewPage() {
     const params = useParams();
@@ -119,13 +127,13 @@ export default function ProjectorViewPage() {
 
     // Real-time clock
     const [currentTime, setCurrentTime] = useState(new Date());
-    const [qrBoxSize, setQrBoxSize] = useState(220);
+    const [qrBoxSize, setQrBoxSize] = useState(QR_DEFAULT_SIZE);
+    const [isQrSettingsOpen, setIsQrSettingsOpen] = useState(false);
 
     const socketRef = useRef<Socket | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const hasShownInitialWarningRef = useRef(false);
     const hasLoadedDataRef = useRef(false);
-    const qrResizeObserverRef = useRef<ResizeObserver | null>(null);
     const selectedDeskHasActiveBooking = Boolean(
         selectedDesk?.booking &&
         (selectedDesk.status.grading_status === "waiting" ||
@@ -255,13 +263,6 @@ export default function ProjectorViewPage() {
             window.clearInterval(intervalId);
         };
     }, [data?.session.course_id, data?.session.status, sessionId]);
-
-    useEffect(() => {
-        return () => {
-            qrResizeObserverRef.current?.disconnect();
-            qrResizeObserverRef.current = null;
-        };
-    }, []);
 
     // Socket connection for real-time updates
     useEffect(() => {
@@ -536,6 +537,12 @@ export default function ProjectorViewPage() {
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
+            const target = e.target as HTMLElement | null;
+            const tagName = target?.tagName?.toLowerCase();
+            if (tagName === "input" || tagName === "textarea" || target?.isContentEditable) {
+                return;
+            }
+
             if (e.key === "+") {
                 setZoom((prev) => Math.min(prev + 0.05, 2));
             } else if (e.key === "-") {
@@ -546,6 +553,12 @@ export default function ProjectorViewPage() {
                 toggleFullscreen();
             } else if (e.key === "l") {
                 setSidebarPosition((prev) => prev === 'right' ? 'bottom' : 'right');
+            } else if (e.key === "[") {
+                setQrBoxSize((prev) => Math.max(QR_BOX_MIN_SIZE, prev - QR_BOX_STEP));
+            } else if (e.key === "]") {
+                setQrBoxSize((prev) => Math.min(QR_BOX_MAX_SIZE, prev + QR_BOX_STEP));
+            } else if (e.key === "\\") {
+                setQrBoxSize(QR_DEFAULT_SIZE);
             }
         };
 
@@ -590,35 +603,114 @@ export default function ProjectorViewPage() {
         return getAppUrl(`/queue/book?pin=${encodeURIComponent(data?.session.pin_code || "")}`);
     };
 
-    const attachQrResizeRef = useCallback((node: HTMLDivElement | null) => {
-        qrResizeObserverRef.current?.disconnect();
-        qrResizeObserverRef.current = null;
+    const clampQrSize = useCallback(
+        (size: number) => Math.max(QR_BOX_MIN_SIZE, Math.min(size, QR_BOX_MAX_SIZE)),
+        []
+    );
 
-        if (!node) {
-            return;
-        }
+    const handleQrSizeSliderChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setQrBoxSize(clampQrSize(Number(event.target.value)));
+    };
 
-        const syncSize = (width: number, height: number) => {
-            const nextSize = Math.round(Math.min(width, height));
-            if (!Number.isFinite(nextSize)) {
-                return;
-            }
-            setQrBoxSize(Math.max(QR_BOX_MIN_SIZE, Math.min(nextSize, QR_BOX_MAX_SIZE)));
-        };
+    const handleDecreaseQrSize = () => {
+        setQrBoxSize((prev) => clampQrSize(prev - QR_BOX_STEP));
+    };
 
-        syncSize(node.clientWidth, node.clientHeight);
+    const handleIncreaseQrSize = () => {
+        setQrBoxSize((prev) => clampQrSize(prev + QR_BOX_STEP));
+    };
 
-        const observer = new ResizeObserver((entries) => {
-            const entry = entries[0];
-            if (!entry) {
-                return;
-            }
-            syncSize(entry.contentRect.width, entry.contentRect.height);
-        });
+    const handleResetQrSize = () => {
+        setQrBoxSize(QR_DEFAULT_SIZE);
+    };
 
-        observer.observe(node);
-        qrResizeObserverRef.current = observer;
-    }, []);
+    const handleSetQrPreset = (size: number) => {
+        setQrBoxSize(clampQrSize(size));
+    };
+
+    const renderQrSizeControls = () => (
+        <div className="w-full">
+            <Button
+                size="sm"
+                variant="flat"
+                className="w-full justify-between border border-default-200 bg-content2"
+                onPress={() => setIsQrSettingsOpen((prev) => !prev)}
+                endContent={
+                    <Icon
+                        icon={isQrSettingsOpen ? "solar:alt-arrow-up-bold" : "solar:alt-arrow-down-bold"}
+                        className="text-base"
+                    />
+                }
+                startContent={<Icon icon="solar:settings-bold" className="text-base" />}
+            >
+                {isQrSettingsOpen ? t("ซ่อนการตั้งค่า QR", "Hide QR settings") : t("ตั้งค่า QR", "QR settings")}
+            </Button>
+
+            {isQrSettingsOpen && (
+                <div className="mt-2 w-full min-w-65 rounded-xl border border-default-200 bg-content2 p-3">
+                    <div className="mb-2 flex items-center justify-between text-xs text-default-600">
+                        <span>{t("ขนาด QR", "QR size")}</span>
+                        <span className="font-semibold text-default-700">{qrBoxSize}px</span>
+                    </div>
+                    <input
+                        type="range"
+                        min={QR_BOX_MIN_SIZE}
+                        max={QR_BOX_MAX_SIZE}
+                        step={QR_BOX_STEP}
+                        value={qrBoxSize}
+                        onChange={handleQrSizeSliderChange}
+                        className="h-2 w-full cursor-pointer accent-primary"
+                        aria-label={t("ปรับขนาด QR", "Adjust QR size")}
+                    />
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <Button
+                            size="sm"
+                            variant="flat"
+                            onPress={handleDecreaseQrSize}
+                            isDisabled={qrBoxSize <= QR_BOX_MIN_SIZE}
+                            startContent={<Icon icon="solar:minus-circle-bold" className="text-base" />}
+                        >
+                            {t("ย่อ", "Smaller")}
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="flat"
+                            onPress={handleIncreaseQrSize}
+                            isDisabled={qrBoxSize >= QR_BOX_MAX_SIZE}
+                            startContent={<Icon icon="solar:add-circle-bold" className="text-base" />}
+                        >
+                            {t("ขยาย", "Larger")}
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="light"
+                            onPress={handleResetQrSize}
+                            className="ml-auto"
+                        >
+                            {t("รีเซ็ต", "Reset")}
+                        </Button>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                        {QR_SIZE_PRESETS.map((preset) => (
+                            <Button
+                                key={preset.key}
+                                size="sm"
+                                variant={qrBoxSize === preset.size ? "solid" : "flat"}
+                                color={qrBoxSize === preset.size ? "primary" : "default"}
+                                onPress={() => handleSetQrPreset(preset.size)}
+                                className="min-w-10"
+                            >
+                                {preset.key}
+                            </Button>
+                        ))}
+                        <span className="ml-auto text-[11px] text-default-500">
+                            {t("คีย์ลัด: [ ย่อ, ] ขยาย, \\ รีเซ็ต", "Shortcuts: [ smaller, ] larger, \\ reset")}
+                        </span>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 
     const qrCodeSize = Math.max(QR_BOX_MIN_SIZE - QR_BOX_PADDING * 2, qrBoxSize - QR_BOX_PADDING * 2);
 
@@ -1014,8 +1106,7 @@ export default function ProjectorViewPage() {
                             <div className="flex items-center gap-4 shrink-0">
                                 <div className="flex flex-col items-center gap-2">
                                     <div
-                                        ref={attachQrResizeRef}
-                                        className="resize overflow-hidden rounded-2xl border border-default-200 bg-white shadow-sm"
+                                        className="overflow-hidden rounded-2xl border border-default-200 bg-white shadow-sm"
                                         style={{
                                             width: qrBoxSize,
                                             height: qrBoxSize,
@@ -1032,9 +1123,7 @@ export default function ProjectorViewPage() {
                                             <QRCode value={getBookingUrl()} size={qrCodeSize} bgColor="#ffffff" fgColor="#000000" level="L" />
                                         </div>
                                     </div>
-                                    <p className="text-center text-xs text-default-500">
-                                        {t('ลากมุมขวาล่างเพื่อขยาย QR', 'Drag the bottom-right corner to resize the QR code')}
-                                    </p>
+                                    {renderQrSizeControls()}
                                 </div>
                                 <div className="bg-blue-100 dark:bg-blue-900/40 rounded-xl px-4 py-2">
                                     <span className="text-sm text-default-600">PIN Code</span>
@@ -1100,7 +1189,10 @@ export default function ProjectorViewPage() {
                     </div>
                 ) : (
                     /* ── Right sidebar layout (original) ── */
-                    <div className="w-72 flex flex-col gap-4">
+                    <div
+                        className="flex shrink-0 flex-col gap-4"
+                        style={{ width: isClosed || isPaused ? 288 : Math.max(288, qrBoxSize + 56) }}
+                    >
                         {/* QR Code - Hide when paused or closed */}
                         {isClosed ? (
                             <div className="bg-rose-50 rounded-2xl p-6 text-center border-2 border-rose-200">
@@ -1123,8 +1215,7 @@ export default function ProjectorViewPage() {
                                 <div className="mb-3 flex justify-center">
                                     <div className="flex flex-col items-center gap-2">
                                         <div
-                                            ref={attachQrResizeRef}
-                                            className="resize overflow-hidden rounded-2xl border border-default-200 bg-white shadow-sm"
+                                            className="overflow-hidden rounded-2xl border border-default-200 bg-white shadow-sm"
                                             style={{
                                                 width: qrBoxSize,
                                                 height: qrBoxSize,
@@ -1145,9 +1236,7 @@ export default function ProjectorViewPage() {
                                                 />
                                             </div>
                                         </div>
-                                        <p className="text-center text-xs text-default-500">
-                                            {t('ลากมุมขวาล่างเพื่อขยาย QR', 'Drag the bottom-right corner to resize the QR code')}
-                                        </p>
+                                        {renderQrSizeControls()}
                                     </div>
                                 </div>
                                 <div className="bg-blue-100 dark:bg-blue-900/40 rounded-xl px-4 py-2">

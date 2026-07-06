@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { InputOtp } from "@heroui/input-otp";
 import { Spinner } from "@heroui/spinner";
@@ -89,6 +89,7 @@ function getAttendanceErrorInfo(error: unknown, fallbackTitle: string, fallbackM
 }
 
 export default function StudentCheckInPage() {
+    const router = useRouter();
     const params = useParams();
     const sessionId = Number(params.sessionId);
     const { language } = useGlobalSettings();
@@ -102,6 +103,7 @@ export default function StudentCheckInPage() {
         email: string;
         name: string;
         googleId: string;
+        idToken: string;
         picture?: string;
     } | null>(null);
     const [studentInfo, setStudentInfo] = useState<{
@@ -124,6 +126,7 @@ export default function StudentCheckInPage() {
     } | null>(null);
     const [errorTitle, setErrorTitle] = useState<string>("");
     const [errorMessage, setErrorMessage] = useState<string>("");
+    const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
     const [alreadyCheckedIn, setAlreadyCheckedIn] = useState<{
         status: string;
         check_in_time: string;
@@ -134,6 +137,33 @@ export default function StudentCheckInPage() {
         const courseContext = buildCourseTitleContext(session?.course);
         document.title = buildPageTitle(pageLabel, courseContext);
     }, [language, session?.course]);
+
+    useEffect(() => {
+        const shouldAutoRedirect = step === "error" && authService.isAuthenticated();
+        if (!shouldAutoRedirect) {
+            setRedirectCountdown(null);
+            return;
+        }
+
+        setRedirectCountdown(5);
+        const interval = window.setInterval(() => {
+            setRedirectCountdown((prev) => {
+                if (prev == null) {
+                    return 5;
+                }
+                if (prev <= 1) {
+                    window.clearInterval(interval);
+                    router.replace("/student/scan");
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => {
+            window.clearInterval(interval);
+        };
+    }, [router, step]);
 
     // Socket ref
     const socketRef = useRef<Socket | null>(null);
@@ -152,19 +182,18 @@ export default function StudentCheckInPage() {
             if (data) {
                 setSession(data);
                 if (data.status === "active") {
-                    // If already logged in, skip Google login — use stored user directly
-                    const storedUser = authService.getStoredUser();
-                    if (storedUser?.email) {
-                        setGoogleUser({
-                            email: storedUser.email,
-                            name: storedUser.full_name,
-                            googleId: "",
-                            picture: storedUser.avatar ?? undefined,
-                        });
+                    if (authService.isAuthenticated()) {
                         try {
-                            const result = await attendanceService.verifyStudent(storedUser.email, sessionId);
+                            const result = await attendanceService.verifyCurrentStudentSession(sessionId);
                             if (result) {
                                 setStudentInfo(result.student);
+                                setGoogleUser({
+                                    email: result.student.email,
+                                    name: result.student.full_name,
+                                    googleId: "",
+                                    idToken: "",
+                                });
+
                                 if (result.already_checked_in) {
                                     setAlreadyCheckedIn({
                                         status: result.status || "present",
@@ -176,16 +205,15 @@ export default function StudentCheckInPage() {
                                 } else {
                                     setStep("pin-entry");
                                 }
+                                return;
                             }
-                        } catch (err: unknown) {
-                            const info = getAttendanceErrorInfo(err, t("accessUnavailable"), t("studentNotFoundInSystem"));
-                            setErrorTitle(info.title);
-                            setErrorMessage(info.message);
-                            setStep("error");
+                        } catch {
+                            router.replace("/student/scan");
+                            return;
                         }
-                    } else {
-                        setStep("google-login");
                     }
+
+                    setStep("google-login");
                 } else if (data.status === "closed") {
                     setErrorTitle(t("accessUnavailable"));
                     setErrorMessage(t("sessionClosedAlready"));
@@ -207,7 +235,7 @@ export default function StudentCheckInPage() {
             setErrorMessage(info.message);
             setStep("error");
         }
-    }, [sessionId, t]);
+    }, [router, sessionId, t]);
 
     // Initialize Google Sign In
     useEffect(() => {
@@ -267,12 +295,13 @@ export default function StudentCheckInPage() {
             email: decoded.email,
             name: decoded.name,
             googleId: decoded.sub,
+            idToken: response.credential,
             picture: decoded.picture,
         });
 
         // Verify student
         try {
-            const result = await attendanceService.verifyStudent(decoded.email, sessionId);
+            const result = await attendanceService.verifyStudentIdentity(sessionId, response.credential, decoded.email);
             if (result) {
                 setStudentInfo(result.student);
                 if (result.already_checked_in) {
@@ -352,7 +381,7 @@ export default function StudentCheckInPage() {
             return;
         }
 
-        if (!googleUser || pinCode.length !== 6) {
+        if (pinCode.length !== 6) {
             addToast({
                 title: t("incompleteInformation"),
                 description: t("pleaseEnterSixDigitPin"),
@@ -360,6 +389,19 @@ export default function StudentCheckInPage() {
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
             });
+            return;
+        }
+
+        const isAuthenticatedStudent = authService.isAuthenticated();
+        if (!isAuthenticatedStudent && (!googleUser || !googleUser.idToken)) {
+            addToast({
+                title: t("signInFailed"),
+                description: t("signInWithGoogle"),
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            setStep("google-login");
             return;
         }
 
@@ -374,9 +416,11 @@ export default function StudentCheckInPage() {
         try {
             const result = await attendanceService.studentCheckIn(sessionId, {
                 pin_code: pinCode,
-                google_email: googleUser.email,
-                google_id: googleUser.googleId,
+                google_email: googleUser?.email,
+                google_id: googleUser?.googleId,
+                google_token: googleUser?.idToken || undefined,
                 client_request_id: checkInRequestIdRef.current,
+                student_id: studentInfo?.id,
                 location_lat: location?.lat,
                 location_lng: location?.lng,
             });
@@ -407,6 +451,15 @@ export default function StudentCheckInPage() {
             console.error("Error checking in:", error);
             const info = getAttendanceErrorInfo(error, t("checkInFailed"), t("pleaseCheckPinAndTryAgain"));
             const msg = info.message;
+            const isBlockingError = info.code !== "ATTENDANCE_INVALID_PIN";
+
+            if (isBlockingError) {
+                setErrorTitle(info.title || t("checkInFailed"));
+                setErrorMessage(msg);
+                setStep("error");
+                return;
+            }
+
             const isLocationError = info.title.includes("ตำแหน่ง") || info.title.includes("พื้นที่") || msg.includes("ตำแหน่ง") || msg.includes("พื้นที่") || msg.includes("location");
             addToast({
                 title: info.title || (isLocationError ? "ตำแหน่งไม่อยู่ในพื้นที่" : t("checkInFailed")),
@@ -522,12 +575,35 @@ export default function StudentCheckInPage() {
                     </div>
                     <h2 className="text-xl font-bold text-slate-900 mb-2">{errorTitle || t("accessUnavailable")}</h2>
                     <p className="text-sm text-slate-500 mb-6 max-w-xs">{errorMessage}</p>
+                    {authService.isAuthenticated() && redirectCountdown !== null && (
+                        <div className="mb-5 w-full max-w-xs">
+                            <p className="mb-2 text-xs text-slate-500">
+                                {language === "en"
+                                    ? `Redirecting to scanner in ${redirectCountdown}s...`
+                                    : `กำลังพากลับไปหน้าสแกนใน ${redirectCountdown} วินาที...`}
+                            </p>
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                                <div
+                                    className="h-full rounded-full bg-sky-500 transition-[width] duration-700 ease-linear"
+                                    style={{ width: `${Math.max(0, (redirectCountdown / 5) * 100)}%` }}
+                                />
+                            </div>
+                        </div>
+                    )}
                     <button
-                        onClick={() => window.location.reload()}
+                        onClick={() => {
+                            if (authService.isAuthenticated()) {
+                                router.replace("/student/scan");
+                                return;
+                            }
+                            window.location.reload();
+                        }}
                         className="inline-flex items-center gap-2 rounded-full bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-500 active:scale-95"
                     >
                         <Icon icon="solar:restart-bold" />
-                        {t("reloadPage")}
+                        {authService.isAuthenticated()
+                            ? (language === "en" ? "Back to scanner" : "กลับหน้าสแกน")
+                            : t("reloadPage")}
                     </button>
                 </div>
             )}
@@ -570,7 +646,7 @@ export default function StudentCheckInPage() {
                         <div className="relative mt-4 flex gap-2">
                             {(["google-login", "location", "pin-entry"] as const)
                                 .filter((s) => {
-                                    if (s === "google-login") return !authService.getStoredUser();
+                                    if (s === "google-login") return !authService.isAuthenticated();
                                     if (s === "location") return session?.check_location;
                                     return true;
                                 })

@@ -97,6 +97,7 @@ function SidebarNav({ pathname, onLinkClick }: { pathname: string; onLinkClick?:
                                 <li key={link.href}>
                                     <Link
                                         href={link.href}
+                                        prefetch={false}
                                         onClick={onLinkClick}
                                         className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors ${
                                             isActive
@@ -187,6 +188,7 @@ export function PublicPageShell({
                                 <Link
                                     key={link.href}
                                     href={link.href}
+                                    prefetch={false}
                                     className={`text-sm transition ${
                                         pathname === link.href
                                             ? 'font-semibold text-white'

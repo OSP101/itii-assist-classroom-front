@@ -464,8 +464,8 @@ export default function ScoreModal({
     // Check if selected student/group can be scored
     const canScoreSelected = useMemo(() => {
         if (isGroupAssignment && selectedGroup) {
-            // For group assignment, all members must be able to score
-            return selectedGroup.members.every(member => {
+            // For group assignment, allow grading when at least one member can be scored.
+            return selectedGroup.members.some(member => {
                 const info = getStudentAttendanceInfo(member.id);
                 return info.canScore;
             });
@@ -2787,9 +2787,9 @@ export default function ScoreModal({
                                                             <div className="flex items-start gap-2">
                                                                 <Icon icon="solar:users-group-rounded-bold" className="text-xl text-red-600 shrink-0 mt-0.5" />
                                                                 <div>
-                                                                    <p className="text-sm font-semibold text-red-800">{t("ไม่สามารถลงคะแนนได้", "Scoring unavailable")}</p>
+                                                                    <p className="text-sm font-semibold text-red-800">{t("พบสมาชิกขาดเรียน ระบบจะข้ามคนนั้น", "Absent members will be skipped")}</p>
                                                                     <p className="text-xs text-red-700 mt-1">
-                                                                        {t("สมาชิกในกลุ่มขาดเรียน", "Absent group members")}: {absentGroupMembers.map(m => m.full_name).join(", ")}
+                                                                        {t("สมาชิกที่ขาดเรียนจะไม่ได้คะแนน", "Absent members will not receive scores")}: {absentGroupMembers.map(m => m.full_name).join(", ")}
                                                                     </p>
                                                                 </div>
                                                             </div>
@@ -4382,7 +4382,7 @@ export default function ScoreModal({
                         </div>
                         <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
                             <p className="mb-2 text-sm font-semibold text-rose-800">
-                                {t("สมาชิกที่ลงคะแนนไม่ได้", "Members who will be skipped")}
+                                {t("สมาชิกที่ถูกข้าม (ขาดเรียน)", "Members who will be skipped (absent)")}
                             </p>
                             <div className="max-h-52 space-y-1 overflow-y-auto pr-1">
                                 {groupGradeWarning.skippedMembers.map((member) => (

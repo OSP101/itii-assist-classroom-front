@@ -459,6 +459,42 @@ function BookQueueContent() {
         }
     }, [bookingType, bookingTypeAvailability, fromScan, step]);
 
+    // Auto-refresh validation while waiting for attendance status propagation.
+    useEffect(() => {
+        const hasAttendancePendingError = validationErrors.some(
+            (error) => error.field === "student_id" && error.message.includes("เช็คชื่อ")
+        );
+
+        if (
+            step !== "form" ||
+            !sessionInfo?.require_attendance ||
+            !studentId ||
+            !deskNumber ||
+            !hasAttendancePendingError ||
+            isBooking ||
+            isValidating
+        ) {
+            return;
+        }
+
+        const timer = setInterval(() => {
+            validateBookingInfo();
+        }, 3000);
+
+        return () => {
+            clearInterval(timer);
+        };
+    }, [
+        step,
+        sessionInfo?.require_attendance,
+        studentId,
+        deskNumber,
+        validationErrors,
+        isBooking,
+        isValidating,
+        validateBookingInfo,
+    ]);
+
     // Verify PIN
     const handleVerifyPIN = async () => {
         if (!pinCode.trim()) {
@@ -537,39 +573,6 @@ function BookQueueContent() {
             return;
         }
 
-        // Check for validation errors
-        if (validationErrors.length > 0) {
-            addToast({
-                title: "ไม่สามารถจองได้",
-                description: validationErrors[0].message,
-                color: "danger",
-            });
-            return;
-        }
-
-        // Check for warnings with existing booking
-        const existingBookingWarning = validationWarnings.find(w => w.existing_booking);
-        if (existingBookingWarning && existingBookingWarning.existing_booking) {
-            // If there's an existing booking, restore it instead
-            setBookingResult({
-                id: existingBookingWarning.existing_booking.id,
-                queue_number: existingBookingWarning.existing_booking.queue_number,
-                booking_type: existingBookingWarning.existing_booking.booking_type,
-                desk_number: deskNumber,
-                status: existingBookingWarning.existing_booking.status,
-                session_title: sessionInfo?.title || "",
-            });
-            setStep("status");
-            saveBookingState(pinCode, studentId, existingBookingWarning.existing_booking.id);
-            startStatusPolling(existingBookingWarning.existing_booking.id, sessionInfo?.session_id);
-            addToast({
-                title: "พบการจองที่มีอยู่แล้ว",
-                description: `กำลังแสดงคิวที่ ${existingBookingWarning.existing_booking.queue_number}`,
-                color: "primary",
-            });
-            return;
-        }
-
         setIsBooking(true);
         try {
             const validation = await validateBookingForSubmit();
@@ -589,6 +592,27 @@ function BookQueueContent() {
                     return;
                 }
 
+                const existingBookingWarning = (validation.warnings || []).find(w => w.existing_booking);
+                if (existingBookingWarning?.existing_booking) {
+                    setBookingResult({
+                        id: existingBookingWarning.existing_booking.id,
+                        queue_number: existingBookingWarning.existing_booking.queue_number,
+                        booking_type: existingBookingWarning.existing_booking.booking_type,
+                        desk_number: deskNumber,
+                        status: existingBookingWarning.existing_booking.status,
+                        session_title: sessionInfo?.title || "",
+                    });
+                    setStep("status");
+                    saveBookingState(pinCode, studentId, existingBookingWarning.existing_booking.id);
+                    startStatusPolling(existingBookingWarning.existing_booking.id, sessionInfo?.session_id);
+                    addToast({
+                        title: "พบการจองที่มีอยู่แล้ว",
+                        description: `กำลังแสดงคิวที่ ${existingBookingWarning.existing_booking.queue_number}`,
+                        color: "primary",
+                    });
+                    return;
+                }
+
                 if (validation.is_late_booking_preview) {
                     setLatePreviewInfo({
                         cutoffAt: validation.cutoff_at,
@@ -597,6 +621,13 @@ function BookQueueContent() {
                     setIsLateConfirmOpen(true);
                     return;
                 }
+            } else {
+                addToast({
+                    title: "ไม่สามารถตรวจสอบข้อมูลได้",
+                    description: "กรุณาลองใหม่อีกครั้ง",
+                    color: "danger",
+                });
+                return;
             }
 
             const result = await createBookingRequest();
@@ -1278,7 +1309,7 @@ function BookQueueContent() {
                             <button
                                 type="button"
                                 onClick={handleCreateBooking}
-                                disabled={isBooking || !studentId || !deskNumber || validationErrors.length > 0 || (bookingType === "grading" && gradingDisabled)}
+                                disabled={isBooking || !studentId || !deskNumber || (bookingType === "grading" && gradingDisabled)}
                                 className="flex-1 rounded-full bg-linear-to-r from-sky-600 to-cyan-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-300/40 transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isBooking ? "กำลังจอง..." : existingBookingWarning ? "ดูคิวที่มีอยู่" : "จองคิว"}
@@ -1559,22 +1590,27 @@ function BookQueueContent() {
                             <button
                                 type="button"
                                 onClick={() => {
+                                    const nextBookingType = status.booking_type === "help" ? "help" : "grading";
                                     cleanupPolling();
                                     currentBookingIdRef.current = null;
                                     clearBookingState();
-                                    setStep("pin");
-                                    setPinCode("");
-                                    if (!loggedInUser) setStudentId("");
-                                    setDeskNumber("");
+                                    setStep("form");
+                                    if (loggedInUser) {
+                                        setStudentId(loggedInUser.username ?? "");
+                                    }
+                                    setDeskNumber(status.desk_number || "");
+                                    setBookingType(nextBookingType);
                                     setNote("");
                                     setShowNote(false);
                                     setBookingResult(null);
                                     setBookingStatus(null);
-                                    setSessionInfo(null);
                                     setStudentInfo(null);
                                     setDeskInfo(null);
                                     setValidationErrors([]);
                                     setValidationWarnings([]);
+                                    setBookingTypeAvailability(null);
+                                    setLatePreviewInfo(null);
+                                    setIsLateConfirmOpen(false);
                                 }}
                                 className="w-full rounded-full bg-linear-to-r from-sky-600 to-cyan-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-300/40 transition active:scale-[0.98]"
                             >
