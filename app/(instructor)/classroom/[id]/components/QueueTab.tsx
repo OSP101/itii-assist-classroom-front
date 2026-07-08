@@ -798,6 +798,41 @@ export default function QueueTab({
         }
     };
 
+    // Start both sessions in a concurrent group simultaneously
+    const handleStartBoth = async (session: QueueSession) => {
+        if (!isCourseActive) { showCourseClosedReadOnlyToast(); return; }
+        const partner = session.concurrent_partner;
+        if (!partner) return;
+        setIsSubmitting(true);
+        try {
+            await queueService.updateQueueSessionStatus(course.id, session.id, 'active');
+            // Start partner via its own courseId
+            try {
+                await queueService.updateQueueSessionStatus(partner.course_id, partner.id as unknown as number, 'active');
+            } catch (partnerErr) {
+                console.warn("Partner session start failed:", partnerErr);
+            }
+            addToast({
+                title: localize("เริ่มคิวทั้งสองวิชาแล้ว", "Both queues started"),
+                description: localize(`${session.title} และ ${partner.title}`, `${session.title} and ${partner.title}`),
+                color: "success",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            fetchSessions(true);
+        } catch (error: unknown) {
+            addToast({
+                title: localize("เกิดข้อผิดพลาด", "Error"),
+                description: getErrorDescription(error, "ไม่สามารถเริ่มการจองคิวได้", "Unable to start the queues"),
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     // Handle pause/resume queue with confirmation
     const handlePauseResumeQueue = async () => {
         if (!isCourseActive) {
@@ -921,7 +956,8 @@ export default function QueueTab({
         }
     };
 
-    // Load instructor's other courses when the link modal opens
+    // Load instructor's other courses when the link modal opens.
+    // Falls back to getCourses() when getMyCourses() returns 403 (admin users).
     useEffect(() => {
         if (!isLinkModalOpen || !linkTarget) {
             setLinkPartnerCourses([]);
@@ -935,7 +971,16 @@ export default function QueueTab({
                 const others = (res.data?.courses || []).filter(c => c.id !== course.id);
                 setLinkPartnerCourses(others);
             })
-            .catch(() => {})
+            .catch(async () => {
+                // Fallback for admin users who cannot access my-courses
+                try {
+                    const res = await courseService.getCourses({ limit: 100, status: "active" });
+                    const others = (res.data?.courses || []).filter(c => c.id !== course.id);
+                    setLinkPartnerCourses(others);
+                } catch {
+                    setLinkPartnerCourses([]);
+                }
+            })
             .finally(() => setIsLinkCoursesLoading(false));
     }, [isLinkModalOpen, linkTarget, course.id]);
 
@@ -1176,14 +1221,26 @@ export default function QueueTab({
                                                 {paginatedSessions.map((session) => (
                                                     <TableRow key={session.id}>
                                                         <TableCell>
-                                                            <div className="flex items-center gap-2">
+                                                            <div className="flex flex-wrap items-center gap-2">
                                                                 <div>
                                                                     <p className="font-medium text-foreground">{session.title}</p>
                                                                 </div>
                                                                 {session.concurrent_group_id && (
-                                                                    <Chip size="sm" color="secondary" variant="flat" startContent={<Icon icon="solar:link-bold" className="text-xs" />}>
-                                                                        {localize("คิวคู่", "Paired")}
-                                                                    </Chip>
+                                                                    <Tooltip
+                                                                        content={session.concurrent_partner
+                                                                            ? localize(
+                                                                                `เชื่อมกับ: ${session.concurrent_partner.course_name} — "${session.concurrent_partner.title}"`,
+                                                                                `Linked with: ${session.concurrent_partner.course_name} — "${session.concurrent_partner.title}"`
+                                                                              )
+                                                                            : localize("คิวร่วมกับอีกวิชา", "Linked with another course")}
+                                                                        placement="right"
+                                                                    >
+                                                                        <Chip size="sm" color="secondary" variant="flat" startContent={<Icon icon="solar:link-bold" className="text-xs" />}>
+                                                                            {session.concurrent_partner
+                                                                                ? localize(`คิวคู่ · ${session.concurrent_partner.course_name}`, `Paired · ${session.concurrent_partner.course_name}`)
+                                                                                : localize("คิวคู่", "Paired")}
+                                                                        </Chip>
+                                                                    </Tooltip>
                                                                 )}
                                                             </div>
                                                         </TableCell>
@@ -1256,9 +1313,23 @@ export default function QueueTab({
                                                                         </Button>
                                                                     </Tooltip>
                                                                 )}
-                                                                {/* Draft status: Start, Edit, Delete */}
+                                                                {/* Draft status: Start, Start Both, Edit, Delete */}
                                                                 {session.status === 'draft' && (
                                                                     <>
+                                                                        {canUpdateQueueSessions && session.concurrent_partner && session.concurrent_partner.status === 'draft' && (
+                                                                            <Tooltip content={localize(`เริ่มทั้งคู่พร้อมกัน (${session.concurrent_partner.course_name})`, `Start both queues together (${session.concurrent_partner.course_name})`)}>
+                                                                                <Button
+                                                                                    isIconOnly
+                                                                                    size="sm"
+                                                                                    variant="flat"
+                                                                                    color="secondary"
+                                                                                    isDisabled={!isCourseActive || isSubmitting}
+                                                                                    onPress={() => handleStartBoth(session)}
+                                                                                >
+                                                                                    <Icon icon="solar:play-stream-bold" className="text-lg" />
+                                                                                </Button>
+                                                                            </Tooltip>
+                                                                        )}
                                                                         {canUpdateQueueSessions && (
                                                                             <Tooltip content={localize("เริ่มการจองคิว", "Start queue")}>
                                                                                 <Button

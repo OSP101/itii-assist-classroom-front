@@ -29,6 +29,14 @@ export interface QueueSession {
     updated_at: string;
     concurrent_group_id?: string | null;
     group_pin_code?: string | null;
+    concurrent_partner?: {
+        id: string;
+        title: string;
+        course_id: string;
+        course_name: string;
+        status: string;
+        group_pin_code?: string | null;
+    } | null;
     // Populated fields
     classroom?: {
         id: number;

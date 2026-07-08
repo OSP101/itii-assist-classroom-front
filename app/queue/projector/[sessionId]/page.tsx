@@ -841,6 +841,12 @@ export default function ProjectorViewPage() {
                 <div className="flex items-center gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-foreground">{data.session.title}</h1>
+                        {groupPinCode && concurrentSessions.length > 0 ? (
+                            <p className="text-sm font-medium text-secondary-600 dark:text-secondary-400 mt-0.5">
+                                <Icon icon="solar:link-bold" className="inline text-xs mr-1" />
+                                {t("คิวร่วม", "Shared queue")} · {concurrentSessions[0].course_name}
+                            </p>
+                        ) : null}
                         <p className="text-default-500">
                             {data.classroom.name} • {data.classroom.building}
                         </p>
