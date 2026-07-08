@@ -346,6 +346,7 @@ export default function WorkerDashboardPage() {
         accept_help: true,
     });
     const [currentBooking, setCurrentBooking] = useState<QueueBooking | null>(null);
+    const [concurrentSessions, setConcurrentSessions] = useState<Array<{id: string; course_name: string; title: string}>>([]); 
     const [isJoining, setIsJoining] = useState(false);
     const [isLeaving, setIsLeaving] = useState(false);
     const [isPausedAfterComplete, setIsPausedAfterComplete] = useState(false); // Stop receiving after completing current
@@ -604,6 +605,12 @@ export default function WorkerDashboardPage() {
             fetchSession();
         }
     }, [fetchSession, currentUser]);
+
+    useEffect(() => {
+        queueService.getConcurrentSessionsPublic(sessionId)
+            .then(rows => setConcurrentSessions(rows.map(r => ({ id: String(r.id), course_name: r.course_name, title: r.title }))))
+            .catch(() => {});
+    }, [sessionId]);
 
     // Prevent page refresh/close when worker is online or has current booking
     useEffect(() => {
@@ -1765,6 +1772,15 @@ export default function WorkerDashboardPage() {
                                                     {isEnglish ? `Queue #${currentBooking.queue_number}` : `คิวที่ ${currentBooking.queue_number}`}
                                                 </span>
                                             </div>
+                                            {currentBooking && String(currentBooking.queue_session_id) !== sessionId && (() => {
+                                                const sourceSession = concurrentSessions.find(cs => cs.id === String(currentBooking.queue_session_id));
+                                                if (!sourceSession) return null;
+                                                return (
+                                                    <Chip size="sm" color="secondary" variant="flat" startContent={<Icon icon="solar:link-bold" className="text-xs" />}>
+                                                        {sourceSession.course_name}
+                                                    </Chip>
+                                                );
+                                            })()}
 
                                             {currentBooking.is_late_booking && (
                                                 <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3">

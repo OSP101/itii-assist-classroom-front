@@ -129,6 +129,11 @@ export default function ProjectorViewPage() {
     const [currentTime, setCurrentTime] = useState(new Date());
     const [qrBoxSize, setQrBoxSize] = useState(QR_DEFAULT_SIZE);
     const [isQrSettingsOpen, setIsQrSettingsOpen] = useState(false);
+    const [concurrentSessions, setConcurrentSessions] = useState<Array<{
+        id: string; title: string; course_id: string; course_name: string;
+        status: string; pin_code: string;
+    }>>([]); 
+    const [groupPinCode, setGroupPinCode] = useState<string | null>(null);
 
     const socketRef = useRef<Socket | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -263,6 +268,18 @@ export default function ProjectorViewPage() {
             window.clearInterval(intervalId);
         };
     }, [data?.session.course_id, data?.session.status, sessionId]);
+
+    useEffect(() => {
+        if (!data?.session?.id) return;
+        queueService.getConcurrentSessionsPublic(String(data.session.id))
+            .then(rows => {
+                const others = rows.filter(r => String(r.id) !== String(data.session.id));
+                setConcurrentSessions(others as typeof concurrentSessions);
+                const gp = rows.find(r => r.group_pin_code)?.group_pin_code;
+                setGroupPinCode(gp || null);
+            })
+            .catch(() => {});
+    }, [data?.session?.id]);
 
     // Socket connection for real-time updates
     useEffect(() => {
@@ -598,9 +615,10 @@ export default function ProjectorViewPage() {
         return "border border-default-400";
     };
 
-    // Get booking URL for QR code
+    // Get booking URL for QR code — prefer group PIN when both courses share one QR
     const getBookingUrl = () => {
-        return getAppUrl(`/queue/book?pin=${encodeURIComponent(data?.session.pin_code || "")}`);
+        const pin = groupPinCode || data?.session.pin_code || "";
+        return getAppUrl(`/queue/book?pin=${encodeURIComponent(pin)}`);
     };
 
     const clampQrSize = useCallback(
@@ -1103,35 +1121,69 @@ export default function ProjectorViewPage() {
                                 </div>
                             </div>
                         ) : (
-                            <div className="flex items-center gap-4 shrink-0">
-                                <div className="flex flex-col items-center gap-2">
-                                    <div
-                                        className="overflow-hidden rounded-2xl border border-default-200 bg-white shadow-sm"
-                                        style={{
-                                            width: qrBoxSize,
-                                            height: qrBoxSize,
-                                            minWidth: QR_BOX_MIN_SIZE,
-                                            minHeight: QR_BOX_MIN_SIZE,
-                                            maxWidth: QR_BOX_MAX_SIZE,
-                                            maxHeight: QR_BOX_MAX_SIZE,
-                                        }}
-                                    >
+                            <div className="flex items-center gap-6 shrink-0 flex-wrap">
+                                {/* Primary session */}
+                                <div className="flex items-center gap-4 shrink-0">
+                                    <div className="flex flex-col items-center gap-2">
                                         <div
-                                            className="flex h-full w-full items-center justify-center"
-                                            style={{ padding: QR_BOX_PADDING }}
+                                            className="overflow-hidden rounded-2xl border border-default-200 bg-white shadow-sm"
+                                            style={{
+                                                width: qrBoxSize,
+                                                height: qrBoxSize,
+                                                minWidth: QR_BOX_MIN_SIZE,
+                                                minHeight: QR_BOX_MIN_SIZE,
+                                                maxWidth: QR_BOX_MAX_SIZE,
+                                                maxHeight: QR_BOX_MAX_SIZE,
+                                            }}
                                         >
-                                            <QRCode value={getBookingUrl()} size={qrCodeSize} bgColor="#ffffff" fgColor="#000000" level="L" />
+                                            <div
+                                                className="flex h-full w-full items-center justify-center"
+                                                style={{ padding: QR_BOX_PADDING }}
+                                            >
+                                                <QRCode value={getBookingUrl()} size={qrCodeSize} bgColor="#ffffff" fgColor="#000000" level="L" />
+                                            </div>
+                                        </div>
+                                        {renderQrSizeControls()}
+                                    </div>
+                                    <div className="bg-blue-100 dark:bg-blue-900/40 rounded-xl px-4 py-2">
+                                        {groupPinCode ? (
+                                            <>
+                                                <span className="text-xs font-semibold text-secondary-600 dark:text-secondary-400 block mb-0.5">คิวร่วม · Shared Queue</span>
+                                                <span className="text-sm text-default-600">PIN Code</span>
+                                                <p className="text-4xl font-mono font-bold text-blue-700 dark:text-blue-300 text-center">{groupPinCode}</p>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span className="text-sm text-default-600">PIN Code</span>
+                                                <p className="text-4xl font-mono font-bold text-blue-700 dark:text-blue-300 text-center">{data.session.pin_code}</p>
+                                            </>
+                                        )}
+                                        <Divider className="my-3" />
+                                        <p className="font-mono text-foreground">{`${getAppHostLabel()}/queue/book`}</p>
+                                    </div>
+                                </div>
+                                {/* Partner sessions in the concurrent group — hidden when group PIN is active (main QR covers both) */}
+                                {!groupPinCode && concurrentSessions.map(cs => (
+                                    <div key={cs.id} className="flex items-center gap-4 shrink-0">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div
+                                                className="overflow-hidden rounded-2xl border-2 border-secondary-300 bg-white shadow-sm"
+                                                style={{ width: qrBoxSize, height: qrBoxSize, minWidth: QR_BOX_MIN_SIZE, minHeight: QR_BOX_MIN_SIZE, maxWidth: QR_BOX_MAX_SIZE, maxHeight: QR_BOX_MAX_SIZE }}
+                                            >
+                                                <div className="flex h-full w-full items-center justify-center" style={{ padding: QR_BOX_PADDING }}>
+                                                    <QRCode value={`${typeof window !== 'undefined' ? window.location.origin : ''}/queue/book?pin=${encodeURIComponent(cs.pin_code)}`} size={qrCodeSize} bgColor="#ffffff" fgColor="#000000" level="L" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="bg-secondary-100 dark:bg-secondary-900/40 rounded-xl px-4 py-2">
+                                            <span className="text-xs text-secondary-600 font-medium">{cs.course_name}</span>
+                                            <span className="text-sm text-default-600 block">PIN Code</span>
+                                            <p className="text-4xl font-mono font-bold text-secondary-700 dark:text-secondary-300 text-center">{cs.pin_code}</p>
+                                            <Divider className="my-3" />
+                                            <p className="font-mono text-foreground text-sm truncate max-w-48">{cs.title}</p>
                                         </div>
                                     </div>
-                                    {renderQrSizeControls()}
-                                </div>
-                                <div className="bg-blue-100 dark:bg-blue-900/40 rounded-xl px-4 py-2">
-                                    <span className="text-sm text-default-600">PIN Code</span>
-                                    <p className="text-4xl font-mono font-bold text-blue-700 dark:text-blue-300 text-center">{data.session.pin_code}</p>
-
-                                    <Divider className="my-3" />
-                                    <p className="font-mono text-foreground">{`${getAppHostLabel()}/queue/book`}</p>
-                                </div>
+                                ))}
                             </div>
                         )}
 
@@ -1240,13 +1292,43 @@ export default function ProjectorViewPage() {
                                     </div>
                                 </div>
                                 <div className="bg-blue-100 dark:bg-blue-900/40 rounded-xl px-4 py-2">
-                                    <span className="text-sm text-default-600">PIN Code</span>
-
-                                    <p className="text-4xl font-mono font-bold text-blue-700 dark:text-blue-300">{data.session.pin_code}</p>
+                                    {groupPinCode ? (
+                                        <>
+                                            <span className="text-xs font-semibold text-secondary-600 dark:text-secondary-400 block mb-0.5">คิวร่วม · Shared Queue</span>
+                                            <span className="text-sm text-default-600">PIN Code</span>
+                                            <p className="text-4xl font-mono font-bold text-blue-700 dark:text-blue-300">{groupPinCode}</p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="text-sm text-default-600">PIN Code</span>
+                                            <p className="text-4xl font-mono font-bold text-blue-700 dark:text-blue-300">{data.session.pin_code}</p>
+                                        </>
+                                    )}
                                 </div>
 
                             </div>
                         )}
+
+                        {/* Concurrent partner sessions — hidden when group PIN is active */}
+                        {!groupPinCode && concurrentSessions.map(cs => (
+                            <div key={cs.id} className="rounded-2xl border-2 border-secondary-300 bg-content1 p-4 text-center shadow-sm">
+                                <p className="text-xs font-medium text-secondary-600 mb-2">{cs.course_name}</p>
+                                <div className="mb-3 flex justify-center">
+                                    <div
+                                        className="overflow-hidden rounded-2xl border border-default-200 bg-white shadow-sm"
+                                        style={{ width: qrBoxSize, height: qrBoxSize, minWidth: QR_BOX_MIN_SIZE, minHeight: QR_BOX_MIN_SIZE, maxWidth: QR_BOX_MAX_SIZE, maxHeight: QR_BOX_MAX_SIZE }}
+                                    >
+                                        <div className="flex h-full w-full items-center justify-center" style={{ padding: QR_BOX_PADDING }}>
+                                            <QRCode value={`${typeof window !== 'undefined' ? window.location.origin : ''}/queue/book?pin=${encodeURIComponent(cs.pin_code)}`} size={qrCodeSize} bgColor="#ffffff" fgColor="#000000" level="L" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bg-secondary-100 dark:bg-secondary-900/40 rounded-xl px-4 py-2">
+                                    <span className="text-sm text-default-600">PIN Code</span>
+                                    <p className="text-4xl font-mono font-bold text-secondary-700 dark:text-secondary-300">{cs.pin_code}</p>
+                                </div>
+                            </div>
+                        ))}
 
                         {/* Legend */}
                         <div className="rounded-2xl border border-default-200 bg-content1 p-4 shadow-sm">

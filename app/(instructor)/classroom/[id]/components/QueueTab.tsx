@@ -37,7 +37,9 @@ import queueService, {
     type QueueSession,
     type CreateQueueSessionData,
     type UpdateQueueSessionData,
+    type ConcurrentGroupData,
 } from "@/services/queue.service";
+import { courseService, type Course as CourseRecord } from "@/services/course.service";
 import { classroomService, type Classroom } from "@/services/classroom.service";
 import assignmentService, { type Assignment } from "@/services/assignment.service";
 import attendanceService, { type AttendanceSession } from "@/services/attendance.service";
@@ -223,6 +225,18 @@ export default function QueueTab({
     const [classroomConflict, setClassroomConflict] = useState<ClassroomConflictInfo | null>(null);
     const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Concurrent group state
+    const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+    const [isUnlinkModalOpen, setIsUnlinkModalOpen] = useState(false);
+    const [linkTarget, setLinkTarget] = useState<QueueSession | null>(null);
+    const [unlinkTarget, setUnlinkTarget] = useState<QueueSession | null>(null);
+    const [isLinkSubmitting, setIsLinkSubmitting] = useState(false);
+    const [linkPartnerCourses, setLinkPartnerCourses] = useState<CourseRecord[]>([]);
+    const [linkSelectedCourseId, setLinkSelectedCourseId] = useState<string>("");
+    const [linkPartnerSessions, setLinkPartnerSessions] = useState<QueueSession[]>([]);
+    const [isLinkCoursesLoading, setIsLinkCoursesLoading] = useState(false);
+    const [isLinkSessionsLoading, setIsLinkSessionsLoading] = useState(false);
 
     // Options for selects
     const [classrooms, setClassrooms] = useState<Classroom[]>([]);
@@ -849,6 +863,100 @@ export default function QueueTab({
         setIsPauseModalOpen(true);
     };
 
+    // Handle link concurrent sessions
+    const handleLinkConcurrent = async (session: QueueSession, partnerId: string) => {
+        if (!isCourseActive) { showCourseClosedReadOnlyToast(); return; }
+        setIsLinkSubmitting(true);
+        try {
+            await queueService.linkConcurrentSessions(course.id, String(session.id), partnerId);
+            addToast({
+                title: localize("เชื่อมคิวสำเร็จ", "Queues linked"),
+                description: localize("เปิดคิวสองวิชาพร้อมกันได้แล้ว", "Both queues can now run simultaneously"),
+                color: "success",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            setIsLinkModalOpen(false);
+            setLinkTarget(null);
+            fetchSessions(true);
+        } catch (error: unknown) {
+            addToast({
+                title: localize("เกิดข้อผิดพลาด", "Error"),
+                description: getErrorDescription(error, "ไม่สามารถเชื่อมคิวได้", "Unable to link queues"),
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } finally {
+            setIsLinkSubmitting(false);
+        }
+    };
+
+    // Handle unlink concurrent sessions
+    const handleUnlinkConcurrent = async () => {
+        if (!unlinkTarget || !isCourseActive) { showCourseClosedReadOnlyToast(); return; }
+        setIsLinkSubmitting(true);
+        try {
+            await queueService.unlinkConcurrentSessions(course.id, String(unlinkTarget.id));
+            addToast({
+                title: localize("ถอดการเชื่อมคิวสำเร็จ", "Queues unlinked"),
+                description: localize("แต่ละวิชาทำงานอิสระแล้ว", "Each course queue now runs independently"),
+                color: "success",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            setIsUnlinkModalOpen(false);
+            setUnlinkTarget(null);
+            fetchSessions(true);
+        } catch (error: unknown) {
+            addToast({
+                title: localize("เกิดข้อผิดพลาด", "Error"),
+                description: getErrorDescription(error, "ไม่สามารถถอดการเชื่อมได้", "Unable to unlink queues"),
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } finally {
+            setIsLinkSubmitting(false);
+        }
+    };
+
+    // Load instructor's other courses when the link modal opens
+    useEffect(() => {
+        if (!isLinkModalOpen || !linkTarget) {
+            setLinkPartnerCourses([]);
+            setLinkSelectedCourseId("");
+            setLinkPartnerSessions([]);
+            return;
+        }
+        setIsLinkCoursesLoading(true);
+        courseService.getMyCourses({ limit: 100, status: "active" })
+            .then(res => {
+                const others = (res.data?.courses || []).filter(c => c.id !== course.id);
+                setLinkPartnerCourses(others);
+            })
+            .catch(() => {})
+            .finally(() => setIsLinkCoursesLoading(false));
+    }, [isLinkModalOpen, linkTarget, course.id]);
+
+    // Load sessions for the selected partner course, filtered to same classroom
+    useEffect(() => {
+        if (!linkSelectedCourseId || !linkTarget) {
+            setLinkPartnerSessions([]);
+            return;
+        }
+        setIsLinkSessionsLoading(true);
+        queueService.getQueueSessions(linkSelectedCourseId)
+            .then(allSessions => {
+                const filtered = allSessions.filter(
+                    s => s.classroom_id === linkTarget.classroom_id && s.status !== "closed"
+                );
+                setLinkPartnerSessions(filtered);
+            })
+            .catch(() => {})
+            .finally(() => setIsLinkSessionsLoading(false));
+    }, [linkSelectedCourseId, linkTarget]);
+
     return (
         <>
         <div className="space-y-4">
@@ -1068,8 +1176,15 @@ export default function QueueTab({
                                                 {paginatedSessions.map((session) => (
                                                     <TableRow key={session.id}>
                                                         <TableCell>
-                                                            <div>
-                                                                <p className="font-medium text-foreground">{session.title}</p>
+                                                            <div className="flex items-center gap-2">
+                                                                <div>
+                                                                    <p className="font-medium text-foreground">{session.title}</p>
+                                                                </div>
+                                                                {session.concurrent_group_id && (
+                                                                    <Chip size="sm" color="secondary" variant="flat" startContent={<Icon icon="solar:link-bold" className="text-xs" />}>
+                                                                        {localize("คิวคู่", "Paired")}
+                                                                    </Chip>
+                                                                )}
                                                             </div>
                                                         </TableCell>
                                                         <TableCell>
@@ -1368,6 +1483,46 @@ export default function QueueTab({
                                                                         )}
                                                                     </>
                                                                 )}
+                                                                {/* Concurrent group: link/unlink button */}
+                                                                {canUpdateQueueSessions && session.status !== 'closed' && (() => {
+                                                                    const isGrouped = Boolean(session.concurrent_group_id);
+                                                                    if (isGrouped) {
+                                                                        return (
+                                                                            <Tooltip content={localize("ถอดการเชื่อมคิวคู่", "Unlink concurrent queues")}>
+                                                                                <Button
+                                                                                    isIconOnly
+                                                                                    size="sm"
+                                                                                    variant="flat"
+                                                                                    color="secondary"
+                                                                                    isDisabled={!isCourseActive}
+                                                                                    onPress={() => {
+                                                                                        setUnlinkTarget(session);
+                                                                                        setIsUnlinkModalOpen(true);
+                                                                                    }}
+                                                                                >
+                                                                                    <Icon icon="solar:link-broken-bold" className="text-lg" />
+                                                                                </Button>
+                                                                            </Tooltip>
+                                                                        );
+                                                                    }
+                                                                    return (
+                                                                        <Tooltip content={localize("เชื่อมคิวพร้อมกัน", "Link concurrent queues")}>
+                                                                            <Button
+                                                                                isIconOnly
+                                                                                size="sm"
+                                                                                variant="flat"
+                                                                                color="primary"
+                                                                                isDisabled={!isCourseActive}
+                                                                                onPress={() => {
+                                                                                    setLinkTarget(session);
+                                                                                    setIsLinkModalOpen(true);
+                                                                                }}
+                                                                            >
+                                                                                <Icon icon="solar:link-bold" className="text-lg" />
+                                                                            </Button>
+                                                                        </Tooltip>
+                                                                    );
+                                                                })()}
                                                             </div>
                                                         </TableCell>
                                                     </TableRow>
@@ -2213,6 +2368,129 @@ export default function QueueTab({
                             {localize("ตกลง", "OK")}
                         </Button>
                     </ModalFooter>
+                </ModalContent>
+            </Modal>
+
+            {/* Concurrent Link Modal */}
+            <Modal isOpen={isLinkModalOpen} onOpenChange={(open) => { setIsLinkModalOpen(open); if (!open) { setLinkSelectedCourseId(""); setLinkPartnerSessions([]); } }}>
+                <ModalContent>
+                    {(onClose) => (
+                        <>
+                            <ModalHeader>{localize("เชื่อมคิวสองวิชา", "Link Concurrent Queues")}</ModalHeader>
+                            <ModalBody className="gap-4">
+                                <p className="text-sm text-default-600">
+                                    {localize(
+                                        `เลือกวิชาและ session ที่ต้องการเชื่อมกับ "${linkTarget?.title}"`,
+                                        `Select the course and session to link with "${linkTarget?.title}"`
+                                    )}
+                                </p>
+
+                                {/* Step 1: Course picker */}
+                                <div>
+                                    <p className="text-xs font-semibold text-default-500 mb-2 uppercase tracking-wide">
+                                        {localize("1. เลือกวิชา", "1. Select course")}
+                                    </p>
+                                    {isLinkCoursesLoading ? (
+                                        <div className="space-y-2">
+                                            {[1,2].map(i => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
+                                        </div>
+                                    ) : linkPartnerCourses.length === 0 ? (
+                                        <p className="text-sm text-default-400 text-center py-4">
+                                            {localize("ไม่พบวิชาอื่นที่สามารถเชื่อมได้", "No other courses available to link")}
+                                        </p>
+                                    ) : (
+                                        <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                                            {linkPartnerCourses.map(c => (
+                                                <button
+                                                    key={c.id}
+                                                    type="button"
+                                                    className={`w-full text-left rounded-xl border px-3 py-2.5 transition-colors ${
+                                                        linkSelectedCourseId === c.id
+                                                            ? "border-primary-400 bg-primary-50 dark:bg-primary-900/20"
+                                                            : "border-default-200 hover:border-primary-300 hover:bg-primary-50/50 dark:hover:bg-primary-900/10"
+                                                    }`}
+                                                    onClick={() => setLinkSelectedCourseId(c.id)}
+                                                >
+                                                    <p className="font-medium text-sm text-foreground truncate">{c.name}</p>
+                                                    <p className="text-xs text-default-500">{c.code}</p>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Step 2: Session picker — shown after course is selected */}
+                                {linkSelectedCourseId && (
+                                    <div>
+                                        <p className="text-xs font-semibold text-default-500 mb-2 uppercase tracking-wide">
+                                            {localize("2. เลือก Session การจอง", "2. Select queue session")}
+                                        </p>
+                                        {isLinkSessionsLoading ? (
+                                            <div className="space-y-2">
+                                                {[1,2].map(i => <Skeleton key={i} className="h-14 w-full rounded-xl" />)}
+                                            </div>
+                                        ) : linkPartnerSessions.length === 0 ? (
+                                            <p className="text-sm text-default-400 text-center py-4">
+                                                {localize(
+                                                    "ไม่มี session ที่ใช้ห้องเดียวกันในวิชานี้",
+                                                    "No sessions in the same classroom for this course"
+                                                )}
+                                            </p>
+                                        ) : (
+                                            <div className="space-y-1.5">
+                                                {linkPartnerSessions.map(partner => (
+                                                    <button
+                                                        key={partner.id}
+                                                        type="button"
+                                                        className="w-full text-left rounded-xl border border-default-200 p-3 hover:border-primary hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
+                                                        onClick={() => linkTarget && handleLinkConcurrent(linkTarget, String(partner.id))}
+                                                        disabled={isLinkSubmitting}
+                                                    >
+                                                        <p className="font-medium text-foreground text-sm">{partner.title}</p>
+                                                        <p className="text-xs text-default-500 mt-0.5">
+                                                            {partner.classroom?.name} · {statusDisplay[partner.status]?.label}
+                                                        </p>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </ModalBody>
+                            <ModalFooter>
+                                <Button variant="light" onPress={onClose}>{localize("ยกเลิก", "Cancel")}</Button>
+                            </ModalFooter>
+                        </>
+                    )}
+                </ModalContent>
+            </Modal>
+
+            {/* Concurrent Unlink Modal */}
+            <Modal isOpen={isUnlinkModalOpen} onOpenChange={setIsUnlinkModalOpen}>
+                <ModalContent>
+                    {(onClose) => (
+                        <>
+                            <ModalHeader>{localize("ถอดการเชื่อมคิวคู่", "Unlink Concurrent Queues")}</ModalHeader>
+                            <ModalBody>
+                                <p className="text-sm text-default-600">
+                                    {localize(
+                                        `ถอดการเชื่อม "${unlinkTarget?.title}" ออกจากคิวคู่ ทั้งสองวิชาจะทำงานแยกกันอิสระ`,
+                                        `Unlink "${unlinkTarget?.title}" from its paired queue. Each course will run independently.`
+                                    )}
+                                </p>
+                            </ModalBody>
+                            <ModalFooter>
+                                <Button variant="light" onPress={onClose}>{localize("ยกเลิก", "Cancel")}</Button>
+                                <Button
+                                    color="danger"
+                                    onPress={handleUnlinkConcurrent}
+                                    isLoading={isLinkSubmitting}
+                                >
+                                    {localize("ถอดการเชื่อม", "Unlink")}
+                                </Button>
+                            </ModalFooter>
+                        </>
+                    )}
                 </ModalContent>
             </Modal>
         </div>

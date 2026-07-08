@@ -194,8 +194,18 @@ function BookQueueContent() {
     const fromScan = !!(searchParams.get("desk") && searchParams.get("type"));
 
     // Step states
-    const [step, setStep] = useState<"pin" | "form" | "status">("pin");
+    const [step, setStep] = useState<"pin" | "select-course" | "form" | "status">("pin");
     const [isInitializing, setIsInitializing] = useState(true);
+
+    // Group PIN state — populated when a shared (multi-course) PIN is entered
+    type GroupSessionOption = {
+        session_id: string; title: string; course_id: string; status: string;
+        pin_code: string; require_attendance: boolean;
+        is_cutoff_enabled: boolean; cutoff_at?: string | null; cutoff_note?: string;
+        course: { id: string; code: string; name: string } | null;
+        classroom: { id: string; name: string; building: string } | null;
+    };
+    const [groupSessions, setGroupSessions] = useState<GroupSessionOption[]>([]);
 
     // Desk notice modal — skip when coming from QR scan (desk already known)
     const [isDeskNoticeOpen, setIsDeskNoticeOpen] = useState(!fromScan);
@@ -517,8 +527,13 @@ function BookQueueContent() {
             const result = await response.json();
 
             if (result.success) {
-                setSessionInfo(result.data);
-                setStep("form");
+                if (result.data?.is_group) {
+                    setGroupSessions(result.data.sessions || []);
+                    setStep("select-course");
+                } else {
+                    setSessionInfo(result.data);
+                    setStep("form");
+                }
             } else {
                 const isPaused = result.error?.code === "SESSION_PAUSED";
                 addToast({
@@ -1041,6 +1056,61 @@ function BookQueueContent() {
                         </button>
                         <p className="mt-4 text-xs text-slate-400">PIN ได้รับจาก TA หรืออาจารย์ในห้องเรียน</p>
                     </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Render select-course step (group PIN was entered)
+    if (step === "select-course") {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-12">
+                <div className="w-full max-w-sm">
+                    <div className="text-center mb-8">
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                            <Icon icon="solar:users-group-rounded-bold" className="text-3xl text-primary-600 dark:text-primary-400" />
+                        </div>
+                        <h1 className="text-xl font-bold text-foreground">เลือกวิชาของคุณ</h1>
+                        <p className="text-sm text-default-500 mt-1">มีการเปิดรับคิวหลายวิชาพร้อมกันในห้องนี้</p>
+                    </div>
+                    <div className="space-y-3">
+                        {groupSessions.map((gs) => (
+                            <button
+                                key={gs.session_id}
+                                type="button"
+                                className="w-full text-left rounded-2xl border border-default-200 p-4 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors cursor-pointer"
+                                onClick={() => {
+                                    setPinCode(gs.pin_code);
+                                    setSessionInfo({
+                                        session_id: gs.session_id as unknown as number,
+                                        title: gs.title,
+                                        course: gs.course || { id: gs.course_id, code: "", name: "" },
+                                        classroom: gs.classroom ? { id: Number(gs.classroom.id), name: gs.classroom.name, building: gs.classroom.building } : { id: 0, name: "", building: "" },
+                                        require_attendance: gs.require_attendance,
+                                        is_cutoff_enabled: gs.is_cutoff_enabled,
+                                        cutoff_at: gs.cutoff_at,
+                                        cutoff_note: gs.cutoff_note,
+                                    });
+                                    setStep("form");
+                                }}
+                            >
+                                <p className="text-xs font-semibold text-primary-600 dark:text-primary-400 mb-0.5 truncate">
+                                    {gs.course?.name || gs.course_id}
+                                </p>
+                                <p className="font-semibold text-foreground">{gs.title}</p>
+                                <p className="text-xs text-default-400 mt-1 truncate">
+                                    {gs.classroom?.name}{gs.classroom?.building ? ` · ${gs.classroom.building}` : ""}
+                                </p>
+                            </button>
+                        ))}
+                    </div>
+                    <button
+                        type="button"
+                        className="w-full text-center text-sm text-default-400 py-3 mt-4 hover:text-default-600 transition-colors"
+                        onClick={() => { setGroupSessions([]); setStep("pin"); }}
+                    >
+                        ← กรอก PIN ใหม่
+                    </button>
                 </div>
             </div>
         );

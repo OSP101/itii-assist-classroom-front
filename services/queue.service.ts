@@ -27,6 +27,8 @@ export interface QueueSession {
     created_by: number;
     created_at: string;
     updated_at: string;
+    concurrent_group_id?: string | null;
+    group_pin_code?: string | null;
     // Populated fields
     classroom?: {
         id: number;
@@ -402,6 +404,28 @@ export class ClassroomConflictError extends Error {
     }
 }
 
+export interface ConcurrentSessionInfo {
+    id: string;
+    title: string;
+    course_id: string;
+    course_name: string;
+    status: string;
+    pin_code?: string;
+    concurrent_group_id?: string | null;
+    group_pin_code?: string | null;
+}
+
+export interface ConcurrentGroupData {
+    is_grouped: boolean;
+    sessions: {
+        id: string;
+        title: string;
+        course_id: string;
+        course_name: string;
+        status: string;
+    }[];
+}
+
 // ============================================
 // Queue Service
 // ============================================
@@ -522,6 +546,50 @@ const queueService = {
         if (!response.success) {
             throw new Error((response.error as unknown as { message?: string })?.message || response.message || 'Failed to record projector heartbeat');
         }
+    },
+
+    // ============================================
+    // Concurrent Group (Multi-Course Queue)
+    // ============================================
+
+    async getConcurrentGroup(courseId: string, sessionId: string): Promise<ConcurrentGroupData> {
+        const response = await api.get<ConcurrentGroupData>(
+            `/courses/${courseId}/queue/sessions/${sessionId}/group`
+        );
+        return response.data || { is_grouped: false, sessions: [] };
+    },
+
+    async linkConcurrentSessions(courseId: string, sessionId: string, partnerSessionId: string): Promise<void> {
+        const response = await api.post(
+            `/courses/${courseId}/queue/sessions/${sessionId}/group/link`,
+            { partner_session_id: partnerSessionId }
+        );
+        if (!response.success) {
+            throw new Error((response as { message?: string }).message || 'เชื่อมคิวไม่สำเร็จ');
+        }
+    },
+
+    async unlinkConcurrentSessions(courseId: string, sessionId: string): Promise<void> {
+        const response = await api.delete(
+            `/courses/${courseId}/queue/sessions/${sessionId}/group/unlink`
+        );
+        if (!response.success) {
+            throw new Error((response as { message?: string }).message || 'ถอดการเชื่อมคิวไม่สำเร็จ');
+        }
+    },
+
+    async getConcurrentSessionsPublic(sessionId: string): Promise<ConcurrentSessionInfo[]> {
+        const response = await api.get<ConcurrentSessionInfo[]>(
+            `/queue/sessions/${sessionId}/concurrent-sessions`
+        );
+        return response.data || [];
+    },
+
+    async getClassroomActiveSessions(classroomId: string): Promise<ConcurrentSessionInfo[]> {
+        const response = await api.get<ConcurrentSessionInfo[]>(
+            `/queue/classroom/${classroomId}/active-sessions`
+        );
+        return response.data || [];
     },
 
     // ============================================
