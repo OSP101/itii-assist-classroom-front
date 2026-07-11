@@ -136,6 +136,21 @@ export interface QueueBooking {
         id: number;
         full_name: string;
     };
+    // Populated in shared-room concurrent-group mode so the worker UI can
+    // badge a booking that came from a partner course and label the score
+    // modal with the assignment's true origin.
+    origin_course?: {
+        id: string;
+        code: string;
+        name: string;
+    };
+    origin_session_title?: string;
+    origin_concurrent_group_id?: string | null;
+    origin_assignment?: {
+        id: number;
+        name: string;
+        max_score: number;
+    };
 }
 
 export type QueueBookingType = QueueBooking["booking_type"];
@@ -366,6 +381,43 @@ export interface ProjectorViewData {
     };
 }
 
+/**
+ * Aggregated projector view for a shared-room concurrent group.
+ * Returned by GET /api/queue/groups/:groupId/desk-statuses.
+ * Each entry in `sessions` mirrors the single-session ProjectorViewData shape
+ * (session summary, desks-with-status, queueStats) plus a `course` block that
+ * the projector uses to prefix queue numbers with a course code.
+ */
+export interface GroupProjectorViewData {
+    group_id: string;
+    group_pin_code: string;
+    classroom: {
+        id: string;
+        name: string;
+        building: string;
+    };
+    sessions: {
+        session: ProjectorViewData['session'] & {
+            course_id: string;
+            is_cutoff_enabled?: boolean;
+            cutoff_at?: string | null;
+            cutoff_note?: string;
+            concurrent_group_id?: string | null;
+            group_pin_code?: string | null;
+        };
+        course: {
+            id: string;
+            code: string;
+            name: string;
+        };
+        desks: DeskWithStatus[];
+        queueStats: {
+            grading_waiting: number;
+            help_waiting: number;
+        };
+    }[];
+}
+
 export interface VerifyPINResponse {
     session_id: number;
     title: string;
@@ -591,6 +643,16 @@ const queueService = {
             `/queue/sessions/${sessionId}/concurrent-sessions`
         );
         return response.data || [];
+    },
+
+    async getGroupDeskStatusesPublic(groupId: string): Promise<GroupProjectorViewData> {
+        const response = await api.get<GroupProjectorViewData>(
+            `/queue/groups/${groupId}/desk-statuses`
+        );
+        if (!response.data) {
+            throw new Error('ไม่พบข้อมูลคิวร่วม');
+        }
+        return response.data;
     },
 
     async getClassroomActiveSessions(classroomId: string): Promise<ConcurrentSessionInfo[]> {

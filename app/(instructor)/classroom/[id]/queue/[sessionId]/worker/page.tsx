@@ -1769,15 +1769,33 @@ export default function WorkerDashboardPage() {
                                                     {formatBookingTypeLabel(currentBooking.booking_type, isEnglish)}
                                                 </Chip>
                                                 <span className="text-sm text-default-500">
-                                                    {isEnglish ? `Queue #${currentBooking.queue_number}` : `คิวที่ ${currentBooking.queue_number}`}
+                                                    {currentBooking.origin_course
+                                                        ? (isEnglish
+                                                            ? `Queue ${currentBooking.origin_course.code}-Q${currentBooking.queue_number}`
+                                                            : `คิว ${currentBooking.origin_course.code}-Q${currentBooking.queue_number}`)
+                                                        : (isEnglish
+                                                            ? `Queue #${currentBooking.queue_number}`
+                                                            : `คิวที่ ${currentBooking.queue_number}`)}
                                                 </span>
                                             </div>
                                             {currentBooking && String(currentBooking.queue_session_id) !== sessionId && (() => {
-                                                const sourceSession = concurrentSessions.find(cs => cs.id === String(currentBooking.queue_session_id));
-                                                if (!sourceSession) return null;
+                                                // Prefer the origin_course now hydrated by the backend on the
+                                                // booking payload; fall back to the concurrent-sessions lookup
+                                                // so older payloads still render a badge instead of nothing.
+                                                const originCourse = currentBooking.origin_course;
+                                                const sourceLabel = originCourse
+                                                    ? `${originCourse.code} · ${originCourse.name}`
+                                                    : concurrentSessions.find(cs => cs.id === String(currentBooking.queue_session_id))?.course_name;
+                                                if (!sourceLabel) return null;
                                                 return (
-                                                    <Chip size="sm" color="secondary" variant="flat" startContent={<Icon icon="solar:link-bold" className="text-xs" />}>
-                                                        {sourceSession.course_name}
+                                                    <Chip
+                                                        size="sm"
+                                                        color="warning"
+                                                        variant="flat"
+                                                        startContent={<Icon icon="solar:link-bold" className="text-xs" />}
+                                                        title={t("บุ๊คนี้มาจากวิชาอื่นในคิวร่วม", "This booking came from a partner course in the shared queue")}
+                                                    >
+                                                        {t("จากวิชา", "From course")}: {sourceLabel}
                                                     </Chip>
                                                 );
                                             })()}
@@ -2006,6 +2024,30 @@ export default function WorkerDashboardPage() {
                     </ModalHeader>
                     <ModalBody>
                         <div className="space-y-4">
+                            {currentBooking?.origin_course
+                                && currentBooking.origin_course.id !== courseId
+                                && (
+                                    <div className="rounded-xl border border-warning-200 bg-warning-50 p-3 dark:border-warning-400/40 dark:bg-warning-500/10">
+                                        <div className="flex items-start gap-2 text-warning-700 dark:text-warning-300">
+                                            <Icon icon="solar:link-bold" className="mt-0.5 text-lg shrink-0" />
+                                            <div className="text-sm">
+                                                <p className="font-semibold">
+                                                    {t("กำลังตรวจงานของวิชาอื่นในคิวร่วม", "Grading a partner course's task in the shared queue")}
+                                                </p>
+                                                <p className="mt-0.5 text-warning-600 dark:text-warning-400">
+                                                    <span className="font-medium">{currentBooking.origin_course.code}</span>
+                                                    {" · "}{currentBooking.origin_course.name}
+                                                    {currentBooking.origin_assignment && (
+                                                        <>
+                                                            {" — "}
+                                                            {t("งาน", "Assignment")}: {currentBooking.origin_assignment.name}
+                                                        </>
+                                                    )}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             {isPreparingCompleteForm && (
                                 <div className="flex items-center justify-center py-8">
                                     <Spinner size="lg" />

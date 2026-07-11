@@ -40,6 +40,11 @@ interface DeskBooking {
         full_name: string;
         avatar?: string;
     };
+    // Populated in shared-room mode so the projector can display which course
+    // a booking came from (e.g. "OOP-Q001" instead of just "Q001").
+    course_code?: string;
+    course_name?: string;
+    session_id?: string;
 }
 
 interface DeskWithStatus {
@@ -80,6 +85,118 @@ interface ProjectorViewData {
         grading_waiting: number;
         help_waiting: number;
     };
+}
+
+// Priority ordering for choosing which booking (across two linked sessions)
+// wins on a shared desk. Higher rank displaces lower.
+const DESK_BOOKING_PRIORITY: Record<string, number> = {
+    in_progress: 4,
+    waiting: 3,
+    completed: 2,
+};
+
+function pickBetterBooking(a?: DeskBooking, b?: DeskBooking): DeskBooking | undefined {
+    if (!a) return b;
+    if (!b) return a;
+    const ra = DESK_BOOKING_PRIORITY[a.status] ?? 0;
+    const rb = DESK_BOOKING_PRIORITY[b.status] ?? 0;
+    return rb > ra ? b : a;
+}
+
+interface GroupSessionProjectorView {
+    session: {
+        id: string;
+        course_id?: string;
+        title: string;
+        pin_code: string;
+        status: string;
+        is_cutoff_enabled?: boolean;
+        cutoff_at?: string | null;
+        cutoff_note?: string;
+        concurrent_group_id?: string | null;
+        group_pin_code?: string | null;
+    };
+    course?: { id: string; code?: string; name?: string };
+    desks: DeskWithStatus[];
+    queueStats: { grading_waiting: number; help_waiting: number };
+}
+
+interface GroupProjectorPayload {
+    group_id: string;
+    group_pin_code?: string;
+    classroom: { id: string; name: string; building: string };
+    sessions: GroupSessionProjectorView[];
+}
+
+// mergeGroupProjectorView collapses a multi-session concurrent group into the
+// existing single-session shape the projector already renders. All sessions
+// in a group share the same classroom (constrained at link time), so we merge
+// per-desk status/booking across sessions and sum queueStats. Bookings carry
+// their originating session's course_code so the UI can prefix queue numbers.
+function mergeGroupProjectorView(
+    primary: ProjectorViewData,
+    group: GroupProjectorPayload | undefined | null,
+): ProjectorViewData {
+    if (!group || !Array.isArray(group.sessions) || group.sessions.length === 0) {
+        return primary;
+    }
+
+    const deskById = new Map<string, DeskWithStatus>();
+    let combinedGrading = 0;
+    let combinedHelp = 0;
+
+    for (const sessionView of group.sessions) {
+        const courseCode = sessionView.course?.code;
+        const courseName = sessionView.course?.name;
+        const sessionId = sessionView.session?.id;
+        combinedGrading += sessionView.queueStats?.grading_waiting ?? 0;
+        combinedHelp += sessionView.queueStats?.help_waiting ?? 0;
+
+        for (const desk of sessionView.desks ?? []) {
+            const taggedBooking: DeskBooking | undefined = desk.booking
+                ? { ...desk.booking, course_code: courseCode, course_name: courseName, session_id: sessionId }
+                : undefined;
+
+            const existing = deskById.get(desk.id);
+            if (!existing) {
+                deskById.set(desk.id, { ...desk, booking: taggedBooking });
+                continue;
+            }
+
+            // Merge: keep desk geometry as-is; pick the higher-priority booking
+            // and combine status flags so any session's active state shows up.
+            const mergedStatus = mergeDeskStatus(existing.status, desk.status);
+            const mergedBooking = pickBetterBooking(existing.booking, taggedBooking);
+            deskById.set(desk.id, {
+                ...existing,
+                status: mergedStatus,
+                booking: mergedBooking,
+            });
+        }
+    }
+
+    return {
+        ...primary,
+        desks: Array.from(deskById.values()),
+        queueStats: {
+            grading_waiting: combinedGrading,
+            help_waiting: combinedHelp,
+        },
+    };
+}
+
+function mergeDeskStatus(a: DeskWithStatus['status'], b: DeskWithStatus['status']): DeskWithStatus['status'] {
+    const gradingRank: Record<string, number> = { not_started: 0, waiting: 2, completed: 1, in_progress: 3 };
+    const helpRank: Record<string, number> = { none: 0, waiting: 2, in_progress: 3 };
+
+    const grading = (gradingRank[b.grading_status] ?? 0) > (gradingRank[a.grading_status] ?? 0)
+        ? b.grading_status
+        : a.grading_status;
+    const help = (helpRank[b.help_status] ?? 0) > (helpRank[a.help_status] ?? 0)
+        ? b.help_status
+        : a.help_status;
+
+    return { grading_status: grading, help_status: help };
 }
 
 const PROJECTOR_HEARTBEAT_MS = 30_000;
@@ -182,7 +299,31 @@ export default function ProjectorViewPage() {
             const result = await response.json();
 
             if (result.success) {
-                setData(result.data);
+                const singleData = result.data as ProjectorViewData;
+
+                // Shared-room mode: when the session belongs to a concurrent
+                // group, fetch the group projector view and merge partner
+                // sessions' bookings + queue counts onto the same desk layout.
+                // Falls back to single-session data on any failure so the
+                // projector still renders something usable.
+                const groupId = singleData.session?.concurrent_group_id;
+                if (groupId) {
+                    try {
+                        const groupResp = await fetch(`${API_BASE_URL}/queue/groups/${groupId}/desk-statuses`);
+                        const groupResult = await groupResp.json();
+                        if (groupResult.success) {
+                            const merged = mergeGroupProjectorView(singleData, groupResult.data);
+                            setData(merged);
+                            setError(null);
+                            setIsDataStale(false);
+                            return;
+                        }
+                    } catch (groupErr) {
+                        console.warn('Falling back to single-session projector view; group fetch failed:', groupErr);
+                    }
+                }
+
+                setData(singleData);
                 setError(null);
                 setIsDataStale(false);
             } else {
@@ -292,6 +433,7 @@ export default function ProjectorViewPage() {
     }, [data?.session?.id, data?.session?.group_pin_code]);
 
     // Socket connection for real-time updates
+    const groupIdForSocket = data?.session?.concurrent_group_id ?? null;
     useEffect(() => {
         const socket = io(getRealtimeSocketBaseUrl(), {
             reconnection: true,
@@ -302,6 +444,11 @@ export default function ProjectorViewPage() {
         socket.on("connect", () => {
             setIsDataStale(false);
             socket.emit("join-queue", sessionId);
+            // In shared-room mode, also subscribe to the concurrent-group room
+            // so partner-session booking/status events refresh the projector.
+            if (groupIdForSocket) {
+                socket.emit("join-queue-group", groupIdForSocket);
+            }
             fetchData();
         });
 
@@ -352,6 +499,19 @@ export default function ProjectorViewPage() {
             fetchData();
         });
 
+        socket.on("session-unlinked", (eventData: { reason?: string }) => {
+            if (eventData?.reason === "course_closed") {
+                addToast({
+                    title: t("ยกเลิกการเชื่อมคิวอัตโนมัติ", "Queue link auto-removed"),
+                    description: t("มีวิชาในกลุ่มถูกปิด ระบบจึงถอดการเชื่อมคิวร่วมออก", "A partner course was closed, so the shared queue link has been removed."),
+                    color: "warning",
+                    timeout: 5000,
+                    shouldShowTimeoutProgress: true,
+                });
+            }
+            fetchData();
+        });
+
         socket.on("pin-changed", () => {
             fetchData();
         });
@@ -360,9 +520,12 @@ export default function ProjectorViewPage() {
 
         return () => {
             socket.emit("leave-queue", sessionId);
+            if (groupIdForSocket) {
+                socket.emit("leave-queue-group", groupIdForSocket);
+            }
             socket.disconnect();
         };
-    }, [sessionId, fetchData, isEnglish]);
+    }, [sessionId, fetchData, isEnglish, groupIdForSocket]);
 
     // Fullscreen toggle
     const toggleFullscreen = () => {
@@ -1451,9 +1614,19 @@ export default function ProjectorViewPage() {
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-sm text-default-600">{t('คิวที่', 'Queue number')}</span>
                                         <span className="text-2xl font-bold text-blue-600">
-                                            {selectedDesk.booking.queue_number}
+                                            {selectedDesk.booking.course_code
+                                                ? `${selectedDesk.booking.course_code}-Q${selectedDesk.booking.queue_number}`
+                                                : selectedDesk.booking.queue_number}
                                         </span>
                                     </div>
+                                    {selectedDesk.booking.course_code && selectedDesk.booking.course_name && (
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm text-default-600">{t('รายวิชา', 'Course')}</span>
+                                            <Chip size="sm" color="secondary" variant="flat" startContent={<Icon icon="solar:link-bold" className="text-xs" />}>
+                                                {selectedDesk.booking.course_code} · {selectedDesk.booking.course_name}
+                                            </Chip>
+                                        </div>
+                                    )}
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-sm text-default-600">{t('ประเภท', 'Type')}</span>
                                         <Chip
