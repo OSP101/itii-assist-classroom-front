@@ -209,10 +209,16 @@ function summarizePermissions(permissions: CourseMemberPermissions, isEnglish: b
         permissions.view_queue || permissions.create_queue_sessions || permissions.update_queue_sessions || permissions.delete_queue_sessions || permissions.manage_queue_bookings ? (isEnglish ? "Queue" : "คิว") : null,
     ].filter((value): value is string => Boolean(value));
 
+    const values = Object.values(permissions) as boolean[];
+    const enabledCount = values.filter(Boolean).length;
+    const totalCount = values.length;
+
     return {
         labels: labels.slice(0, 3),
         remaining: Math.max(0, labels.length - 3),
         total: labels.length,
+        enabledCount,
+        totalCount,
     };
 }
 
@@ -388,6 +394,82 @@ export default function PeopleTab({
     const applyPermissionPreset = (preset: CoursePermissionPreset) => {
         if (!editingMember) return;
         setDraftPermissions(buildCoursePermissionPreset(editingMember.type, preset));
+    };
+
+    const arePermissionsEqual = (a: CourseMemberPermissions, b: CourseMemberPermissions) => {
+        const keys = Object.keys(a) as Array<keyof CourseMemberPermissions>;
+        return keys.every((key) => a[key] === b[key]);
+    };
+
+    const activePresetId = useMemo<CoursePermissionPreset | null>(() => {
+        if (!editingMember || !draftPermissions) return null;
+        for (const preset of permissionPresets) {
+            if (preset.roles && !preset.roles.includes(editingMember.type)) continue;
+            const built = buildCoursePermissionPreset(editingMember.type, preset.id);
+            if (arePermissionsEqual(built, draftPermissions)) return preset.id;
+        }
+        return null;
+    }, [draftPermissions, editingMember, permissionPresets]);
+
+    const toggleSectionPermissions = (
+        items: Array<{ key: keyof CourseMemberPermissions }>,
+        value: boolean,
+    ) => {
+        setDraftPermissions((current) => {
+            if (!current) return current;
+            const next = { ...current };
+            items.forEach((item) => {
+                next[item.key] = value;
+            });
+            if (!value) {
+                if (items.some((item) => item.key === "view_people")) {
+                    next.add_people = false;
+                    next.remove_people = false;
+                    next.edit_member_permissions = false;
+                }
+                if (items.some((item) => item.key === "view_sections")) {
+                    next.create_sections = false;
+                    next.update_sections = false;
+                    next.delete_sections = false;
+                    next.manage_section_students = false;
+                }
+                if (items.some((item) => item.key === "view_teams")) {
+                    next.create_teams = false;
+                    next.update_teams = false;
+                    next.delete_teams = false;
+                    next.manage_team_members = false;
+                }
+                if (items.some((item) => item.key === "view_assignments")) {
+                    next.create_assignments = false;
+                    next.update_assignments = false;
+                    next.delete_assignments = false;
+                    next.grade_assignments = false;
+                    next.edit_scores = false;
+                }
+                if (items.some((item) => item.key === "view_exam_scores")) {
+                    next.create_exam_scores = false;
+                    next.update_exam_scores = false;
+                    next.delete_exam_scores = false;
+                    next.update_exam_settings = false;
+                }
+                if (items.some((item) => item.key === "view_attendance")) {
+                    next.create_attendance_sessions = false;
+                    next.update_attendance_sessions = false;
+                    next.delete_attendance_sessions = false;
+                    next.update_attendance_status = false;
+                }
+                if (items.some((item) => item.key === "view_queue")) {
+                    next.create_queue_sessions = false;
+                    next.update_queue_sessions = false;
+                    next.delete_queue_sessions = false;
+                    next.manage_queue_bookings = false;
+                }
+                if (items.some((item) => item.key === "review_own_score_requests")) {
+                    next.review_all_score_requests = false;
+                }
+            }
+            return next;
+        });
     };
 
     const canRemoveInstructor = (personId: number, isPrimary: boolean) => {
@@ -598,7 +680,7 @@ export default function PeopleTab({
                                                                     </Chip>
                                                                 )}
                                                             </div>
-                                                            <p className="text-xs text-default-500">{isEnglish ? `Enabled ${summary.total} permission${summary.total === 1 ? "" : "s"}` : `เปิดใช้งาน ${summary.total} สิทธิ์`}</p>
+                                                            <p className="text-xs text-default-500">{isEnglish ? `Enabled ${summary.enabledCount} of ${summary.totalCount} permissions` : `เปิดใช้งาน ${summary.enabledCount} จาก ${summary.totalCount} สิทธิ์`}</p>
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
@@ -765,11 +847,16 @@ export default function PeopleTab({
                                                     : (isEnglish ? "Teaching assistant" : "ผู้ช่วยสอน")}
                                             </p>
                                         </div>
-                                        <Chip size="sm" variant="flat" className="bg-content4 text-default-700">
-                                            {isEnglish
-                                                ? `Enabled ${summarizePermissions(draftPermissions, isEnglish).total} permission${summarizePermissions(draftPermissions, isEnglish).total === 1 ? "" : "s"}`
-                                                : `เปิดใช้งาน ${summarizePermissions(draftPermissions, isEnglish).total} สิทธิ์`}
-                                        </Chip>
+                                        {(() => {
+                                            const s = summarizePermissions(draftPermissions, isEnglish);
+                                            return (
+                                                <Chip size="sm" variant="flat" className="bg-content4 text-default-700">
+                                                    {isEnglish
+                                                        ? `Enabled ${s.enabledCount} of ${s.totalCount} permissions`
+                                                        : `เปิดใช้งาน ${s.enabledCount} จาก ${s.totalCount} สิทธิ์`}
+                                                </Chip>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
 
@@ -784,35 +871,58 @@ export default function PeopleTab({
                                     <div className="grid gap-2 md:grid-cols-3">
                                         {permissionPresets
                                             .filter((preset) => !preset.roles || preset.roles.includes(editingMember.type))
-                                            .map((preset) => (
-                                                <Button
-                                                    key={preset.id}
-                                                    variant="flat"
-                                                    className="h-auto justify-start border border-blue-100 bg-content1 px-4 py-3 text-left dark:border-blue-700/30"
-                                                    onPress={() => applyPermissionPreset(preset.id)}
-                                                >
-                                                    <div>
-                                                        <p className="font-medium text-foreground">{preset.label}</p>
-                                                        <p className="whitespace-normal text-xs text-default-500">{preset.description}</p>
-                                                    </div>
-                                                </Button>
-                                            ))}
+                                            .map((preset) => {
+                                                const isActive = activePresetId === preset.id;
+                                                return (
+                                                    <Button
+                                                        key={preset.id}
+                                                        variant="flat"
+                                                        className={`h-auto justify-start border px-4 py-3 text-left ${isActive
+                                                            ? "border-blue-400 bg-blue-100 ring-2 ring-blue-300 dark:border-blue-400 dark:bg-blue-900/40 dark:ring-blue-500/40"
+                                                            : "border-blue-100 bg-content1 dark:border-blue-700/30"}`}
+                                                        onPress={() => applyPermissionPreset(preset.id)}
+                                                    >
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <p className={`font-medium ${isActive ? "text-blue-800 dark:text-blue-100" : "text-foreground"}`}>{preset.label}</p>
+                                                                {isActive && (
+                                                                    <Icon icon="solar:check-circle-bold" className="text-blue-500 dark:text-blue-300" />
+                                                                )}
+                                                            </div>
+                                                            <p className={`whitespace-normal text-xs ${isActive ? "text-blue-700/80 dark:text-blue-200/70" : "text-default-500"}`}>{preset.description}</p>
+                                                        </div>
+                                                    </Button>
+                                                );
+                                            })}
                                     </div>
                                 </div>
 
                                     {permissionSections.map((section) => {
                                     const enabledCount = section.items.filter((item) => draftPermissions[item.key]).length;
+                                    const allOn = enabledCount === section.items.length;
                                     return (
                                         <div key={section.title} className="overflow-hidden rounded-xl border border-default-200">
                                             <div className="flex items-center justify-between gap-2 border-b border-default-200 bg-content2 px-4 py-2.5">
                                                 <h4 className="text-sm font-semibold text-default-700">{section.title}</h4>
-                                                <Chip
-                                                    size="sm"
-                                                    variant="flat"
-                                                    className={enabledCount > 0 ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-100" : "bg-content4 text-default-500"}
-                                                >
-                                                    {enabledCount}/{section.items.length}
-                                                </Chip>
+                                                <div className="flex items-center gap-2">
+                                                    <Chip
+                                                        size="sm"
+                                                        variant="flat"
+                                                        className={enabledCount > 0 ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-100" : "bg-content4 text-default-500"}
+                                                    >
+                                                        {enabledCount}/{section.items.length}
+                                                    </Chip>
+                                                    <Tooltip content={allOn ? (isEnglish ? "Turn off all in this group" : "ปิดทั้งหมวด") : (isEnglish ? "Turn on all in this group" : "เปิดทั้งหมวด")}>
+                                                        <span>
+                                                            <Switch
+                                                                size="sm"
+                                                                isSelected={allOn}
+                                                                onValueChange={(value) => toggleSectionPermissions(section.items, value)}
+                                                                aria-label={isEnglish ? "Toggle all in group" : "สลับทั้งหมวด"}
+                                                            />
+                                                        </span>
+                                                    </Tooltip>
+                                                </div>
                                             </div>
                                             <div className="divide-y divide-divider">
                                                 {section.items.map((item) => {
