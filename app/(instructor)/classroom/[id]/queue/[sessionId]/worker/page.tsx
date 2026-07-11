@@ -33,7 +33,13 @@ import scoreService from "@/services/score.service";
 import { useNotification } from "@/contexts/NotificationContext";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { IosInstallHint } from "@/components/system/IosInstallHint";
-import { triggerNotificationVibration, playNotificationSound } from "@/lib/pwa-notifications";
+import PushSetupBanner from "@/components/notifications/PushSetupBanner";
+import IosInstallPromptModal from "@/components/notifications/IosInstallPromptModal";
+import {
+    triggerNotificationVibration,
+    playNotificationSound,
+    requiresHomeScreenInstallForPush,
+} from "@/lib/pwa-notifications";
 import { API_BASE_URL } from "@/config/api";
 import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
 import { formatScoreValue, parseScoreInput, SCORE_INPUT_PATTERN, sanitizeScoreInput } from "@/lib/score-input";
@@ -398,13 +404,14 @@ export default function WorkerDashboardPage() {
     const hasWarnedAboutConnectError = useRef(false);
 
     // Notification (self-hosted Web Push, VAPID)
-    const { 
-        isSupported: notificationSupported, 
-        permissionStatus, 
-        requestPermission, 
+    const {
+        isSupported: notificationSupported,
+        permissionStatus,
+        requestPermission,
         registerPushToken,
         pushSubscribed,
     } = useNotification();
+    const [iosInstallPromptOpen, setIosInstallPromptOpen] = useState(false);
 
     const isWorkerOfferPaused = Boolean(
         workerOfferPausedUntil && new Date(workerOfferPausedUntil).getTime() > Date.now()
@@ -848,7 +855,12 @@ export default function WorkerDashboardPage() {
             // self-hosted Web Push subscription (webpush-go, VAPID) — wakes the
             // worker with a notification + vibration for new tasks even when the
             // screen is off or another app is in the foreground.
-            if (notificationSupported && permissionStatus !== "granted") {
+            // iOS Safari cannot request permission from a tab — if the site is
+            // not installed as a PWA yet, surface the Add-to-Home-Screen guide
+            // instead so the TA fixes it before joining.
+            if (requiresHomeScreenInstallForPush()) {
+                setIosInstallPromptOpen(true);
+            } else if (notificationSupported && permissionStatus !== "granted") {
                 const permissionResult = await requestPermission();
                 if (permissionResult.granted) {
                     await registerPushToken("worker", sessionId);
@@ -1435,6 +1447,11 @@ export default function WorkerDashboardPage() {
         <div className="min-h-screen bg-background p-4 text-foreground md:p-6">
             <div className="max-w-4xl mx-auto space-y-6">
                 <IosInstallHint />
+                <PushSetupBanner sessionId={sessionId} />
+                <IosInstallPromptModal
+                    isOpen={iosInstallPromptOpen}
+                    onClose={() => setIosInstallPromptOpen(false)}
+                />
 
                 {isWorkerOfferPaused && (
                     <Card className="border-2 border-rose-300 bg-rose-50 shadow-lg">

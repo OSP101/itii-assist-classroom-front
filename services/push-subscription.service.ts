@@ -152,6 +152,52 @@ export async function registerPushSubscription(
     }
 }
 
+export interface SendTestPushResult {
+    success: boolean;
+    attempted: number;
+    delivered: number;
+    stale: number;
+    message?: string;
+}
+
+// Triggers the server-side self-test push so a signed-in worker can verify
+// end-to-end delivery to their actual device(s) before a real booking arrives.
+export async function sendTestPush(): Promise<SendTestPushResult> {
+    const failure: SendTestPushResult = { success: false, attempted: 0, delivered: 0, stale: 0 };
+    if (typeof window === "undefined") {
+        return failure;
+    }
+
+    const accessToken = localStorage.getItem("accessToken");
+    if (!accessToken) {
+        return { ...failure, message: "unauthenticated" };
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/push/test`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`,
+                Referer: window.location.href,
+            },
+        });
+        const result = await response.json();
+        if (!result?.success) {
+            return { ...failure, message: result?.error?.message };
+        }
+        return {
+            success: true,
+            attempted: Number(result?.data?.attempted ?? 0),
+            delivered: Number(result?.data?.delivered ?? 0),
+            stale: Number(result?.data?.stale ?? 0),
+        };
+    } catch (error) {
+        console.error("Failed to send test push:", error);
+        return { ...failure, message: error instanceof Error ? error.message : "network_error" };
+    }
+}
+
 export async function unregisterPushSubscription(): Promise<boolean> {
     if (!isWebPushSupported()) {
         return true;
