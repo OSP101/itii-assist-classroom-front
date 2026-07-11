@@ -1208,6 +1208,63 @@ export default function ScoreModal({
         return studentScore?.sub_item_scores?.find(si => si.sub_item_id === subItemId);
     };
 
+    // Per-sub-item lock status for group scoring (used in "all" mode)
+    interface GroupSubItemScoredMember {
+        studentId: number;
+        studentName: string;
+        score: number | null;
+        gradedByName?: string;
+        gradedAt?: string;
+    }
+    interface GroupSubItemStatus {
+        subItemId: number;
+        eligibleCount: number;
+        scoredMembers: GroupSubItemScoredMember[];
+        unscoredMemberNames: string[];
+        isFullyLocked: boolean;
+        isPartiallyScored: boolean;
+    }
+    const groupSubItemStatuses = useMemo(() => {
+        const map = new Map<number, GroupSubItemStatus>();
+        if (!isGroupAssignment || !selectedGroup || !hasSubItems || !assignment?.subItems) {
+            return map;
+        }
+        for (const subItem of assignment.subItems) {
+            if (subItem.id === undefined) continue;
+            const subItemId = subItem.id;
+            let eligibleCount = 0;
+            const scoredMembers: GroupSubItemScoredMember[] = [];
+            const unscoredMemberNames: string[] = [];
+            for (const member of gradeGroupMembers) {
+                if (!member.canScore) continue;
+                eligibleCount++;
+                const existing = getMemberSubItemScoreData(member.studentId, subItemId);
+                if (existing && existing.score !== null && existing.score !== undefined) {
+                    scoredMembers.push({
+                        studentId: member.studentId,
+                        studentName: member.studentName,
+                        score: existing.score,
+                        gradedByName: existing.graded_by?.display_name,
+                        gradedAt: existing.graded_at ?? undefined,
+                    });
+                } else {
+                    unscoredMemberNames.push(member.studentName);
+                }
+            }
+            const scoredCount = scoredMembers.length;
+            map.set(subItemId, {
+                subItemId,
+                eligibleCount,
+                scoredMembers,
+                unscoredMemberNames,
+                isFullyLocked: eligibleCount > 0 && scoredCount === eligibleCount,
+                isPartiallyScored: scoredCount > 0 && scoredCount < eligibleCount,
+            });
+        }
+        return map;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isGroupAssignment, selectedGroup?.id, hasSubItems, gradeGroupMembers, scoresData, assignment?.subItems]);
+
     // Get selected grade group member IDs (only those without existing scores)
     const selectedGradeMembers = useMemo(() => {
         return gradeGroupMembers.filter(m => m.selected && m.canScore && !m.hasScore).map(m => m.studentId);
@@ -1536,11 +1593,24 @@ export default function ScoreModal({
                 }
             }
 
+            const skippedAbsentCount = isGroupAssignment && selectedGroup
+                ? selectedGroup.members.filter((m) => !getStudentAttendanceInfo(m.id).canScore).length
+                : 0;
+            const successDescription = (() => {
+                const base = isEnglish
+                    ? `Saved the ${isGroupAssignment ? "group" : "student"} score successfully.`
+                    : `บันทึกคะแนน${isGroupAssignment ? "กลุ่ม" : "นักศึกษา"}เรียบร้อยแล้ว`;
+                if (skippedAbsentCount > 0) {
+                    const suffix = isEnglish
+                        ? ` Skipped ${skippedAbsentCount} absent ${skippedAbsentCount === 1 ? "member" : "members"}.`
+                        : ` ข้าม ${skippedAbsentCount} คนที่ขาดเรียน`;
+                    return base + suffix;
+                }
+                return base;
+            })();
             addToast({
                 title: t("บันทึกคะแนนสำเร็จ", "Score saved"),
-                description: isEnglish
-                    ? `Saved the ${isGroupAssignment ? "group" : "student"} score successfully.`
-                    : `บันทึกคะแนน${isGroupAssignment ? "กลุ่ม" : "นักศึกษา"}เรียบร้อยแล้ว`,
+                description: successDescription,
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -3003,6 +3073,59 @@ export default function ScoreModal({
                                         </div>
                                     )}
 
+                                    {/* All members already have scores warning — sub-items variant */}
+                                    {isGroupAssignment && selectedGroup && !isCheckingScore && allMembersHaveScores && hasSubItems && (
+                                        <div className="mb-4 p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+                                            <div className="flex items-start gap-3">
+                                                <Icon icon="solar:check-circle-bold" className="text-2xl text-emerald-600 shrink-0" />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-emerald-800">{t("กลุ่มนี้ลงคะแนนครบทุกข้อทุกคนแล้ว", "All sub-items are scored for every eligible member")}</p>
+                                                    <p className="text-xs text-emerald-600 mt-1">{t("หากต้องการแก้ไข กรุณาไปที่แท็บ \"แก้ไขคะแนน\"", "If you need to change scores, use the \"Edit score\" tab.")}</p>
+                                                </div>
+                                            </div>
+                                            <div className="mt-3 space-y-2">
+                                                {assignment?.subItems?.filter(item => item.id !== undefined).slice().sort((a, b) => a.id! - b.id!).map((subItem, idx) => {
+                                                    const subItemId = subItem.id!;
+                                                    const status = groupSubItemStatuses.get(subItemId);
+                                                    if (!status) return null;
+                                                    return (
+                                                        <div key={`locked-${subItemId}`} className="bg-white/70 rounded-lg border border-emerald-200 p-2">
+                                                            <div className="flex items-center gap-2 mb-1.5">
+                                                                <span className="w-6 h-6 flex items-center justify-center text-xs font-bold rounded-full bg-emerald-100 text-emerald-700 shrink-0">
+                                                                    {idx + 1}
+                                                                </span>
+                                                                <p className="text-xs font-semibold text-slate-700 flex-1 truncate">{localizeGeneratedSubItemName(subItem.name, idx + 1, isEnglish)}</p>
+                                                                <span className="text-xs text-slate-500">/ {subItem.max_score}</span>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                {status.scoredMembers.map((sm) => (
+                                                                    <div key={`locked-${subItemId}-${sm.studentId}`} className="flex items-center justify-between text-xs px-2 py-1 rounded-md bg-emerald-50">
+                                                                        <span className="text-slate-700 font-medium">{sm.studentName}</span>
+                                                                        <div className="flex items-center gap-2 text-slate-500">
+                                                                            <span className="font-semibold text-emerald-700">{sm.score}</span>
+                                                                            {sm.gradedByName && (
+                                                                                <>
+                                                                                    <span>•</span>
+                                                                                    <span>{sm.gradedByName}</span>
+                                                                                </>
+                                                                            )}
+                                                                            {sm.gradedAt && (
+                                                                                <>
+                                                                                    <span>•</span>
+                                                                                    <span>{formatLocalizedDateTime(sm.gradedAt)}</span>
+                                                                                </>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* All members already have scores warning */}
                                     {isGroupAssignment && selectedGroup && !isCheckingScore && allMembersHaveScores && !hasSubItems && (
                                         <div className="mb-4 p-4 bg-emerald-50 rounded-xl border border-emerald-200">
@@ -3168,93 +3291,168 @@ export default function ScoreModal({
                                                         ) : (
                                                         assignment.subItems?.filter(item => item.id !== undefined).slice().sort((a, b) => a.id! - b.id!).map((subItem, idx) => {
                                                             const subItemId = subItem.id!;
+                                                            const groupStatus = isGroupAssignment
+                                                                ? groupSubItemStatuses.get(subItemId)
+                                                                : undefined;
                                                             const existingSubScore = isGroupAssignment
                                                                 ? null
                                                                 : subItemExistingScores.find(s => s.subItemId === subItemId);
-                                                            const isLocked = existingSubScore && existingSubScore.score !== null;
+                                                            const isIndividualLocked = !isGroupAssignment && !!existingSubScore && existingSubScore.score !== null;
+                                                            const isGroupFullyLocked = !!groupStatus?.isFullyLocked;
+                                                            const isGroupPartiallyScored = !!groupStatus?.isPartiallyScored;
+                                                            const isLocked = isIndividualLocked || isGroupFullyLocked;
 
                                                             return (
                                                                 <div
                                                                     key={subItemId}
-                                                                    className={`flex items-center gap-3 p-3 rounded-lg border ${isLocked
+                                                                    className={`rounded-lg border ${isLocked
                                                                         ? 'bg-amber-50 border-amber-200'
-                                                                        : 'bg-white border-slate-200'
+                                                                        : isGroupPartiallyScored
+                                                                            ? 'bg-orange-50 border-orange-200'
+                                                                            : 'bg-white border-slate-200'
                                                                         }`}
                                                                 >
-                                                                    <span className={`w-8 h-8 flex items-center justify-center text-sm font-bold rounded-full shrink-0 ${isLocked
-                                                                        ? 'bg-amber-100 text-amber-600'
-                                                                        : 'bg-blue-100 text-blue-600'
-                                                                        }`}>
-                                                                        {idx + 1}
-                                                                    </span>
-                                                                    <div className="flex-1 min-w-0">
-                                                                        <p className="text-sm font-medium text-slate-700 truncate">{localizeGeneratedSubItemName(subItem.name, idx + 1, isEnglish)}</p>
-                                                                        {isLocked && existingSubScore?.graded_by && (
-                                                                            <p className="text-xs text-amber-600 mt-0.5">
-                                                                                {t("ลงโดย", "Graded by")} {existingSubScore.graded_by.display_name}
-                                                                            </p>
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="flex items-center gap-2">
-                                                                        {isLocked ? (
-                                                                            <>
-                                                                                <div className="flex items-center gap-1 px-3 py-1.5 bg-amber-100 rounded-lg">
-                                                                                    <Icon icon="solar:lock-bold" className="text-amber-600" />
-                                                                                    <span className="font-bold text-amber-700">{existingSubScore?.score}</span>
-                                                                                </div>
-                                                                                <span className="text-sm text-slate-500">/ {subItem.max_score}</span>
-                                                                            </>
-                                                                        ) : (
-                                                                            <div className="flex flex-col items-end gap-2">
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <Input
-                                                                                        type="text"
-                                                                                        inputMode="decimal"
-                                                                                        pattern={SCORE_INPUT_PATTERN}
-                                                                                        placeholder="0"
-                                                                                        value={subItemScores.find(s => s.subItemId === subItemId)?.score.toString() || ""}
-                                                                                        onValueChange={(value) => handleSubItemScoreChange(subItemId, value)}
-                                                                                        min={0}
-                                                                                        max={subItem.max_score}
-                                                                                        step="0.01"
-                                                                                        className="w-20"
-                                                                                        size="sm"
-                                                                                        variant="bordered"
-                                                                                        classNames={{
-                                                                                            input: "text-center font-semibold",
-                                                                                            inputWrapper: "bg-white border-slate-200",
-                                                                                        }}
-                                                                                    />
+                                                                    <div className="flex items-center gap-3 p-3">
+                                                                        <span className={`w-8 h-8 flex items-center justify-center text-sm font-bold rounded-full shrink-0 ${isLocked
+                                                                            ? 'bg-amber-100 text-amber-600'
+                                                                            : isGroupPartiallyScored
+                                                                                ? 'bg-orange-100 text-orange-600'
+                                                                                : 'bg-blue-100 text-blue-600'
+                                                                            }`}>
+                                                                            {idx + 1}
+                                                                        </span>
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <p className="text-sm font-medium text-slate-700 truncate">{localizeGeneratedSubItemName(subItem.name, idx + 1, isEnglish)}</p>
+                                                                            {isIndividualLocked && existingSubScore?.graded_by && (
+                                                                                <p className="text-xs text-amber-600 mt-0.5">
+                                                                                    {t("ลงโดย", "Graded by")} {existingSubScore.graded_by.display_name}
+                                                                                </p>
+                                                                            )}
+                                                                            {isGroupFullyLocked && groupStatus && (
+                                                                                <p className="text-xs text-amber-600 mt-0.5">
+                                                                                    {t(
+                                                                                        `ลงคะแนนครบทุกคนแล้ว (${groupStatus.scoredMembers.length} คน)`,
+                                                                                        `Fully scored (${groupStatus.scoredMembers.length} members)`,
+                                                                                    )}
+                                                                                </p>
+                                                                            )}
+                                                                            {isGroupPartiallyScored && groupStatus && (
+                                                                                <p className="text-xs text-orange-700 mt-0.5">
+                                                                                    {t(
+                                                                                        `ลงคะแนนแล้ว ${groupStatus.scoredMembers.length}/${groupStatus.eligibleCount} คน — จะบันทึกให้อีก ${groupStatus.unscoredMemberNames.length} คนที่ยังไม่ได้ลง`,
+                                                                                        `Already scored for ${groupStatus.scoredMembers.length}/${groupStatus.eligibleCount} — new score will only apply to the remaining ${groupStatus.unscoredMemberNames.length}`,
+                                                                                    )}
+                                                                                </p>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2">
+                                                                            {isIndividualLocked ? (
+                                                                                <>
+                                                                                    <div className="flex items-center gap-1 px-3 py-1.5 bg-amber-100 rounded-lg">
+                                                                                        <Icon icon="solar:lock-bold" className="text-amber-600" />
+                                                                                        <span className="font-bold text-amber-700">{existingSubScore?.score}</span>
+                                                                                    </div>
                                                                                     <span className="text-sm text-slate-500">/ {subItem.max_score}</span>
+                                                                                </>
+                                                                            ) : isGroupFullyLocked ? (
+                                                                                <>
+                                                                                    <div className="flex items-center gap-1 px-3 py-1.5 bg-amber-100 rounded-lg">
+                                                                                        <Icon icon="solar:lock-bold" className="text-amber-600" />
+                                                                                        <span className="text-xs font-semibold text-amber-700">
+                                                                                            {t("ปิดการแก้ไข", "Locked")}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <span className="text-sm text-slate-500">/ {subItem.max_score}</span>
+                                                                                </>
+                                                                            ) : (
+                                                                                <div className="flex flex-col items-end gap-2">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <Input
+                                                                                            type="text"
+                                                                                            inputMode="decimal"
+                                                                                            pattern={SCORE_INPUT_PATTERN}
+                                                                                            placeholder="0"
+                                                                                            value={subItemScores.find(s => s.subItemId === subItemId)?.score.toString() || ""}
+                                                                                            onValueChange={(value) => handleSubItemScoreChange(subItemId, value)}
+                                                                                            min={0}
+                                                                                            max={subItem.max_score}
+                                                                                            step="0.01"
+                                                                                            className="w-20"
+                                                                                            size="sm"
+                                                                                            variant="bordered"
+                                                                                            classNames={{
+                                                                                                input: "text-center font-semibold",
+                                                                                                inputWrapper: "bg-white border-slate-200",
+                                                                                            }}
+                                                                                        />
+                                                                                        <span className="text-sm text-slate-500">/ {subItem.max_score}</span>
+                                                                                    </div>
+                                                                                    {/* Quick score buttons for sub-item */}
+                                                                                    <div className="flex justify-end gap-1">
+                                                                                        {(() => {
+                                                                                            const max = Number(subItem.max_score);
+                                                                                            const currentScore = subItemScores.find(s => s.subItemId === subItemId)?.score.toString() || "";
+                                                                                            // Always show 3 buttons: 0, half, full
+                                                                                            const half = Number(formatScoreValue(max / 2));
+                                                                                            const options = [0, half, max];
+                                                                                            return options.map(score => (
+                                                                                                <Button
+                                                                                                    key={score}
+                                                                                                    size="sm"
+                                                                                                    variant={currentScore === score.toString() ? "solid" : "flat"}
+                                                                                                    color={currentScore === score.toString() ? "primary" : "default"}
+                                                                                                    className={`min-w-10 h-7 text-xs ${currentScore === score.toString()
+                                                                                                        ? "bg-blue-500 text-white font-semibold"
+                                                                                                        : "bg-slate-100 font-medium"
+                                                                                                        }`}
+                                                                                                    onPress={() => handleSubItemScoreChange(subItemId, score.toString())}
+                                                                                                >
+                                                                                                    {Number.isInteger(score) ? score : score.toFixed(1)}
+                                                                                                </Button>
+                                                                                            ));
+                                                                                        })()}
+                                                                                    </div>
                                                                                 </div>
-                                                                                {/* Quick score buttons for sub-item */}
-                                                                                <div className="flex justify-end gap-1">
-                                                                                    {(() => {
-                                                                                        const max = Number(subItem.max_score);
-                                                                                        const currentScore = subItemScores.find(s => s.subItemId === subItemId)?.score.toString() || "";
-                                                                                        // Always show 3 buttons: 0, half, full
-                                                                                        const half = Number(formatScoreValue(max / 2));
-                                                                                        const options = [0, half, max];
-                                                                                        return options.map(score => (
-                                                                                            <Button
-                                                                                                key={score}
-                                                                                                size="sm"
-                                                                                                variant={currentScore === score.toString() ? "solid" : "flat"}
-                                                                                                color={currentScore === score.toString() ? "primary" : "default"}
-                                                                                                className={`min-w-10 h-7 text-xs ${currentScore === score.toString()
-                                                                                                    ? "bg-blue-500 text-white font-semibold"
-                                                                                                    : "bg-slate-100 font-medium"
-                                                                                                    }`}
-                                                                                                onPress={() => handleSubItemScoreChange(subItemId, score.toString())}
-                                                                                            >
-                                                                                                {Number.isInteger(score) ? score : score.toFixed(1)}
-                                                                                            </Button>
-                                                                                        ));
-                                                                                    })()}
-                                                                                </div>
-                                                                            </div>
-                                                                        )}
+                                                                            )}
+                                                                        </div>
                                                                     </div>
+                                                                    {/* Group scored-members detail (for locked or partially-scored sub-items) */}
+                                                                    {isGroupAssignment && groupStatus && groupStatus.scoredMembers.length > 0 && (
+                                                                        <div className={`px-3 pb-3 border-t ${isGroupFullyLocked ? 'border-amber-200' : 'border-orange-200'}`}>
+                                                                            <p className={`text-xs font-medium mt-2 mb-1.5 ${isGroupFullyLocked ? 'text-amber-700' : 'text-orange-700'}`}>
+                                                                                {t("รายละเอียดการลงคะแนน", "Score details")}:
+                                                                            </p>
+                                                                            <div className="space-y-1">
+                                                                                {groupStatus.scoredMembers.map((sm) => (
+                                                                                    <div key={`gs-${subItemId}-${sm.studentId}`} className="flex items-center justify-between text-xs bg-white/70 rounded-md px-2 py-1.5">
+                                                                                        <span className="text-slate-700 font-medium">{sm.studentName}</span>
+                                                                                        <div className="flex items-center gap-2 text-slate-500">
+                                                                                            <span className={`font-semibold ${isGroupFullyLocked ? 'text-amber-700' : 'text-orange-700'}`}>
+                                                                                                {sm.score} / {subItem.max_score}
+                                                                                            </span>
+                                                                                            {sm.gradedByName && (
+                                                                                                <>
+                                                                                                    <span>•</span>
+                                                                                                    <span>{sm.gradedByName}</span>
+                                                                                                </>
+                                                                                            )}
+                                                                                            {sm.gradedAt && (
+                                                                                                <>
+                                                                                                    <span>•</span>
+                                                                                                    <span>{formatLocalizedDateTime(sm.gradedAt)}</span>
+                                                                                                </>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                            {isGroupFullyLocked && (
+                                                                                <p className="text-xs text-amber-600 mt-2">
+                                                                                    {t("หากต้องการแก้ไข กรุณาไปที่แท็บ \"แก้ไขคะแนน\"", "To change scores, use the \"Edit score\" tab.")}
+                                                                                </p>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             );
                                                         }))}
