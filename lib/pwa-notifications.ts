@@ -47,6 +47,7 @@ export function triggerNotificationVibration(pattern: readonly number[] = DEFAUL
 }
 
 let _notificationAudio: HTMLAudioElement | null = null;
+let _workerNotificationAudio: HTMLAudioElement | null = null;
 
 export function playNotificationSound(): void {
   if (typeof window === "undefined") return;
@@ -56,6 +57,24 @@ export function playNotificationSound(): void {
     }
     _notificationAudio.currentTime = 0;
     _notificationAudio.play().catch(() => {
+      // Autoplay may be blocked before user interaction; silently ignore
+    });
+  } catch {
+    // Silently ignore audio errors
+  }
+}
+
+// Distinct chime for the worker (TA) intake screen so a TA hearing the room
+// speakers doesn't confuse their own incoming task with the projector's queue
+// tone.
+export function playWorkerNotificationSound(): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (!_workerNotificationAudio) {
+      _workerNotificationAudio = new Audio("/notification_woker.mp3");
+    }
+    _workerNotificationAudio.currentTime = 0;
+    _workerNotificationAudio.play().catch(() => {
       // Autoplay may be blocked before user interaction; silently ignore
     });
   } catch {

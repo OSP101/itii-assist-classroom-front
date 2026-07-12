@@ -37,7 +37,7 @@ import PushSetupBanner from "@/components/notifications/PushSetupBanner";
 import IosInstallPromptModal from "@/components/notifications/IosInstallPromptModal";
 import {
     triggerNotificationVibration,
-    playNotificationSound,
+    playWorkerNotificationSound,
     requiresHomeScreenInstallForPush,
 } from "@/lib/pwa-notifications";
 import { API_BASE_URL } from "@/config/api";
@@ -683,7 +683,7 @@ export default function WorkerDashboardPage() {
                 setCurrentBooking(result.currentBooking);
                 skipPollingRef.current = true;
                 if (isNewBooking) {
-                    playNotificationSound();
+                    playWorkerNotificationSound();
                     addToast({
                         title: t("มีงานใหม่!", "New task assigned"),
                         description: result.currentBooking.status === "waiting"
@@ -742,7 +742,7 @@ export default function WorkerDashboardPage() {
             // iOS Safari doesn't implement the Vibration API at all, so iOS
             // workers only feel a buzz via the OS-level Web Push notification).
             triggerNotificationVibration();
-            playNotificationSound();
+            playWorkerNotificationSound();
             addToast({
                 title: t("มีงานใหม่!", "New task assigned"),
                 description: data.booking.status === "waiting"

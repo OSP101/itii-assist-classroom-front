@@ -9,7 +9,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { getNotificationHeadline, getNotificationMessage } from "@/lib/notification-display";
 import { useSocket } from "@/contexts/SocketContext";
 import userNotificationService, { UserNotificationItem } from "@/services/user-notification.service";
-import { playNotificationSound, showBrowserNotification, triggerNotificationVibration } from "@/lib/pwa-notifications";
+import { playWorkerNotificationSound, showBrowserNotification, triggerNotificationVibration } from "@/lib/pwa-notifications";
 
 // Helper to get access token from localStorage
 const getAccessToken = (): string | null => {
@@ -95,7 +95,7 @@ const notifyDevice = async ({
     // For high-urgency worker events (new-task) also play the chime while the
     // tab is foreground — vibration alone is easy to miss on desktop and iPad.
     if (type === "new-task") {
-        playNotificationSound();
+        playWorkerNotificationSound();
     }
 
     if (typeof document !== "undefined" && document.visibilityState === "visible") {
