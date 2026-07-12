@@ -42,70 +42,63 @@ async function fetchVapidPublicKey(): Promise<string | null> {
 // Ensures this browser has an active Web Push subscription (standard Push API
 // + VAPID, no external push provider account needed) and returns it as JSON.
 // Re-subscribes automatically if a stale subscription with a different key exists.
-export async function ensurePushSubscription(): Promise<PushSubscriptionJSON | null> {
+// Throws with a user-facing Thai message when subscription cannot be created —
+// callers surface that message in the retry banner so a TA can see the actual
+// failure instead of a generic "not registered" state.
+export async function ensurePushSubscription(): Promise<PushSubscriptionJSON> {
     if (!isWebPushSupported()) {
-        return null;
+        throw new Error("เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือนแบบพุช");
     }
 
-    try {
-        const publicKey = await fetchVapidPublicKey();
-        if (!publicKey) {
-            // Backend has no VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY configured (or the
-            // /api/push/vapid-public-key endpoint is unreachable). No subscription
-            // can ever be created until this is fixed server-side.
-            addToast({
-                title: "เปิดใช้งานการแจ้งเตือนไม่สำเร็จ",
-                description: "เซิร์ฟเวอร์ยังไม่ได้ตั้งค่าการแจ้งเตือนแบบพุช กรุณาติดต่อผู้ดูแลระบบ",
-                color: "danger",
-                timeout: 5000,
-                shouldShowTimeoutProgress: true,
-            });
-            return null;
-        }
+    const publicKey = await fetchVapidPublicKey();
+    if (!publicKey) {
+        // Backend has no VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY configured (or the
+        // /api/push/vapid-public-key endpoint is unreachable).
+        throw new Error("เซิร์ฟเวอร์ยังไม่ได้ตั้งค่า VAPID key — โปรดติดต่อผู้ดูแลระบบ");
+    }
 
-        const registration = await registerPwaServiceWorker();
-        if (!registration) {
-            addToast({
-                title: "เปิดใช้งานการแจ้งเตือนไม่สำเร็จ",
-                description: "ไม่สามารถลงทะเบียน Service Worker ได้ กรุณาตรวจสอบว่าเปิดผ่าน HTTPS",
-                color: "danger",
-                timeout: 5000,
-                shouldShowTimeoutProgress: true,
-            });
-            return null;
-        }
+    const registration = await registerPwaServiceWorker();
+    if (!registration) {
+        throw new Error("ลงทะเบียน Service Worker ไม่สำเร็จ (ต้องเปิดผ่าน HTTPS)");
+    }
 
-        let subscription = await registration.pushManager.getSubscription();
-        const nextKey = bufferToBase64(urlBase64ToUint8Array(publicKey).buffer as ArrayBuffer);
-        if (subscription) {
-            const currentKey = subscription.options.applicationServerKey
-                ? bufferToBase64(subscription.options.applicationServerKey as ArrayBuffer)
-                : null;
-            if (currentKey !== nextKey) {
-                await subscription.unsubscribe();
-                subscription = null;
-            }
+    // iOS Safari fires `pushManager.subscribe` errors when the service worker
+    // is registered but has not fully activated yet. Waiting for the ready
+    // promise turns that intermittent silent failure into a deterministic
+    // success across launches from the home-screen icon.
+    if (navigator.serviceWorker?.ready) {
+        try {
+            await navigator.serviceWorker.ready;
+        } catch {
+            // no-op — subscribe will still be attempted below
         }
+    }
 
-        if (!subscription) {
+    let subscription = await registration.pushManager.getSubscription();
+    const nextKey = bufferToBase64(urlBase64ToUint8Array(publicKey).buffer as ArrayBuffer);
+    if (subscription) {
+        const currentKey = subscription.options.applicationServerKey
+            ? bufferToBase64(subscription.options.applicationServerKey as ArrayBuffer)
+            : null;
+        if (currentKey !== nextKey) {
+            await subscription.unsubscribe();
+            subscription = null;
+        }
+    }
+
+    if (!subscription) {
+        try {
             subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
             });
+        } catch (error) {
+            const detail = error instanceof Error ? error.message : String(error);
+            throw new Error(`เบราว์เซอร์ปฏิเสธการสมัครรับพุช: ${detail}`);
         }
-
-        return subscription.toJSON();
-    } catch (error) {
-        console.error("Failed to create web push subscription:", error);
-        addToast({
-            title: "เปิดใช้งานการแจ้งเตือนไม่สำเร็จ",
-            description: error instanceof Error ? error.message : "เบราว์เซอร์ปฏิเสธการสมัครรับการแจ้งเตือนแบบพุช",
-            color: "danger",
-            timeout: 5000,
-            shouldShowTimeoutProgress: true,
-        });
-        return null;
     }
+
+    return subscription.toJSON();
 }
 
 interface RegisterPushOptions {
@@ -113,17 +106,30 @@ interface RegisterPushOptions {
     studentId?: string;
 }
 
+export interface RegisterPushResult {
+    success: boolean;
+    error?: string;
+}
+
 // Registers (or re-registers) this device's Web Push subscription with the
-// backend. Public endpoint — mirrors the previous FCM registration contract
-// (user_type/target_id/student_id) but carries a standard Push subscription.
+// backend. Returns a detailed result so callers can show WHY it failed —
+// otherwise iOS users see a permanent "not registered" banner with no clue.
 export async function registerPushSubscription(
     userType: "worker" | "student",
     targetId?: number | string,
     options: RegisterPushOptions = {},
-): Promise<boolean> {
-    const subscription = await ensurePushSubscription();
+): Promise<RegisterPushResult> {
+    let subscription: PushSubscriptionJSON;
+    try {
+        subscription = await ensurePushSubscription();
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error("Failed to create web push subscription:", error);
+        return { success: false, error: message };
+    }
+
     if (!subscription?.endpoint || !subscription.keys?.p256dh || !subscription.keys?.auth) {
-        return false;
+        return { success: false, error: "ข้อมูล subscription ที่ได้จากเบราว์เซอร์ไม่ครบ" };
     }
 
     try {
@@ -144,11 +150,18 @@ export async function registerPushSubscription(
                 },
             }),
         });
+        if (!response.ok) {
+            return { success: false, error: `เซิร์ฟเวอร์ตอบ ${response.status}` };
+        }
         const result = await response.json();
-        return !!result.success;
+        if (!result?.success) {
+            return { success: false, error: result?.error?.message || "เซิร์ฟเวอร์บันทึกไม่สำเร็จ" };
+        }
+        return { success: true };
     } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
         console.error("Failed to register push subscription:", error);
-        return false;
+        return { success: false, error: `เชื่อมต่อ /push/register ไม่ได้: ${message}` };
     }
 }
 

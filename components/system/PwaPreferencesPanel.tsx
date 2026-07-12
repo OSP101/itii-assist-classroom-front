@@ -144,7 +144,7 @@ export function PwaPreferencesPanel() {
       const user = authService.getStoredUser();
       let linkedToAccount = false;
       if (user) {
-        linkedToAccount = await registerPushToken(user.role === "student" ? "student" : "worker");
+        linkedToAccount = (await registerPushToken(user.role === "student" ? "student" : "worker")).success;
       }
 
       triggerNotificationVibration();

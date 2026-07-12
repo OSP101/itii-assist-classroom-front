@@ -32,7 +32,7 @@ interface NotificationContextType {
 
     // Actions
     requestPermission: () => Promise<{ granted: boolean }>;
-    registerPushToken: (userType: "worker" | "student", targetId?: number | string) => Promise<boolean>;
+    registerPushToken: (userType: "worker" | "student", targetId?: number | string) => Promise<{ success: boolean; error?: string }>;
     unregisterPushToken: () => Promise<boolean>;
 
     // Navbar notification inbox (DB-backed)
@@ -194,21 +194,21 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     const registerPushToken = useCallback(async (
         userType: "worker" | "student",
         targetId?: number | string,
-    ): Promise<boolean> => {
+    ): Promise<{ success: boolean; error?: string }> => {
         const user = authService.getStoredUser();
         const accessToken = getAccessToken();
         if (!accessToken || !user?.id) {
-            return false;
+            return { success: false, error: "ต้องเข้าสู่ระบบก่อนถึงจะลงทะเบียนอุปกรณ์ได้" };
         }
 
-        const success = await registerPushSubscription(userType, targetId, {
+        const result = await registerPushSubscription(userType, targetId, {
             userId: user.id,
             studentId: user.student_id,
         });
-        if (success) {
+        if (result.success) {
             setPushSubscribed(true);
         }
-        return success;
+        return result;
     }, []);
 
     const unregisterPushToken = useCallback(async (): Promise<boolean> => {

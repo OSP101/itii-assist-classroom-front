@@ -1423,6 +1423,7 @@ export const messages = {
     pushIosStep3Title: "3. กด \"เพิ่ม\" แล้วเปิดจากไอคอน",
     pushIosStep3Description: "หลังจากนั้นเปิดเว็บจากไอคอนบนหน้าจอโฮม จึงจะขอสิทธิ์แจ้งเตือนได้",
     pushIosNoteIos164: "ต้องเป็น iOS 16.4 ขึ้นไปเท่านั้น หากเป็นเวอร์ชั่นเก่ากว่านี้ Safari จะยังไม่รองรับการแจ้งเตือนพื้นหลัง",
+    pushSubscribeFailedTitle: "ลงทะเบียนอุปกรณ์ไม่สำเร็จ",
   },
   en: {
     hello: "Hello",
@@ -2844,6 +2845,7 @@ export const messages = {
     pushIosStep3Title: "3. Confirm and open from the icon",
     pushIosStep3Description: "After adding, launch the app from its home-screen icon — only then can it request notification permission.",
     pushIosNoteIos164: "Requires iOS 16.4 or later. Older versions of Safari cannot show background push notifications.",
+    pushSubscribeFailedTitle: "Device registration failed",
   },
 } as const;
 

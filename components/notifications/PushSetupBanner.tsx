@@ -64,22 +64,38 @@ export default function PushSetupBanner({ sessionId }: PushSetupBannerProps) {
     try {
       const { granted } = await requestPermission();
       if (granted) {
-        await registerPushToken("worker", sessionId);
+        const result = await registerPushToken("worker", sessionId);
+        if (!result.success && result.error) {
+          addToast({
+            title: t("pushSubscribeFailedTitle"),
+            description: result.error,
+            color: "danger",
+            timeout: 6000,
+          });
+        }
       }
     } finally {
       setBusy(false);
     }
-  }, [busy, registerPushToken, requestPermission, sessionId]);
+  }, [busy, registerPushToken, requestPermission, sessionId, t]);
 
   const handleRetrySubscribe = useCallback(async () => {
     if (busy) return;
     setBusy(true);
     try {
-      await registerPushToken("worker", sessionId);
+      const result = await registerPushToken("worker", sessionId);
+      if (!result.success && result.error) {
+        addToast({
+          title: t("pushSubscribeFailedTitle"),
+          description: result.error,
+          color: "danger",
+          timeout: 6000,
+        });
+      }
     } finally {
       setBusy(false);
     }
-  }, [busy, registerPushToken, sessionId]);
+  }, [busy, registerPushToken, sessionId, t]);
 
   const handleTest = useCallback(async () => {
     if (testCooldown) return;
