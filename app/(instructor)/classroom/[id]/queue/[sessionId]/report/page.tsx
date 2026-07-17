@@ -218,26 +218,69 @@ function getDeskVisualState(desk: DeskWithStatus): DeskVisualState {
     return "idle";
 }
 
-function WorkerDeskMap({
+// Room geometry, matching the classroom layout editor and the projector view:
+// desk.x / desk.y are the desk's TOP-LEFT corner in room pixels (2000x1500 canvas,
+// 20px grid). Drawing desks at their real footprint inside a room-coordinate
+// viewBox is what keeps them from overlapping — position and size then scale
+// together, which a fixed-size glyph in a fixed viewBox can never do.
+const ROOM_DESK_SIZE = 60;
+const ROOM_TEACHER_WIDTH = 120;
+const ROOM_TEACHER_HEIGHT = 50;
+const ROOM_MARGIN = 60;
+
+const DESK_STATE_PAINT: Record<DeskVisualState, { fill: string; stroke: string; text: string }> = {
+    grading_in_progress: { fill: "#3b82f6", stroke: "#1d4ed8", text: "#ffffff" },
+    grading_waiting: { fill: "#bfdbfe", stroke: "#3b82f6", text: "#1e3a8a" },
+    help_in_progress: { fill: "#f59e0b", stroke: "#b45309", text: "#ffffff" },
+    help_waiting: { fill: "#fde68a", stroke: "#d97706", text: "#78350f" },
+    completed: { fill: "#6ee7b7", stroke: "#059669", text: "#064e3b" },
+    idle: { fill: "#e2e8f0", stroke: "#cbd5e1", text: "#64748b" },
+};
+
+type PlacedDesk = { desk: DeskWithStatus; x: number; y: number; w: number; h: number };
+
+function deskFootprint(desk: DeskWithStatus) {
+    return desk.type === "teacher"
+        ? { w: ROOM_TEACHER_WIDTH, h: ROOM_TEACHER_HEIGHT }
+        : { w: ROOM_DESK_SIZE, h: ROOM_DESK_SIZE };
+}
+
+// Rooms that were never arranged in the layout editor have every desk at the
+// column default (0,0), which would render as one blob. Fall back to a grid so
+// the map still says something useful.
+function placeDesks(desks: DeskWithStatus[]): PlacedDesk[] {
+    const placed = desks.map((desk) => ({
+        desk,
+        x: desk.x as number,
+        y: desk.y as number,
+        ...deskFootprint(desk),
+    }));
+    const isArranged = placed.some((item) => item.x !== placed[0].x || item.y !== placed[0].y);
+    if (isArranged) return placed;
+
+    const columns = Math.max(1, Math.ceil(Math.sqrt(placed.length)));
+    const step = ROOM_DESK_SIZE + 30;
+    return placed.map((item, index) => ({
+        ...item,
+        x: (index % columns) * step,
+        y: Math.floor(index / columns) * step,
+    }));
+}
+
+function RoomMap({
     desks,
-    highlightedDeskNumbers,
-    currentDeskNumbers,
     isEnglish,
-    mode,
-    trailStops,
-    showTrail,
-    highContrast,
-    hideIdleDesks,
+    currentDeskNumbers = [],
+    visitedDeskNumbers = [],
+    trailStops = [],
+    emptyLabel,
 }: {
     desks: DeskWithStatus[];
-    highlightedDeskNumbers: number[];
-    currentDeskNumbers: number[];
     isEnglish: boolean;
-    mode: "focused" | "full";
-    trailStops: WorkerTrailStop[];
-    showTrail: boolean;
-    highContrast: boolean;
-    hideIdleDesks: boolean;
+    currentDeskNumbers?: number[];
+    visitedDeskNumbers?: number[];
+    trailStops?: WorkerTrailStop[];
+    emptyLabel?: string;
 }) {
     const positionedDesks = desks.filter(
         (desk) =>
@@ -247,223 +290,147 @@ function WorkerDeskMap({
     );
 
     if (positionedDesks.length === 0) {
-        return null;
+        return (
+            <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-default-300 text-sm text-default-500">
+                {emptyLabel ?? (isEnglish ? "This room has no desk layout yet." : "ห้องนี้ยังไม่ได้จัดผังโต๊ะ")}
+            </div>
+        );
     }
 
+    const placed = placeDesks(positionedDesks);
+    const minX = Math.min(...placed.map((item) => item.x));
+    const minY = Math.min(...placed.map((item) => item.y));
+    const maxX = Math.max(...placed.map((item) => item.x + item.w));
+    const maxY = Math.max(...placed.map((item) => item.y + item.h));
+    const viewW = maxX - minX + ROOM_MARGIN * 2;
+    const viewH = maxY - minY + ROOM_MARGIN * 2;
+
     const currentSet = new Set(currentDeskNumbers.map(String));
-    const visitedSet = new Set(highlightedDeskNumbers.map(String));
-    const visibleBaseDesks = hideIdleDesks
-        ? positionedDesks.filter((desk) => desk.type === "teacher" || getDeskVisualState(desk) !== "idle")
-        : positionedDesks;
-    const focusedDesks = visibleBaseDesks.filter((desk) => {
-        if (desk.type === "teacher") return true;
-        const deskKey = String(desk.number);
-        return currentSet.has(deskKey) || visitedSet.has(deskKey);
-    });
-    const visibleDesks = mode === "focused" && focusedDesks.length > 1 ? focusedDesks : visibleBaseDesks;
+    const visitedSet = new Set(visitedDeskNumbers.map(String));
     const trailStopMap = new Map(trailStops.map((stop) => [String(stop.deskNumber), stop]));
-    const trailDeskSet = new Set(trailStops.map((stop) => String(stop.deskNumber)));
 
-    const xs = visibleDesks.map((desk) => desk.x as number);
-    const ys = visibleDesks.map((desk) => desk.y as number);
-    const minX = Math.min(...xs);
-    const minY = Math.min(...ys);
-    const width = 360;
-    const height = 240;
-    const pad = 34;
-    const rawWidth = Math.max(...xs) - minX;
-    const rawHeight = Math.max(...ys) - minY;
-    const scale = Math.min(
-        rawWidth > 0 ? (width - pad * 2) / rawWidth : 1,
-        rawHeight > 0 ? (height - pad * 2) / rawHeight : 1,
+    const centerOf = (item: PlacedDesk) => ({ x: item.x + item.w / 2, y: item.y + item.h / 2 });
+    const centerByNumber = new Map(
+        placed
+            .filter((item) => item.desk.type !== "teacher")
+            .map((item) => [Number(item.desk.number), centerOf(item)]),
     );
-    const drawnWidth = rawWidth * scale;
-    const drawnHeight = rawHeight * scale;
-    const offsetX = pad + Math.max(0, (width - pad * 2 - drawnWidth) / 2);
-    const offsetY = pad + Math.max(0, (height - pad * 2 - drawnHeight) / 2);
-
-    const cx = (desk: DeskWithStatus) => offsetX + ((desk.x as number) - minX) * scale;
-    const cy = (desk: DeskWithStatus) => offsetY + ((desk.y as number) - minY) * scale;
     const trailPoints = trailStops
         .map((stop) => {
-            const desk = visibleDesks.find((item) => item.type !== "teacher" && Number(item.number) === stop.deskNumber);
-            if (!desk) return null;
-
-            const tooltip = isEnglish
-                ? [
-                    `Time: ${stop.label}`,
-                    `Desk: ${stop.deskNumber} | Queue: ${stop.queueNumber}`,
-                    `Student: ${stop.studentName} (${stop.studentId})`,
-                    `Type: ${stop.typeLabel} | Status: ${stop.statusLabel}`,
-                    `Offer: ${stop.offerResponseLabel} | Service: ${stop.serviceDurationLabel}`,
-                ].join("\n")
-                : [
-                    `เวลา: ${stop.label}`,
-                    `โต๊ะ: ${stop.deskNumber} | คิว: ${stop.queueNumber}`,
-                    `ผู้จอง: ${stop.studentName} (${stop.studentId})`,
-                    `ประเภท: ${stop.typeLabel} | สถานะ: ${stop.statusLabel}`,
-                    `ตอบรับ: ${stop.offerResponseLabel} | เวลาตรวจ: ${stop.serviceDurationLabel}`,
-                ].join("\n");
-
-            return {
-                number: Number(desk.number),
-                x: cx(desk),
-                y: cy(desk),
-                label: stop.label,
-                tooltip,
-            };
+            const center = centerByNumber.get(stop.deskNumber);
+            return center ? { ...center, stop } : null;
         })
-        .filter((point): point is { number: number; x: number; y: number; label: string; tooltip: string } => Boolean(point));
+        .filter((point): point is { x: number; y: number; stop: WorkerTrailStop } => Boolean(point));
 
-    const mapColors = highContrast
-        ? {
-            teacherFill: "#166534",
-            teacherText: "#052e16",
-            currentFill: "#f97316",
-            currentStroke: "#7c2d12",
-            visitedFill: "#22d3ee",
-            visitedStroke: "#155e75",
-            idleFill: "#d1d5db",
-            idleStroke: "#4b5563",
-            currentText: "#111827",
-            visitedText: "#042f2e",
-            idleText: "#111827",
-            trail: "#0f172a",
-            trailMarker: "#111827",
-            trailMarkerText: "#ffffff",
-        }
-        : {
-            teacherFill: "#059669",
-            teacherText: "#166534",
-            currentFill: "#f59e0b",
-            currentStroke: "#b45309",
-            visitedFill: "#dbeafe",
-            visitedStroke: "#3b82f6",
-            idleFill: "#e2e8f0",
-            idleStroke: "#94a3b8",
-            currentText: "#ffffff",
-            visitedText: "#1d4ed8",
-            idleText: "#64748b",
-            trail: "#475569",
-            trailMarker: "#334155",
-            trailMarkerText: "#ffffff",
-        };
+    const labelSize = ROOM_DESK_SIZE * 0.4;
 
     return (
-        <div className="rounded-2xl border border-default-200 bg-linear-to-b from-content2/50 to-content1 p-4 sm:p-6">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <p className="text-xs font-medium uppercase tracking-wide text-default-500">
-                    {isEnglish ? "Room Layout" : "ผังโต๊ะในห้อง"}
-                </p>
-                <p className="text-xs text-default-500">
-                    {mode === "focused"
-                        ? (isEnglish ? "Focused desks only" : "แสดงเฉพาะโต๊ะที่เกี่ยวข้อง")
-                        : (isEnglish ? "Approximate real positions" : "ตำแหน่งโดยประมาณตามห้องจริง")}
-                </p>
-            </div>
-            <svg viewBox={`0 0 ${width} ${height}`} className="w-full rounded-xl bg-white/70 p-2 dark:bg-black/10">
-                {showTrail && trailPoints.length > 1 ? (
-                    <g>
-                        <polyline
-                            points={trailPoints.map((point) => `${point.x},${point.y}`).join(" ")}
-                            fill="none"
-                            stroke={mapColors.trail}
-                            strokeWidth={1.5}
-                            strokeDasharray="4 3"
-                            opacity={0.7}
-                        />
-                        {trailPoints.map((point, index) => (
-                            <g key={`trail-${point.number}-${index}`}>
-                                <rect
-                                    x={point.x - 30}
-                                    y={point.y - 14.8}
-                                    width={28}
-                                    height={9}
-                                    rx={4}
-                                    fill={mapColors.trailMarker}
-                                    opacity={0.95}
-                                />
-                                <title>{point.tooltip}</title>
-                                <text
-                                    x={point.x - 16}
-                                    y={point.y - 8.9}
-                                    textAnchor="middle"
-                                    fontSize="4.6"
-                                    fontWeight={700}
-                                    fill={mapColors.trailMarkerText}
-                                >
-                                    {point.label}
-                                </text>
-                            </g>
-                        ))}
-                    </g>
-                ) : null}
-                {visibleDesks.map((desk) => {
-                    const x = cx(desk);
-                    const y = cy(desk);
-                    const deskKey = String(desk.number);
-                    const isCurrent = currentSet.has(deskKey);
-                    const isVisited = visitedSet.has(deskKey);
+        <svg
+            viewBox={`${minX - ROOM_MARGIN} ${minY - ROOM_MARGIN} ${viewW} ${viewH}`}
+            className="h-auto w-full rounded-xl bg-white/70 dark:bg-black/20"
+            role="img"
+            aria-label={isEnglish ? "Room desk layout" : "ผังโต๊ะในห้อง"}
+        >
+            {trailPoints.length > 1 ? (
+                <polyline
+                    points={trailPoints.map((point) => `${point.x},${point.y}`).join(" ")}
+                    fill="none"
+                    stroke="#475569"
+                    strokeWidth={3}
+                    strokeDasharray="10 7"
+                    opacity={0.65}
+                />
+            ) : null}
 
-                    if (desk.type === "teacher") {
-                        return (
-                            <g key={`teacher-${desk.id}`}>
-                                <rect x={x - 24} y={y - 8} width={48} height={16} rx={6} fill={mapColors.teacherFill} opacity={0.9} />
-                                <text x={x} y={y - 14} textAnchor="middle" fontSize="8" fill={mapColors.teacherText} fontWeight={700}>
-                                    {isEnglish ? "Teacher" : "อาจารย์"}
-                                </text>
-                            </g>
-                        );
-                    }
+            {placed.map((item) => {
+                const { desk, x, y, w, h } = item;
 
-                    const fill = isCurrent ? mapColors.currentFill : isVisited ? mapColors.visitedFill : mapColors.idleFill;
-                    const stroke = isCurrent ? mapColors.currentStroke : isVisited ? mapColors.visitedStroke : mapColors.idleStroke;
-                    const textColor = isCurrent ? mapColors.currentText : isVisited ? mapColors.visitedText : mapColors.idleText;
-                    const isOnTrail = trailDeskSet.has(deskKey);
-                    const trailStop = trailStopMap.get(deskKey);
-                    const deskTooltip = trailStop
-                        ? (isEnglish
-                            ? [
-                                `Desk ${desk.number} | ${trailStop.label}`,
-                                `Queue ${trailStop.queueNumber} | ${trailStop.studentName} (${trailStop.studentId})`,
-                                `${trailStop.typeLabel} | ${trailStop.statusLabel}`,
-                                `Offer ${trailStop.offerResponseLabel} | Service ${trailStop.serviceDurationLabel}`,
-                            ].join("\n")
-                            : [
-                                `โต๊ะ ${desk.number} | ${trailStop.label}`,
-                                `คิว ${trailStop.queueNumber} | ${trailStop.studentName} (${trailStop.studentId})`,
-                                `${trailStop.typeLabel} | ${trailStop.statusLabel}`,
-                                `ตอบรับ ${trailStop.offerResponseLabel} | เวลาตรวจ ${trailStop.serviceDurationLabel}`,
-                            ].join("\n"))
-                        : (isEnglish ? `Desk ${desk.number}` : `โต๊ะ ${desk.number}`);
-
+                if (desk.type === "teacher") {
                     return (
-                        <g key={`desk-${desk.id}`}>
-                            <title>{deskTooltip}</title>
-                            {isCurrent ? <circle cx={x} cy={y} r={16} fill="none" stroke={mapColors.currentFill} strokeWidth="2" opacity="0.45" /> : null}
-                            <circle cx={x} cy={y} r={11} fill={fill} stroke={stroke} strokeWidth={isCurrent || isVisited ? 1.6 : 1.1} />
-                            {isVisited && !isCurrent ? <circle cx={x + 8.5} cy={y - 8.5} r={2.2} fill={mapColors.visitedStroke} /> : null}
-                            {isOnTrail ? <circle cx={x - 8.6} cy={y + 8.6} r={2} fill={mapColors.trailMarker} /> : null}
+                        <g key={`teacher-${desk.id}`}>
+                            <title>{isEnglish ? "Teacher desk" : "โต๊ะอาจารย์"}</title>
+                            <rect x={x} y={y} width={w} height={h} rx={10} fill="#059669" opacity={0.9} />
                             <text
-                                x={x}
-                                y={y + 3.1}
+                                x={x + w / 2}
+                                y={y + h / 2 + labelSize * 0.35}
                                 textAnchor="middle"
-                                fontSize="8"
-                                fontWeight={isCurrent || isVisited ? 700 : 600}
-                                fill={textColor}
+                                fontSize={labelSize * 0.85}
+                                fontWeight={700}
+                                fill="#ffffff"
                             >
-                                {desk.number}
+                                {isEnglish ? "Teacher" : "อาจารย์"}
                             </text>
-                            {isCurrent ? (
-                                <text x={x} y={y + 18.5} textAnchor="middle" fontSize="6.8" fill={mapColors.currentStroke} fontWeight={700}>
-                                    {isEnglish ? "NOW" : "ตอนนี้"}
-                                </text>
-                            ) : null}
                         </g>
                     );
-                })}
-            </svg>
-        </div>
+                }
+
+                const deskKey = String(desk.number);
+                const isCurrent = currentSet.has(deskKey);
+                const isVisited = visitedSet.has(deskKey);
+                const paint = DESK_STATE_PAINT[getDeskVisualState(desk)];
+                const trailStop = trailStopMap.get(deskKey);
+                const tooltip = trailStop
+                    ? (isEnglish
+                        ? `Desk ${desk.number} | ${trailStop.label}\nQueue ${trailStop.queueNumber} | ${trailStop.studentName} (${trailStop.studentId})\n${trailStop.typeLabel} | ${trailStop.statusLabel}\nOffer ${trailStop.offerResponseLabel} | Service ${trailStop.serviceDurationLabel}`
+                        : `โต๊ะ ${desk.number} | ${trailStop.label}\nคิว ${trailStop.queueNumber} | ${trailStop.studentName} (${trailStop.studentId})\n${trailStop.typeLabel} | ${trailStop.statusLabel}\nตอบรับ ${trailStop.offerResponseLabel} | เวลาตรวจ ${trailStop.serviceDurationLabel}`)
+                    : (isEnglish ? `Desk ${desk.number}` : `โต๊ะ ${desk.number}`);
+
+                return (
+                    <g key={`desk-${desk.id}`}>
+                        <title>{tooltip}</title>
+                        {isCurrent ? (
+                            <rect
+                                x={x - 7}
+                                y={y - 7}
+                                width={w + 14}
+                                height={h + 14}
+                                rx={14}
+                                fill="none"
+                                stroke="#f97316"
+                                strokeWidth={4}
+                            />
+                        ) : null}
+                        <rect
+                            x={x}
+                            y={y}
+                            width={w}
+                            height={h}
+                            rx={10}
+                            fill={paint.fill}
+                            stroke={isVisited ? "#3b82f6" : paint.stroke}
+                            strokeWidth={isVisited ? 3 : 1.5}
+                        />
+                        <text
+                            x={x + w / 2}
+                            y={y + h / 2 + labelSize * 0.35}
+                            textAnchor="middle"
+                            fontSize={labelSize}
+                            fontWeight={700}
+                            fill={paint.text}
+                        >
+                            {desk.number}
+                        </text>
+                    </g>
+                );
+            })}
+
+            {trailPoints.map((point, index) => (
+                <g key={`trail-${point.stop.deskNumber}-${index}`}>
+                    <title>{point.stop.label}</title>
+                    <circle cx={point.x} cy={point.y - ROOM_DESK_SIZE * 0.62} r={13} fill="#334155" />
+                    <text
+                        x={point.x}
+                        y={point.y - ROOM_DESK_SIZE * 0.62 + 5}
+                        textAnchor="middle"
+                        fontSize={14}
+                        fontWeight={700}
+                        fill="#ffffff"
+                    >
+                        {index + 1}
+                    </text>
+                </g>
+            ))}
+        </svg>
     );
 }
 
@@ -484,11 +451,6 @@ export default function QueueSessionReportPage() {
     const [historyWorkerFilter, setHistoryWorkerFilter] = useState("all");
     const [activeTab, setActiveTab] = useState<ReportTabKey>("overview");
     const [selectedWorkerId, setSelectedWorkerId] = useState("all");
-    const [workerMapMode, setWorkerMapMode] = useState<"focused" | "full">("focused");
-    const [showWorkerTrail, setShowWorkerTrail] = useState(true);
-    const [workerMapHighContrast, setWorkerMapHighContrast] = useState(false);
-    const [hideIdleDesksInTaMap, setHideIdleDesksInTaMap] = useState(true);
-    const [overviewDeskFilter, setOverviewDeskFilter] = useState<"active" | "all">("active");
     const [bookingPage, setBookingPage] = useState(1);
     const [bookingsPerPage, setBookingsPerPage] = useState("10");
     const [isExporting, setIsExporting] = useState(false);
@@ -724,12 +686,6 @@ export default function QueueSessionReportPage() {
         return ordered.slice(0, 6);
     }, [isEnglish, selectedWorker]);
 
-    useEffect(() => {
-        if (activeTab === "ta") {
-            setHideIdleDesksInTaMap(true);
-        }
-    }, [activeTab]);
-
     const filteredBookings = useMemo(() => {
         const query = historySearchQuery.trim().toLowerCase();
         return sortedBookings.filter((booking) => {
@@ -846,10 +802,9 @@ export default function QueueSessionReportPage() {
     ];
 
     const workerDeskLegend = [
-        { key: "current", label: t("โต๊ะที่กำลังทำงานอยู่", "Desk currently in service"), swatch: "#f59e0b", hint: t("วงแหวน + คำว่า ตอนนี้", "Ring + NOW label") },
-        { key: "visited", label: t("โต๊ะที่เคยรับงานแล้ว", "Desk served before"), swatch: "#3b82f6", hint: t("จุดสีน้ำเงินมุมขวาบน", "Small blue dot marker") },
-        { key: "other", label: t("โต๊ะอื่นในห้อง", "Other desks"), swatch: "#cbd5e1", hint: t("สีเทาอ่อน", "Muted gray") },
-        { key: "trail", label: t("เส้นทางโต๊ะล่าสุด", "Recent desk trail"), swatch: "#475569", hint: t("ป้ายเวลา 24 ชม. (HH:mm) + ชี้แล้วดู tooltip", "24h time badge (HH:mm) + hover for tooltip") },
+        { key: "current", label: t("โต๊ะที่กำลังทำงานอยู่", "Desk currently in service"), swatch: "#f97316", hint: t("กรอบสีส้มรอบโต๊ะ", "Orange outline around the desk") },
+        { key: "visited", label: t("โต๊ะที่เคยรับงานแล้ว", "Desk served before"), swatch: "#3b82f6", hint: t("ขอบสีน้ำเงินหนา", "Thick blue border") },
+        { key: "trail", label: t("ลำดับการเดิน", "Visit order"), swatch: "#334155", hint: t("เลข 1, 2, 3... ตามลำดับ + ชี้ดูรายละเอียด", "Numbered 1, 2, 3... in order + hover for details") },
     ];
 
     const allRoomDesks = useMemo(
@@ -860,11 +815,6 @@ export default function QueueSessionReportPage() {
         () => allRoomDesks.filter((desk) => getDeskVisualState(desk) !== "idle"),
         [allRoomDesks],
     );
-    const overviewDeskItems = useMemo(() => {
-        const source = overviewDeskFilter === "active" ? activeRoomDesks : allRoomDesks;
-        return [...source].sort((left, right) => Number(left.number) - Number(right.number));
-    }, [activeRoomDesks, allRoomDesks, overviewDeskFilter]);
-
     const deskStateText: Record<DeskVisualState, string> = {
         help_in_progress: t("ช่วยเหลือ-กำลังทำ", "Help - In progress"),
         help_waiting: t("ช่วยเหลือ-รอ", "Help - Waiting"),
@@ -873,14 +823,11 @@ export default function QueueSessionReportPage() {
         completed: t("เสร็จแล้ว", "Completed"),
         idle: t("ว่าง", "Idle"),
     };
-    const deskStateColor: Record<DeskVisualState, "default" | "primary" | "warning" | "success"> = {
-        help_in_progress: "warning",
-        help_waiting: "warning",
-        grading_in_progress: "primary",
-        grading_waiting: "primary",
-        completed: "success",
-        idle: "default",
-    };
+    // Swatches come from the map itself, so the legend can never drift from what
+    // is actually drawn.
+    const roomMapLegend = (
+        ["grading_in_progress", "grading_waiting", "help_in_progress", "help_waiting", "completed", "idle"] as DeskVisualState[]
+    ).map((state) => ({ key: state, label: deskStateText[state], swatch: DESK_STATE_PAINT[state].fill }));
 
     const activeDeskNumbers = desks
         .filter((desk) => getDeskVisualState(desk) !== "idle")
@@ -1104,15 +1051,10 @@ export default function QueueSessionReportPage() {
                             setTaSearchQuery("");
                             setTaWorkerFilter("all");
                             setSelectedWorkerId("all");
-                            setWorkerMapMode("focused");
-                            setShowWorkerTrail(true);
-                            setWorkerMapHighContrast(false);
-                            setHideIdleDesksInTaMap(true);
                             setHistorySearchQuery("");
                             setHistoryStatusFilter("all");
                             setHistoryBookingTypeFilter("all");
                             setHistoryWorkerFilter("all");
-                            setOverviewDeskFilter("active");
                             setBookingsPerPage("10");
                             setBookingPage(1);
                         }}
@@ -1229,53 +1171,28 @@ export default function QueueSessionReportPage() {
                                 ) : null}
 
                                 <div className="rounded-2xl border border-default-200 bg-default-50 p-4 dark:bg-default-100/5">
-                                    <div className="flex flex-wrap items-center justify-between gap-2">
-                                        <div>
-                                            <p className="text-sm font-semibold text-foreground">{t("สถานะโต๊ะทั้งห้อง", "Whole-room desk activity")}</p>
-                                            <p className="text-xs text-default-500">
-                                                {t(
-                                                    `โต๊ะที่ active ตอนนี้ ${activeRoomDesks.length} / ${allRoomDesks.length} โต๊ะ`,
-                                                    `${activeRoomDesks.length} active desks out of ${allRoomDesks.length}`,
-                                                )}
-                                            </p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <Button
-                                                size="sm"
-                                                color="primary"
-                                                variant={overviewDeskFilter === "active" ? "solid" : "flat"}
-                                                onPress={() => setOverviewDeskFilter("active")}
-                                            >
-                                                {t("เฉพาะ active", "Active only")}
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                color="default"
-                                                variant={overviewDeskFilter === "all" ? "solid" : "flat"}
-                                                onPress={() => setOverviewDeskFilter("all")}
-                                            >
-                                                {t("ทุกโต๊ะ", "All desks")}
-                                            </Button>
-                                        </div>
+                                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                        <p className="text-sm font-semibold text-foreground">{t("ผังห้องตอนนี้", "Live room map")}</p>
+                                        <p className="text-xs text-default-500">
+                                            {t(
+                                                `กำลังใช้งาน ${activeRoomDesks.length} จาก ${allRoomDesks.length} โต๊ะ`,
+                                                `${activeRoomDesks.length} of ${allRoomDesks.length} desks active`,
+                                            )}
+                                        </p>
                                     </div>
-                                    <div className="mt-3 flex max-h-44 flex-wrap gap-2 overflow-y-auto pr-1">
-                                        {overviewDeskItems.length > 0 ? (
-                                            overviewDeskItems.map((desk) => {
-                                                const state = getDeskVisualState(desk);
-                                                return (
-                                                    <Chip
-                                                        key={`overview-desk-${desk.id}`}
-                                                        size="sm"
-                                                        variant={state === "idle" ? "bordered" : "flat"}
-                                                        color={deskStateColor[state]}
-                                                    >
-                                                        {t("โต๊ะ", "Desk")} {desk.number} - {deskStateText[state]}
-                                                    </Chip>
-                                                );
-                                            })
-                                        ) : (
-                                            <span className="text-sm text-default-500">{t("ตอนนี้ยังไม่มีโต๊ะ active", "No active desks right now")}</span>
-                                        )}
+                                    <div className="mt-3">
+                                        <RoomMap desks={desks} isEnglish={isEnglish} />
+                                    </div>
+                                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
+                                        {roomMapLegend.map((item) => (
+                                            <div key={item.key} className="flex items-center gap-1.5 text-xs text-default-600">
+                                                <span
+                                                    className="inline-block h-3 w-3 shrink-0 rounded-[4px] border border-black/10"
+                                                    style={{ backgroundColor: item.swatch }}
+                                                />
+                                                <span>{item.label}</span>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
@@ -1372,76 +1289,12 @@ export default function QueueSessionReportPage() {
                                                 </div>
                                             </CardHeader>
                                             <CardBody className="space-y-4">
-                                                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-default-200 bg-content1 px-3 py-2">
-                                                    <p className="text-xs text-default-500">
-                                                        {t("เลือกมุมมองผังโต๊ะ", "Choose map visibility")}
-                                                    </p>
-                                                    <div className="flex flex-wrap items-center gap-2">
-                                                        <Button
-                                                            size="sm"
-                                                            color="primary"
-                                                            variant="solid"
-                                                            onPress={() => {
-                                                                setWorkerMapMode("focused");
-                                                                setHideIdleDesksInTaMap(true);
-                                                                setWorkerMapHighContrast(true);
-                                                                setShowWorkerTrail(true);
-                                                            }}
-                                                        >
-                                                            {t("อ่านง่ายสุด", "Readability preset")}
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant={workerMapMode === "focused" ? "solid" : "flat"}
-                                                            color="primary"
-                                                            onPress={() => setWorkerMapMode("focused")}
-                                                        >
-                                                            {t("โหมดโฟกัส", "Focused")}
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant={workerMapMode === "full" ? "solid" : "flat"}
-                                                            color="default"
-                                                            onPress={() => setWorkerMapMode("full")}
-                                                        >
-                                                            {t("เต็มห้อง", "Full room")}
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant={showWorkerTrail ? "solid" : "flat"}
-                                                            color="secondary"
-                                                            onPress={() => setShowWorkerTrail((prev) => !prev)}
-                                                        >
-                                                            {showWorkerTrail ? t("ปิดเส้นทาง", "Hide trail") : t("เปิดเส้นทาง", "Show trail")}
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant={workerMapHighContrast ? "solid" : "flat"}
-                                                            color="warning"
-                                                            onPress={() => setWorkerMapHighContrast((prev) => !prev)}
-                                                        >
-                                                            {workerMapHighContrast ? t("คอนทราสต์ปกติ", "Normal contrast") : t("High contrast", "High contrast")}
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant={hideIdleDesksInTaMap ? "solid" : "flat"}
-                                                            color="success"
-                                                            onPress={() => setHideIdleDesksInTaMap((prev) => !prev)}
-                                                        >
-                                                            {hideIdleDesksInTaMap ? t("ซ่อนโต๊ะว่าง", "Hide idle") : t("แสดงโต๊ะว่าง", "Show idle")}
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                                <WorkerDeskMap
+                                                <RoomMap
                                                     desks={desks}
-                                                    highlightedDeskNumbers={selectedWorker.uniqueDeskNumbers}
-                                                    currentDeskNumbers={selectedWorker.currentDeskNumbers}
                                                     isEnglish={isEnglish}
-                                                    mode={workerMapMode}
+                                                    visitedDeskNumbers={selectedWorker.uniqueDeskNumbers}
+                                                    currentDeskNumbers={selectedWorker.currentDeskNumbers}
                                                     trailStops={selectedWorkerTrailStops}
-                                                    showTrail={showWorkerTrail}
-                                                    highContrast={workerMapHighContrast}
-                                                    hideIdleDesks={hideIdleDesksInTaMap}
                                                 />
                                                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                                                     {workerDeskLegend.map((item) => (
