@@ -296,6 +296,32 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
     // Total max score
     const totalMaxScore = useMemo(() => columns.reduce((sum, c) => sum + c.maxScore, 0), [columns]);
 
+    // Per-column average, computed from the rows actually on screen.
+    //
+    // The backend also returns `averages`, but it always spans every student in the
+    // course while these rows are filtered here by section and search — so the two
+    // disagree the moment a filter is on. Averaging what is displayed keeps the row
+    // describing the table it sits in.
+    //
+    // The divisor is the number of students who have a score, not the number
+    // enrolled, so `count` is reported alongside: an average of 10.00 drawn from a
+    // single graded student reads identically to one drawn from the whole class.
+    const columnAverages = useMemo(() => {
+        const result: Record<string, { value: number; count: number }> = {};
+        for (const col of columns) {
+            let total = 0;
+            let count = 0;
+            for (const student of filteredStudents) {
+                const score = student.scores?.[col.key]?.score;
+                if (score === null || score === undefined) continue;
+                total += toNum(score);
+                count++;
+            }
+            result[col.key] = { value: count > 0 ? total / count : 0, count };
+        }
+        return result;
+    }, [columns, filteredStudents]);
+
     // Class average
     const classAverage = useMemo(() => {
         if (totalMaxScore === 0) return 0;
@@ -386,6 +412,7 @@ export function useScoreSummaryTab({ courseId }: UseScoreSummaryTabProps) {
         assignmentGroups,
         totalMaxScore,
         classAverage,
+        columnAverages,
         labCount,
         assignmentCount,
         groupCount,

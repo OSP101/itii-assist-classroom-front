@@ -66,8 +66,32 @@ export interface CreateAssignmentData {
     publish_at?: string | null;
 }
 
+export interface SubItemWithScores {
+    id: number;
+    name: string;
+    score_count: number;
+}
+
+/**
+ * Thrown when an update would remove sub-items students have already been graded
+ * on. The backend refuses the write and reports what would be destroyed; retry
+ * with `confirm_delete_scores: true` once the user has agreed.
+ */
+export class SubItemsHaveScoresError extends Error {
+    readonly subItems: SubItemWithScores[];
+    readonly totalScores: number;
+
+    constructor(subItems: SubItemWithScores[], totalScores: number) {
+        super('Removing these sub-items would delete existing scores');
+        this.name = 'SubItemsHaveScoresError';
+        this.subItems = subItems;
+        this.totalScores = totalScores;
+    }
+}
+
 export interface UpdateAssignmentData {
     name?: string;
+    confirm_delete_scores?: boolean;
     description?: string;
     assignment_type?: 'individual' | 'permanent_group' | 'weekly_group' | 'assignment';
     week_number?: number;
@@ -119,6 +143,20 @@ const assignmentService = {
      */
     async updateAssignment(id: number, data: UpdateAssignmentData): Promise<Assignment | null> {
         const response = await api.put<Assignment>(`/assignments/${id}`, data);
+        // A refusal carries its own `data` payload, so returning response.data
+        // unconditionally would hand the caller a conflict report dressed up as a
+        // saved assignment.
+        if (response.success === false) {
+            const code = (response as { code?: string }).code;
+            if (code === 'sub_items_have_scores') {
+                const payload = response.data as unknown as {
+                    sub_items?: SubItemWithScores[];
+                    total_scores?: number;
+                } | undefined;
+                throw new SubItemsHaveScoresError(payload?.sub_items ?? [], payload?.total_scores ?? 0);
+            }
+            return null;
+        }
         return response.data || null;
     },
 

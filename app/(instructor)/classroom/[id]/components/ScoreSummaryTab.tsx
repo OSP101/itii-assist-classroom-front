@@ -40,6 +40,7 @@ export default function ScoreSummaryTab({ courseId, isCourseActive = true }: Sco
         assignmentGroups,
         totalMaxScore,
         classAverage,
+        columnAverages,
         labCount,
         assignmentCount,
         groupCount,
@@ -77,6 +78,7 @@ export default function ScoreSummaryTab({ courseId, isCourseActive = true }: Sco
             assignmentGroups={assignmentGroups}
             totalMaxScore={totalMaxScore}
             classAverage={classAverage}
+            columnAverages={columnAverages}
             labCount={labCount}
             assignmentCount={assignmentCount}
             groupCount={groupCount}

@@ -102,6 +102,7 @@ interface ScoreSummaryTabViewProps {
     assignmentGroups: AssignmentGroup[];
     totalMaxScore: number;
     classAverage: number;
+    columnAverages: Record<string, { value: number; count: number }>;
     labCount: number;
     assignmentCount: number;
     groupCount: number;
@@ -162,6 +163,7 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
     assignmentGroups,
     totalMaxScore,
     classAverage,
+    columnAverages,
     labCount,
     assignmentCount,
     groupCount,
@@ -487,11 +489,27 @@ const ScoreSummaryTabView = memo(function ScoreSummaryTabView({
                                     {/* Average Row */}
                                     <tr className="bg-blue-50 border-b-2 border-blue-200">
                                         <td colSpan={showGroupNameColumn ? 5 : 4} className="px-3 py-2 text-center text-blue-700 font-semibold bg-blue-50">{isEnglish ? "Average" : "ค่าเฉลี่ย"}</td>
-                                        {columns.map((col) => (
-                                            <td key={col.key} className="px-2 py-2 text-center text-blue-600 font-medium border-l border-blue-100 bg-blue-50">
-                                                {matrixData.averages?.[col.key] ?? "-"}
-                                            </td>
-                                        ))}
+                                        {columns.map((col) => {
+                                            const average = columnAverages[col.key];
+                                            return (
+                                                <td key={col.key} className="px-2 py-2 text-center text-blue-600 font-medium border-l border-blue-100 bg-blue-50">
+                                                    {average && average.count > 0 ? (
+                                                        <>
+                                                            <div>{average.value.toFixed(2)}</div>
+                                                            {/* The divisor is graded students, not enrolled ones — say so, or
+                                                                one graded student looks like a full-class average. */}
+                                                            <div className="text-[10px] font-normal text-blue-400">
+                                                                {isEnglish
+                                                                    ? `${average.count} graded`
+                                                                    : `${average.count} คน`}
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        "-"
+                                                    )}
+                                                </td>
+                                            );
+                                        })}
                                         <td className="px-3 py-2 text-center text-blue-700 font-bold border-l border-blue-200 bg-blue-50">
                                             {classAverage.toFixed(1)}
                                         </td>

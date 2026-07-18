@@ -11,7 +11,7 @@ import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import type { AssignmentType } from "../types";
 import type { AttendanceSession } from "@/services/attendance.service";
-import assignmentService from "@/services/assignment.service";
+import assignmentService, { SubItemsHaveScoresError, type SubItemWithScores } from "@/services/assignment.service";
 import attendanceService from "@/services/attendance.service";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import {
@@ -63,6 +63,14 @@ interface LocalSubItem {
     id?: number;
     name: string;
     max_score: number;
+}
+
+// A save the backend refused because it would destroy scores, held while the
+// instructor decides whether to go ahead.
+interface PendingScoreDeletion {
+    isDraft: boolean;
+    subItems: SubItemWithScores[];
+    totalScores: number;
 }
 
 interface AssignmentFormData {
@@ -129,6 +137,7 @@ function AssignmentModalComponent({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [attendanceSessions, setAttendanceSessions] = useState<AttendanceSession[]>([]);
     const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+    const [pendingScoreDeletion, setPendingScoreDeletion] = useState<PendingScoreDeletion | null>(null);
 
     const hasFormChanges = () => {
         if (!originalFormData) return false;
@@ -155,6 +164,7 @@ function AssignmentModalComponent({
     // Reset or populate form when modal opens/closes or editing assignment changes
     useEffect(() => {
         if (isOpen) {
+            setPendingScoreDeletion(null);
             if (editingAssignment) {
                 // Populate form with existing assignment data
                 const linkedAttendanceSessionIds = getLinkedAttendanceSessionIds(editingAssignment);
@@ -229,11 +239,13 @@ function AssignmentModalComponent({
             return;
         }
 
+        await persistAssignment(draftOverride ?? formData.isDraft, false);
+    };
+
+    const persistAssignment = async (isDraft: boolean, confirmDeleteScores: boolean) => {
         setIsSubmitting(true);
 
         try {
-            const isDraft = draftOverride ?? formData.isDraft;
-
             const payload = {
                 course_id: courseId,
                 name: formData.name.trim(),
@@ -266,12 +278,16 @@ function AssignmentModalComponent({
 
             let result;
             if (editingAssignment) {
-                result = await assignmentService.updateAssignment(editingAssignment.id, payload);
+                result = await assignmentService.updateAssignment(
+                    editingAssignment.id,
+                    confirmDeleteScores ? { ...payload, confirm_delete_scores: true } : payload,
+                );
             } else {
                 result = await assignmentService.createAssignment(payload);
             }
 
             if (result) {
+                setPendingScoreDeletion(null);
                 addToast({
                     title: isEnglish ? "Success" : "สำเร็จ",
                     description: editingAssignment
@@ -291,6 +307,15 @@ function AssignmentModalComponent({
                 throw new Error(isEnglish ? "Unable to save the assignment." : "ไม่สามารถบันทึกงานได้");
             }
         } catch (error: any) {
+            // Not a failure — the backend is asking whether the scores may go.
+            if (error instanceof SubItemsHaveScoresError) {
+                setPendingScoreDeletion({
+                    isDraft,
+                    subItems: error.subItems,
+                    totalScores: error.totalScores,
+                });
+                return;
+            }
             console.error("Failed to save assignment:", error);
             addToast({
                 title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
@@ -312,7 +337,15 @@ function AssignmentModalComponent({
         await handleSubmit();
     };
 
+    const handleConfirmScoreDeletion = async () => {
+        if (!pendingScoreDeletion) return;
+        const { isDraft } = pendingScoreDeletion;
+        setPendingScoreDeletion(null);
+        await persistAssignment(isDraft, true);
+    };
+
     return (
+        <>
         <Modal
             isOpen={isOpen}
             onClose={() => {
@@ -950,6 +983,64 @@ function AssignmentModalComponent({
                 </ModalFooter>
             </ModalContent>
         </Modal>
+
+        <Modal
+            isOpen={pendingScoreDeletion !== null}
+            onClose={() => setPendingScoreDeletion(null)}
+            size="lg"
+        >
+            <ModalContent className="border border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
+                <ModalHeader className="flex items-center gap-3 px-6 pt-6 pb-4">
+                    <div className="p-2.5 bg-linear-to-br from-rose-400 to-red-500 rounded-xl shadow-lg">
+                        <Icon icon="solar:danger-triangle-bold" className="text-xl text-white" />
+                    </div>
+                    <h3 className="text-lg font-bold text-foreground">
+                        {isEnglish ? "Existing scores will be deleted" : "คะแนนที่ลงไว้แล้วจะถูกลบ"}
+                    </h3>
+                </ModalHeader>
+                <ModalBody className="px-6 pb-2">
+                    <p className="text-sm text-default-600">
+                        {isEnglish
+                            ? "Removing these sub-items also deletes the scores already recorded against them. This cannot be undone."
+                            : "การลบข้อย่อยเหล่านี้จะลบคะแนนที่ตรวจไว้แล้วไปด้วย และกู้คืนไม่ได้"}
+                    </p>
+                    <ul className="mt-1 flex flex-col gap-2">
+                        {pendingScoreDeletion?.subItems.map((subItem) => (
+                            <li
+                                key={subItem.id}
+                                className="flex items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 dark:border-rose-900/60 dark:bg-rose-950/40"
+                            >
+                                <span className="text-sm font-medium text-foreground">{subItem.name}</span>
+                                <Chip size="sm" color="danger" variant="flat">
+                                    {isEnglish
+                                        ? formatCount(subItem.score_count, "score", "scores")
+                                        : `${subItem.score_count} คะแนน`}
+                                </Chip>
+                            </li>
+                        ))}
+                    </ul>
+                    <p className="mt-1 text-sm font-semibold text-danger">
+                        {isEnglish
+                            ? `${formatCount(pendingScoreDeletion?.totalScores ?? 0, "score", "scores")} will be deleted in total.`
+                            : `รวมคะแนนที่จะถูกลบทั้งหมด ${pendingScoreDeletion?.totalScores ?? 0} รายการ`}
+                    </p>
+                </ModalBody>
+                <ModalFooter className="px-6 py-4">
+                    <Button variant="light" onPress={() => setPendingScoreDeletion(null)}>
+                        {isEnglish ? "Keep the sub-items" : "เก็บข้อย่อยไว้"}
+                    </Button>
+                    <Button
+                        color="danger"
+                        onPress={handleConfirmScoreDeletion}
+                        isLoading={isSubmitting}
+                        className={instructorFlatButtonClass("bg-rose-600 text-white")}
+                    >
+                        {isEnglish ? "Delete scores and save" : "ลบคะแนนแล้วบันทึก"}
+                    </Button>
+                </ModalFooter>
+            </ModalContent>
+        </Modal>
+        </>
     );
 }
 
