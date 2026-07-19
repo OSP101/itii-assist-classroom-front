@@ -24,6 +24,10 @@ import {
     instructorPrimaryButtonClass,
 } from "@/components/ui/instructor-button-styles";
 import type { Course, SectionStudent, RemovedSectionStudent } from "@/services/course.service";
+import {
+    STICKY_ACTION_HEADER_CLASS_ALWAYS,
+    STICKY_ACTION_CELL_CLASS_ALWAYS,
+} from "../shared/stickyActionColumn";
 import { TeamsGridSkeleton } from "../Skeletons";
 import type {
     PermanentTeam,
@@ -765,7 +769,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                                     <TableColumn width={100}>{isEnglish ? "ID" : "รหัส"}</TableColumn>
                                                     <TableColumn>{isEnglish ? "Full name" : "ชื่อ-นามสกุล"}</TableColumn>
                                                     <TableColumn width={120}>{isEnglish ? "Project team" : "กลุ่มโปรเจกต์"}</TableColumn>
-                                                    <TableColumn width={50} align="center">{isEnglish ? "Actions" : "จัดการ"}</TableColumn>
+                                                    <TableColumn width={50} align="center" className={STICKY_ACTION_HEADER_CLASS_ALWAYS}>{isEnglish ? "Actions" : "จัดการ"}</TableColumn>
                                                 </TableHeader>
                                                 <TableBody>
                                                     {getFilteredSectionStudents(section.id).map((student, idx) => (
@@ -797,7 +801,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                                                     <span className="text-xs text-default-300">-</span>
                                                                 )}
                                                             </TableCell>
-                                                            <TableCell>
+                                                            <TableCell className={STICKY_ACTION_CELL_CLASS_ALWAYS}>
                                                                 {canManageSectionStudents && (
                                                                     <Dropdown>
                                                                         <DropdownTrigger>
@@ -807,7 +811,7 @@ const StudentsSubTab = React.memo(function StudentsSubTab({
                                                                                 variant="light"
                                                                                 isDisabled={!isCourseActive}
                                                                             >
-                                                                                <Icon icon="solar:menu-dots-bold" className="text-lg" />
+                                                                                <Icon icon="solar:menu-dots-bold" className="text-xl" />
                                                                             </Button>
                                                                         </DropdownTrigger>
                                                                         <DropdownMenu aria-label={isEnglish ? "Student actions" : "จัดการนักศึกษา"}>

@@ -37,6 +37,12 @@ import { type DateValue, getLocalTimeZone, parseDateTime, CalendarDateTime } fro
 import { QRCodeSVG } from "qrcode.react";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import TablePaginationFooter, { DEFAULT_TABLE_ROWS_PER_PAGE } from "@/components/ui/table-pagination-footer";
+import {
+    useHorizontalOverflow,
+    STICKY_SCROLL_CONTAINER_CLASS,
+    STICKY_ACTION_HEADER_CLASS,
+    STICKY_ACTION_CELL_CLASS,
+} from "../../shared/stickyActionColumn";
 
 import {
     type SessionWithComputedStatus,
@@ -604,7 +610,7 @@ const SessionRowActions = memo(function SessionRowActions({
                         color="secondary"
                         onPress={() => onShowQR?.(session)}
                     >
-                        <Icon icon="solar:qr-code-bold" className="text-lg" />
+                        <Icon icon="solar:qr-code-bold" className="text-xl" />
                     </Button>
                 </Tooltip>
                 <Tooltip content={isEnglish ? "Connect projector display" : "เชื่อมต่อหน้าจอฉาย"}>
@@ -615,7 +621,7 @@ const SessionRowActions = memo(function SessionRowActions({
                         color="primary"
                         onPress={() => onScanProjector?.(session)}
                     >
-                        <Icon icon="solar:camera-minimalistic-bold-duotone" className="text-lg" />
+                        <Icon icon="solar:camera-minimalistic-bold-duotone" className="text-xl" />
                     </Button>
                 </Tooltip>
                 {canUpdateAttendanceSessions && (
@@ -628,7 +634,7 @@ const SessionRowActions = memo(function SessionRowActions({
                             isDisabled={!isCourseActive}
                             onPress={() => onActivate(session)}
                         >
-                            <Icon icon="solar:play-bold" className="text-lg" />
+                            <Icon icon="solar:play-bold" className="text-xl" />
                         </Button>
                     </Tooltip>
                 )}
@@ -642,7 +648,7 @@ const SessionRowActions = memo(function SessionRowActions({
                             isDisabled={!isCourseActive}
                             onPress={() => onEdit(session)}
                         >
-                            <Icon icon="solar:pen-bold" className="text-lg" />
+                            <Icon icon="solar:pen-bold" className="text-xl" />
                         </Button>
                     </Tooltip>
                 )}
@@ -656,7 +662,7 @@ const SessionRowActions = memo(function SessionRowActions({
                             isDisabled={!isCourseActive}
                             onPress={() => onDelete(session)}
                         >
-                            <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
+                            <Icon icon="solar:trash-bin-trash-bold" className="text-xl" />
                         </Button>
                     </Tooltip>
                 )}
@@ -673,7 +679,7 @@ const SessionRowActions = memo(function SessionRowActions({
                         href={`/attendance/${courseId}/session/${session.id}/live`}
                         target="_blank"
                     >
-                        <Icon icon="solar:eye-bold" className="text-lg text-blue-600" />
+                        <Icon icon="solar:eye-bold" className="text-xl text-blue-600" />
                     </Link>
                 </Tooltip>
                 <Tooltip content={isEnglish ? "Connect projector display" : "เชื่อมต่อหน้าจอฉาย"}>
@@ -684,7 +690,7 @@ const SessionRowActions = memo(function SessionRowActions({
                         color="primary"
                         onPress={() => onScanProjector?.(session)}
                     >
-                        <Icon icon="solar:camera-minimalistic-bold-duotone" className="text-lg" />
+                        <Icon icon="solar:camera-minimalistic-bold-duotone" className="text-xl" />
                     </Button>
                 </Tooltip>
                 <Tooltip content={isEnglish ? "View summary" : "ดูสรุป"}>
@@ -693,7 +699,7 @@ const SessionRowActions = memo(function SessionRowActions({
                         href={`/classroom/${courseId}/attendance/${session.id}/summary`}
                         target="_blank"
                     >
-                        <Icon icon="solar:chart-bold" className="text-lg" />
+                        <Icon icon="solar:chart-bold" className="text-xl" />
                     </Link>
                 </Tooltip>
                 {canUpdateAttendanceSessions && (
@@ -706,7 +712,7 @@ const SessionRowActions = memo(function SessionRowActions({
                             isDisabled={!isCourseActive}
                             onPress={() => onEdit(session)}
                         >
-                            <Icon icon="solar:pen-bold" className="text-lg" />
+                            <Icon icon="solar:pen-bold" className="text-xl" />
                         </Button>
                     </Tooltip>
                 )}
@@ -720,7 +726,7 @@ const SessionRowActions = memo(function SessionRowActions({
                             isDisabled={!isCourseActive}
                             onPress={() => onClose(session)}
                         >
-                            <Icon icon="solar:stop-bold" className="text-lg" />
+                            <Icon icon="solar:stop-bold" className="text-xl" />
                         </Button>
                     </Tooltip>
                 )}
@@ -737,7 +743,7 @@ const SessionRowActions = memo(function SessionRowActions({
                     href={`/attendance/${courseId}/session/${session.id}/live`}
                     target="_blank"
                 >
-                    <Icon icon="solar:eye-bold" className="text-lg" />
+                    <Icon icon="solar:eye-bold" className="text-xl" />
                 </Link>
             </Tooltip>
             <Tooltip content={isEnglish ? "View summary" : "ดูสรุป"}>
@@ -746,7 +752,7 @@ const SessionRowActions = memo(function SessionRowActions({
                     href={`/classroom/${courseId}/attendance/${session.id}/summary`}
                     target="_blank"
                 >
-                    <Icon icon="solar:chart-bold" className="text-lg" />
+                    <Icon icon="solar:chart-bold" className="text-xl" />
                 </Link>
             </Tooltip>
             {canUpdateAttendanceSessions && (
@@ -759,7 +765,7 @@ const SessionRowActions = memo(function SessionRowActions({
                         isDisabled={!isCourseActive}
                         onPress={() => onEdit(session)}
                     >
-                        <Icon icon="solar:pen-bold" className="text-lg" />
+                        <Icon icon="solar:pen-bold" className="text-xl" />
                     </Button>
                 </Tooltip>
             )}
@@ -774,7 +780,7 @@ const SessionRowActions = memo(function SessionRowActions({
                         isDisabled={!isCourseActive}
                         onPress={() => onDelete(session)}
                     >
-                        <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
+                        <Icon icon="solar:trash-bin-trash-bold" className="text-xl" />
                     </Button>
                 </Tooltip>
             )}
@@ -828,6 +834,9 @@ export const SessionsTable = memo(function SessionsTable({
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(DEFAULT_TABLE_ROWS_PER_PAGE);
 
+    // Pin the actions column so it stays visible when the table scrolls sideways.
+    const { scrollRef, hasOverflow } = useHorizontalOverflow();
+
     const totalPages = Math.max(1, Math.ceil(sessions.length / rowsPerPage));
     const sectionMap = useMemo(
         () => new Map(sections.map((section) => [section.id, section])),
@@ -852,7 +861,11 @@ export const SessionsTable = memo(function SessionsTable({
         <>
             <Card className="border border-default-200 bg-content1 shadow-sm">
                 <CardBody className="p-2">
-                    <div className="overflow-x-auto">
+                    <div
+                        ref={scrollRef}
+                        data-overflow={hasOverflow ? "true" : "false"}
+                        className={STICKY_SCROLL_CONTAINER_CLASS}
+                    >
                         <Table
                             aria-label={isEnglish ? "Attendance sessions table" : "ตารางรอบการเช็คชื่อ"}
                             removeWrapper
@@ -869,7 +882,7 @@ export const SessionsTable = memo(function SessionsTable({
                                 <TableColumn className="min-w-35">{isEnglish ? "Date & time" : "วันเวลา"}</TableColumn>
                                 <TableColumn className="min-w-22.5">{isEnglish ? "Status" : "สถานะ"}</TableColumn>
                                 <TableColumn className="min-w-35">{isEnglish ? "Stats" : "สถิติ"}</TableColumn>
-                                <TableColumn align="center" className="min-w-30">{isEnglish ? "Actions" : "จัดการ"}</TableColumn>
+                                <TableColumn align="center" className={`${STICKY_ACTION_HEADER_CLASS} min-w-30`}>{isEnglish ? "Actions" : "จัดการ"}</TableColumn>
                             </TableHeader>
                             <TableBody
                                 emptyContent={
@@ -991,7 +1004,7 @@ export const SessionsTable = memo(function SessionsTable({
                                                 <span className="text-default-400">-</span>
                                             )}
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell className={STICKY_ACTION_CELL_CLASS}>
                                             <div className="flex items-center justify-center gap-1">
                                                 <SessionRowActions
                                                     session={session}

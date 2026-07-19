@@ -45,6 +45,12 @@ import assignmentService, { type Assignment } from "@/services/assignment.servic
 import attendanceService, { type AttendanceSession } from "@/services/attendance.service";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import TablePaginationFooter, { DEFAULT_TABLE_ROWS_PER_PAGE } from "@/components/ui/table-pagination-footer";
+import {
+    useHorizontalOverflow,
+    STICKY_SCROLL_CONTAINER_CLASS,
+    STICKY_ACTION_HEADER_CLASS,
+    STICKY_ACTION_CELL_CLASS,
+} from "./shared/stickyActionColumn";
 
 // Types for the component
 interface Section {
@@ -210,6 +216,9 @@ export default function QueueTab({
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(DEFAULT_TABLE_ROWS_PER_PAGE);
+
+    // Pin the actions column so it stays visible when the table scrolls sideways.
+    const { scrollRef, hasOverflow } = useHorizontalOverflow();
 
     // Modal states
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -1177,7 +1186,11 @@ export default function QueueTab({
                             {/* Sessions Table */}
                             <Card className="border border-default-200 bg-content1 shadow-sm">
                                 <CardBody className="p-2">
-                                    <div className="overflow-x-auto">
+                                    <div
+                                        ref={scrollRef}
+                                        data-overflow={hasOverflow ? "true" : "false"}
+                                        className={STICKY_SCROLL_CONTAINER_CLASS}
+                                    >
                                         <Table
                                             aria-label="Queue sessions table"
                                             removeWrapper
@@ -1193,7 +1206,7 @@ export default function QueueTab({
                                                 <TableColumn className="min-w-35">{localize("หัวข้อลงคะแนน", "Assignment")}</TableColumn>
                                                 <TableColumn className="min-w-25">{localize("สถานะ", "Status")}</TableColumn>
                                                 <TableColumn className="min-w-30">{localize("คิวรอ/เสร็จ", "Waiting/Done")}</TableColumn>
-                                                <TableColumn align="center" className="min-w-40">{localize("จัดการ", "Actions")}</TableColumn>
+                                                <TableColumn align="center" className={`${STICKY_ACTION_HEADER_CLASS} min-w-40`}>{localize("จัดการ", "Actions")}</TableColumn>
                                             </TableHeader>
                                             <TableBody
                                                 emptyContent={
@@ -1285,7 +1298,7 @@ export default function QueueTab({
                                                                 </Tooltip>
                                                             </div>
                                                         </TableCell>
-                                                        <TableCell>
+                                                        <TableCell className={STICKY_ACTION_CELL_CLASS}>
                                                             <div className="flex items-center justify-center gap-1">
                                                                 {/* ปุ่มดูรีพอร์ต (ทุกสถานะ) */}
                                                                 <Tooltip content={localize("ดูรีพอร์ตคิว", "View queue report")}>
@@ -1296,7 +1309,7 @@ export default function QueueTab({
                                                                         color="secondary"
                                                                         onPress={() => window.open(`/classroom/${course.id}/queue/${session.id}/report`, "_blank")}
                                                                     >
-                                                                        <Icon icon="solar:chart-2-bold" className="text-lg" />
+                                                                        <Icon icon="solar:chart-2-bold" className="text-xl" />
                                                                     </Button>
                                                                 </Tooltip>
                                                                 {canCreateQueueSessions && (
@@ -1309,7 +1322,7 @@ export default function QueueTab({
                                                                             isDisabled={!isCourseActive}
                                                                             onPress={() => handleDuplicateSession(session)}
                                                                         >
-                                                                            <Icon icon="solar:copy-bold" className="text-lg" />
+                                                                            <Icon icon="solar:copy-bold" className="text-xl" />
                                                                         </Button>
                                                                     </Tooltip>
                                                                 )}
@@ -1326,7 +1339,7 @@ export default function QueueTab({
                                                                                     isDisabled={!isCourseActive || isSubmitting}
                                                                                     onPress={() => handleStartBoth(session)}
                                                                                 >
-                                                                                    <Icon icon="solar:play-stream-bold" className="text-lg" />
+                                                                                    <Icon icon="solar:play-stream-bold" className="text-xl" />
                                                                                 </Button>
                                                                             </Tooltip>
                                                                         )}
@@ -1340,7 +1353,7 @@ export default function QueueTab({
                                                                                     isDisabled={!isCourseActive}
                                                                                     onPress={() => handleOpenStartModal(session)}
                                                                                 >
-                                                                                    <Icon icon="solar:play-bold" className="text-lg" />
+                                                                                    <Icon icon="solar:play-bold" className="text-xl" />
                                                                                 </Button>
                                                                             </Tooltip>
                                                                         )}
@@ -1354,7 +1367,7 @@ export default function QueueTab({
                                                                                     isDisabled={!isCourseActive}
                                                                                     onPress={() => handleOpenEditModal(session)}
                                                                                 >
-                                                                                    <Icon icon="solar:pen-bold" className="text-lg" />
+                                                                                    <Icon icon="solar:pen-bold" className="text-xl" />
                                                                                 </Button>
                                                                             </Tooltip>
                                                                         )}
@@ -1371,7 +1384,7 @@ export default function QueueTab({
                                                                                         setIsDeleteModalOpen(true);
                                                                                     }}
                                                                                 >
-                                                                                    <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
+                                                                                    <Icon icon="solar:trash-bin-trash-bold" className="text-xl" />
                                                                                 </Button>
                                                                             </Tooltip>
                                                                         )}
@@ -1396,7 +1409,7 @@ export default function QueueTab({
                                                                                     color="secondary"
                                                                                     onPress={() => handleOpenProjector(session)}
                                                                                 >
-                                                                                    <Icon icon="solar:monitor-bold" className="text-lg" />
+                                                                                    <Icon icon="solar:monitor-bold" className="text-xl" />
                                                                                 </Button>
                                                                             </Tooltip>
                                                                             {canManageQueueBookings && (
@@ -1408,7 +1421,7 @@ export default function QueueTab({
                                                                                         color="primary"
                                                                                         onPress={() => handleGoToWorker(session)}
                                                                                     >
-                                                                                        <Icon icon="solar:user-check-bold" className="text-lg" />
+                                                                                        <Icon icon="solar:user-check-bold" className="text-xl" />
                                                                                     </Button>
                                                                                 </Tooltip>
                                                                             )}
@@ -1422,7 +1435,7 @@ export default function QueueTab({
                                                                                         isDisabled={!isCourseActive}
                                                                                         onPress={() => handleOpenPauseModal(session, 'paused')}
                                                                                     >
-                                                                                        <Icon icon="solar:pause-bold" className="text-lg" />
+                                                                                        <Icon icon="solar:pause-bold" className="text-xl" />
                                                                                     </Button>
                                                                                 </Tooltip>
                                                                             )}
@@ -1435,7 +1448,7 @@ export default function QueueTab({
                                                                                         color="danger"
                                                                                         isDisabled
                                                                                     >
-                                                                                        <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
+                                                                                        <Icon icon="solar:trash-bin-trash-bold" className="text-xl" />
                                                                                     </Button>
                                                                                 </span>
                                                                             </Tooltip>
@@ -1455,7 +1468,7 @@ export default function QueueTab({
                                                                                     color="secondary"
                                                                                     onPress={() => handleOpenProjector(session)}
                                                                                 >
-                                                                                    <Icon icon="solar:monitor-bold" className="text-lg" />
+                                                                                    <Icon icon="solar:monitor-bold" className="text-xl" />
                                                                                 </Button>
                                                                             </Tooltip>
                                                                             {canManageQueueBookings && (
@@ -1467,7 +1480,7 @@ export default function QueueTab({
                                                                                         color="primary"
                                                                                         onPress={() => handleGoToWorker(session)}
                                                                                     >
-                                                                                        <Icon icon="solar:user-check-bold" className="text-lg" />
+                                                                                        <Icon icon="solar:user-check-bold" className="text-xl" />
                                                                                     </Button>
                                                                                 </Tooltip>
                                                                             )}
@@ -1481,7 +1494,7 @@ export default function QueueTab({
                                                                                         isDisabled={!isCourseActive}
                                                                                         onPress={() => handleOpenPauseModal(session, 'active')}
                                                                                     >
-                                                                                        <Icon icon="solar:play-bold" className="text-lg" />
+                                                                                        <Icon icon="solar:play-bold" className="text-xl" />
                                                                                     </Button>
                                                                                 </Tooltip>
                                                                             )}
@@ -1510,7 +1523,7 @@ export default function QueueTab({
                                                                                                 }
                                                                                             }}
                                                                                         >
-                                                                                            <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
+                                                                                            <Icon icon="solar:trash-bin-trash-bold" className="text-xl" />
                                                                                         </Button>
                                                                                     </span>
                                                                                 </Tooltip>
@@ -1530,7 +1543,7 @@ export default function QueueTab({
                                                                                     isDisabled={!isCourseActive}
                                                                                     onPress={() => handleOpenEditModal(session)}
                                                                                 >
-                                                                                    <Icon icon="solar:pen-bold" className="text-lg" />
+                                                                                    <Icon icon="solar:pen-bold" className="text-xl" />
                                                                                 </Button>
                                                                             </Tooltip>
                                                                         )}
@@ -1548,7 +1561,7 @@ export default function QueueTab({
                                                                                         setIsDeleteModalOpen(true);
                                                                                     }}
                                                                                 >
-                                                                                    <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
+                                                                                    <Icon icon="solar:trash-bin-trash-bold" className="text-xl" />
                                                                                 </Button>
                                                                             </Tooltip>
                                                                         )}
@@ -1571,7 +1584,7 @@ export default function QueueTab({
                                                                                         setIsUnlinkModalOpen(true);
                                                                                     }}
                                                                                 >
-                                                                                    <Icon icon="solar:link-broken-bold" className="text-lg" />
+                                                                                    <Icon icon="solar:link-broken-bold" className="text-xl" />
                                                                                 </Button>
                                                                             </Tooltip>
                                                                         );
@@ -1589,7 +1602,7 @@ export default function QueueTab({
                                                                                     setIsLinkModalOpen(true);
                                                                                 }}
                                                                             >
-                                                                                <Icon icon="solar:link-bold" className="text-lg" />
+                                                                                <Icon icon="solar:link-bold" className="text-xl" />
                                                                             </Button>
                                                                         </Tooltip>
                                                                     );

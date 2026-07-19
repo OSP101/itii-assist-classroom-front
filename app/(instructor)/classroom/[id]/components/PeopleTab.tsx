@@ -21,6 +21,12 @@ import { Icon } from "@iconify/react";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import TablePaginationFooter, { DEFAULT_TABLE_ROWS_PER_PAGE } from "@/components/ui/table-pagination-footer";
 import {
+    useHorizontalOverflow,
+    STICKY_SCROLL_CONTAINER_CLASS,
+    STICKY_ACTION_HEADER_CLASS,
+    STICKY_ACTION_CELL_CLASS,
+} from "./shared/stickyActionColumn";
+import {
     buildCoursePermissionPreset,
     resolveCourseMemberPermissions,
     type CourseMemberPermissions,
@@ -243,6 +249,8 @@ export default function PeopleTab({
     const isEnglish = language === "en";
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(DEFAULT_TABLE_ROWS_PER_PAGE);
+    // Pin the actions column so it stays visible when the table scrolls sideways.
+    const { scrollRef, hasOverflow } = useHorizontalOverflow();
     const [editingMember, setEditingMember] = useState<EditableMember | null>(null);
     const [draftPermissions, setDraftPermissions] = useState<CourseMemberPermissions | null>(null);
     const [originalDraftPermissions, setOriginalDraftPermissions] = useState<CourseMemberPermissions | null>(null);
@@ -595,7 +603,11 @@ export default function PeopleTab({
 
                     <Card className="border border-default-200 shadow-sm">
                         <CardBody className="p-2">
-                            <div className="overflow-x-auto">
+                            <div
+                                ref={scrollRef}
+                                data-overflow={hasOverflow ? "true" : "false"}
+                                className={STICKY_SCROLL_CONTAINER_CLASS}
+                            >
                                 <Table
                                     aria-label="People table"
                                     removeWrapper
@@ -610,7 +622,7 @@ export default function PeopleTab({
                                         <TableColumn className="min-w-45">{isEnglish ? "Email / username" : "อีเมล / Username"}</TableColumn>
                                         <TableColumn className="min-w-35">{isEnglish ? "Role" : "บทบาท"}</TableColumn>
                                         <TableColumn className={showPermissionColumn ? "min-w-55" : "hidden"}>{isEnglish ? "Course permissions" : "สิทธิ์ในรายวิชา"}</TableColumn>
-                                        <TableColumn align="center" className="min-w-30">{isEnglish ? "Actions" : "จัดการ"}</TableColumn>
+                                        <TableColumn align="center" className={`${STICKY_ACTION_HEADER_CLASS} min-w-30`}>{isEnglish ? "Actions" : "จัดการ"}</TableColumn>
                                     </TableHeader>
                                     <TableBody emptyContent={
                                         <div className="py-10 text-center">
@@ -683,14 +695,14 @@ export default function PeopleTab({
                                                             <p className="text-xs text-default-500">{isEnglish ? `Enabled ${summary.enabledCount} of ${summary.totalCount} permissions` : `เปิดใช้งาน ${summary.enabledCount} จาก ${summary.totalCount} สิทธิ์`}</p>
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell>
+                                                    <TableCell className={STICKY_ACTION_CELL_CLASS}>
                                                         <div className="flex items-center justify-center gap-1">
                                                             {canViewPeople ? (
                                                                 <>
                                                                     {person.type === "instructor" ? (
                                                                         // <Tooltip content="สิทธิ์ของอาจารย์ประจำวิชาแก้ไขไม่ได้">
                                                                         //     <span className="text-slate-300 p-2">
-                                                                        //         <Icon icon="solar:lock-keyhole-bold" className="text-lg" />
+                                                                        //         <Icon icon="solar:lock-keyhole-bold" className="text-xl" />
                                                                         //     </span>
                                                                         // </Tooltip>
                                                                         <></>
@@ -704,13 +716,13 @@ export default function PeopleTab({
                                                                                 isDisabled={!isCourseActive}
                                                                                 onPress={() => openPermissionEditor(person)}
                                                                             >
-                                                                                <Icon icon="solar:settings-bold" className="text-lg" />
+                                                                                <Icon icon="solar:settings-bold" className="text-xl" />
                                                                             </Button>
                                                                         </Tooltip>
                                                                     ) : (
                                                                         <Tooltip content={userRole === "ta" && person.personId === currentUserId ? (isEnglish ? "Teaching assistants cannot edit their own permissions." : "ผู้ช่วยสอนไม่สามารถแก้สิทธิ์ของตัวเองได้") : (isEnglish ? "This account cannot edit course member permissions." : "บัญชีนี้ไม่มีสิทธิ์แก้ permission บุคลากร")}>
                                                                             <span className="p-2 text-default-300">
-                                                                                <Icon icon="solar:lock-keyhole-bold" className="text-lg" />
+                                                                                <Icon icon="solar:lock-keyhole-bold" className="text-xl" />
                                                                             </span>
                                                                         </Tooltip>
                                                                     )}
@@ -726,13 +738,13 @@ export default function PeopleTab({
                                                                                     isDisabled={!isCourseActive}
                                                                                     onPress={() => onRemoveInstructor(person.personId)}
                                                                                 >
-                                                                                    <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
+                                                                                    <Icon icon="solar:trash-bin-trash-bold" className="text-xl" />
                                                                                 </Button>
                                                                             </Tooltip>
                                                                         ) : (
                                                                             <Tooltip content={person.isPrimary ? (isEnglish ? "The lead instructor cannot be removed." : "อาจารย์เจ้าของวิชาไม่สามารถลบออกได้") : (isEnglish ? "You cannot remove yourself." : "ไม่สามารถลบตัวเองออกได้")}>
                                                                                 <span className="p-2 text-default-300">
-                                                                                    <Icon icon="solar:lock-keyhole-bold" className="text-lg" />
+                                                                                    <Icon icon="solar:lock-keyhole-bold" className="text-xl" />
                                                                                 </span>
                                                                             </Tooltip>
                                                                         )
@@ -746,13 +758,13 @@ export default function PeopleTab({
                                                                                 isDisabled={!isCourseActive}
                                                                                 onPress={() => onRemoveTA(person.personId)}
                                                                             >
-                                                                                <Icon icon="solar:trash-bin-trash-bold" className="text-lg" />
+                                                                                <Icon icon="solar:trash-bin-trash-bold" className="text-xl" />
                                                                             </Button>
                                                                         </Tooltip>
                                                                     ) : (
                                                                         // <Tooltip content={person.personId === currentUserId ? "ไม่สามารถลบตัวเองออกได้" : "บัญชีนี้ไม่มีสิทธิ์นำผู้ช่วยสอนออก"}>
                                                                         //     <span className="text-slate-300 p-2">
-                                                                        //         <Icon icon="solar:lock-keyhole-bold" className="text-lg" />
+                                                                        //         <Icon icon="solar:lock-keyhole-bold" className="text-xl" />
                                                                         //     </span>
                                                                         // </Tooltip>
                                                                         <></>
@@ -761,7 +773,7 @@ export default function PeopleTab({
                                                             ) : (
                                                                 <Tooltip content={isEnglish ? "This account cannot manage course people." : "บัญชีนี้ไม่มีสิทธิ์จัดการบุคลากร"}>
                                                                     <span className="p-2 text-default-300">
-                                                                        <Icon icon="solar:lock-keyhole-bold" className="text-lg" />
+                                                                        <Icon icon="solar:lock-keyhole-bold" className="text-xl" />
                                                                     </span>
                                                                 </Tooltip>
                                                             )}

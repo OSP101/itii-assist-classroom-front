@@ -22,6 +22,12 @@ import { Icon } from "@iconify/react";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import TablePaginationFooter from "@/components/ui/table-pagination-footer";
 import {
+    useHorizontalOverflow,
+    STICKY_SCROLL_CONTAINER_CLASS,
+    STICKY_ACTION_HEADER_CLASS,
+    STICKY_ACTION_CELL_CLASS,
+} from "./shared/stickyActionColumn";
+import {
   getTAStats,
   getTADetail,
   type TAStat,
@@ -815,6 +821,8 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
   const [data, setData] = useState<TAStatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedTA, setSelectedTA] = useState<TAStat | null>(null);
+  // Pin the actions column so it stays visible when the table scrolls sideways.
+  const { scrollRef, hasOverflow } = useHorizontalOverflow();
   const [sortField, setSortField] = useState<SortField>("total-work");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -1323,7 +1331,11 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                   ))}
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <div
+                  ref={scrollRef}
+                  data-overflow={hasOverflow ? "true" : "false"}
+                  className={STICKY_SCROLL_CONTAINER_CLASS}
+                >
                   <Table
                     aria-label="TA workload summary table"
                     removeWrapper
@@ -1340,7 +1352,7 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                       <TableColumn align="center">{isEnglish ? "Term share" : "สัดส่วนทั้งเทอม"}</TableColumn>
                       <TableColumn align="center">{isEnglish ? "Assignment coverage" : "ความครอบคลุมงาน"}</TableColumn>
                       <TableColumn align="center">{isEnglish ? "Evaluation" : "คะแนนประเมิน"}</TableColumn>
-                      <TableColumn align="center">{isEnglish ? "Action" : "การจัดการ"}</TableColumn>
+                      <TableColumn align="center" className={STICKY_ACTION_HEADER_CLASS}>{isEnglish ? "Action" : "การจัดการ"}</TableColumn>
                     </TableHeader>
                     <TableBody>
                       {sortedRows.map((row) => {
@@ -1426,7 +1438,7 @@ export default function TAStatsTab({ courseId }: TAStatsTabProps) {
                                 <span className="text-default-300">-</span>
                               )}
                             </TableCell>
-                            <TableCell className="text-center">
+                            <TableCell className={`${STICKY_ACTION_CELL_CLASS} text-center`}>
                               <Button
                                 size="sm"
                                 variant="flat"
