@@ -51,6 +51,7 @@ import {
     STICKY_ACTION_HEADER_CLASS,
     STICKY_ACTION_CELL_CLASS,
 } from "./shared/stickyActionColumn";
+import { RowActions, type RowAction } from "./shared/RowActions";
 
 // Types for the component
 interface Section {
@@ -1299,315 +1300,210 @@ export default function QueueTab({
                                                             </div>
                                                         </TableCell>
                                                         <TableCell className={STICKY_ACTION_CELL_CLASS}>
-                                                            <div className="flex items-center justify-center gap-1">
-                                                                {/* ปุ่มดูรีพอร์ต (ทุกสถานะ) */}
-                                                                <Tooltip content={localize("ดูรีพอร์ตคิว", "View queue report")}>
-                                                                    <Button
-                                                                        isIconOnly
-                                                                        size="sm"
-                                                                        variant="light"
-                                                                        color="secondary"
-                                                                        onPress={() => window.open(`/classroom/${course.id}/queue/${session.id}/report`, "_blank")}
-                                                                    >
-                                                                        <Icon icon="solar:chart-2-bold" className="text-xl" />
-                                                                    </Button>
-                                                                </Tooltip>
-                                                                {canCreateQueueSessions && (
-                                                                    <Tooltip content={localize("คัดลอกคิวนี้", "Duplicate this queue")}>
-                                                                        <Button
-                                                                            isIconOnly
-                                                                            size="sm"
-                                                                            variant="light"
-                                                                            color="default"
-                                                                            isDisabled={!isCourseActive}
-                                                                            onPress={() => handleDuplicateSession(session)}
-                                                                        >
-                                                                            <Icon icon="solar:copy-bold" className="text-xl" />
-                                                                        </Button>
-                                                                    </Tooltip>
-                                                                )}
-                                                                {/* Draft status: Start, Start Both, Edit, Delete */}
-                                                                {session.status === 'draft' && (
-                                                                    <>
-                                                                        {canUpdateQueueSessions && session.concurrent_partner && session.concurrent_partner.status === 'draft' && (
-                                                                            <Tooltip content={localize(`เริ่มทั้งคู่พร้อมกัน (${session.concurrent_partner.course_name})`, `Start both queues together (${session.concurrent_partner.course_name})`)}>
-                                                                                <Button
-                                                                                    isIconOnly
-                                                                                    size="sm"
-                                                                                    variant="flat"
-                                                                                    color="secondary"
-                                                                                    isDisabled={!isCourseActive || isSubmitting}
-                                                                                    onPress={() => handleStartBoth(session)}
-                                                                                >
-                                                                                    <Icon icon="solar:play-stream-bold" className="text-xl" />
-                                                                                </Button>
-                                                                            </Tooltip>
-                                                                        )}
-                                                                        {canUpdateQueueSessions && (
-                                                                            <Tooltip content={localize("เริ่มการจองคิว", "Start queue")}>
-                                                                                <Button
-                                                                                    isIconOnly
-                                                                                    size="sm"
-                                                                                    variant="light"
-                                                                                    color="success"
-                                                                                    isDisabled={!isCourseActive}
-                                                                                    onPress={() => handleOpenStartModal(session)}
-                                                                                >
-                                                                                    <Icon icon="solar:play-bold" className="text-xl" />
-                                                                                </Button>
-                                                                            </Tooltip>
-                                                                        )}
-                                                                        {canUpdateQueueSessions && (
-                                                                            <Tooltip content={localize("แก้ไข", "Edit")}>
-                                                                                <Button
-                                                                                    isIconOnly
-                                                                                    size="sm"
-                                                                                    variant="light"
-                                                                                    color="primary"
-                                                                                    isDisabled={!isCourseActive}
-                                                                                    onPress={() => handleOpenEditModal(session)}
-                                                                                >
-                                                                                    <Icon icon="solar:pen-bold" className="text-xl" />
-                                                                                </Button>
-                                                                            </Tooltip>
-                                                                        )}
-                                                                        {canDeleteQueueSessions && (
-                                                                            <Tooltip content={localize("ลบ", "Delete")} color="danger">
-                                                                                <Button
-                                                                                    isIconOnly
-                                                                                    size="sm"
-                                                                                    variant="light"
-                                                                                    color="danger"
-                                                                                    isDisabled={!isCourseActive}
-                                                                                    onPress={() => {
-                                                                                        setDeleteTarget(session);
-                                                                                        setIsDeleteModalOpen(true);
-                                                                                    }}
-                                                                                >
-                                                                                    <Icon icon="solar:trash-bin-trash-bold" className="text-xl" />
-                                                                                </Button>
-                                                                            </Tooltip>
-                                                                        )}
-                                                                    </>
-                                                                )}
-                                                                {/* Active status: Projector, Worker, Pause, Delete */}
-                                                                {session.status === 'active' && (() => {
-                                                                    const hasPending = (session.stats?.waiting || 0) > 0 || (session.stats?.in_progress || 0) > 0;
-                                                                    const deleteTooltip = hasPending
-                                                                        ? localize(
-                                                                            `ยังมีคิวค้างอยู่ (รอ ${session.stats?.waiting || 0} / กำลังตรวจ ${session.stats?.in_progress || 0})`,
-                                                                            `Pending bookings remain (waiting ${session.stats?.waiting || 0} / in progress ${session.stats?.in_progress || 0})`
-                                                                        )
-                                                                        : localize("ต้องหยุดรับคิวก่อนจึงจะลบได้", "Pause the queue before deleting it");
-                                                                    return (
-                                                                        <>
-                                                                            <Tooltip content={localize("เปิดหน้าจอโปรเจคเตอร์", "Open projector view")}>
-                                                                                <Button
-                                                                                    isIconOnly
-                                                                                    size="sm"
-                                                                                    variant="light"
-                                                                                    color="secondary"
-                                                                                    onPress={() => handleOpenProjector(session)}
-                                                                                >
-                                                                                    <Icon icon="solar:monitor-bold" className="text-xl" />
-                                                                                </Button>
-                                                                            </Tooltip>
-                                                                            {canManageQueueBookings && (
-                                                                                <Tooltip content={localize("เข้าหน้ารับคิว", "Open worker view")}>
-                                                                                    <Button
-                                                                                        isIconOnly
-                                                                                        size="sm"
-                                                                                        variant="light"
-                                                                                        color="primary"
-                                                                                        onPress={() => handleGoToWorker(session)}
-                                                                                    >
-                                                                                        <Icon icon="solar:user-check-bold" className="text-xl" />
-                                                                                    </Button>
-                                                                                </Tooltip>
-                                                                            )}
-                                                                            {canUpdateQueueSessions && (
-                                                                                <Tooltip content={localize("หยุดรับคิว", "Pause queue")}>
-                                                                                    <Button
-                                                                                        isIconOnly
-                                                                                        size="sm"
-                                                                                        variant="light"
-                                                                                        color="warning"
-                                                                                        isDisabled={!isCourseActive}
-                                                                                        onPress={() => handleOpenPauseModal(session, 'paused')}
-                                                                                    >
-                                                                                        <Icon icon="solar:pause-bold" className="text-xl" />
-                                                                                    </Button>
-                                                                                </Tooltip>
-                                                                            )}
-                                                                            <Tooltip content={deleteTooltip} color="danger">
-                                                                                <span>
-                                                                                    <Button
-                                                                                        isIconOnly
-                                                                                        size="sm"
-                                                                                        variant="light"
-                                                                                        color="danger"
-                                                                                        isDisabled
-                                                                                    >
-                                                                                        <Icon icon="solar:trash-bin-trash-bold" className="text-xl" />
-                                                                                    </Button>
-                                                                                </span>
-                                                                            </Tooltip>
-                                                                        </>
-                                                                    );
-                                                                })()}
-                                                                {/* Paused status: Projector, Worker, Resume, Delete */}
-                                                                {session.status === 'paused' && (() => {
-                                                                    const hasPending = (session.stats?.waiting || 0) > 0 || (session.stats?.in_progress || 0) > 0;
-                                                                    return (
-                                                                        <>
-                                                                            <Tooltip content={localize("เปิดหน้าจอโปรเจคเตอร์", "Open projector view")}>
-                                                                                <Button
-                                                                                    isIconOnly
-                                                                                    size="sm"
-                                                                                    variant="light"
-                                                                                    color="secondary"
-                                                                                    onPress={() => handleOpenProjector(session)}
-                                                                                >
-                                                                                    <Icon icon="solar:monitor-bold" className="text-xl" />
-                                                                                </Button>
-                                                                            </Tooltip>
-                                                                            {canManageQueueBookings && (
-                                                                                <Tooltip content={localize("เข้าหน้ารับคิว", "Open worker view")}>
-                                                                                    <Button
-                                                                                        isIconOnly
-                                                                                        size="sm"
-                                                                                        variant="light"
-                                                                                        color="primary"
-                                                                                        onPress={() => handleGoToWorker(session)}
-                                                                                    >
-                                                                                        <Icon icon="solar:user-check-bold" className="text-xl" />
-                                                                                    </Button>
-                                                                                </Tooltip>
-                                                                            )}
-                                                                            {canUpdateQueueSessions && (
-                                                                                <Tooltip content={localize("เปิดรับคิว", "Resume queue")}>
-                                                                                    <Button
-                                                                                        isIconOnly
-                                                                                        size="sm"
-                                                                                        variant="light"
-                                                                                        color="success"
-                                                                                        isDisabled={!isCourseActive}
-                                                                                        onPress={() => handleOpenPauseModal(session, 'active')}
-                                                                                    >
-                                                                                        <Icon icon="solar:play-bold" className="text-xl" />
-                                                                                    </Button>
-                                                                                </Tooltip>
-                                                                            )}
-                                                                            {canDeleteQueueSessions && (
-                                                                                <Tooltip
-                                                                                    content={hasPending
-                                                                                        ? localize(
-                                                                                            `ยังมีคิวค้างอยู่ (รอ ${session.stats?.waiting || 0} / กำลังตรวจ ${session.stats?.in_progress || 0})`,
-                                                                                            `Pending bookings remain (waiting ${session.stats?.waiting || 0} / in progress ${session.stats?.in_progress || 0})`
-                                                                                        )
-                                                                                        : localize("ลบ", "Delete")
-                                                                                    }
-                                                                                    color={hasPending ? "warning" : "danger"}
-                                                                                >
-                                                                                    <span>
-                                                                                        <Button
-                                                                                            isIconOnly
-                                                                                            size="sm"
-                                                                                            variant="light"
-                                                                                            color="danger"
-                                                                                            isDisabled={hasPending || !isCourseActive}
-                                                                                            onPress={() => {
-                                                                                                if (!hasPending) {
-                                                                                                    setDeleteTarget(session);
-                                                                                                    setIsDeleteModalOpen(true);
-                                                                                                }
-                                                                                            }}
-                                                                                        >
-                                                                                            <Icon icon="solar:trash-bin-trash-bold" className="text-xl" />
-                                                                                        </Button>
-                                                                                    </span>
-                                                                                </Tooltip>
-                                                                            )}
-                                                                        </>
-                                                                    );
-                                                                })()}
-                                                                {session.status === 'closed' && (
-                                                                    <>
-                                                                        {canUpdateQueueSessions && (
-                                                                            <Tooltip content={localize("แก้ไขชื่อ", "Edit title")}>
-                                                                                <Button
-                                                                                    isIconOnly
-                                                                                    size="sm"
-                                                                                    variant="light"
-                                                                                    color="primary"
-                                                                                    isDisabled={!isCourseActive}
-                                                                                    onPress={() => handleOpenEditModal(session)}
-                                                                                >
-                                                                                    <Icon icon="solar:pen-bold" className="text-xl" />
-                                                                                </Button>
-                                                                            </Tooltip>
-                                                                        )}
-                                                                        <Chip size="sm" variant="flat" className="bg-content3 text-default-500">{localize("ปิดแล้ว", "Closed")}</Chip>
-                                                                        {canDeleteQueueSessions && (
-                                                                            <Tooltip content={localize("ลบ", "Delete")} color="danger">
-                                                                                <Button
-                                                                                    isIconOnly
-                                                                                    size="sm"
-                                                                                    variant="light"
-                                                                                    color="danger"
-                                                                                    isDisabled={!isCourseActive}
-                                                                                    onPress={() => {
-                                                                                        setDeleteTarget(session);
-                                                                                        setIsDeleteModalOpen(true);
-                                                                                    }}
-                                                                                >
-                                                                                    <Icon icon="solar:trash-bin-trash-bold" className="text-xl" />
-                                                                                </Button>
-                                                                            </Tooltip>
-                                                                        )}
-                                                                    </>
-                                                                )}
-                                                                {/* Concurrent group: link/unlink button */}
-                                                                {canUpdateQueueSessions && session.status !== 'closed' && (() => {
-                                                                    const isGrouped = Boolean(session.concurrent_group_id);
-                                                                    if (isGrouped) {
-                                                                        return (
-                                                                            <Tooltip content={localize("ถอดการเชื่อมคิวคู่", "Unlink concurrent queues")}>
-                                                                                <Button
-                                                                                    isIconOnly
-                                                                                    size="sm"
-                                                                                    variant="flat"
-                                                                                    color="secondary"
-                                                                                    isDisabled={!isCourseActive}
-                                                                                    onPress={() => {
-                                                                                        setUnlinkTarget(session);
-                                                                                        setIsUnlinkModalOpen(true);
-                                                                                    }}
-                                                                                >
-                                                                                    <Icon icon="solar:link-broken-bold" className="text-xl" />
-                                                                                </Button>
-                                                                            </Tooltip>
-                                                                        );
+                                                            {(() => {
+                                                                const reportAction: RowAction = {
+                                                                    key: "report",
+                                                                    label: localize("ดูรีพอร์ตคิว", "View queue report"),
+                                                                    icon: "solar:chart-2-bold",
+                                                                    color: "secondary",
+                                                                    href: `/classroom/${course.id}/queue/${session.id}/report`,
+                                                                    target: "_blank",
+                                                                };
+                                                                const duplicateAction: RowAction | null = canCreateQueueSessions
+                                                                    ? {
+                                                                        key: "duplicate",
+                                                                        label: localize("คัดลอกคิวนี้", "Duplicate this queue"),
+                                                                        icon: "solar:copy-bold",
+                                                                        isDisabled: !isCourseActive,
+                                                                        onPress: () => handleDuplicateSession(session),
                                                                     }
-                                                                    return (
-                                                                        <Tooltip content={localize("เชื่อมคิวพร้อมกัน", "Link concurrent queues")}>
-                                                                            <Button
-                                                                                isIconOnly
-                                                                                size="sm"
-                                                                                variant="flat"
-                                                                                color="primary"
-                                                                                isDisabled={!isCourseActive}
-                                                                                onPress={() => {
-                                                                                    setLinkTarget(session);
-                                                                                    setIsLinkModalOpen(true);
-                                                                                }}
-                                                                            >
-                                                                                <Icon icon="solar:link-bold" className="text-xl" />
-                                                                            </Button>
-                                                                        </Tooltip>
-                                                                    );
-                                                                })()}
-                                                            </div>
+                                                                    : null;
+                                                                const linkAction: RowAction | null =
+                                                                    canUpdateQueueSessions && session.status !== "closed"
+                                                                        ? session.concurrent_group_id
+                                                                            ? {
+                                                                                key: "unlink",
+                                                                                label: localize("ถอดการเชื่อมคิวคู่", "Unlink concurrent queues"),
+                                                                                icon: "solar:link-broken-bold",
+                                                                                color: "secondary",
+                                                                                isDisabled: !isCourseActive,
+                                                                                onPress: () => { setUnlinkTarget(session); setIsUnlinkModalOpen(true); },
+                                                                            }
+                                                                            : {
+                                                                                key: "link",
+                                                                                label: localize("เชื่อมคิวพร้อมกัน", "Link concurrent queues"),
+                                                                                icon: "solar:link-bold",
+                                                                                color: "primary",
+                                                                                isDisabled: !isCourseActive,
+                                                                                onPress: () => { setLinkTarget(session); setIsLinkModalOpen(true); },
+                                                                            }
+                                                                        : null;
+
+                                                                const primary: RowAction[] = [];
+                                                                const menu: RowAction[] = [];
+
+                                                                if (session.status === "draft") {
+                                                                    if (canUpdateQueueSessions && session.concurrent_partner && session.concurrent_partner.status === "draft") {
+                                                                        primary.push({
+                                                                            key: "start-both",
+                                                                            label: localize(`เริ่มทั้งคู่พร้อมกัน (${session.concurrent_partner.course_name})`, `Start both queues together (${session.concurrent_partner.course_name})`),
+                                                                            icon: "solar:play-stream-bold",
+                                                                            color: "secondary",
+                                                                            isDisabled: !isCourseActive || isSubmitting,
+                                                                            onPress: () => handleStartBoth(session),
+                                                                        });
+                                                                    }
+                                                                    if (canUpdateQueueSessions) {
+                                                                        primary.push({
+                                                                            key: "start",
+                                                                            label: localize("เริ่มการจองคิว", "Start queue"),
+                                                                            icon: "solar:play-bold",
+                                                                            color: "success",
+                                                                            isDisabled: !isCourseActive,
+                                                                            onPress: () => handleOpenStartModal(session),
+                                                                        });
+                                                                    }
+                                                                    menu.push(reportAction);
+                                                                    if (duplicateAction) menu.push(duplicateAction);
+                                                                    if (canUpdateQueueSessions) {
+                                                                        menu.push({
+                                                                            key: "edit",
+                                                                            label: localize("แก้ไข", "Edit"),
+                                                                            icon: "solar:pen-bold",
+                                                                            isDisabled: !isCourseActive,
+                                                                            onPress: () => handleOpenEditModal(session),
+                                                                        });
+                                                                    }
+                                                                    if (canDeleteQueueSessions) {
+                                                                        menu.push({
+                                                                            key: "delete",
+                                                                            label: localize("ลบ", "Delete"),
+                                                                            icon: "solar:trash-bin-trash-bold",
+                                                                            color: "danger",
+                                                                            isDisabled: !isCourseActive,
+                                                                            onPress: () => { setDeleteTarget(session); setIsDeleteModalOpen(true); },
+                                                                        });
+                                                                    }
+                                                                    if (linkAction) menu.push(linkAction);
+                                                                } else if (session.status === "active") {
+                                                                    const hasPending = (session.stats?.waiting || 0) > 0 || (session.stats?.in_progress || 0) > 0;
+                                                                    const deleteReason = hasPending
+                                                                        ? localize(`ยังมีคิวค้างอยู่ (รอ ${session.stats?.waiting || 0} / กำลังตรวจ ${session.stats?.in_progress || 0})`, `Pending bookings remain (waiting ${session.stats?.waiting || 0} / in progress ${session.stats?.in_progress || 0})`)
+                                                                        : localize("ต้องหยุดรับคิวก่อนจึงจะลบได้", "Pause the queue before deleting it");
+                                                                    primary.push({
+                                                                        key: "projector",
+                                                                        label: localize("เปิดหน้าจอโปรเจคเตอร์", "Open projector view"),
+                                                                        icon: "solar:monitor-bold",
+                                                                        color: "secondary",
+                                                                        onPress: () => handleOpenProjector(session),
+                                                                    });
+                                                                    if (canManageQueueBookings) {
+                                                                        primary.push({
+                                                                            key: "worker",
+                                                                            label: localize("เข้าหน้ารับคิว", "Open worker view"),
+                                                                            icon: "solar:user-check-bold",
+                                                                            color: "primary",
+                                                                            onPress: () => handleGoToWorker(session),
+                                                                        });
+                                                                    }
+                                                                    menu.push(reportAction);
+                                                                    if (canUpdateQueueSessions) {
+                                                                        menu.push({
+                                                                            key: "pause",
+                                                                            label: localize("หยุดรับคิว", "Pause queue"),
+                                                                            icon: "solar:pause-bold",
+                                                                            color: "warning",
+                                                                            isDisabled: !isCourseActive,
+                                                                            onPress: () => handleOpenPauseModal(session, "paused"),
+                                                                        });
+                                                                    }
+                                                                    if (duplicateAction) menu.push(duplicateAction);
+                                                                    menu.push({
+                                                                        key: "delete",
+                                                                        label: localize("ลบ", "Delete"),
+                                                                        icon: "solar:trash-bin-trash-bold",
+                                                                        color: "danger",
+                                                                        isDisabled: true,
+                                                                        description: deleteReason,
+                                                                    });
+                                                                    if (linkAction) menu.push(linkAction);
+                                                                } else if (session.status === "paused") {
+                                                                    const hasPending = (session.stats?.waiting || 0) > 0 || (session.stats?.in_progress || 0) > 0;
+                                                                    primary.push({
+                                                                        key: "projector",
+                                                                        label: localize("เปิดหน้าจอโปรเจคเตอร์", "Open projector view"),
+                                                                        icon: "solar:monitor-bold",
+                                                                        color: "secondary",
+                                                                        onPress: () => handleOpenProjector(session),
+                                                                    });
+                                                                    if (canManageQueueBookings) {
+                                                                        primary.push({
+                                                                            key: "worker",
+                                                                            label: localize("เข้าหน้ารับคิว", "Open worker view"),
+                                                                            icon: "solar:user-check-bold",
+                                                                            color: "primary",
+                                                                            onPress: () => handleGoToWorker(session),
+                                                                        });
+                                                                    }
+                                                                    if (canUpdateQueueSessions) {
+                                                                        primary.push({
+                                                                            key: "resume",
+                                                                            label: localize("เปิดรับคิว", "Resume queue"),
+                                                                            icon: "solar:play-bold",
+                                                                            color: "success",
+                                                                            isDisabled: !isCourseActive,
+                                                                            onPress: () => handleOpenPauseModal(session, "active"),
+                                                                        });
+                                                                    }
+                                                                    menu.push(reportAction);
+                                                                    if (duplicateAction) menu.push(duplicateAction);
+                                                                    if (canDeleteQueueSessions) {
+                                                                        menu.push({
+                                                                            key: "delete",
+                                                                            label: localize("ลบ", "Delete"),
+                                                                            icon: "solar:trash-bin-trash-bold",
+                                                                            color: "danger",
+                                                                            isDisabled: hasPending || !isCourseActive,
+                                                                            description: hasPending
+                                                                                ? localize(`ยังมีคิวค้างอยู่ (รอ ${session.stats?.waiting || 0} / กำลังตรวจ ${session.stats?.in_progress || 0})`, `Pending bookings remain (waiting ${session.stats?.waiting || 0} / in progress ${session.stats?.in_progress || 0})`)
+                                                                                : undefined,
+                                                                            onPress: () => { setDeleteTarget(session); setIsDeleteModalOpen(true); },
+                                                                        });
+                                                                    }
+                                                                    if (linkAction) menu.push(linkAction);
+                                                                } else {
+                                                                    // closed — no running actions apply, so the report is the primary one.
+                                                                    primary.push(reportAction);
+                                                                    if (canUpdateQueueSessions) {
+                                                                        menu.push({
+                                                                            key: "edit",
+                                                                            label: localize("แก้ไขชื่อ", "Edit title"),
+                                                                            icon: "solar:pen-bold",
+                                                                            isDisabled: !isCourseActive,
+                                                                            onPress: () => handleOpenEditModal(session),
+                                                                        });
+                                                                    }
+                                                                    if (duplicateAction) menu.push(duplicateAction);
+                                                                    if (canDeleteQueueSessions) {
+                                                                        menu.push({
+                                                                            key: "delete",
+                                                                            label: localize("ลบ", "Delete"),
+                                                                            icon: "solar:trash-bin-trash-bold",
+                                                                            color: "danger",
+                                                                            isDisabled: !isCourseActive,
+                                                                            onPress: () => { setDeleteTarget(session); setIsDeleteModalOpen(true); },
+                                                                        });
+                                                                    }
+                                                                }
+
+                                                                return (
+                                                                    <RowActions
+                                                                        primary={primary}
+                                                                        menu={menu}
+                                                                        menuLabel={localize("จัดการเพิ่มเติม", "More actions")}
+                                                                    />
+                                                                );
+                                                            })()}
                                                         </TableCell>
                                                     </TableRow>
                                                 ))}

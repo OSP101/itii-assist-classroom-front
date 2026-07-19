@@ -6,7 +6,6 @@
 "use client";
 
 import React, { memo, Suspense, lazy, useEffect, useState, useMemo } from "react";
-import Link from "next/link";
 import { Card, CardBody } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
@@ -43,6 +42,7 @@ import {
     STICKY_ACTION_HEADER_CLASS,
     STICKY_ACTION_CELL_CLASS,
 } from "../../shared/stickyActionColumn";
+import { RowActions, type RowAction } from "../../shared/RowActions";
 
 import {
     type SessionWithComputedStatus,
@@ -599,192 +599,117 @@ const SessionRowActions = memo(function SessionRowActions({
     const { language } = useGlobalSettings();
     const isEnglish = language === "en";
 
+    const view: RowAction = {
+        key: "view",
+        label: isEnglish ? "Open attendance page" : "ดูหน้าเช็คชื่อ",
+        icon: "solar:eye-bold",
+        href: `/attendance/${courseId}/session/${session.id}/live`,
+        iconClassName: "text-blue-600",
+    };
+    const summary: RowAction = {
+        key: "summary",
+        label: isEnglish ? "View summary" : "ดูสรุป",
+        icon: "solar:chart-bold",
+        href: `/classroom/${courseId}/attendance/${session.id}/summary`,
+    };
+    const projector: RowAction = {
+        key: "projector",
+        label: isEnglish ? "Connect projector display" : "เชื่อมต่อหน้าจอฉาย",
+        icon: "solar:camera-minimalistic-bold-duotone",
+        onPress: () => onScanProjector?.(session),
+    };
+
+    let primary: RowAction[] = [];
+    const menu: RowAction[] = [];
+
     if (session.status === "draft") {
-        return (
-            <>
-                <Tooltip content={isEnglish ? "View QR/PIN" : "ดู QR/PIN"}>
-                    <Button
-                        isIconOnly
-                        size="sm"
-                        variant="light"
-                        color="secondary"
-                        onPress={() => onShowQR?.(session)}
-                    >
-                        <Icon icon="solar:qr-code-bold" className="text-xl" />
-                    </Button>
-                </Tooltip>
-                <Tooltip content={isEnglish ? "Connect projector display" : "เชื่อมต่อหน้าจอฉาย"}>
-                    <Button
-                        isIconOnly
-                        size="sm"
-                        variant="light"
-                        color="primary"
-                        onPress={() => onScanProjector?.(session)}
-                    >
-                        <Icon icon="solar:camera-minimalistic-bold-duotone" className="text-xl" />
-                    </Button>
-                </Tooltip>
-                {canUpdateAttendanceSessions && (
-                    <Tooltip content={isEnglish ? "Open now" : "เริ่มเปิดเช็คชื่อทันที"}>
-                        <Button
-                            isIconOnly
-                            size="sm"
-                            variant="light"
-                            color="success"
-                            isDisabled={!isCourseActive}
-                            onPress={() => onActivate(session)}
-                        >
-                            <Icon icon="solar:play-bold" className="text-xl" />
-                        </Button>
-                    </Tooltip>
-                )}
-                {canUpdateAttendanceSessions && (
-                    <Tooltip content={isEnglish ? "Edit" : "แก้ไข"}>
-                        <Button
-                            isIconOnly
-                            size="sm"
-                            variant="light"
-                            color="primary"
-                            isDisabled={!isCourseActive}
-                            onPress={() => onEdit(session)}
-                        >
-                            <Icon icon="solar:pen-bold" className="text-xl" />
-                        </Button>
-                    </Tooltip>
-                )}
-                {canDeleteAttendanceSessions && (
-                    <Tooltip content={isEnglish ? "Delete" : "ลบ"} color="danger">
-                        <Button
-                            isIconOnly
-                            size="sm"
-                            variant="light"
-                            color="danger"
-                            isDisabled={!isCourseActive}
-                            onPress={() => onDelete(session)}
-                        >
-                            <Icon icon="solar:trash-bin-trash-bold" className="text-xl" />
-                        </Button>
-                    </Tooltip>
-                )}
-            </>
-        );
+        // A draft has no live page or summary yet — opening it is the main action.
+        if (canUpdateAttendanceSessions) {
+            primary.push({
+                key: "open-now",
+                label: isEnglish ? "Open now" : "เริ่มเปิดเช็คชื่อทันที",
+                icon: "solar:play-bold",
+                color: "success",
+                isDisabled: !isCourseActive,
+                onPress: () => onActivate(session),
+            });
+        }
+        menu.push({
+            key: "qr",
+            label: isEnglish ? "View QR/PIN" : "ดู QR/PIN",
+            icon: "solar:qr-code-bold",
+            onPress: () => onShowQR?.(session),
+        });
+        menu.push(projector);
+        if (canUpdateAttendanceSessions) {
+            menu.push({
+                key: "edit",
+                label: isEnglish ? "Edit" : "แก้ไข",
+                icon: "solar:pen-bold",
+                isDisabled: !isCourseActive,
+                onPress: () => onEdit(session),
+            });
+        }
+        if (canDeleteAttendanceSessions) {
+            menu.push({
+                key: "delete",
+                label: isEnglish ? "Delete" : "ลบ",
+                icon: "solar:trash-bin-trash-bold",
+                color: "danger",
+                isDisabled: !isCourseActive,
+                onPress: () => onDelete(session),
+            });
+        }
+    } else if (session.status === "active") {
+        primary = [view, summary];
+        menu.push(projector);
+        if (canUpdateAttendanceSessions) {
+            menu.push({
+                key: "edit",
+                label: isEnglish ? "Edit time" : "แก้ไขเวลา",
+                icon: "solar:pen-bold",
+                isDisabled: !isCourseActive,
+                onPress: () => onEdit(session),
+            });
+            menu.push({
+                key: "close",
+                label: isEnglish ? "Close now" : "ปิดทันที",
+                icon: "solar:stop-bold",
+                color: "danger",
+                isDisabled: !isCourseActive,
+                onPress: () => onClose(session),
+            });
+        }
+    } else {
+        // closed
+        primary = [view, summary];
+        if (canUpdateAttendanceSessions) {
+            menu.push({
+                key: "edit",
+                label: isEnglish ? "Edit title" : "แก้ไขชื่อ",
+                icon: "solar:pen-bold",
+                isDisabled: !isCourseActive,
+                onPress: () => onEdit(session),
+            });
+        }
+        if (canDeleteAttendanceSessions) {
+            menu.push({
+                key: "delete",
+                label: isEnglish ? "Delete" : "ลบ",
+                icon: "solar:trash-bin-trash-bold",
+                color: "danger",
+                isDisabled: !isCourseActive,
+                onPress: () => onDelete(session),
+            });
+        }
     }
 
-    if (session.status === "active") {
-        return (
-            <>
-                <Tooltip content={isEnglish ? "Open attendance page" : "ดูหน้าเช็คชื่อ"}>
-                    <Link
-                        className="inline-flex items-center justify-center rounded-lg p-2 hover:bg-content2"
-                        href={`/attendance/${courseId}/session/${session.id}/live`}
-                        target="_blank"
-                    >
-                        <Icon icon="solar:eye-bold" className="text-xl text-blue-600" />
-                    </Link>
-                </Tooltip>
-                <Tooltip content={isEnglish ? "Connect projector display" : "เชื่อมต่อหน้าจอฉาย"}>
-                    <Button
-                        isIconOnly
-                        size="sm"
-                        variant="light"
-                        color="primary"
-                        onPress={() => onScanProjector?.(session)}
-                    >
-                        <Icon icon="solar:camera-minimalistic-bold-duotone" className="text-xl" />
-                    </Button>
-                </Tooltip>
-                <Tooltip content={isEnglish ? "View summary" : "ดูสรุป"}>
-                    <Link
-                        className="inline-flex items-center justify-center rounded-lg p-2 hover:bg-content2"
-                        href={`/classroom/${courseId}/attendance/${session.id}/summary`}
-                        target="_blank"
-                    >
-                        <Icon icon="solar:chart-bold" className="text-xl" />
-                    </Link>
-                </Tooltip>
-                {canUpdateAttendanceSessions && (
-                    <Tooltip content={isEnglish ? "Edit time" : "แก้ไขเวลา"}>
-                        <Button
-                            isIconOnly
-                            size="sm"
-                            variant="light"
-                            color="primary"
-                            isDisabled={!isCourseActive}
-                            onPress={() => onEdit(session)}
-                        >
-                            <Icon icon="solar:pen-bold" className="text-xl" />
-                        </Button>
-                    </Tooltip>
-                )}
-                {canUpdateAttendanceSessions && (
-                    <Tooltip content={isEnglish ? "Close now" : "ปิดทันที"} color="danger">
-                        <Button
-                            isIconOnly
-                            size="sm"
-                            variant="light"
-                            color="danger"
-                            isDisabled={!isCourseActive}
-                            onPress={() => onClose(session)}
-                        >
-                            <Icon icon="solar:stop-bold" className="text-xl" />
-                        </Button>
-                    </Tooltip>
-                )}
-            </>
-        );
-    }
-
-    // closed status
     return (
-        <>
-            <Tooltip content={isEnglish ? "Open attendance page" : "ดูหน้าเช็คชื่อ"}>
-                <Link
-                    className="inline-flex items-center justify-center rounded-lg p-2 hover:bg-content2"
-                    href={`/attendance/${courseId}/session/${session.id}/live`}
-                    target="_blank"
-                >
-                    <Icon icon="solar:eye-bold" className="text-xl" />
-                </Link>
-            </Tooltip>
-            <Tooltip content={isEnglish ? "View summary" : "ดูสรุป"}>
-                <Link
-                    className="inline-flex items-center justify-center rounded-lg p-2 hover:bg-content2"
-                    href={`/classroom/${courseId}/attendance/${session.id}/summary`}
-                    target="_blank"
-                >
-                    <Icon icon="solar:chart-bold" className="text-xl" />
-                </Link>
-            </Tooltip>
-            {canUpdateAttendanceSessions && (
-                <Tooltip content={isEnglish ? "Edit title" : "แก้ไขชื่อ"}>
-                    <Button
-                        isIconOnly
-                        size="sm"
-                        variant="light"
-                        color="primary"
-                        isDisabled={!isCourseActive}
-                        onPress={() => onEdit(session)}
-                    >
-                        <Icon icon="solar:pen-bold" className="text-xl" />
-                    </Button>
-                </Tooltip>
-            )}
-
-            {canDeleteAttendanceSessions && (
-                <Tooltip content={isEnglish ? "Delete" : "ลบ"} color="danger">
-                    <Button
-                        isIconOnly
-                        size="sm"
-                        variant="light"
-                        color="danger"
-                        isDisabled={!isCourseActive}
-                        onPress={() => onDelete(session)}
-                    >
-                        <Icon icon="solar:trash-bin-trash-bold" className="text-xl" />
-                    </Button>
-                </Tooltip>
-            )}
-        </>
+        <RowActions
+            primary={primary}
+            menu={menu}
+            menuLabel={isEnglish ? "More actions" : "จัดการเพิ่มเติม"}
+        />
     );
 });
 
