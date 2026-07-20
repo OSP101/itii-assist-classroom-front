@@ -494,34 +494,6 @@ export const supportPriorityOptions = [
 export const platformReferenceLinks: ExternalReferenceLink[] = [
   ...(statusProviderReference ? [statusProviderReference] : []),
   {
-    provider: "Cloudflare",
-    title: "Cloudflare Support Center",
-    href: "https://www.support.cloudflare.com/s/?language=en_US",
-    category: "support",
-    description: "คลังความช่วยเหลือสำหรับ edge, networking, performance, และ security",
-  },
-  {
-    provider: "Cloudflare",
-    title: "Cloudflare Status",
-    href: "https://www.cloudflarestatus.com/",
-    category: "status",
-    description: "แดชบอร์ดสถานะสาธารณะของบริการ Cloudflare",
-  },
-  {
-    provider: "Cloudflare",
-    title: "Cloudflare Privacy Policy",
-    href: "https://www.cloudflare.com/privacypolicy/",
-    category: "policy",
-    description: "แนวทางอ้างอิงการสื่อสารนโยบายความเป็นส่วนตัวสำหรับบริการอินเทอร์เน็ต",
-  },
-  {
-    provider: "Cloudflare",
-    title: "Cloudflare Website Terms",
-    href: "https://www.cloudflare.com/website-terms/",
-    category: "policy",
-    description: "ตัวอย่างโครงสร้างข้อกำหนดการใช้งานสำหรับบริการเว็บสาธารณะ",
-  },
-  {
     provider: "GitHub",
     title: "GitHub Docs",
     href: "https://docs.github.com/en",

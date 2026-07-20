@@ -134,7 +134,6 @@ function getStatusPageCopy(language: 'th' | 'en') {
                 'The operations team maintains an internal dashboard with deeper metrics, logs, and root-cause analysis than this public page.',
             ],
             referenceDescriptions: {
-                'https://www.cloudflarestatus.com/': 'Public status dashboard for Cloudflare services.',
                 'https://www.githubstatus.com/': 'Public status dashboard for GitHub services and related integrations.',
             } as Record<string, string>,
         };

@@ -54,7 +54,6 @@
     "@heroui/user": "2.2.23",
     "@iconify-json/solar": "^1.2.5",
     "@iconify/react": "^6.0.2",
-    "@marsidev/react-turnstile": "^1.4.0",
     "@react-aria/ssr": "3.9.10",
     "@react-aria/visually-hidden": "3.8.28",
     "@react-pdf/renderer": "^4.5.1",
@@ -82,7 +81,6 @@
     "react-leaflet": "^5.0.0",
     "react-markdown": "^10.1.0",
     "react-qr-code": "^2.0.18",
-    "react-turnstile": "^1.1.4",
     "recharts": "^3.8.1",
     "remark-gfm": "^4.0.1"
   },

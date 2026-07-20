@@ -95,8 +95,6 @@ function getPrivacyPageCopy(language: 'th' | 'en') {
                 'https://www.etda.or.th/th/Useful-Resource/law/computer-crimes.aspx': 'Computer crime law resources',
             } as Record<string, string>,
             referenceDescriptions: {
-                'https://www.cloudflare.com/privacypolicy/': 'Reference privacy notice for an infrastructure provider that may support internet-facing services.',
-                'https://www.cloudflare.com/website-terms/': 'Example terms language for public web services.',
                 'https://docs.github.com/en/site-policy/github-terms/github-terms-of-service': 'Example language covering user rights, prohibited behavior, and responsibility boundaries.',
                 'https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement': 'Example language for account data and platform-level data processing.',
                 'https://gppc.pdpc.or.th/': 'Government reference for Thai personal data protection compliance.',
