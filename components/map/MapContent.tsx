@@ -3,20 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import { fixLeafletDefaultIcon } from '@/components/map/leafletDefaultIcon';
 
-// Fix for default marker icon in Leaflet with Next.js — bundle assets locally
-// (no external CDN) so markers work offline and without third-party hosts.
-if (typeof window !== 'undefined') {
-    delete (L.Icon.Default.prototype as any)._getIconUrl;
-    L.Icon.Default.mergeOptions({
-        iconRetinaUrl: markerIcon2x.src,
-        iconUrl: markerIcon.src,
-        shadowUrl: markerShadow.src,
-    });
-}
+// Set Leaflet's default marker icon (inlined data URIs — see the module).
+fixLeafletDefaultIcon();
 
 interface MapContentProps {
     latitude?: number;
