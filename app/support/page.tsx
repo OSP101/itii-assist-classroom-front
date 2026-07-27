@@ -91,7 +91,7 @@ export default async function SupportPage() {
             actions={
                 <>
                     <Link
-                        href="/manual"
+                        href="/docs/handbook/index.html"
                         target="_blank"
                         rel="noopener"
                         className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-900/40 transition hover:bg-blue-400"

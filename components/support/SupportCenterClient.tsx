@@ -38,7 +38,7 @@ interface SupportCenterClientProps {
 type RoleKey = 'all' | 'student' | 'instructor' | 'ta' | 'admin';
 
 /** Illustrated manual (LabTAS v1.2.90) — deep links to the static site under /manual. */
-const MANUAL_ROOT = '/manual';
+const MANUAL_ROOT = '/docs/handbook';
 
 interface ManualChapterLink {
     roleKey: Exclude<RoleKey, 'all'>;
@@ -79,10 +79,14 @@ const MANUAL_ROLE_CHAPTERS: ManualChapterLink[] = [
     },
 ];
 
+/** Root entrypoint — Next.js redirects `/docs/handbook` to the index.html so
+ * relative asset paths in the static site resolve correctly. */
+const MANUAL_INDEX = `${MANUAL_ROOT}/index.html`;
+
 function getManualHrefForRole(roleKey: RoleKey): string {
-    if (roleKey === 'all') return MANUAL_ROOT;
+    if (roleKey === 'all') return MANUAL_INDEX;
     const found = MANUAL_ROLE_CHAPTERS.find((c) => c.roleKey === roleKey);
-    return found ? found.href : MANUAL_ROOT;
+    return found ? found.href : MANUAL_INDEX;
 }
 
 interface SearchResult {
@@ -502,7 +506,7 @@ export function SupportCenterClient({ docs }: SupportCenterClientProps) {
 
                             <div className="mt-5 flex flex-wrap gap-2">
                                 <Link
-                                    href={MANUAL_ROOT}
+                                    href={MANUAL_INDEX}
                                     target="_blank"
                                     rel="noopener"
                                     className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"

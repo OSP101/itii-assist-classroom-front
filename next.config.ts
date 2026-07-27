@@ -28,10 +28,16 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  async rewrites() {
+  async redirects() {
     return [
-      { source: "/manual", destination: "/manual/index.html" },
-      { source: "/manual/", destination: "/manual/index.html" },
+      // Serve the illustrated LabTAS handbook — /docs/handbook is prettier,
+      // but the static HTML uses relative asset paths so we redirect to the
+      // real index.html URL so `assets/*` and `ch*.html` resolve correctly.
+      { source: "/docs/handbook", destination: "/docs/handbook/index.html", permanent: false },
+      { source: "/docs/handbook/", destination: "/docs/handbook/index.html", permanent: false },
+      // Legacy path from the initial deploy — keep working for any cached link.
+      { source: "/manual", destination: "/docs/handbook/index.html", permanent: false },
+      { source: "/manual/:path*", destination: "/docs/handbook/:path*", permanent: false },
     ];
   },
 };
