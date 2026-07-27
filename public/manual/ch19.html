@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>บทที่ 19 การใช้งานสำหรับนักศึกษา (Student) — คู่มือ LabTAS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="top">
+  <button class="burger" onclick="document.body.classList.toggle('nav-open')" aria-label="เมนู">
+    <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3h14v2H1zm0 4h14v2H1zm0 4h14v2H1z"/></svg>
+  </button>
+  <a class="brand" href="index.html"><span class="logo">L</span> LabTAS <span class="muted">Docs</span></a>
+  <div class="search">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.7 10.3a6 6 0 10-1.4 1.4l3 3 1.4-1.4-3-3zM2 6.5a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0z"/></svg>
+    <input id="q" type="search" placeholder="ค้นหาในคู่มือ… " autocomplete="off">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <button class="theme" onclick="toggleTheme()" title="สลับโหมดสว่าง/มืด">
+    <svg class="ic-moon" width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M6 .3a8 8 0 109.7 9.7A6.7 6.7 0 016 .3z"/></svg>
+    <svg class="ic-sun" width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 4a4 4 0 100 8 4 4 0 000-8zM7 0h2v2H7zM7 14h2v2H7zM0 7h2v2H0zM14 7h2v2h-2zM2.2 3.6L3.6 2.2 5 3.6 3.6 5zM11 12.4l1.4-1.4 1.4 1.4-1.4 1.4zM11 3.6L12.4 2.2l1.4 1.4L12.4 5zM2.2 12.4L3.6 11 5 12.4 3.6 13.8z"/></svg>
+  </button>
+</header>
+<div class="shell">
+  <aside class="side"><a class="side-home" href="index.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l7 6h-2v7h-4v-4H7v4H3V7H1l7-6z"/></svg> หน้าแรก</a>
+<details class="side-group"><summary>เริ่มต้นใช้งาน</summary>
+<a href="ch01.html"><span class="chip">บทที่ 1</span>บทนำ</a>
+<a href="ch02.html"><span class="chip">บทที่ 2</span>บัญชีผู้ใช้และความปลอดภัย (ทุกบทบาท)</a>
+</details>
+<details class="side-group"><summary>ผู้ดูแลระบบ</summary>
+<a href="ch03.html"><span class="chip">บทที่ 3</span>การใช้งานสำหรับผู้ดูแลระบบ (Admin)</a>
+</details>
+<details class="side-group"><summary>อาจารย์ผู้สอน</summary>
+<a href="ch04.html"><span class="chip">บทที่ 4</span>บทนำและการเข้าสู่ระบบ</a>
+<a href="ch05.html"><span class="chip">บทที่ 5</span>การจัดการหมู่เรียนและกลุ่ม</a>
+<a href="ch06.html"><span class="chip">บทที่ 6</span>การจัดการสมาชิกและสิทธิ์ผู้ช่วยสอน</a>
+<a href="ch07.html"><span class="chip">บทที่ 7</span>งานมอบหมายและการให้คะแนน</a>
+<a href="ch08.html"><span class="chip">บทที่ 8</span>การอนุมัติคำขอแก้ไขคะแนน</a>
+<a href="ch09.html"><span class="chip">บทที่ 9</span>การสอบและคะแนนสอบ</a>
+<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็คชื่อเข้าเรียน</a>
+<a href="ch11.html"><span class="chip">บทที่ 11</span>ระบบคิวตรวจงาน</a>
+<a href="ch12.html"><span class="chip">บทที่ 12</span>การจับคู่จอแสดงผลหน้าห้อง</a>
+<a href="ch13.html"><span class="chip">บทที่ 13</span>การติดตามผลงานทีมและบันทึกกิจกรรม</a>
+<a href="ch14.html"><span class="chip">บทที่ 14</span>การตั้งค่ารายวิชา</a>
+</details>
+<details class="side-group"><summary>ผู้ช่วยสอน</summary>
+<a href="ch15.html"><span class="chip">บทที่ 15</span>บทนำและบทบาทผู้ช่วยสอน</a>
+<a href="ch16.html"><span class="chip">บทที่ 16</span>ระบบคิวและหน้ารับงาน (Worker)</a>
+<a href="ch17.html"><span class="chip">บทที่ 17</span>การให้คะแนนและการขอแก้ไขคะแนน</a>
+<a href="ch18.html"><span class="chip">บทที่ 18</span>งานอื่น ๆ ตามสิทธิ์ที่ได้รับ</a>
+</details>
+<details class="side-group" open><summary>นักศึกษา</summary>
+<a class="active" href="ch19.html"><span class="chip">บทที่ 19</span>การใช้งานสำหรับนักศึกษา (Student)</a>
+</details>
+<details class="side-group"><summary>ภาคผนวก</summary>
+<a href="app-a.html"><span class="chip">ภาคผนวก ก</span>สิทธิ์รายวิชาทั้งหมด (39 สิทธิ์)</a>
+<a href="app-b.html"><span class="chip">ภาคผนวก ข</span>ฟังก์ชันที่เพิ่มหลังคู่มือฉบับสอบจบ</a>
+<a href="app-c.html"><span class="chip">ภาคผนวก ค</span>การกระทำที่ต้องยืนยันตัวตนสองชั้นซ้ำ (Step-up 2FA)</a>
+<a href="app-d.html"><span class="chip">ภาคผนวก ง</span>สรุปเมนูหลักตามบทบาท</a>
+</details>
+    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">LabTAS v1.2.90</span></div>
+  </aside>
+  <main class="main">
+    <div class="crumb"><a href="index.html">คู่มือ LabTAS</a> <span>/</span> นักศึกษา <span>/</span> บทที่ 19</div>
+    <div class="page-label">บทที่ 19</div><h1>การใช้งานสำหรับนักศึกษา (Student)</h1>
+    <article class="doc"><p>ในรุ่นปัจจุบัน นักศึกษาต้อง <strong>เข้าสู่ระบบก่อนจึงจะใช้งานได้ทุกส่วน</strong> (ปรับจากรุ่นแรกที่เปิดใช้แบบสาธารณะ) ส่วนขั้นตอนการเช็คชื่อและการจองคิวยังคงเป็นแบบเดียวกับคู่มือฉบับสอบจบ คือสแกน QR กรอก PIN และยืนยันตัวตน หน้าจอฝั่งนักศึกษาออกแบบสำหรับมือถือ โดยมีแถบเมนูล่าง 5 รายการ ได้แก่ <strong>หน้าหลัก รายวิชา สแกน แจ้งเตือน และบัญชี</strong></p>
+<h2 id="sec-19-1">19.1 การเข้าสู่ระบบของนักศึกษา<a class="hlink" href="#sec-19-1">#</a></h2>
+<p>เมื่อเปิดเว็บไซต์ระบบจากโทรศัพท์มือถือ ระบบจะแสดงหน้าเข้าสู่ระบบสำหรับนักศึกษาโดยอัตโนมัติ</p>
+<ol class="steps">
+<li>แตะปุ่ม <strong>เข้าสู่ระบบด้วย Google</strong> แล้วเลือกบัญชี <strong>KKU Mail</strong> ของนักศึกษา ระบบจะจับคู่บัญชีกับรหัสนักศึกษาโดยอัตโนมัติ</li>
+<li>กรณีเป็นอาจารย์หรือผู้ช่วยสอน ให้แตะ <strong>เข้าสู่ระบบผู้สอน</strong> ที่มุมขวาบนเพื่อไปยังหน้าเข้าสู่ระบบของบุคลากรแทน</li>
+</ol>
+<figure><img src="img/student_06_login.png" alt="ภาพที่ 19.1 หน้าเข้าสู่ระบบของนักศึกษา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 19.1 หน้าเข้าสู่ระบบของนักศึกษา</figcaption></figure>
+<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>หากยังไม่เข้าสู่ระบบ จะไม่สามารถใช้งานส่วนใด ๆ ของฝั่งนักศึกษาได้ รวมถึงการเช็คชื่อและการจองคิว ให้เข้าสู่ระบบด้วยบัญชี KKU Mail ของตนเองเท่านั้น</p></div>
+<h2 id="sec-19-2">19.2 หน้าหลักของนักศึกษา<a class="hlink" href="#sec-19-2">#</a></h2>
+<p>เมื่อเข้าสู่ระบบสำเร็จ ระบบจะพาเข้าสู่หน้าหลักซึ่งรวมทางลัดที่ใช้บ่อยไว้ในหน้าเดียว</p>
+<ol class="steps">
+<li><strong>การ์ดประจำตัว</strong> แสดงชื่อ รหัสนักศึกษา จำนวนรายวิชา และสภาพอากาศประจำพื้นที่ พร้อมไอคอนกระดิ่งสำหรับเปิดการแจ้งเตือน</li>
+<li>การ์ด <strong>สแกน QR ทันที</strong> ทางลัดหลักสำหรับการเช็คชื่อและการจองคิว แตะเพื่อเปิดกล้องสแกนได้ทันที</li>
+<li>การ์ด <strong>รายวิชา</strong> แสดงจำนวนวิชาที่ลงทะเบียน แตะเพื่อไปหน้ารายวิชาของฉัน</li>
+<li>การ์ด <strong>แจ้งเตือน</strong> แสดงสถานะการแจ้งเตือนใหม่ แตะเพื่อเปิดหน้ารวมการแจ้งเตือน</li>
+<li><strong>แถบเมนูล่าง</strong> ประกอบด้วย หน้าหลัก รายวิชา ปุ่ม <strong>สแกน</strong> ตรงกลาง แจ้งเตือน และบัญชี ใช้สลับหน้าหลักทั้งห้าของแอป</li>
+</ol>
+<figure><img src="img/student_07_home.png" alt="ภาพที่ 19.2 หน้าหลักของนักศึกษาหลังเข้าสู่ระบบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 19.2 หน้าหลักของนักศึกษาหลังเข้าสู่ระบบ</figcaption></figure>
+<h2 id="sec-19-3">19.3 การตรวจสอบสิทธิ์เครื่องก่อนใช้งาน (กล้อง ตำแหน่ง การแจ้งเตือน)<a class="hlink" href="#sec-19-3">#</a></h2>
+<p>ก่อนใช้งานครั้งแรก แนะนำให้ตรวจสอบว่าโทรศัพท์อนุญาตสิทธิ์ที่ระบบจำเป็นต้องใช้ครบถ้วน ได้แก่ กล้อง (สแกน QR) ตำแหน่ง (ตรวจรัศมีห้องเรียน) และการแจ้งเตือน โดยเข้าจากเมนู <strong>บัญชี &gt; สิทธิ์เครื่อง</strong></p>
+<ol class="steps">
+<li>หน้าตรวจสอบสิทธิ์อธิบายรายการที่ต้องใช้ และสรุปสถานะ เช่น <strong>พร้อมแล้ว 1/3 สิทธิ์</strong> เมื่ออนุญาตแล้วเบราว์เซอร์จะจดจำสิทธิ์ของเว็บไซต์ไว้ให้ใช้ครั้งต่อไป</li>
+<li>รายการสิทธิ์แต่ละข้อมีป้ายสถานะ เช่น <strong>รออนุญาต</strong> (ยังไม่ได้กดอนุญาต) หรือ <strong>พร้อมใช้งาน</strong></li>
+<li>แตะปุ่มทดสอบของแต่ละข้อ เช่น <strong>อนุญาตและทดสอบกล้อง</strong> แล้วกด "อนุญาต" เมื่อเบราว์เซอร์ถามสิทธิ์</li>
+</ol>
+<figure><img src="img/student_13_devicecheck.png" alt="ภาพที่ 19.3 หน้าตรวจสอบสิทธิ์เครื่อง ขั้นตอนกล้อง" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 19.3 หน้าตรวจสอบสิทธิ์เครื่อง ขั้นตอนกล้อง</figcaption></figure>
+<p>ในขั้นตอนตำแหน่ง ระบบจะทดสอบอ่านพิกัดจริงของเครื่องเพื่อยืนยันว่าใช้เช็คชื่อแบบตรวจตำแหน่งได้</p>
+<ol class="steps">
+<li>เมื่ออนุญาตและอ่านตำแหน่งสำเร็จ ป้ายสถานะจะเปลี่ยนเป็น <strong>พร้อมใช้งาน</strong></li>
+<li>ปุ่ม <strong>ตรวจตำแหน่งอีกครั้ง</strong> ใช้ทดสอบซ้ำเมื่อย้ายสถานที่หรือเพิ่งเปิดสิทธิ์</li>
+<li>ข้อความยืนยันแจ้งว่าตรวจตำแหน่งสำเร็จ หากหมุดอยู่ถูกตำแหน่งก็พร้อมใช้งาน</li>
+<li>ระบบแสดง <strong>พิกัด</strong> และ <strong>ความแม่นยำ</strong> (เช่น ประมาณ ±7 เมตร) พร้อมแผนที่ประกอบ</li>
+</ol>
+<figure><img src="img/student_14_location.png" alt="ภาพที่ 19.4 หน้าตรวจสอบสิทธิ์เครื่อง ขั้นตอนตำแหน่ง" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 19.4 หน้าตรวจสอบสิทธิ์เครื่อง ขั้นตอนตำแหน่ง</figcaption></figure>
+<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>หากไม่อนุญาตสิทธิ์กล้อง จะยังใช้วิธีกรอก PIN แทนการสแกนได้ แต่หากรอบเช็คชื่อเปิดการตรวจตำแหน่งไว้ จำเป็นต้องอนุญาตสิทธิ์ตำแหน่ง มิฉะนั้นจะเช็คชื่อไม่ผ่าน</p></div>
+<h2 id="sec-19-4">19.4 รายวิชาของฉันและหน้าภาพรวมรายวิชา<a class="hlink" href="#sec-19-4">#</a></h2>
+<p>แตะเมนู <strong>รายวิชา</strong> ที่แถบล่างเพื่อดูรายวิชาที่ลงทะเบียนทั้งหมด</p>
+<ol class="steps">
+<li>ส่วนหัว <strong>รายวิชาของฉัน</strong> สรุปจำนวนวิชาที่ลงทะเบียนในระบบ</li>
+<li>การ์ดรายวิชาแสดง รหัสวิชา ชื่อวิชา ผู้สอน ภาคการศึกษา และหมู่เรียน (Section) แตะการ์ดเพื่อเข้าสู่หน้ารายวิชา</li>
+</ol>
+<figure><img src="img/student_08_courses.png" alt="ภาพที่ 19.5 หน้ารายวิชาของฉัน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 19.5 หน้ารายวิชาของฉัน</figcaption></figure>
+<p>ภายในหน้ารายวิชาจะพบการ์ดข้อมูลวิชาและแท็บย่อยสี่แท็บ</p>
+<ol class="steps">
+<li>ปุ่ม <strong>ย้อนกลับ</strong> และ <strong>หน้าหลัก</strong> ใช้ออกจากหน้ารายวิชา</li>
+<li>แถบแท็บ <strong>ภาพรวม / คะแนน / เช็กชื่อ / อัปเดต</strong> ใช้สลับมุมมองภายในรายวิชา</li>
+<li>แท็บภาพรวมส่วนแรกแสดง <strong>กลุ่มของฉัน</strong> ทั้งกลุ่มโปรเจกต์และกลุ่มรายสัปดาห์พร้อมจำนวนสมาชิก</li>
+</ol>
+<figure><img src="img/student_15_courseview.png" alt="ภาพที่ 19.6 หน้ารายวิชา แท็บภาพรวม" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 19.6 หน้ารายวิชา แท็บภาพรวม</figcaption></figure>
+<p>เลื่อนลงในแท็บภาพรวมเพื่อดูสรุปข้อมูลสำคัญของตนเองในวิชานั้น</p>
+<ol class="steps">
+<li><strong>สรุปการเข้าเรียน</strong> จำนวน มาเรียน / สาย / ลา / ขาด พร้อมเปอร์เซ็นต์การเข้าเรียน</li>
+<li><strong>สรุปคะแนนงาน</strong> ความคืบหน้าการตรวจและคะแนนรวมของแต่ละประเภทงาน</li>
+<li><strong>กลุ่มเรียน</strong> หมู่เรียน (Section) ที่ตนสังกัด</li>
+<li><strong>แถบเมนูล่าง</strong> สำหรับกลับสู่ส่วนอื่นของแอป</li>
+</ol>
+<figure><img src="img/student_01_overview.png" alt="ภาพที่ 19.7 หน้าภาพรวมรายวิชาของนักศึกษา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 19.7 หน้าภาพรวมรายวิชาของนักศึกษา</figcaption></figure>
+<h2 id="sec-19-5">19.5 การเช็คชื่อเข้าเรียน<a class="hlink" href="#sec-19-5">#</a></h2>
+<p>เมื่ออาจารย์เปิดรอบเช็คชื่อและฉาย PIN/QR ขึ้นจอหน้าห้อง ให้แตะปุ่ม <strong>สแกน</strong> ตรงกลางแถบเมนูล่าง</p>
+<ol class="steps">
+<li><strong>หน้าต่างกล้อง</strong> จะเปิดขึ้นสำหรับสแกน QR Code บนจอหน้าห้อง เมื่อสแกนติดระบบจะพาเข้าหน้าเช็คชื่อของรอบนั้นทันที</li>
+<li>หากเปิดกล้องไม่ได้ ระบบจะแสดงข้อความ <strong>เกิดข้อผิดพลาด</strong> พร้อมคำแนะนำให้ใช้ช่องกรอกด้านล่างแทน</li>
+<li>ส่วน <strong>กรอก PIN หรือวางลิงก์</strong> ใช้เมื่อกล้องเปิดไม่ได้หรือมีข้อมูล QR อยู่แล้ว</li>
+<li>กรอก <strong>รหัส PIN 6 หลัก</strong> ที่แสดงบนจอ (หรือวางลิงก์จาก QR) แล้วแตะปุ่มลูกศรเพื่อยืนยัน</li>
+</ol>
+<figure><img src="img/student_09_scan.png" alt="ภาพที่ 19.8 หน้าสแกน QR และช่องกรอก PIN สำรอง" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 19.8 หน้าสแกน QR และช่องกรอก PIN สำรอง</figcaption></figure>
+<p>ขั้นตอนหลังจากเข้าสู่รอบเช็คชื่อ</p>
+<ol class="steps">
+<li>กรอกหรือยืนยัน <strong>รหัส PIN 6 หลัก</strong> ของรอบ (PIN เปลี่ยนทุก 1 นาที ให้ใช้รหัสล่าสุดเสมอ)</li>
+<li>หากรอบนั้นเปิดการตรวจตำแหน่ง ระบบจะขอสิทธิ์ <strong>ตำแหน่ง (GPS)</strong> เพื่อตรวจว่าอยู่ในรัศมีห้องเรียน ให้กดอนุญาต</li>
+<li>เมื่อเช็คชื่อสำเร็จ ชื่อจะปรากฏบนจอหน้าห้องทันที สถานะ มา/สาย ขึ้นกับเวลาตัดสายที่อาจารย์ตั้งไว้</li>
+</ol>
+<p>การตรวจสอบประวัติย้อนหลังทำได้ที่แท็บ <strong>เช็กชื่อ</strong> ในหน้ารายวิชา</p>
+<ol class="steps">
+<li>เลือกแท็บ <strong>เช็กชื่อ</strong></li>
+<li>ส่วนบนสรุปจำนวน <strong>มาเรียน / สาย / ลา / ขาด</strong> ทั้งเทอม</li>
+<li>รายการด้านล่างแสดง <strong>ประวัติรายรอบ</strong> พร้อมสถานะและเวลาเช็กอินจริง</li>
+</ol>
+<figure><img src="img/student_04_attendance.png" alt="ภาพที่ 19.9 แท็บเช็กชื่อและประวัติการเข้าเรียน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 19.9 แท็บเช็กชื่อและประวัติการเข้าเรียน</figcaption></figure>
+<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>การเช็คชื่อหลังเวลาตัดสายจะถูกบันทึกเป็น "สาย" โดยอัตโนมัติ และหากไม่เช็คชื่อภายในรอบจะถูกนับเป็น "ขาด" กรณีลาป่วยหรือเหตุจำเป็นให้แจ้งอาจารย์เพื่อปรับสถานะย้อนหลัง</p></div>
+<h2 id="sec-19-6">19.6 การจองคิวตรวจงานและขอความช่วยเหลือ<a class="hlink" href="#sec-19-6">#</a></h2>
+<p>เมื่ออาจารย์หรือผู้ช่วยสอนเปิดรอบคิว (ขั้นตอนเดียวกับคู่มือฉบับสอบจบ)</p>
+<ol class="steps">
+<li>แตะปุ่ม <strong>สแกน</strong> แล้วสแกน <strong>QR Code</strong> ของรอบคิว (บนจอหน้าห้องหรือ QR ประจำโต๊ะ) หรือกรอก <strong>PIN</strong> ของรอบที่ช่องกรอกด้านล่าง (ดูภาพที่ 19.8)</li>
+<li>ยืนยัน <strong>รหัสนักศึกษา</strong> และ <strong>เลขโต๊ะที่นั่ง</strong> (การสแกน QR ประจำโต๊ะจะระบุโต๊ะให้อัตโนมัติ)</li>
+<li>เลือกประเภทการจองเป็น <strong>ตรวจงาน (Grading)</strong> พร้อมหัวข้องานที่ต้องการส่งตรวจ หรือ <strong>ขอความช่วยเหลือ (Help)</strong> เมื่อติดปัญหา แล้วกด <strong>จองคิว</strong></li>
+<li>ติดตาม <strong>สถานะคิว</strong> จากโทรศัพท์และจอโปรเจกเตอร์หน้าห้อง และกด <strong>ยกเลิกคิว</strong> ได้หากยังไม่ถูกเรียก</li>
+<li>เมื่อผู้ช่วยสอนตรวจเสร็จและลงคะแนน ระบบจะ <strong>แจ้งเตือนผลทันที</strong></li>
+</ol>
+<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>หากรอบคิวถูกตั้งค่าเชื่อมกับการเช็คชื่อ นักศึกษาที่ไม่ได้เช็คชื่อเข้าเรียนในคาบนั้นจะไม่สามารถจองคิวได้ ให้เช็คชื่อให้เรียบร้อยก่อนจองคิว</p></div>
+<h2 id="sec-19-7">19.7 การดูคะแนนของตนเอง<a class="hlink" href="#sec-19-7">#</a></h2>
+<p>ที่หน้ารายวิชา เลือกแท็บ <strong>คะแนน</strong></p>
+<ol class="steps">
+<li>แท็บบน (ภาพรวม / คะแนน / เช็กชื่อ / อัปเดต) ใช้สลับมุมมองภายในรายวิชา</li>
+<li><strong>คะแนนรวม (งาน)</strong> แสดงคะแนนสะสมเทียบคะแนนเต็มพร้อมแถบความคืบหน้า</li>
+<li><strong>เลือกหมวดคะแนน</strong> กรองตามประเภทงาน (ทั้งหมด / คะแนนแลป / งานกลุ่ม / งานกลุ่มสัปดาห์ ฯลฯ)</li>
+</ol>
+<figure><img src="img/student_02_scores.png" alt="ภาพที่ 19.10 แท็บคะแนนของนักศึกษา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 19.10 แท็บคะแนนของนักศึกษา</figcaption></figure>
+<p>แต่ละงานเปิดดูรายละเอียดได้</p>
+<ol class="steps">
+<li>การ์ดงานแสดง <strong>คะแนนที่ได้/คะแนนเต็ม</strong> ประเภทงาน และผู้ตรวจพร้อมเวลา</li>
+<li>แตะ <strong>ดูรายละเอียดย่อย</strong> เพื่อดูคะแนนรายข้อ (เช่น ข้อ 1, ข้อ 2)</li>
+<li>ป้าย <strong>ตรวจแล้ว</strong> ยืนยันสถานะการตรวจของงานนั้น</li>
+</ol>
+<figure><img src="img/student_03_labdetail.png" alt="ภาพที่ 19.11 รายละเอียดคะแนนรายงานและรายข้อ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 19.11 รายละเอียดคะแนนรายงานและรายข้อ</figcaption></figure>
+<h2 id="sec-19-8">19.8 กลุ่มของฉันและประกาศจากรายวิชา<a class="hlink" href="#sec-19-8">#</a></h2>
+<p>ที่แท็บ <strong>อัปเดต</strong> ของรายวิชา</p>
+<ol class="steps">
+<li><strong>กลุ่มของฉัน</strong> แสดงกลุ่มโปรเจกต์และกลุ่มรายสัปดาห์ที่สังกัด พร้อมรายชื่อสมาชิกในกลุ่ม</li>
+<li>รายการ <strong>กลุ่มสัปดาห์</strong> แต่ละสัปดาห์กดขยายดูสมาชิกได้</li>
+<li><strong>ประกาศจากรายวิชา</strong> แสดงประกาศที่อาจารย์ส่งถึงผู้เรียนในวิชานั้น</li>
+</ol>
+<figure><img src="img/student_05_groups.png" alt="ภาพที่ 19.12 กลุ่มของฉันและประกาศจากรายวิชา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 19.12 กลุ่มของฉันและประกาศจากรายวิชา</figcaption></figure>
+<h2 id="sec-19-9">19.9 การแจ้งเตือน<a class="hlink" href="#sec-19-9">#</a></h2>
+<p>เมนู <strong>แจ้งเตือน</strong> ที่แถบล่างรวมการแจ้งผลคะแนน การเช็คชื่อ คิว และประกาศจากระบบไว้ในที่เดียว</p>
+<ol class="steps">
+<li>ปุ่ม <strong>อ่านทั้งหมด</strong> ทำเครื่องหมายว่าอ่านทุกรายการ และ <strong>ล้างที่อ่านแล้ว</strong> ลบรายการที่อ่านแล้วออกจากกล่อง</li>
+<li>แถบตัวกรอง <strong>ทั้งหมด / ยังไม่อ่าน / อ่านแล้ว</strong> ใช้เลือกดูเฉพาะกลุ่มที่ต้องการ</li>
+<li>รายการแจ้งเตือนแสดงตามเวลา เมื่อมีคะแนน เช็กชื่อ คิว หรือประกาศใหม่จะแสดงที่หน้านี้ (ภาพตัวอย่างเป็นสถานะยังไม่มีการแจ้งเตือน)</li>
+<li>จุดสังเกต เมื่อมีการแจ้งเตือนใหม่ ไอคอน <strong>แจ้งเตือน</strong> ที่แถบล่างจะแสดงสัญลักษณ์กำกับ</li>
+</ol>
+<figure><img src="img/student_10_notifications.png" alt="ภาพที่ 19.13 หน้ารวมการแจ้งเตือนของนักศึกษา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 19.13 หน้ารวมการแจ้งเตือนของนักศึกษา</figcaption></figure>
+<h2 id="sec-19-10">19.10 บัญชีผู้ใช้และการออกจากระบบ<a class="hlink" href="#sec-19-10">#</a></h2>
+<p>เมนู <strong>บัญชี</strong> ที่แถบล่างใช้ตรวจสอบข้อมูลบัญชีนักศึกษาที่ระบบจับคู่ไว้</p>
+<ol class="steps">
+<li><strong>การ์ดประจำตัว</strong> แสดงชื่อ สาขา และเครื่องหมายยืนยันการเชื่อมบัญชีสำเร็จ</li>
+<li>ส่วนข้อมูลบัญชีแสดง <strong>อีเมล KKU Mail รหัสนักศึกษา (พร้อมปุ่มคัดลอก) และสาขา</strong> ที่ผูกกับบัญชี</li>
+<li>เมนู <strong>สิทธิ์เครื่อง</strong> เปิดหน้าตรวจสอบสิทธิ์กล้อง ตำแหน่ง และแผนที่ (ดูหัวข้อ 19.3)</li>
+<li>แท็บ <strong>บัญชี</strong> ที่แถบล่างจะไฮไลต์เมื่ออยู่ในหน้านี้</li>
+</ol>
+<figure><img src="img/student_11_account.png" alt="ภาพที่ 19.14 หน้าบัญชีของนักศึกษา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 19.14 หน้าบัญชีของนักศึกษา</figcaption></figure>
+<p>เลื่อนลงด้านล่างของหน้าบัญชี</p>
+<ol class="steps">
+<li>เมนู <strong>สิทธิ์เครื่อง</strong> สำหรับตรวจกล้อง ตำแหน่ง และแผนที่</li>
+<li>เมนู <strong>ช่วยเหลือ</strong> รวมคู่มือการใช้งานและช่องทางติดต่อฝ่ายสนับสนุน</li>
+<li>ปุ่ม <strong>ออกจากระบบ</strong> ใช้เมื่อเลิกใช้งาน โดยเฉพาะเมื่อเข้าสู่ระบบบนเครื่องที่ใช้ร่วมกับผู้อื่น</li>
+</ol>
+<figure><img src="img/student_12_account_actions.png" alt="ภาพที่ 19.15 เมนูช่วยเหลือและการออกจากระบบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 19.15 เมนูช่วยเหลือและการออกจากระบบ</figcaption></figure>
+<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>หากพบว่าข้อมูลรหัสนักศึกษาหรือสาขาไม่ถูกต้อง ให้ติดต่ออาจารย์ผู้สอนหรือผู้ดูแลระบบเพื่อแก้ไขข้อมูลการจับคู่บัญชี ไม่ควรใช้บัญชีของผู้อื่นเข้าสู่ระบบแทนกัน</p></div><div class="pn"><a class="pn-card" href="ch18.html"><span>← ก่อนหน้า</span><strong>บทที่ 18 งานอื่น ๆ ตามสิทธิ์ที่ได้รับ</strong></a><a class="pn-card next" href="app-a.html"><span>ถัดไป →</span><strong>ภาคผนวก ก สิทธิ์รายวิชาทั้งหมด (39 สิทธิ์)</strong></a></div></article>
+  </main>
+  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-19-1">19.1 การเข้าสู่ระบบของนักศึกษา</a><a href="#sec-19-2">19.2 หน้าหลักของนักศึกษา</a><a href="#sec-19-3">19.3 การตรวจสอบสิทธิ์เครื่องก่อนใช้งาน (กล้อง ตำแหน่ง การแจ้งเตือน)</a><a href="#sec-19-4">19.4 รายวิชาของฉันและหน้าภาพรวมรายวิชา</a><a href="#sec-19-5">19.5 การเช็คชื่อเข้าเรียน</a><a href="#sec-19-6">19.6 การจองคิวตรวจงานและขอความช่วยเหลือ</a><a href="#sec-19-7">19.7 การดูคะแนนของตนเอง</a><a href="#sec-19-8">19.8 กลุ่มของฉันและประกาศจากรายวิชา</a><a href="#sec-19-9">19.9 การแจ้งเตือน</a><a href="#sec-19-10">19.10 บัญชีผู้ใช้และการออกจากระบบ</a></nav>
+</div>
+<div id="lb" class="lb" onclick="this.classList.remove('on')"><img></div>
+<script src="assets/search-index.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

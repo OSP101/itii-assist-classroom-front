@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>บทที่ 3 การใช้งานสำหรับผู้ดูแลระบบ (Admin) — คู่มือ LabTAS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="top">
+  <button class="burger" onclick="document.body.classList.toggle('nav-open')" aria-label="เมนู">
+    <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3h14v2H1zm0 4h14v2H1zm0 4h14v2H1z"/></svg>
+  </button>
+  <a class="brand" href="index.html"><span class="logo">L</span> LabTAS <span class="muted">Docs</span></a>
+  <div class="search">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.7 10.3a6 6 0 10-1.4 1.4l3 3 1.4-1.4-3-3zM2 6.5a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0z"/></svg>
+    <input id="q" type="search" placeholder="ค้นหาในคู่มือ… " autocomplete="off">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <button class="theme" onclick="toggleTheme()" title="สลับโหมดสว่าง/มืด">
+    <svg class="ic-moon" width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M6 .3a8 8 0 109.7 9.7A6.7 6.7 0 016 .3z"/></svg>
+    <svg class="ic-sun" width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 4a4 4 0 100 8 4 4 0 000-8zM7 0h2v2H7zM7 14h2v2H7zM0 7h2v2H0zM14 7h2v2h-2zM2.2 3.6L3.6 2.2 5 3.6 3.6 5zM11 12.4l1.4-1.4 1.4 1.4-1.4 1.4zM11 3.6L12.4 2.2l1.4 1.4L12.4 5zM2.2 12.4L3.6 11 5 12.4 3.6 13.8z"/></svg>
+  </button>
+</header>
+<div class="shell">
+  <aside class="side"><a class="side-home" href="index.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l7 6h-2v7h-4v-4H7v4H3V7H1l7-6z"/></svg> หน้าแรก</a>
+<details class="side-group"><summary>เริ่มต้นใช้งาน</summary>
+<a href="ch01.html"><span class="chip">บทที่ 1</span>บทนำ</a>
+<a href="ch02.html"><span class="chip">บทที่ 2</span>บัญชีผู้ใช้และความปลอดภัย (ทุกบทบาท)</a>
+</details>
+<details class="side-group" open><summary>ผู้ดูแลระบบ</summary>
+<a class="active" href="ch03.html"><span class="chip">บทที่ 3</span>การใช้งานสำหรับผู้ดูแลระบบ (Admin)</a>
+</details>
+<details class="side-group"><summary>อาจารย์ผู้สอน</summary>
+<a href="ch04.html"><span class="chip">บทที่ 4</span>บทนำและการเข้าสู่ระบบ</a>
+<a href="ch05.html"><span class="chip">บทที่ 5</span>การจัดการหมู่เรียนและกลุ่ม</a>
+<a href="ch06.html"><span class="chip">บทที่ 6</span>การจัดการสมาชิกและสิทธิ์ผู้ช่วยสอน</a>
+<a href="ch07.html"><span class="chip">บทที่ 7</span>งานมอบหมายและการให้คะแนน</a>
+<a href="ch08.html"><span class="chip">บทที่ 8</span>การอนุมัติคำขอแก้ไขคะแนน</a>
+<a href="ch09.html"><span class="chip">บทที่ 9</span>การสอบและคะแนนสอบ</a>
+<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็คชื่อเข้าเรียน</a>
+<a href="ch11.html"><span class="chip">บทที่ 11</span>ระบบคิวตรวจงาน</a>
+<a href="ch12.html"><span class="chip">บทที่ 12</span>การจับคู่จอแสดงผลหน้าห้อง</a>
+<a href="ch13.html"><span class="chip">บทที่ 13</span>การติดตามผลงานทีมและบันทึกกิจกรรม</a>
+<a href="ch14.html"><span class="chip">บทที่ 14</span>การตั้งค่ารายวิชา</a>
+</details>
+<details class="side-group"><summary>ผู้ช่วยสอน</summary>
+<a href="ch15.html"><span class="chip">บทที่ 15</span>บทนำและบทบาทผู้ช่วยสอน</a>
+<a href="ch16.html"><span class="chip">บทที่ 16</span>ระบบคิวและหน้ารับงาน (Worker)</a>
+<a href="ch17.html"><span class="chip">บทที่ 17</span>การให้คะแนนและการขอแก้ไขคะแนน</a>
+<a href="ch18.html"><span class="chip">บทที่ 18</span>งานอื่น ๆ ตามสิทธิ์ที่ได้รับ</a>
+</details>
+<details class="side-group"><summary>นักศึกษา</summary>
+<a href="ch19.html"><span class="chip">บทที่ 19</span>การใช้งานสำหรับนักศึกษา (Student)</a>
+</details>
+<details class="side-group"><summary>ภาคผนวก</summary>
+<a href="app-a.html"><span class="chip">ภาคผนวก ก</span>สิทธิ์รายวิชาทั้งหมด (39 สิทธิ์)</a>
+<a href="app-b.html"><span class="chip">ภาคผนวก ข</span>ฟังก์ชันที่เพิ่มหลังคู่มือฉบับสอบจบ</a>
+<a href="app-c.html"><span class="chip">ภาคผนวก ค</span>การกระทำที่ต้องยืนยันตัวตนสองชั้นซ้ำ (Step-up 2FA)</a>
+<a href="app-d.html"><span class="chip">ภาคผนวก ง</span>สรุปเมนูหลักตามบทบาท</a>
+</details>
+    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">LabTAS v1.2.90</span></div>
+  </aside>
+  <main class="main">
+    <div class="crumb"><a href="index.html">คู่มือ LabTAS</a> <span>/</span> ผู้ดูแลระบบ <span>/</span> บทที่ 3</div>
+    <div class="page-label">บทที่ 3</div><h1>การใช้งานสำหรับผู้ดูแลระบบ (Admin)</h1>
+    <article class="doc"><h2 id="sec-3-1">3.1 แดชบอร์ดผู้ดูแลระบบ<a class="hlink" href="#sec-3-1">#</a></h2>
+<p>เมื่อผู้ดูแลระบบเข้าสู่ระบบ ระบบจะพาไปยังหน้า <strong>แดชบอร์ด</strong> โดยอัตโนมัติ</p>
+<ol class="steps">
+<li><strong>สถิติรวม</strong> จำนวนผู้ใช้ นักศึกษา รายวิชา และห้องเรียนทั้งหมด</li>
+<li><strong>ผู้ใช้งานตามบทบาท</strong> และ <strong>รายละเอียดห้องเรียน</strong> (โต๊ะทั้งหมด คอมพิวเตอร์ ใช้งานได้/ปิดใช้งาน)</li>
+<li><strong>สถานะเซิร์ฟเวอร์</strong> CPU หน่วยความจำ และเวลาทำงาน พร้อมบันทึกระบบ 24 ชั่วโมงล่าสุด</li>
+<li><strong>เมนูด้านซ้าย</strong> เข้าถึงทุกโมดูล ได้แก่ ผู้ใช้งาน นักศึกษา รายวิชา ห้องเรียน ข้อเสนอแนะ บันทึกระบบ มอนิเตอร์ระบบ และตั้งค่า</li>
+</ol>
+<figure><img src="img/admin_01_dashboard.png" alt="ภาพที่ 3.1 แดชบอร์ดผู้ดูแลระบบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.1 แดชบอร์ดผู้ดูแลระบบ</figcaption></figure>
+<h2 id="sec-3-2">3.2 จัดการผู้ใช้ (แอดมิน อาจารย์ ผู้ช่วยสอน)<a class="hlink" href="#sec-3-2">#</a></h2>
+<p>เมนู <strong>ผู้ใช้งาน</strong> ใช้จัดการบัญชีผู้ใช้ระบบทั้งหมด</p>
+<ol class="steps">
+<li>ส่วนบนสรุปจำนวน <strong>ผู้ใช้ทั้งหมด ผู้ดูแลระบบ อาจารย์ และผู้ช่วยสอน</strong></li>
+<li>คลิกปุ่ม <strong>เพิ่มผู้ใช้</strong> เพื่อสร้างบัญชีใหม่</li>
+<li>ใช้ <strong>ช่องค้นหา</strong> และตัวกรองบทบาท/สถานะ</li>
+<li>แต่ละแถวแสดง <strong>บทบาท สถานะ การเปิด 2FA และประเภทบัญชี</strong> พร้อมปุ่มแก้ไข รีเซ็ตรหัสผ่าน และเปิด/ปิดการใช้งาน</li>
+</ol>
+<figure><img src="img/admin_02_users.png" alt="ภาพที่ 3.2 หน้าจัดการผู้ใช้" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.2 หน้าจัดการผู้ใช้</figcaption></figure>
+<p>เมื่อคลิก <strong>เพิ่มผู้ใช้</strong> ระบบจะเปิดฟอร์มกรอกข้อมูล</p>
+<ol class="steps">
+<li><strong>รูปโปรไฟล์</strong> (ไม่บังคับ)</li>
+<li><strong>ข้อมูลส่วนตัว</strong> ชื่อ-นามสกุล และอีเมล (ไม่บังคับ)</li>
+<li><strong>ข้อมูลบัญชี</strong> ชื่อผู้ใช้ และเลือกบทบาท (ผู้ดูแลระบบ / อาจารย์ / ผู้ช่วยสอน)</li>
+<li>คลิก <strong>เพิ่มผู้ใช้</strong> ระบบจะสร้าง <strong>รหัสผ่านชั่วคราว</strong> แสดงขึ้นมาหนึ่งครั้ง ให้ส่งต่อแก่ผู้ใช้เพื่อเข้าสู่ระบบครั้งแรก (ระบบจะบังคับเปลี่ยนรหัสผ่านเมื่อเข้าครั้งแรก)</li>
+</ol>
+<figure><img src="img/admin_14_adduser.png" alt="ภาพที่ 3.3 ฟอร์มเพิ่มผู้ใช้ใหม่" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.3 ฟอร์มเพิ่มผู้ใช้ใหม่</figcaption></figure>
+<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>การปิดการใช้งานบัญชี (ไอคอนรูปตา) มีผลทันทีทำให้ผู้ใช้นั้นเข้าสู่ระบบไม่ได้ และการลบผู้ใช้เป็นแบบ soft delete ข้อมูลยังอยู่ในระบบเพื่อการตรวจสอบย้อนหลัง</p></div>
+<h2 id="sec-3-3">3.3 จัดการนักศึกษา<a class="hlink" href="#sec-3-3">#</a></h2>
+<p>เมนู <strong>นักศึกษา</strong> ใช้จัดการข้อมูลนักศึกษาทั้งหมด ซึ่งเป็นข้อมูลแยกจากบัญชีผู้ใช้ระบบ (นักศึกษาโดยปกติไม่มีรหัสผ่านเข้าระบบ)</p>
+<ol class="steps">
+<li>ส่วนบนสรุปจำนวนนักศึกษา <strong>ทั้งหมด ใช้งาน และปิดใช้งาน</strong></li>
+<li>ปุ่มด้านขวาบนใช้ <strong>จัดการหลักสูตร นำเข้าข้อมูล (Excel/CSV) และเพิ่มนักศึกษา</strong> รายคน</li>
+<li>ใช้ <strong>ช่องค้นหา</strong> ค้นด้วยรหัสนักศึกษา ชื่อ หรืออีเมล</li>
+<li>แต่ละแถวแสดง <strong>หลักสูตร สถานะ วันที่สร้าง</strong> พร้อมปุ่มแก้ไขและเปิด/ปิดสถานะ</li>
+</ol>
+<figure><img src="img/admin_03_students.png" alt="ภาพที่ 3.4 หน้าจัดการนักศึกษา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.4 หน้าจัดการนักศึกษา</figcaption></figure>
+<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>เฉพาะผู้ดูแลระบบเท่านั้นที่สร้าง แก้ไข นำเข้า และลบนักศึกษาได้ อาจารย์และผู้ช่วยสอนทำได้เพียงค้นหาและดูรายชื่อ การนำเข้าแบบกลุ่มควรตรวจสอบรูปแบบไฟล์ให้ถูกต้องก่อนทุกครั้ง</p></div>
+<h2 id="sec-3-4">3.4 จัดการรายวิชา<a class="hlink" href="#sec-3-4">#</a></h2>
+<p>เมนู <strong>รายวิชา</strong> ใช้จัดการรายวิชาทั้งหมดในระบบ</p>
+<ol class="steps">
+<li>ส่วนบนสรุปจำนวนรายวิชา <strong>ทั้งหมด ใช้งาน ปิดใช้งาน และของปีนี้</strong></li>
+<li>คลิกปุ่ม <strong>เพิ่มรายวิชา</strong> เพื่อสร้างรายวิชาใหม่ (กำหนดรหัสวิชา ชื่อวิชา ปีการศึกษา ภาคเรียน และอาจารย์เจ้าของวิชา)</li>
+<li>ใช้ <strong>ตัวกรอง</strong> ตามปีการศึกษา ภาคเรียน และสถานะ</li>
+<li>ปุ่มจัดการท้ายแถวใช้ <strong>เข้าสู่วิชา แก้ไข เปิด/ปิด และลบ</strong> และยังเลือกหลายวิชาพร้อมกันเพื่อเปิด/ปิด/ลบแบบกลุ่ม รวมถึงส่งออกข้อมูลเป็น CSV ได้</li>
+</ol>
+<figure><img src="img/admin_04_courses.png" alt="ภาพที่ 3.5 หน้าจัดการรายวิชา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.5 หน้าจัดการรายวิชา</figcaption></figure>
+<h2 id="sec-3-5">3.5 จัดการห้องเรียนและผังที่นั่ง<a class="hlink" href="#sec-3-5">#</a></h2>
+<p>เมนู <strong>ห้องเรียน</strong> ใช้จัดการห้องปฏิบัติการสำหรับระบบจองคิว โครงสร้างเป็น ห้อง → โซน → โต๊ะ โดยโต๊ะแต่ละตัวเก็บพิกัด ประเภท (คอมพิวเตอร์/เรียน/อาจารย์) และข้อมูลเครื่อง</p>
+<ol class="steps">
+<li>ส่วนบนสรุป <strong>ห้องเรียนทั้งหมด โต๊ะทั้งหมด โต๊ะคอมพิวเตอร์ และถังขยะ</strong></li>
+<li>ปุ่ม <strong>สร้างห้องเรียนใหม่</strong> ใช้เพิ่มห้อง และ <strong>ดูถังขยะ</strong> ใช้กู้คืนห้องที่ถูกลบ</li>
+<li>คอลัมน์ <strong>จำนวนโต๊ะ</strong> แสดงจำนวนโต๊ะและคอมพิวเตอร์ของแต่ละห้อง</li>
+<li>ปุ่มจัดการท้ายแถว ได้แก่ ปิด/เปิดใช้งานห้อง แก้ผังที่นั่ง แก้ไขข้อมูล ดู QR ประจำโต๊ะ และลบห้อง</li>
+</ol>
+<figure><img src="img/admin_05_classrooms.png" alt="ภาพที่ 3.6 หน้าจัดการห้องเรียน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.6 หน้าจัดการห้องเรียน</figcaption></figure>
+<h3 id="sec-การแก-ผ-งท-น-งแบบว-ชวล">การแก้ผังที่นั่งแบบวิชวล</h3>
+<p>คลิกไอคอนแก้ผังที่นั่งของห้องที่ต้องการ ระบบจะเปิด <strong>หน้าจัดผังห้อง</strong> แบบลากวาง</p>
+<ol class="steps">
+<li>ส่วน <strong>เพิ่มโต๊ะ</strong> เลือกจำนวนและประเภทโต๊ะ (โต๊ะคอม / โต๊ะเรียน / โต๊ะอาจารย์) แล้วคลิกเพื่อเพิ่มลงผัง</li>
+<li>ส่วน <strong>โซน</strong> ใช้แบ่งพื้นที่ห้องเป็นโซนย่อย</li>
+<li>ส่วน <strong>สัญลักษณ์</strong> อธิบายสีของโต๊ะแต่ละประเภทและสถานะปิดใช้งาน</li>
+<li><strong>พื้นที่ผัง</strong> ลากโต๊ะเพื่อย้ายตำแหน่ง คลิกโต๊ะเพื่อแก้ไขหรือลบ กด Ctrl+คลิกเพื่อเลือกหลายโต๊ะ และ Scroll เพื่อซูม</li>
+<li>เมื่อจัดเสร็จ คลิก <strong>บันทึกผัง</strong> (ระบบมีการบันทึกแบบร่างอัตโนมัติระหว่างทำงาน)</li>
+</ol>
+<figure><img src="img/admin_18_layout_editor.png" alt="ภาพที่ 3.7 หน้าจัดผังห้องแบบวิชวล" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.7 หน้าจัดผังห้องแบบวิชวล</figcaption></figure>
+<h3 id="sec-การป-ดใช-งานห-อง">การปิดใช้งานห้อง</h3>
+<p>เมื่อคลิกปิดใช้งานห้อง ระบบจะขอคำยืนยันก่อน</p>
+<ol class="steps">
+<li>ข้อความเตือนระบุผลกระทบ ห้องที่ปิดใช้งานจะไม่สามารถใช้ในระบบจองคิวได้ แต่ข้อมูลยังคงอยู่</li>
+<li>กด <strong>ปิดใช้งาน</strong> เพื่อยืนยัน หรือ <strong>ยกเลิก</strong> เพื่อยกเลิกรายการ</li>
+</ol>
+<figure><img src="img/admin_17_room_disable.png" alt="ภาพที่ 3.8 กล่องยืนยันการปิดใช้งานห้อง" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.8 กล่องยืนยันการปิดใช้งานห้อง</figcaption></figure>
+<h2 id="sec-3-6">3.6 จัดการข้อเสนอแนะ (Feedback)<a class="hlink" href="#sec-3-6">#</a></h2>
+<p>เมนู <strong>ข้อเสนอแนะ</strong> รวมข้อผิดพลาด ข้อเสนอแนะ และคำขอสนับสนุนจากผู้ใช้และบุคคลทั่วไป</p>
+<ol class="steps">
+<li>ส่วนบนสรุปจำนวนตามสถานะ <strong>ทั้งหมด รอดำเนินการ กำลังตรวจสอบ แก้ไขแล้ว ข้อผิดพลาด และคำขอสนับสนุน</strong></li>
+<li>ใช้ <strong>ตัวกรอง</strong> ตามประเภท สถานะ และระดับความสำคัญ</li>
+<li>แต่ละแถวแสดง <strong>สถานะและความสำคัญ</strong> ซึ่งผู้ดูแลระบบปรับได้พร้อมบันทึกภายใน</li>
+<li>ปุ่มท้ายแถวใช้ <strong>ดูรายละเอียดและลบ</strong></li>
+</ol>
+<figure><img src="img/admin_06_feedback.png" alt="ภาพที่ 3.9 หน้าจัดการข้อเสนอแนะ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.9 หน้าจัดการข้อเสนอแนะ</figcaption></figure>
+<h2 id="sec-3-7">3.7 บันทึกระบบ (System Logs)<a class="hlink" href="#sec-3-7">#</a></h2>
+<p>เมนู <strong>บันทึกระบบ</strong> รวมบันทึกการใช้งานและการกระทำสำคัญของผู้ดูแลระบบ</p>
+<ol class="steps">
+<li>แท็บ <strong>System Logs</strong> และ <strong>กิจกรรมรายวิชา</strong> แยกมุมมองระบบกับมุมมองรายวิชา</li>
+<li>แถบสรุปแบ่งตามประเภท <strong>การเข้าถึง ผิดพลาด ยืนยันตัว ความปลอดภัย</strong> พร้อมตัวนับ Permission changes / Member changes / Feedback actions / Course governance</li>
+<li>ใช้ <strong>ป้ายหมวดและตัวกรอง</strong> (ประเภท ระดับ ช่วงเวลา action) ค้นหาเหตุการณ์ ตารางแสดงเวลา ประเภท ระดับ action สถานะ IP และผู้ใช้</li>
+<li>ปุ่ม <strong>ส่งออก CSV</strong> ดาวน์โหลดบันทึกไปวิเคราะห์ต่อ</li>
+</ol>
+<figure><img src="img/admin_07_logs.png" alt="ภาพที่ 3.10 หน้าบันทึกระบบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.10 หน้าบันทึกระบบ</figcaption></figure>
+<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>การล้างบันทึก (cleanup logs) เป็นการกระทำที่ต้องยืนยันตัวตนสองชั้นซ้ำ (step-up 2FA) ก่อนดำเนินการทุกครั้ง</p></div>
+<h2 id="sec-3-8">3.8 มอนิเตอร์ระบบ<a class="hlink" href="#sec-3-8">#</a></h2>
+<p>เมนู <strong>มอนิเตอร์ระบบ</strong> ติดตามสุขภาพเซิร์ฟเวอร์ เว็บไซต์ และ container แบบเรียลไทม์ แบ่งเป็น 4 แท็บ</p>
+<ol class="steps">
+<li>แท็บ <strong>ภาพรวม</strong> แสดงสถานะรวม การ์ด CPU/หน่วยความจำ/ดิสก์/สถานะเว็บไซต์ เวลาตอบสนอง (P50/P95/P99) Error Rate และ Request Rate พร้อมกราฟแนวโน้มย้อนหลัง</li>
+</ol>
+<figure><img src="img/admin_08_monitoring.png" alt="ภาพที่ 3.11 มอนิเตอร์ระบบ แท็บภาพรวม" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.11 มอนิเตอร์ระบบ แท็บภาพรวม</figcaption></figure>
+<p>แท็บ <strong>สุขภาพเซิร์ฟเวอร์</strong> เจาะลึกตัวเครื่อง</p>
+<ol class="steps">
+<li>เลือกแท็บ <strong>สุขภาพเซิร์ฟเวอร์</strong></li>
+<li>การ์ดแสดง <strong>CPU หน่วยความจำ และดิสก์</strong> พร้อมจำนวนคอร์และขนาดรวม</li>
+<li>ส่วนล่างแสดง <strong>Network I/O, Load Average และเวลาทำงานเซิร์ฟเวอร์</strong> โดยรีเฟรชอัตโนมัติทุก 5 วินาที</li>
+</ol>
+<figure><img src="img/admin_15_mon_server.png" alt="ภาพที่ 3.12 แท็บสุขภาพเซิร์ฟเวอร์" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.12 แท็บสุขภาพเซิร์ฟเวอร์</figcaption></figure>
+<p>แท็บ <strong>Containers</strong> แสดงสถานะ container ที่ระบบรันอยู่ (ถ้ามีการเชื่อมต่อ)</p>
+<ol class="steps">
+<li>เลือกแท็บ <strong>Containers</strong></li>
+<li>ตารางแสดงรายการ container พร้อมสถานะและทรัพยากรที่ใช้</li>
+</ol>
+<figure><img src="img/admin_16_mon_containers.png" alt="ภาพที่ 3.13 แท็บ Containers" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.13 แท็บ Containers</figcaption></figure>
+<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>การสั่งดำเนินงานกับเซิร์ฟเวอร์ (รีสตาร์ทบริการ รีบูตโฮสต์) ทำจากหน้าตั้งค่าระบบ และต้องยืนยันตัวตนสองชั้นซ้ำทุกครั้ง ควรทำเฉพาะเมื่อจำเป็นเพราะกระทบผู้ใช้ทั้งระบบ</p></div>
+<h2 id="sec-3-9">3.9 ตั้งค่าระบบ<a class="hlink" href="#sec-3-9">#</a></h2>
+<p>เมนู <strong>ตั้งค่า</strong> รวมการดำเนินงานระดับระบบทั้งหมด</p>
+<h3 id="sec-สำรองฐานข-อม-ลและการควบค-มระบบ">สำรองฐานข้อมูลและการควบคุมระบบ</h3>
+<ol class="steps">
+<li>ส่วน <strong>สำรองฐานข้อมูล</strong> แสดงเวลาสำรองสำเร็จล่าสุดและจำนวนรายการ</li>
+<li>ปุ่ม <strong>สำรองทันที</strong> สั่งสำรองข้อมูลนอกรอบอัตโนมัติ</li>
+<li>ส่วน <strong>การควบคุมระบบ</strong> แสดงประวัติและไทม์ไลน์การดำเนินการ</li>
+<li>ปุ่ม <strong>รีสตาร์ทบริการ</strong> และ <strong>รีบูตโฮสต์</strong> ใช้เริ่มระบบใหม่ (ต้องยืนยัน 2FA ซ้ำ และยกเลิกได้ระหว่างนับถอยหลัง)</li>
+</ol>
+<figure><img src="img/admin_09_settings_backup.png" alt="ภาพที่ 3.14 ตั้งค่าระบบ ส่วนสำรองข้อมูลและการควบคุม" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.14 ตั้งค่าระบบ ส่วนสำรองข้อมูลและการควบคุม</figcaption></figure>
+<p>คลิก <strong>ดูรายการสำรอง</strong> เพื่อตรวจสอบและกู้คืนข้อมูล</p>
+<ol class="steps">
+<li>เลือกการเรียงลำดับ (ล่าสุดก่อน)</li>
+<li>ตารางแสดง <strong>ชื่อไฟล์สำรอง (เข้ารหัส) สล็อต วันที่สร้าง และขนาด</strong></li>
+<li>ปุ่ม <strong>กู้คืน</strong> ใช้ย้อนฐานข้อมูลกลับไปยังจุดสำรองนั้น (ต้องยืนยัน 2FA ซ้ำ) และ <strong>ลิงก์ดาวน์โหลด</strong> ใช้ดาวน์โหลดไฟล์สำรองเก็บภายนอก</li>
+</ol>
+<figure><img src="img/admin_13_backuplist.png" alt="ภาพที่ 3.15 รายการสำรองข้อมูล" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.15 รายการสำรองข้อมูล</figcaption></figure>
+<h3 id="sec-ประกาศระบบ">ประกาศระบบ</h3>
+<ol class="steps">
+<li>ส่วน <strong>ประกาศระบบ</strong> แสดงจำนวนประกาศทั้งหมดและที่ใช้งานอยู่ ปุ่ม <strong>สร้างประกาศ</strong> ใช้สร้างประกาศใหม่ โดยกำหนดได้ 2 ภาษา (ไทย/อังกฤษ) แนบรูป ตั้งช่วงเวลาแสดง เลือกกลุ่มเป้าหมาย รูปแบบการแสดง (เต็มหน้าจอ/แบนเนอร์ด้านบน) และบังคับให้ผู้ใช้กดรับทราบได้</li>
+</ol>
+<p>คลิก <strong>ดูประกาศทั้งหมด</strong> เพื่อจัดการประกาศที่มีอยู่</p>
+<ol class="steps">
+<li><strong>ค้นหาและกรอง</strong> ประกาศตามสถานะ</li>
+<li>ตารางแสดงประกาศพร้อม <strong>รูปแบบการแสดง สถานะ และจำนวนผู้กดรับทราบ</strong></li>
+<li>ปุ่ม <strong>ทำสำเนา</strong> และ <strong>แก้ไข</strong> ใช้จัดการรายประกาศ</li>
+</ol>
+<figure><img src="img/admin_11_announcelist.png" alt="ภาพที่ 3.16 รายการประกาศระบบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.16 รายการประกาศระบบ</figcaption></figure>
+<h3 id="sec-Feature-Flags">Feature Flags</h3>
+<p>คลิก <strong>จัดการ Feature Flags</strong> เพื่อเปิด/ปิดฟีเจอร์รายส่วนทั้งระบบ</p>
+<ol class="steps">
+<li>แถบเตือนย้ำว่า <strong>การเปลี่ยนสถานะมีผลทันทีต่อผู้ใช้ทุกคน</strong></li>
+<li><strong>ค้นหาและกรอง</strong> ฟีเจอร์จากชื่อหรือคำอธิบาย</li>
+<li>ปุ่ม <strong>ปิดทั้งหมด / เปิดทั้งหมด</strong> ใช้สลับทั้งชุด</li>
+<li>สวิตช์รายฟีเจอร์จัดกลุ่มตามหมวด เช่น งานสอนและการดำเนินการ (เช็คชื่อ คิว) และการวัดผล (งานและการบ้าน) โดยแต่ละรายการระบุรหัสฟีเจอร์กำกับ (เช่น menu.attendance)</li>
+</ol>
+<figure><img src="img/admin_12_flags.png" alt="ภาพที่ 3.17 หน้าต่างจัดการ Feature Flags" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.17 หน้าต่างจัดการ Feature Flags</figcaption></figure>
+<h3 id="sec-โหมดบำร-งร-กษาและส-ขภาพบร-การ">โหมดบำรุงรักษาและสุขภาพบริการ</h3>
+<p>ส่วน <strong>โหมดบำรุงรักษา</strong> ใช้กำหนดช่วงเวลาปิดปรับปรุงและข้อความที่จะแสดงหน้า maintenance แก่ผู้ใช้ (การเปิดโหมดต้องยืนยัน 2FA ซ้ำ ระหว่างปิดระบบผู้ดูแลยังเข้าผ่านหน้า login สำรองได้) และส่วน <strong>สุขภาพบริการ</strong> แสดงสถานะบริการย่อยทั้งหมด ได้แก่ ฐานข้อมูล อีเมล พื้นที่อัปโหลด ระบบเรียลไทม์ และพื้นที่จัดเก็บสำรอง</p>
+<figure><img src="img/admin_10_settings_announce.png" alt="ภาพที่ 3.18 ประกาศระบบ Feature Flags และโหมดบำรุงรักษา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.18 ประกาศระบบ Feature Flags และโหมดบำรุงรักษา</figcaption></figure>
+<h2 id="sec-3-10">3.10 การเข้าถึงรายวิชาในมุมมองผู้ดูแลระบบ<a class="hlink" href="#sec-3-10">#</a></h2>
+<p>ผู้ดูแลระบบสามารถเข้าไปในห้องเรียนของทุกรายวิชาได้เหมือนอาจารย์เจ้าของวิชา โดยระบบจะแสดงแถบเตือนสีแดง "คุณกำลังเข้าถึงในมุมมองผู้ดูแลระบบ" ไว้ด้านบนตลอดเวลา เพื่อย้ำว่าการทำงานบางอย่างอาจแตกต่างจากมุมมองผู้สอน การจัดการภายในรายวิชา (สมาชิก งาน คะแนน เช็คชื่อ คิว) ใช้ขั้นตอนเดียวกับที่อธิบายในภาคของอาจารย์ (บทที่ 4–14)</p>
+<figure><img src="img/perm_01_top.png" alt="ภาพที่ 3.19 มุมมองผู้ดูแลระบบภายในรายวิชา และหน้าต่างกำหนดสิทธิ์" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.19 มุมมองผู้ดูแลระบบภายในรายวิชา และหน้าต่างกำหนดสิทธิ์</figcaption></figure><div class="pn"><a class="pn-card" href="ch02.html"><span>← ก่อนหน้า</span><strong>บทที่ 2 บัญชีผู้ใช้และความปลอดภัย (ทุกบทบาท)</strong></a><a class="pn-card next" href="ch04.html"><span>ถัดไป →</span><strong>บทที่ 4 บทนำและการเข้าสู่ระบบ</strong></a></div></article>
+  </main>
+  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-3-1">3.1 แดชบอร์ดผู้ดูแลระบบ</a><a href="#sec-3-2">3.2 จัดการผู้ใช้ (แอดมิน อาจารย์ ผู้ช่วยสอน)</a><a href="#sec-3-3">3.3 จัดการนักศึกษา</a><a href="#sec-3-4">3.4 จัดการรายวิชา</a><a href="#sec-3-5">3.5 จัดการห้องเรียนและผังที่นั่ง</a><a href="#sec-3-6">3.6 จัดการข้อเสนอแนะ (Feedback)</a><a href="#sec-3-7">3.7 บันทึกระบบ (System Logs)</a><a href="#sec-3-8">3.8 มอนิเตอร์ระบบ</a><a href="#sec-3-9">3.9 ตั้งค่าระบบ</a><a href="#sec-3-10">3.10 การเข้าถึงรายวิชาในมุมมองผู้ดูแลระบบ</a></nav>
+</div>
+<div id="lb" class="lb" onclick="this.classList.remove('on')"><img></div>
+<script src="assets/search-index.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

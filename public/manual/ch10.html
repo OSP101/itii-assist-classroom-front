@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>บทที่ 10 การเช็คชื่อเข้าเรียน — คู่มือ LabTAS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="top">
+  <button class="burger" onclick="document.body.classList.toggle('nav-open')" aria-label="เมนู">
+    <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3h14v2H1zm0 4h14v2H1zm0 4h14v2H1z"/></svg>
+  </button>
+  <a class="brand" href="index.html"><span class="logo">L</span> LabTAS <span class="muted">Docs</span></a>
+  <div class="search">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.7 10.3a6 6 0 10-1.4 1.4l3 3 1.4-1.4-3-3zM2 6.5a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0z"/></svg>
+    <input id="q" type="search" placeholder="ค้นหาในคู่มือ… " autocomplete="off">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <button class="theme" onclick="toggleTheme()" title="สลับโหมดสว่าง/มืด">
+    <svg class="ic-moon" width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M6 .3a8 8 0 109.7 9.7A6.7 6.7 0 016 .3z"/></svg>
+    <svg class="ic-sun" width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 4a4 4 0 100 8 4 4 0 000-8zM7 0h2v2H7zM7 14h2v2H7zM0 7h2v2H0zM14 7h2v2h-2zM2.2 3.6L3.6 2.2 5 3.6 3.6 5zM11 12.4l1.4-1.4 1.4 1.4-1.4 1.4zM11 3.6L12.4 2.2l1.4 1.4L12.4 5zM2.2 12.4L3.6 11 5 12.4 3.6 13.8z"/></svg>
+  </button>
+</header>
+<div class="shell">
+  <aside class="side"><a class="side-home" href="index.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l7 6h-2v7h-4v-4H7v4H3V7H1l7-6z"/></svg> หน้าแรก</a>
+<details class="side-group"><summary>เริ่มต้นใช้งาน</summary>
+<a href="ch01.html"><span class="chip">บทที่ 1</span>บทนำ</a>
+<a href="ch02.html"><span class="chip">บทที่ 2</span>บัญชีผู้ใช้และความปลอดภัย (ทุกบทบาท)</a>
+</details>
+<details class="side-group"><summary>ผู้ดูแลระบบ</summary>
+<a href="ch03.html"><span class="chip">บทที่ 3</span>การใช้งานสำหรับผู้ดูแลระบบ (Admin)</a>
+</details>
+<details class="side-group" open><summary>อาจารย์ผู้สอน</summary>
+<a href="ch04.html"><span class="chip">บทที่ 4</span>บทนำและการเข้าสู่ระบบ</a>
+<a href="ch05.html"><span class="chip">บทที่ 5</span>การจัดการหมู่เรียนและกลุ่ม</a>
+<a href="ch06.html"><span class="chip">บทที่ 6</span>การจัดการสมาชิกและสิทธิ์ผู้ช่วยสอน</a>
+<a href="ch07.html"><span class="chip">บทที่ 7</span>งานมอบหมายและการให้คะแนน</a>
+<a href="ch08.html"><span class="chip">บทที่ 8</span>การอนุมัติคำขอแก้ไขคะแนน</a>
+<a href="ch09.html"><span class="chip">บทที่ 9</span>การสอบและคะแนนสอบ</a>
+<a class="active" href="ch10.html"><span class="chip">บทที่ 10</span>การเช็คชื่อเข้าเรียน</a>
+<a href="ch11.html"><span class="chip">บทที่ 11</span>ระบบคิวตรวจงาน</a>
+<a href="ch12.html"><span class="chip">บทที่ 12</span>การจับคู่จอแสดงผลหน้าห้อง</a>
+<a href="ch13.html"><span class="chip">บทที่ 13</span>การติดตามผลงานทีมและบันทึกกิจกรรม</a>
+<a href="ch14.html"><span class="chip">บทที่ 14</span>การตั้งค่ารายวิชา</a>
+</details>
+<details class="side-group"><summary>ผู้ช่วยสอน</summary>
+<a href="ch15.html"><span class="chip">บทที่ 15</span>บทนำและบทบาทผู้ช่วยสอน</a>
+<a href="ch16.html"><span class="chip">บทที่ 16</span>ระบบคิวและหน้ารับงาน (Worker)</a>
+<a href="ch17.html"><span class="chip">บทที่ 17</span>การให้คะแนนและการขอแก้ไขคะแนน</a>
+<a href="ch18.html"><span class="chip">บทที่ 18</span>งานอื่น ๆ ตามสิทธิ์ที่ได้รับ</a>
+</details>
+<details class="side-group"><summary>นักศึกษา</summary>
+<a href="ch19.html"><span class="chip">บทที่ 19</span>การใช้งานสำหรับนักศึกษา (Student)</a>
+</details>
+<details class="side-group"><summary>ภาคผนวก</summary>
+<a href="app-a.html"><span class="chip">ภาคผนวก ก</span>สิทธิ์รายวิชาทั้งหมด (39 สิทธิ์)</a>
+<a href="app-b.html"><span class="chip">ภาคผนวก ข</span>ฟังก์ชันที่เพิ่มหลังคู่มือฉบับสอบจบ</a>
+<a href="app-c.html"><span class="chip">ภาคผนวก ค</span>การกระทำที่ต้องยืนยันตัวตนสองชั้นซ้ำ (Step-up 2FA)</a>
+<a href="app-d.html"><span class="chip">ภาคผนวก ง</span>สรุปเมนูหลักตามบทบาท</a>
+</details>
+    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">LabTAS v1.2.90</span></div>
+  </aside>
+  <main class="main">
+    <div class="crumb"><a href="index.html">คู่มือ LabTAS</a> <span>/</span> อาจารย์ผู้สอน <span>/</span> บทที่ 10</div>
+    <div class="page-label">บทที่ 10</div><h1>การเช็คชื่อเข้าเรียน</h1>
+    <article class="doc"><h2 id="sec-10-1">10.1 ภาพรวม<a class="hlink" href="#sec-10-1">#</a></h2>
+<p>โมดูลการเช็คชื่อช่วยให้อาจารย์เปิด "รอบการเช็คชื่อ" ประจำคาบ และให้นักศึกษายืนยันการเข้าเรียนผ่านมือถือได้ทันที โดยไม่ต้องขานชื่อทีละคน ท่านสามารถแสดง <strong>PIN 6 หลัก</strong> และ <strong>QR Code</strong> ให้นักศึกษาสแกนหรือกรอก กำหนดเกณฑ์ "สาย" อัตโนมัติ เลือกให้ตรวจ <strong>ตำแหน่ง GPS</strong> ติดตามผลแบบเรียลไทม์ และดูสรุป <strong>มา / สาย / ลา / ขาด</strong> พร้อมแก้ไขสถานะย้อนหลังได้</p>
+<h2 id="sec-10-2">10.2 เข้าสู่หน้าจัดการเช็คชื่อ<a class="hlink" href="#sec-10-2">#</a></h2>
+<ol class="steps">
+<li>ที่แถบเมนูด้านซ้าย คลิก <strong>จัดการการเช็คชื่อ</strong> เพื่อขยายเมนูย่อย</li>
+<li>คลิกเมนูย่อย <strong>เช็คชื่อ</strong></li>
+</ol>
+<figure><img src="img/instructor_attendance_03_menu.png" alt="ภาพที่ 10.1 เมนูการเช็คชื่อ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 10.1 เมนูการเช็คชื่อ</figcaption></figure>
+<p>ระบบจะแสดงหน้า <strong>การเช็คชื่อเข้าเรียน</strong> ซึ่งรวมรอบเช็คชื่อทั้งหมดของวิชา</p>
+<ol class="steps">
+<li>ปุ่ม <strong>สร้างรอบเช็คชื่อ</strong> สำหรับสร้างรอบใหม่</li>
+<li>แถบสรุปจำนวนรอบ ทั้งหมด / กำลังเปิด / ฉบับร่าง / ปิดแล้ว</li>
+<li>ปุ่มจัดการรายรอบ ได้แก่ ดู สถิติ และเมนูเพิ่มเติมสำหรับแก้ไขหรือลบ (ปุ่ม "เปิดหน้าจอเช็คชื่อ" ที่มุมขวาบนใช้ฉาย PIN/QR ขึ้นจอหน้าห้อง)</li>
+</ol>
+<figure><img src="img/instructor_attendance_04_list.png" alt="ภาพที่ 10.2 หน้ารายการรอบการเช็คชื่อ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 10.2 หน้ารายการรอบการเช็คชื่อ</figcaption></figure>
+<h2 id="sec-10-3">10.3 สร้างรอบการเช็คชื่อ<a class="hlink" href="#sec-10-3">#</a></h2>
+<p>คลิกปุ่ม <strong>สร้างรอบเช็คชื่อ</strong> ระบบจะเปิดหน้าต่างให้กรอกรายละเอียด</p>
+<ol class="steps">
+<li>กรอก <strong>ชื่อรอบการเช็คชื่อ</strong> เช่น "เช็คชื่อสัปดาห์ที่ 1"</li>
+<li>เลือก <strong>กลุ่มเรียน (Section)</strong> ที่จะเช็คชื่อ (เลือกได้มากกว่าหนึ่งหมู่)</li>
+<li>เลือก <strong>ประเภทการเรียน</strong> เป็นบรรยายหรือปฏิบัติ</li>
+<li>กำหนด <strong>เวลาเริ่มต้น</strong> และ <strong>เวลาสิ้นสุด</strong> ของช่วงรับการเช็คชื่อ</li>
+<li>กำหนด <strong>เวลาตัดสาย</strong> นักศึกษาที่เช็คชื่อหลังเวลานี้จะถูกนับเป็น "สาย" โดยอัตโนมัติ</li>
+<li>เปิด <strong>เปลี่ยน PIN อัตโนมัติ</strong> เพื่อให้ระบบสุ่ม PIN ใหม่ทุก 1 นาที (แนะนำให้เปิดไว้)</li>
+<li>เปิด <strong>ตรวจสอบตำแหน่ง GPS</strong> หากต้องการให้นักศึกษาอยู่ในรัศมีห้องเรียนจึงจะเช็คชื่อได้</li>
+<li>เมื่อตั้งค่าครบ คลิกปุ่ม <strong>สร้างรอบเช็คชื่อ</strong></li>
+</ol>
+<figure><img src="img/instructor_attendance_05_create_form.png" alt="ภาพที่ 10.3 หน้าต่างสร้างรอบการเช็คชื่อ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 10.3 หน้าต่างสร้างรอบการเช็คชื่อ</figcaption></figure>
+<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>เมื่อเปิด "เปลี่ยน PIN อัตโนมัติ" ตัวเลข PIN บนจอจะเปลี่ยนทุก 1 นาที เพื่อป้องกันการส่งต่อ PIN ให้เพื่อนที่ไม่ได้เข้าเรียน จึงควรฉาย PIN/QR ให้นักศึกษาเห็นตลอดช่วงเช็คชื่อ</p></div>
+<h2 id="sec-10-4">10.4 เปิดรอบและแสดง PIN / QR<a class="hlink" href="#sec-10-4">#</a></h2>
+<p>เมื่อสร้างรอบสำเร็จ ระบบจะแจ้งเตือน และรอบใหม่จะปรากฏบนสุดของรายการ</p>
+<ol class="steps">
+<li>สังเกตสถานะเปลี่ยนเป็น <strong>กำลังเปิด</strong> ซึ่งหมายความว่ารอบพร้อมรับการเช็คชื่อแล้ว</li>
+<li>คลิกไอคอน <strong>ดู</strong> ที่ท้ายแถวของรอบนั้น เพื่อเปิดหน้าจอเช็คชื่อสด</li>
+</ol>
+<figure><img src="img/instructor_attendance_06_session_open.png" alt="ภาพที่ 10.4 รอบเช็คชื่อที่สร้างและกำลังเปิด" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 10.4 รอบเช็คชื่อที่สร้างและกำลังเปิด</figcaption></figure>
+<p>หน้าจอเช็คชื่อสดจะเปิดขึ้นพร้อมองค์ประกอบสำคัญ</p>
+<ol class="steps">
+<li><strong>PIN CODE</strong> รหัส 6 หลักให้นักศึกษากรอก</li>
+<li><strong>QR CODE</strong> ให้นักศึกษาสแกนเพื่อเข้าหน้าเช็คชื่อ (คลิกที่ภาพเพื่อขยาย)</li>
+<li><strong>เกณฑ์เวลาสาย</strong> ย้ำเวลาที่จะเริ่มนับว่าสาย</li>
+<li><strong>สถิติภาพรวม</strong> จำนวนเช็คชื่อแล้ว / มาเรียน / สาย / ลา / ขาด แบบเรียลไทม์</li>
+<li><strong>รายชื่อผู้เช็คชื่อ</strong> ที่อัปเดตทันทีเมื่อนักศึกษาเช็คชื่อสำเร็จ</li>
+<li>ปุ่ม <strong>ปิดรับการเช็คชื่อ</strong> สำหรับปิดรอบเมื่อหมดเวลา</li>
+</ol>
+<figure><img src="img/instructor_attendance_07_live_pin_qr.png" alt="ภาพที่ 10.5 หน้าจอเช็คชื่อสด แสดง PIN และ QR" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 10.5 หน้าจอเช็คชื่อสด แสดง PIN และ QR</figcaption></figure>
+<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>นักศึกษาเข้าสู่ระบบในแอปฝั่งนักศึกษา (บัญชี KKU Mail) แล้วเช็คชื่อผ่านการสแกน QR หรือกรอก PIN ที่แสดงบนจอ ระบบยืนยันด้วย PIN ที่หมุนเวียนและการตรวจ GPS (ถ้าเปิดใช้งาน) จึงสะดวกและรวดเร็วสำหรับการใช้งานผ่านมือถือหน้าห้อง</p></div>
+<h2 id="sec-10-5">10.5 ปิดรอบและดูสรุป มา / สาย / ลา / ขาด<a class="hlink" href="#sec-10-5">#</a></h2>
+<p>เมื่อหมดเวลา ให้กดปุ่ม <strong>ปิดรับการเช็คชื่อ</strong> ระบบจะปิดรอบและคืน PIN เข้าระบบทันที จากนั้นเปิดดูสรุปได้โดยคลิกไอคอน <strong>สถิติ</strong> ที่ท้ายแถวของรอบนั้น</p>
+<ol class="steps">
+<li><strong>สรุปจำนวน</strong> ทั้งหมด / มา / สาย / ลา / ขาด ของรอบนี้</li>
+<li><strong>อัตราการเข้าเรียน</strong> คิดเป็นเปอร์เซ็นต์</li>
+<li><strong>คอลัมน์สถานะ</strong> แสดงสถานะรายบุคคลพร้อมเวลาที่เช็คชื่อ</li>
+<li><strong>ปุ่มแก้ไข</strong> สำหรับปรับสถานะรายคน</li>
+</ol>
+<figure><img src="img/instructor_attendance_08_summary.png" alt="ภาพที่ 10.6 หน้าสรุปการเช็คชื่อ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 10.6 หน้าสรุปการเช็คชื่อ</figcaption></figure>
+<h2 id="sec-10-6">10.6 แก้ไขสถานะการเข้าเรียนย้อนหลัง<a class="hlink" href="#sec-10-6">#</a></h2>
+<p>กรณีนักศึกษาลาป่วย มาสายเพราะเหตุสุดวิสัย หรือระบบบันทึกคลาดเคลื่อน อาจารย์สามารถปรับสถานะย้อนหลังได้</p>
+<ol class="steps">
+<li>ที่หน้าสรุปการเช็คชื่อ คลิกปุ่มแก้ไขท้ายแถวของนักศึกษาที่ต้องการ</li>
+<li>เลือกสถานะใหม่ มา / สาย / ลา / ขาด</li>
+<li>ใส่หมายเหตุเหตุผลการแก้ไข เพื่อให้ตรวจสอบย้อนหลังได้</li>
+<li>บันทึก ระบบจะปรับตัวเลขสรุปและอัตราการเข้าเรียนให้อัตโนมัติ</li>
+</ol><div class="pn"><a class="pn-card" href="ch09.html"><span>← ก่อนหน้า</span><strong>บทที่ 9 การสอบและคะแนนสอบ</strong></a><a class="pn-card next" href="ch11.html"><span>ถัดไป →</span><strong>บทที่ 11 ระบบคิวตรวจงาน</strong></a></div></article>
+  </main>
+  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-10-1">10.1 ภาพรวม</a><a href="#sec-10-2">10.2 เข้าสู่หน้าจัดการเช็คชื่อ</a><a href="#sec-10-3">10.3 สร้างรอบการเช็คชื่อ</a><a href="#sec-10-4">10.4 เปิดรอบและแสดง PIN / QR</a><a href="#sec-10-5">10.5 ปิดรอบและดูสรุป มา / สาย / ลา / ขาด</a><a href="#sec-10-6">10.6 แก้ไขสถานะการเข้าเรียนย้อนหลัง</a></nav>
+</div>
+<div id="lb" class="lb" onclick="this.classList.remove('on')"><img></div>
+<script src="assets/search-index.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

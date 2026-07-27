@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>บทที่ 2 บัญชีผู้ใช้และความปลอดภัย (ทุกบทบาท) — คู่มือ LabTAS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="top">
+  <button class="burger" onclick="document.body.classList.toggle('nav-open')" aria-label="เมนู">
+    <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3h14v2H1zm0 4h14v2H1zm0 4h14v2H1z"/></svg>
+  </button>
+  <a class="brand" href="index.html"><span class="logo">L</span> LabTAS <span class="muted">Docs</span></a>
+  <div class="search">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.7 10.3a6 6 0 10-1.4 1.4l3 3 1.4-1.4-3-3zM2 6.5a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0z"/></svg>
+    <input id="q" type="search" placeholder="ค้นหาในคู่มือ… " autocomplete="off">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <button class="theme" onclick="toggleTheme()" title="สลับโหมดสว่าง/มืด">
+    <svg class="ic-moon" width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M6 .3a8 8 0 109.7 9.7A6.7 6.7 0 016 .3z"/></svg>
+    <svg class="ic-sun" width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 4a4 4 0 100 8 4 4 0 000-8zM7 0h2v2H7zM7 14h2v2H7zM0 7h2v2H0zM14 7h2v2h-2zM2.2 3.6L3.6 2.2 5 3.6 3.6 5zM11 12.4l1.4-1.4 1.4 1.4-1.4 1.4zM11 3.6L12.4 2.2l1.4 1.4L12.4 5zM2.2 12.4L3.6 11 5 12.4 3.6 13.8z"/></svg>
+  </button>
+</header>
+<div class="shell">
+  <aside class="side"><a class="side-home" href="index.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l7 6h-2v7h-4v-4H7v4H3V7H1l7-6z"/></svg> หน้าแรก</a>
+<details class="side-group" open><summary>เริ่มต้นใช้งาน</summary>
+<a href="ch01.html"><span class="chip">บทที่ 1</span>บทนำ</a>
+<a class="active" href="ch02.html"><span class="chip">บทที่ 2</span>บัญชีผู้ใช้และความปลอดภัย (ทุกบทบาท)</a>
+</details>
+<details class="side-group"><summary>ผู้ดูแลระบบ</summary>
+<a href="ch03.html"><span class="chip">บทที่ 3</span>การใช้งานสำหรับผู้ดูแลระบบ (Admin)</a>
+</details>
+<details class="side-group"><summary>อาจารย์ผู้สอน</summary>
+<a href="ch04.html"><span class="chip">บทที่ 4</span>บทนำและการเข้าสู่ระบบ</a>
+<a href="ch05.html"><span class="chip">บทที่ 5</span>การจัดการหมู่เรียนและกลุ่ม</a>
+<a href="ch06.html"><span class="chip">บทที่ 6</span>การจัดการสมาชิกและสิทธิ์ผู้ช่วยสอน</a>
+<a href="ch07.html"><span class="chip">บทที่ 7</span>งานมอบหมายและการให้คะแนน</a>
+<a href="ch08.html"><span class="chip">บทที่ 8</span>การอนุมัติคำขอแก้ไขคะแนน</a>
+<a href="ch09.html"><span class="chip">บทที่ 9</span>การสอบและคะแนนสอบ</a>
+<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็คชื่อเข้าเรียน</a>
+<a href="ch11.html"><span class="chip">บทที่ 11</span>ระบบคิวตรวจงาน</a>
+<a href="ch12.html"><span class="chip">บทที่ 12</span>การจับคู่จอแสดงผลหน้าห้อง</a>
+<a href="ch13.html"><span class="chip">บทที่ 13</span>การติดตามผลงานทีมและบันทึกกิจกรรม</a>
+<a href="ch14.html"><span class="chip">บทที่ 14</span>การตั้งค่ารายวิชา</a>
+</details>
+<details class="side-group"><summary>ผู้ช่วยสอน</summary>
+<a href="ch15.html"><span class="chip">บทที่ 15</span>บทนำและบทบาทผู้ช่วยสอน</a>
+<a href="ch16.html"><span class="chip">บทที่ 16</span>ระบบคิวและหน้ารับงาน (Worker)</a>
+<a href="ch17.html"><span class="chip">บทที่ 17</span>การให้คะแนนและการขอแก้ไขคะแนน</a>
+<a href="ch18.html"><span class="chip">บทที่ 18</span>งานอื่น ๆ ตามสิทธิ์ที่ได้รับ</a>
+</details>
+<details class="side-group"><summary>นักศึกษา</summary>
+<a href="ch19.html"><span class="chip">บทที่ 19</span>การใช้งานสำหรับนักศึกษา (Student)</a>
+</details>
+<details class="side-group"><summary>ภาคผนวก</summary>
+<a href="app-a.html"><span class="chip">ภาคผนวก ก</span>สิทธิ์รายวิชาทั้งหมด (39 สิทธิ์)</a>
+<a href="app-b.html"><span class="chip">ภาคผนวก ข</span>ฟังก์ชันที่เพิ่มหลังคู่มือฉบับสอบจบ</a>
+<a href="app-c.html"><span class="chip">ภาคผนวก ค</span>การกระทำที่ต้องยืนยันตัวตนสองชั้นซ้ำ (Step-up 2FA)</a>
+<a href="app-d.html"><span class="chip">ภาคผนวก ง</span>สรุปเมนูหลักตามบทบาท</a>
+</details>
+    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">LabTAS v1.2.90</span></div>
+  </aside>
+  <main class="main">
+    <div class="crumb"><a href="index.html">คู่มือ LabTAS</a> <span>/</span> เริ่มต้นใช้งาน <span>/</span> บทที่ 2</div>
+    <div class="page-label">บทที่ 2</div><h1>บัญชีผู้ใช้และความปลอดภัย (ทุกบทบาท)</h1>
+    <article class="doc"><p>เนื้อหาบทนี้ใช้ได้กับผู้ดูแลระบบ อาจารย์ และผู้ช่วยสอนทุกคน เนื่องจากหน้าตั้งค่าบัญชีเป็นหน้าเดียวกันทุกบทบาท</p>
+<h2 id="sec-2-1">2.1 การเข้าสู่ระบบ<a class="hlink" href="#sec-2-1">#</a></h2>
+<ol class="steps">
+<li>เปิดเว็บเบราว์เซอร์ไปที่ที่อยู่เว็บของระบบ ระบบจะแสดงหน้าเข้าสู่ระบบ</li>
+<li>กรอก <strong>ชื่อผู้ใช้</strong> ในช่องแรก</li>
+<li>กรอก <strong>รหัสผ่าน</strong> ในช่องถัดมา</li>
+<li>คลิกปุ่ม <strong>เข้าสู่ระบบ</strong> หรือเลือกเข้าสู่ระบบผ่านบัญชี <strong>Google / GitHub</strong> ที่ผูกไว้ (นักศึกษาใช้ปุ่ม "ล็อกอินนักศึกษา" ที่มุมขวาบน)</li>
+</ol>
+<figure><img src="img/instructor_login.png" alt="ภาพที่ 2.1 หน้าเข้าสู่ระบบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.1 หน้าเข้าสู่ระบบ</figcaption></figure>
+<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>ผู้ใช้ที่ผู้ดูแลระบบสร้างให้ใหม่จะได้รับรหัสผ่านชั่วคราว เมื่อเข้าสู่ระบบครั้งแรกระบบจะบังคับให้เปลี่ยนรหัสผ่านก่อนใช้งาน และหากลืมรหัสผ่านสามารถกด "ลืมรหัสผ่าน?" เพื่อรับลิงก์รีเซ็ตทางอีเมลได้</p></div>
+<h2 id="sec-2-2">2.2 ข้อมูลส่วนตัวและรูปโปรไฟล์<a class="hlink" href="#sec-2-2">#</a></h2>
+<p>เข้าหน้าตั้งค่าบัญชีโดยคลิกรูปโปรไฟล์ที่มุมขวาบน แล้วเลือก <strong>ตั้งค่าโปรไฟล์</strong></p>
+<ol class="steps">
+<li>เมนูด้านซ้ายแบ่งเป็น 4 ส่วน ได้แก่ ข้อมูลส่วนตัว การยืนยันตัวตน อุปกรณ์ที่เข้าสู่ระบบ และการแสดงผลและภาษา</li>
+<li>ปุ่ม <strong>อัปโหลดรูปใหม่</strong> ใช้เปลี่ยนรูปโปรไฟล์ (JPG/PNG/GIF ไม่เกิน 5MB)</li>
+<li>แก้ไข <strong>ชื่อ-นามสกุลและอีเมล</strong> แล้วกดบันทึกการเปลี่ยนแปลง (ชื่อผู้ใช้ Username แก้ไขไม่ได้)</li>
+</ol>
+<figure><img src="img/instructor_account_01_profile.png" alt="ภาพที่ 2.2 หน้าข้อมูลส่วนตัว" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.2 หน้าข้อมูลส่วนตัว</figcaption></figure>
+<h2 id="sec-2-3">2.3 รหัสผ่าน การยืนยันตัวตนสองชั้น และการเชื่อมบัญชี<a class="hlink" href="#sec-2-3">#</a></h2>
+<p>ที่เมนู <strong>การยืนยันตัวตน</strong></p>
+<ol class="steps">
+<li>ปุ่ม <strong>เปลี่ยนรหัสผ่าน</strong> ใช้เปลี่ยนรหัสผ่านของบัญชี</li>
+<li>ปุ่ม <strong>ตั้งค่า 2FA</strong> ใช้เปิดการยืนยันตัวตนสองขั้นตอน รองรับทั้งแอป Authenticator (TOTP) และรหัสทางอีเมล พร้อมรหัสสำรอง (backup codes) สำหรับกรณีฉุกเฉิน เมื่อเปิดใช้แล้ว การเข้าสู่ระบบทุกครั้งต้องยืนยันรหัสเพิ่ม</li>
+<li>ส่วน <strong>เชื่อมต่อบัญชี</strong> ใช้เชื่อมหรือยกเลิกการเชื่อมบัญชี Google และ GitHub เพื่อเข้าสู่ระบบได้โดยไม่ต้องกรอกรหัสผ่าน</li>
+</ol>
+<figure><img src="img/instructor_account_02_security.png" alt="ภาพที่ 2.3 หน้าความปลอดภัยและการยืนยันตัวตน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.3 หน้าความปลอดภัยและการยืนยันตัวตน</figcaption></figure>
+<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>สำหรับผู้ดูแลระบบ การเปิด 2FA มีความจำเป็นเป็นพิเศษ เพราะการดำเนินงานสำคัญของระบบ (สำรอง/กู้คืนข้อมูล รีสตาร์ท โหมดบำรุงรักษา ฯลฯ) ต้องยืนยันรหัส 2FA ซ้ำทุกครั้ง หากยังไม่เปิด 2FA จะไม่สามารถทำรายการเหล่านั้นได้</p></div>
+<h2 id="sec-2-4">2.4 อุปกรณ์และเซสชันที่เข้าสู่ระบบ<a class="hlink" href="#sec-2-4">#</a></h2>
+<p>ที่เมนู <strong>อุปกรณ์ที่เข้าสู่ระบบ</strong> ระบบแสดงทุกอุปกรณ์และเบราว์เซอร์ที่บัญชีนี้เข้าสู่ระบบค้างไว้</p>
+<ol class="steps">
+<li>แต่ละรายการแสดง <strong>ระบบปฏิบัติการ เบราว์เซอร์ IP และเวลาเข้าสู่ระบบ</strong> โดยเซสชันที่ใช้อยู่ปัจจุบันมีป้ายกำกับ "เซสชันปัจจุบัน"</li>
+<li>ปุ่ม <strong>ออกจากระบบทั้งหมด</strong> ใช้บังคับออกจากระบบทุกอุปกรณ์พร้อมกัน</li>
+<li>ไอคอนท้ายแต่ละรายการใช้ <strong>เพิกถอนเซสชันรายอุปกรณ์</strong> เมื่อพบอุปกรณ์ที่ไม่รู้จักหรือเลิกใช้แล้ว</li>
+</ol>
+<figure><img src="img/common_sessions_01.png" alt="ภาพที่ 2.4 หน้าอุปกรณ์และเซสชันที่เข้าสู่ระบบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.4 หน้าอุปกรณ์และเซสชันที่เข้าสู่ระบบ</figcaption></figure>
+<h2 id="sec-2-5">2.5 การแสดงผลและภาษา<a class="hlink" href="#sec-2-5">#</a></h2>
+<p>ที่เมนู <strong>การแสดงผลและภาษา</strong> ปรับ <strong>ธีม</strong> (ตามระบบ/สว่าง/มืด) <strong>ภาษา</strong> (ไทย/อังกฤษ) และ <strong>ขนาดฟอนต์</strong> (เล็ก/กลาง/ใหญ่) ได้ตามความถนัด ระบบบันทึกการตั้งค่าเข้ากับบัญชีโดยอัตโนมัติ</p>
+<figure><img src="img/instructor_account_03_prefs.png" alt="ภาพที่ 2.5 หน้าการแสดงผลและภาษา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.5 หน้าการแสดงผลและภาษา</figcaption></figure>
+<h2 id="sec-2-6">2.6 การแจ้งเตือน<a class="hlink" href="#sec-2-6">#</a></h2>
+<p>คลิกไอคอน <strong>กระดิ่ง</strong> ที่มุมขวาบนของทุกหน้า เพื่อเปิดกล่องการแจ้งเตือน</p>
+<ol class="steps">
+<li>ปุ่ม <strong>อ่านทั้งหมด</strong> ทำเครื่องหมายอ่านทุกรายการ และ <strong>ลบที่อ่านแล้ว</strong> ใช้เคลียร์รายการ</li>
+<li>แท็บ <strong>ทั้งหมด / ยังไม่ได้อ่าน</strong> ใช้กรองรายการ</li>
+<li>ประเภทการแจ้งเตือนครอบคลุม งาน การเช็คชื่อ คิว การแก้คะแนน และประกาศจากผู้ดูแลระบบ นอกจากนี้ระบบยังรองรับ <strong>Push Notification</strong> ที่แจ้งเตือนถึงอุปกรณ์แม้ไม่ได้เปิดหน้าเว็บอยู่ (ใช้ปลุกผู้ช่วยสอนเมื่อมีคิวใหม่ โดยระบบจะขออนุญาตเมื่อเริ่มรับงาน)</li>
+</ol>
+<figure><img src="img/instructor_noti_01.png" alt="ภาพที่ 2.6 กล่องการแจ้งเตือน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.6 กล่องการแจ้งเตือน</figcaption></figure>
+<h2 id="sec-2-7">2.7 ศูนย์ช่วยเหลือ<a class="hlink" href="#sec-2-7">#</a></h2>
+<p>หน้า <strong>ศูนย์ช่วยเหลือ</strong> (ลิงก์ท้ายทุกหน้า) รวมคู่มือการใช้งาน คำถามที่พบบ่อย การตรวจสอบสถานะระบบ ช่องทางติดต่อทีมสนับสนุน และการแจ้งปัญหาความปลอดภัยไว้ในที่เดียว ผู้ใช้ทุกบทบาทรวมถึงบุคคลทั่วไปสามารถส่งคำขอสนับสนุนได้</p>
+<figure><img src="img/instructor_support_01.png" alt="ภาพที่ 2.7 หน้าศูนย์ช่วยเหลือ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.7 หน้าศูนย์ช่วยเหลือ</figcaption></figure><div class="pn"><a class="pn-card" href="ch01.html"><span>← ก่อนหน้า</span><strong>บทที่ 1 บทนำ</strong></a><a class="pn-card next" href="ch03.html"><span>ถัดไป →</span><strong>บทที่ 3 การใช้งานสำหรับผู้ดูแลระบบ (Admin)</strong></a></div></article>
+  </main>
+  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-2-1">2.1 การเข้าสู่ระบบ</a><a href="#sec-2-2">2.2 ข้อมูลส่วนตัวและรูปโปรไฟล์</a><a href="#sec-2-3">2.3 รหัสผ่าน การยืนยันตัวตนสองชั้น และการเชื่อมบัญชี</a><a href="#sec-2-4">2.4 อุปกรณ์และเซสชันที่เข้าสู่ระบบ</a><a href="#sec-2-5">2.5 การแสดงผลและภาษา</a><a href="#sec-2-6">2.6 การแจ้งเตือน</a><a href="#sec-2-7">2.7 ศูนย์ช่วยเหลือ</a></nav>
+</div>
+<div id="lb" class="lb" onclick="this.classList.remove('on')"><img></div>
+<script src="assets/search-index.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

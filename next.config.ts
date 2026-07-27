@@ -28,6 +28,12 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return [
+      { source: "/manual", destination: "/manual/index.html" },
+      { source: "/manual/", destination: "/manual/index.html" },
+    ];
+  },
 };
 
 export default nextConfig;

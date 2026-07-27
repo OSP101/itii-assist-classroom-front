@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>บทที่ 16 ระบบคิวและหน้ารับงาน (Worker) — คู่มือ LabTAS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="top">
+  <button class="burger" onclick="document.body.classList.toggle('nav-open')" aria-label="เมนู">
+    <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3h14v2H1zm0 4h14v2H1zm0 4h14v2H1z"/></svg>
+  </button>
+  <a class="brand" href="index.html"><span class="logo">L</span> LabTAS <span class="muted">Docs</span></a>
+  <div class="search">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.7 10.3a6 6 0 10-1.4 1.4l3 3 1.4-1.4-3-3zM2 6.5a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0z"/></svg>
+    <input id="q" type="search" placeholder="ค้นหาในคู่มือ… " autocomplete="off">
+    <div id="results" class="results" hidden></div>
+  </div>
+  <button class="theme" onclick="toggleTheme()" title="สลับโหมดสว่าง/มืด">
+    <svg class="ic-moon" width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M6 .3a8 8 0 109.7 9.7A6.7 6.7 0 016 .3z"/></svg>
+    <svg class="ic-sun" width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 4a4 4 0 100 8 4 4 0 000-8zM7 0h2v2H7zM7 14h2v2H7zM0 7h2v2H0zM14 7h2v2h-2zM2.2 3.6L3.6 2.2 5 3.6 3.6 5zM11 12.4l1.4-1.4 1.4 1.4-1.4 1.4zM11 3.6L12.4 2.2l1.4 1.4L12.4 5zM2.2 12.4L3.6 11 5 12.4 3.6 13.8z"/></svg>
+  </button>
+</header>
+<div class="shell">
+  <aside class="side"><a class="side-home" href="index.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l7 6h-2v7h-4v-4H7v4H3V7H1l7-6z"/></svg> หน้าแรก</a>
+<details class="side-group"><summary>เริ่มต้นใช้งาน</summary>
+<a href="ch01.html"><span class="chip">บทที่ 1</span>บทนำ</a>
+<a href="ch02.html"><span class="chip">บทที่ 2</span>บัญชีผู้ใช้และความปลอดภัย (ทุกบทบาท)</a>
+</details>
+<details class="side-group"><summary>ผู้ดูแลระบบ</summary>
+<a href="ch03.html"><span class="chip">บทที่ 3</span>การใช้งานสำหรับผู้ดูแลระบบ (Admin)</a>
+</details>
+<details class="side-group"><summary>อาจารย์ผู้สอน</summary>
+<a href="ch04.html"><span class="chip">บทที่ 4</span>บทนำและการเข้าสู่ระบบ</a>
+<a href="ch05.html"><span class="chip">บทที่ 5</span>การจัดการหมู่เรียนและกลุ่ม</a>
+<a href="ch06.html"><span class="chip">บทที่ 6</span>การจัดการสมาชิกและสิทธิ์ผู้ช่วยสอน</a>
+<a href="ch07.html"><span class="chip">บทที่ 7</span>งานมอบหมายและการให้คะแนน</a>
+<a href="ch08.html"><span class="chip">บทที่ 8</span>การอนุมัติคำขอแก้ไขคะแนน</a>
+<a href="ch09.html"><span class="chip">บทที่ 9</span>การสอบและคะแนนสอบ</a>
+<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็คชื่อเข้าเรียน</a>
+<a href="ch11.html"><span class="chip">บทที่ 11</span>ระบบคิวตรวจงาน</a>
+<a href="ch12.html"><span class="chip">บทที่ 12</span>การจับคู่จอแสดงผลหน้าห้อง</a>
+<a href="ch13.html"><span class="chip">บทที่ 13</span>การติดตามผลงานทีมและบันทึกกิจกรรม</a>
+<a href="ch14.html"><span class="chip">บทที่ 14</span>การตั้งค่ารายวิชา</a>
+</details>
+<details class="side-group" open><summary>ผู้ช่วยสอน</summary>
+<a href="ch15.html"><span class="chip">บทที่ 15</span>บทนำและบทบาทผู้ช่วยสอน</a>
+<a class="active" href="ch16.html"><span class="chip">บทที่ 16</span>ระบบคิวและหน้ารับงาน (Worker)</a>
+<a href="ch17.html"><span class="chip">บทที่ 17</span>การให้คะแนนและการขอแก้ไขคะแนน</a>
+<a href="ch18.html"><span class="chip">บทที่ 18</span>งานอื่น ๆ ตามสิทธิ์ที่ได้รับ</a>
+</details>
+<details class="side-group"><summary>นักศึกษา</summary>
+<a href="ch19.html"><span class="chip">บทที่ 19</span>การใช้งานสำหรับนักศึกษา (Student)</a>
+</details>
+<details class="side-group"><summary>ภาคผนวก</summary>
+<a href="app-a.html"><span class="chip">ภาคผนวก ก</span>สิทธิ์รายวิชาทั้งหมด (39 สิทธิ์)</a>
+<a href="app-b.html"><span class="chip">ภาคผนวก ข</span>ฟังก์ชันที่เพิ่มหลังคู่มือฉบับสอบจบ</a>
+<a href="app-c.html"><span class="chip">ภาคผนวก ค</span>การกระทำที่ต้องยืนยันตัวตนสองชั้นซ้ำ (Step-up 2FA)</a>
+<a href="app-d.html"><span class="chip">ภาคผนวก ง</span>สรุปเมนูหลักตามบทบาท</a>
+</details>
+    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">LabTAS v1.2.90</span></div>
+  </aside>
+  <main class="main">
+    <div class="crumb"><a href="index.html">คู่มือ LabTAS</a> <span>/</span> ผู้ช่วยสอน <span>/</span> บทที่ 16</div>
+    <div class="page-label">บทที่ 16</div><h1>ระบบคิวและหน้ารับงาน (Worker)</h1>
+    <article class="doc"><h2 id="sec-16-1">16.1 ภาพรวม<a class="hlink" href="#sec-16-1">#</a></h2>
+<p>ระบบคิวช่วยจัดลำดับการตรวจงานและการขอคำปรึกษาในห้องปฏิบัติการให้เป็นระเบียบและยุติธรรม นักศึกษาจองคิวผ่าน QR / PIN / โต๊ะ ส่วนผู้ช่วยสอนจะเข้า <strong>หน้ารับงาน (Worker)</strong> เพื่อรับและตรวจงานตามลำดับ บทนี้อธิบายตั้งแต่การเปิดรอบคิว การเข้าหน้ารับงาน ไปจนถึงการรับและตรวจงานจริง</p>
+<h2 id="sec-16-2">16.2 เปิดรอบคิว<a class="hlink" href="#sec-16-2">#</a></h2>
+<p>หากได้รับสิทธิ์จัดการคิว ผู้ช่วยสอนสามารถเปิดรอบคิวได้เอง</p>
+<ol class="steps">
+<li>เข้าเมนู <strong>คิวตรวจงาน</strong> แล้วคลิกปุ่ม <strong>สร้างการจองคิว</strong> เพื่อสร้างรอบใหม่</li>
+<li>เมื่อรอบคิวถูกสร้าง (สถานะ "ฉบับร่าง") ให้กดปุ่ม <strong>เริ่ม (▶)</strong> ท้ายแถวเพื่อเปิดรอบ สถานะจะเปลี่ยนเป็น <strong>กำลังเปิด</strong></li>
+<li>เมื่อรอบ <strong>กำลังเปิด</strong> แล้ว ท้ายแถวจะมีไอคอน <strong>ผู้ตรวจ</strong> สำหรับเข้าหน้ารับงาน คลิกไอคอนนี้เพื่อเริ่มทำงาน</li>
+</ol>
+<figure><img src="img/ta_06_queuelist.png" alt="ภาพที่ 16.1 รายการคิวและการเข้าหน้ารับงาน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 16.1 รายการคิวและการเข้าหน้ารับงาน</figcaption></figure>
+<p>เมื่อกด <strong>สร้างการจองคิว</strong> ระบบจะเปิดหน้าต่างให้กำหนดรายละเอียด ได้แก่ ชื่อคิว ห้องที่ใช้งาน และตัวเลือกเชื่อมโยงกับหัวข้องาน (เพื่อลงคะแนนอัตโนมัติ) หรือเชื่อมโยงกับการเช็คชื่อ (เพื่อจำกัดเฉพาะผู้เข้าเรียน)</p>
+<figure><img src="img/instructor_queue_02_create.png" alt="ภาพที่ 16.2 หน้าต่างสร้างการจองคิว" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 16.2 หน้าต่างสร้างการจองคิว</figcaption></figure>
+<h2 id="sec-16-3">16.3 ตั้งค่าและเริ่มรับงาน<a class="hlink" href="#sec-16-3">#</a></h2>
+<p>เมื่อคลิกไอคอนผู้ตรวจ ระบบจะเปิด <strong>หน้ารับงาน</strong> ในแท็บใหม่ ก่อนเริ่มทำงานให้ตั้งค่าดังนี้</p>
+<ol class="steps">
+<li>ส่วนหัวแสดงชื่อรอบคิว ห้อง และ <strong>PIN</strong> ของรอบนั้น</li>
+<li>เลือก <strong>ประเภทงานที่ต้องการรับ</strong> ได้แก่ รับตรวจงาน และ/หรือ รับช่วยเหลือ</li>
+<li>ป้ายสถานะด้านขวาบนแสดงสถานะปัจจุบัน (เริ่มต้นเป็น <strong>ไม่ได้รับงาน</strong>)</li>
+<li>คลิกปุ่ม <strong>เริ่มรับงาน</strong> เพื่อเริ่มรับคิว (ระบบอาจขออนุญาตส่งการแจ้งเตือน เพื่อปลุกด้วยเสียง/การสั่นเมื่อมีคิวใหม่ แม้สลับไปแอปอื่น — แนะนำให้กดอนุญาต)</li>
+</ol>
+<figure><img src="img/ta_03_worker.png" alt="ภาพที่ 16.3 หน้ารับงาน — ตั้งค่าก่อนเริ่ม" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 16.3 หน้ารับงาน — ตั้งค่าก่อนเริ่ม</figcaption></figure>
+<h2 id="sec-16-4">16.4 ระหว่างรับงาน<a class="hlink" href="#sec-16-4">#</a></h2>
+<p>เมื่อกด <strong>เริ่มรับงาน</strong> แล้ว หน้าจอจะเปลี่ยนเป็นโหมดทำงาน</p>
+<ol class="steps">
+<li>ป้ายสถานะเปลี่ยนเป็น <strong>กำลังรับงาน</strong></li>
+<li>ปุ่ม <strong>หยุดรับงาน</strong> ใช้หยุดรับคิวชั่วคราวเมื่อต้องพัก</li>
+<li>ส่วน <strong>รอรับงาน</strong> จะแสดงสถานะรอ เมื่อมีนักศึกษาจองคิว ระบบจะ <strong>ยิงงานมาให้อัตโนมัติ</strong> และแสดงงานปัจจุบันที่ต้องตรวจพร้อมข้อมูลนักศึกษาและโต๊ะ</li>
+<li>ส่วนล่างแสดง <strong>ประเภทงานที่รับ</strong> ที่ท่านเลือกไว้</li>
+</ol>
+<figure><img src="img/ta_07_worker_active.png" alt="ภาพที่ 16.4 หน้ารับงาน — กำลังรอรับงาน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 16.4 หน้ารับงาน — กำลังรอรับงาน</figcaption></figure>
+<p>เมื่อระบบเสนองานให้ ผู้ช่วยสอนสามารถ</p>
+<ul>
+<li>กด <strong>เสร็จสิ้น (complete)</strong> เมื่อตรวจงานเสร็จ ระบบจะบันทึกผลและเรียกคิวถัดไป</li>
+<li>กด <strong>ข้าม (skip)</strong> หากยังไม่พร้อมตรวจรายนั้น เพื่อส่งต่อให้ผู้ตรวจคนอื่น</li>
+<li>ระบบมีกลไก <strong>เสนองาน–หมดเวลา–ปฏิเสธ</strong> เพื่อกระจายงานอย่างเป็นธรรม หากไม่ตอบรับภายในเวลาที่กำหนด คิวจะถูกส่งต่อโดยอัตโนมัติ</li>
+</ul>
+<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>เมื่อพักหรือเลิกงาน ให้กด <strong>หยุดรับงาน</strong> เพื่อไม่ให้ระบบเสนอคิวมาให้ขณะที่ท่านไม่พร้อม สถานะจะกลับเป็น "ไม่ได้รับงาน" และเมื่อสิ้นสุดคาบ ผู้มีสิทธิ์จัดการคิวควรกด <strong>หยุดรับคิว</strong> ที่หน้ารายการคิวเพื่อปิดรอบ</p></div><div class="pn"><a class="pn-card" href="ch15.html"><span>← ก่อนหน้า</span><strong>บทที่ 15 บทนำและบทบาทผู้ช่วยสอน</strong></a><a class="pn-card next" href="ch17.html"><span>ถัดไป →</span><strong>บทที่ 17 การให้คะแนนและการขอแก้ไขคะแนน</strong></a></div></article>
+  </main>
+  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-16-1">16.1 ภาพรวม</a><a href="#sec-16-2">16.2 เปิดรอบคิว</a><a href="#sec-16-3">16.3 ตั้งค่าและเริ่มรับงาน</a><a href="#sec-16-4">16.4 ระหว่างรับงาน</a></nav>
+</div>
+<div id="lb" class="lb" onclick="this.classList.remove('on')"><img></div>
+<script src="assets/search-index.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
