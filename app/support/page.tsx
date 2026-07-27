@@ -3,8 +3,9 @@ import { Icon } from '@iconify/react';
 import Link from 'next/link';
 
 import { PublicPageShell } from '@/components/support/PublicPageShell';
-import { SupportCenterClient } from '@/components/support/SupportCenterClient';
+import { SupportCenterClient, type SupportDocLite } from '@/components/support/SupportCenterClient';
 import { getStatusLinkProps, statusLiveLink, statusProvider } from '@/config/status-provider';
+import { getAllDocs } from '@/lib/docs.server';
 import { getRequestLanguage } from '@/lib/server-i18n';
 
 function getSupportPageCopy(language: 'th' | 'en') {
@@ -12,76 +13,34 @@ function getSupportPageCopy(language: 'th' | 'en') {
         return {
             metadataTitle: 'Help Center',
             metadataDescription: statusProvider
-                ? `Find answers, read guides, check system status through ${statusProvider.name}, and contact the LabTAS support team from one place.`
-                : 'Find answers, read guides, check system status, and contact the LabTAS support team from one place.',
+                ? `Answers, the full illustrated LabTAS manual, live status from ${statusProvider.name}, and a direct line to the support team.`
+                : 'Answers, the full illustrated LabTAS manual, live system status, and a direct line to the support team.',
             eyebrow: 'Help Center',
-            title: 'LabTAS Help Center',
-            description: statusProvider
-                ? `Find answers in the FAQ, read task-based guides, check system status through ${statusProvider.name}, or send a request to the support team from here.`
-                : 'Find answers in the FAQ, read task-based guides, check system status, or send a request to the support team from here.',
-            readGuides: 'Read the guides',
-            viewLiveStatus: 'View live system status',
-            checkStatus: 'Check system status',
+            title: 'How can we help you today?',
+            description:
+                'Open the illustrated LabTAS manual, search the FAQ and task guides, or send a case straight to the team — all in one place.',
+            openFullManual: 'Open the full manual',
+            readGuides: 'Task guides',
+            viewLiveStatus: 'View live status',
+            checkStatus: 'System status',
             contactSupport: 'Contact support',
-            publicCenterTitle: 'Public help center',
-            publicCenterDescription: statusProvider
-                ? `Designed to help users find answers quickly and route issues clearly, with direct links to ${statusProvider.name} for live incident updates.`
-                : 'Designed to help users find answers quickly and route issues clearly through a straightforward support flow.',
-            highlights: [
-                {
-                    label: 'First response target',
-                    value: 'Within 1 business day',
-                    description: 'General cases receive an initial reply by email or through the contact channel provided by the requester.',
-                },
-                {
-                    label: 'Coverage',
-                    value: 'Assignments, attendance, queues, scores',
-                    description: 'Covers the main workflows used by students, TAs, and instructors in the classroom.',
-                },
-                {
-                    label: 'Escalation',
-                    value: 'Support + Security',
-                    description: 'Uses separate paths for general platform issues and security-sensitive incidents.',
-                },
-            ],
         };
     }
 
     return {
         metadataTitle: 'ศูนย์ช่วยเหลือ',
         metadataDescription: statusProvider
-            ? `ค้นหาคำตอบ อ่านคู่มือการใช้งาน ตรวจสอบสถานะระบบผ่าน ${statusProvider.name} และติดต่อทีมสนับสนุน LabTAS ได้จากที่เดียว`
-            : 'ค้นหาคำตอบจากคำถามที่พบบ่อย อ่านคู่มือการใช้งาน ตรวจสอบสถานะระบบ และติดต่อทีมสนับสนุน LabTAS ได้จากที่เดียว',
+            ? `เปิดคู่มือฉบับสมบูรณ์ของ LabTAS ค้นคำตอบ ตรวจสถานะระบบผ่าน ${statusProvider.name} และติดต่อทีมงานได้ในหน้าเดียว`
+            : 'เปิดคู่มือฉบับสมบูรณ์ของ LabTAS ค้นคำตอบ ตรวจสถานะระบบ และติดต่อทีมงานได้ในหน้าเดียว',
         eyebrow: 'ศูนย์ช่วยเหลือ',
-        title: 'ศูนย์ช่วยเหลือ LabTAS',
-        description: statusProvider
-            ? `ค้นหาคำตอบจากคำถามที่พบบ่อย อ่านคู่มือรายหัวข้อ ตรวจสอบสถานะระบบผ่าน ${statusProvider.name} หรือส่งคำขอถึงทีมสนับสนุนได้จากที่นี่`
-            : 'ค้นหาคำตอบจากคำถามที่พบบ่อย อ่านคู่มือรายหัวข้อ ตรวจสอบสถานะระบบ หรือส่งคำขอถึงทีมสนับสนุนได้จากที่นี่',
-        readGuides: 'อ่านคู่มือการใช้งาน',
+        title: 'มีอะไรให้เราช่วยไหม?',
+        description:
+            'เปิดคู่มือฉบับสมบูรณ์ที่มีภาพหน้าจอจริงประกอบทุกขั้นตอน ค้นคำตอบและคู่มือรายหัวข้อในระบบ หรือส่งเรื่องถึงทีมงานได้ทันที',
+        openFullManual: 'เปิดคู่มือฉบับสมบูรณ์',
+        readGuides: 'คู่มือรายหัวข้อ',
         viewLiveStatus: 'ดูสถานะระบบสด',
-        checkStatus: 'ตรวจสอบสถานะระบบ',
-        contactSupport: 'ติดต่อทีมสนับสนุน',
-        publicCenterTitle: 'ศูนย์ช่วยเหลือสาธารณะ',
-        publicCenterDescription: statusProvider
-            ? `ออกแบบให้ค้นหาคำตอบและส่งต่อปัญหาได้รวดเร็ว พร้อมเชื่อมต่อกับ ${statusProvider.name} เมื่อต้องติดตามเหตุขัดข้องแบบสด`
-            : 'ออกแบบให้ค้นหาคำตอบและส่งต่อปัญหาได้รวดเร็วตามขั้นตอนที่ชัดเจน',
-        highlights: [
-            {
-                label: 'เป้าหมายเวลาตอบกลับครั้งแรก',
-                value: 'ภายใน 1 วันทำการ',
-                description: 'เคสทั่วไปจะได้รับการตอบกลับครั้งแรกทางอีเมลหรือช่องทางที่ผู้ใช้ระบุ',
-            },
-            {
-                label: 'ขอบเขตการช่วยเหลือ',
-                value: 'งาน, เช็คชื่อ, คิว, คะแนน',
-                description: 'ครอบคลุม workflow หลักของนักศึกษา, TA, และผู้สอนในห้องเรียน',
-            },
-            {
-                label: 'การส่งต่อเหตุ',
-                value: 'ซัพพอร์ต + ความปลอดภัย',
-                description: 'มีแยกเส้นทางสำหรับเหตุขัดข้องทั่วไปและประเด็นด้านความปลอดภัยของระบบ',
-            },
-        ],
+        checkStatus: 'สถานะระบบ',
+        contactSupport: 'ติดต่อทีมงาน',
     };
 }
 
@@ -99,6 +58,29 @@ export default async function SupportPage() {
     const language = await getRequestLanguage();
     const copy = getSupportPageCopy(language);
 
+    const docsFull = getAllDocs(language);
+    const docs: SupportDocLite[] = docsFull.map((doc) => ({
+        slug: doc.slug,
+        title: doc.title,
+        description: doc.description,
+        category: doc.category,
+        categoryLabel: doc.categoryLabel,
+        audience: doc.audience,
+        icon: doc.icon,
+        readingTime: doc.readingTime,
+        updatedAt: doc.updatedAt,
+        sections: doc.sections.slice(0, 12).map((section) => ({
+            id: section.id,
+            title: section.title,
+            level: section.level,
+        })),
+        excerpt: doc.content
+            .replace(/[#>*_`\-]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 600),
+    }));
+
     return (
         <PublicPageShell
             variant="landing"
@@ -108,45 +90,41 @@ export default async function SupportPage() {
             icon="solar:question-circle-bold"
             actions={
                 <>
-                    <Link href="/docs" className="inline-flex min-h-10 items-center justify-center rounded-lg bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-400">
+                    <Link
+                        href="/manual"
+                        target="_blank"
+                        rel="noopener"
+                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-900/40 transition hover:bg-blue-400"
+                    >
+                        <Icon icon="solar:book-2-bold" className="text-base" />
+                        {copy.openFullManual}
+                        <Icon icon="solar:arrow-right-up-linear" className="text-sm opacity-80" />
+                    </Link>
+                    <Link
+                        href="/docs"
+                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/10"
+                    >
+                        <Icon icon="solar:book-bookmark-bold" className="text-base" />
                         {copy.readGuides}
                     </Link>
                     <Link
                         {...getStatusLinkProps()}
-                        className="inline-flex min-h-10 items-center justify-center rounded-lg border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20"
+                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/10"
                     >
+                        <Icon icon="solar:server-path-bold" className="text-base" />
                         {statusLiveLink.type === 'external' ? copy.viewLiveStatus : copy.checkStatus}
                     </Link>
-                    <Link href="/support/contact" className="inline-flex min-h-10 items-center justify-center rounded-lg border border-white/20 px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:text-white">
+                    <Link
+                        href="/support/contact"
+                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:text-white"
+                    >
+                        <Icon icon="solar:chat-round-dots-linear" className="text-base" />
                         {copy.contactSupport}
                     </Link>
                 </>
             }
-            heroPanel={
-                <div className="space-y-4">
-                    <div className="flex items-center gap-3 text-slate-900">
-                        <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
-                            <Icon icon="solar:shield-check-bold" className="text-2xl" />
-                        </div>
-                        <div>
-                            <p className="text-lg font-semibold">{copy.publicCenterTitle}</p>
-                            <p className="text-sm text-slate-500">{copy.publicCenterDescription}</p>
-                        </div>
-                    </div>
-
-                    <div className="space-y-3">
-                        {copy.highlights.map((highlight) => (
-                            <div key={highlight.label} className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
-                                <div className="text-[11px] font-medium uppercase tracking-widest text-slate-400">{highlight.label}</div>
-                                <div className="mt-1 text-base font-semibold text-slate-900">{highlight.value}</div>
-                                <p className="mt-1 text-sm leading-6 text-slate-600">{highlight.description}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            }
         >
-            <SupportCenterClient />
+            <SupportCenterClient docs={docs} />
         </PublicPageShell>
     );
 }
