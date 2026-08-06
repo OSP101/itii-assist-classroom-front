@@ -150,6 +150,12 @@ export interface QueueBooking {
         id: number;
         name: string;
         max_score: number;
+        sub_items?: {
+            id: number;
+            name: string;
+            max_score: number;
+            order_index?: number;
+        }[];
     };
 }
 
@@ -806,6 +812,34 @@ const queueService = {
         );
         if (!response.data) throw new Error('บันทึกผลไม่สำเร็จ');
         return response.data;
+    },
+
+    /**
+     * Existing sub-item scores of the booking's student on the booking's own
+     * linked assignment (Worker). Works for mirrored cross-course TAs who
+     * cannot call GET /scores on the partner course.
+     */
+    async getBookingExistingScores(
+        courseId: string,
+        sessionId: string,
+        bookingId: number
+    ): Promise<{
+        sub_item_scores: {
+            sub_item_id: number;
+            score: number | null;
+            graded_by?: { id: number; display_name: string } | null;
+            graded_at?: string | null;
+        }[];
+    }> {
+        const response = await api.get<{
+            sub_item_scores: {
+                sub_item_id: number;
+                score: number | null;
+                graded_by?: { id: number; display_name: string } | null;
+                graded_at?: string | null;
+            }[];
+        }>(`/courses/${courseId}/queue/sessions/${sessionId}/bookings/${bookingId}/scores`);
+        return response.data ?? { sub_item_scores: [] };
     },
 
     /**

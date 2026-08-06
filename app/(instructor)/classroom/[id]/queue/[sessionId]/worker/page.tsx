@@ -29,7 +29,6 @@ import queueService, {
     type QueueBooking,
 } from "@/services/queue.service";
 import { authService } from "@/services/auth.service";
-import scoreService from "@/services/score.service";
 import { useNotification } from "@/contexts/NotificationContext";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { IosInstallHint } from "@/components/system/IosInstallHint";
@@ -44,6 +43,39 @@ import { API_BASE_URL } from "@/config/api";
 import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
 import { formatScoreValue, parseScoreInput, SCORE_INPUT_PATTERN, sanitizeScoreInput } from "@/lib/score-input";
 
+
+// In a shared-room concurrent group the current booking may come from a
+// partner course whose assignment differs from this session's linked
+// assignment. Score against the booking's origin assignment whenever the
+// backend provides it; otherwise fall back to the session's linked assignment.
+function resolveScoringContext(
+    booking: QueueBooking | null,
+    session: QueueSession | null
+): {
+    assignment: { id: number; name: string; max_score: number } | null;
+    subItems: { id: number; name: string; max_score: number; order_index?: number }[];
+} {
+    const originAssignment = booking?.origin_assignment ?? null;
+    const sessionAssignment = session?.linkedAssignment ?? null;
+
+    let subItems: { id: number; name: string; max_score: number; order_index?: number }[];
+    if (!originAssignment) {
+        subItems = sessionAssignment?.subItems ?? [];
+    } else if (originAssignment.sub_items) {
+        subItems = originAssignment.sub_items;
+    } else if (sessionAssignment && sessionAssignment.id === originAssignment.id) {
+        // Older payloads may lack sub_items; the session's sub-items are only
+        // interchangeable when they belong to the same assignment.
+        subItems = sessionAssignment.subItems ?? [];
+    } else {
+        subItems = [];
+    }
+
+    return {
+        assignment: originAssignment ?? sessionAssignment,
+        subItems: [...subItems].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)),
+    };
+}
 
 interface MiniDeskInfo {
     id: number;
@@ -1273,16 +1305,16 @@ export default function WorkerDashboardPage() {
     }, [currentBooking, pollForBooking]);
 
     const isGradingBooking = currentBooking?.booking_type === "grading";
-    const isSessionLinkedAssignmentMissing = Boolean(session?.linked_assignment_id && !session?.linkedAssignment);
-    // Get max score from linked assignment, or fall back to a general manual-score default.
-    const maxScore = session?.linkedAssignment?.max_score || 10;
-    const hasSubItems = Boolean(session?.linkedAssignment?.subItems?.length);
+    const scoringContext = resolveScoringContext(currentBooking, session);
+    const isSessionLinkedAssignmentMissing = Boolean(
+        !scoringContext.assignment && session?.linked_assignment_id && !session?.linkedAssignment
+    );
+    // Get max score from the booking's scoring assignment, or fall back to a general manual-score default.
+    const maxScore = scoringContext.assignment?.max_score || 10;
+    const hasSubItems = scoringContext.subItems.length > 0;
     const usesSubItemScoring = isGradingBooking && hasSubItems;
     const usesSingleScoreScoring = isGradingBooking && !hasSubItems;
-    // Sort subItems by order_index
-    const subItems = [...(session?.linkedAssignment?.subItems || [])].sort(
-        (a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)
-    );
+    const subItems = scoringContext.subItems;
 
     // Initialize sub-item scores when opening modal - fetch existing scores first
     const initializeCompleteForm = async () => {
@@ -1297,7 +1329,12 @@ export default function WorkerDashboardPage() {
         try {
             let scoringSession = session;
 
-            if (currentBooking?.booking_type === "grading" && session?.linked_assignment_id && !session?.linkedAssignment) {
+            if (
+                currentBooking?.booking_type === "grading" &&
+                !currentBooking?.origin_assignment?.sub_items &&
+                session?.linked_assignment_id &&
+                !session?.linkedAssignment
+            ) {
                 try {
                     const refreshedSession = await queueService.getQueueSession(courseId, sessionId);
                     scoringSession = refreshedSession;
@@ -1307,28 +1344,32 @@ export default function WorkerDashboardPage() {
                 }
             }
 
-            const scoringSubItems = [...(scoringSession?.linkedAssignment?.subItems || [])].sort(
-                (a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)
+            const { assignment: scoringAssignment, subItems: scoringSubItems } = resolveScoringContext(
+                currentBooking,
+                scoringSession
             );
             const scoringHasSubItems = scoringSubItems.length > 0;
 
-            if (currentBooking?.booking_type === "grading" && scoringSession?.linkedAssignment && scoringHasSubItems) {
-                // Fetch existing scores for this student
+            if (currentBooking?.booking_type === "grading" && scoringAssignment && scoringHasSubItems) {
+                // Fetch existing scores for this student via the queue-scoped
+                // endpoint — it targets the booking's own assignment and also
+                // works for mirrored cross-course TAs who cannot read the
+                // partner course's score list.
                 setIsLoadingScores(true);
                 try {
-                    const scoresData = await scoreService.getScores(scoringSession.linkedAssignment.id);
-                    const studentScore = scoresData?.student_scores?.find(
-                        ss => ss.student.id === currentBooking.student_id
+                    const scoresData = await queueService.getBookingExistingScores(
+                        courseId,
+                        sessionId,
+                        currentBooking.id
                     );
-                    
-                    // Extract existing sub-item scores
-                    const existingScores = studentScore?.sub_item_scores?.map(s => ({
+
+                    const existingScores = scoresData.sub_item_scores.map(s => ({
                         sub_item_id: s.sub_item_id,
                         score: s.score,
                         graded_by: s.graded_by || undefined,
                         graded_at: s.graded_at ?? null,
-                    })) || [];
-                    
+                    }));
+
                     setExistingSubItemScores(existingScores);
                     
                     // Initialize form with empty values for items not yet scored
