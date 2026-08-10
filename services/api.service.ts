@@ -42,13 +42,16 @@ class ApiService {
   }
 
   // fetch() wrapper that aborts after REQUEST_TIMEOUT_MS so a stalled
-  // connection never hangs the caller indefinitely.
+  // connection never hangs the caller indefinitely. `credentials: 'include'`
+  // makes the browser send the httpOnly access/refresh cookies set by the
+  // backend (login/refresh/OAuth callback) — this replaces the old
+  // Authorization: Bearer header built from a localStorage token.
   private async fetchWithTimeout(input: string, init?: RequestInit): Promise<Response> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.REQUEST_TIMEOUT_MS);
 
     try {
-      return await fetch(input, { ...init, signal: controller.signal });
+      return await fetch(input, { ...init, credentials: 'include', signal: controller.signal });
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
         throw new Error('Request timed out. Please check your connection and try again.');
@@ -59,55 +62,22 @@ class ApiService {
     }
   }
 
-  private normalizeStoredToken(token: string | null): string | null {
-    if (!token) {
+  // Reads a single cookie's value. Used only for the two cookies the backend
+  // deliberately leaves readable by JS (csrf_token, non-sensitive by
+  // design) — the access/refresh token cookies are httpOnly and never
+  // reach this code.
+  private readCookie(name: string): string | null {
+    if (typeof document === 'undefined') {
       return null;
     }
-
-    const normalized = token.trim();
-    if (!normalized) {
-      return null;
-    }
-
-    const lowered = normalized.toLowerCase();
-    if (lowered === 'undefined' || lowered === 'null') {
-      return null;
-    }
-
-    return normalized;
-  }
-
-  private getAccessToken(): string | null {
-    if (typeof window !== 'undefined') {
-      return this.normalizeStoredToken(localStorage.getItem('accessToken'));
-    }
-    return null;
-  }
-
-  private getRefreshToken(): string | null {
-    if (typeof window !== 'undefined') {
-      return this.normalizeStoredToken(localStorage.getItem('refreshToken'));
-    }
-    return null;
-  }
-
-  private setTokens(accessToken: string, refreshToken: string): void {
-    if (typeof window !== 'undefined') {
-      const normalizedAccessToken = this.normalizeStoredToken(accessToken);
-      const normalizedRefreshToken = this.normalizeStoredToken(refreshToken);
-
-      if (!normalizedAccessToken || !normalizedRefreshToken) {
-        this.clearTokens();
-        return;
-      }
-
-      localStorage.setItem('accessToken', normalizedAccessToken);
-      localStorage.setItem('refreshToken', normalizedRefreshToken);
-    }
+    const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+    return match ? decodeURIComponent(match[1]) : null;
   }
 
   private clearTokens(): void {
     if (typeof window !== 'undefined') {
+      // Legacy keys from before the httpOnly-cookie migration — cleared
+      // defensively so a stale tab/service worker can't resurrect them.
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
@@ -131,27 +101,34 @@ class ApiService {
     this.refreshSubscribers = [];
   }
 
+  // The refresh token lives in an httpOnly cookie scoped to /auth — the
+  // browser attaches it automatically (credentials: 'include'), so this is
+  // a bodiless POST. On success the backend's Set-Cookie response header
+  // already replaced both cookies; there's nothing left to store here.
   private async refreshAccessToken(): Promise<boolean> {
-    const refreshToken = this.getRefreshToken();
-    if (!refreshToken) {
-      this.clearTokens();
-      return false;
-    }
-
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Client-Type': 'web',
+      };
+      // This is a mutating POST guarded by the same double-submit CSRF
+      // check as every other mutating request (see request()) — it isn't
+      // routed through request() itself because it must bypass the normal
+      // 401-triggers-refresh loop, so the CSRF header is added here too.
+      const csrfToken = this.readCookie('csrf_token');
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+      }
+
       const response = await this.fetchWithTimeout(`${this.baseURL}/auth/refresh`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refreshToken }),
+        headers,
       });
 
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data) {
-          this.setTokens(data.data.accessToken, data.data.refreshToken);
-          this.onTokenRefreshed(data.data.accessToken);
+          this.onTokenRefreshed('ok');
           return true;
         }
       }
@@ -213,10 +190,19 @@ class ApiService {
       headers['Content-Type'] = 'application/json';
     }
 
-    // ส่งโทเคนเพื่อยืนยันตัวตนในการใช้งาน
-    const accessToken = this.getAccessToken();
-    if (accessToken) {
-      headers['Authorization'] = `Bearer ${accessToken}`;
+    // Identifies this as a browser (cookie-auth) request to the backend —
+    // see middlewares.Protected()'s cookie fallback on the Go side.
+    headers['X-Client-Type'] = 'web';
+
+    // Double-submit CSRF token: mirror the readable csrf_token cookie back
+    // in a header the browser can't auto-attach cross-site, so the backend
+    // can tell a same-site request (both match) from a forged cross-site one.
+    const isMutating = method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS';
+    if (isMutating) {
+      const csrfToken = this.readCookie('csrf_token');
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+      }
     }
 
     const executeRequest = async (): Promise<ApiResponse<T>> => {
@@ -244,14 +230,14 @@ class ApiService {
         // If already refreshing, wait for the refresh to complete
         if (this.isRefreshing) {
           return new Promise((resolve) => {
-            this.subscribeTokenRefresh((newToken: string | null) => {
-              if (!newToken) {
+            this.subscribeTokenRefresh((refreshed: string | null) => {
+              if (!refreshed) {
                 resolve({ success: false, error: 'Session expired. Please login again.' });
                 return;
               }
 
-              headers['Authorization'] = `Bearer ${newToken}`;
-              // Retry the request with new token
+              // The refreshed access cookie is already attached automatically;
+              // just retry the same request.
               resolve(this.request<T>(method, endpoint, body, options, false));
             });
           });
@@ -380,17 +366,21 @@ class ApiService {
     return this.request<T>('DELETE', endpoint, undefined, options);
   }
 
-  // Token management
-  setAuthTokens(accessToken: string, refreshToken: string): void {
-    this.setTokens(accessToken, refreshToken);
-  }
+  // Token management — the access/refresh tokens themselves are httpOnly
+  // cookies set directly by the backend response (login/refresh/OAuth
+  // callback); there is nothing left for client JS to store.
 
   clearAuthTokens(): void {
     this.clearTokens();
   }
 
+  // The csrf_token cookie is set/cleared by the backend in lockstep with
+  // the httpOnly auth cookies (see utils.SetAuthCookies/ClearAuthCookies on
+  // the Go side), so its presence is a reliable, synchronous "do we have an
+  // active web session" signal without needing to read the httpOnly cookies
+  // themselves (which client JS can never do).
   isAuthenticated(): boolean {
-    return this.getAccessToken() !== null;
+    return this.readCookie('csrf_token') !== null;
   }
 }
 

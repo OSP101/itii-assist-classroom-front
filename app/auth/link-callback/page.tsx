@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { Card, CardBody } from "@heroui/card";
 import { Spinner } from "@heroui/spinner";
 import { Icon } from "@iconify/react";
-import { authService } from "@/services";
 import { getOAuthCallbackParam } from "@/lib/oauth-callback-params";
 
 const AUTH_PAGE_SHELL = "flex min-h-screen items-center justify-center bg-background p-4 text-foreground";
@@ -17,8 +16,8 @@ function LinkCallbackContent() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const accessToken = getOAuthCallbackParam(searchParams, "accessToken");
-    const refreshToken = getOAuthCallbackParam(searchParams, "refreshToken");
+    // The backend already set the httpOnly auth cookies directly on its
+    // redirect response — no tokens ever reach this page.
     const linked = getOAuthCallbackParam(searchParams, "linked");
     const error = getOAuthCallbackParam(searchParams, "error");
 
@@ -53,13 +52,10 @@ function LinkCallbackContent() {
       return;
     }
 
-    if (!accessToken || !refreshToken || !linked) {
+    if (!linked) {
       broadcastAndClose({ success: false, error: "ข้อมูลการเชื่อมต่อไม่ครบถ้วน" });
       return;
     }
-
-    // Save updated tokens so the main tab has fresh ones
-    authService.setTokens(accessToken, refreshToken);
 
     const providerName =
       linked === "google" ? "Google" : linked === "github" ? "GitHub" : linked;

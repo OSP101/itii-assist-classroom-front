@@ -763,13 +763,15 @@ class CourseService {
 
   async bulkDelete(courseIds: string[]) {
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     const url = `${API_BASE}${API_ENDPOINTS.COURSES.BULK_DELETE}`;
+    const csrfMatch = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
     const res = await fetch(url, {
       method: 'DELETE',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        'X-Client-Type': 'web',
+        ...(csrfMatch ? { 'X-CSRF-Token': decodeURIComponent(csrfMatch[1]) } : {}),
       },
       body: JSON.stringify({ course_ids: courseIds }),
     });
@@ -780,14 +782,13 @@ class CourseService {
 
   async exportCSV(params?: { search?: string; year?: number; semester?: number; status?: string }) {
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     const query = new URLSearchParams();
     if (params?.search) query.set('search', params.search);
     if (params?.year) query.set('year', String(params.year));
     if (params?.semester) query.set('semester', String(params.semester));
     if (params?.status && params.status !== 'all') query.set('status', params.status);
     const url = `${API_BASE}${API_ENDPOINTS.COURSES.EXPORT}${query.toString() ? '?' + query.toString() : ''}`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetch(url, { credentials: 'include', headers: { 'X-Client-Type': 'web' } });
     if (!res.ok) throw new Error('Export failed');
     const blob = await res.blob();
     const link = document.createElement('a');

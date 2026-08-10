@@ -126,17 +126,11 @@ export default function VerifyTwoFactorPage() {
       );
 
       if (result.success && result.data) {
-        const accessToken = result.data.accessToken?.trim();
-        const refreshToken = result.data.refreshToken?.trim();
-        const hasInvalidTokens =
-          !accessToken ||
-          !refreshToken ||
-          accessToken.toLowerCase() === "undefined" ||
-          accessToken.toLowerCase() === "null" ||
-          refreshToken.toLowerCase() === "undefined" ||
-          refreshToken.toLowerCase() === "null";
-
-        if (hasInvalidTokens) {
+        // The backend's /auth/2fa/complete-login response already set the
+        // httpOnly access/refresh cookies (plus the readable csrf_token) —
+        // nothing to store client-side for the session itself. `user` isn't
+        // a credential, just a display cache, so it still goes to localStorage.
+        if (!result.data.user) {
           setError(t("pleaseTryAgain"));
           return;
         }
@@ -144,10 +138,7 @@ export default function VerifyTwoFactorPage() {
         // Clear stored 2FA data
         sessionStorage.removeItem("twoFactorData");
 
-        // Store tokens
         if (typeof window !== "undefined") {
-          localStorage.setItem("accessToken", accessToken);
-          localStorage.setItem("refreshToken", refreshToken);
           localStorage.setItem("user", JSON.stringify(result.data.user));
         }
 

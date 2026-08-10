@@ -11,16 +11,8 @@ import { useSocket } from "@/contexts/SocketContext";
 import userNotificationService, { UserNotificationItem } from "@/services/user-notification.service";
 import { playWorkerNotificationSound, showBrowserNotification, triggerNotificationVibration } from "@/lib/pwa-notifications";
 
-// Helper to get access token from localStorage
-const getAccessToken = (): string | null => {
-    if (typeof window !== "undefined") {
-        return localStorage.getItem("accessToken");
-    }
-    return null;
-};
-
 const hasAuthenticatedSession = (): boolean => {
-    return authService.isAuthenticated() && !!getAccessToken();
+    return authService.isAuthenticated();
 };
 
 interface NotificationContextType {
@@ -196,8 +188,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         targetId?: number | string,
     ): Promise<{ success: boolean; error?: string }> => {
         const user = authService.getStoredUser();
-        const accessToken = getAccessToken();
-        if (!accessToken || !user?.id) {
+        if (!hasAuthenticatedSession() || !user?.id) {
             return { success: false, error: "ต้องเข้าสู่ระบบก่อนถึงจะลงทะเบียนอุปกรณ์ได้" };
         }
 

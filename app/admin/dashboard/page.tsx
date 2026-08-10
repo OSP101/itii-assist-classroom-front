@@ -294,9 +294,9 @@ export default function AdminDashboardPage() {
   const fetchSystemMetrics = useCallback(async () => {
     try {
       const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
-      const token = localStorage.getItem("accessToken");
       const res = await fetch(`${API_BASE}/system/metrics`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
+        headers: { "X-Client-Type": "web" },
       });
       if (res.ok) {
         const data = await res.json();

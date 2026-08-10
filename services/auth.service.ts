@@ -236,11 +236,11 @@ class AuthService {
         };
       }
 
-      const { user, accessToken, refreshToken, mustChangePassword } = response.data;
-      
-      // Store tokens
-      apiService.setAuthTokens(accessToken, refreshToken);
-      
+      const { user, mustChangePassword } = response.data;
+      // Auth cookies (httpOnly access/refresh + readable csrf_token) are
+      // already set by the Set-Cookie headers on this same response —
+      // nothing to store client-side.
+
       // Store user info
       this.clearPendingPreferences(user.id);
       this.persistUser(user);
@@ -270,13 +270,9 @@ class AuthService {
    // Logout
   async logout(): Promise<void> {
     try {
-      // Get refresh token before clearing to send to server
-      const refreshToken = typeof window !== 'undefined' 
-        ? localStorage.getItem('refreshToken') 
-        : null;
-      
-      // Send refresh token to revoke it on server
-      await apiService.post(API_ENDPOINTS.LOGOUT, { refreshToken });
+      // The backend reads the refresh token from its httpOnly cookie and
+      // revokes + clears it server-side; no body needed.
+      await apiService.post(API_ENDPOINTS.LOGOUT);
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -427,13 +423,6 @@ class AuthService {
 
     const roles = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
     return roles.includes(user.role);
-  }
-
-  /**
-   * Set tokens manually (for OAuth callback)
-   */
-  setTokens(accessToken: string, refreshToken: string): void {
-    apiService.setAuthTokens(accessToken, refreshToken);
   }
 
   /**

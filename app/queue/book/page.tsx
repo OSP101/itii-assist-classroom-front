@@ -235,16 +235,22 @@ function BookQueueContent() {
     // Current user (if logged in)
     const [loggedInUser] = useState(() => authService.getStoredUser());
 
+    // This page is reachable anonymously (PIN-based booking, no login
+    // required), so it must not assume a session exists — but when the
+    // browser DOES carry one (student/staff already logged in elsewhere),
+    // the httpOnly access cookie is sent automatically via `credentials:
+    // "include"` on each fetch below, and the CSRF header is only added
+    // when there's actually a session to protect.
     const buildQueueRequestHeaders = useCallback((includeContentType: boolean = true) => {
-        const headers: Record<string, string> = {};
+        const headers: Record<string, string> = { "X-Client-Type": "web" };
         if (includeContentType) {
             headers["Content-Type"] = "application/json";
         }
 
-        if (typeof window !== "undefined") {
-            const accessToken = localStorage.getItem("accessToken");
-            if (accessToken) {
-                headers.Authorization = `Bearer ${accessToken}`;
+        if (typeof document !== "undefined") {
+            const csrfMatch = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
+            if (csrfMatch) {
+                headers["X-CSRF-Token"] = decodeURIComponent(csrfMatch[1]);
             }
         }
 
@@ -302,6 +308,7 @@ function BookQueueContent() {
                     // Check if booking still exists
                     const response = await fetch(`${API_BASE_URL}/queue/check-existing`, {
                         method: "POST",
+                        credentials: "include",
                         headers: buildQueueRequestHeaders(),
                         body: JSON.stringify({
                             pin_code: savedState.pinCode,
@@ -314,6 +321,7 @@ function BookQueueContent() {
                         // Restore session info first
                         const pinResponse = await fetch(`${API_BASE_URL}/queue/verify-pin`, {
                             method: "POST",
+                            credentials: "include",
                             headers: buildQueueRequestHeaders(),
                             body: JSON.stringify({ pin_code: savedState.pinCode }),
                         });
@@ -395,6 +403,7 @@ function BookQueueContent() {
         try {
             const response = await fetch(`${API_BASE_URL}/queue/validate`, {
                 method: "POST",
+                credentials: "include",
                 headers: buildQueueRequestHeaders(),
                 body: JSON.stringify({
                     pin_code: pinCode,
@@ -423,6 +432,7 @@ function BookQueueContent() {
     const validateBookingForSubmit = useCallback(async (): Promise<BookingValidationResult | null> => {
         const response = await fetch(`${API_BASE_URL}/queue/validate`, {
             method: "POST",
+            credentials: "include",
             headers: buildQueueRequestHeaders(),
             body: JSON.stringify({
                 pin_code: pinCode,
@@ -520,6 +530,7 @@ function BookQueueContent() {
         try {
             const response = await fetch(`${API_BASE_URL}/queue/verify-pin`, {
                 method: "POST",
+                credentials: "include",
                 headers: buildQueueRequestHeaders(),
                 body: JSON.stringify({ pin_code: pinCode }),
             });
@@ -558,6 +569,7 @@ function BookQueueContent() {
     const createBookingRequest = useCallback(async () => {
         const response = await fetch(`${API_BASE_URL}/queue/bookings`, {
             method: "POST",
+            credentials: "include",
             headers: buildQueueRequestHeaders(),
             body: JSON.stringify({
                 pin_code: pinCode,
@@ -790,6 +802,7 @@ function BookQueueContent() {
         try {
             const response = await fetch(`${API_BASE_URL}/queue/bookings/${bookingResult.id}/cancel`, {
                 method: "POST",
+                credentials: "include",
                 headers: buildQueueRequestHeaders(),
             });
 

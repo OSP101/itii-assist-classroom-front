@@ -133,9 +133,18 @@ export async function registerPushSubscription(
     }
 
     try {
+        // This endpoint is public (no login required — device registration
+        // works pre-auth), but a same-origin fetch still auto-attaches
+        // cookies by default. If the caller happens to be logged in, echo
+        // the CSRF token so the backend's blanket CSRF check (which fires
+        // on cookie presence, not per-route auth) doesn't reject it.
+        const csrfMatch = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
         const response = await fetch(`${API_BASE_URL}/push/register`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                ...(csrfMatch ? { "X-CSRF-Token": decodeURIComponent(csrfMatch[1]) } : {}),
+            },
             body: JSON.stringify({
                 endpoint: subscription.endpoint,
                 keys: { p256dh: subscription.keys.p256dh, auth: subscription.keys.auth },
@@ -181,17 +190,19 @@ export async function sendTestPush(): Promise<SendTestPushResult> {
         return failure;
     }
 
-    const accessToken = localStorage.getItem("accessToken");
-    if (!accessToken) {
+    const csrfMatch = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
+    if (!csrfMatch) {
         return { ...failure, message: "unauthenticated" };
     }
 
     try {
         const response = await fetch(`${API_BASE_URL}/push/test`, {
             method: "POST",
+            credentials: "include",
             headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${accessToken}`,
+                "X-Client-Type": "web",
+                "X-CSRF-Token": decodeURIComponent(csrfMatch[1]),
                 Referer: window.location.href,
             },
         });
@@ -226,9 +237,15 @@ export async function unregisterPushSubscription(): Promise<boolean> {
         const endpoint = subscription.endpoint;
         await subscription.unsubscribe();
 
+        // Same reasoning as registerPushSubscription above: public endpoint,
+        // but echo the CSRF token in case a same-origin cookie is attached.
+        const csrfMatch = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
         const response = await fetch(`${API_BASE_URL}/push/unsubscribe`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                ...(csrfMatch ? { "X-CSRF-Token": decodeURIComponent(csrfMatch[1]) } : {}),
+            },
             body: JSON.stringify({ endpoint }),
         });
         const result = await response.json();

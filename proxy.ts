@@ -1,15 +1,45 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { buildPreferredLoginHref } from '@/lib/auth-resume';
 
 /**
  * Proxy to handle route protection.
- * Note: Full authentication check happens in layout components because
- * tokens are stored in localStorage which is not accessible in proxy.
- * This proxy handles basic route patterns and redirects.
+ *
+ * The access token now lives in an httpOnly cookie (see
+ * utils.SetAuthCookies on the Go backend), so — unlike before, when tokens
+ * lived in localStorage and were invisible here — this proxy CAN see
+ * whether a session cookie is present and bounce obviously-unauthenticated
+ * requests to /login before any protected UI ships to the client.
+ *
+ * This is still only an OPTIMISTIC check (presence of a cookie, not
+ * validation of its contents/expiry) — real authorization stays entirely
+ * server-side via the Go backend's Protected()/RequireRole() middleware,
+ * unchanged. A request that sails through here with a stale/expired cookie
+ * still gets a 401 from the API and is handled by the existing client-side
+ * refresh/redirect flow in api.service.ts.
  */
 
 /** Cookie name set by api.service.ts interceptor when backend returns 503 MAINTENANCE_MODE */
 const MAINTENANCE_COOKIE = 'maintenance_active';
+
+/** Must match utils.AccessTokenCookieName on the Go backend. */
+const ACCESS_TOKEN_COOKIE = 'access_token';
+
+// Route prefixes that unambiguously require a logged-in session. Kept
+// deliberately conservative — anything not listed here just keeps relying
+// on the pre-existing client-side redirect (no functional regression),
+// since missing a prefix here is a UX miss, not a security hole.
+const protectedPrefixes = [
+    '/admin',
+    '/classroom/',
+    '/profile',
+    '/settings',
+    '/permissions',
+    '/student/courses',
+    '/student/profile',
+    '/student/notifications',
+    '/student/scan',
+];
 
 // Routes that are completely public (no auth needed)
 const publicRoutes = [
@@ -67,8 +97,18 @@ export function proxy(request: NextRequest) {
         return NextResponse.next();
     }
 
-    // For all other routes, allow through and let client-side handle auth
-    // The layout components will redirect to login if not authenticated
+    // Optimistic auth gate: bounce unambiguously-protected routes to /login
+    // before any protected UI ships, if there's no access-token cookie at all.
+    const isProtectedRoute = protectedPrefixes.some(
+        (prefix) => pathname === prefix || pathname.startsWith(prefix),
+    );
+    if (isProtectedRoute && !request.cookies.get(ACCESS_TOKEN_COOKIE)) {
+        const nextPath = `${pathname}${request.nextUrl.search}`;
+        return NextResponse.redirect(new URL(buildPreferredLoginHref(nextPath), request.url));
+    }
+
+    // For all other routes, allow through and let client-side handle auth.
+    // The layout components will redirect to login if not authenticated.
     return NextResponse.next();
 }
 

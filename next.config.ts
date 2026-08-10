@@ -28,6 +28,18 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async rewrites() {
+    // Dev-only: mirrors the production nginx proxy (frontend + /api same
+    // origin) so window.location.origin-based URLs (OAuth buttons, cookie
+    // scoping) behave the same when running `next dev` against a bare
+    // `go run ./cmd/api` on :8000 with no reverse proxy in front of it.
+    // No-op in production builds (output: "standalone" doesn't run this).
+    if (process.env.NODE_ENV !== "development") {
+      return [];
+    }
+    const localApiOrigin = process.env.LOCAL_DEV_API_ORIGIN || "http://localhost:8000";
+    return [{ source: "/api/:path*", destination: `${localApiOrigin}/api/:path*` }];
+  },
   async redirects() {
     return [
       // Serve the illustrated LabTAS handbook — /docs/handbook is prettier,

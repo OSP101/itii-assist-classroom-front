@@ -193,8 +193,9 @@ export const exportLogs = async (filters: LogsFilter = {}) => {
   
   // Get the CSV data
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}${url}`, {
+    credentials: 'include',
     headers: {
-      Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+      'X-Client-Type': 'web',
     },
   });
   

@@ -22,8 +22,11 @@ function AuthCallbackContent() {
 
     useEffect(() => {
         const handleCallback = async () => {
-            const accessToken = getOAuthCallbackParam(searchParams, "accessToken");
-            const refreshToken = getOAuthCallbackParam(searchParams, "refreshToken");
+            // The backend already set the httpOnly auth cookies (plus the
+            // readable csrf_token) directly on its redirect response — no
+            // tokens ever reach this page. `login=success` / `linked=...`
+            // are just non-sensitive UI signals.
+            const loginSuccess = getOAuthCallbackParam(searchParams, "login") === "success";
             const error = getOAuthCallbackParam(searchParams, "error");
             const twoFactor = getOAuthCallbackParam(searchParams, "twoFactor");
             const linked = getOAuthCallbackParam(searchParams, "linked"); // OAuth linking action
@@ -88,8 +91,9 @@ function AuthCallbackContent() {
                 }
             }
 
-            // Check if tokens are present
-            if (!accessToken || !refreshToken) {
+            // Neither a successful login nor a link action nor a 2FA
+            // challenge — nothing this page recognizes.
+            if (!loginSuccess && !linked) {
                 setStatus("error");
                 setMessage("ไม่พบข้อมูลการเข้าสู่ระบบ");
                 addToast({
@@ -104,9 +108,6 @@ function AuthCallbackContent() {
             }
 
             try {
-                // Store tokens
-                authService.setTokens(accessToken, refreshToken);
-
                 // ---------- LINK-TAB INTERCEPT ----------
                 // If the backend treated the link flow as a normal login (cookie was dropped
                 // during cross-origin OAuth redirects), we still detect it here via localStorage.

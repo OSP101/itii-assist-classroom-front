@@ -5,7 +5,8 @@
  * - Use exclusively for: mutations, filter/search, modals, realtime fallback,
  *   upload/import/export, user-triggered actions
  * - DO NOT use for initial page data — prefer server queries / Server Components
- * - Reads auth token from localStorage (same as existing api.service.ts)
+ * - Auth is via the httpOnly access-token cookie (credentials: 'include'),
+ *   same as api.service.ts — there is no client-readable token anymore.
  * - Supports AbortController for cancellable requests
  * - Auto-retries safe GET requests (up to 2 times) with backoff
  * - Normalises response and throws ApiError for consistent error handling
@@ -35,16 +36,15 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-function getAccessToken(): string | null {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("accessToken");
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") {
+    return null;
   }
-  return null;
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
 }
 
 type ClientRequestOptions = {
-  /** Override the access token (e.g., public endpoints) */
-  token?: string | null;
   /** Pass to cancel in-flight requests (recommended for search/filter) */
   signal?: AbortSignal;
   /** Retry safe GETs on network failure. Default true for GET, false otherwise. */
@@ -75,7 +75,6 @@ async function clientRequest<T>(
   options: ClientRequestOptions = {}
 ): Promise<T> {
   const {
-    token: tokenOverride,
     signal,
     retry = method === "GET",
     dedupe = method === "GET",
@@ -84,8 +83,7 @@ async function clientRequest<T>(
   } = options;
 
   const url = `${API_BASE_URL}${path}`;
-  const token = tokenOverride !== undefined ? tokenOverride : getAccessToken();
-  const requestKey = `${method}:${url}:${token ?? "public"}`;
+  const requestKey = `${method}:${url}`;
 
   if (method === "GET") {
     const now = Date.now();
@@ -107,10 +105,14 @@ async function clientRequest<T>(
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    "X-Client-Type": "web",
     ...extraHeaders,
   };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+  if (method !== "GET") {
+    const csrfToken = readCookie("csrf_token");
+    if (csrfToken) {
+      headers["X-CSRF-Token"] = csrfToken;
+    }
   }
 
   let attempt = 0;
@@ -124,6 +126,7 @@ async function clientRequest<T>(
       const response = await fetch(url, {
         method,
         headers,
+        credentials: "include",
         body: body !== undefined ? JSON.stringify(body) : undefined,
         signal,
       });
