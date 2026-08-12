@@ -3,8 +3,13 @@ import path from 'path';
 import matter from 'gray-matter';
 import type { DocsArticle, DocsArticleSection } from '@/types/docs';
 
-const docsDirectoryTh = path.join(process.cwd(), '../MANUAL_GUIDE_TH');
-const docsDirectoryEn = path.join(process.cwd(), '../MANUAL_GUIDE_EN');
+// Kept INSIDE this repo on purpose: these used to live in sibling
+// `../MANUAL_GUIDE_TH`/`../MANUAL_GUIDE_EN` directories that were not tracked by
+// any repo, so they never reached the deploy host and every /docs/* route 500'd
+// there (and the Docker build failed outright once the Dockerfile started
+// COPYing them). Anything docs.server.ts reads must be versioned here.
+const docsDirectoryTh = path.join(process.cwd(), 'content/manuals/th');
+const docsDirectoryEn = path.join(process.cwd(), 'content/manuals/en');
 
 type DocsLanguage = 'th' | 'en';
 type DocDefinition = {

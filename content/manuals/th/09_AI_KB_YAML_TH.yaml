@@ -1,0 +1,93 @@
+﻿schema_version: 1.0.0
+language: th
+project: ITII Assist Classroom
+updated_at: 2026-05-10
+
+documents:
+  - id: capabilities
+    title: ภาพรวมความสามารถของระบบ
+    source: MANUAL_GUIDE_TH/01_SYSTEM_CAPABILITIES_TH.md
+    type: overview
+    tags: [system, modules, roles]
+    audience: [admin, instructor, ta, student]
+    chunks:
+      - chunk_id: cap-roles
+        heading: บทบาทผู้ใช้งาน
+        content: ระบบรองรับบทบาท admin, instructor, ta และ student โดยสิทธิ์จะแยกตาม role, course access และ course permission
+      - chunk_id: cap-modules
+        heading: โมดูลหลัก
+        content: โมดูลหลักประกอบด้วย auth/2fa, courses, assignments, scores, attendance, queue, exams, bonus, teams และ activity logs
+
+  - id: instructor-guide
+    title: คู่มืออาจารย์แบบขั้นตอน
+    source: MANUAL_GUIDE_TH/02_INSTRUCTOR_STEP_BY_STEP_TH.md
+    type: step_by_step
+    tags: [instructor, course_setup, grading, attendance, queue]
+    audience: [instructor]
+    chunks:
+      - chunk_id: inst-start-term
+        heading: เริ่มเทอม
+        content: สร้างรายวิชา, section, เพิ่ม TA, เพิ่มนักศึกษา และตั้งค่า settings รายวิชา
+      - chunk_id: inst-grading
+        heading: ให้คะแนนและอนุมัติ
+        content: ให้คะแนนผ่าน scores, ตรวจ score summary/matrix และอนุมัติคำขอแก้คะแนนใน approval
+
+  - id: ta-guide
+    title: คู่มือผู้ช่วยสอนแบบขั้นตอน
+    source: MANUAL_GUIDE_TH/03_TA_STEP_BY_STEP_TH.md
+    type: step_by_step
+    tags: [ta, permissions, grading, attendance, worker]
+    audience: [ta]
+    chunks:
+      - chunk_id: ta-permissions
+        heading: ตรวจสิทธิ์
+        content: TA ต้องตรวจ permission ในรายวิชาก่อนเริ่มงาน เพราะแต่ละคนอาจมีสิทธิ์ไม่เท่ากัน
+      - chunk_id: ta-edit-requests
+        heading: คำขอแก้คะแนน
+        content: หากแก้คะแนนโดย workflow ต้องส่ง score edit request พร้อมเหตุผลและหลักฐาน
+
+  - id: student-guide
+    title: คู่มือนักศึกษาแบบขั้นตอน
+    source: MANUAL_GUIDE_TH/04_STUDENT_STEP_BY_STEP_TH.md
+    type: step_by_step
+    tags: [student, checkin, queue, myscore]
+    audience: [student]
+    chunks:
+      - chunk_id: std-checkin
+        heading: เช็คชื่อ
+        content: เช็คชื่อผ่าน /check-in/[sessionId], ตรวจชื่อวิชา, กรอก PIN (ถ้ามี), อนุญาต location และตรวจผลสำเร็จ
+      - chunk_id: std-myscore
+        heading: ติดตามคะแนน
+        content: ตรวจคะแนนผ่าน /myscore และหากผิดปกติให้รวบรวมหลักฐานก่อนติดต่อผู้สอนหรือ TA
+
+  - id: permission-matrix
+    title: ตารางสิทธิ์ตามบทบาท
+    source: MANUAL_GUIDE_TH/05_ROLE_PERMISSION_MATRIX_TH.md
+    type: reference
+    tags: [rbac, permissions, policy]
+    audience: [admin, instructor, ta]
+    chunks:
+      - chunk_id: perm-model
+        heading: โมเดลสิทธิ์
+        content: สิทธิ์ตัดสินจาก role + course access + course permission และแนะนำให้ใช้ least privilege
+
+  - id: troubleshooting
+    title: แนวทางแก้ปัญหาและซัพพอร์ต
+    source: MANUAL_GUIDE_TH/06_TROUBLESHOOTING_AND_SUPPORT_TH.md
+    type: troubleshooting
+    tags: [support, errors, sla]
+    audience: [admin, instructor, ta, student]
+    chunks:
+      - chunk_id: ts-login
+        heading: ปัญหาเข้าสู่ระบบ
+        content: ตรวจบัญชี, รีเซ็ตรหัสผ่าน, ตรวจ spam, ตรวจเวลาเครื่อง (สำหรับ TOTP) และเก็บหลักฐานก่อนส่งซัพพอร์ต
+      - chunk_id: ts-attendance
+        heading: ปัญหาเช็คชื่อ
+        content: ตรวจว่า session active, อนุญาต location, ทดลอง browser อื่น และส่งหลักฐานเวลา/ภาพหน้าจอ
+
+qa_policies:
+  answer_style: step_by_step
+  must_identify_role_first: true
+  deny_out_of_scope_permissions: true
+  required_sections: ["เป้าหมาย", "ขั้นตอน", "ตรวจผล", "ถ้าติดปัญหา"]
+

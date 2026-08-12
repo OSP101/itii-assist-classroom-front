@@ -1,18 +1,16 @@
-# Build context for this Dockerfile is the REPO ROOT (webapp/), not this
-# directory — see the `context: ..`/`context: .` (+ `dockerfile:` pointing
-# here) in every compose file that builds this service. This is required so
-# the build can also COPY the sibling MANUAL_GUIDE_TH/MANUAL_GUIDE_EN
-# directories that lib/docs.server.ts reads for /docs/* at both build time
-# (generateStaticParams) and runtime. (We previously tried BuildKit's
-# `additional_contexts` to avoid widening the primary context, but it
-# resolved to an empty context under `docker compose`'s buildx-bake path on
-# at least one deployment target — this plain single-context form is the
-# universally-supported fallback.)
+# Build context for this Dockerfile is THIS directory (the frontend repo root).
+#
+# It briefly used the parent `webapp/` directory as context so it could COPY the
+# sibling MANUAL_GUIDE_TH/MANUAL_GUIDE_EN folders that /docs/* reads. That could
+# never work on a deploy host: `webapp/` is not a git repo (only
+# itii-assist-classroom-front/, itii-assist-classroom-back/ and deploy-vm-https/
+# are), so neither those folders nor a root .dockerignore ever shipped there.
+# The manual sources now live in ./content/manuals/{th,en} inside this repo.
 
 FROM node:22-alpine AS deps
 
 WORKDIR /app
-COPY itii-assist-classroom-front/package.json itii-assist-classroom-front/package-lock.json ./
+COPY package.json package-lock.json ./
 RUN npm ci
 
 FROM node:22-alpine AS builder
@@ -30,14 +28,7 @@ ENV NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL
 ENV NEXT_DEPLOYMENT_ID=$NEXT_DEPLOYMENT_ID
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY itii-assist-classroom-front/ .
-# lib/docs.server.ts reads these from `../MANUAL_GUIDE_TH`/`../MANUAL_GUIDE_EN`
-# relative to process.cwd() (`/app` here and at runtime below), i.e.
-# `/MANUAL_GUIDE_TH` and `/MANUAL_GUIDE_EN`. Needed at build time too:
-# generateStaticParams() in app/docs/[slug]/page.tsx reads them during
-# `npm run build`.
-COPY MANUAL_GUIDE_TH /MANUAL_GUIDE_TH
-COPY MANUAL_GUIDE_EN /MANUAL_GUIDE_EN
+COPY . .
 RUN [ -f .env.local ] || touch .env.local
 RUN npm run build
 
@@ -53,10 +44,11 @@ ENV NEXT_DEPLOYMENT_ID=$NEXT_DEPLOYMENT_ID
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
-COPY --from=builder /MANUAL_GUIDE_TH /MANUAL_GUIDE_TH
-COPY --from=builder /MANUAL_GUIDE_EN /MANUAL_GUIDE_EN
+# lib/docs.server.ts readdirSync/readFileSync these at REQUEST time, so Next's
+# standalone output tracing does not pull them in — they must be copied.
+COPY --from=builder /app/content ./content
 
-RUN chown -R node:node /app /MANUAL_GUIDE_TH /MANUAL_GUIDE_EN
+RUN chown -R node:node /app
 USER node
 
 EXPOSE 3000
