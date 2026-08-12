@@ -22,6 +22,60 @@ import { buildPreferredLoginHref } from '@/lib/auth-resume';
 /** Cookie name set by api.service.ts interceptor when backend returns 503 MAINTENANCE_MODE */
 const MAINTENANCE_COOKIE = 'maintenance_active';
 
+/**
+ * Content-Security-Policy is issued HERE rather than by nginx, because a
+ * per-request nonce is the only way to drop `'unsafe-inline'` from script-src
+ * and style-src (ZAP flags both as Medium). nginx cannot mint one, so the
+ * HTML-serving nginx locations (`location /`, the docs/support block and
+ * @frontend_asset_not_found) deliberately no longer set a CSP header — two CSP
+ * headers are enforced as an intersection, so a static nginx policy would veto
+ * the nonce'd inline scripts Next.js emits and break every page.
+ *
+ * Next.js parses this header, extracts `'nonce-…'` and applies it to framework
+ * scripts, page bundles and its own inline scripts automatically. Anything we
+ * hand-write inline (app/layout.tsx's theme bootstrap) must take the nonce
+ * explicitly from the `x-nonce` request header set below.
+ *
+ * NOTE: nonces require dynamic rendering. RootLayout already awaits cookies(),
+ * so every HTML route here is dynamic anyway — but a page opted back into
+ * static rendering would ship with no nonce and its scripts would be blocked.
+ */
+function buildCsp(nonce: string) {
+    const isDev = process.env.NODE_ENV === 'development';
+
+    return [
+        "default-src 'self'",
+        "base-uri 'self'",
+        "frame-ancestors 'none'",
+        "form-action 'self'",
+        "object-src 'none'",
+        // 'unsafe-eval' is required in dev only: React uses eval to rebuild
+        // server-side error stacks in the browser. Neither React nor Next.js
+        // use eval in production.
+        `script-src 'self' 'nonce-${nonce}' blob: https://accounts.google.com${isDev ? " 'unsafe-eval'" : ''}`,
+        // Stylesheets (<style> elements and <link rel=stylesheet>) are
+        // nonce-only in production: SSR emits no inline <style> of its own, and
+        // the one third-party injection that exists (react-aria's pressable
+        // stylesheet) is pre-rendered with this nonce in app/layout.tsx.
+        `style-src 'self'${isDev ? " 'unsafe-inline'" : ` 'nonce-${nonce}'`}`,
+        // …but style="…" ATTRIBUTES still need 'unsafe-inline'. React applies
+        // `style={{…}}` props by setting the attribute, so locking this down
+        // would silently drop layout from any component using inline styles
+        // (verified: the docs table-of-contents indentation, HeroUI internals).
+        // This is a much weaker vector than script-src or stylesheet injection
+        // — an attacker who can already inject markup gains only CSS on the
+        // node they injected, with no script execution.
+        "style-src-attr 'unsafe-inline'",
+        "img-src 'self' data: blob: https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org",
+        "font-src 'self' data:",
+        "connect-src 'self' https://api.open-meteo.com https://nominatim.openstreetmap.org https://accounts.google.com",
+        "frame-src 'self' https://accounts.google.com",
+        "worker-src 'self' blob:",
+        "manifest-src 'self'",
+        'upgrade-insecure-requests',
+    ].join('; ');
+}
+
 /** Must match utils.AccessTokenCookieName on the Go backend. */
 const ACCESS_TOKEN_COOKIE = 'access_token';
 
@@ -30,9 +84,10 @@ const ACCESS_TOKEN_COOKIE = 'access_token';
 // (e.g. ZAP "Content-Type Header Missing") on the RSC prefetch requests
 // Next.js's own router fires against protected routes. Set one explicitly
 // so the redirect response is unambiguous either way.
-function redirectWithContentType(url: URL) {
+function redirectWithContentType(url: URL, csp: string) {
     const res = NextResponse.redirect(url);
     res.headers.set('Content-Type', 'text/plain; charset=utf-8');
+    res.headers.set('Content-Security-Policy', csp);
     return res;
 }
 
@@ -77,6 +132,21 @@ const maintenanceExempt = [
 export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
+    const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+    const csp = buildCsp(nonce);
+
+    // Next.js reads the nonce back off the REQUEST headers while rendering, so
+    // both of these have to be forwarded upstream, not just set on the response.
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set('x-nonce', nonce);
+    requestHeaders.set('Content-Security-Policy', csp);
+
+    const passThrough = () => {
+        const res = NextResponse.next({ request: { headers: requestHeaders } });
+        res.headers.set('Content-Security-Policy', csp);
+        return res;
+    };
+
     // Check if it's an API route or static file - skip these
     const isApiRoute = pathname.startsWith('/api');
     const isStaticFile = pathname.startsWith('/_next') ||
@@ -85,7 +155,7 @@ export function proxy(request: NextRequest) {
                          pathname === '/favicon.ico';
 
     if (isApiRoute || isStaticFile) {
-        return NextResponse.next();
+        return passThrough();
     }
 
     // Maintenance redirect — must come before auth check so blocked users see the maintenance page
@@ -95,7 +165,7 @@ export function proxy(request: NextRequest) {
     if (!isMaintenanceExempt) {
         const maintenanceCookie = request.cookies.get(MAINTENANCE_COOKIE);
         if (maintenanceCookie?.value === '1') {
-            return redirectWithContentType(new URL('/maintenance', request.url));
+            return redirectWithContentType(new URL('/maintenance', request.url), csp);
         }
     }
 
@@ -105,7 +175,7 @@ export function proxy(request: NextRequest) {
 
     // Allow public routes
     if (isPublicRoute) {
-        return NextResponse.next();
+        return passThrough();
     }
 
     // Optimistic auth gate: bounce unambiguously-protected routes to /login
@@ -115,24 +185,26 @@ export function proxy(request: NextRequest) {
     );
     if (isProtectedRoute && !request.cookies.get(ACCESS_TOKEN_COOKIE)) {
         const nextPath = `${pathname}${request.nextUrl.search}`;
-        return redirectWithContentType(new URL(buildPreferredLoginHref(nextPath), request.url));
+        return redirectWithContentType(new URL(buildPreferredLoginHref(nextPath), request.url), csp);
     }
 
     // For all other routes, allow through and let client-side handle auth.
     // The layout components will redirect to login if not authenticated.
-    return NextResponse.next();
+    return passThrough();
 }
 
 // Configure which routes the proxy should run on
 export const config = {
     matcher: [
         /*
-         * Match all request paths except:
-         * - _next/static (static files)
-         * - _next/image (image optimization files)
-         * - favicon.ico (favicon file)
-         * - public folder
+         * Match all request paths except _next/static, whose immutable build
+         * output nginx serves with its own static security headers.
+         *
+         * _next/image, favicon.ico and /images/ used to be excluded too, but
+         * now that this proxy is the only thing issuing a CSP, excluding a path
+         * means that response carries no CSP header at all — so they are back
+         * in (the handler short-circuits them to a plain pass-through).
          */
-        '/((?!_next/static|_next/image|favicon.ico|images/).*)',
+        '/((?!_next/static).*)',
     ],
 };

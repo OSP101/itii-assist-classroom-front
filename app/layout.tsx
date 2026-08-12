@@ -1,6 +1,6 @@
 import "./globals.css";
 import { Metadata, Viewport } from "next";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import clsx from "clsx";
 import { Providers } from "./providers";
 import { siteConfig } from "../config/site";
@@ -10,8 +10,13 @@ import {
   parseAppearanceHintCookieValue,
 } from "@/lib/appearance-hint";
 
-const SETTINGS_BOOTSTRAP_SCRIPT = `
+// The <style> element this script injects is a real DOM <style>, which CSP's
+// style-src governs regardless of how it got there — so it needs the same
+// per-request nonce proxy.ts minted (element.style.* assignments below are
+// CSSOM writes and are NOT subject to CSP, so they need nothing).
+const buildSettingsBootstrapScript = (nonce: string) => `
 (() => {
+  const cspNonce = ${JSON.stringify(nonce)};
   const defaults = {
     theme: "system",
     fontSize: "md",
@@ -98,6 +103,10 @@ const SETTINGS_BOOTSTRAP_SCRIPT = `
   if (!bootstrapStyle) {
     bootstrapStyle = document.createElement("style");
     bootstrapStyle.id = bootstrapStyleId;
+    if (cspNonce) {
+      bootstrapStyle.setAttribute("nonce", cspNonce);
+      bootstrapStyle.nonce = cspNonce;
+    }
     document.head.appendChild(bootstrapStyle);
   }
 
@@ -172,7 +181,8 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = await cookies();
+  const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
+  const nonce = headerStore.get("x-nonce") ?? "";
   const appearanceHint = parseAppearanceHintCookieValue(
     cookieStore.get(APPEARANCE_HINT_COOKIE_NAME)?.value,
   );
@@ -197,10 +207,29 @@ export default async function RootLayout({
       data-theme={initialResolvedTheme}
       data-theme-role={initialThemeRole}
       data-font-size={initialFontSize}
-      style={{ colorScheme: initialResolvedTheme }}
     >
       <head>
-        <script id="settings-bootstrap" dangerouslySetInnerHTML={{ __html: SETTINGS_BOOTSTRAP_SCRIPT }} />
+        {/* @react-aria/interactions (via HeroUI) injects this exact stylesheet
+            on first use of usePress, with no way to pass a nonce — under our
+            nonce-only style-src the browser blocks it and HeroUI buttons lose
+            `touch-action`, which regresses press/scroll behaviour on touch
+            devices. It bails out early when an element with this id already
+            exists (see node_modules/@react-aria/interactions/dist/usePress.mjs,
+            the getElementById(STYLE_ID) guard), so rendering it ourselves —
+            nonced — pre-empts the blocked injection. Keep the rule in sync if
+            the package is upgraded. */}
+        <style
+          id="react-aria-pressable-style"
+          nonce={nonce || undefined}
+          dangerouslySetInnerHTML={{
+            __html: '@layer {\n  [data-react-aria-pressable] {\n    touch-action: pan-x pan-y pinch-zoom;\n  }\n}',
+          }}
+        />
+        <script
+          id="settings-bootstrap"
+          nonce={nonce || undefined}
+          dangerouslySetInnerHTML={{ __html: buildSettingsBootstrapScript(nonce) }}
+        />
       </head>
       <body
         className={clsx(

@@ -12,6 +12,19 @@
 	--app-safe-right: env(safe-area-inset-right, 0px);
 }
 
+/* Was `style={{ colorScheme }}` on <html> in app/layout.tsx — the single
+   style="…" attribute the app rendered server-side. It lives here so CSP's
+   style-src can drop 'unsafe-inline' entirely (see proxy.ts). The bootstrap
+   script still overrides root.style.colorScheme at runtime for the
+   system-preference case; that is a CSSOM write and CSP does not police it. */
+html {
+	color-scheme: light;
+}
+
+html[data-theme="dark"] {
+	color-scheme: dark;
+}
+
 html[data-font-size="sm"] {
 	font-size: 14px;
 }
