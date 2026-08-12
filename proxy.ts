@@ -25,6 +25,17 @@ const MAINTENANCE_COOKIE = 'maintenance_active';
 /** Must match utils.AccessTokenCookieName on the Go backend. */
 const ACCESS_TOKEN_COOKIE = 'access_token';
 
+// A bare NextResponse.redirect() carries no body and no Content-Type header
+// — harmless (redirects have nothing to render), but flagged by scanners
+// (e.g. ZAP "Content-Type Header Missing") on the RSC prefetch requests
+// Next.js's own router fires against protected routes. Set one explicitly
+// so the redirect response is unambiguous either way.
+function redirectWithContentType(url: URL) {
+    const res = NextResponse.redirect(url);
+    res.headers.set('Content-Type', 'text/plain; charset=utf-8');
+    return res;
+}
+
 // Route prefixes that unambiguously require a logged-in session. Kept
 // deliberately conservative — anything not listed here just keeps relying
 // on the pre-existing client-side redirect (no functional regression),
@@ -84,7 +95,7 @@ export function proxy(request: NextRequest) {
     if (!isMaintenanceExempt) {
         const maintenanceCookie = request.cookies.get(MAINTENANCE_COOKIE);
         if (maintenanceCookie?.value === '1') {
-            return NextResponse.redirect(new URL('/maintenance', request.url));
+            return redirectWithContentType(new URL('/maintenance', request.url));
         }
     }
 
@@ -104,7 +115,7 @@ export function proxy(request: NextRequest) {
     );
     if (isProtectedRoute && !request.cookies.get(ACCESS_TOKEN_COOKIE)) {
         const nextPath = `${pathname}${request.nextUrl.search}`;
-        return NextResponse.redirect(new URL(buildPreferredLoginHref(nextPath), request.url));
+        return redirectWithContentType(new URL(buildPreferredLoginHref(nextPath), request.url));
     }
 
     // For all other routes, allow through and let client-side handle auth.

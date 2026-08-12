@@ -20,6 +20,15 @@ ENV NEXT_DEPLOYMENT_ID=$NEXT_DEPLOYMENT_ID
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# The `docs` build context is the repo root (declared per-compose-file via
+# additional_contexts, since these directories live as siblings of this app,
+# outside its own build context) — lib/docs.server.ts reads them from
+# `../MANUAL_GUIDE_TH`/`../MANUAL_GUIDE_EN` relative to process.cwd() (`/app`
+# here and at runtime below), i.e. `/MANUAL_GUIDE_TH` and `/MANUAL_GUIDE_EN`.
+# Needed at build time too: generateStaticParams() in app/docs/[slug]/page.tsx
+# reads them during `npm run build`.
+COPY --from=docs MANUAL_GUIDE_TH /MANUAL_GUIDE_TH
+COPY --from=docs MANUAL_GUIDE_EN /MANUAL_GUIDE_EN
 RUN [ -f .env.local ] || touch .env.local
 RUN npm run build
 
@@ -35,8 +44,10 @@ ENV NEXT_DEPLOYMENT_ID=$NEXT_DEPLOYMENT_ID
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
+COPY --from=builder /MANUAL_GUIDE_TH /MANUAL_GUIDE_TH
+COPY --from=builder /MANUAL_GUIDE_EN /MANUAL_GUIDE_EN
 
-RUN chown -R node:node /app
+RUN chown -R node:node /app /MANUAL_GUIDE_TH /MANUAL_GUIDE_EN
 USER node
 
 EXPOSE 3000
