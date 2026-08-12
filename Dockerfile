@@ -1,7 +1,18 @@
+# Build context for this Dockerfile is the REPO ROOT (webapp/), not this
+# directory — see the `context: ..`/`context: .` (+ `dockerfile:` pointing
+# here) in every compose file that builds this service. This is required so
+# the build can also COPY the sibling MANUAL_GUIDE_TH/MANUAL_GUIDE_EN
+# directories that lib/docs.server.ts reads for /docs/* at both build time
+# (generateStaticParams) and runtime. (We previously tried BuildKit's
+# `additional_contexts` to avoid widening the primary context, but it
+# resolved to an empty context under `docker compose`'s buildx-bake path on
+# at least one deployment target — this plain single-context form is the
+# universally-supported fallback.)
+
 FROM node:22-alpine AS deps
 
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY itii-assist-classroom-front/package.json itii-assist-classroom-front/package-lock.json ./
 RUN npm ci
 
 FROM node:22-alpine AS builder
@@ -19,16 +30,14 @@ ENV NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL
 ENV NEXT_DEPLOYMENT_ID=$NEXT_DEPLOYMENT_ID
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-# The `docs` build context is the repo root (declared per-compose-file via
-# additional_contexts, since these directories live as siblings of this app,
-# outside its own build context) — lib/docs.server.ts reads them from
-# `../MANUAL_GUIDE_TH`/`../MANUAL_GUIDE_EN` relative to process.cwd() (`/app`
-# here and at runtime below), i.e. `/MANUAL_GUIDE_TH` and `/MANUAL_GUIDE_EN`.
-# Needed at build time too: generateStaticParams() in app/docs/[slug]/page.tsx
-# reads them during `npm run build`.
-COPY --from=docs MANUAL_GUIDE_TH /MANUAL_GUIDE_TH
-COPY --from=docs MANUAL_GUIDE_EN /MANUAL_GUIDE_EN
+COPY itii-assist-classroom-front/ .
+# lib/docs.server.ts reads these from `../MANUAL_GUIDE_TH`/`../MANUAL_GUIDE_EN`
+# relative to process.cwd() (`/app` here and at runtime below), i.e.
+# `/MANUAL_GUIDE_TH` and `/MANUAL_GUIDE_EN`. Needed at build time too:
+# generateStaticParams() in app/docs/[slug]/page.tsx reads them during
+# `npm run build`.
+COPY MANUAL_GUIDE_TH /MANUAL_GUIDE_TH
+COPY MANUAL_GUIDE_EN /MANUAL_GUIDE_EN
 RUN [ -f .env.local ] || touch .env.local
 RUN npm run build
 
