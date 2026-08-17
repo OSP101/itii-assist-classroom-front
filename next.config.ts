@@ -42,7 +42,7 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
-      // Serve the illustrated LabTAS handbook — /docs/handbook is prettier,
+      // Serve the illustrated COCO LABS handbook — /docs/handbook is prettier,
       // but the static HTML uses relative asset paths so we redirect to the
       // real index.html URL so `assets/*` and `ch*.html` resolve correctly.
       { source: "/docs/handbook", destination: "/docs/handbook/index.html", permanent: false },

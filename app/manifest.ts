@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "LabTAS",
-    short_name: "LabTAS",
-    description: "ระบบจัดการห้องเรียน LabTAS พร้อมการแจ้งเตือนและการใช้งานแบบติดตั้งได้",
+    name: "COCO LABS",
+    short_name: "COCO LABS",
+    description: "ระบบจัดการห้องเรียน COCO LABS พร้อมการแจ้งเตือนและการใช้งานแบบติดตั้งได้",
     id: "/",
     start_url: "/student/login",
     scope: "/",

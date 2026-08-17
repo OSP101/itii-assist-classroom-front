@@ -217,7 +217,7 @@ export default function MaintenancePage() {
       </div>
 
       <p className="mt-6 text-xs text-slate-400">
-        © {new Date().getFullYear()} LabTAS
+        © {new Date().getFullYear()} COCO LABS
         {" · "}
         <a
           href="/login"

@@ -37,7 +37,7 @@ interface SupportCenterClientProps {
 
 type RoleKey = 'all' | 'student' | 'instructor' | 'ta' | 'admin';
 
-/** Illustrated manual (LabTAS v1.2.90) — deep links to the static site under /manual. */
+/** Illustrated manual (COCO LABS v1.2.90) — deep links to the static site under /manual. */
 const MANUAL_ROOT = '/docs/handbook';
 
 interface ManualChapterLink {
@@ -870,7 +870,7 @@ const TH_COPY = {
     searchEyebrow: 'ค้นหาอัจฉริยะ',
     searchAria: 'ค้นหาคำตอบและคู่มือ',
     searchPlaceholder: 'พิมพ์ปัญหาที่พบ เช่น ส่งงานไม่ได้, ลืมรหัสผ่าน, เปิดกล้อง, คะแนนไม่ขึ้น',
-    searchNote: 'ค้นครอบคลุมทั้งคำถามที่พบบ่อยและคู่มือฉบับเต็มของ LabTAS โดยจัดอันดับตามความเกี่ยวข้องอัตโนมัติ',
+    searchNote: 'ค้นครอบคลุมทั้งคำถามที่พบบ่อยและคู่มือฉบับเต็มของ COCO LABS โดยจัดอันดับตามความเกี่ยวข้องอัตโนมัติ',
     clearSearch: 'ล้างคำค้นหา',
     roleLabel: 'บทบาท:',
     tryLabel: 'ลอง:',
@@ -900,9 +900,9 @@ const TH_COPY = {
     noGuidesYet: 'ยังไม่มีคู่มือในกลุ่มนี้',
     filterByRole: 'กรองผลค้นหาสำหรับ{role}',
     manual: {
-        aria: 'คู่มือฉบับสมบูรณ์ของ LabTAS',
+        aria: 'คู่มือฉบับสมบูรณ์ของ COCO LABS',
         badge: 'ใหม่',
-        title: 'คู่มือฉบับสมบูรณ์ LabTAS',
+        title: 'คู่มือฉบับสมบูรณ์ COCO LABS',
         description:
             'เอกสารฉบับใหม่ 19 บท + 4 ภาคผนวก มีภาพหน้าจอจริงประกอบทุกขั้นตอน ตรงกับระบบเวอร์ชัน 1.2.90 เปิดในแท็บใหม่ ค้นหาข้ามบทได้ในตัว',
         stats: [
@@ -926,7 +926,7 @@ const TH_COPY = {
     faqSubtitle: 'ตรงเข้าคำตอบสั้น ๆ ที่ตอบผู้ใช้จริงในระบบ ({count} รายการ)',
     faqEmpty: 'ยังไม่มีคำถามในหมวดนี้ ลองเลือกหมวดอื่นหรือส่งเรื่องถึงทีมงาน',
     manualsTitle: 'คู่มือฉบับเต็มที่แนะนำ',
-    manualsSubtitle: 'คัดจากคู่มือ LabTAS ฉบับใหม่ ครอบคลุมงานจริงตั้งแต่เริ่มต้นถึงปิดเทอม',
+    manualsSubtitle: 'คัดจากคู่มือ COCO LABS ฉบับใหม่ ครอบคลุมงานจริงตั้งแต่เริ่มต้นถึงปิดเทอม',
     responseTitle: 'เวลาตอบกลับตามประเภทคำขอ',
     ctaEyebrow: 'ต้องการคำตอบจากทีมงาน',
     ctaTitle: 'อยากให้ทีมงานช่วยดูข้อมูลจริงในระบบ?',
@@ -1022,7 +1022,7 @@ const EN_COPY: typeof TH_COPY = {
     searchEyebrow: 'Smart search',
     searchAria: 'Search answers and manuals',
     searchPlaceholder: 'Describe the issue, e.g. can’t submit, forgot password, enable camera, score missing',
-    searchNote: 'Searches both the FAQ and the full LabTAS manuals, ranked by relevance automatically.',
+    searchNote: 'Searches both the FAQ and the full COCO LABS manuals, ranked by relevance automatically.',
     clearSearch: 'Clear search',
     roleLabel: 'Role:',
     tryLabel: 'Try:',
@@ -1052,9 +1052,9 @@ const EN_COPY: typeof TH_COPY = {
     noGuidesYet: 'No manuals published for this role yet.',
     filterByRole: 'Filter search for {role}',
     manual: {
-        aria: 'Full LabTAS manual',
+        aria: 'Full COCO LABS manual',
         badge: 'New',
-        title: 'The full illustrated LabTAS manual',
+        title: 'The full illustrated COCO LABS manual',
         description:
             '19 chapters + 4 appendices with real screenshots for every step, matched to system v1.2.90. Opens in a new tab with built-in cross-chapter search.',
         stats: [
@@ -1078,7 +1078,7 @@ const EN_COPY: typeof TH_COPY = {
     faqSubtitle: 'Straight-to-the-point answers to real user questions ({count} items).',
     faqEmpty: 'Nothing in this category yet — pick another or open a support case.',
     manualsTitle: 'Recommended manuals',
-    manualsSubtitle: 'Highlights from the new LabTAS manuals — end-to-end coverage of real classroom workflows.',
+    manualsSubtitle: 'Highlights from the new COCO LABS manuals — end-to-end coverage of real classroom workflows.',
     responseTitle: 'Response times by case type',
     ctaEyebrow: 'Need a human',
     ctaTitle: 'Need the team to look at live data?',

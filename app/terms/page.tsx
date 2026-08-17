@@ -10,10 +10,10 @@ function getTermsPageCopy(language: 'th' | 'en') {
     if (language === 'en') {
         return {
             metadataTitle: 'Terms of Use',
-            metadataDescription: 'The LabTAS terms of use for students, TAs, instructors, and administrators, including core responsibilities and prohibited behavior.',
+            metadataDescription: 'The COCO LABS terms of use for students, TAs, instructors, and administrators, including core responsibilities and prohibited behavior.',
             eyebrow: 'Terms of Use',
             title: 'Terms designed for the realities of an academic workflow',
-            description: 'This document outlines the basic conditions for using LabTAS for students, TAs, instructors, and administrators so classroom workflows can stay safe and fair.',
+            description: 'This document outlines the basic conditions for using COCO LABS for students, TAs, instructors, and administrators so classroom workflows can stay safe and fair.',
             backLabel: 'Back to Help Center',
             privacyActionLabel: 'View Privacy Policy',
             cookiesActionLabel: 'View Cookie Policy',
@@ -31,7 +31,7 @@ function getTermsPageCopy(language: 'th' | 'en') {
                 {
                     title: 'Acceptance of the agreement',
                     items: [
-                        'Signing in to or using LabTAS means the user acknowledges and accepts these terms together with the related privacy, cookie, and security policies.',
+                        'Signing in to or using COCO LABS means the user acknowledges and accepts these terms together with the related privacy, cookie, and security policies.',
                         'If a user acts on behalf of a course, department, or institution, that user must be authorized to act in that role.',
                         'If course rules, institutional policies, or applicable law impose stricter requirements, those requirements apply alongside these terms.',
                     ],
@@ -78,10 +78,10 @@ function getTermsPageCopy(language: 'th' | 'en') {
 
     return {
         metadataTitle: 'ข้อกำหนดการใช้งาน',
-        metadataDescription: 'ข้อกำหนดการใช้งาน LabTAS สำหรับผู้ใช้ทุกบทบาท รวมถึงข้อห้ามและความรับผิดชอบพื้นฐาน',
+        metadataDescription: 'ข้อกำหนดการใช้งาน COCO LABS สำหรับผู้ใช้ทุกบทบาท รวมถึงข้อห้ามและความรับผิดชอบพื้นฐาน',
         eyebrow: 'ข้อกำหนดการใช้งาน',
         title: 'ข้อกำหนดการใช้งานที่ออกแบบให้ตรงกับบริบทของระบบเรียนการสอน',
-        description: 'เอกสารนี้อธิบายเงื่อนไขพื้นฐานในการใช้งาน LabTAS สำหรับนักศึกษา TA ผู้สอน และผู้ดูแลระบบ เพื่อให้ workflow ดำเนินไปอย่างปลอดภัยและเป็นธรรม',
+        description: 'เอกสารนี้อธิบายเงื่อนไขพื้นฐานในการใช้งาน COCO LABS สำหรับนักศึกษา TA ผู้สอน และผู้ดูแลระบบ เพื่อให้ workflow ดำเนินไปอย่างปลอดภัยและเป็นธรรม',
         backLabel: 'กลับศูนย์ช่วยเหลือ',
         privacyActionLabel: 'ดูนโยบายความเป็นส่วนตัว',
         cookiesActionLabel: 'ดูนโยบายคุกกี้',

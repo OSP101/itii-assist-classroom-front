@@ -13,12 +13,12 @@ function getSupportPageCopy(language: 'th' | 'en') {
         return {
             metadataTitle: 'Help Center',
             metadataDescription: statusProvider
-                ? `Answers, the full illustrated LabTAS manual, live status from ${statusProvider.name}, and a direct line to the support team.`
-                : 'Answers, the full illustrated LabTAS manual, live system status, and a direct line to the support team.',
+                ? `Answers, the full illustrated COCO LABS manual, live status from ${statusProvider.name}, and a direct line to the support team.`
+                : 'Answers, the full illustrated COCO LABS manual, live system status, and a direct line to the support team.',
             eyebrow: 'Help Center',
             title: 'How can we help you today?',
             description:
-                'Open the illustrated LabTAS manual, search the FAQ and task guides, or send a case straight to the team — all in one place.',
+                'Open the illustrated COCO LABS manual, search the FAQ and task guides, or send a case straight to the team — all in one place.',
             openFullManual: 'Open the full manual',
             readGuides: 'Task guides',
             viewLiveStatus: 'View live status',
@@ -30,8 +30,8 @@ function getSupportPageCopy(language: 'th' | 'en') {
     return {
         metadataTitle: 'ศูนย์ช่วยเหลือ',
         metadataDescription: statusProvider
-            ? `เปิดคู่มือฉบับสมบูรณ์ของ LabTAS ค้นคำตอบ ตรวจสถานะระบบผ่าน ${statusProvider.name} และติดต่อทีมงานได้ในหน้าเดียว`
-            : 'เปิดคู่มือฉบับสมบูรณ์ของ LabTAS ค้นคำตอบ ตรวจสถานะระบบ และติดต่อทีมงานได้ในหน้าเดียว',
+            ? `เปิดคู่มือฉบับสมบูรณ์ของ COCO LABS ค้นคำตอบ ตรวจสถานะระบบผ่าน ${statusProvider.name} และติดต่อทีมงานได้ในหน้าเดียว`
+            : 'เปิดคู่มือฉบับสมบูรณ์ของ COCO LABS ค้นคำตอบ ตรวจสถานะระบบ และติดต่อทีมงานได้ในหน้าเดียว',
         eyebrow: 'ศูนย์ช่วยเหลือ',
         title: 'มีอะไรให้เราช่วยไหม?',
         description:

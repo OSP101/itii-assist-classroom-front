@@ -201,8 +201,8 @@ export default function AttendanceSummaryPage() {
 
     useEffect(() => {
         document.title = isEnglish
-            ? "Attendance Summary - LabTAS"
-            : "สรุปการเช็คชื่อ - LabTAS";
+            ? "Attendance Summary - COCO LABS"
+            : "สรุปการเช็คชื่อ - COCO LABS";
     }, [isEnglish]);
 
     useEffect(() => {

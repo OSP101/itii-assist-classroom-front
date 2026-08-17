@@ -27,7 +27,7 @@ export function AppFooter({ userEmail }: AppFooterProps) {
                     <span className="h-3 w-px bg-divider" />
                     <Link href="/privacy" prefetch={false} target="_blank" className="text-[13px] text-default-500 transition-colors hover:text-primary-500">{t("privacyPolicy")}</Link>
                 </div>
-                <span className="text-default-400">© 2026 LabTAS v1.2.90. สงวนลิขสิทธิ์</span>
+                <span className="text-default-400">© 2026 COCO LABS v1.2.90. สงวนลิขสิทธิ์</span>
             </footer>
             <FeedbackModal
                 isOpen={isFeedbackOpen}

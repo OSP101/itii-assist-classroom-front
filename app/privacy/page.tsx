@@ -10,10 +10,10 @@ function getPrivacyPageCopy(language: 'th' | 'en') {
     if (language === 'en') {
         return {
             metadataTitle: 'Privacy Policy',
-            metadataDescription: 'The LabTAS privacy policy explains what data is used, why it is processed, and what rights users have.',
+            metadataDescription: 'The COCO LABS privacy policy explains what data is used, why it is processed, and what rights users have.',
             eyebrow: 'Privacy Policy',
             title: 'We explain what data is used so people understand what the platform stores and why',
-            description: 'This document applies to LabTAS services and focuses on the data needed for teaching operations, user support, and platform security.',
+            description: 'This document applies to COCO LABS services and focuses on the data needed for teaching operations, user support, and platform security.',
             backLabel: 'Back to Help Center',
             termsActionLabel: 'View Terms of Use',
             securityActionLabel: 'Report a security issue',
@@ -43,7 +43,7 @@ function getPrivacyPageCopy(language: 'th' | 'en') {
                 {
                     title: 'Scope and people covered by the policy',
                     items: [
-                        'This policy covers personal data related to the use of LabTAS for teaching, user support, and platform security.',
+                        'This policy covers personal data related to the use of COCO LABS for teaching, user support, and platform security.',
                         'The data may involve students, teaching assistants, instructors, administrators, and people who contact the team through support or feedback channels.',
                         'Actual data handling should follow the requirements of the system owner, the educational institution, and the applicable personal data protection laws.',
                     ],
@@ -107,10 +107,10 @@ function getPrivacyPageCopy(language: 'th' | 'en') {
 
     return {
         metadataTitle: 'นโยบายความเป็นส่วนตัว',
-        metadataDescription: 'นโยบายความเป็นส่วนตัวของ LabTAS อธิบายข้อมูลที่เก็บ วิธีใช้ข้อมูล และสิทธิของผู้ใช้งาน',
+        metadataDescription: 'นโยบายความเป็นส่วนตัวของ COCO LABS อธิบายข้อมูลที่เก็บ วิธีใช้ข้อมูล และสิทธิของผู้ใช้งาน',
         eyebrow: 'นโยบายความเป็นส่วนตัว',
         title: 'เราอธิบายข้อมูลที่ใช้ให้ชัด เพื่อให้ผู้ใช้รู้ว่าระบบเก็บอะไรและเพราะอะไร',
-        description: 'เอกสารนี้ใช้กับการให้บริการของ LabTAS โดยเน้นข้อมูลที่จำเป็นต่อการจัดการเรียนการสอน การสนับสนุนผู้ใช้ และความปลอดภัยของระบบ',
+        description: 'เอกสารนี้ใช้กับการให้บริการของ COCO LABS โดยเน้นข้อมูลที่จำเป็นต่อการจัดการเรียนการสอน การสนับสนุนผู้ใช้ และความปลอดภัยของระบบ',
         backLabel: 'กลับศูนย์ช่วยเหลือ',
         termsActionLabel: 'ดูข้อกำหนดการใช้งาน',
         securityActionLabel: 'แจ้งเหตุด้านความปลอดภัย',

@@ -173,7 +173,7 @@ function ResetPasswordContent() {
                     </Card>
                 </div>
                 <div className={AUTH_PAGE_FOOTER}>
-                    © 2026 LabTAS v1.2.90. สงวนลิขสิทธิ์
+                    © 2026 COCO LABS v1.2.90. สงวนลิขสิทธิ์
                 </div>
             </div>
         );
@@ -211,7 +211,7 @@ function ResetPasswordContent() {
                     </Card>
                 </div>
                 <div className={AUTH_PAGE_FOOTER}>
-                    © 2026 LabTAS v1.2.90. สงวนลิขสิทธิ์
+                    © 2026 COCO LABS v1.2.90. สงวนลิขสิทธิ์
                 </div>
             </div>
         );
@@ -367,7 +367,7 @@ function ResetPasswordContent() {
                 </Card>
             </div>
             <div className={AUTH_PAGE_FOOTER}>
-                © 2026 LabTAS v1.2.90. สงวนลิขสิทธิ์
+                © 2026 COCO LABS v1.2.90. สงวนลิขสิทธิ์
             </div>
         </div>
     );

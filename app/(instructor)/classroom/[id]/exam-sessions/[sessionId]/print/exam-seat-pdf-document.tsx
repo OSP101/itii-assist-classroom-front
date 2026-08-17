@@ -240,10 +240,10 @@ export function ExamSeatPdfDocument({
     return (
         <Document
             title="รายชื่อนศ.ในรายวิชาที่สอน"
-            author={instructorName || "LabTAS"}
+            author={instructorName || "COCO LABS"}
             subject={courseName}
-            creator="LabTAS"
-            producer="LabTAS"
+            creator="COCO LABS"
+            producer="COCO LABS"
             language="th-TH"
             pageLayout="singlePage"
             pageMode="useNone"

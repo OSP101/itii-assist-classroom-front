@@ -3,7 +3,7 @@ import DevicePermissionCheckClient from "@/components/device/DevicePermissionChe
 
 export const metadata: Metadata = {
   title: "เช็กสิทธิ์อุปกรณ์",
-  description: "ตรวจกล้อง ตำแหน่ง และความพร้อมของอุปกรณ์ก่อนใช้งาน LabTAS จริง",
+  description: "ตรวจกล้อง ตำแหน่ง และความพร้อมของอุปกรณ์ก่อนใช้งาน COCO LABS จริง",
 };
 
 export default function DeviceCheckPage() {

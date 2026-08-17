@@ -34,7 +34,7 @@ export default function QueueRoomPage() {
     }, [classroomId, router]);
 
     useEffect(() => {
-        document.title = "เลือกวิชาเพื่อจองคิว - LabTAS";
+        document.title = "เลือกวิชาเพื่อจองคิว - COCO LABS";
         fetchSessions();
     }, [fetchSessions]);
 

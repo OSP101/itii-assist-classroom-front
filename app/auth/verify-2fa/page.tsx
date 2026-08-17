@@ -364,7 +364,7 @@ export default function VerifyTwoFactorPage() {
       {/* Footer */}
       <div className="text-center py-4">
         <p className="text-xs text-slate-400 dark:text-slate-500">
-          LabTAS - {t("twoFactorAuthentication")}
+          COCO LABS - {t("twoFactorAuthentication")}
         </p>
       </div>
     </div>

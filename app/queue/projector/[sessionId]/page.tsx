@@ -282,8 +282,8 @@ export default function ProjectorViewPage() {
 
     useEffect(() => {
         document.title = isEnglish
-            ? "Queue Projector Display - LabTAS"
-            : "หน้าจอแสดงผลคิว - LabTAS";
+            ? "Queue Projector Display - COCO LABS"
+            : "หน้าจอแสดงผลคิว - COCO LABS";
     }, [isEnglish]);
 
     useEffect(() => {

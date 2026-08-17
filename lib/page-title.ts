@@ -1,4 +1,4 @@
-const APP_NAME = "LabTAS";
+const APP_NAME = "COCO LABS";
 
 type CourseLike = {
   code?: string | null;

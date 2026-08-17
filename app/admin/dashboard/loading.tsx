@@ -9,7 +9,7 @@ export default function DashboardLoading() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg sm:text-2xl font-bold mb-1 text-white">Dashboard</h2>
-            <p className="text-blue-100 text-sm sm:text-base">LabTAS</p>
+            <p className="text-blue-100 text-sm sm:text-base">COCO LABS</p>
           </div>
           <div className="hidden md:block">
             <Skeleton className="w-32 h-8 rounded-lg bg-white/20" />

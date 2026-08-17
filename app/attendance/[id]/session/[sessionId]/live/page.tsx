@@ -350,8 +350,8 @@ export default function LiveAttendancePage() {
 
     useEffect(() => {
         document.title = isEnglish
-            ? "Live Attendance - LabTAS"
-            : "เช็คชื่อ Live - LabTAS";
+            ? "Live Attendance - COCO LABS"
+            : "เช็คชื่อ Live - COCO LABS";
     }, [isEnglish]);
 
     useEffect(() => {

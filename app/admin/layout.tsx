@@ -197,7 +197,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                             <IoSchool />
                         </div>
                         {(!sidebarCollapsed || isMobileSidebarOpen) && (
-                            <span className="text-md font-bold text-foreground">LabTAS</span>
+                            <span className="text-md font-bold text-foreground">COCO LABS</span>
                         )}
                     </Link>
                 </div>

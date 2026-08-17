@@ -119,7 +119,7 @@ export default function StudentProfilePage() {
 
           <div className="text-center">
             <h2 className="text-xl font-bold text-white">{user?.full_name || "ชื่อผู้ใช้"}</h2>
-            <p className="mt-0.5 text-sm text-slate-300">{profileSubtitle} · LabTAS</p>
+            <p className="mt-0.5 text-sm text-slate-300">{profileSubtitle} · COCO LABS</p>
           </div>
         </div>
       </div>
@@ -174,7 +174,7 @@ export default function StudentProfilePage() {
         ออกจากระบบ
       </button>
 
-      <p className="text-center text-[11px] text-slate-400">© 2026 LabTAS v1.2.90. สงวนลิขสิทธิ์</p>
+      <p className="text-center text-[11px] text-slate-400">© 2026 COCO LABS v1.2.90. สงวนลิขสิทธิ์</p>
     </div>
   );
 }

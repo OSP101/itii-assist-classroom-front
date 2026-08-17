@@ -498,8 +498,8 @@ export default function WorkerDashboardPage() {
 
     useEffect(() => {
         document.title = isEnglish
-            ? "Queue Worker - LabTAS"
-            : "หน้ารับงาน - LabTAS";
+            ? "Queue Worker - COCO LABS"
+            : "หน้ารับงาน - COCO LABS";
     }, [isEnglish]);
 
     useEffect(() => {
