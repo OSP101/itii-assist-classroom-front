@@ -11,57 +11,11 @@ import { Icon } from "@iconify/react";
 import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket";
 import attendanceService, { AttendanceRequestError, type AttendanceSession } from "@/services/attendance.service";
 import { authService } from "@/services/auth.service";
+import { storeOAuthReturnPath } from "@/lib/auth-resume";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { useI18n } from "@/hooks/useI18n";
 import { useAttendancePinPresentation } from "@/hooks/useAttendancePinPresentation";
 import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
-
-// Declare Google Auth type
-declare global {
-    interface Window {
-        google?: {
-            accounts: {
-                id: {
-                    initialize: (config: {
-                        client_id: string;
-                        callback: (response: { credential: string }) => void;
-                        auto_select?: boolean;
-                    }) => void;
-                    renderButton: (
-                        element: HTMLElement,
-                        config: {
-                            theme?: "outline" | "filled_blue" | "filled_black";
-                            size?: "large" | "medium" | "small";
-                            text?: "signin_with" | "signup_with" | "continue_with" | "signin";
-                            shape?: "rectangular" | "pill" | "circle" | "square";
-                            logo_alignment?: "left" | "center";
-                            width?: number;
-                            locale?: string;
-                        }
-                    ) => void;
-                    prompt: () => void;
-                };
-            };
-        };
-    }
-}
-
-// JWT decode helper
-function decodeJWT(token: string): { email: string; name: string; sub: string; picture?: string } | null {
-    try {
-        const base64Url = token.split(".")[1];
-        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-        const jsonPayload = decodeURIComponent(
-            atob(base64)
-                .split("")
-                .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-                .join("")
-        );
-        return JSON.parse(jsonPayload);
-    } catch (e) {
-        return null;
-    }
-}
 
 // Check-in step type
 type Step = "loading" | "session-info" | "google-login" | "location" | "pin-entry" | "success" | "error" | "already-checked-in";
@@ -169,8 +123,6 @@ export default function StudentCheckInPage() {
     const socketRef = useRef<Socket | null>(null);
     const checkInRequestIdRef = useRef("");
 
-    // Google Sign In ref
-    const googleButtonRef = useRef<HTMLDivElement>(null);
     const { secondsLeft, totalSeconds } = useAttendancePinPresentation(session);
     const pinCountdown = secondsLeft;
     const pinTotal = totalSeconds;
@@ -237,92 +189,18 @@ export default function StudentCheckInPage() {
         }
     }, [router, sessionId, t]);
 
-    // Initialize Google Sign In
-    useEffect(() => {
-        if (step !== "google-login" || !googleButtonRef.current) return;
-
-        const initGoogle = () => {
-            if (window.google) {
-                window.google.accounts.id.initialize({
-                    client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "",
-                    callback: handleGoogleResponse,
-                });
-
-                window.google.accounts.id.renderButton(googleButtonRef.current!, {
-                    theme: "filled_blue",
-                    size: "large",
-                    text: "continue_with",
-                    shape: "rectangular",
-                    width: 280,
-                    locale: language,
-                });
-            }
-        };
-
-        // Check if script is already loaded
-        if (window.google) {
-            initGoogle();
-        } else {
-            // Load Google Sign In script
-            const script = document.createElement("script");
-            script.src = "https://accounts.google.com/gsi/client";
-            script.async = true;
-            script.defer = true;
-            script.onload = initGoogle;
-            document.body.appendChild(script);
-
-            return () => {
-                document.body.removeChild(script);
-            };
-        }
-    }, [language, step]);
-
-    // Handle Google login response
-    const handleGoogleResponse = async (response: { credential: string }) => {
-        const decoded = decodeJWT(response.credential);
-        if (!decoded) {
-            addToast({
-                title: t("signInFailed"),
-                description: t("unableToReadGoogleData"),
-                color: "danger",
-                timeout: 3000,
-                shouldShowTimeoutProgress: true,
-            });
-            return;
-        }
-
-        setGoogleUser({
-            email: decoded.email,
-            name: decoded.name,
-            googleId: decoded.sub,
-            idToken: response.credential,
-            picture: decoded.picture,
-        });
-
-        // Verify student
-        try {
-            const result = await attendanceService.verifyStudentIdentity(sessionId, response.credential, decoded.email);
-            if (result) {
-                setStudentInfo(result.student);
-                if (result.already_checked_in) {
-                    setAlreadyCheckedIn({
-                        status: result.status || "present",
-                        check_in_time: result.check_in_time || "",
-                    });
-                    setStep("already-checked-in");
-                } else if (session?.check_location) {
-                    setStep("location");
-                } else {
-                    setStep("pin-entry");
-                }
-            }
-        } catch (error: unknown) {
-            console.error("Error verifying student:", error);
-            const info = getAttendanceErrorInfo(error, t("accessUnavailable"), t("studentNotFoundInSystem"));
-            setErrorTitle(info.title);
-            setErrorMessage(info.message);
-            setStep("error");
-        }
+    // Google login: a full top-level redirect through the backend OAuth flow
+    // (same one /student/login uses), not the Google Identity Services JS
+    // widget. GIS's button relies on a popup or FedCM, both of which Google
+    // blocks or browsers can silently no-op inside embedded in-app browsers
+    // (QR scanner apps, LINE, etc.) — the button renders but taps do
+    // nothing. A plain navigation works everywhere. fetchSessionInfo()
+    // already knows how to resume the check-in flow once the redirect back
+    // here finds an authenticated session (see the isAuthenticated() branch
+    // above).
+    const handleGoogleLogin = () => {
+        storeOAuthReturnPath(`/check-in/${sessionId}`);
+        window.location.href = authService.getGoogleAuthUrl("student");
     };
 
     // Get current location
@@ -678,7 +556,13 @@ export default function StudentCheckInPage() {
                                     <h2 className="text-lg font-bold text-slate-900">{t("signInWithGoogle")}</h2>
                                     <p className="mt-1 text-sm text-slate-500">{t("useStudentEmail")}</p>
                                 </div>
-                                <div ref={googleButtonRef} className="flex justify-center w-full" />
+                                <button
+                                    onClick={handleGoogleLogin}
+                                    className="inline-flex w-full max-w-70 items-center justify-center gap-2.5 rounded-full border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-[0.98]"
+                                >
+                                    <Icon icon="logos:google-icon" className="text-lg" />
+                                    {t("signInWithGoogle")}
+                                </button>
                                 <p className="text-xs text-slate-400">{t("systemVerifiesStudentEmail")}</p>
                             </div>
                         </div>
