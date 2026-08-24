@@ -12,6 +12,9 @@
 back here</b> — this reports what was recorded there.</p>
 <pre id="out" style="white-space: pre-wrap; word-break: break-all; font-size: 11px">running… (if this never changes, /csp-check.js itself was blocked)</pre>
 <div id="probe-host"></div>
-<script src="/csp-check.js"></script>
+<!-- ?v= is a cache-buster: files under public/ are served with a week-long
+     Cache-Control by nginx and carry no build hash, so without it a phone
+     keeps running the previous copy of this script. Bump on every edit. -->
+<script src="/csp-check.js?v=3"></script>
 </body>
 </html>

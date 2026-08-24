@@ -25,13 +25,38 @@
     }
   }
 
+  // A failed <script> fires a bare "error" event with no status attached, so
+  // re-request the same URL and record what the server actually said. This is
+  // what distinguishes a 429 from the upstream proxy's per-URL rate limiter
+  // (see deploy-vm-https/scripts/asset-watchdog.sh) from a genuine 404 or a
+  // dropped connection — they look identical from the event alone.
+  function probeFailedUrl(url) {
+    try {
+      fetch(url, { cache: 'reload' })
+        .then(function (r) {
+          push({
+            kind: 'probe',
+            url: url,
+            status: r.status,
+            retryAfter: r.headers.get('retry-after'),
+            server: r.headers.get('server')
+          });
+        })
+        .catch(function (err) {
+          push({ kind: 'probe', url: url, status: 'fetch threw: ' + String(err) });
+        });
+    } catch (e) { /* ignore */ }
+  }
+
   window.addEventListener('error', function (e) {
     if (e.target && e.target !== window && e.target.tagName) {
+      var failedUrl = String(e.target.src || e.target.href || '');
       push({
         kind: 'resource',
         tag: e.target.tagName.toLowerCase(),
-        url: String(e.target.src || e.target.href || '')
+        url: failedUrl
       });
+      if (failedUrl) probeFailedUrl(failedUrl);
     } else {
       push({
         kind: 'error',
@@ -49,6 +74,26 @@
       message: r && r.message ? String(r.message) : String(r),
       stack: r && r.stack ? String(r.stack).slice(0, 600) : null
     });
+  });
+
+  // React reports hydration failures through console.error, NOT through
+  // window.onerror — it catches the mismatch, logs it, and falls back to a
+  // full client render (or gives up on that subtree). Without this hook the
+  // recorder sees a completely clean page while the app is in fact dead, so
+  // hook the console before anything else has a chance to log.
+  ['error', 'warn'].forEach(function (level) {
+    var original = console[level];
+    console[level] = function () {
+      try {
+        var parts = [];
+        for (var i = 0; i < arguments.length; i++) {
+          var a = arguments[i];
+          parts.push(a && a.stack ? String(a.stack) : String(a));
+        }
+        push({ kind: 'console.' + level, message: parts.join(' | ').slice(0, 800) });
+      } catch (err) { /* never let logging break the page */ }
+      return original.apply(console, arguments);
+    };
   });
 
   document.addEventListener('securitypolicyviolation', function (e) {

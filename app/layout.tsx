@@ -235,7 +235,7 @@ export default async function RootLayout({
             there is no reachable console on iOS Safari without a Mac. Remove
             together with public/csp-check.* once the cocolabs interaction bug
             is closed. */}
-        <script src="/error-recorder.js" />
+        <script src="/error-recorder.js?v=3" />
       </head>
       <body
         className={clsx(
