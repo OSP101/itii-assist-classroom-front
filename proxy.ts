@@ -70,24 +70,26 @@ function buildCsp(nonce: string) {
         // server-side error stacks in the browser. Neither React nor Next.js
         // use eval in production.
         `script-src 'self'${asset} 'nonce-${nonce}' blob: https://accounts.google.com${isDev ? " 'unsafe-eval'" : ''}`,
-        // Styles use 'unsafe-inline' rather than a nonce.
+        // Stylesheets (<style> elements and <link rel=stylesheet>) are
+        // nonce-only in production: SSR emits no inline <style> of its own, and
+        // the one third-party injection that exists (react-aria's pressable
+        // stylesheet) is pre-rendered with this nonce in app/layout.tsx.
         //
-        // React applies `style={{…}}` props by setting the style ATTRIBUTE,
-        // which is governed by `style-src-attr` — a CSP Level 3 directive
-        // WebKit does not implement, so on iOS those attribute styles fall
-        // back to `style-src`, where a nonce can never match one. Keeping the
-        // nonce therefore risked blocking every inline style on iOS while
-        // looking fine on desktop Chrome. (Measured on-device afterwards: not
-        // what was breaking HeroUI there — that was a lazy chunk failing to
-        // load — but the directive was still wrong for WebKit.)
-        //
-        // A nonce plus 'unsafe-inline' would not help, since browsers that
-        // understand nonces ignore 'unsafe-inline'.
-        //
-        // Cost, unchanged from the note this replaces: an attacker who can
-        // already inject markup gains CSS on the node they injected, with no
-        // script execution. script-src keeps its nonce.
-        `style-src 'self'${asset} 'unsafe-inline'`,
+        // This was briefly relaxed to a bare 'unsafe-inline' while chasing an
+        // iOS-only bug, on the theory that WebKit ignores style-src-attr and
+        // would therefore block every style="…" attribute. On-device testing
+        // disproved it — the same iPhone ran fine against the other hostname
+        // under this exact policy — so the nonce is back. The real cause was a
+        // lazy chunk failing to load; see next.config.ts's assetPrefix note.
+        `style-src 'self'${asset}${isDev ? " 'unsafe-inline'" : ` 'nonce-${nonce}'`}`,
+        // …but style="…" ATTRIBUTES still need 'unsafe-inline'. React applies
+        // `style={{…}}` props by setting the attribute, so locking this down
+        // would silently drop layout from any component using inline styles
+        // (verified: the docs table-of-contents indentation, HeroUI internals).
+        // This is a much weaker vector than script-src or stylesheet injection
+        // — an attacker who can already inject markup gains only CSS on the
+        // node they injected, with no script execution.
+        "style-src-attr 'unsafe-inline'",
         `img-src 'self'${asset} data: blob: https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org`,
         // next/font emits <link rel=preload as=font crossorigin>, and
         // @font-face fetches are always CORS-mode, so a cross-origin asset
