@@ -7,86 +7,9 @@
 </head>
 <body>
 <h1>CSP diagnostic</h1>
-<p>Open this on the device that misbehaves and screenshot the whole page.</p>
-<pre id="out">running…</pre>
+<p>Open on the device that misbehaves, wait ~10s, screenshot the whole page.</p>
+<pre id="out">running… (if this never changes, /csp-check.js itself was blocked)</pre>
 <div id="probe-host"></div>
-
-<script>
-// Deliberately NOT nonce'd and NOT using any inline style attribute of its
-// own for the report UI: this page has to stay readable even when the very
-// thing it is testing is blocked.
-(function () {
-  var violations = [];
-  document.addEventListener('securitypolicyviolation', function (e) {
-    violations.push({
-      violatedDirective: e.violatedDirective,
-      effectiveDirective: e.effectiveDirective,
-      blockedURI: e.blockedURI,
-      sample: e.sample,
-      policy: (e.originalPolicy || '').slice(0, 400)
-    });
-  });
-
-  var errors = [];
-  window.addEventListener('error', function (e) {
-    errors.push(String(e.message) + ' @ ' + String(e.filename) + ':' + e.lineno);
-  });
-
-  function run() {
-    var host = document.getElementById('probe-host');
-    var report = {};
-
-    report.userAgent = navigator.userAgent;
-    report.url = location.href;
-
-    // --- Probe 1: style ATTRIBUTE via setAttribute -----------------------
-    // This is what CSP's style-src-attr governs. React sets style={{…}} props
-    // this way, and it is what HeroUI/react-aria rely on for positioning.
-    var a = document.createElement('div');
-    a.setAttribute('style', 'color: rgb(1, 2, 3)');
-    host.appendChild(a);
-    report.styleAttribute_applied =
-      getComputedStyle(a).color === 'rgb(1, 2, 3)';
-
-    // --- Probe 2: CSSOM write (el.style.x = …) ---------------------------
-    // CSP never polices this. If probe 1 fails but this passes, the app is
-    // being hit by style-src/style-src-attr, not by a general CSS failure.
-    var b = document.createElement('div');
-    b.style.color = 'rgb(4, 5, 6)';
-    host.appendChild(b);
-    report.cssomWrite_applied =
-      getComputedStyle(b).color === 'rgb(4, 5, 6)';
-
-    // --- Probe 3: injected <style> element without a nonce ---------------
-    var s = document.createElement('style');
-    s.textContent = '.csp-probe-3 { color: rgb(7, 8, 9); }';
-    document.head.appendChild(s);
-    var c = document.createElement('div');
-    c.className = 'csp-probe-3';
-    host.appendChild(c);
-    report.injectedStyleElement_applied =
-      getComputedStyle(c).color === 'rgb(7, 8, 9)';
-
-    // --- Probe 4: did the app's own stylesheets load? --------------------
-    report.styleSheetCount = document.styleSheets.length;
-    var reactAria = document.getElementById('react-aria-pressable-style');
-    report.reactAriaStyleTagPresent = !!reactAria;
-
-    // Give async violation events a moment to land.
-    setTimeout(function () {
-      report.cspViolations = violations;
-      report.jsErrors = errors;
-      document.getElementById('out').textContent =
-        JSON.stringify(report, null, 2);
-    }, 600);
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', run);
-  } else {
-    run();
-  }
-})();
-</script>
+<script src="/csp-check.js"></script>
 </body>
 </html>
