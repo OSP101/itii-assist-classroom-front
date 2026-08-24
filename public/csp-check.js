@@ -103,6 +103,13 @@
       report.cspViolations = violations;
       report.jsErrors = errors;
       report.styleSheetCount = document.styleSheets.length;
+      // Whatever public/error-recorder.js captured on the real app pages.
+      try {
+        report.recordedOnAppPages =
+          JSON.parse(localStorage.getItem('__diag_errors') || '[]');
+      } catch (e) {
+        report.recordedOnAppPages = 'localStorage unavailable: ' + String(e);
+      }
       show(report);
     }, 500);
   }

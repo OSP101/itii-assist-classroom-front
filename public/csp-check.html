@@ -8,7 +8,9 @@
 <body>
 <h1>CSP diagnostic</h1>
 <p>Open on the device that misbehaves, wait ~10s, screenshot the whole page.</p>
-<pre id="out">running… (if this never changes, /csp-check.js itself was blocked)</pre>
+<p><b>First visit the broken page (e.g. /login, then tap around), then come
+back here</b> — this reports what was recorded there.</p>
+<pre id="out" style="white-space: pre-wrap; word-break: break-all; font-size: 11px">running… (if this never changes, /csp-check.js itself was blocked)</pre>
 <div id="probe-host"></div>
 <script src="/csp-check.js"></script>
 </body>

@@ -230,6 +230,12 @@ export default async function RootLayout({
           nonce={nonce || undefined}
           dangerouslySetInnerHTML={{ __html: buildSettingsBootstrapScript(nonce) }}
         />
+        {/* TEMPORARY: records client-side errors and a hydration snapshot to
+            localStorage so /csp-check.html can show what an iOS device saw —
+            there is no reachable console on iOS Safari without a Mac. Remove
+            together with public/csp-check.* once the cocolabs interaction bug
+            is closed. */}
+        <script src="/error-recorder.js" />
       </head>
       <body
         className={clsx(
