@@ -1,8 +1,23 @@
 import type { NextConfig } from "next";
 
+// Where /_next/static/* is served from. Empty (the default) keeps assets on
+// the same origin as the page, i.e. behaviour before this existed.
+//
+// Set it to a Cloudflare-fronted origin to keep static assets off the KKU
+// reverse proxy, whose per-URL rate limiter is what breaks the app: once a
+// bucket saturates, that chunk 429s for everyone, Next.js retries it in a
+// loop, and every component behind it dies while the page still looks fine
+// (see deploy-vm-https/scripts/asset-watchdog.sh, which only papers over it
+// by rotating ?dpl= on redeploy). Assets served from Cloudflare's edge never
+// reach that limiter at all.
+//
+// Baked in at build time, so changing it requires a rebuild, not a restart.
+const assetPrefix = process.env.NEXT_PUBLIC_ASSET_PREFIX?.trim() || undefined;
+
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["10.199.10.10"],
   poweredByHeader: false,
+  assetPrefix,
   // React emits font/script preload hints as a "Link" response header, capped
   // at 6000 bytes by default. The university reverse proxy in front of
   // cocolabs.computing.kku.ac.th buffers response headers at nginx's 4k

@@ -40,8 +40,25 @@ const MAINTENANCE_COOKIE = 'maintenance_active';
  * so every HTML route here is dynamic anyway — but a page opted back into
  * static rendering would ship with no nonce and its scripts would be blocked.
  */
+// When NEXT_PUBLIC_ASSET_PREFIX is set (see next.config.ts), /_next/static/*
+// is served from another origin, so every directive that governs those assets
+// has to name it or the browser blocks the whole bundle. Reduced to a bare
+// origin: CSP source expressions match on scheme/host/port, and a stray path
+// would silently never match.
+const ASSET_ORIGIN = (() => {
+    const raw = process.env.NEXT_PUBLIC_ASSET_PREFIX?.trim();
+    if (!raw) return '';
+    try {
+        return new URL(raw).origin;
+    } catch {
+        return '';
+    }
+})();
+
 function buildCsp(nonce: string) {
     const isDev = process.env.NODE_ENV === 'development';
+    // Prefixed with a space so it vanishes cleanly when unset.
+    const asset = ASSET_ORIGIN ? ` ${ASSET_ORIGIN}` : '';
 
     return [
         "default-src 'self'",
@@ -52,31 +69,34 @@ function buildCsp(nonce: string) {
         // 'unsafe-eval' is required in dev only: React uses eval to rebuild
         // server-side error stacks in the browser. Neither React nor Next.js
         // use eval in production.
-        `script-src 'self' 'nonce-${nonce}' blob: https://accounts.google.com${isDev ? " 'unsafe-eval'" : ''}`,
-        // Styles use 'unsafe-inline' rather than a nonce, on purpose.
+        `script-src 'self'${asset} 'nonce-${nonce}' blob: https://accounts.google.com${isDev ? " 'unsafe-eval'" : ''}`,
+        // Styles use 'unsafe-inline' rather than a nonce.
         //
         // React applies `style={{…}}` props by setting the style ATTRIBUTE,
-        // and HeroUI/react-aria lean on that for positioning and animation.
-        // Attribute styles are governed by `style-src-attr` — a CSP Level 3
-        // directive Safari/WebKit does not implement. Safari skips the
-        // directive it doesn't know and falls back to `style-src`, where a
-        // nonce cannot match an attribute, so every inline style gets
-        // blocked: HeroUI controls render unpositioned and stop responding to
-        // taps, and some text loses its font. That is iOS-only and invisible
-        // on desktop Chrome, which does support style-src-attr.
+        // which is governed by `style-src-attr` — a CSP Level 3 directive
+        // WebKit does not implement, so on iOS those attribute styles fall
+        // back to `style-src`, where a nonce can never match one. Keeping the
+        // nonce therefore risked blocking every inline style on iOS while
+        // looking fine on desktop Chrome. (Measured on-device afterwards: not
+        // what was breaking HeroUI there — that was a lazy chunk failing to
+        // load — but the directive was still wrong for WebKit.)
         //
-        // A nonce plus 'unsafe-inline' would not help — browsers that
-        // understand nonces ignore 'unsafe-inline' — so style-src carries
-        // 'unsafe-inline' alone and style-src-attr is gone (redundant once
-        // style-src allows inline).
+        // A nonce plus 'unsafe-inline' would not help, since browsers that
+        // understand nonces ignore 'unsafe-inline'.
         //
-        // Cost of the relaxation, unchanged from the note this replaces: an
-        // attacker who can already inject markup gains CSS on the node they
-        // injected, with no script execution. script-src keeps its nonce.
-        "style-src 'self' 'unsafe-inline'",
-        "img-src 'self' data: blob: https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org",
-        "font-src 'self' data:",
-        "connect-src 'self' https://api.open-meteo.com https://nominatim.openstreetmap.org https://accounts.google.com",
+        // Cost, unchanged from the note this replaces: an attacker who can
+        // already inject markup gains CSS on the node they injected, with no
+        // script execution. script-src keeps its nonce.
+        `style-src 'self'${asset} 'unsafe-inline'`,
+        `img-src 'self'${asset} data: blob: https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org`,
+        // next/font emits <link rel=preload as=font crossorigin>, and
+        // @font-face fetches are always CORS-mode, so a cross-origin asset
+        // host must also send Access-Control-Allow-Origin (nginx does, for
+        // /_next/static/) or the fonts silently fall back.
+        `font-src 'self'${asset} data:`,
+        // Covers the recorder's re-fetch of a failed chunk and any prefetch
+        // that goes through fetch() rather than a <script> tag.
+        `connect-src 'self'${asset} https://api.open-meteo.com https://nominatim.openstreetmap.org https://accounts.google.com`,
         "frame-src 'self' https://accounts.google.com",
         "worker-src 'self' blob:",
         "manifest-src 'self'",
