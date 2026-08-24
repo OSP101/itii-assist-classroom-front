@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, createContext, useContext } from "react";
+import { useCallback, useEffect, useMemo, useState, createContext, useContext } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Skeleton } from "@heroui/skeleton";
 import { Avatar } from "@heroui/avatar";
@@ -9,7 +9,8 @@ import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, DropdownSection 
 import { Popover, PopoverTrigger, PopoverContent } from "@heroui/popover";
 import { Icon } from "@iconify/react";
 import { authService } from "@/services/auth.service";
-import { courseService, Course } from "@/services/course.service";
+import { Course } from "@/services/course.service";
+import { useAllCourses, useCourse, useMyCourses } from "@/lib/swr";
 import { useNotification } from "@/contexts/NotificationContext";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { useSettingsMenuItems } from "@/components/SettingsPanel";
@@ -30,6 +31,11 @@ interface User {
     role: string;
     avatar?: string | null;
 }
+
+// Module-level so the object identity is stable across renders. SWR hashes
+// array keys structurally, so a fresh object each render would still resolve to
+// the same cache entry — this just removes the question entirely.
+const ACTIVE_COURSE_LIST_PARAMS = { status: "active", limit: 10 } as const;
 
 interface CourseInfo {
     id: string;
@@ -81,9 +87,6 @@ export default function InstructorLayout({
         return !authService.isAuthenticated() || !cached || !allowedInstructorRoles.includes(cached.role);
     });
     const [courseInfo, setCourseInfo] = useState<CourseInfo | null>(null);
-    const [activeCourses, setActiveCourses] = useState<Course[]>([]);
-    const [isCoursesLoading, setIsCoursesLoading] = useState(false);
-    const [isCourseInfoLoading, setIsCourseInfoLoading] = useState(false);
     const [isNotifOpen, setIsNotifOpen] = useState(false);
     const [notifTab, setNotifTab] = useState<"all" | "unread">("all");
     const [notifShowAll, setNotifShowAll] = useState(false);
@@ -282,72 +285,73 @@ export default function InstructorLayout({
         checkAuth();
     }, [router]);
 
-    // Fetch active courses once when user is set
-    const fetchActiveCourses = async () => {
-        if (!user) return;
-        setIsCoursesLoading(true);
-        try {
-            if (user.role === "admin") {
-                const response = await courseService.getCourses({ status: "active", limit: 10 });
-                if (response.success && response.data) {
-                    setActiveCourses(response.data.courses);
-                }
-            } else {
-                const response = await courseService.getMyCourses({ status: "active", limit: 10 });
-                if (response.success && response.data) {
-                    setActiveCourses(response.data.courses);
-                }
-            }
-        } catch (error) {
-            console.error("Failed to fetch active courses:", error);
-        } finally {
-            setIsCoursesLoading(false);
+    // Active courses for the sidebar dropdown.
+    //
+    // This lives in the layout, so before caching every navigation into a
+    // different instructor page could re-issue it. Through SWR it is served
+    // from cache and revalidated in the background instead.
+    //
+    // Admins see every active course, everyone else sees only their own — two
+    // different endpoints, so only the applicable one is enabled and the other
+    // holds a null key rather than firing.
+    const isAdmin = user?.role === "admin";
+
+    const {
+        data: adminCourses,
+        isLoading: isAdminCoursesLoading,
+        mutate: refreshAdminCourses,
+    } = useAllCourses(ACTIVE_COURSE_LIST_PARAMS, Boolean(user) && isAdmin);
+
+    const {
+        data: myCourses,
+        isLoading: isMyCoursesLoading,
+        mutate: refreshMyCourses,
+    } = useMyCourses(ACTIVE_COURSE_LIST_PARAMS, Boolean(user) && !isAdmin);
+
+    const activeCourses: Course[] = useMemo(
+        () => (isAdmin ? adminCourses?.courses : myCourses?.courses) ?? [],
+        [isAdmin, adminCourses, myCourses],
+    );
+    const isCoursesLoading = isAdmin ? isAdminCoursesLoading : isMyCoursesLoading;
+
+    const refreshCourses = useCallback(async () => {
+        await (isAdmin ? refreshAdminCourses() : refreshMyCourses());
+    }, [isAdmin, refreshAdminCourses, refreshMyCourses]);
+
+    // The breadcrumb course is usually already in the list above, so only fetch
+    // it separately when it is not — a course opened from a direct link, or one
+    // outside the first 10 active courses.
+    const courseInList = useMemo(
+        () => activeCourses.find((course) => course.id === courseId) ?? null,
+        [activeCourses, courseId],
+    );
+    const needsCourseFetch = Boolean(courseId) && !courseInList;
+    const { data: fetchedCourse, isLoading: isFetchedCourseLoading } = useCourse(
+        needsCourseFetch ? courseId : null,
+    );
+
+    const isCourseInfoLoading = needsCourseFetch && isFetchedCourseLoading;
+
+    // courseInfo stays a state value because setCourseInfo is handed to child
+    // pages through context — they override the breadcrumb with a freshly saved
+    // name before the cache has caught up.
+    useEffect(() => {
+        if (!courseId) {
+            setCourseInfo(null);
+            return;
         }
-    };
 
-    useEffect(() => {
-        fetchActiveCourses();
-    }, [user]);
+        const source = courseInList ?? fetchedCourse;
+        if (!source) return;
 
-    // Fetch course info when courseId changes
-    useEffect(() => {
-        const fetchCourseInfo = async () => {
-            if (courseId) {
-                setIsCourseInfoLoading(true);
-                // Check if we already have this course in activeCourses
-                const existingCourse = activeCourses.find(c => c.id === courseId);
-                if (existingCourse) {
-                    setCourseInfo({
-                        id: existingCourse.id,
-                        code: existingCourse.code,
-                        name: existingCourse.name,
-                        year: existingCourse.year,
-                        semester: existingCourse.semester,
-                    });
-                } else {
-                    try {
-                        const response = await courseService.getCourseById(courseId);
-                        if (response.success && response.data) {
-                            setCourseInfo({
-                                id: response.data.id,
-                                code: response.data.code,
-                                name: response.data.name,
-                                year: response.data.year,
-                                semester: response.data.semester,
-                            });
-                        }
-                    } catch (error) {
-                        console.error("Failed to fetch course info:", error);
-                    }
-                }
-                setIsCourseInfoLoading(false);
-            } else {
-                setCourseInfo(null);
-                setIsCourseInfoLoading(false);
-            }
-        };
-        fetchCourseInfo();
-    }, [courseId, activeCourses]);
+        setCourseInfo({
+            id: source.id,
+            code: source.code,
+            name: source.name,
+            year: source.year,
+            semester: source.semester,
+        });
+    }, [courseId, courseInList, fetchedCourse]);
 
     const handleLogout = async () => {
         try {
@@ -403,7 +407,7 @@ export default function InstructorLayout({
             activeCourses,
             courseInfo,
             setCourseInfo,
-            refreshCourses: fetchActiveCourses
+            refreshCourses
         }}>
             <div data-auth-shell="true" className="flex min-h-screen flex-col bg-background text-foreground">
                 {/* Top Navigation Bar - Shared Header */}

@@ -10,6 +10,8 @@ import { GlobalSettingsProvider, type InitialGlobalSettings } from "@/contexts/G
 import { authService } from "@/services/auth.service";
 import { IconifyPreload } from "@/components/IconifyPreload";
 import { PwaBootstrap } from "@/components/system/PwaBootstrap";
+import { SWRProvider, clearAllCaches } from "@/lib/swr";
+import { clearClassroomCache } from "@/app/(instructor)/classroom/[id]/hooks/useClassroomData";
 
 export interface ProvidersProps {
   children: React.ReactNode;
@@ -31,6 +33,12 @@ function useAuthSync() {
     // Subscribe to auth changes from other tabs
     const unsubscribe = authService.onAuthChange((event) => {
       if (event.type === 'logout') {
+        // Drop every cached response before leaving. Without this the next
+        // person to sign in on a shared lab machine would briefly see the
+        // previous user's courses rendered from cache while their own data
+        // loads.
+        void clearAllCaches();
+        clearClassroomCache();
         // Don't redirect if already on login page
         if (!pathname?.startsWith('/login')) {
           // Force redirect to login
@@ -57,13 +65,15 @@ export function Providers({ children, initialSettings }: ProvidersProps) {
       <PwaBootstrap />
       <IconifyPreload />
       <GlobalSettingsProvider initialSettings={initialSettings}>
-        <SocketProvider>
-          <NotificationProvider>
-            <AuthSyncProvider>
-              {children}
-            </AuthSyncProvider>
-          </NotificationProvider>
-        </SocketProvider>
+        <SWRProvider>
+          <SocketProvider>
+            <NotificationProvider>
+              <AuthSyncProvider>
+                {children}
+              </AuthSyncProvider>
+            </NotificationProvider>
+          </SocketProvider>
+        </SWRProvider>
         <ToastProvider placement="top-right" toastProps={{ timeout: 3000, shouldShowTimeoutProgress: true }} />
       </GlobalSettingsProvider>
     </HeroUIProvider>

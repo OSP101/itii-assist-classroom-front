@@ -45,6 +45,51 @@ interface CacheEntry<T> {
     timestamp: number;
 }
 
+/**
+ * Cached classroom payloads, keyed by course.
+ *
+ * This used to be a useRef inside the hook, which meant the cache was created
+ * fresh on every mount and thrown away on unmount — so navigating from a course
+ * to anywhere and back refetched all of it, and the CACHE_DURATION window never
+ * actually applied across a navigation. Hoisting it to module scope is what
+ * makes the intended caching real.
+ */
+interface ClassroomCacheBucket {
+    course?: CacheEntry<Course>;
+    overview?: CacheEntry<CourseOverview>;
+    assignments?: CacheEntry<AssignmentType[]>;
+    attendanceSessions?: CacheEntry<AttendanceSession[]>;
+    teams?: CacheEntry<{ permanent: PermanentTeam[]; weekly: Record<number, WeeklyTeam[]> }>;
+}
+
+const classroomCache = new Map<string, ClassroomCacheBucket>();
+
+// Bounded so a long session spent hopping between courses cannot grow this
+// without limit. Insertion-ordered, so the oldest course drops out first.
+const MAX_CACHED_COURSES = 8;
+
+function getClassroomCacheBucket(courseId: string): ClassroomCacheBucket {
+    const existing = classroomCache.get(courseId);
+    if (existing) return existing;
+
+    if (classroomCache.size >= MAX_CACHED_COURSES) {
+        const oldest = classroomCache.keys().next();
+        if (!oldest.done) classroomCache.delete(oldest.value);
+    }
+
+    const bucket: ClassroomCacheBucket = {};
+    classroomCache.set(courseId, bucket);
+    return bucket;
+}
+
+/**
+ * Drops every cached course payload. Called on logout so the next person to
+ * sign in on a shared machine cannot see the previous user's course data.
+ */
+export function clearClassroomCache() {
+    classroomCache.clear();
+}
+
 interface IncomingRealtimeEvent {
     resource: string;
     action: string;
@@ -75,14 +120,20 @@ export function useClassroomData(courseId: string) {
     const { emitDataUpdate, onDataUpdate, subscribeToUpdates, unsubscribeFromUpdates, isConnected } = useSocket();
     const isUpdatingRef = useRef(false);
 
-    // Data Cache
-    const cache = useRef<{
-        course?: CacheEntry<Course>;
-        overview?: CacheEntry<CourseOverview>;
-        assignments?: CacheEntry<AssignmentType[]>;
-        attendanceSessions?: CacheEntry<AttendanceSession[]>;
-        teams?: CacheEntry<{ permanent: PermanentTeam[]; weekly: Record<number, WeeklyTeam[]> }>;
-    }>({});
+    // Data Cache — backed by the module-level store above, so it survives
+    // unmounting. Exposed through `current` so every existing read, delete and
+    // reset in this hook keeps working unchanged.
+    const cache = useMemo(
+        () => ({
+            get current(): ClassroomCacheBucket {
+                return getClassroomCacheBucket(courseId);
+            },
+            set current(next: ClassroomCacheBucket) {
+                classroomCache.set(courseId, next);
+            },
+        }),
+        [courseId],
+    );
 
     // Core data states
     const [course, setCourse] = useState<Course | null>(null);

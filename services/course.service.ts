@@ -5,6 +5,7 @@
 import { apiService } from './api.service';
 import { API_ENDPOINTS } from '@/config/api';
 import { csrfHeader } from '@/lib/csrf';
+import { invalidateCourses } from '@/lib/swr/invalidate';
 
 // Types
 export interface CourseMemberPermissions {
@@ -706,6 +707,28 @@ export interface CourseOverview {
 }
 
 class CourseService {
+  /**
+   * Wraps a mutating call so the SWR cache is refreshed once it succeeds.
+   *
+   * Invalidation lives here rather than at each call site because there are
+   * dozens of them across the app: a missed one is invisible — the request goes
+   * through, the server is updated, and the user keeps looking at the old value
+   * until something else happens to trigger a refetch. Doing it in the service
+   * means every caller, including future ones, gets it for free.
+   *
+   * Only successful writes invalidate: a failed request changed nothing, so
+   * throwing away good cache would just cost a needless round trip.
+   */
+  private async afterWrite<T extends { success: boolean }>(
+    call: Promise<T>,
+  ): Promise<T> {
+    const response = await call;
+    if (response.success) {
+      void invalidateCourses();
+    }
+    return response;
+  }
+
   private normalizeCourse(course: Course): Course {
     return {
       ...course,
@@ -756,10 +779,10 @@ class CourseService {
   }
 
   async bulkToggle(courseIds: string[], action: 'enable' | 'disable') {
-    return apiService.patch<{ toggled: number; skipped: number }>(
+    return this.afterWrite(apiService.patch<{ toggled: number; skipped: number }>(
       API_ENDPOINTS.COURSES.BULK_TOGGLE,
       { course_ids: courseIds, action },
-    );
+    ));
   }
 
   async bulkDelete(courseIds: string[]) {
@@ -776,8 +799,13 @@ class CourseService {
       body: JSON.stringify({ course_ids: courseIds }),
     });
     if (!res.ok) throw new Error('Bulk delete failed');
-    const data = await res.json();
-    return data as { success: boolean; data?: { deleted: number } };
+    const data = await res.json() as { success: boolean; data?: { deleted: number } };
+    // Uses raw fetch rather than apiService, so it cannot go through
+    // afterWrite() like the other mutations — invalidated explicitly instead.
+    if (data.success) {
+      void invalidateCourses();
+    }
+    return data;
   }
 
   async exportCSV(params?: { search?: string; year?: number; semester?: number; status?: string }) {
@@ -813,28 +841,28 @@ class CourseService {
    * Create new course
    */
   async createCourse(data: CreateCourseDto) {
-    return apiService.post<Course>(API_ENDPOINTS.COURSES.CREATE, data);
+    return this.afterWrite(apiService.post<Course>(API_ENDPOINTS.COURSES.CREATE, data));
   }
 
   /**
    * Update course
    */
   async updateCourse(id: string, data: UpdateCourseDto) {
-    return apiService.put<Course>(API_ENDPOINTS.COURSES.UPDATE(id), data);
+    return this.afterWrite(apiService.put<Course>(API_ENDPOINTS.COURSES.UPDATE(id), data));
   }
 
   /**
    * Delete course
    */
   async deleteCourse(id: string) {
-    return apiService.delete(API_ENDPOINTS.COURSES.DELETE(id));
+    return this.afterWrite(apiService.delete(API_ENDPOINTS.COURSES.DELETE(id)));
   }
 
   /**
    * Toggle course status
    */
   async toggleStatus(id: string) {
-    return apiService.patch<Course>(API_ENDPOINTS.COURSES.TOGGLE_STATUS(id));
+    return this.afterWrite(apiService.patch<Course>(API_ENDPOINTS.COURSES.TOGGLE_STATUS(id)));
   }
 
   /**
@@ -881,21 +909,21 @@ class CourseService {
    * Add section to course
    */
   async addSection(courseId: string, data: { section_no: string; note?: string }) {
-    return apiService.post<CourseSection>(API_ENDPOINTS.COURSES.ADD_SECTION(courseId), data);
+    return this.afterWrite(apiService.post<CourseSection>(API_ENDPOINTS.COURSES.ADD_SECTION(courseId), data));
   }
 
   /**
    * Update section
    */
   async updateSection(courseId: string, sectionId: number, data: { section_no: string; note?: string }) {
-    return apiService.put<CourseSection>(`/courses/${courseId}/sections/${sectionId}`, data);
+    return this.afterWrite(apiService.put<CourseSection>(`/courses/${courseId}/sections/${sectionId}`, data));
   }
 
   /**
    * Remove section from course
    */
   async removeSection(courseId: string, sectionId: number) {
-    return apiService.delete(API_ENDPOINTS.COURSES.REMOVE_SECTION(courseId, sectionId));
+    return this.afterWrite(apiService.delete(API_ENDPOINTS.COURSES.REMOVE_SECTION(courseId, sectionId)));
   }
 
   // TA Management
@@ -903,29 +931,29 @@ class CourseService {
    * Add TA to course
    */
   async addTA(courseId: string, userId: number) {
-    return apiService.post<TA>(API_ENDPOINTS.COURSES.ADD_TA(courseId), { user_id: userId });
+    return this.afterWrite(apiService.post<TA>(API_ENDPOINTS.COURSES.ADD_TA(courseId), { user_id: userId }));
   }
 
   async createTAAccount(courseId: string, data: CreateCourseTAAccountDto) {
-    return apiService.post<CreateCourseTAAccountResponse>(API_ENDPOINTS.COURSES.CREATE_TA_ACCOUNT(courseId), data);
+    return this.afterWrite(apiService.post<CreateCourseTAAccountResponse>(API_ENDPOINTS.COURSES.CREATE_TA_ACCOUNT(courseId), data));
   }
 
   /**
    * Add multiple TAs to course
    */
   async bulkAddTAs(courseId: string, userIds: number[]) {
-    return apiService.post<{ added: TA[]; skipped: number }>(`/courses/${courseId}/tas/bulk`, { user_ids: userIds });
+    return this.afterWrite(apiService.post<{ added: TA[]; skipped: number }>(`/courses/${courseId}/tas/bulk`, { user_ids: userIds }));
   }
 
   /**
    * Remove TA from course
    */
   async removeTA(courseId: string, userId: number) {
-    return apiService.delete(API_ENDPOINTS.COURSES.REMOVE_TA(courseId, userId));
+    return this.afterWrite(apiService.delete(API_ENDPOINTS.COURSES.REMOVE_TA(courseId, userId)));
   }
 
   async updateTAPermissions(courseId: string, userId: number, permissions: CourseMemberPermissions) {
-    return apiService.patch(`/courses/${courseId}/tas/${userId}/permissions`, { permissions });
+    return this.afterWrite(apiService.patch(`/courses/${courseId}/tas/${userId}/permissions`, { permissions }));
   }
 
   // Instructor Management in Courses
@@ -933,25 +961,25 @@ class CourseService {
    * Add instructor to course
    */
   async addCourseInstructor(courseId: string, userId: number) {
-    return apiService.post<Instructor>(`/courses/${courseId}/instructors`, { user_id: userId });
+    return this.afterWrite(apiService.post<Instructor>(`/courses/${courseId}/instructors`, { user_id: userId }));
   }
 
   /**
    * Add multiple instructors to course
    */
   async bulkAddCourseInstructors(courseId: string, userIds: number[]) {
-    return apiService.post<{ added: Instructor[]; skipped: number }>(`/courses/${courseId}/instructors/bulk`, { user_ids: userIds });
+    return this.afterWrite(apiService.post<{ added: Instructor[]; skipped: number }>(`/courses/${courseId}/instructors/bulk`, { user_ids: userIds }));
   }
 
   /**
    * Remove instructor from course
    */
   async removeCourseInstructor(courseId: string, userId: number) {
-    return apiService.delete(`/courses/${courseId}/instructors/${userId}`);
+    return this.afterWrite(apiService.delete(`/courses/${courseId}/instructors/${userId}`));
   }
 
   async updateCourseInstructorPermissions(courseId: string, userId: number, permissions: CourseMemberPermissions) {
-    return apiService.patch(`/courses/${courseId}/instructors/${userId}/permissions`, { permissions });
+    return this.afterWrite(apiService.patch(`/courses/${courseId}/instructors/${userId}/permissions`, { permissions }));
   }
 
   // Student Management in Sections
@@ -966,7 +994,7 @@ class CourseService {
    * Add student to section
    */
   async addStudentToSection(courseId: string, sectionId: number, studentId: number) {
-    return apiService.post(API_ENDPOINTS.COURSES.ADD_STUDENT(courseId, sectionId), { student_id: studentId });
+    return this.afterWrite(apiService.post(API_ENDPOINTS.COURSES.ADD_STUDENT(courseId, sectionId), { student_id: studentId }));
   }
 
   /**
@@ -987,17 +1015,17 @@ class CourseService {
     studentIds: number[],
     resolveConflicts: "skip" | "move" = "skip"
   ) {
-    return apiService.post<BulkAddStudentsResponse>(`/courses/${courseId}/sections/${sectionId}/students/bulk`, {
+    return this.afterWrite(apiService.post<BulkAddStudentsResponse>(`/courses/${courseId}/sections/${sectionId}/students/bulk`, {
       student_ids: studentIds,
       resolve_conflicts: resolveConflicts,
-    });
+    }));
   }
 
   /**
    * Remove student from section
    */
   async removeStudentFromSection(courseId: string, sectionId: number, studentId: number) {
-    return apiService.delete(API_ENDPOINTS.COURSES.REMOVE_STUDENT(courseId, sectionId, studentId));
+    return this.afterWrite(apiService.delete(API_ENDPOINTS.COURSES.REMOVE_STUDENT(courseId, sectionId, studentId)));
   }
 
   /**
