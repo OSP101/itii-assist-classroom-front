@@ -19,6 +19,7 @@
 "use client";
 
 import { API_BASE_URL } from "@/config/api";
+import { captureCsrfToken, getCsrfToken } from "@/lib/csrf";
 import { ApiError } from "./api-error";
 import type { ApiResponse } from "./types";
 import {
@@ -34,14 +35,6 @@ const RETRY_BASE_DELAY_MS = 800;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
-}
-
-function readCookie(name: string): string | null {
-  if (typeof document === "undefined") {
-    return null;
-  }
-  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : null;
 }
 
 type ClientRequestOptions = {
@@ -109,7 +102,7 @@ async function clientRequest<T>(
     ...extraHeaders,
   };
   if (method !== "GET") {
-    const csrfToken = readCookie("csrf_token");
+    const csrfToken = getCsrfToken();
     if (csrfToken) {
       headers["X-CSRF-Token"] = csrfToken;
     }
@@ -130,6 +123,8 @@ async function clientRequest<T>(
         body: body !== undefined ? JSON.stringify(body) : undefined,
         signal,
       });
+
+      captureCsrfToken(response);
 
       let json: ApiResponse<T>;
       try {

@@ -4,6 +4,7 @@
 
 import { API_BASE_URL } from '@/config/api';
 import { buildPreferredLoginHref } from '@/lib/auth-resume';
+import { captureCsrfToken, clearCsrfToken, getCsrfToken } from '@/lib/csrf';
 
 interface ApiResponse<T = unknown> {
   success: boolean;
@@ -62,19 +63,8 @@ class ApiService {
     }
   }
 
-  // Reads a single cookie's value. Used only for the two cookies the backend
-  // deliberately leaves readable by JS (csrf_token, non-sensitive by
-  // design) — the access/refresh token cookies are httpOnly and never
-  // reach this code.
-  private readCookie(name: string): string | null {
-    if (typeof document === 'undefined') {
-      return null;
-    }
-    const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-    return match ? decodeURIComponent(match[1]) : null;
-  }
-
   private clearTokens(): void {
+    clearCsrfToken();
     if (typeof window !== 'undefined') {
       // Legacy keys from before the httpOnly-cookie migration — cleared
       // defensively so a stale tab/service worker can't resurrect them.
@@ -115,7 +105,7 @@ class ApiService {
       // check as every other mutating request (see request()) — it isn't
       // routed through request() itself because it must bypass the normal
       // 401-triggers-refresh loop, so the CSRF header is added here too.
-      const csrfToken = this.readCookie('csrf_token');
+      const csrfToken = getCsrfToken();
       if (csrfToken) {
         headers['X-CSRF-Token'] = csrfToken;
       }
@@ -124,6 +114,10 @@ class ApiService {
         method: 'POST',
         headers,
       });
+
+      // A successful refresh rotates the CSRF token along with the auth
+      // cookies, so pick the new one up before anything else uses it.
+      captureCsrfToken(response);
 
       if (response.ok) {
         const data = await response.json();
@@ -199,7 +193,7 @@ class ApiService {
     // can tell a same-site request (both match) from a forged cross-site one.
     const isMutating = method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS';
     if (isMutating) {
-      const csrfToken = this.readCookie('csrf_token');
+      const csrfToken = getCsrfToken();
       if (csrfToken) {
         headers['X-CSRF-Token'] = csrfToken;
       }
@@ -211,6 +205,9 @@ class ApiService {
         headers,
         body: body ? (isFormData ? body as FormData : JSON.stringify(body)) : undefined,
       });
+
+      // Any response may carry a rotated token (login, refresh, /auth/me).
+      captureCsrfToken(response);
 
       // Handle 429 Too Many Requests - retry with exponential backoff
       if (response.status === 429 && allowRateLimitRetry && retryCount < this.MAX_RETRIES) {
@@ -374,13 +371,18 @@ class ApiService {
     this.clearTokens();
   }
 
-  // The csrf_token cookie is set/cleared by the backend in lockstep with
-  // the httpOnly auth cookies (see utils.SetAuthCookies/ClearAuthCookies on
-  // the Go side), so its presence is a reliable, synchronous "do we have an
-  // active web session" signal without needing to read the httpOnly cookies
+  // The CSRF token is issued/cleared by the backend in lockstep with the
+  // httpOnly auth cookies (see utils.SetAuthCookies/ClearAuthCookies on the
+  // Go side), so having one is a reliable, synchronous "do we have an active
+  // web session" signal without needing to read the httpOnly cookies
   // themselves (which client JS can never do).
+  //
+  // Reads through lib/csrf rather than the cookie directly: behind the KKU
+  // reverse proxy the cookie is force-flagged HttpOnly and invisible to JS,
+  // and a bare cookie read there reports "logged out" for a perfectly good
+  // session — which used to bounce every login straight back to /login.
   isAuthenticated(): boolean {
-    return this.readCookie('csrf_token') !== null;
+    return getCsrfToken() !== null;
   }
 }
 

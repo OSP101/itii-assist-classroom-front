@@ -12,6 +12,7 @@ import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket
 import { authService } from "@/services/auth.service";
 
 import { API_BASE_URL } from "@/config/api";
+import { csrfHeader } from "@/lib/csrf";
 import { useNotification } from "@/contexts/NotificationContext";
 import { IosInstallHint } from "@/components/system/IosInstallHint";
 import { getQueueBookingStatusLabel, getQueueBookingTypeLabel } from "@/services/queue.service";
@@ -247,12 +248,7 @@ function BookQueueContent() {
             headers["Content-Type"] = "application/json";
         }
 
-        if (typeof document !== "undefined") {
-            const csrfMatch = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
-            if (csrfMatch) {
-                headers["X-CSRF-Token"] = decodeURIComponent(csrfMatch[1]);
-            }
-        }
+        Object.assign(headers, csrfHeader());
 
         return headers;
     }, []);

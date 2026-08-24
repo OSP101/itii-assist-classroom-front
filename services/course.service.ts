@@ -4,6 +4,7 @@
 
 import { apiService } from './api.service';
 import { API_ENDPOINTS } from '@/config/api';
+import { csrfHeader } from '@/lib/csrf';
 
 // Types
 export interface CourseMemberPermissions {
@@ -764,14 +765,13 @@ class CourseService {
   async bulkDelete(courseIds: string[]) {
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
     const url = `${API_BASE}${API_ENDPOINTS.COURSES.BULK_DELETE}`;
-    const csrfMatch = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
     const res = await fetch(url, {
       method: 'DELETE',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         'X-Client-Type': 'web',
-        ...(csrfMatch ? { 'X-CSRF-Token': decodeURIComponent(csrfMatch[1]) } : {}),
+        ...csrfHeader(),
       },
       body: JSON.stringify({ course_ids: courseIds }),
     });

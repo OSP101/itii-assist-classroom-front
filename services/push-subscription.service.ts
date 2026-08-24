@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "@/config/api";
+import { csrfHeader, getCsrfToken } from "@/lib/csrf";
 import { registerPwaServiceWorker } from "@/lib/pwa-notifications";
 import { addToast } from "@heroui/toast";
 
@@ -138,12 +139,11 @@ export async function registerPushSubscription(
         // cookies by default. If the caller happens to be logged in, echo
         // the CSRF token so the backend's blanket CSRF check (which fires
         // on cookie presence, not per-route auth) doesn't reject it.
-        const csrfMatch = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
         const response = await fetch(`${API_BASE_URL}/push/register`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                ...(csrfMatch ? { "X-CSRF-Token": decodeURIComponent(csrfMatch[1]) } : {}),
+                ...csrfHeader(),
             },
             body: JSON.stringify({
                 endpoint: subscription.endpoint,
@@ -190,8 +190,8 @@ export async function sendTestPush(): Promise<SendTestPushResult> {
         return failure;
     }
 
-    const csrfMatch = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
-    if (!csrfMatch) {
+    const csrfToken = getCsrfToken();
+    if (!csrfToken) {
         return { ...failure, message: "unauthenticated" };
     }
 
@@ -202,7 +202,7 @@ export async function sendTestPush(): Promise<SendTestPushResult> {
             headers: {
                 "Content-Type": "application/json",
                 "X-Client-Type": "web",
-                "X-CSRF-Token": decodeURIComponent(csrfMatch[1]),
+                "X-CSRF-Token": csrfToken,
                 Referer: window.location.href,
             },
         });
@@ -239,12 +239,11 @@ export async function unregisterPushSubscription(): Promise<boolean> {
 
         // Same reasoning as registerPushSubscription above: public endpoint,
         // but echo the CSRF token in case a same-origin cookie is attached.
-        const csrfMatch = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
         const response = await fetch(`${API_BASE_URL}/push/unsubscribe`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                ...(csrfMatch ? { "X-CSRF-Token": decodeURIComponent(csrfMatch[1]) } : {}),
+                ...csrfHeader(),
             },
             body: JSON.stringify({ endpoint }),
         });
