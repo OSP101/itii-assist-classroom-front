@@ -439,15 +439,20 @@ class AuthService {
 
   /**
    * Get user info from API (for OAuth callback)
+   *
+   * Deliberately does NOT gate on apiService.isAuthenticated() first. That
+   * check only proves a *readable* csrf_token exists, but this is precisely
+   * the call that first establishes one — right after a fresh OAuth login,
+   * the backend's redirect is a full browser navigation (not a fetch), so
+   * there's no response for client JS to have read a token from yet, and on
+   * cocolabs.computing.kku.ac.th the cookie itself is never JS-readable
+   * (the university reverse proxy force-flags every cookie HttpOnly). Gating
+   * here made getMe() report "not authenticated" for a session that had, in
+   * fact, just been created — a plain GET needs no CSRF header regardless
+   * (see csrfOK on the Go side), and the httpOnly access_token cookie is
+   * attached by the browser automatically either way, so just ask the server.
    */
   async getMe(): Promise<{ success: boolean; user?: User; error?: string }> {
-    if (!apiService.isAuthenticated()) {
-      return {
-        success: false,
-        error: 'Not authenticated',
-      };
-    }
-
     const response = await apiService.get<{ user: User }>(API_ENDPOINTS.ME);
 
     if (response.success && response.data) {
