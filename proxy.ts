@@ -53,19 +53,27 @@ function buildCsp(nonce: string) {
         // server-side error stacks in the browser. Neither React nor Next.js
         // use eval in production.
         `script-src 'self' 'nonce-${nonce}' blob: https://accounts.google.com${isDev ? " 'unsafe-eval'" : ''}`,
-        // Stylesheets (<style> elements and <link rel=stylesheet>) are
-        // nonce-only in production: SSR emits no inline <style> of its own, and
-        // the one third-party injection that exists (react-aria's pressable
-        // stylesheet) is pre-rendered with this nonce in app/layout.tsx.
-        `style-src 'self'${isDev ? " 'unsafe-inline'" : ` 'nonce-${nonce}'`}`,
-        // …but style="…" ATTRIBUTES still need 'unsafe-inline'. React applies
-        // `style={{…}}` props by setting the attribute, so locking this down
-        // would silently drop layout from any component using inline styles
-        // (verified: the docs table-of-contents indentation, HeroUI internals).
-        // This is a much weaker vector than script-src or stylesheet injection
-        // — an attacker who can already inject markup gains only CSS on the
-        // node they injected, with no script execution.
-        "style-src-attr 'unsafe-inline'",
+        // Styles use 'unsafe-inline' rather than a nonce, on purpose.
+        //
+        // React applies `style={{…}}` props by setting the style ATTRIBUTE,
+        // and HeroUI/react-aria lean on that for positioning and animation.
+        // Attribute styles are governed by `style-src-attr` — a CSP Level 3
+        // directive Safari/WebKit does not implement. Safari skips the
+        // directive it doesn't know and falls back to `style-src`, where a
+        // nonce cannot match an attribute, so every inline style gets
+        // blocked: HeroUI controls render unpositioned and stop responding to
+        // taps, and some text loses its font. That is iOS-only and invisible
+        // on desktop Chrome, which does support style-src-attr.
+        //
+        // A nonce plus 'unsafe-inline' would not help — browsers that
+        // understand nonces ignore 'unsafe-inline' — so style-src carries
+        // 'unsafe-inline' alone and style-src-attr is gone (redundant once
+        // style-src allows inline).
+        //
+        // Cost of the relaxation, unchanged from the note this replaces: an
+        // attacker who can already inject markup gains CSS on the node they
+        // injected, with no script execution. script-src keeps its nonce.
+        "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: blob: https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org",
         "font-src 'self' data:",
         "connect-src 'self' https://api.open-meteo.com https://nominatim.openstreetmap.org https://accounts.google.com",

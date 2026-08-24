@@ -38,19 +38,15 @@ html[data-font-size="lg"] {
 }
 
 /* @react-aria/interactions (via HeroUI) needs this rule on every pressable
-   element to get tap-vs-scroll disambiguation right on touch devices; without
-   it, usePress's touch handling misfires and HeroUI controls stop responding
-   to taps entirely (mouse/click is unaffected, so this never shows up on
-   desktop). It's duplicated here from app/layout.tsx's inline nonce'd <style
-   id="react-aria-pressable-style"> — that copy depends on the page's CSP
-   nonce actually being honored, which held on cocolab.osp101.com but not on
-   cocolabs.computing.kku.ac.th (the university's reverse proxy injects a
-   second, non-nonce'd Content-Security-Policy header there; some browsers
-   appear to lose the nonce match against the combined policy). This copy
-   ships in the regular built stylesheet — governed by style-src 'self', no
-   nonce involved — so it survives regardless of what that proxy does to the
-   response headers. Keep both copies if @react-aria/interactions changes its
-   selector or rule. */
+   element to get tap-vs-scroll disambiguation right on touch devices.
+   Duplicated from the inline nonce'd <style id="react-aria-pressable-style">
+   in app/layout.tsx: that copy only applies if the page's CSP nonce is
+   honored, and the KKU reverse proxy appends a second, non-nonce'd
+   Content-Security-Policy header on cocolabs.computing.kku.ac.th. Shipping
+   the rule in the built stylesheet too (governed by style-src 'self', no
+   nonce involved) makes it independent of that. Defense in depth — not the
+   cause of the mobile "HeroUI unclickable" outage, which was static assets
+   failing to load. Keep both copies in sync with the upstream package. */
 [data-react-aria-pressable] {
 	touch-action: pan-x pan-y pinch-zoom;
 }
