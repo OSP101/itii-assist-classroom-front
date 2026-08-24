@@ -880,6 +880,17 @@ class CourseService {
   }
 
   /**
+   * Upload a course cover image, returning its public URL. Used at
+   * create/update time in place of sending the cover editor's base64 preview
+   * directly — that used to get stored as-is on the course record.
+   */
+  async uploadCoverImage(file: File) {
+    const formData = new FormData();
+    formData.append("image", file);
+    return apiService.post<{ url: string }>(API_ENDPOINTS.COURSES.COVER_IMAGE_UPLOAD, formData);
+  }
+
+  /**
    * Get my courses (for instructor/TA)
    */
   async getMyCourses(params?: CourseListParams) {

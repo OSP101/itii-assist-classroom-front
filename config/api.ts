@@ -55,6 +55,7 @@ export const API_ENDPOINTS = {
     TOGGLE_STATUS: (id: string) => `/courses/${id}/toggle-status`,
     INSTRUCTORS: '/courses/instructors',
     TAS_LIST: '/courses/tas-list',
+    COVER_IMAGE_UPLOAD: '/courses/cover-image',
     // Sections
     ADD_SECTION: (courseId: string) => `/courses/${courseId}/sections`,
     REMOVE_SECTION: (courseId: string, sectionId: number) => `/courses/${courseId}/sections/${sectionId}`,

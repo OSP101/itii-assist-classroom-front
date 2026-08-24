@@ -5,6 +5,7 @@ import { addToast } from "@heroui/toast";
 import type ExcelJS from "exceljs";
 import { courseService } from "@/services/course.service";
 import type { Course } from "@/services/course.service";
+import { uploadCourseCoverIfNeeded } from "@/components/course";
 import scoreService from "@/services/score.service";
 import attendanceService from "@/services/attendance.service";
 import bonusScoreService from "@/services/bonusScore.service";
@@ -112,8 +113,14 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
             pendingCoverAutosaveRef.current = null;
 
             try {
+                // Resolves once per newly-selected file: after the upload,
+                // formData.image below is switched to the returned URL, so a
+                // later autosave (e.g. Apply after only repositioning/zooming
+                // the same image) sees an already-uploaded URL and skips
+                // re-uploading it.
+                const resolvedImage = await uploadCourseCoverIfNeeded(payload.image);
                 const response = await courseService.updateCourse(course.id, {
-                    image: payload.image,
+                    image: resolvedImage,
                     cover_position_x: payload.cover_position_x,
                     cover_position_y: payload.cover_position_y,
                     cover_zoom: payload.cover_zoom,
@@ -121,6 +128,7 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
 
                 if (response.success && response.data) {
                     onCourseUpdate(response.data);
+                    setFormData(prev => ({ ...prev, image: resolvedImage ?? "" }));
                 } else {
                     const errorMessage = typeof response.error === "object" && response.error !== null
                         ? (response.error as { message?: string }).message
@@ -169,13 +177,17 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
 
         setIsSaving(true);
         try {
+            // Usually already a URL by now (queueCoverAutosave resolves it as
+            // soon as the cover editor changes) — this only does real work if
+            // Save is clicked before that autosave has finished.
+            const resolvedImage = await uploadCourseCoverIfNeeded(formData.image);
             const response = await courseService.updateCourse(course.id, {
                 code: formData.code,
                 name: formData.name,
                 year: formData.year,
                 semester: formData.semester,
                 description: formData.description || undefined,
-                image: formData.image,
+                image: resolvedImage,
                 cover_position_x: formData.cover_position_x,
                 cover_position_y: formData.cover_position_y,
                 cover_zoom: formData.cover_zoom,

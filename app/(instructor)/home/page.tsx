@@ -26,7 +26,7 @@ import {
 import { useI18n } from "@/hooks/useI18n";
 import Link from "next/link";
 import { IoSchool, IoBook, IoPeople, IoPersonAdd } from "react-icons/io5";
-import { CourseCoverEditor, CourseCoverImage, buildCourseCoverRecommendedSizeText } from "@/components/course";
+import { CourseCoverEditor, CourseCoverImage, buildCourseCoverRecommendedSizeText, uploadCourseCoverIfNeeded } from "@/components/course";
 
 interface Stats {
     total: number;
@@ -367,13 +367,14 @@ export default function HomePage() {
 
         setIsSubmitting(true);
         try {
+            const coverImageUrl = await uploadCourseCoverIfNeeded(formData.image);
             const response = await courseService.createCourse({
                 code: formData.code,
                 name: formData.name,
                 year: formData.year,
                 semester: formData.semester,
                 description: formData.description || undefined,
-                image: formData.image || undefined,
+                image: coverImageUrl,
                 cover_position_x: formData.cover_position_x,
                 cover_position_y: formData.cover_position_y,
                 cover_zoom: formData.cover_zoom,
@@ -461,13 +462,14 @@ export default function HomePage() {
 
         setIsSubmitting(true);
         try {
+            const coverImageUrl = await uploadCourseCoverIfNeeded(formData.image);
             const response = await courseService.updateCourse(selectedCourse.id, {
                 code: formData.code,
                 name: formData.name,
                 year: formData.year,
                 semester: formData.semester,
                 description: formData.description || undefined,
-                image: formData.image,
+                image: coverImageUrl,
                 cover_position_x: formData.cover_position_x,
                 cover_position_y: formData.cover_position_y,
                 cover_zoom: formData.cover_zoom,

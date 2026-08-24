@@ -91,6 +91,7 @@ export default function InstructorLayout({
     const [notifTab, setNotifTab] = useState<"all" | "unread">("all");
     const [notifShowAll, setNotifShowAll] = useState(false);
     const [isBreadcrumbUserMenuOpen, setIsBreadcrumbUserMenuOpen] = useState(false);
+    const [hasOpenedCourseMenu, setHasOpenedCourseMenu] = useState(false);
     const [isAvatarUserMenuOpen, setIsAvatarUserMenuOpen] = useState(false);
     const [breadcrumbThemeMenuItem, breadcrumbLanguageMenuItem, breadcrumbFontSizeMenuItem] = useSettingsMenuItems({
         menuFlyoutSide: "right",
@@ -296,17 +297,23 @@ export default function InstructorLayout({
     // holds a null key rather than firing.
     const isAdmin = user?.role === "admin";
 
+    // The active-courses list only backs the "switch course" dropdown below,
+    // so it's fetched lazily the first time that dropdown opens rather than
+    // on every instructor page load — visiting a classroom page never opens
+    // it, and the breadcrumb already has its own lightweight fallback
+    // (needsCourseFetch / useCourse below) for the single course being
+    // viewed, so nothing here blocks on this list loading.
     const {
         data: adminCourses,
         isLoading: isAdminCoursesLoading,
         mutate: refreshAdminCourses,
-    } = useAllCourses(ACTIVE_COURSE_LIST_PARAMS, Boolean(user) && isAdmin);
+    } = useAllCourses(ACTIVE_COURSE_LIST_PARAMS, Boolean(user) && isAdmin && hasOpenedCourseMenu);
 
     const {
         data: myCourses,
         isLoading: isMyCoursesLoading,
         mutate: refreshMyCourses,
-    } = useMyCourses(ACTIVE_COURSE_LIST_PARAMS, Boolean(user) && !isAdmin);
+    } = useMyCourses(ACTIVE_COURSE_LIST_PARAMS, Boolean(user) && !isAdmin && hasOpenedCourseMenu);
 
     const activeCourses: Course[] = useMemo(
         () => (isAdmin ? adminCourses?.courses : myCourses?.courses) ?? [],
@@ -429,7 +436,13 @@ export default function InstructorLayout({
                             <Icon icon="solar:alt-arrow-right-linear" className="shrink-0 text-lg text-default-400" />
 
                             {/* เมนูบาร์ ผู้ใช้ */}
-                            <Dropdown isOpen={isBreadcrumbUserMenuOpen} onOpenChange={setIsBreadcrumbUserMenuOpen}>
+                            <Dropdown
+                                isOpen={isBreadcrumbUserMenuOpen}
+                                onOpenChange={(isOpen) => {
+                                    setIsBreadcrumbUserMenuOpen(isOpen);
+                                    if (isOpen) setHasOpenedCourseMenu(true);
+                                }}
+                            >
                                 <DropdownTrigger>
                                     <button type="button" className="relative z-10 flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-default-700 transition-colors hover:bg-content2">
                                         <Skeleton isLoaded={Boolean(user)} className="rounded-md">

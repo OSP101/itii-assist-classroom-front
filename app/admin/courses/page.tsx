@@ -34,7 +34,7 @@ import TablePaginationFooter, { DEFAULT_TABLE_ROWS_PER_PAGE } from "@/components
 import { MetricCardSkeleton, TableRowsSkeleton } from "@/components/ui/resource-loading";
 import { useI18n } from "@/hooks/useI18n";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
-import { CourseCoverEditor, CourseCoverImage, buildCourseCoverRecommendedSizeText } from "@/components/course";
+import { CourseCoverEditor, CourseCoverImage, buildCourseCoverRecommendedSizeText, uploadCourseCoverIfNeeded } from "@/components/course";
 
 // Column definitions
 const columnDefs = [
@@ -428,7 +428,8 @@ export default function CoursesPage() {
 
         setIsSubmitting(true);
         try {
-            const response = await courseService.createCourse(formData);
+            const coverImageUrl = await uploadCourseCoverIfNeeded(formData.image);
+            const response = await courseService.createCourse({ ...formData, image: coverImageUrl });
             if (response.success) {
                 addToast({
                     title: t("success"),
@@ -485,6 +486,7 @@ export default function CoursesPage() {
 
         setIsSubmitting(true);
         try {
+            const coverImageUrl = await uploadCourseCoverIfNeeded(formData.image);
             const updateData: UpdateCourseDto = {
                 code: formData.code,
                 name: formData.name,
@@ -492,7 +494,7 @@ export default function CoursesPage() {
                 semester: formData.semester,
                 instructor_ids: formData.instructor_ids,
                 description: formData.description,
-                image: formData.image,
+                image: coverImageUrl,
                 cover_position_x: formData.cover_position_x,
                 cover_position_y: formData.cover_position_y,
                 cover_zoom: formData.cover_zoom,
