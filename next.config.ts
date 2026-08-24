@@ -30,6 +30,15 @@ const nextConfig: NextConfig = {
   experimental: {
     useCache: true,
   },
+  images: {
+    // Uploaded avatars/course-covers are served same-origin under
+    // /api/uploads/*, so no remotePatterns needed — only external domains
+    // require those. AVIF/WebP + responsive srcset via the Next.js image
+    // optimizer (requires the `sharp` package, installed as a dependency,
+    // to actually run under `next start`/standalone self-hosting).
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 60 * 60 * 24 * 30,
+  },
   compiler: {
     removeConsole: true,
   },

@@ -122,6 +122,7 @@ export default function StudentCoursesPage() {
                   positionY={course.cover_position_y}
                   zoom={course.cover_zoom}
                   className="h-12 w-12 shrink-0 rounded-2xl ring-2 ring-slate-100"
+                  sizes="48px"
                 />
               ) : (
                 <CourseInitialBadge code={course.code} />

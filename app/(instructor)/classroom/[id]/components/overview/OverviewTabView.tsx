@@ -202,6 +202,8 @@ function OverviewTabViewComponent({
               zoom={course.cover_zoom}
               className="h-36 w-full border-b border-slate-200/80 dark:border-zinc-800"
               overlay={<div className="absolute inset-0 bg-linear-to-r from-slate-950/70 via-slate-900/35 to-transparent" />}
+              sizes="100vw"
+              priority
             />
           ) : null}
           <div className="absolute -top-20 -right-10 w-64 h-64 rounded-full bg-linear-to-br from-blue-100/25 to-indigo-100/15 dark:from-blue-900/10 dark:to-transparent blur-3xl pointer-events-none" />

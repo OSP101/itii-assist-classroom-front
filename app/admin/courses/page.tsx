@@ -696,6 +696,7 @@ export default function CoursesPage() {
                                 positionY={course.cover_position_y}
                                 zoom={course.cover_zoom}
                                 className="h-10 w-10 rounded-lg border border-default-200"
+                                sizes="40px"
                             />
                         ) : (
                             <div className="p-2 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg">
