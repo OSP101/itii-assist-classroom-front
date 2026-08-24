@@ -122,8 +122,15 @@ export default function HomePage() {
         fetchUser();
     }, []);
 
-    // Fetch instructors for multi-select (exclude current user)
+    // Fetch instructors for multi-select (exclude current user). This backs
+    // the create/edit course modal only, so it's fetched lazily the first
+    // time either modal opens instead of on every home page load — the
+    // endpoint returns every instructor account in the system with no
+    // pagination, and most page visits never open either modal.
+    const instructorsFetchedRef = useRef(false);
     const fetchInstructors = useCallback(async () => {
+        if (instructorsFetchedRef.current) return;
+        instructorsFetchedRef.current = true;
         try {
             const response = await courseService.getInstructors();
             if (response.success && response.data) {
@@ -131,12 +138,9 @@ export default function HomePage() {
             }
         } catch (error) {
             console.error("Failed to fetch instructors:", error);
+            instructorsFetchedRef.current = false;
         }
     }, []);
-
-    useEffect(() => {
-        fetchInstructors();
-    }, [fetchInstructors]);
 
     // Fetch courses with server-side pagination and filters
     const fetchCourses = useCallback(async (background = false) => {
@@ -322,6 +326,7 @@ export default function HomePage() {
     };
 
     const handleCreateCourse = () => {
+        fetchInstructors();
         setIsCreateModalOpen(true);
     };
 
@@ -418,6 +423,7 @@ export default function HomePage() {
 
     // Open Edit Modal
     const openEditModal = (course: Course) => {
+        fetchInstructors();
         setSelectedCourse(course);
         // Get instructor IDs from the instructors array (exclude self)
         const instructorIdList = course.instructors?.map(i => i.id).filter(id => id !== currentUserId) || [];
