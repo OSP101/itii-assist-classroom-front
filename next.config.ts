@@ -61,32 +61,24 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
-    const rewrites: { source: string; destination: string }[] = [];
-
     // Dev-only: mirrors the production nginx proxy (frontend + /api same
     // origin) so window.location.origin-based URLs (OAuth buttons, cookie
     // scoping) behave the same when running `next dev` against a bare
     // `go run ./cmd/api` on :8000 with no reverse proxy in front of it.
-    if (process.env.NODE_ENV === "development") {
-      const localApiOrigin = process.env.LOCAL_DEV_API_ORIGIN || "http://localhost:8000";
-      rewrites.push({ source: "/api/:path*", destination: `${localApiOrigin}/api/:path*` });
+    // No-op in production builds (output: "standalone" doesn't run this).
+    //
+    // NOTE: rewrites() is evaluated once at `next build` time and frozen into
+    // routes-manifest.json — it can't read a container's runtime env vars.
+    // That's fine here since it's dev-only, but it's why the /api/uploads/*
+    // route next/image's optimizer needs is a real Route Handler
+    // (app/api/uploads/[...slug]/route.ts) instead of a rewrite: that code
+    // runs per-request, so it picks up each blue/green container's own
+    // INTERNAL_API_BASE_URL correctly.
+    if (process.env.NODE_ENV !== "development") {
+      return [];
     }
-
-    // next/image's built-in optimizer resolves a relative `src` by dispatching
-    // an in-process request through Next's own router — it never goes through
-    // nginx, so it can't reach /api/uploads/*, which nginx normally routes
-    // straight to the separate Go backend container. Without this, every
-    // avatar/course-cover thumbnail 400s from /_next/image. Reuses the same
-    // INTERNAL_API_BASE_URL the blue/green containers already get for
-    // reaching their own backend (see deploy-vm-https/docker-compose.yml).
-    const backendOrigin = (
-      process.env.INTERNAL_API_BASE_URL ||
-      process.env.NEXT_PUBLIC_API_URL ||
-      "http://localhost:8000/api"
-    ).replace(/\/api\/?$/i, "");
-    rewrites.push({ source: "/api/uploads/:path*", destination: `${backendOrigin}/api/uploads/:path*` });
-
-    return rewrites;
+    const localApiOrigin = process.env.LOCAL_DEV_API_ORIGIN || "http://localhost:8000";
+    return [{ source: "/api/:path*", destination: `${localApiOrigin}/api/:path*` }];
   },
   async redirects() {
     return [
