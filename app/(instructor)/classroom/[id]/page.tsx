@@ -311,6 +311,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
     const [activeTab, setActiveTab] = useState<ClassroomTabKey>(activeTabFromPath ?? initialTab);
     const [isTabTransitioning, setIsTabTransitioning] = useState(false);
     const hasInitializedRef = useRef(false);
+    const sectionStudentsPrefetchedRef = useRef(false);
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false);
     const [expandedMenuGroups, setExpandedMenuGroups] = useState<ClassroomMenuGroupKey[]>([]);
@@ -581,6 +582,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
     // Initialize data on mount
     useEffect(() => {
         hasInitializedRef.current = false;
+        sectionStudentsPrefetchedRef.current = false;
         let isCancelled = false;
 
         const runInitialization = async () => {
@@ -618,12 +620,20 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
         return () => window.removeEventListener("popstate", handlePopState);
     }, [initialTab]);
 
-    // Fetch section students when course sections load
+    // Fetch section students once course sections are known. Skipped while the
+    // active tab is "overview" — it never reads sectionStudents (only the
+    // team-assignment flows on other tabs do) — so visiting overview no
+    // longer pays for one /students request per section on every page load.
+    // Fetches at most once; other tabs still get it prefetched eagerly so
+    // opening a team modal there doesn't show a loading flicker.
     useEffect(() => {
+        if (activeTab === "overview") return;
+        if (sectionStudentsPrefetchedRef.current) return;
         if (course?.sections && course.sections.length > 0) {
+            sectionStudentsPrefetchedRef.current = true;
             fetchAllSectionStudents();
         }
-    }, [course?.sections, fetchAllSectionStudents]);
+    }, [activeTab, course?.sections, fetchAllSectionStudents]);
 
     // Refresh data when changing tabs
     useEffect(() => {
