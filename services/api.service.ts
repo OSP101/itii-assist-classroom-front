@@ -5,6 +5,7 @@
 import { API_BASE_URL } from '@/config/api';
 import { buildPreferredLoginHref } from '@/lib/auth-resume';
 import { captureCsrfToken, clearCsrfToken, getCsrfToken } from '@/lib/csrf';
+import { clearSessionExpiresAt, markSessionExpiredByTimeout, setSessionExpiresAt } from '@/lib/session-timeout';
 
 interface ApiResponse<T = unknown> {
   success: boolean;
@@ -65,6 +66,7 @@ class ApiService {
 
   private clearTokens(): void {
     clearCsrfToken();
+    clearSessionExpiresAt();
     if (typeof window !== 'undefined') {
       // Legacy keys from before the httpOnly-cookie migration — cleared
       // defensively so a stale tab/service worker can't resurrect them.
@@ -119,12 +121,21 @@ class ApiService {
       // cookies, so pick the new one up before anything else uses it.
       captureCsrfToken(response);
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.data) {
-          this.onTokenRefreshed('ok');
-          return true;
-        }
+      const data = await response.json().catch(() => null);
+
+      if (response.ok && data?.success && data.data) {
+        setSessionExpiresAt(data.data.sessionExpiresAt ?? null);
+        this.onTokenRefreshed('ok');
+        return true;
+      }
+
+      // The backend rejects refresh with this code once the absolute 12h
+      // session cap (independent of the refresh token's own 7-day TTL) has
+      // elapsed — see MaxSessionDuration in auth_handler.go. Flag it so the
+      // login page the caller is about to be redirected to can explain why,
+      // instead of silently looking like an ordinary logout.
+      if (data?.code === 'SESSION_EXPIRED') {
+        markSessionExpiredByTimeout();
       }
     } catch (error) {
       console.error('Token refresh failed:', error);

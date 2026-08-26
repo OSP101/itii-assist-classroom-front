@@ -14,6 +14,7 @@ import type { AssignmentType } from "../types";
 import type { AssignmentTabType, ViewMode } from "./config";
 import { getTypeInfo, getTypeBgColor, getTypeTextColor } from "./config";
 import { AssignmentModal } from "./AssignmentModal";
+import { AssignmentCourseSummaryPanel } from "./AssignmentCourseSummaryPanel";
 import assignmentService from "@/services/assignment.service";
 import type { UngradedSummary } from "@/services/score.service";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
@@ -534,6 +535,9 @@ function AssignmentsTabViewComponent({
                     <p className="text-sm text-default-500">{isEnglish ? "Create and manage grading items for this course." : "สร้างและจัดการหัวข้องานสำหรับการลงคะแนน"}</p>
                 </div>
             </div>
+
+            {/* Course-wide status report (TOR 3.9.4) */}
+            <AssignmentCourseSummaryPanel courseId={courseId} />
 
             {/* Loading State */}
             {isLoading ? (

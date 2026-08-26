@@ -44,6 +44,12 @@ export interface SystemLog {
     full_name: string;
     role: string;
   };
+  actor_student?: {
+    id: number;
+    student_no: string;
+    full_name: string;
+    email: string;
+  };
 }
 
 export interface LogsFilter {
@@ -335,6 +341,145 @@ export const getStatusCodeColor = (statusCode: number): 'success' | 'warning' | 
   if (statusCode >= 300 && statusCode < 400) return 'warning';
   if (statusCode >= 400) return 'danger';
   return 'default';
+};
+
+/**
+ * Human-readable actor for a log row, regardless of whether the actor is a
+ * staff user (users table) or a student (students table — students carry no
+ * actor_user_id, so their identity lives only in `detail.student_id` and is
+ * resolved server-side into `actor_student`).
+ */
+export interface LogActorLabel {
+  name: string;
+  sub: string;
+  isStudent: boolean;
+}
+
+export const getLogActor = (log: SystemLog): LogActorLabel | null => {
+  if (log.actor_user) {
+    return { name: log.actor_user.full_name, sub: log.actor_user.email, isStudent: false };
+  }
+  if (log.actor_student) {
+    return {
+      name: log.actor_student.full_name,
+      sub: `${log.actor_student.student_no} · ${log.actor_student.email}`,
+      isStudent: true,
+    };
+  }
+  return null;
+};
+
+/**
+ * Thai labels for the most common action codes so the log table reads as
+ * plain language instead of raw action strings. Anything not in this map
+ * falls back to a prettified version of the code (underscores/dots -> spaces,
+ * each word capitalized) via getActionLabel, so nothing ever renders as a
+ * bare machine-readable string.
+ */
+const ACTION_LABELS: Record<string, string> = {
+  // Auth
+  "auth.login.success": "เข้าสู่ระบบสำเร็จ",
+  "auth.login.failed": "เข้าสู่ระบบล้มเหลว",
+  "auth.logout": "ออกจากระบบ",
+  "auth.2fa.verified": "ยืนยันตัวตนสองขั้นตอนสำเร็จ",
+  "auth.token.revoked": "เพิกถอน token",
+  "auth.oauth.linked": "เชื่อมโยงบัญชี OAuth",
+  change_password: "เปลี่ยนรหัสผ่าน",
+  force_change_password: "บังคับเปลี่ยนรหัสผ่าน",
+  update_profile: "แก้ไขโปรไฟล์",
+  disable_2fa: "ปิดการยืนยันตัวตนสองขั้นตอน",
+  link_oauth_account: "เชื่อมโยงบัญชี OAuth",
+  unlink_oauth_account: "ยกเลิกการเชื่อมโยงบัญชี OAuth",
+  admin_unlink_oauth_account: "แอดมินยกเลิกการเชื่อมโยงบัญชี OAuth ของผู้ใช้",
+
+  // Score
+  "score.updated": "บันทึก/แก้ไขคะแนน",
+  "score.edit_request.created": "ยื่นคำร้องขอแก้ไขคะแนน",
+  "score.edit_request.approved": "อนุมัติคำร้องขอแก้ไขคะแนน",
+  "score.edit_request.rejected": "ปฏิเสธคำร้องขอแก้ไขคะแนน",
+  "exam_score.updated": "บันทึก/แก้ไขคะแนนสอบ",
+  submit_exam_score: "บันทึกคะแนนสอบ",
+  bulk_submit_exam_scores: "บันทึกคะแนนสอบ (หลายรายการ)",
+  delete_exam_score: "ลบคะแนนสอบ",
+  update_exam_setting: "แก้ไขการตั้งค่าการสอบ",
+  "bonus_score.given": "ให้คะแนนพิเศษ",
+  "bonus_score.deleted": "ลบคะแนนพิเศษ",
+
+  // Course
+  "course.ta.added": "เพิ่มผู้ช่วยสอนในรายวิชา",
+  "course.ta.removed": "ลบผู้ช่วยสอนออกจากรายวิชา",
+  "course.student.removed": "ลบนักศึกษาออกจากรายวิชา",
+  "course.section.created": "สร้าง Section รายวิชา",
+  create_course: "สร้างรายวิชา",
+  update_course: "แก้ไขรายวิชา",
+  delete_course: "ลบรายวิชา",
+  update_ta_permissions: "แก้ไขสิทธิ์ผู้ช่วยสอน",
+  update_instructor_permissions: "แก้ไขสิทธิ์ผู้สอน",
+
+  // User
+  create_user: "สร้างบัญชีผู้ใช้งาน",
+  update_user: "แก้ไขบัญชีผู้ใช้งาน",
+  delete_user: "ลบบัญชีผู้ใช้งาน",
+  deactivate_user: "ปิดใช้งานบัญชีผู้ใช้งาน",
+  activate_user: "เปิดใช้งานบัญชีผู้ใช้งาน",
+  deactivate_user_conflict: "ปิดใช้งานบัญชี (ตรวจพบความขัดแย้ง)",
+  broadcast_notification: "ส่งประกาศแจ้งเตือนผู้ใช้งาน",
+
+  // Student
+  create_student: "เพิ่มข้อมูลนักศึกษา",
+  update_student: "แก้ไขข้อมูลนักศึกษา",
+  delete_student: "ลบข้อมูลนักศึกษา",
+  import_students: "นำเข้าข้อมูลนักศึกษา",
+  activate_student: "เปิดใช้งานบัญชีนักศึกษา",
+  deactivate_student: "ปิดใช้งานบัญชีนักศึกษา",
+
+  // Assignment / classwork
+  create_assignment: "สร้างงานในชั้นเรียน",
+  update_assignment: "แก้ไขงานในชั้นเรียน",
+  delete_assignment: "ลบงานในชั้นเรียน",
+
+  // Attendance
+  "attendance.session.created": "สร้างรอบเช็คชื่อ",
+  "attendance.record.updated": "แก้ไขสถานะการเช็คชื่อ",
+  activate_attendance_session: "เปิดรอบเช็คชื่อ",
+  close_attendance_session: "ปิดรอบเช็คชื่อ",
+
+  // Queue
+  "queue.session.opened": "เปิดรอบจองคิว",
+  "queue.session.closed": "ปิดรอบจองคิว",
+  "queue.booking.created": "จองคิว",
+  "queue.booking.called": "เรียกคิว",
+  cancel_queue_booking: "ยกเลิกการจองคิว",
+  update_queue_cutoff: "แก้ไขเวลาปิดรับจองคิว",
+
+  // Classroom
+  create_classroom: "เพิ่มห้องเรียน",
+  update_classroom: "แก้ไขห้องเรียน",
+  update_classroom_layout: "แก้ไขผังที่นั่งห้องเรียน",
+  toggle_classroom_status: "เปิด/ปิดใช้งานห้องเรียน",
+  restore_classroom: "กู้คืนห้องเรียน",
+  delete_classroom: "ลบห้องเรียน",
+
+  // Admin
+  "admin.user.deactivated": "แอดมินปิดใช้งานบัญชีผู้ใช้",
+  "admin.user.activated": "แอดมินเปิดใช้งานบัญชีผู้ใช้",
+  "admin.config.changed": "แก้ไขการตั้งค่าระบบ",
+};
+
+const prettifyActionCode = (action: string): string => {
+  return action
+    .replace(/[._]+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+/**
+ * Human-readable label for a log action code. Known codes get a curated Thai
+ * label; anything else is prettified so it never renders as a raw code like
+ * "auth.login.success" or "create_user".
+ */
+export const getActionLabel = (action: string): string => {
+  return ACTION_LABELS[action] || prettifyActionCode(action);
 };
 
 /**

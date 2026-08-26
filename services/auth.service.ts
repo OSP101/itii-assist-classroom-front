@@ -2,6 +2,7 @@ import apiService from './api.service';
 import { API_ENDPOINTS } from '@/config/api';
 import { clearAppearanceHintCookieString } from '@/lib/appearance-hint';
 import type { AppRole } from '@/lib/auth-routing';
+import { setSessionExpiresAt } from '@/lib/session-timeout';
 
 export const AUTH_USER_UPDATED_EVENT = 'auth:user-updated';
 export const PENDING_PREFERENCES_STORAGE_KEY = 'auth:pending-preferences';
@@ -63,6 +64,9 @@ export interface LoginResponse {
   accessToken: string;
   refreshToken: string;
   mustChangePassword?: boolean;
+  // Absolute session deadline (12h from this login), independent of the
+  // refresh token's own sliding TTL — see MaxSessionDuration on the backend.
+  sessionExpiresAt?: string;
   // 2FA fields (when 2FA is required)
   requiresTwoFactor?: boolean;
   twoFactorMethod?: 'totp' | 'email';
@@ -236,7 +240,7 @@ class AuthService {
         };
       }
 
-      const { user, mustChangePassword } = response.data;
+      const { user, mustChangePassword, sessionExpiresAt } = response.data;
       // Auth cookies (httpOnly access/refresh + readable csrf_token) are
       // already set by the Set-Cookie headers on this same response —
       // nothing to store client-side.
@@ -244,6 +248,7 @@ class AuthService {
       // Store user info
       this.clearPendingPreferences(user.id);
       this.persistUser(user);
+      setSessionExpiresAt(sessionExpiresAt ?? null);
       authChannel?.postMessage({ type: 'login' });
 
       return { success: true, user, mustChangePassword };
@@ -306,11 +311,12 @@ class AuthService {
       return null;
     }
 
-    const response = await apiService.get<{ user: User }>(API_ENDPOINTS.ME);
+    const response = await apiService.get<{ user: User; sessionExpiresAt?: string }>(API_ENDPOINTS.ME);
 
     if (response.success && response.data) {
       const user = this.withStoredPreferences(response.data.user);
       this.persistUser(user);
+      setSessionExpiresAt(response.data.sessionExpiresAt ?? null);
       return user;
     }
 
@@ -453,11 +459,12 @@ class AuthService {
    * attached by the browser automatically either way, so just ask the server.
    */
   async getMe(): Promise<{ success: boolean; user?: User; error?: string }> {
-    const response = await apiService.get<{ user: User }>(API_ENDPOINTS.ME);
+    const response = await apiService.get<{ user: User; sessionExpiresAt?: string }>(API_ENDPOINTS.ME);
 
     if (response.success && response.data) {
       const user = response.data.user;
       this.persistUser(user);
+      setSessionExpiresAt(response.data.sessionExpiresAt ?? null);
       return { success: true, user };
     }
 

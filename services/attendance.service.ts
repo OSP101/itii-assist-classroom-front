@@ -239,7 +239,59 @@ export interface SectionChangePreview {
     has_checked_in_students: boolean;
 }
 
+export interface AttendanceCourseSessionRow {
+    id: number;
+    title: string;
+    date: string;
+    stats: {
+        present: number;
+        late: number;
+        leave: number;
+        absent: number;
+        checked_in: number;
+        total: number;
+    };
+    attendance_rate: number;
+}
+
+export interface AttendanceCourseStudentRow {
+    student_id: number;
+    student_no: string;
+    full_name: string;
+    present: number;
+    late: number;
+    leave: number;
+    absent: number;
+    total_marks: number;
+    attendance_rate: number;
+}
+
+export interface AttendanceCourseSummary {
+    course_id: string;
+    total_sessions: number;
+    total_students: number;
+    overall: {
+        present: number;
+        late: number;
+        leave: number;
+        absent: number;
+        checked_in: number;
+        total: number;
+    };
+    overall_attendance_rate: number;
+    by_session: AttendanceCourseSessionRow[];
+    by_student: AttendanceCourseStudentRow[];
+}
+
 const attendanceService = {
+    /**
+     * Get course-wide attendance report (all sessions aggregated)
+     */
+    async getCourseSummary(courseId: string): Promise<AttendanceCourseSummary | null> {
+        const response = await api.get<AttendanceCourseSummary>(`/attendance/course-summary?course_id=${courseId}`);
+        return response.data || null;
+    },
+
     /**
      * Get all attendance sessions for a course
      */

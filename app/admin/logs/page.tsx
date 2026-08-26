@@ -42,6 +42,8 @@ import {
   getStatusCodeColor,
   isPrivilegedSystemLog,
   formatBytes,
+  getActionLabel,
+  getLogActor,
   type SystemLog,
   type LogType,
   type SeverityLevel,
@@ -539,8 +541,14 @@ export default function SystemLogsPage() {
         );
       case "action":
         return (
-          <div className="max-w-52">
-            <span className="text-sm font-mono truncate block" title={log.action}>
+          <div className="max-w-60">
+            <span className="text-sm font-medium truncate block" title={log.action}>
+              {getActionLabel(log.action)}
+              {log.auth_method && (
+                <span className="ml-1 text-xs font-normal text-default-400">({log.auth_method})</span>
+              )}
+            </span>
+            <span className="text-xs font-mono text-default-400 truncate block" title={log.action}>
               {log.action}
             </span>
             {isPrivilegedSystemLog(log) && (
@@ -579,16 +587,25 @@ export default function SystemLogsPage() {
             {log.ip_address || "-"}
           </span>
         );
-      case "actor_user":
-        if (!log.actor_user) {
+      case "actor_user": {
+        const actor = getLogActor(log);
+        if (!actor) {
           return <span className="text-default-400">-</span>;
         }
         return (
           <div className="flex flex-col">
-            <span className="text-sm">{log.actor_user.full_name}</span>
-            <span className="text-xs text-default-400">{log.actor_user.email}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm">{actor.name}</span>
+              {actor.isStudent && (
+                <Chip size="sm" variant="flat" color="secondary" className="h-4 px-1 text-[10px]">
+                  นักศึกษา
+                </Chip>
+              )}
+            </div>
+            <span className="text-xs text-default-400">{actor.sub}</span>
           </div>
         );
+      }
       case "response_time_ms":
         if (!log.response_time_ms) return <span className="text-default-400">-</span>;
         return (
@@ -643,9 +660,14 @@ export default function SystemLogsPage() {
         );
       case "action":
         return (
-          <span className="text-sm font-mono truncate block max-w-40" title={log.action}>
-            {log.action}
-          </span>
+          <div className="max-w-48">
+            <span className="text-sm font-medium truncate block" title={log.action}>
+              {getActionLabel(log.action)}
+            </span>
+            <span className="text-xs font-mono text-default-400 truncate block" title={log.action}>
+              {log.action}
+            </span>
+          </div>
         );
       case "target_type":
         return (
@@ -1268,7 +1290,10 @@ export default function SystemLogsPage() {
                       <CardBody className="pt-0 flex flex-col gap-3">
                         <div>
                           <p className="text-xs text-default-500 mb-1">Action</p>
-                          <p className="font-mono text-sm bg-default-100 px-3 py-2 rounded-lg">{selectedLog.action}</p>
+                          <p className="text-sm bg-default-100 px-3 py-2 rounded-lg">
+                            <span className="font-medium">{getActionLabel(selectedLog.action)}</span>
+                            <span className="ml-2 font-mono text-xs text-default-400">{selectedLog.action}</span>
+                          </p>
                         </div>
                         {selectedLog.url && (
                           <div>
@@ -1325,7 +1350,7 @@ export default function SystemLogsPage() {
                             </div>
                             <div className="bg-warning-50 px-3 py-2 rounded-lg border border-warning/20">
                               <p className="text-xs text-default-500">Actor</p>
-                              <p className="text-sm">{selectedLog.actor_user?.full_name || "-"}</p>
+                              <p className="text-sm">{getLogActor(selectedLog)?.name || "-"}</p>
                             </div>
                             <div className="bg-warning-50 px-3 py-2 rounded-lg border border-warning/20">
                               <p className="text-xs text-default-500">Action</p>
@@ -1442,6 +1467,39 @@ export default function SystemLogsPage() {
                               <p className="text-xs text-default-500">บทบาท</p>
                               <p className="text-sm">{selectedLog.actor_user.role || "-"}</p>
 
+                            </div>
+                            <div className="bg-default-100 px-3 py-2 rounded-lg">
+                              <p className="text-xs text-default-500">Auth Method</p>
+                              <p className="text-sm">{selectedLog.auth_method || "-"}</p>
+                            </div>
+                          </div>
+                        </CardBody>
+                      </Card>
+                    )}
+
+                    {/* Student actor info (students carry no actor_user_id) */}
+                    {!selectedLog.actor_user && selectedLog.actor_student && (
+                      <Card className="bg-default-50">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center gap-2">
+                            <Icon icon="solar:user-linear" className="text-default-500" />
+                            <h4 className="font-semibold text-sm">ข้อมูลนักศึกษาผู้ทำรายการ</h4>
+                            <Chip size="sm" variant="flat" color="secondary">นักศึกษา</Chip>
+                          </div>
+                        </CardHeader>
+                        <CardBody className="pt-0">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div className="bg-default-100 px-3 py-2 rounded-lg">
+                              <p className="text-xs text-default-500">ชื่อ</p>
+                              <p className="text-sm font-medium">{selectedLog.actor_student.full_name}</p>
+                            </div>
+                            <div className="bg-default-100 px-3 py-2 rounded-lg">
+                              <p className="text-xs text-default-500">รหัสนักศึกษา</p>
+                              <p className="text-sm">{selectedLog.actor_student.student_no}</p>
+                            </div>
+                            <div className="bg-default-100 px-3 py-2 rounded-lg">
+                              <p className="text-xs text-default-500">อีเมล</p>
+                              <p className="text-sm">{selectedLog.actor_student.email}</p>
                             </div>
                             <div className="bg-default-100 px-3 py-2 rounded-lg">
                               <p className="text-xs text-default-500">Auth Method</p>

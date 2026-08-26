@@ -113,6 +113,28 @@ interface ApiResponse<T> {
     error?: string;
 }
 
+export interface AssignmentCourseStatusRow {
+    assignment_id: number;
+    name: string;
+    assignment_type: string;
+    max_score: number;
+    due_date?: string | null;
+    is_draft: boolean;
+    target_count: number;
+    graded_count: number;
+    ungraded_count: number;
+    graded_rate: number;
+}
+
+export interface AssignmentCourseSummary {
+    course_id: string;
+    total_assignments: number;
+    overall_graded: number;
+    overall_target: number;
+    overall_graded_rate: number;
+    assignments: AssignmentCourseStatusRow[];
+}
+
 const assignmentService = {
     /**
      * Get all assignments for a course
@@ -120,6 +142,14 @@ const assignmentService = {
     async getAssignments(courseId: string): Promise<Assignment[]> {
         const response = await api.get<Assignment[]>(`/assignments?course_id=${courseId}`);
         return response.data || [];
+    },
+
+    /**
+     * Get course-wide assignment status report (submission/grading rate per assignment)
+     */
+    async getCourseSummary(courseId: string): Promise<AssignmentCourseSummary | null> {
+        const response = await api.get<AssignmentCourseSummary>(`/assignments/course-summary?course_id=${courseId}`);
+        return response.data || null;
     },
 
     /**

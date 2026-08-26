@@ -8,6 +8,7 @@ import { SocketProvider } from "@/contexts/SocketContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { GlobalSettingsProvider, type InitialGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { authService } from "@/services/auth.service";
+import { SessionTimeoutWatcher } from "@/components/auth/SessionTimeoutWatcher";
 import { IconifyPreload } from "@/components/IconifyPreload";
 import { PwaBootstrap } from "@/components/system/PwaBootstrap";
 import { SWRProvider, clearAllCaches } from "@/lib/swr";
@@ -69,6 +70,7 @@ export function Providers({ children, initialSettings }: ProvidersProps) {
           <SocketProvider>
             <NotificationProvider>
               <AuthSyncProvider>
+                <SessionTimeoutWatcher />
                 {children}
               </AuthSyncProvider>
             </NotificationProvider>
