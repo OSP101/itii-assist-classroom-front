@@ -20,12 +20,20 @@ const nextConfig: NextConfig = {
   assetPrefix,
   // React emits font/script preload hints as a "Link" response header, capped
   // at 6000 bytes by default. The university reverse proxy in front of
-  // cocolabs.computing.kku.ac.th buffers response headers at nginx's 4k
-  // default and answers 502 once the whole block exceeds it — which is what
-  // took the site down on 2026-08-24 (Link alone had grown to 3807 bytes).
-  // Our non-Link headers run ~1515 bytes, so cap Link at 1000 to stay well
-  // under 4k while keeping preloads for the highest-priority fonts.
-  reactMaxHeadersLength: 1000,
+  // cocolabs.computing.kku.ac.th buffers the whole response header block and
+  // answers 502 once it overflows, which took the site down on 2026-08-24.
+  //
+  // That buffer was 4k then and the cap here was 1000 to survive it. KKU
+  // raised it afterwards; measured 2026-08-24 by growing a redirect Location
+  // until it broke: 8793 bytes still passes, 9393 returns the 502
+  // maintenance page. Re-measure the same way before raising this again.
+  //
+  // Budget against the 8793 that is known-good: non-Link headers are ~1829
+  // bytes, and the uncapped Link header was 3807 (all 18 fonts). 4000 fits
+  // every one of them and still leaves ~3KB of headroom — where the default
+  // 6000 would leave under 1KB, and overflowing means a site-wide outage,
+  // not a degraded page.
+  reactMaxHeadersLength: 4000,
   output: "standalone",
   experimental: {
     useCache: true,
