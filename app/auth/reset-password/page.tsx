@@ -36,13 +36,15 @@ function ResetPasswordContent() {
         minLength: newPassword.length >= 8,
         hasLowercase: /[a-z]/.test(newPassword),
         hasUppercase: /[A-Z]/.test(newPassword),
+        hasDigit: /[0-9]/.test(newPassword),
         hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword),
     }), [newPassword]);
-    
-    const isPasswordValid = useMemo(() => 
-        passwordValidation.minLength && 
-        passwordValidation.hasLowercase && 
-        passwordValidation.hasUppercase && 
+
+    const isPasswordValid = useMemo(() =>
+        passwordValidation.minLength &&
+        passwordValidation.hasLowercase &&
+        passwordValidation.hasUppercase &&
+        passwordValidation.hasDigit &&
         passwordValidation.hasSpecialChar
     , [passwordValidation]);
 
@@ -333,9 +335,18 @@ function ResetPasswordContent() {
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Icon 
-                                            icon={passwordValidation.hasSpecialChar ? "solar:check-circle-bold" : "solar:close-circle-linear"} 
-                                            className={passwordValidation.hasSpecialChar ? "text-green-500" : "text-slate-400"} 
+                                        <Icon
+                                            icon={passwordValidation.hasDigit ? "solar:check-circle-bold" : "solar:close-circle-linear"}
+                                            className={passwordValidation.hasDigit ? "text-green-500" : "text-slate-400"}
+                                        />
+                                        <span className={`text-xs ${passwordValidation.hasDigit ? "text-green-600" : "text-slate-500"}`}>
+                                            {t("containsDigit")}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Icon
+                                            icon={passwordValidation.hasSpecialChar ? "solar:check-circle-bold" : "solar:close-circle-linear"}
+                                            className={passwordValidation.hasSpecialChar ? "text-green-500" : "text-slate-400"}
                                         />
                                         <span className={`text-xs ${passwordValidation.hasSpecialChar ? "text-green-600" : "text-slate-500"}`}>
                                             {t("containsSpecialCharacter")}

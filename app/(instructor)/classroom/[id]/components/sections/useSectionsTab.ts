@@ -1668,59 +1668,57 @@ export function useSectionsTab(courseId: string): UseSectionsTabReturn {
                 });
             }
         } else if (teamModalState.formationMethod === "random") {
-            // Random team creation
-            const unassigned = getUnassignedStudents(
-                teamModalState.type,
-                teamModalState.type === "weekly" ? selectedWeek : undefined
-            );
-            
-            const shuffled = [...unassigned].sort(() => Math.random() - 0.5);
-            const teams: TeamMember[][] = [];
-            for (let i = 0; i < shuffled.length; i += teamModalState.size) {
-                teams.push(shuffled.slice(i, i + teamModalState.size));
-            }
-            
+            // Random team creation — the shuffle and the eligible-student pool are
+            // both computed and verified server-side (see RandomizeTeamsHandler),
+            // the client only sends the desired group size.
             const baseName = isEnglish ? "Team" : "กลุ่มที่";
-            let successCount = 0;
-            
-            for (let i = 0; i < teams.length; i++) {
-                const teamName = `${baseName} ${i + 1}`;
-                const memberIds = teams[i].map(m => m.id);
-                
-                try {
-                    const response = await courseService.createTeam(courseId, {
-                        name: teamName,
-                        group_type: teamModalState.type === "permanent" ? "permanent" : "temporary",
-                        member_ids: memberIds,
-                        week_number: teamModalState.type === "weekly" ? selectedWeek : undefined,
-                    });
-                    if (response.success) successCount++;
-                } catch (error) {
-                    console.error(`Error creating team ${teamName}:`, error);
-                }
-            }
-            
-            await fetchTeams(true);
-            
-            if (successCount > 0) {
-                addToast({
-                    title: isEnglish ? "Success" : "สำเร็จ",
-                    description: isEnglish
-                        ? `Created ${successCount} random teams successfully.`
-                        : `สร้างกลุ่มแบบสุ่ม ${successCount} กลุ่มเรียบร้อย`,
-                    color: "success",
-                    timeout: 3000,
-                shouldShowTimeoutProgress: true,
+
+            try {
+                const response = await courseService.randomizeTeams(courseId, {
+                    group_type: teamModalState.type === "permanent" ? "permanent" : "temporary",
+                    week_number: teamModalState.type === "weekly" ? selectedWeek : undefined,
+                    group_size: teamModalState.size,
+                    name_prefix: baseName,
                 });
-                emitUpdate("group", "bulk");
+
+                if (response.success) {
+                    await fetchTeams(true);
+                    const createdCount = response.data?.createdCount ?? 0;
+                    addToast({
+                        title: isEnglish ? "Success" : "สำเร็จ",
+                        description: isEnglish
+                            ? `Created ${createdCount} random teams successfully.`
+                            : `สร้างกลุ่มแบบสุ่ม ${createdCount} กลุ่มเรียบร้อย`,
+                        color: "success",
+                        timeout: 3000,
+                        shouldShowTimeoutProgress: true,
+                    });
+                    emitUpdate("group", "bulk");
+                    teamModal.reset();
+                } else {
+                    addToast({
+                        title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                        description: getLocalizedErrorMessage(isEnglish, "Unable to randomize teams.", "ไม่สามารถสุ่มกลุ่มได้", response.message),
+                        color: "danger",
+                        timeout: 3000,
+                        shouldShowTimeoutProgress: true,
+                    });
+                }
+            } catch (error: unknown) {
+                const err = error as { message?: string };
+                addToast({
+                    title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
+                    description: getLocalizedErrorMessage(isEnglish, "Unable to randomize teams.", "ไม่สามารถสุ่มกลุ่มได้", err.message),
+                    color: "danger",
+                    timeout: 3000,
+                    shouldShowTimeoutProgress: true,
+                });
             }
-            
-            teamModal.reset();
         }
         
         setIsSubmitting(false);
-    }, [courseId, teamModalState, selectedWeek, getUnassignedStudents, fetchTeams, teamModal, emitUpdate, isEnglish]);
-    
+    }, [courseId, teamModalState, selectedWeek, fetchTeams, teamModal, emitUpdate, isEnglish]);
+
     const handleSaveEditedTeam = useCallback(async () => {
         if (!editTeamModalState.team) return;
         

@@ -43,6 +43,7 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
         minLength: "At least 8 characters",
         lowercase: "Contains a lowercase letter (a-z)",
         uppercase: "Contains an uppercase letter (A-Z)",
+        digit: "Contains a digit (0-9)",
         specialChar: "Contains a special character (!@#$%^&* etc.)",
         cancel: "Cancel",
         submit: "Change password",
@@ -71,6 +72,7 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
         minLength: "อย่างน้อย 8 ตัวอักษร",
         lowercase: "มีตัวอักษรพิมพ์เล็ก (a-z)",
         uppercase: "มีตัวอักษรพิมพ์ใหญ่ (A-Z)",
+        digit: "มีตัวเลข (0-9)",
         specialChar: "มีอักขระพิเศษ (!@#$%^&* ฯลฯ)",
         cancel: "ยกเลิก",
         submit: "เปลี่ยนรหัสผ่าน",
@@ -90,13 +92,15 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
     minLength: newPassword.length >= 8,
     hasLowercase: /[a-z]/.test(newPassword),
     hasUppercase: /[A-Z]/.test(newPassword),
+    hasDigit: /[0-9]/.test(newPassword),
     hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword),
   }), [newPassword]);
-  
-  const isPasswordValid = useMemo(() => 
-    passwordValidation.minLength && 
-    passwordValidation.hasLowercase && 
-    passwordValidation.hasUppercase && 
+
+  const isPasswordValid = useMemo(() =>
+    passwordValidation.minLength &&
+    passwordValidation.hasLowercase &&
+    passwordValidation.hasUppercase &&
+    passwordValidation.hasDigit &&
     passwordValidation.hasSpecialChar
   , [passwordValidation]);
 
@@ -286,9 +290,18 @@ function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <Icon 
-                  icon={passwordValidation.hasSpecialChar ? "solar:check-circle-bold" : "solar:close-circle-linear"} 
-                  className={passwordValidation.hasSpecialChar ? "text-success" : "text-default-400"} 
+                <Icon
+                  icon={passwordValidation.hasDigit ? "solar:check-circle-bold" : "solar:close-circle-linear"}
+                  className={passwordValidation.hasDigit ? "text-success" : "text-default-400"}
+                />
+                <span className={`text-xs ${passwordValidation.hasDigit ? "text-success" : "text-default-500"}`}>
+                  {copy.digit}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Icon
+                  icon={passwordValidation.hasSpecialChar ? "solar:check-circle-bold" : "solar:close-circle-linear"}
+                  className={passwordValidation.hasSpecialChar ? "text-success" : "text-default-400"}
                 />
                 <span className={`text-xs ${passwordValidation.hasSpecialChar ? "text-success" : "text-default-500"}`}>
                   {copy.specialChar}

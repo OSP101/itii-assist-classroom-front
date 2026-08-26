@@ -591,6 +591,13 @@ export interface BulkCreateTeamsResponse {
     memberCount: number;
   }>;
 }
+
+export interface RandomizeTeamsDto {
+  group_type: 'permanent' | 'temporary';
+  week_number?: number;
+  group_size: number;
+  name_prefix?: string;
+}
 export interface BulkAddStudentsResponse {
   added: number;
   moved: number;
@@ -1089,6 +1096,15 @@ class CourseService {
    */
   async bulkCreateTeams(courseId: string, data: BulkCreateTeamDto) {
     return apiService.post<BulkCreateTeamsResponse>(`/courses/${courseId}/teams/bulk`, data);
+  }
+
+  /**
+   * Randomly assign unassigned students into teams.
+   * The shuffle and the eligible-student pool are both computed server-side,
+   * so the client cannot influence the outcome — only the desired group size.
+   */
+  async randomizeTeams(courseId: string, data: RandomizeTeamsDto) {
+    return apiService.post<BulkCreateTeamsResponse>(`/courses/${courseId}/teams/randomize`, data);
   }
 
   /**

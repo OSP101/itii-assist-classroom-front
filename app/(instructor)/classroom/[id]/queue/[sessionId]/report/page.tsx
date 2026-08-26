@@ -789,7 +789,6 @@ export default function QueueSessionReportPage() {
         { key: "waiting", label: t("รอคิว", "Waiting"), value: waitingCount, icon: "solar:clock-circle-bold", color: "warning" },
         { key: "progress", label: t("กำลังตรวจ", "In progress"), value: inProgressCount, icon: "solar:hourglass-bold", color: "primary" },
         { key: "done", label: t("เสร็จสิ้น", "Completed"), value: completedCount, icon: "solar:check-circle-bold", color: "success" },
-        { key: "issue", label: t("ต้องดูแล", "Needs attention"), value: skippedCount + timeoutCount + rejectCount, icon: "solar:danger-triangle-bold", color: "danger" },
     ];
 
     const deskLegendItems = [
@@ -1031,13 +1030,18 @@ export default function QueueSessionReportPage() {
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent>
-                            <div className="grid max-w-xs gap-2 p-1 text-xs sm:grid-cols-2">
+                            <div className="max-w-xs p-1">
+                                <p className="mb-2 text-xs font-medium text-default-500">
+                                    {t("สีพื้นโต๊ะ = สถานะงานปัจจุบัน", "Desk fill color = current task status")}
+                                </p>
+                                <div className="grid gap-2 text-xs sm:grid-cols-2">
                                 {deskLegendItems.map((item) => (
                                     <div key={item.key} className="inline-flex items-center gap-2">
                                         <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.swatch }} />
                                         <span className="text-default-600">{item.label}</span>
                                     </div>
                                 ))}
+                                </div>
                             </div>
                         </PopoverContent>
                     </Popover>
@@ -1086,7 +1090,7 @@ export default function QueueSessionReportPage() {
                 </Card>
             ) : null}
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-3">
                 {kpiCards.map((card) => {
                     const colorClasses = kpiColorClasses[card.color];
                     return (
@@ -1296,6 +1300,12 @@ export default function QueueSessionReportPage() {
                                                     currentDeskNumbers={selectedWorker.currentDeskNumbers}
                                                     trailStops={selectedWorkerTrailStops}
                                                 />
+                                                <p className="text-xs font-medium text-default-500">
+                                                    {t(
+                                                        "กรอบโต๊ะ = ผู้ตรวจคนนี้ (สีพื้นโต๊ะยังคงหมายถึงสถานะงานเหมือนเดิม)",
+                                                        "Desk border = this worker (fill color still means task status, same as above)",
+                                                    )}
+                                                </p>
                                                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                                                     {workerDeskLegend.map((item) => (
                                                         <div key={item.key} className="rounded-lg border border-default-200 bg-content1 px-2 py-2 text-xs">
@@ -1451,6 +1461,7 @@ export default function QueueSessionReportPage() {
                                         <TableColumn>{t("ผู้จอง", "Student")}</TableColumn>
                                         <TableColumn>{t("สถานะ", "Status")}</TableColumn>
                                         <TableColumn>{t("ผู้ตรวจ", "Worker")}</TableColumn>
+                                        <TableColumn>{t("รอในคิว", "Queue wait")}</TableColumn>
                                         <TableColumn>{t("เวลาตอบรับงาน", "Offer response")}</TableColumn>
                                         <TableColumn>{t("เวลาตรวจ", "Service time")}</TableColumn>
                                         <TableColumn>{t("ปัญหา", "Issues")}</TableColumn>
@@ -1474,27 +1485,26 @@ export default function QueueSessionReportPage() {
                                                     </Chip>
                                                 </TableCell>
                                                 <TableCell>{booking.assigned_worker?.full_name || "-"}</TableCell>
+                                                <TableCell>{formatDuration(booking.queue_wait_seconds, isEnglish)}</TableCell>
                                                 <TableCell>{formatDuration(booking.offer_response_seconds, isEnglish)}</TableCell>
                                                 <TableCell>{formatDuration(booking.service_duration_seconds, isEnglish)}</TableCell>
                                                 <TableCell>
-                                                    <div className="flex flex-wrap gap-1">
-                                                        <Chip
-                                                            size="sm"
-                                                            variant="flat"
-                                                            color={(booking.timeout_count || 0) > 0 ? "danger" : "default"}
-                                                            title={t("หมดเวลา", "Timed out")}
-                                                        >
-                                                            TO {booking.timeout_count || 0}
-                                                        </Chip>
-                                                        <Chip
-                                                            size="sm"
-                                                            variant="flat"
-                                                            color={(booking.reject_count || 0) > 0 ? "warning" : "default"}
-                                                            title={t("ปฏิเสธ", "Declined")}
-                                                        >
-                                                            RJ {booking.reject_count || 0}
-                                                        </Chip>
-                                                    </div>
+                                                    {(booking.timeout_count || 0) > 0 || (booking.reject_count || 0) > 0 ? (
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {(booking.timeout_count || 0) > 0 ? (
+                                                                <Chip size="sm" variant="flat" color="danger" title={t("หมดเวลา", "Timed out")}>
+                                                                    TO {booking.timeout_count}
+                                                                </Chip>
+                                                            ) : null}
+                                                            {(booking.reject_count || 0) > 0 ? (
+                                                                <Chip size="sm" variant="flat" color="warning" title={t("ปฏิเสธ", "Declined")}>
+                                                                    RJ {booking.reject_count}
+                                                                </Chip>
+                                                            ) : null}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-default-400">-</span>
+                                                    )}
                                                 </TableCell>
                                             </TableRow>
                                         ))}
