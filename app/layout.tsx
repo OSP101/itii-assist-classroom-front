@@ -9,6 +9,7 @@ import {
   APPEARANCE_HINT_COOKIE_NAME,
   parseAppearanceHintCookieValue,
 } from "@/lib/appearance-hint";
+import { buildChunkRecoveryScript } from "@/lib/chunk-recovery";
 
 // The <style> element this script injects is a real DOM <style>, which CSP's
 // style-src governs regardless of how it got there — so it needs the same
@@ -229,6 +230,13 @@ export default async function RootLayout({
           id="settings-bootstrap"
           nonce={nonce || undefined}
           dangerouslySetInnerHTML={{ __html: buildSettingsBootstrapScript(nonce) }}
+        />
+        {/* Surfaces a reload prompt when a lazy chunk fails to load, instead
+            of leaving a page that renders fine but ignores every click. */}
+        <script
+          id="chunk-recovery"
+          nonce={nonce || undefined}
+          dangerouslySetInnerHTML={{ __html: buildChunkRecoveryScript() }}
         />
       </head>
       <body
