@@ -25,17 +25,25 @@ export const buildChunkRecoveryScript = () => `
     return /Failed to load chunk|ChunkLoadError|Loading chunk \S+ failed|error loading dynamically imported module/i.test(text);
   };
 
+  // Fallback domain fronted by the Cloudflare tunnel (itii-cloudflared),
+  // kept running specifically as a backup access path alongside the KKU
+  // reverse proxy. Its traffic never touches the KKU per-URL rate limiter,
+  // so it stays usable exactly when the primary domain is the one failing.
+  var BACKUP_ORIGIN = 'https://cocolab.osp101.com';
+
   var strings = function () {
     var th = (document.documentElement.lang || 'th').toLowerCase().indexOf('en') !== 0;
     return th
       ? {
           message: 'หน้านี้โหลดไม่ครบ ปุ่มบางอย่างอาจกดไม่ได้',
           reload: 'โหลดใหม่',
+          backup: 'ใช้ลิงก์สำรอง',
           dismiss: 'ปิด'
         }
       : {
           message: 'This page did not load completely — some controls may not work.',
           reload: 'Reload',
+          backup: 'Use backup link',
           dismiss: 'Dismiss'
         };
   };
@@ -97,6 +105,28 @@ export const buildChunkRecoveryScript = () => `
     reload.style.minHeight = '40px';
     reload.onclick = function () { window.location.reload(); };
     bar.appendChild(reload);
+
+    // Only offer the backup domain when we're not already on it — reload
+    // already covers that case, and the button would otherwise link to itself.
+    if (window.location.origin.toLowerCase() !== BACKUP_ORIGIN) {
+      var backup = document.createElement('a');
+      backup.href = BACKUP_ORIGIN + window.location.pathname + window.location.search;
+      backup.textContent = t.backup;
+      backup.style.cursor = 'pointer';
+      backup.style.textDecoration = 'none';
+      backup.style.display = 'inline-flex';
+      backup.style.alignItems = 'center';
+      backup.style.border = '1px solid #475569';
+      backup.style.borderRadius = '8px';
+      backup.style.padding = '8px 14px';
+      backup.style.background = 'transparent';
+      backup.style.color = '#93c5fd';
+      backup.style.font = 'inherit';
+      backup.style.fontWeight = '600';
+      backup.style.minHeight = '40px';
+      backup.style.boxSizing = 'border-box';
+      bar.appendChild(backup);
+    }
 
     var dismiss = document.createElement('button');
     dismiss.type = 'button';
