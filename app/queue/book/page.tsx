@@ -478,7 +478,7 @@ function BookQueueContent() {
     // Auto-refresh validation while waiting for attendance status propagation.
     useEffect(() => {
         const hasAttendancePendingError = validationErrors.some(
-            (error) => error.field === "student_id" && error.message.includes("เช็คชื่อ")
+            (error) => error.field === "student_id" && error.message.includes("เช็กชื่อ")
         );
 
         if (
@@ -1013,119 +1013,120 @@ function BookQueueContent() {
     }
 
     // Render PIN step
+    const TaskHeader = ({ title, onBack }: { title: string; onBack?: () => void }) => (
+        <div className="cg-task-top">
+            {onBack ? (
+                <button type="button" className="cg-task-btn" onClick={onBack} aria-label="ย้อนกลับ">
+                    <Icon icon="solar:alt-arrow-left-linear" width={17} height={17} />
+                </button>
+            ) : (
+                <Link href="/student/scan" className="cg-task-btn" aria-label="ปิด">
+                    <Icon icon="solar:close-circle-linear" width={17} height={17} />
+                </Link>
+            )}
+            <span className="min-w-0 flex-1 truncate text-[15px] font-medium">{title}</span>
+            <Link href="/student" className="cg-task-btn" aria-label="หน้าหลัก">
+                <Icon icon="solar:home-2-linear" width={17} height={17} />
+            </Link>
+        </div>
+    );
+
+    // ── step 1: PIN ──────────────────────────────────────────────────
     if (step === "pin") {
         return (
-            <div data-theme-scope="adaptive queue" className="min-h-screen bg-slate-50 px-4 pb-10 pt-6 flex flex-col">
+            <div className="cg-task-screen pb-6">
                 {deskNoticeModal}
-                <div className="mx-auto w-full max-w-md space-y-4">
-                    {/* Hero card */}
-                    <div className="relative overflow-hidden rounded-4xl bg-linear-to-br from-sky-700 via-sky-600 to-cyan-500 p-5 shadow-xl shadow-sky-300/40">
-                        <span className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
-                        <span className="pointer-events-none absolute -bottom-8 -left-6 h-32 w-32 rounded-full bg-cyan-300/20 blur-2xl" />
-                        <div className="relative flex items-center gap-3">
-                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/20 ring-2 ring-white/30 backdrop-blur-sm">
-                                <Icon icon="solar:ticket-bold-duotone" className="text-xl text-white" />
-                            </span>
-                            <div>
-                                <p className="text-[11px] font-semibold uppercase tracking-widest text-sky-200/80">จองคิวตรวจงาน</p>
-                                <h1 className="text-lg font-bold text-white leading-snug">กรอก PIN เพื่อเริ่มต้น</h1>
-                            </div>
-                        </div>
-                    </div>
+                <TaskHeader title="จองคิวตรวจงาน" />
 
-                    {/* PIN input card */}
-                    <div className="rounded-4xl border border-slate-100 bg-white/90 p-6 shadow-sm text-center">
-                        <div className="mb-3 mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-sky-50 border border-sky-100">
-                            <Icon icon="solar:key-bold-duotone" className="text-3xl text-sky-500" />
-                        </div>
-                        <h2 className="text-base font-semibold text-slate-800 mb-1">กรอกรหัส PIN</h2>
-                        <p className="text-sm text-slate-400 mb-6">กรอกรหัส PIN 6 หลักที่ได้รับจาก TA</p>
-                        <div className="flex justify-center mb-6">
-                            <InputOtp
-                                length={6}
-                                value={pinCode}
-                                onValueChange={setPinCode}
-                                size="lg"
-                                variant="bordered"
-                                color="primary"
-                                onComplete={handleVerifyPIN}
-                                classNames={{
-                                    segment: "w-11 h-14 text-xl font-bold",
-                                    segmentWrapper: "gap-1.5",
-                                }}
-                            />
-                        </div>
-                        <button
-                            type="button"
-                            onClick={handleVerifyPIN}
-                            disabled={pinCode.length !== 6 || isVerifying}
-                            className="w-full rounded-full bg-linear-to-r from-sky-600 to-cyan-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-300/40 transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isVerifying ? "กำลังตรวจสอบ..." : "ยืนยัน PIN"}
-                        </button>
-                        <p className="mt-4 text-xs text-slate-400">PIN ได้รับจาก TA หรืออาจารย์ในห้องเรียน</p>
+                <div className="cg-steps">
+                    <span data-state="now" /><span /><span />
+                </div>
+
+                <div className="cg-card">
+                    <p className="cg-section-label" style={{ padding: 0 }}>กรอกรหัส PIN 6 หลัก</p>
+                    <p className="mb-4 mt-1.5 text-[11.5px] font-light leading-relaxed" style={{ color: "var(--cg-text-2)" }}>
+                        รหัสได้รับจากผู้ตรวจหรืออาจารย์ในห้องเรียน
+                    </p>
+                    <div className="flex justify-center">
+                        <InputOtp
+                            length={6}
+                            value={pinCode}
+                            onValueChange={setPinCode}
+                            size="lg"
+                            variant="bordered"
+                            color="primary"
+                            onComplete={handleVerifyPIN}
+                            classNames={{ segment: "w-11 h-14 text-xl font-medium rounded-2xl", segmentWrapper: "gap-1.5" }}
+                        />
                     </div>
                 </div>
-            </div>
-        );
-    }
 
-    // Render select-course step (group PIN was entered)
-    if (step === "select-course") {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-12">
-                <div className="w-full max-w-sm">
-                    <div className="text-center mb-8">
-                        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                            <Icon icon="solar:users-group-rounded-bold" className="text-3xl text-primary-600 dark:text-primary-400" />
-                        </div>
-                        <h1 className="text-xl font-bold text-foreground">เลือกวิชาของคุณ</h1>
-                        <p className="text-sm text-default-500 mt-1">มีการเปิดรับคิวหลายวิชาพร้อมกันในห้องนี้</p>
-                    </div>
-                    <div className="space-y-3">
-                        {groupSessions.map((gs) => (
-                            <button
-                                key={gs.session_id}
-                                type="button"
-                                className="w-full text-left rounded-2xl border border-default-200 p-4 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors cursor-pointer"
-                                onClick={() => {
-                                    setPinCode(gs.pin_code);
-                                    setSessionInfo({
-                                        session_id: gs.session_id as unknown as number,
-                                        title: gs.title,
-                                        course: gs.course || { id: gs.course_id, code: "", name: "" },
-                                        classroom: gs.classroom ? { id: Number(gs.classroom.id), name: gs.classroom.name, building: gs.classroom.building } : { id: 0, name: "", building: "" },
-                                        require_attendance: gs.require_attendance,
-                                        is_cutoff_enabled: gs.is_cutoff_enabled,
-                                        cutoff_at: gs.cutoff_at,
-                                        cutoff_note: gs.cutoff_note,
-                                    });
-                                    setStep("form");
-                                }}
-                            >
-                                <p className="text-xs font-semibold text-primary-600 dark:text-primary-400 mb-0.5 truncate">
-                                    {gs.course?.name || gs.course_id}
-                                </p>
-                                <p className="font-semibold text-foreground">{gs.title}</p>
-                                <p className="text-xs text-default-400 mt-1 truncate">
-                                    {gs.classroom?.name}{gs.classroom?.building ? ` · ${gs.classroom.building}` : ""}
-                                </p>
-                            </button>
-                        ))}
-                    </div>
-                    <button
-                        type="button"
-                        className="w-full text-center text-sm text-default-400 py-3 mt-4 hover:text-default-600 transition-colors"
-                        onClick={() => { setGroupSessions([]); setStep("pin"); }}
-                    >
-                        ← กรอก PIN ใหม่
+                <div className="cg-task-cta">
+                    <button type="button" className="cg-btn" onClick={handleVerifyPIN} disabled={pinCode.length !== 6 || isVerifying}>
+                        {isVerifying ? "กำลังตรวจสอบ" : "ยืนยันรหัส"}
                     </button>
                 </div>
             </div>
         );
     }
 
-    // Render form step
+    // ── step 2: pick the course when one PIN opens several ───────────
+    if (step === "select-course") {
+        return (
+            <div className="cg-task-screen pb-6">
+                {deskNoticeModal}
+                <TaskHeader title="เลือกรายวิชา" onBack={() => { setGroupSessions([]); setStep("pin"); }} />
+
+                <div className="cg-steps">
+                    <span data-state="done" /><span data-state="now" /><span />
+                </div>
+
+                <p className="cg-page-sub" style={{ paddingTop: 0 }}>
+                    ห้องนี้เปิดรับคิวหลายรายวิชาพร้อมกัน กรุณาเลือกรายวิชาของท่าน
+                </p>
+
+                <div className="cg-list">
+                    {groupSessions.map((gs) => (
+                        <button
+                            key={gs.session_id}
+                            type="button"
+                            className="cg-row"
+                            onClick={() => {
+                                setPinCode(gs.pin_code);
+                                setSessionInfo({
+                                    session_id: gs.session_id as unknown as number,
+                                    title: gs.title,
+                                    course: gs.course || { id: gs.course_id, code: "", name: "" },
+                                    classroom: gs.classroom ? { id: Number(gs.classroom.id), name: gs.classroom.name, building: gs.classroom.building } : { id: 0, name: "", building: "" },
+                                    require_attendance: gs.require_attendance,
+                                    is_cutoff_enabled: gs.is_cutoff_enabled,
+                                    cutoff_at: gs.cutoff_at,
+                                    cutoff_note: gs.cutoff_note,
+                                });
+                                setStep("form");
+                            }}
+                        >
+                            <span className="cg-row-ico" style={{ background: "var(--cg-accent-soft)", color: "var(--cg-accent)" }}>
+                                <Icon icon="solar:notebook-linear" width={17} height={17} />
+                            </span>
+                            <span className="cg-row-body">
+                                <span className="cg-row-title truncate">{gs.title}</span>
+                                <span className="cg-row-sub truncate">{gs.course?.name || gs.course_id}</span>
+                                {gs.classroom?.name && (
+                                    <span className="cg-row-sub truncate" style={{ color: "var(--cg-text-3)" }}>
+                                        ห้อง {gs.classroom.name}{gs.classroom.building ? ` ${gs.classroom.building}` : ""}
+                                    </span>
+                                )}
+                            </span>
+                            <Icon icon="solar:alt-arrow-right-linear" className="cg-chevron" width={15} height={15} />
+                        </button>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    // ── step 3: booking form ─────────────────────────────────────────
     if (step === "form" && sessionInfo) {
         const studentError = validationErrors.find(e => e.field === "student_id");
         const deskError = validationErrors.find(e => e.field === "desk_number");
@@ -1133,301 +1134,256 @@ function BookQueueContent() {
         const gradingDisabled = bookingTypeAvailability?.grading?.allowed === false;
         const gradingDisabledReason = bookingTypeAvailability?.grading?.reason;
 
-        // When from QR scan + logged in: show auto-booking loader instead of full form
+        // Scanned a desk QR while already signed in: nothing left to ask for.
         if (fromScan && loggedInUser && isBooking) {
             return (
-                <div data-theme-scope="adaptive queue" className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+                <div className="flex flex-col items-center justify-center gap-4 text-center" style={{ minHeight: "70dvh" }}>
                     {deskNoticeModal}
-                    <div className="flex flex-col items-center gap-4 text-center">
-                        <div className="h-16 w-16 flex items-center justify-center rounded-3xl bg-linear-to-br from-sky-600 to-cyan-500 shadow-xl shadow-sky-300/40">
-                            <Icon icon="solar:ticket-bold-duotone" className="text-3xl text-white" />
-                        </div>
-                        <div className="h-7 w-7 animate-spin rounded-full border-[3px] border-sky-400 border-t-transparent" />
-                        <div>
-                            <p className="text-sm font-semibold text-slate-700">กำลังจองคิว...</p>
-                            <p className="text-xs text-slate-400 mt-1">{sessionInfo.title} · โต๊ะ {deskNumber}</p>
-                        </div>
+                    <div className="h-7 w-7 animate-spin rounded-full border-[3px]" style={{ borderColor: "var(--cg-accent)", borderTopColor: "transparent" }} />
+                    <div>
+                        <p className="text-sm font-medium">กำลังจองคิว</p>
+                        <p className="mt-1 text-xs font-light" style={{ color: "var(--cg-text-2)" }}>
+                            {sessionInfo.title} โต๊ะ {deskNumber}
+                        </p>
                     </div>
                 </div>
             );
         }
 
         return (
-            <div data-theme-scope="adaptive queue" className="min-h-screen bg-slate-50 px-4 pb-10 pt-6 flex flex-col">
+            <div className="cg-task-screen pb-6">
                 {deskNoticeModal}
-                <div className="mx-auto w-full max-w-md space-y-4">
+                <TaskHeader title="จองคิวตรวจงาน" onBack={() => setStep("pin")} />
 
-                    {/* Hero card */}
-                    <div className="relative overflow-hidden rounded-4xl bg-linear-to-br from-sky-700 via-sky-600 to-cyan-500 p-5 shadow-xl shadow-sky-300/40">
-                        <span className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
-                        <span className="pointer-events-none absolute -bottom-8 -left-6 h-32 w-32 rounded-full bg-cyan-300/20 blur-2xl" />
-                        <div className="relative flex items-start gap-3">
-                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/20 ring-2 ring-white/30 backdrop-blur-sm">
-                                <Icon icon="solar:ticket-bold-duotone" className="text-xl text-white" />
+                <div className="cg-steps">
+                    <span data-state="done" /><span data-state="done" /><span data-state="now" />
+                </div>
+
+                <div className="cg-card">
+                    <p className="text-[11px] font-normal" style={{ color: "var(--cg-text-3)" }}>รอบตรวจงานที่เปิดอยู่</p>
+                    <h1 className="mt-1.5 text-[17px] font-medium leading-relaxed">{sessionInfo.title}</h1>
+                    <p className="mt-1 text-xs font-light leading-relaxed" style={{ color: "var(--cg-text-2)" }}>
+                        {sessionInfo.course.code} {sessionInfo.course.name}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-x-3.5 gap-y-1.5 border-t pt-3" style={{ borderColor: "var(--cg-line)" }}>
+                        <span className="flex items-center gap-1.5 text-[11.5px] font-light" style={{ color: "var(--cg-text-2)" }}>
+                            <Icon icon="solar:buildings-linear" width={13} height={13} style={{ color: "var(--cg-text-3)" }} />
+                            ห้อง {sessionInfo.classroom.name} {sessionInfo.classroom.building}
+                        </span>
+                        {sessionInfo.is_cutoff_enabled && sessionInfo.cutoff_at && (
+                            <span className="flex items-center gap-1.5 text-[11.5px] font-light" style={{ color: "var(--cg-warning)" }}>
+                                <Icon icon="solar:clock-circle-linear" width={13} height={13} />
+                                ปิดรับ {new Date(sessionInfo.cutoff_at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })} น.
                             </span>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-[11px] font-semibold uppercase tracking-widest text-sky-200/80">จองคิวตรวจงาน</p>
-                                <h1 className="truncate text-lg font-bold text-white leading-snug">{sessionInfo.title}</h1>
-                                <p className="text-xs text-sky-100/70 mt-0.5">
-                                    {sessionInfo.course.code} · {sessionInfo.course.name}
-                                </p>
-                                <p className="text-xs text-sky-100/50 mt-0.5">
-                                    ห้อง {sessionInfo.classroom.name} · {sessionInfo.classroom.building}
-                                </p>
-                                {sessionInfo.is_cutoff_enabled && sessionInfo.cutoff_at && (
-                                    <div className="mt-2 flex w-fit items-center gap-1.5 rounded-full bg-amber-400/20 px-2.5 py-1 text-xs font-semibold text-amber-200">
-                                        <Icon icon="solar:clock-circle-bold" className="shrink-0 text-sm" />
-                                        cutoff: {new Date(sessionInfo.cutoff_at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Form card */}
-                    <div className="rounded-4xl border border-slate-100 bg-white/90 p-6 shadow-sm space-y-5">
-
-                        {/* Student identity — show pill if logged in, show input if not */}
-                        {loggedInUser ? (
-                            <div className="flex items-center gap-3 rounded-3xl bg-sky-50 border border-sky-100 px-4 py-3">
-                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-sky-100 border border-sky-200">
-                                    <Icon icon="solar:user-id-bold" className="text-lg text-sky-600" />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-[11px] font-semibold text-sky-500">เข้าสู่ระบบแล้ว</p>
-                                    <p className="text-sm font-semibold text-slate-800 truncate">{loggedInUser.full_name}</p>
-                                    <p className="text-xs text-slate-500">{loggedInUser.username}</p>
-                                </div>
-                                <Icon icon="solar:check-circle-bold" className="shrink-0 text-xl text-sky-500" />
-                            </div>
-                        ) : (
-                            <div>
-                                <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                                    รหัสนักศึกษา (แบบมีขีด) <span className="text-rose-500">*</span>
-                                </label>
-                                <div className={`flex items-center gap-2 rounded-2xl border px-3 py-2.5 transition ${
-                                    studentError
-                                        ? "border-rose-300 bg-rose-50"
-                                        : studentInfo
-                                        ? "border-emerald-300 bg-emerald-50"
-                                        : "border-slate-200 bg-slate-50 focus-within:border-sky-400 focus-within:bg-white"
-                                }`}>
-                                    <Icon icon="solar:user-id-bold" className="shrink-0 text-slate-400" />
-                                    <input
-                                        type="text"
-                                        placeholder="เช่น 65010000-0"
-                                        value={studentId}
-                                        onChange={(e) => {
-                                            setStudentId(e.target.value);
-                                            setStudentInfo(null);
-                                            setValidationErrors(prev => prev.filter(err => err.field !== "student_id"));
-                                        }}
-                                        className="min-w-0 flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 outline-none"
-                                    />
-                                    {isValidating && <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-sky-400 border-t-transparent" />}
-                                    {!isValidating && studentError && <Icon icon="solar:close-circle-bold" className="shrink-0 text-rose-500" />}
-                                    {!isValidating && studentInfo && <Icon icon="solar:check-circle-bold" className="shrink-0 text-emerald-500" />}
-                                </div>
-                                {studentError && <p className="mt-1 text-xs text-rose-600">{studentError.message}</p>}
-                                {studentInfo && !studentError && (
-                                    <p className="mt-1.5 text-xs font-medium text-emerald-600">
-                                        <Icon icon="solar:user-check-bold" className="inline mr-1" />
-                                        {studentInfo.full_name}
-                                    </p>
-                                )}
-                            </div>
                         )}
-
-                        {/* Desk Number */}
-                        <div>
-                            <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                                เลขโต๊ะ <span className="text-rose-500">*</span>
-                            </label>
-                            {fromScan ? (
-                                <div className="flex items-center gap-2 rounded-2xl border border-emerald-300 bg-emerald-50 px-3 py-2.5">
-                                    <Icon icon="solar:chair-bold" className="shrink-0 text-emerald-500" />
-                                    <span className="flex-1 text-sm font-semibold text-slate-800">{deskNumber}</span>
-                                    <Icon icon="solar:check-circle-bold" className="shrink-0 text-emerald-500" />
-                                </div>
-                            ) : (
-                                <>
-                                    <div className={`flex items-center gap-2 rounded-2xl border px-3 py-2.5 transition ${
-                                        deskError
-                                            ? "border-rose-300 bg-rose-50"
-                                            : deskInfo
-                                            ? "border-emerald-300 bg-emerald-50"
-                                            : "border-slate-200 bg-slate-50 focus-within:border-sky-400 focus-within:bg-white"
-                                    }`}>
-                                        <Icon icon="solar:chair-bold" className="shrink-0 text-slate-400" />
-                                        <input
-                                            type="number"
-                                            placeholder="เช่น 1, 2, 3..."
-                                            value={deskNumber}
-                                            onChange={(e) => {
-                                                setDeskNumber(e.target.value);
-                                                setDeskInfo(null);
-                                                setValidationErrors(prev => prev.filter(err => err.field !== "desk_number"));
-                                            }}
-                                            className="min-w-0 flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                        />
-                                        {isValidating && <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-sky-400 border-t-transparent" />}
-                                        {!isValidating && deskError && <Icon icon="solar:close-circle-bold" className="shrink-0 text-rose-500" />}
-                                        {!isValidating && deskInfo && <Icon icon="solar:check-circle-bold" className="shrink-0 text-emerald-500" />}
-                                    </div>
-                                    {deskError && <p className="mt-1 text-xs text-rose-600">{deskError.message}</p>}
-                                    {deskInfo && !deskError && (
-                                        <p className="mt-1.5 text-xs font-medium text-emerald-600">
-                                            <Icon icon="solar:check-circle-bold" className="inline mr-1" />
-                                            โต๊ะหมายเลข {deskInfo.number} พร้อมใช้งาน
-                                        </p>
-                                    )}
-                                    <p className="mt-1.5 text-xs text-slate-400">ดูเลขโต๊ะจากแผนผังบนหน้าจอโปรเจกเตอร์เท่านั้น</p>
-                                </>
-                            )}
-                        </div>
-
-                        {/* Existing booking warning */}
-                        {existingBookingWarning && (
-                            <div className="flex items-start gap-2.5 rounded-3xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-700">
-                                <Icon icon="solar:info-circle-bold" className="mt-0.5 shrink-0 text-lg" />
-                                <div>
-                                    <p className="font-medium">{existingBookingWarning.message}</p>
-                                    <p className="mt-0.5 text-xs text-sky-500">กดปุ่ม "ดูคิวที่มีอยู่" เพื่อดูสถานะ</p>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Booking type */}
-                        <div>
-                            <label className="mb-2 block text-sm font-medium text-slate-700">ประเภทการจอง</label>
-                            <div className="grid grid-cols-2 gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (!gradingDisabled) setBookingType("grading");
-                                    }}
-                                    disabled={gradingDisabled}
-                                    className={`rounded-3xl border-2 p-4 transition active:scale-[0.98] ${
-                                        gradingDisabled
-                                            ? "cursor-not-allowed border-slate-200 bg-slate-100 opacity-60"
-                                            : bookingType === "grading"
-                                            ? "border-emerald-400 bg-emerald-50"
-                                            : "border-slate-100 bg-slate-50 hover:border-slate-200"
-                                    }`}
-                                >
-                                    <Icon
-                                        icon="solar:clipboard-check-bold-duotone"
-                                        className={`mx-auto mb-2 text-3xl ${bookingType === "grading" ? "text-emerald-500" : "text-slate-300"}`}
-                                    />
-                                    <p className={`text-sm font-semibold ${bookingType === "grading" ? "text-emerald-700" : "text-slate-500"}`}>
-                                        ตรวจงาน
-                                    </p>
-                                </button>
-                                {gradingDisabledReason && (
-                                    <p className="col-span-2 -mt-1 text-xs text-slate-500">
-                                        {gradingDisabledReason}
-                                    </p>
-                                )}
-                                <button
-                                    type="button"
-                                    onClick={() => setBookingType("help")}
-                                    className={`rounded-3xl border-2 p-4 transition active:scale-[0.98] ${
-                                        bookingType === "help"
-                                            ? "border-amber-400 bg-amber-50"
-                                            : "border-slate-100 bg-slate-50 hover:border-slate-200"
-                                    }`}
-                                >
-                                    <Icon
-                                        icon="solar:hand-shake-bold-duotone"
-                                        className={`mx-auto mb-2 text-3xl ${bookingType === "help" ? "text-amber-500" : "text-slate-300"}`}
-                                    />
-                                    <p className={`text-sm font-semibold ${bookingType === "help" ? "text-amber-700" : "text-slate-500"}`}>
-                                        ขอความช่วยเหลือ
-                                    </p>
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Optional note */}
-                        <div>
-                            <button
-                                type="button"
-                                onClick={() => setShowNote(v => !v)}
-                                className="flex items-center gap-1.5 text-sm font-medium text-sky-600 transition hover:text-sky-700"
-                            >
-                                <Icon icon={showNote ? "solar:minus-circle-bold" : "solar:add-circle-bold"} className="text-base" />
-                                {showNote ? "ซ่อนหมายเหตุ" : "เพิ่มหมายเหตุ (ไม่บังคับ)"}
-                            </button>
-                            {showNote && (
-                                <textarea
-                                    placeholder="เช่น ต้องการให้ตรวจส่วนที่ 2..."
-                                    value={note}
-                                    onChange={e => setNote(e.target.value)}
-                                    rows={2}
-                                    className="mt-2 w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:border-sky-400 focus:bg-white"
-                                />
-                            )}
-                        </div>
-
-                        {sessionInfo.require_attendance && (
-                            <div className="flex items-center gap-2 rounded-3xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                                <Icon icon="solar:info-circle-bold" className="shrink-0 text-lg" />
-                                <span>ต้องเช็คชื่อก่อนจึงจะจองคิวได้</span>
-                            </div>
-                        )}
-
-                        {/* Buttons */}
-                        <div className="flex gap-3 pt-1">
-                            <button
-                                type="button"
-                                onClick={() => setStep("pin")}
-                                className="flex-1 rounded-full border border-slate-200 bg-white py-3.5 text-sm font-semibold text-slate-700 shadow-sm transition active:scale-[0.98] hover:bg-slate-50"
-                            >
-                                กลับ
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleCreateBooking}
-                                disabled={isBooking || !studentId || !deskNumber || (bookingType === "grading" && gradingDisabled)}
-                                className="flex-1 rounded-full bg-linear-to-r from-sky-600 to-cyan-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-300/40 transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {isBooking ? "กำลังจอง..." : existingBookingWarning ? "ดูคิวที่มีอยู่" : "จองคิว"}
-                            </button>
-                        </div>
                     </div>
                 </div>
 
-                {/* Late confirm modal */}
-                <Modal isOpen={isLateConfirmOpen} onClose={() => setIsLateConfirmOpen(false)}>
-                    <ModalContent className="border border-slate-200 bg-white text-slate-900 shadow-2xl shadow-slate-900/10">
-                        <ModalHeader>
-                            <div className="flex items-center gap-2 text-rose-700">
-                                <Icon icon="solar:danger-triangle-bold" className="text-xl" />
-                                <span>จองหลัง Cutoff</span>
+                {/* who is booking */}
+                {loggedInUser ? (
+                    <div className="cg-list">
+                        <div className="cg-row">
+                            <span className="cg-row-ico" style={{ background: "var(--cg-accent-soft)", color: "var(--cg-accent)" }}>
+                                <Icon icon="solar:user-id-linear" width={17} height={17} />
+                            </span>
+                            <span className="cg-row-body">
+                                <span className="cg-row-title truncate">{loggedInUser.full_name}</span>
+                                <span className="cg-row-sub cg-mono">{loggedInUser.username}</span>
+                            </span>
+                            <span className="cg-badge cg-badge-success">เข้าสู่ระบบแล้ว</span>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex flex-col gap-1.5">
+                        <label htmlFor="q-student-id" className="text-xs font-normal" style={{ color: "var(--cg-text-2)" }}>
+                            รหัสนักศึกษา (แบบมีขีด)
+                        </label>
+                        <div className="cg-field-box" style={studentError ? { borderColor: "var(--cg-danger)" } : studentInfo ? { borderColor: "var(--cg-success)" } : undefined}>
+                            <Icon icon="solar:user-id-linear" width={17} height={17} style={{ color: "var(--cg-text-3)" }} />
+                            <input
+                                id="q-student-id"
+                                type="text"
+                                inputMode="numeric"
+                                placeholder="เช่น 65010000-0"
+                                value={studentId}
+                                onChange={(e) => {
+                                    setStudentId(e.target.value);
+                                    setStudentInfo(null);
+                                    setValidationErrors(prev => prev.filter(err => err.field !== "student_id"));
+                                }}
+                            />
+                            {isValidating && <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2" style={{ borderColor: "var(--cg-accent)", borderTopColor: "transparent" }} />}
+                            {!isValidating && studentError && <Icon icon="solar:close-circle-linear" width={18} height={18} style={{ color: "var(--cg-danger)" }} />}
+                            {!isValidating && studentInfo && <Icon icon="solar:check-circle-linear" width={18} height={18} style={{ color: "var(--cg-success)" }} />}
+                        </div>
+                        {studentError && <p className="px-1 text-[11px] font-light" style={{ color: "var(--cg-danger)" }}>{studentError.message}</p>}
+                        {studentInfo && !studentError && (
+                            <p className="px-1 text-[11px] font-light" style={{ color: "var(--cg-success)" }}>{studentInfo.full_name}</p>
+                        )}
+                    </div>
+                )}
+
+                {/* desk */}
+                <div className="flex flex-col gap-1.5">
+                    <label htmlFor="q-desk" className="text-xs font-normal" style={{ color: "var(--cg-text-2)" }}>เลขโต๊ะที่นั่งอยู่</label>
+                    {fromScan ? (
+                        <div className="cg-field-box" style={{ borderColor: "var(--cg-success)" }}>
+                            <Icon icon="solar:armchair-linear" width={17} height={17} style={{ color: "var(--cg-success)" }} />
+                            <span className="flex-1 text-base font-medium">{deskNumber}</span>
+                            <Icon icon="solar:check-circle-linear" width={18} height={18} style={{ color: "var(--cg-success)" }} />
+                        </div>
+                    ) : (
+                        <>
+                            <div className="cg-field-box" style={deskError ? { borderColor: "var(--cg-danger)" } : deskInfo ? { borderColor: "var(--cg-success)" } : undefined}>
+                                <Icon icon="solar:armchair-linear" width={17} height={17} style={{ color: "var(--cg-text-3)" }} />
+                                <input
+                                    id="q-desk"
+                                    type="text"
+                                    inputMode="numeric"
+                                    placeholder="เช่น 1, 2, 3"
+                                    value={deskNumber}
+                                    onChange={(e) => {
+                                        setDeskNumber(e.target.value.replace(/[^0-9]/g, ""));
+                                        setDeskInfo(null);
+                                        setValidationErrors(prev => prev.filter(err => err.field !== "desk_number"));
+                                    }}
+                                />
+                                {isValidating && <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2" style={{ borderColor: "var(--cg-accent)", borderTopColor: "transparent" }} />}
+                                {!isValidating && deskError && <Icon icon="solar:close-circle-linear" width={18} height={18} style={{ color: "var(--cg-danger)" }} />}
+                                {!isValidating && deskInfo && <Icon icon="solar:check-circle-linear" width={18} height={18} style={{ color: "var(--cg-success)" }} />}
                             </div>
+                            {deskError && <p className="px-1 text-[11px] font-light" style={{ color: "var(--cg-danger)" }}>{deskError.message}</p>}
+                            {deskInfo && !deskError && (
+                                <p className="px-1 text-[11px] font-light" style={{ color: "var(--cg-success)" }}>โต๊ะหมายเลข {deskInfo.number} พร้อมใช้งาน</p>
+                            )}
+                            <p className="px-1 text-[11px] font-light" style={{ color: "var(--cg-text-3)" }}>
+                                ดูเลขโต๊ะจากแผนผังบนหน้าจอโปรเจกเตอร์เท่านั้น
+                            </p>
+                        </>
+                    )}
+                </div>
+
+                {existingBookingWarning && (
+                    <div className="cg-note" style={{ background: "var(--cg-info-soft)" }}>
+                        <Icon icon="solar:info-circle-linear" width={16} height={16} className="mt-0.5 shrink-0" style={{ color: "var(--cg-info)" }} />
+                        <p className="m-0">
+                            {existingBookingWarning.message} กดปุ่มด้านล่างเพื่อดูสถานะคิวที่มีอยู่
+                        </p>
+                    </div>
+                )}
+
+                {/* booking type */}
+                <div className="flex flex-col gap-2">
+                    <p className="cg-section-label">ต้องการให้ช่วยเรื่องอะไร</p>
+                    <div className="grid grid-cols-2 gap-2.5">
+                        <button
+                            type="button"
+                            onClick={() => { if (!gradingDisabled) setBookingType("grading"); }}
+                            disabled={gradingDisabled}
+                            className="flex flex-col items-center gap-1.5 rounded-2xl p-4 disabled:opacity-50"
+                            style={{
+                                background: bookingType === "grading" ? "var(--cg-accent-soft)" : "var(--cg-surface)",
+                                border: `1.5px solid ${bookingType === "grading" ? "var(--cg-accent)" : "transparent"}`,
+                                boxShadow: "var(--cg-shadow-1)",
+                            }}
+                        >
+                            <Icon icon="solar:clipboard-check-linear" width={24} height={24}
+                                style={{ color: bookingType === "grading" ? "var(--cg-accent)" : "var(--cg-text-3)" }} />
+                            <b className="text-[13px] font-medium" style={{ color: bookingType === "grading" ? "var(--cg-accent-strong)" : "var(--cg-text)" }}>ตรวจงาน</b>
+                            <span className="text-center text-[10.5px] font-light leading-relaxed" style={{ color: "var(--cg-text-2)" }}>
+                                ส่งงานให้ผู้ตรวจพิจารณาให้คะแนน
+                            </span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setBookingType("help")}
+                            className="flex flex-col items-center gap-1.5 rounded-2xl p-4"
+                            style={{
+                                background: bookingType === "help" ? "var(--cg-accent-soft)" : "var(--cg-surface)",
+                                border: `1.5px solid ${bookingType === "help" ? "var(--cg-accent)" : "transparent"}`,
+                                boxShadow: "var(--cg-shadow-1)",
+                            }}
+                        >
+                            <Icon icon="solar:hand-shake-linear" width={24} height={24}
+                                style={{ color: bookingType === "help" ? "var(--cg-accent)" : "var(--cg-text-3)" }} />
+                            <b className="text-[13px] font-medium" style={{ color: bookingType === "help" ? "var(--cg-accent-strong)" : "var(--cg-text)" }}>ขอความช่วยเหลือ</b>
+                            <span className="text-center text-[10.5px] font-light leading-relaxed" style={{ color: "var(--cg-text-2)" }}>
+                                ต้องการให้ผู้ตรวจมาช่วยตรวจสอบ
+                            </span>
+                        </button>
+                    </div>
+                    {gradingDisabledReason && (
+                        <p className="px-1 text-[11px] font-light" style={{ color: "var(--cg-text-2)" }}>{gradingDisabledReason}</p>
+                    )}
+                </div>
+
+                {/* note */}
+                <div className="flex flex-col gap-2">
+                    <button type="button" className="cg-link self-start" onClick={() => setShowNote(v => !v)}>
+                        <Icon icon={showNote ? "solar:minus-circle-linear" : "solar:add-circle-linear"} width={15} height={15} />
+                        {showNote ? "ซ่อนหมายเหตุ" : "เพิ่มหมายเหตุถึงผู้ตรวจ (ไม่บังคับ)"}
+                    </button>
+                    {showNote && (
+                        <textarea
+                            placeholder="เช่น ต้องการให้ตรวจส่วนที่ 2"
+                            value={note}
+                            onChange={e => setNote(e.target.value)}
+                            rows={2}
+                            className="w-full resize-none rounded-2xl px-3.5 py-3 outline-none"
+                            style={{
+                                background: "var(--cg-surface)",
+                                border: "1.5px solid var(--cg-line)",
+                                color: "var(--cg-text)",
+                                boxShadow: "var(--cg-shadow-1)",
+                                fontSize: 16,
+                                fontWeight: 400,
+                            }}
+                        />
+                    )}
+                </div>
+
+                {sessionInfo.require_attendance && (
+                    <div className="cg-note">
+                        <Icon icon="solar:info-circle-linear" width={16} height={16} className="mt-0.5 shrink-0" style={{ color: "var(--cg-warning)" }} />
+                        <p className="m-0">ต้องเช็กชื่อก่อนจึงจะจองคิวได้</p>
+                    </div>
+                )}
+
+                <div className="cg-task-cta">
+                    <button
+                        type="button"
+                        className="cg-btn"
+                        onClick={handleCreateBooking}
+                        disabled={isBooking || !studentId || !deskNumber || (bookingType === "grading" && gradingDisabled)}
+                    >
+                        {isBooking ? "กำลังจอง" : existingBookingWarning ? "ดูคิวที่มีอยู่" : "จองคิว"}
+                    </button>
+                </div>
+
+                <Modal isOpen={isLateConfirmOpen} onClose={() => setIsLateConfirmOpen(false)}>
+                    <ModalContent>
+                        <ModalHeader>
+                            <span className="flex items-center gap-2" style={{ color: "var(--cg-danger)" }}>
+                                <Icon icon="solar:danger-triangle-linear" width={20} height={20} />
+                                จองหลังเวลาปิดรับ
+                            </span>
                         </ModalHeader>
                         <ModalBody>
-                            <p className="text-sm text-slate-700">
-                                การจองนี้เกิดขึ้นหลังเวลาที่กำหนด อาจมีเกณฑ์ให้คะแนนต่างจากผู้ที่จองตรงเวลา
-                            </p>
+                            <p className="text-sm">การจองนี้เกิดขึ้นหลังเวลาที่กำหนด อาจมีเกณฑ์ให้คะแนนต่างจากผู้ที่จองตรงเวลา</p>
                             {latePreviewInfo?.reason && (
-                                <div className="rounded-lg bg-rose-50 border border-rose-200 p-3 text-sm text-rose-700">
-                                    {latePreviewInfo.reason}
+                                <div className="cg-note" style={{ background: "var(--cg-danger-soft)" }}>
+                                    <p className="m-0">{latePreviewInfo.reason}</p>
                                 </div>
                             )}
                             {latePreviewInfo?.cutoffAt && (
-                                <p className="text-xs text-slate-500">
-                                    cutoff: {formatCutoffDateTime(latePreviewInfo.cutoffAt)}
+                                <p className="text-xs" style={{ color: "var(--cg-text-2)" }}>
+                                    ปิดรับเมื่อ {formatCutoffDateTime(latePreviewInfo.cutoffAt)}
                                 </p>
                             )}
                         </ModalBody>
                         <ModalFooter>
-                            <Button variant="flat" onPress={() => setIsLateConfirmOpen(false)}>
-                                ยกเลิก
-                            </Button>
-                            <Button color="danger" onPress={handleConfirmLateBooking} isLoading={isBooking}>
-                                ยืนยันจองต่อ
-                            </Button>
+                            <Button variant="flat" onPress={() => setIsLateConfirmOpen(false)}>ยกเลิก</Button>
+                            <Button color="danger" onPress={handleConfirmLateBooking} isLoading={isBooking}>ยืนยันจองต่อ</Button>
                         </ModalFooter>
                     </ModalContent>
                 </Modal>
@@ -1435,7 +1391,7 @@ function BookQueueContent() {
         );
     }
 
-    // Render status step
+    // ── step 4: live status ──────────────────────────────────────────
     if (step === "status" && bookingResult) {
         const status = bookingStatus || bookingResult;
         const statusDisplay = getStatusDisplay(status.status);
@@ -1444,300 +1400,226 @@ function BookQueueContent() {
         const isInProgress = status.status === "in_progress";
         const isEnded = status.status === "cancelled" || status.status === "no_show";
 
-        const heroGradient = isCompleted
-            ? "from-emerald-600 to-teal-500 shadow-emerald-300/40"
-            : isEnded
-            ? "from-rose-500 to-orange-500 shadow-rose-300/40"
-            : isInProgress
-            ? "from-amber-500 to-orange-500 shadow-amber-300/40"
-            : "from-sky-700 via-sky-600 to-cyan-500 shadow-sky-300/40";
-
-        const statusPillClass = isCompleted
-            ? "bg-white/20 text-white"
-            : isInProgress
-            ? "bg-white/20 text-white"
-            : "bg-white/20 text-white";
+        const resetToForm = (keepDesk: boolean) => {
+            cleanupPolling();
+            currentBookingIdRef.current = null;
+            clearBookingState();
+            setBookingResult(null);
+            setBookingStatus(null);
+            setStep("form");
+            if (keepDesk) {
+                if (loggedInUser) setStudentId(loggedInUser.username ?? "");
+                setDeskNumber(status.desk_number || "");
+                setBookingType(status.booking_type === "help" ? "help" : "grading");
+                setNote("");
+                setShowNote(false);
+                setStudentInfo(null);
+                setDeskInfo(null);
+                setValidationErrors([]);
+                setValidationWarnings([]);
+                setBookingTypeAvailability(null);
+                setLatePreviewInfo(null);
+                setIsLateConfirmOpen(false);
+            }
+        };
 
         return (
-            <div data-theme-scope="adaptive queue" className="min-h-screen bg-slate-50 px-4 pb-10 pt-6 flex flex-col">
+            <div className="cg-task-screen pb-6">
                 {deskNoticeModal}
-                <div className="mx-auto w-full max-w-md space-y-4">
+                <TaskHeader title="คิวของฉัน" />
 
-                    {/* Hero card — queue number */}
-                    <div className={`relative overflow-hidden rounded-4xl bg-linear-to-br ${heroGradient} p-6 shadow-xl text-center`}>
-                        <span className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
-                        <span className="pointer-events-none absolute -bottom-8 -left-6 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
-                        <div className="relative">
-                            <p className="text-[11px] font-semibold uppercase tracking-widest text-white/70 mb-1">หมายเลขคิว</p>
-                            <p className="text-8xl font-bold text-white leading-none mb-3">{status.queue_number}</p>
-                            <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${statusPillClass} ring-1 ring-white/30`}>
-                                <Icon icon={statusDisplay.icon} className="text-base" />
-                                {statusDisplay.label}
+                {/* the number is the whole point of this screen */}
+                <div className={isEnded ? "cg-spent" : undefined}>
+                    <div className="cg-card flex flex-col items-center text-center">
+                        <span className="text-[11.5px] font-normal" style={{ color: "var(--cg-text-3)" }}>
+                            {isEnded ? "คิวที่สิ้นสุดแล้ว" : "หมายเลขคิว"}
+                        </span>
+                        <span className="cg-queue-num mt-1">{status.queue_number}</span>
+                        <span
+                            className={`cg-badge mt-2.5 ${
+                                isCompleted ? "cg-badge-success" : isEnded ? "cg-badge-danger" : isInProgress ? "cg-badge-warning" : "cg-badge-info"
+                            }`}
+                            style={{ fontSize: 12.5, padding: "5px 13px" }}
+                        >
+                            <Icon icon={statusDisplay.icon} width={14} height={14} />
+                            {statusDisplay.label}
+                        </span>
+                        {isWaiting && bookingStatus && (
+                            <span className="mt-2.5 text-[13px] font-normal" style={{ color: "var(--cg-text-2)" }}>
+                                {bookingStatus.position_in_queue === 0
+                                    ? "ถัดไปคือคิวของท่าน"
+                                    : <>อีก <b className="font-semibold" style={{ color: "var(--cg-text)" }}>{bookingStatus.position_in_queue} คิว</b> จะถึงลำดับของท่าน</>}
                             </span>
-                        </div>
-                    </div>
-
-                    {/* Details card */}
-                    <div className="rounded-4xl border border-slate-100 bg-white/90 p-5 shadow-sm">
-                        <p className="text-xs text-slate-400 font-medium mb-3">{sessionInfo?.course.code} · {sessionInfo?.title}</p>
-
-                        {status.is_late_booking && (
-                            <div className="mb-3 flex items-start gap-2 rounded-3xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                                <Icon icon="solar:danger-triangle-bold" className="mt-0.5 shrink-0 text-lg" />
-                                <div>
-                                    <p className="font-medium">จองหลัง cutoff</p>
-                                    {status.late_reason && <p className="mt-0.5 text-xs text-rose-600">{status.late_reason}</p>}
-                                </div>
-                            </div>
                         )}
+                    </div>
+                </div>
 
-                        <div className="divide-y divide-slate-100">
-                            <div className="flex items-center justify-between py-2.5">
-                                <span className="text-sm text-slate-500">โต๊ะ</span>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm font-semibold text-slate-800">{status.desk_number}</span>
-                                    {bookingStatus?.zone && (
-                                        <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-700">
-                                            {bookingStatus.zone.name}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="flex items-center justify-between py-2.5">
-                                <span className="text-sm text-slate-500">ประเภท</span>
-                                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                                    status.booking_type === "grading"
-                                        ? "bg-emerald-100 text-emerald-700"
-                                        : "bg-amber-100 text-amber-700"
-                                }`}>
-                                    {getQueueBookingTypeLabel(status.booking_type as "grading" | "help", false)}
-                                </span>
-                            </div>
-                            {bookingStatus && isWaiting && (
-                                <div className="flex items-center justify-between py-2.5">
-                                    <span className="text-sm text-slate-500">ตำแหน่งในคิว</span>
-                                    <span className="text-sm font-semibold text-sky-600">
-                                        {bookingStatus.position_in_queue === 0
-                                            ? "ถัดไป!"
-                                            : `${bookingStatus.position_in_queue} คนข้างหน้า`}
-                                    </span>
-                                </div>
-                            )}
+                {status.is_late_booking && (
+                    <div className="cg-note" style={{ background: "var(--cg-danger-soft)" }}>
+                        <Icon icon="solar:danger-triangle-linear" width={16} height={16} className="mt-0.5 shrink-0" style={{ color: "var(--cg-danger)" }} />
+                        <p className="m-0">
+                            <b className="font-medium">จองหลังเวลาปิดรับ</b>
+                            {status.late_reason ? ` ${status.late_reason}` : ""}
+                        </p>
+                    </div>
+                )}
+
+                {status.status === "no_show" && bookingStatus?.worker_note && (
+                    <div className="cg-note">
+                        <Icon icon="solar:megaphone-linear" width={16} height={16} className="mt-0.5 shrink-0" style={{ color: "var(--cg-warning)" }} />
+                        <p className="m-0"><b className="font-medium">เหตุผลจากผู้ตรวจ:</b> {bookingStatus.worker_note}</p>
+                    </div>
+                )}
+
+                {/* details */}
+                <div className="cg-list">
+                    <div className="cg-row">
+                        <span className="cg-row-ico" style={{ background: "var(--cg-info-soft)", color: "var(--cg-info)" }}>
+                            <Icon icon={status.booking_type === "grading" ? "solar:clipboard-check-linear" : "solar:hand-shake-linear"} width={17} height={17} />
+                        </span>
+                        <span className="cg-row-body">
+                            <span className="cg-row-title">{getQueueBookingTypeLabel(status.booking_type as "grading" | "help", false)}</span>
+                            <span className="cg-row-sub truncate">{sessionInfo?.course.code} {sessionInfo?.title}</span>
+                        </span>
+                    </div>
+                    <div className="cg-row">
+                        <span className="cg-row-ico">
+                            <Icon icon="solar:armchair-linear" width={17} height={17} />
+                        </span>
+                        <span className="cg-row-body">
+                            <span className="cg-row-title">
+                                โต๊ะ {status.desk_number}{bookingStatus?.zone ? ` โซน ${bookingStatus.zone.name}` : ""}
+                            </span>
                             {bookingStatus?.assignedWorker && bookingStatus.status !== "waiting" && (
-                                <div className="flex items-center justify-between py-2.5">
-                                    <span className="text-sm text-slate-500">ผู้ตรวจ</span>
-                                    <span className="text-sm font-semibold text-slate-800">
-                                        {bookingStatus.assignedWorker.full_name}
-                                    </span>
-                                </div>
+                                <span className="cg-row-sub">ผู้ตรวจ {bookingStatus.assignedWorker.full_name}</span>
                             )}
                             {bookingStatus?.status === "waiting" && bookingStatus.assigned_worker_id && (
-                                <div className="flex items-center justify-between py-2.5">
-                                    <span className="text-sm text-slate-500">ผู้ตรวจ</span>
-                                    <span className="text-sm font-semibold text-sky-600">
-                                        ผู้ตรวจกำลังรับงาน...รอสักครู่
-                                    </span>
-                                </div>
+                                <span className="cg-row-sub" style={{ color: "var(--cg-accent)" }}>ผู้ตรวจกำลังรับงาน กรุณารอสักครู่</span>
                             )}
-                        </div>
+                        </span>
                     </div>
+                </div>
 
-                    {/* Waiting instructions + cancel */}
-                    {isWaiting && (
-                        <>
-                            <div className="flex items-center gap-2 rounded-3xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-700">
-                                <Icon icon="solar:info-circle-bold" className="shrink-0 text-lg" />
-                                <span>กรุณารออยู่ที่โต๊ะ {status.desk_number}{bookingStatus?.zone ? ` (${bookingStatus.zone.name})` : ""} ระบบจะแจ้งเตือนเมื่อถึงคิว</span>
-                            </div>
-                            <IosInstallHint />
-                            {notificationSupported && permissionStatus !== "granted" && (
+                {/* waiting */}
+                {isWaiting && (
+                    <>
+                        <div className="cg-note" style={{ background: "var(--cg-info-soft)" }}>
+                            <Icon icon="solar:info-circle-linear" width={16} height={16} className="mt-0.5 shrink-0" style={{ color: "var(--cg-info)" }} />
+                            <p className="m-0">
+                                กรุณารออยู่ที่โต๊ะ {status.desk_number}{bookingStatus?.zone ? ` โซน ${bookingStatus.zone.name}` : ""} ระบบจะแจ้งเตือนเมื่อใกล้ถึงลำดับคิว หากไม่พบผู้จอง ผู้ตรวจจะข้ามคิวไปก่อน
+                            </p>
+                        </div>
+
+                        <IosInstallHint />
+
+                        {notificationSupported && permissionStatus !== "granted" && (
+                            <div className="cg-list">
                                 <button
                                     type="button"
+                                    className="cg-row"
                                     onClick={async () => {
                                         const permissionResult = await requestPermission();
                                         if (permissionResult.granted && bookingResult) {
                                             await registerPushToken("student", bookingResult.id);
                                         }
                                     }}
-                                    className="flex w-full items-center gap-3 rounded-3xl border border-violet-100 bg-violet-50 px-4 py-3 text-left text-sm transition active:scale-[0.98] hover:bg-violet-100"
                                 >
-                                    <Icon icon="solar:bell-bing-bold" className="shrink-0 text-lg text-violet-500" />
-                                    <div className="flex-1">
-                                        <p className="font-semibold text-violet-700">รับการแจ้งเตือนเมื่อถึงคิว</p>
-                                        <p className="text-xs text-violet-500">แตะเพื่อเปิดการแจ้งเตือน</p>
-                                    </div>
-                                    <Icon icon="solar:arrow-right-bold" className="shrink-0 text-violet-400" />
+                                    <span className="cg-row-ico" style={{ background: "var(--cg-violet-soft)", color: "var(--cg-violet)" }}>
+                                        <Icon icon="solar:bell-bing-linear" width={17} height={17} />
+                                    </span>
+                                    <span className="cg-row-body">
+                                        <span className="cg-row-title">รับการแจ้งเตือนเมื่อถึงคิว</span>
+                                        <span className="cg-row-sub">แตะเพื่อเปิดการแจ้งเตือน</span>
+                                    </span>
+                                    <Icon icon="solar:alt-arrow-right-linear" className="cg-chevron" width={15} height={15} />
                                 </button>
-                            )}
-                            <button
-                                type="button"
-                                onClick={handleCancelBooking}
-                                disabled={isCancelling}
-                                className="w-full rounded-full border border-rose-200 bg-rose-50 py-3.5 text-sm font-semibold text-rose-600 transition active:scale-[0.98] disabled:opacity-50"
-                            >
-                                {isCancelling ? "กำลังยกเลิก..." : "ยกเลิกการจอง"}
-                            </button>
-                        </>
-                    )}
-
-                    {/* In-progress notice */}
-                    {isInProgress && (
-                        <div className="flex items-center gap-2 rounded-3xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                            <Icon icon="solar:bell-bold" className="shrink-0 text-lg" />
-                            <span>กำลังตรวจงานของคุณ กรุณารอ TA ที่โต๊ะ {status.desk_number}{bookingStatus?.zone ? ` (${bookingStatus.zone.name})` : ""}</span>
-                        </div>
-                    )}
-
-                    {/* Completed */}
-                    {isCompleted && (
-                        <>
-                            <div className="flex items-center gap-2 rounded-3xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                                <Icon icon="solar:check-circle-bold" className="shrink-0 text-lg" />
-                                <span>ตรวจงานเสร็จสิ้น</span>
                             </div>
+                        )}
+                    </>
+                )}
 
-                            {/* Score Details */}
-                            {bookingStatus?.score_details && (
-                                <div className="rounded-4xl border border-slate-100 bg-white/90 p-5 shadow-sm space-y-3">
-                                    <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                                        <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-sky-50 border border-sky-100">
-                                            <Icon icon="solar:document-text-bold" className="text-sky-500" />
-                                        </div>
-                                        <span className="font-semibold text-slate-700 text-sm">
-                                            {bookingStatus.score_details.assignment_name}
-                                        </span>
-                                    </div>
+                {isInProgress && (
+                    <div className="cg-note">
+                        <Icon icon="solar:bell-linear" width={16} height={16} className="mt-0.5 shrink-0" style={{ color: "var(--cg-warning)" }} />
+                        <p className="m-0">
+                            กำลังตรวจงานของท่าน กรุณารอผู้ตรวจที่โต๊ะ {status.desk_number}{bookingStatus?.zone ? ` โซน ${bookingStatus.zone.name}` : ""}
+                        </p>
+                    </div>
+                )}
 
-                                    {bookingStatus.score_details.type === "single" && (
-                                        <>
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm text-slate-500">คะแนน</span>
-                                                <span className="text-xl font-bold text-emerald-600">
-                                                    {bookingStatus.score_details.score} / {bookingStatus.score_details.max_score}
-                                                </span>
-                                            </div>
-                                            {bookingStatus.score_details.comment && (
-                                                <p className="rounded-2xl bg-slate-50 px-4 py-2.5 text-sm text-slate-600">
-                                                    <span className="text-slate-400">หมายเหตุ: </span>
-                                                    {bookingStatus.score_details.comment}
-                                                </p>
-                                            )}
-                                        </>
-                                    )}
-
-                                    {bookingStatus.score_details.type === "sub_items" && bookingStatus.score_details.sub_items && (
-                                        <>
-                                            <div className="space-y-2">
-                                                {bookingStatus.score_details.sub_items.map((item, idx) => (
-                                                    <div key={item.id} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-2.5">
-                                                        <span className="text-sm text-slate-600">{idx + 1}. {item.name}</span>
-                                                        <span className="text-sm font-semibold text-emerald-600">
-                                                            {item.score} / {item.max_score}
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            <div className="flex items-center justify-between border-t border-slate-100 pt-3">
-                                                <span className="text-sm font-medium text-slate-700">รวม</span>
-                                                <span className="text-xl font-bold text-emerald-600">
-                                                    {bookingStatus.score_details.total_score} / {bookingStatus.score_details.total_max_score}
-                                                </span>
-                                            </div>
-                                        </>
-                                    )}
-
-                                    <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-100">
-                                        <span>
-                                            ตรวจโดย: {bookingStatus.score_details.graded_by || bookingStatus.assignedWorker?.full_name || "-"}
-                                        </span>
-                                        {bookingStatus.completed_at && (
-                                            <span>
-                                                {new Date(bookingStatus.completed_at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}
-                                            </span>
-                                        )}
-                                    </div>
+                {/* completed: the score is what the student came back for */}
+                {isCompleted && bookingStatus?.score_details && (
+                    <section className="flex flex-col gap-2">
+                        <p className="cg-section-label">ผลการตรวจ {bookingStatus.score_details.assignment_name}</p>
+                        <div className="cg-list">
+                            {bookingStatus.score_details.type === "single" && (
+                                <div className="cg-row">
+                                    <span className="cg-row-body"><span className="cg-row-title">คะแนน</span></span>
+                                    <span className="cg-mono text-lg font-semibold" style={{ color: "var(--cg-success)" }}>
+                                        {bookingStatus.score_details.score} / {bookingStatus.score_details.max_score}
+                                    </span>
                                 </div>
                             )}
-
-                            {bookingStatus?.student && (
-                                <p className="text-center text-xs text-slate-400">
-                                    <Icon icon="solar:user-id-bold" className="inline mr-1" />
-                                    {bookingStatus.student.student_id} · {bookingStatus.student.full_name}
-                                </p>
+                            {bookingStatus.score_details.type === "sub_items" && bookingStatus.score_details.sub_items && (
+                                <>
+                                    {bookingStatus.score_details.sub_items.map((item, idx) => (
+                                        <div key={item.id} className="cg-row">
+                                            <span className="cg-row-body">
+                                                <span className="cg-row-title">{idx + 1}. {item.name}</span>
+                                            </span>
+                                            <span className="cg-mono text-[13px] font-medium" style={{ color: "var(--cg-success)" }}>
+                                                {item.score} / {item.max_score}
+                                            </span>
+                                        </div>
+                                    ))}
+                                    <div className="cg-row">
+                                        <span className="cg-row-body"><span className="cg-row-title">รวม</span></span>
+                                        <span className="cg-mono text-lg font-semibold" style={{ color: "var(--cg-success)" }}>
+                                            {bookingStatus.score_details.total_score} / {bookingStatus.score_details.total_max_score}
+                                        </span>
+                                    </div>
+                                </>
                             )}
-
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    const nextBookingType = status.booking_type === "help" ? "help" : "grading";
-                                    cleanupPolling();
-                                    currentBookingIdRef.current = null;
-                                    clearBookingState();
-                                    setStep("form");
-                                    if (loggedInUser) {
-                                        setStudentId(loggedInUser.username ?? "");
-                                    }
-                                    setDeskNumber(status.desk_number || "");
-                                    setBookingType(nextBookingType);
-                                    setNote("");
-                                    setShowNote(false);
-                                    setBookingResult(null);
-                                    setBookingStatus(null);
-                                    setStudentInfo(null);
-                                    setDeskInfo(null);
-                                    setValidationErrors([]);
-                                    setValidationWarnings([]);
-                                    setBookingTypeAvailability(null);
-                                    setLatePreviewInfo(null);
-                                    setIsLateConfirmOpen(false);
-                                }}
-                                className="w-full rounded-full bg-linear-to-r from-sky-600 to-cyan-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-300/40 transition active:scale-[0.98]"
-                            >
-                                จองคิวใหม่
-                            </button>
-                            <Link href="/student" className="block py-2 text-center text-sm font-medium text-sky-600 transition hover:text-sky-700">
-                                กลับหน้าหลัก
-                            </Link>
-                        </>
-                    )}
-
-                    {isEnded && (
-                        <>
-                            <div className="flex items-center gap-2 rounded-3xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                                <Icon icon={status.status === "cancelled" ? "solar:close-circle-bold" : "solar:user-cross-bold"} className="shrink-0 text-lg" />
-                                <span>
-                                    {status.status === "cancelled"
-                                        ? "คิวนี้ถูกยกเลิกแล้ว"
-                                        : "คิวนี้ถูกผู้ตรวจข้ามแล้ว"}
+                            {bookingStatus.score_details.comment && (
+                                <div className="cg-row">
+                                    <span className="cg-row-body">
+                                        <span className="cg-row-sub" style={{ marginTop: 0 }}>หมายเหตุจากผู้ตรวจ</span>
+                                        <span className="cg-row-title" style={{ fontWeight: 400 }}>{bookingStatus.score_details.comment}</span>
+                                    </span>
+                                </div>
+                            )}
+                            <div className="cg-row">
+                                <span className="cg-row-body">
+                                    <span className="cg-row-sub" style={{ marginTop: 0 }}>
+                                        ตรวจโดย {bookingStatus.score_details.graded_by || bookingStatus.assignedWorker?.full_name || "-"}
+                                        {bookingStatus.completed_at
+                                            ? ` เมื่อ ${new Date(bookingStatus.completed_at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })} น.`
+                                            : ""}
+                                    </span>
                                 </span>
                             </div>
-                            {status.status === "no_show" && bookingStatus?.worker_note && (
-                                <div className="rounded-3xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                                    <span className="font-semibold">เหตุผลจากผู้ตรวจ: </span>
-                                    <span>{bookingStatus.worker_note}</span>
-                                </div>
-                            )}
+                        </div>
+                    </section>
+                )}
 
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    cleanupPolling();
-                                    currentBookingIdRef.current = null;
-                                    clearBookingState();
-                                    setBookingResult(null);
-                                    setBookingStatus(null);
-                                    setStep("form");
-                                }}
-                                className="w-full rounded-full bg-linear-to-r from-sky-600 to-cyan-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-300/40 transition active:scale-[0.98]"
-                            >
-                                กลับไปจองใหม่
-                            </button>
-                        </>
-                    )}
+                {!isCompleted && !isEnded && (
+                    <p className="text-center text-[11px] font-light" style={{ color: "var(--cg-text-3)" }}>
+                        หน้านี้จะอัปเดตอัตโนมัติ
+                    </p>
+                )}
 
-                    {!isCompleted && (
-                        <p className="text-center text-xs text-slate-400">หน้านี้จะอัพเดทอัตโนมัติ</p>
+                <div className="cg-task-cta">
+                    {isWaiting && (
+                        <button type="button" className="cg-btn-danger" onClick={handleCancelBooking} disabled={isCancelling}>
+                            {isCancelling ? "กำลังยกเลิก" : "ยกเลิกการจอง"}
+                        </button>
                     )}
+                    {(isCompleted || isEnded) && (
+                        <button type="button" className="cg-btn" onClick={() => resetToForm(isCompleted)}>
+                            จองคิวใหม่
+                        </button>
+                    )}
+                    <Link href="/student" className="cg-btn-ghost text-center">กลับหน้าหลัก</Link>
                 </div>
             </div>
         );
@@ -1749,8 +1631,8 @@ function BookQueueContent() {
 export default function BookQueuePage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-sky-400 border-t-transparent" />
+            <div data-theme-scope="student" className="cg-scope app-mobile-screen flex items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-[3px]" style={{ borderColor: 'var(--cg-accent)', borderTopColor: 'transparent' }} />
             </div>
         }>
             <BookQueueContent />

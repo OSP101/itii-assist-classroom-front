@@ -10,6 +10,7 @@ import { useNotification } from "@/contexts/NotificationContext";
 import { useI18n } from "@/hooks/useI18n";
 import { getNotificationHeadline, getNotificationMessage } from "@/lib/notification-display";
 import { resolveStudentNotificationLink } from "@/lib/student-notification-links";
+import { notifStyleFor } from "@/lib/student-notification-style";
 import userNotificationService, { type UserNotificationItem } from "@/services/user-notification.service";
 
 function formatRelativeTime(value: string): string {
@@ -21,20 +22,6 @@ function formatRelativeTime(value: string): string {
   if (hours < 24) return `${hours} ชั่วโมงที่แล้ว`;
   const days = Math.floor(hours / 24);
   return `${days} วันที่แล้ว`;
-}
-
-const NOTIF_ICON_MAP: Record<string, { icon: string; bg: string; color: string }> = {
-  score:       { icon: "solar:diploma-bold-duotone",      bg: "bg-sky-50",     color: "text-sky-600"    },
-  queue:       { icon: "solar:users-group-two-rounded-bold-duotone", bg: "bg-violet-50", color: "text-violet-600" },
-  attendance:  { icon: "solar:calendar-mark-bold-duotone", bg: "bg-emerald-50", color: "text-emerald-600" },
-  bonus:       { icon: "solar:star-bold-duotone",          bg: "bg-amber-50",   color: "text-amber-600"  },
-  announcement:{ icon: "solar:megaphone-bold-duotone",     bg: "bg-rose-50",    color: "text-rose-600"   },
-  default:     { icon: "solar:bell-bing-bold-duotone",     bg: "bg-slate-100",  color: "text-slate-600"  },
-};
-
-function getNotifStyle(type: string | undefined) {
-  const key = Object.keys(NOTIF_ICON_MAP).find((k) => type?.toLowerCase().includes(k));
-  return NOTIF_ICON_MAP[key ?? "default"];
 }
 
 function getAcknowledgeInfo(notification: UserNotificationItem): { announcementId: number | null; required: boolean } {
@@ -61,6 +48,12 @@ function getAcknowledgeInfo(notification: UserNotificationItem): { announcementI
 }
 
 type FilterTab = "all" | "unread" | "read";
+
+const FILTERS: Array<{ key: FilterTab; label: string }> = [
+  { key: "all", label: "ทั้งหมด" },
+  { key: "unread", label: "ยังไม่อ่าน" },
+  { key: "read", label: "อ่านแล้ว" },
+];
 
 export default function StudentNotificationsPage() {
   const router = useRouter();
@@ -111,179 +104,132 @@ export default function StudentNotificationsPage() {
     });
 
     if (!ok) {
-      addToast({
-        title: t("error"),
-        description: t("adminSettingsUpdateFailed"),
-        color: "danger",
-      });
+      addToast({ title: t("error"), description: t("adminSettingsUpdateFailed"), color: "danger" });
       return;
     }
 
-    addToast({
-      title: t("success"),
-      description: t("adminAnnouncementAcknowledged"),
-      color: "success",
-    });
+    addToast({ title: t("success"), description: t("adminAnnouncementAcknowledged"), color: "success" });
   };
 
   return (
-    <div className="space-y-4 pb-2">
-      {/* Header strip */}
-      <div className="relative overflow-hidden rounded-4xl border border-slate-200/70 bg-slate-900 p-5 shadow-lg shadow-slate-300/30">
-        <span className="pointer-events-none absolute -right-6 -top-6 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-300">การแจ้งเตือน</p>
-            <h2 className="mt-0.5 text-xl font-bold text-white">อัปเดตล่าสุด</h2>
-          </div>
-          {unreadCount > 0 && (
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-500 text-sm font-bold text-white shadow-md">
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </span>
-          )}
-        </div>
-        {/* action row */}
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            onClick={() => void markAllNotificationsRead()}
-            className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-white/25 active:scale-95"
-          >
-            <Icon icon="solar:check-read-bold" className="text-sm" />
+    <div className="flex flex-col gap-4">
+      <div className="flex items-end justify-between gap-3">
+        <h1 className="cg-page-title">แจ้งเตือน</h1>
+        {unreadCount > 0 && (
+          <button type="button" className="cg-link pb-1" onClick={() => void markAllNotificationsRead()}>
+            <Icon icon="solar:check-read-linear" width={14} height={14} />
             อ่านทั้งหมด
           </button>
-          <button
-            onClick={() => void clearReadNotifications()}
-            className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80 backdrop-blur-sm transition hover:bg-white/20 active:scale-95"
-          >
-            <Icon icon="solar:trash-bin-trash-bold" className="text-sm" />
-            ล้างที่อ่านแล้ว
-          </button>
-        </div>
+        )}
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-2 rounded-3xl border border-slate-100 bg-white/80 p-1.5 shadow-sm">
-        {(["all", "unread", "read"] as const).map((tab) => (
+      <div className="cg-pill-row">
+        {FILTERS.map((f) => (
           <button
-            key={tab}
-            onClick={() => setFilter(tab)}
-            className={`flex-1 rounded-2xl py-2 text-sm font-semibold transition ${filter === tab ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            key={f.key}
+            type="button"
+            className="cg-pill"
+            data-active={filter === f.key}
+            onClick={() => setFilter(f.key)}
           >
-            {tab === "all" ? "ทั้งหมด" : tab === "unread" ? (
-              <span className="flex items-center justify-center gap-1.5">
-                ยังไม่อ่าน
-                {unreadItems.length > 0 && (
-                  <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white leading-none">
-                    {unreadItems.length > 99 ? "99+" : unreadItems.length}
-                  </span>
-                )}
-              </span>
-            ) : "อ่านแล้ว"}
+            {f.label}
+            {f.key === "unread" && unreadItems.length > 0 ? ` (${unreadItems.length})` : ""}
           </button>
         ))}
       </div>
 
-      {/* Content */}
       {isInboxLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="flex animate-pulse items-start gap-4 rounded-4xl border border-slate-100 bg-white/80 p-4">
-              <div className="h-11 w-11 shrink-0 rounded-2xl bg-slate-100" />
-              <div className="flex-1 space-y-2 pt-1">
-                <div className="h-3 w-16 rounded-full bg-slate-200" />
-                <div className="h-4 w-3/4 rounded-full bg-slate-200" />
-                <div className="h-3 w-1/2 rounded-full bg-slate-100" />
+        <div className="cg-list">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="cg-row animate-pulse">
+              <div className="h-9 w-9 shrink-0 rounded-xl" style={{ background: "var(--cg-fill-strong)" }} />
+              <div className="flex-1 space-y-2">
+                <div className="h-3.5 w-2/3 rounded-full" style={{ background: "var(--cg-fill-strong)" }} />
+                <div className="h-2.5 w-full rounded-full" style={{ background: "var(--cg-fill)" }} />
               </div>
             </div>
           ))}
         </div>
       ) : visibleItems.length === 0 ? (
-        <div className="flex flex-col items-center gap-4 rounded-4xl border border-dashed border-slate-200 bg-white/60 px-6 py-12 text-center">
-          <span className="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100">
-            <Icon icon="solar:bell-off-bold-duotone" className="text-3xl text-slate-400" />
-          </span>
-          <div>
-            <p className="font-semibold text-slate-700">ไม่มีการแจ้งเตือน</p>
-            <p className="mt-1 text-sm text-slate-400">เมื่อมีคะแนน เช็กชื่อ คิว หรือประกาศ จะแสดงที่หน้านี้</p>
+        <div className="cg-list">
+          <div className="cg-empty">
+            <Icon icon="solar:bell-off-linear" width={27} height={27} />
+            <b className="text-[13px] font-medium" style={{ color: "var(--cg-text-2)" }}>ไม่มีการแจ้งเตือน</b>
+            <span className="text-[11.5px] font-light">
+              {filter === "all"
+                ? "เมื่อมีคะแนน การเช็กชื่อ คิว หรือประกาศ จะแสดงที่หน้านี้"
+                : "ไม่พบรายการตามตัวกรองที่เลือก"}
+            </span>
           </div>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="cg-list">
           {visibleItems.map((notification) => {
             const href = resolveStudentNotificationLink(notification);
-            const style = getNotifStyle(notification.type);
+            const style = notifStyleFor(notification.type);
             const isUnread = !notification.is_read;
             const ackInfo = getAcknowledgeInfo(notification);
             const showAcknowledge = ackInfo.required && isUnread && ackInfo.announcementId !== null;
             const isAcking = acknowledgingIds.has(notification.id);
+
             return (
               <button
                 key={notification.id}
+                type="button"
+                className="cg-row items-start"
                 onClick={() => void handleOpen(notification.id, href)}
-                className={`group flex w-full items-start gap-4 rounded-4xl border p-4 text-left transition active:scale-[0.985] ${
-                  isUnread
-                    ? "border-slate-300 bg-slate-50/80 hover:bg-slate-50"
-                    : "border-slate-200/80 bg-white/90 hover:border-slate-300 hover:bg-white"
-                }`}
               >
-                {/* icon */}
-                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${style.bg}`}>
-                  <Icon icon={style.icon} className={`text-xl ${style.color}`} />
+                <span className="cg-row-ico mt-0.5" style={{ background: style.bg, color: style.fg }}>
+                  <Icon icon={style.icon} width={17} height={17} />
                 </span>
-
-                {/* body */}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className={`text-[11px] font-semibold uppercase tracking-wide ${isUnread ? "text-slate-700" : "text-slate-400"}`}>
-                      {notification.course_id ? `วิชา ${notification.course_id}` : "ทั่วไป"}
-                    </p>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <span className="text-[11px] text-slate-400">{formatRelativeTime(notification.created_at)}</span>
-                      {isUnread && <span className="h-2 w-2 rounded-full bg-slate-700" />}
-                    </div>
-                  </div>
-                  <p className="mt-0.5 text-sm font-semibold text-slate-900">
+                <span className="cg-row-body">
+                  <span className="cg-row-title" style={isUnread ? undefined : { fontWeight: 400, color: "var(--cg-text-2)" }}>
                     {getNotificationHeadline(notification, language, t)}
-                  </p>
-                  <p className="mt-0.5 line-clamp-2 text-sm leading-5 text-slate-500">
-                    {getNotificationMessage(notification, language, t)}
-                  </p>
-                  {href && (
-                    <p className="mt-2 flex items-center gap-1 text-xs font-semibold text-slate-700">
-                      เปิดดู <Icon icon="solar:arrow-right-bold" className="text-xs" />
-                    </p>
-                  )}
+                  </span>
+                  <span className="cg-row-sub line-clamp-2">{getNotificationMessage(notification, language, t)}</span>
+                  <span className="cg-row-sub" style={{ color: "var(--cg-text-3)" }}>
+                    {formatRelativeTime(notification.created_at)}
+                  </span>
+
                   {showAcknowledge && (
-                    <div className="mt-3">
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        onClick={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          if (ackInfo.announcementId !== null) {
-                            void handleAcknowledge(notification.id, ackInfo.announcementId);
-                          }
-                        }}
-                        onKeyDown={(event) => {
-                          if (event.key !== "Enter" && event.key !== " ") return;
-                          event.preventDefault();
-                          event.stopPropagation();
-                          if (ackInfo.announcementId !== null) {
-                            void handleAcknowledge(notification.id, ackInfo.announcementId);
-                          }
-                        }}
-                        className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700"
-                      >
-                        {isAcking ? t("loading") : t("adminAcknowledgeAction")}
-                      </span>
-                    </div>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="cg-badge cg-badge-success mt-2"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (ackInfo.announcementId !== null) {
+                          void handleAcknowledge(notification.id, ackInfo.announcementId);
+                        }
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter" && event.key !== " ") return;
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (ackInfo.announcementId !== null) {
+                          void handleAcknowledge(notification.id, ackInfo.announcementId);
+                        }
+                      }}
+                    >
+                      {isAcking ? t("loading") : t("adminAcknowledgeAction")}
+                    </span>
                   )}
-                </div>
+                </span>
+                {isUnread && (
+                  <span className="mt-1.5 h-2 w-2 shrink-0 self-start rounded-full" style={{ background: "var(--cg-accent)" }} />
+                )}
               </button>
             );
           })}
         </div>
+      )}
+
+      {readItems.length > 0 && (
+        <button type="button" className="cg-link self-center" style={{ color: "var(--cg-text-2)" }} onClick={() => void clearReadNotifications()}>
+          <Icon icon="solar:trash-bin-trash-linear" width={14} height={14} />
+          ล้างที่อ่านแล้ว
+        </button>
       )}
     </div>
   );

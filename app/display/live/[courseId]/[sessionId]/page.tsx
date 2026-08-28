@@ -100,7 +100,7 @@ export default function DisplayLivePage() {
         : session.status === "closed"
             ? "PIN ถูกคืนเข้าระบบแล้ว"
             : new Date() < new Date(session.start_time)
-                ? "PIN จะออกเมื่อเริ่มรอบเช็คชื่อ"
+                ? "PIN จะออกเมื่อเริ่มรอบเช็กชื่อ"
                 : "กำลังออกรหัสใหม่...";
 
     const stats = {
@@ -128,7 +128,7 @@ export default function DisplayLivePage() {
         setIsExpired(true);
         addToast({
             title: "หมดสิทธิ์การแสดงผล",
-            description: "การเช็คชื่อสิ้นสุดแล้ว",
+            description: "การเช็กชื่อสิ้นสุดแล้ว",
             color: "warning",
             timeout: 3000,
             shouldShowTimeoutProgress: true,
@@ -136,7 +136,7 @@ export default function DisplayLivePage() {
     }, []);
 
     useEffect(() => {
-        const pageLabel = "หน้าจอเช็คชื่อ";
+        const pageLabel = "หน้าจอเช็กชื่อ";
         const courseContext = buildCourseTitleContext(session?.course);
         document.title = buildPageTitle(pageLabel, courseContext);
     }, [session?.course]);
@@ -347,8 +347,8 @@ export default function DisplayLivePage() {
                     if (!record) return;
                     setRecords((prev) => upsertRecord(prev, record));
                     addToast({
-                        title: "นักศึกษาเช็คชื่อ",
-                        description: `${record.student?.full_name || "นักศึกษา"} เช็คชื่อเรียบร้อย`,
+                        title: "นักศึกษาเช็กชื่อ",
+                        description: `${record.student?.full_name || "นักศึกษา"} เช็กชื่อเรียบร้อย`,
                         color: "success",
                         timeout: 2500,
                         shouldShowTimeoutProgress: true,
@@ -392,7 +392,7 @@ export default function DisplayLivePage() {
                             : prev
                     );
                     addToast({
-                        title: "ปิดรอบเช็คชื่อแล้ว",
+                        title: "ปิดรอบเช็กชื่อแล้ว",
                         description: "รอบนี้ปิดแล้ว หน้าจอนี้ยังดูข้อมูลล่าสุดได้",
                         color: "warning",
                         timeout: 4000,
@@ -505,8 +505,8 @@ export default function DisplayLivePage() {
             <div className="flex justify-center items-center min-h-screen bg-slate-50">
                 <Card className="max-w-sm shadow-xl">
                     <CardBody className="text-center py-12">
-                        <Icon icon="solar:clock-circle-bold-duotone" className="text-6xl text-amber-400 mx-auto mb-4" aria-label="หมดเวลาการเช็คชื่อ" />
-                        <p className="text-lg font-semibold text-slate-700 mb-2">หมดเวลาการเช็คชื่อ</p>
+                        <Icon icon="solar:clock-circle-bold-duotone" className="text-6xl text-amber-400 mx-auto mb-4" aria-label="หมดเวลาการเช็กชื่อ" />
+                        <p className="text-lg font-semibold text-slate-700 mb-2">หมดเวลาการเช็กชื่อ</p>
                         <p className="text-sm text-slate-400">สิทธิ์การแสดงผลสิ้นสุดแล้ว</p>
                     </CardBody>
                 </Card>
@@ -598,7 +598,7 @@ export default function DisplayLivePage() {
                         <CardHeader className="pb-2">
                             <div className="flex items-center gap-2">
                                 <Icon icon="solar:key-minimalistic-square-2-linear" className="text-xl text-blue-500" />
-                                <h3 className="text-lg font-semibold text-slate-700">รหัสและช่องทางการเช็คชื่อ</h3>
+                                <h3 className="text-lg font-semibold text-slate-700">รหัสและช่องทางการเช็กชื่อ</h3>
                             </div>
                         </CardHeader>
                         <CardBody className="text-center pt-2">
@@ -690,7 +690,7 @@ export default function DisplayLivePage() {
                         <CardHeader className="pb-2">
                             <div className="flex items-center gap-2">
                                 <Icon icon="solar:chart-2-linear" className="text-xl text-blue-500" />
-                                <h3 className="text-lg font-semibold text-slate-700">สถิติภาพรวมการเช็คชื่อ</h3>
+                                <h3 className="text-lg font-semibold text-slate-700">สถิติภาพรวมการเช็กชื่อ</h3>
                             </div>
                         </CardHeader>
                         <CardBody>
@@ -720,7 +720,7 @@ export default function DisplayLivePage() {
                                         )}
                                     </p>
                                     <p className="text-xs text-amber-600">
-                                        เช็คชื่อหลัง {lateThresholdDisplay} น. จะถือว่า "สาย"
+                                        เช็กชื่อหลัง {lateThresholdDisplay} น. จะถือว่า "สาย"
                                     </p>
                                 </div>
                             )}
@@ -731,7 +731,7 @@ export default function DisplayLivePage() {
                                         <div className="p-1.5 bg-blue-100 rounded-lg">
                                             <Icon icon="solar:users-group-rounded-bold" className="text-lg text-blue-500" />
                                         </div>
-                                        <p className="text-xs text-blue-600 font-medium">เช็คชื่อแล้ว</p>
+                                        <p className="text-xs text-blue-600 font-medium">เช็กชื่อแล้ว</p>
                                     </div>
                                     <p className="text-2xl font-bold text-blue-600">{stats.checkedIn}</p>
                                 </div>
@@ -776,14 +776,14 @@ export default function DisplayLivePage() {
                             {/* Progress bar */}
                             <div className="mt-4">
                                 <div className="flex justify-between text-xs text-slate-500 mb-1">
-                                    <span>ความคืบหน้าการเช็คชื่อ</span>
+                                    <span>ความคืบหน้าการเช็กชื่อ</span>
                                     <span>
                                         {stats.checkedIn}/{stats.total} คน
                                     </span>
                                 </div>
                                 <Progress
                                     value={stats.total > 0 ? (stats.checkedIn / stats.total) * 100 : 0}
-                                    aria-label="ความคืบหน้าการเช็คชื่อ"
+                                    aria-label="ความคืบหน้าการเช็กชื่อ"
                                     color="success"
                                     className="h-2"
                                 />
@@ -796,7 +796,7 @@ export default function DisplayLivePage() {
                         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 border-b border-slate-200 bg-blue-50/50">
                             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                                 <Icon icon="solar:checklist-minimalistic-linear" className="text-xl text-blue-600" />
-                                รายชื่อผู้เช็คชื่อ
+                                รายชื่อผู้เช็กชื่อ
                                 <Chip size="sm" variant="flat" color="primary">{stats.checkedIn} คน</Chip>
                             </h2>
                             <Input
@@ -817,7 +817,7 @@ export default function DisplayLivePage() {
                         <CardBody className="p-0">
                             <div className="overflow-y-auto max-h-100 p-3">
                                 <Table
-                                    aria-label="รายชื่อผู้เช็คชื่อ"
+                                    aria-label="รายชื่อผู้เช็กชื่อ"
                                     removeWrapper
                                     classNames={{
                                         th: "bg-slate-50 text-slate-500 font-medium text-xs uppercase",
@@ -827,7 +827,7 @@ export default function DisplayLivePage() {
                                     <TableHeader>
                                         <TableColumn>สถานะ</TableColumn>
                                         <TableColumn>ชื่อนักศึกษา / รหัส</TableColumn>
-                                        <TableColumn align="center">เวลาเช็คชื่อ</TableColumn>
+                                        <TableColumn align="center">เวลาเช็กชื่อ</TableColumn>
                                     </TableHeader>
                                     <TableBody
                                         emptyContent={
@@ -838,7 +838,7 @@ export default function DisplayLivePage() {
                                                         className="text-5xl text-slate-300"
                                                     />
                                                 </div>
-                                                <p className="text-slate-500 font-medium">ยังไม่มีผู้เช็คชื่อ</p>
+                                                <p className="text-slate-500 font-medium">ยังไม่มีผู้เช็กชื่อ</p>
                                                 <p className="text-slate-400 text-sm mt-1">
                                                     รอนักศึกษาสแกน QR Code หรือกรอก PIN
                                                 </p>

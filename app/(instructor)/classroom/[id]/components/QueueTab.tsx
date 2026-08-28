@@ -342,7 +342,7 @@ export default function QueueTab({
                 });
             }
             setAssignments(assignmentsData || []);
-            // แสดงทุกรอบเช็คชื่อ (ไม่ต้อง filter เพราะอาจต้องการลิงก์กับรอบที่จบไปแล้ว)
+            // แสดงทุกรอบเช็กชื่อ (ไม่ต้อง filter เพราะอาจต้องการลิงก์กับรอบที่จบไปแล้ว)
             setAttendanceSessions(attendanceData || []);
         } catch (error) {
             console.error("Error fetching options:", error);
@@ -1243,7 +1243,7 @@ export default function QueueTab({
                                                                     <Tooltip
                                                                         content={session.concurrent_partner
                                                                             ? localize(
-                                                                                `เชื่อมกับ: ${session.concurrent_partner.course_name} — "${session.concurrent_partner.title}"`,
+                                                                                `เชื่อมกับ: ${session.concurrent_partner.course_name} "${session.concurrent_partner.title}"`,
                                                                                 `Linked with: ${session.concurrent_partner.course_name} — "${session.concurrent_partner.title}"`
                                                                               )
                                                                             : localize("คิวร่วมกับอีกวิชา", "Linked with another course")}
@@ -1721,7 +1721,7 @@ export default function QueueTab({
                                                     <Icon icon="solar:clipboard-check-bold" className="text-lg text-blue-600" />
                                                 </div>
                                                 <div>
-                                                    <span className="font-semibold text-default-700">{localize("ลิงก์กับการเช็คชื่อ", "Link attendance")}</span>
+                                                    <span className="font-semibold text-default-700">{localize("ลิงก์กับการเช็กชื่อ", "Link attendance")}</span>
                                                     <p className="text-xs text-default-500">{localize("ถ้านักศึกษาขาดเรียน จะไม่อนุญาตให้จองคิว", "Students marked absent will not be allowed to book the queue")}</p>
                                                 </div>
                                             </div>
@@ -1741,8 +1741,8 @@ export default function QueueTab({
 
                                         {attendanceSessions.length > 0 ? (
                                             <Select
-                                                placeholder={localize("เลือกรอบเช็คชื่อที่ต้องการลิงก์", "Select an attendance session to link")}
-                                                aria-label={localize("เลือกรอบเช็คชื่อ", "Select attendance session")}
+                                                placeholder={localize("เลือกรอบเช็กชื่อที่ต้องการลิงก์", "Select an attendance session to link")}
+                                                aria-label={localize("เลือกรอบเช็กชื่อ", "Select attendance session")}
                                                 isLoading={isOptionsLoading}
                                                 selectedKeys={formData.linked_attendance_session_id ? [formData.linked_attendance_session_id.toString()] : undefined}
                                                 onSelectionChange={(keys) => {
@@ -1773,7 +1773,7 @@ export default function QueueTab({
                                         ) : (
                                             <div className="rounded-lg bg-content3 p-3 text-center">
                                                 <Icon icon="solar:clipboard-list-linear" className="mb-1 text-xl text-default-400" />
-                                                <p className="text-sm text-default-500">{localize("ยังไม่มีรอบเช็คชื่อ", "No attendance sessions yet")}</p>
+                                                <p className="text-sm text-default-500">{localize("ยังไม่มีรอบเช็กชื่อ", "No attendance sessions yet")}</p>
                                             </div>
                                         )}
 
@@ -1782,7 +1782,7 @@ export default function QueueTab({
                                                 <div className="flex items-center gap-2 text-blue-700">
                                                     <Icon icon="solar:info-circle-bold" />
                                                     <span className="text-sm font-medium">
-                                                        {localize("นักศึกษาที่ขาดเรียนในรอบเช็คชื่อนี้ จะไม่สามารถจองคิวได้", "Students absent in this attendance session will not be able to book the queue")}
+                                                        {localize("นักศึกษาที่ขาดเรียนในรอบเช็กชื่อนี้ จะไม่สามารถจองคิวได้", "Students absent in this attendance session will not be able to book the queue")}
                                                     </span>
                                                 </div>
                                             </div>
@@ -2069,7 +2069,7 @@ export default function QueueTab({
                                 )}
                             </div>
 
-                            {/* ลิงก์กับการเช็คชื่อ */}
+                            {/* ลิงก์กับการเช็กชื่อ */}
                             <div className="rounded-xl border border-default-200 bg-content2 p-5">
                                 <div className="mb-4 flex items-start justify-between gap-3">
                                     <div className="flex items-center gap-3">
@@ -2077,7 +2077,7 @@ export default function QueueTab({
                                             <Icon icon="solar:clipboard-check-bold" className="text-lg text-blue-600" />
                                         </div>
                                         <div>
-                                            <span className="font-semibold text-default-700">{localize("ลิงก์กับการเช็คชื่อ", "Link attendance")}</span>
+                                            <span className="font-semibold text-default-700">{localize("ลิงก์กับการเช็กชื่อ", "Link attendance")}</span>
                                             <p className="text-xs text-default-500">{localize("ถ้านักศึกษาขาดเรียน จะไม่อนุญาตให้จองคิว", "Students marked absent will not be allowed to book the queue")}</p>
                                         </div>
                                     </div>
@@ -2097,8 +2097,8 @@ export default function QueueTab({
 
                                 {attendanceSessions.length > 0 ? (
                                     <Select
-                                        placeholder={localize("เลือกรอบเช็คชื่อที่ต้องการลิงก์", "Select an attendance session to link")}
-                                        aria-label={localize("เลือกรอบเช็คชื่อ", "Select attendance session")}
+                                        placeholder={localize("เลือกรอบเช็กชื่อที่ต้องการลิงก์", "Select an attendance session to link")}
+                                        aria-label={localize("เลือกรอบเช็กชื่อ", "Select attendance session")}
                                         isLoading={isOptionsLoading}
                                         selectedKeys={formData.linked_attendance_session_id ? [formData.linked_attendance_session_id.toString()] : undefined}
                                         onSelectionChange={(keys) => {
@@ -2131,7 +2131,7 @@ export default function QueueTab({
                                 ) : (
                                     <div className="rounded-lg bg-content3 p-3 text-center">
                                         <Icon icon="solar:clipboard-list-linear" className="mb-1 text-xl text-default-400" />
-                                        <p className="text-sm text-default-500">{localize("ยังไม่มีรอบเช็คชื่อ", "No attendance sessions yet")}</p>
+                                        <p className="text-sm text-default-500">{localize("ยังไม่มีรอบเช็กชื่อ", "No attendance sessions yet")}</p>
                                     </div>
                                 )}
 
@@ -2140,7 +2140,7 @@ export default function QueueTab({
                                         <div className="flex items-center gap-2 text-blue-700">
                                             <Icon icon="solar:info-circle-bold" />
                                             <span className="text-sm font-medium">
-                                                {localize("นักศึกษาที่ขาดเรียนในรอบเช็คชื่อนี้ จะไม่สามารถจองคิวได้", "Students absent in this attendance session will not be able to book the queue")}
+                                                {localize("นักศึกษาที่ขาดเรียนในรอบเช็กชื่อนี้ จะไม่สามารถจองคิวได้", "Students absent in this attendance session will not be able to book the queue")}
                                             </span>
                                         </div>
                                     </div>

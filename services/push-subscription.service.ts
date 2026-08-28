@@ -55,7 +55,7 @@ export async function ensurePushSubscription(): Promise<PushSubscriptionJSON> {
     if (!publicKey) {
         // Backend has no VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY configured (or the
         // /api/push/vapid-public-key endpoint is unreachable).
-        throw new Error("เซิร์ฟเวอร์ยังไม่ได้ตั้งค่า VAPID key — โปรดติดต่อผู้ดูแลระบบ");
+        throw new Error("เซิร์ฟเวอร์ยังไม่ได้ตั้งค่า VAPID key กรุณาติดต่อผู้ดูแลระบบ");
     }
 
     const registration = await registerPwaServiceWorker();

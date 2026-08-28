@@ -151,18 +151,18 @@ function getPermissionSections(isEnglish: boolean): Array<{
             ],
         },
         {
-            title: isEnglish ? "Exam scores, attendance, and queue" : "คะแนนสอบ เช็คชื่อ และคิว",
+            title: isEnglish ? "Exam scores, attendance, and queue" : "คะแนนสอบ เช็กชื่อ และคิว",
             items: [
                 { key: "view_exam_scores", label: isEnglish ? "View exam scores" : "ดูคะแนนสอบ", description: isEnglish ? "Open exam score data and statistics." : "เปิดดูข้อมูลคะแนนสอบและสถิติ" },
                 { key: "create_exam_scores", label: isEnglish ? "Add exam scores" : "เพิ่มคะแนนสอบ", description: isEnglish ? "Add new exam scores to the system." : "เพิ่มคะแนนสอบใหม่เข้าระบบ" },
                 { key: "update_exam_scores", label: isEnglish ? "Edit exam scores" : "แก้ไขคะแนนสอบ", description: isEnglish ? "Edit existing exam scores." : "แก้ไขคะแนนสอบที่มีอยู่แล้ว" },
                 { key: "delete_exam_scores", label: isEnglish ? "Delete exam scores" : "ลบคะแนนสอบ", description: isEnglish ? "Delete exam score records." : "ลบข้อมูลคะแนนสอบ" },
                 { key: "update_exam_settings", label: isEnglish ? "Edit exam settings" : "แก้การตั้งค่าคะแนนสอบ", description: isEnglish ? "Adjust exam settings or score weighting." : "ปรับ exam settings หรือสัดส่วนคะแนนสอบ" },
-                { key: "view_attendance", label: isEnglish ? "View attendance" : "ดูข้อมูลเช็คชื่อ", description: isEnglish ? "View attendance sessions and records." : "ดู session เช็คชื่อและรายการเข้าเรียน" },
-                { key: "create_attendance_sessions", label: isEnglish ? "Create attendance sessions" : "สร้าง session เช็คชื่อ", description: isEnglish ? "Create new attendance sessions." : "สร้าง session เช็คชื่อใหม่" },
-                { key: "update_attendance_sessions", label: isEnglish ? "Edit attendance sessions" : "แก้ session เช็คชื่อ", description: isEnglish ? "Adjust time, status, and attendance session details." : "ปรับเวลา เปิด ปิด และแก้ session เช็คชื่อ" },
-                { key: "delete_attendance_sessions", label: isEnglish ? "Delete attendance sessions" : "ลบ session เช็คชื่อ", description: isEnglish ? "Delete attendance sessions." : "ลบ session เช็คชื่อ" },
-                { key: "update_attendance_status", label: isEnglish ? "Update attendance status" : "แก้สถานะเช็คชื่อ", description: isEnglish ? "Update attendance status per student or in bulk." : "อัปเดตสถานะการเข้าเรียนรายคนหรือแบบกลุ่ม" },
+                { key: "view_attendance", label: isEnglish ? "View attendance" : "ดูข้อมูลเช็กชื่อ", description: isEnglish ? "View attendance sessions and records." : "ดู session เช็กชื่อและรายการเข้าเรียน" },
+                { key: "create_attendance_sessions", label: isEnglish ? "Create attendance sessions" : "สร้าง session เช็กชื่อ", description: isEnglish ? "Create new attendance sessions." : "สร้าง session เช็กชื่อใหม่" },
+                { key: "update_attendance_sessions", label: isEnglish ? "Edit attendance sessions" : "แก้ session เช็กชื่อ", description: isEnglish ? "Adjust time, status, and attendance session details." : "ปรับเวลา เปิด ปิด และแก้ session เช็กชื่อ" },
+                { key: "delete_attendance_sessions", label: isEnglish ? "Delete attendance sessions" : "ลบ session เช็กชื่อ", description: isEnglish ? "Delete attendance sessions." : "ลบ session เช็กชื่อ" },
+                { key: "update_attendance_status", label: isEnglish ? "Update attendance status" : "แก้สถานะเช็กชื่อ", description: isEnglish ? "Update attendance status per student or in bulk." : "อัปเดตสถานะการเข้าเรียนรายคนหรือแบบกลุ่ม" },
                 { key: "view_queue", label: isEnglish ? "View review queue" : "ดูคิวตรวจงาน", description: isEnglish ? "View queue sessions, workers, and bookings." : "ดู session คิว รายชื่อ worker และรายการจองคิว" },
                 { key: "create_queue_sessions", label: isEnglish ? "Create review queues" : "สร้างคิวตรวจงาน", description: isEnglish ? "Create new queue sessions." : "สร้าง session คิวตรวจงานใหม่" },
                 { key: "update_queue_sessions", label: isEnglish ? "Edit review queues" : "แก้คิวตรวจงาน", description: isEnglish ? "Edit queue sessions, open/close state, breaks, and workers." : "แก้ session คิว เปิด ปิด หยุดพัก และจัดการ worker" },
@@ -211,7 +211,7 @@ function summarizePermissions(permissions: CourseMemberPermissions, isEnglish: b
         permissions.view_score_summary ? (isEnglish ? "Score summary" : "สรุปคะแนน") : null,
         permissions.review_all_score_requests ? (isEnglish ? "All score requests" : "อนุมัติคำร้อง") : permissions.review_own_score_requests ? (isEnglish ? "Own score requests" : "ดูคำร้องตนเอง") : null,
         permissions.view_exam_scores || permissions.create_exam_scores || permissions.update_exam_scores || permissions.delete_exam_scores || permissions.update_exam_settings ? (isEnglish ? "Exam scores" : "คะแนนสอบ") : null,
-        permissions.view_attendance || permissions.create_attendance_sessions || permissions.update_attendance_sessions || permissions.delete_attendance_sessions || permissions.update_attendance_status ? (isEnglish ? "Attendance" : "เช็คชื่อ") : null,
+        permissions.view_attendance || permissions.create_attendance_sessions || permissions.update_attendance_sessions || permissions.delete_attendance_sessions || permissions.update_attendance_status ? (isEnglish ? "Attendance" : "เช็กชื่อ") : null,
         permissions.view_queue || permissions.create_queue_sessions || permissions.update_queue_sessions || permissions.delete_queue_sessions || permissions.manage_queue_bookings ? (isEnglish ? "Queue" : "คิว") : null,
     ].filter((value): value is string => Boolean(value));
 

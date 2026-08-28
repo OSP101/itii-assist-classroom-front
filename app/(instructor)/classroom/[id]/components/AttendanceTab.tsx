@@ -69,8 +69,8 @@ export default function AttendanceTab({
                                 <Icon icon="solar:bell-bing-bold" className="text-xl text-white animate-bounce" />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold text-foreground">{isEnglish ? "Attendance updated" : "มีรอบเช็คชื่อใหม่"}</p>
-                                <p className="mt-0.5 text-xs text-default-500">{isEnglish ? "A session was added or updated in this classroom." : "มีการเพิ่มหรือแก้ไขรอบเช็คชื่อในชั้นเรียนนี้"}</p>
+                                <p className="text-sm font-bold text-foreground">{isEnglish ? "Attendance updated" : "มีรอบเช็กชื่อใหม่"}</p>
+                                <p className="mt-0.5 text-xs text-default-500">{isEnglish ? "A session was added or updated in this classroom." : "มีการเพิ่มหรือแก้ไขรอบเช็กชื่อในชั้นเรียนนี้"}</p>
                             </div>
                             <Button
                                 size="sm"

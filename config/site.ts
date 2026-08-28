@@ -4,7 +4,7 @@ export type SiteConfig = typeof siteConfig;
 
 export const siteConfig = {
   name: "COCO LABS",
-  description: "แพลตฟอร์มจัดการห้องเรียนสำหรับงานสอน การเช็คชื่อ การส่งงาน การเข้าคิว การติดตามคะแนน และศูนย์ช่วยเหลือสาธารณะของ COCO LABS.",
+  description: "แพลตฟอร์มจัดการห้องเรียนสำหรับงานสอน การเช็กชื่อ การส่งงาน การเข้าคิว การติดตามคะแนน และศูนย์ช่วยเหลือสาธารณะของ COCO LABS.",
   keywords: [
     "COCO LABS",
     "classroom management",

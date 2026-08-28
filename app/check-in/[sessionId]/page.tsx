@@ -18,7 +18,27 @@ import { useAttendancePinPresentation } from "@/hooks/useAttendancePinPresentati
 import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
 
 // Check-in step type
-type Step = "loading" | "session-info" | "google-login" | "location" | "pin-entry" | "success" | "error" | "already-checked-in";
+type Step = "loading" | "redirecting" | "session-info" | "google-login" | "location" | "pin-entry" | "success" | "error" | "already-checked-in" | "blocked";
+
+type NetworkGuardCheck = "device" | "network" | "domain";
+
+const NETWORK_GUARD_MESSAGES: Record<NetworkGuardCheck, { th: string; en: string; icon: string }> = {
+    device: {
+        th: "ต้องเช็กชื่อผ่านมือถือหรือแท็บเล็ตเท่านั้น ไม่รองรับคอมพิวเตอร์/โน้ตบุ๊ก",
+        en: "Check-in requires a mobile phone or tablet — desktop/laptop is not supported.",
+        icon: "solar:smartphone-2-bold-duotone",
+    },
+    domain: {
+        th: "กรุณาเข้าผ่านลิงก์ของคณะ (cocolabs.computing.kku.ac.th) เท่านั้น",
+        en: "Please open the check-in link on the faculty domain (cocolabs.computing.kku.ac.th) only.",
+        icon: "solar:link-bold-duotone",
+    },
+    network: {
+        th: "กรุณาเชื่อมต่อ Wi-Fi ของมหาวิทยาลัยขอนแก่น (ห้ามใช้ VPN หรืออินเทอร์เน็ตมือถือ)",
+        en: "Please connect to KKU campus Wi-Fi (VPN and mobile data are not allowed).",
+        icon: "solar:wi-fi-router-bold-duotone",
+    },
+};
 
 function getAttendanceErrorInfo(error: unknown, fallbackTitle: string, fallbackMessage: string) {
     if (error instanceof AttendanceRequestError) {
@@ -85,9 +105,29 @@ export default function StudentCheckInPage() {
         status: string;
         check_in_time: string;
     } | null>(null);
+    const [blockedReasons, setBlockedReasons] = useState<NetworkGuardCheck[]>([]);
+    const redirectingRef = useRef(false);
+
+    // Force check-in links onto the canonical faculty domain — whatever
+    // domain the link was opened from (an alias, an IP, anything), the
+    // backend's campus network guard only trusts the private LAN IP when
+    // the request actually arrives on the canonical host, so bounce there
+    // immediately before fetching anything.
+    useEffect(() => {
+        const canonical = (process.env.NEXT_PUBLIC_FRONTEND_URL || "").replace(/\/$/, "");
+        if (!canonical || typeof window === "undefined") {
+            return;
+        }
+        if (window.location.origin === canonical) {
+            return;
+        }
+        redirectingRef.current = true;
+        setStep("redirecting");
+        window.location.replace(`${canonical}${window.location.pathname}${window.location.search}`);
+    }, []);
 
     useEffect(() => {
-        const pageLabel = language === "en" ? "Student Check-In" : "เช็คชื่อเข้าเรียน";
+        const pageLabel = language === "en" ? "Student Check-In" : "เช็กชื่อเข้าเรียน";
         const courseContext = buildCourseTitleContext(session?.course);
         document.title = buildPageTitle(pageLabel, courseContext);
     }, [language, session?.course]);
@@ -134,6 +174,11 @@ export default function StudentCheckInPage() {
             if (data) {
                 setSession(data);
                 if (data.status === "active") {
+                    if (data.network_guard && !data.network_guard.exempt && !data.network_guard.allowed) {
+                        setBlockedReasons(data.network_guard.failed_checks);
+                        setStep("blocked");
+                        return;
+                    }
                     if (authService.isAuthenticated()) {
                         try {
                             const result = await attendanceService.verifyCurrentStudentSession(sessionId);
@@ -306,8 +351,8 @@ export default function StudentCheckInPage() {
             if (result) {
                 if (result.is_duplicate) {
                     addToast({
-                        title: language === "en" ? "Already checked in" : "เช็คชื่อไว้แล้ว",
-                        description: language === "en" ? "Your previous check-in was already recorded." : "ระบบบันทึกการเช็คชื่อก่อนหน้านี้ไว้แล้ว",
+                        title: language === "en" ? "Already checked in" : "เช็กชื่อไว้แล้ว",
+                        description: language === "en" ? "Your previous check-in was already recorded." : "ระบบบันทึกการเช็กชื่อก่อนหน้านี้ไว้แล้ว",
                         color: "primary",
                         timeout: 3500,
                         shouldShowTimeoutProgress: true,
@@ -374,8 +419,11 @@ export default function StudentCheckInPage() {
 
     // Initialize socket
     useEffect(() => {
+    if (redirectingRef.current) {
+        return;
+    }
     const socketUrl = getRealtimeSocketBaseUrl();
-  
+
     const socket = io(socketUrl);
 
         socket.on("connect", () => {
@@ -412,6 +460,9 @@ export default function StudentCheckInPage() {
 
     // Fetch session on mount
     useEffect(() => {
+        if (redirectingRef.current) {
+            return;
+        }
         fetchSessionInfo();
     }, [fetchSessionInfo]);
 
@@ -431,241 +482,356 @@ export default function StudentCheckInPage() {
         });
     };
 
-    return (
-        <div data-theme-scope="adaptive check-in" className="min-h-screen bg-slate-50">
+    const isEn = language === "en";
 
-            {/* ── Loading ── */}
-            {step === "loading" && (
-                <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-5">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-linear-to-br from-sky-600 to-cyan-500 shadow-lg shadow-sky-300/40">
-                        <Icon icon="solar:clipboard-check-bold-duotone" className="text-2xl text-white" />
-                    </div>
+    // The guard reports only what failed; showing the passing checks too turns a
+    // dead end into a checklist the student can actually work through.
+    const guardChecks: Array<{ key: NetworkGuardCheck; label: string; ok: string; fix: string }> = [
+        {
+            key: "device",
+            label: isEn ? "Device" : "อุปกรณ์",
+            ok: isEn ? "Using a phone or tablet" : "ใช้โทรศัพท์มือถือหรือแท็บเล็ต",
+            fix: isEn
+                ? "Open this link on your phone and scan the QR at the front of the room again. Reloading on a computer will not help."
+                : "กรุณาใช้โทรศัพท์มือถือ สแกน QR ที่หน้าห้องอีกครั้ง ทั้งนี้ การกดโหลดหน้าใหม่บนคอมพิวเตอร์จะยังไม่สามารถเช็กชื่อได้",
+        },
+        {
+            key: "domain",
+            label: isEn ? "Link" : "ลิงก์ที่เข้า",
+            ok: isEn ? "Opened on the faculty domain" : "เปิดผ่านโดเมนของคณะแล้ว",
+            fix: isEn
+                ? "Open the check-in link on cocolabs.computing.kku.ac.th only."
+                : "กรุณาเปิดลิงก์เช็กชื่อผ่าน cocolabs.computing.kku.ac.th เท่านั้น",
+        },
+        {
+            key: "network",
+            label: isEn ? "Network" : "เครือข่าย",
+            ok: isEn ? "Connected to campus Wi-Fi" : "เชื่อมต่อ Wi-Fi ของมหาวิทยาลัยแล้ว",
+            fix: isEn
+                ? "Open Settings then Wi-Fi and join KKU-WiFi. Turn off any VPN first, then check again."
+                : "เปิด ตั้งค่า แล้วเลือก Wi-Fi ของมหาวิทยาลัย หากเปิดใช้งาน VPN อยู่ กรุณาปิดก่อน จากนั้นกดตรวจสอบอีกครั้ง",
+        },
+    ];
+
+    const deviceBlocked = blockedReasons.includes("device");
+
+    // Which of the three preparation steps the student is on.
+    const flowSteps: Array<"google-login" | "location" | "pin-entry"> = [
+        ...(!authService.isAuthenticated() ? (["google-login"] as const) : []),
+        ...(session?.check_location ? (["location"] as const) : []),
+        "pin-entry",
+    ];
+    const stepIndex = flowSteps.indexOf(step as (typeof flowSteps)[number]);
+
+    const TaskHeader = ({ title }: { title: string }) => (
+        <div className="cg-task-top">
+            <Link href="/student/scan" className="cg-task-btn" aria-label={isEn ? "Close" : "ปิด"}>
+                <Icon icon="solar:close-circle-linear" width={17} height={17} />
+            </Link>
+            <span className="min-w-0 flex-1 truncate text-[15px] font-medium">{title}</span>
+            <Link href="/student" className="cg-task-btn" aria-label={isEn ? "Home" : "หน้าหลัก"}>
+                <Icon icon="solar:home-2-linear" width={17} height={17} />
+            </Link>
+        </div>
+    );
+
+    const SessionCard = () => (
+        <div className="cg-card">
+            <p className="text-[11px] font-normal" style={{ color: "var(--cg-text-3)" }}>
+                {isEn ? "Session you are checking in to" : "คาบเรียนที่กำลังเช็กชื่อ"}
+            </p>
+            <h1 className="mt-1.5 text-[17px] font-medium leading-relaxed">{session?.title || t("loading")}</h1>
+            {session?.course && (
+                <p className="mt-1 text-xs font-light leading-relaxed" style={{ color: "var(--cg-text-2)" }}>
+                    {session.course.code} {session.course.name}
+                </p>
+            )}
+        </div>
+    );
+
+    return (
+        <>
+            {/* ── loading / redirecting ─────────────────────────────── */}
+            {(step === "loading" || step === "redirecting") && (
+                <div className="flex flex-col items-center justify-center gap-4" style={{ minHeight: "70dvh" }}>
                     <Spinner size="lg" color="primary" />
-                    <p className="text-sm text-slate-400">{t("loading")}</p>
+                    <p className="text-sm font-light" style={{ color: "var(--cg-text-2)" }}>
+                        {step === "redirecting"
+                            ? (isEn ? "Redirecting to the faculty domain" : "กำลังเปลี่ยนเส้นทางไปยังโดเมนของคณะ")
+                            : t("loading")}
+                    </p>
                 </div>
             )}
 
-            {/* ── Error ── */}
-            {step === "error" && (
-                <div className="flex min-h-screen flex-col items-center justify-center p-6 text-center">
-                    <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-4xl bg-rose-50 border border-rose-100">
-                        <Icon icon="solar:danger-triangle-bold-duotone" className="text-4xl text-rose-500" />
+            {/* ── blocked by the campus network guard ───────────────── */}
+            {step === "blocked" && (
+                <div className="cg-task-screen pb-6">
+                    <TaskHeader title={isEn ? "Check-in" : "เช็กชื่อเข้าเรียน"} />
+
+                    <div className="flex flex-col items-center gap-2 pt-5 text-center">
+                        <span className="cg-state-badge" style={{ background: "var(--cg-warning-soft)", color: "var(--cg-warning)" }}>
+                            <Icon icon="solar:shield-warning-linear" width={40} height={40} />
+                        </span>
+                        <h2 className="mt-1 text-[21px] font-semibold leading-snug">
+                            {deviceBlocked
+                                ? (isEn ? "Check in from a phone" : "ต้องเช็กชื่อจากมือถือ")
+                                : (isEn ? "Cannot check in yet" : "ยังเช็กชื่อไม่ได้")}
+                        </h2>
+                        <p className="max-w-[32ch] text-[12.5px] font-light leading-relaxed" style={{ color: "var(--cg-text-2)" }}>
+                            {deviceBlocked
+                                ? (isEn
+                                    ? "This page is open on a computer, which cannot be used to check in."
+                                    : "ขณะนี้เปิดหน้าเว็บบนคอมพิวเตอร์ ซึ่งไม่รองรับการเช็กชื่อ")
+                                : (isEn
+                                    ? `${blockedReasons.length} requirement(s) not met. Fix them on this device, then check again.`
+                                    : `ไม่ผ่านเงื่อนไข ${blockedReasons.length} ข้อ กรุณาแก้ไขที่เครื่อง แล้วกดตรวจสอบอีกครั้ง`)}
+                        </p>
                     </div>
-                    <h2 className="text-xl font-bold text-slate-900 mb-2">{errorTitle || t("accessUnavailable")}</h2>
-                    <p className="text-sm text-slate-500 mb-6 max-w-xs">{errorMessage}</p>
+
+                    <SessionCard />
+
+                    <section className="flex flex-col gap-2">
+                        <p className="cg-section-label">{isEn ? "Requirements" : "เงื่อนไขการเช็กชื่อ"}</p>
+                        <div className="cg-list">
+                            {guardChecks.map((check) => {
+                                const failed = blockedReasons.includes(check.key);
+                                return (
+                                    <div key={check.key} className="cg-check-block">
+                                        <div className="cg-row">
+                                            <span
+                                                className="cg-check-mark"
+                                                style={failed
+                                                    ? { background: "var(--cg-danger-soft)", color: "var(--cg-danger)" }
+                                                    : { background: "var(--cg-success-soft)", color: "var(--cg-success)" }}
+                                            >
+                                                <Icon icon={failed ? "solar:close-circle-linear" : "solar:check-circle-linear"} width={15} height={15} />
+                                            </span>
+                                            <span className="cg-row-body">
+                                                <span className="cg-row-title" style={failed ? { color: "var(--cg-danger)" } : undefined}>
+                                                    {check.label}
+                                                </span>
+                                                <span className="cg-row-sub">
+                                                    {failed
+                                                        ? (isEn ? NETWORK_GUARD_MESSAGES[check.key].en : NETWORK_GUARD_MESSAGES[check.key].th)
+                                                        : check.ok}
+                                                </span>
+                                            </span>
+                                            <Icon
+                                                icon={NETWORK_GUARD_MESSAGES[check.key].icon}
+                                                width={17}
+                                                height={17}
+                                                className="mt-1 shrink-0"
+                                                style={{ color: failed ? "var(--cg-danger)" : "var(--cg-text-3)" }}
+                                            />
+                                        </div>
+                                        {failed && (
+                                            <div className="cg-hint">
+                                                <Icon icon="solar:lightbulb-linear" width={15} height={15} className="mt-0.5 shrink-0" />
+                                                <p className="m-0">{check.fix}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </section>
+
+                    <div className="cg-task-cta">
+                        {/* Reloading cannot change the device, so that case gets no action
+                            that pretends it might. */}
+                        {!deviceBlocked && (
+                            <button type="button" className="cg-btn" onClick={() => window.location.reload()}>
+                                {isEn ? "Check again" : "ตรวจสอบอีกครั้ง"}
+                            </button>
+                        )}
+                        <Link href="/student" className="cg-btn-ghost text-center">
+                            {isEn ? "Back to home" : "กลับหน้าหลัก"}
+                        </Link>
+                    </div>
+                </div>
+            )}
+
+            {/* ── error ─────────────────────────────────────────────── */}
+            {step === "error" && (
+                <div className="cg-task-screen pb-6">
+                    <TaskHeader title={isEn ? "Check-in" : "เช็กชื่อเข้าเรียน"} />
+
+                    <div className="flex flex-col items-center gap-2 pt-5 text-center">
+                        <span className="cg-state-badge" style={{ background: "var(--cg-danger-soft)", color: "var(--cg-danger)" }}>
+                            <Icon icon="solar:danger-triangle-linear" width={40} height={40} />
+                        </span>
+                        <h2 className="mt-1 text-[21px] font-semibold leading-snug">{errorTitle || t("accessUnavailable")}</h2>
+                        <p className="max-w-[32ch] text-[12.5px] font-light leading-relaxed" style={{ color: "var(--cg-text-2)" }}>
+                            {errorMessage}
+                        </p>
+                    </div>
+
                     {authService.isAuthenticated() && redirectCountdown !== null && (
-                        <div className="mb-5 w-full max-w-xs">
-                            <p className="mb-2 text-xs text-slate-500">
-                                {language === "en"
-                                    ? `Redirecting to scanner in ${redirectCountdown}s...`
-                                    : `กำลังพากลับไปหน้าสแกนใน ${redirectCountdown} วินาที...`}
+                        <div className="cg-card">
+                            <p className="mb-2 text-[11.5px] font-light" style={{ color: "var(--cg-text-2)" }}>
+                                {isEn
+                                    ? `Returning to the scanner in ${redirectCountdown}s`
+                                    : `กำลังพากลับไปหน้าสแกนใน ${redirectCountdown} วินาที`}
                             </p>
-                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
-                                <div
-                                    className="h-full rounded-full bg-sky-500 transition-[width] duration-700 ease-linear"
-                                    style={{ width: `${Math.max(0, (redirectCountdown / 5) * 100)}%` }}
+                            <div className="cg-progress">
+                                <i
+                                    className="transition-[width] duration-700 ease-linear"
+                                    style={{ width: `${Math.max(0, (redirectCountdown / 5) * 100)}%`, background: "var(--cg-accent)" }}
                                 />
                             </div>
                         </div>
                     )}
-                    <button
-                        onClick={() => {
-                            if (authService.isAuthenticated()) {
-                                router.replace("/student/scan");
-                                return;
-                            }
-                            window.location.reload();
-                        }}
-                        className="inline-flex items-center gap-2 rounded-full bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-500 active:scale-95"
-                    >
-                        <Icon icon="solar:restart-bold" />
-                        {authService.isAuthenticated()
-                            ? (language === "en" ? "Back to scanner" : "กลับหน้าสแกน")
-                            : t("reloadPage")}
-                    </button>
+
+                    <div className="cg-task-cta">
+                        <button
+                            type="button"
+                            className="cg-btn"
+                            onClick={() => {
+                                if (authService.isAuthenticated()) {
+                                    router.replace("/student/scan");
+                                    return;
+                                }
+                                window.location.reload();
+                            }}
+                        >
+                            {authService.isAuthenticated()
+                                ? (isEn ? "Back to scanner" : "กลับหน้าสแกน")
+                                : t("reloadPage")}
+                        </button>
+                    </div>
                 </div>
             )}
 
-            {/* ── All active states ── */}
-            {step !== "loading" && step !== "error" && (
-                <div className="space-y-4 px-4 pb-10 pt-4 sm:px-5">
+            {/* ── active flow ───────────────────────────────────────── */}
+            {step !== "loading" && step !== "error" && step !== "redirecting" && step !== "blocked" && (
+                <div className="cg-task-screen pb-6">
+                    <TaskHeader title={isEn ? "Check-in" : "เช็กชื่อเข้าเรียน"} />
 
-                    {/* ── Hero header card ── */}
-                    <div className="relative overflow-hidden rounded-4xl bg-linear-to-br from-sky-700 via-sky-600 to-cyan-500 p-5 shadow-xl shadow-sky-300/40">
-                        {/* decorative blobs */}
-                        <span className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
-                        <span className="pointer-events-none absolute -bottom-10 -left-6 h-36 w-36 rounded-full bg-cyan-300/20 blur-2xl" />
-
-                        <div className="relative flex items-start gap-3">
-                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/20 ring-2 ring-white/30 backdrop-blur-sm">
-                                <Icon icon="solar:clipboard-check-bold-duotone" className="text-xl text-white" />
-                            </span>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-[11px] font-semibold uppercase tracking-widest text-sky-200/80">{t("attendanceCheckIn")}</p>
-                                <h1 className="mt-0.5 truncate text-lg font-bold leading-snug text-white">
-                                    {session?.title || t("loading")}
-                                </h1>
-                                {session?.course && (
-                                    <p className="mt-0.5 text-xs text-sky-100/70">
-                                        {session.course.code} · {session.course.name}
-                                    </p>
-                                )}
-                            </div>
-                            <Link
-                                href="/student"
-                                className="flex shrink-0 items-center gap-1 rounded-full bg-white/20 px-2.5 py-1.5 text-xs font-semibold text-white ring-1 ring-white/30 backdrop-blur-sm transition active:scale-95 hover:bg-white/30"
-                            >
-                                <Icon icon="solar:home-2-bold" className="text-sm" />
-                                หน้าหลัก
-                            </Link>
-                        </div>
-
-                        {/* step indicator pills */}
-                        <div className="relative mt-4 flex gap-2">
-                            {(["google-login", "location", "pin-entry"] as const)
-                                .filter((s) => {
-                                    if (s === "google-login") return !authService.isAuthenticated();
-                                    if (s === "location") return session?.check_location;
-                                    return true;
-                                })
-                                .map((s, idx, arr) => (
-                                    <span
-                                        key={s}
-                                        className={`h-1.5 flex-1 rounded-full transition-all ${
-                                            step === s || (step === "pin-entry" && idx === arr.length - 1 && s === "pin-entry")
-                                                ? "bg-white"
-                                                : step === "success" || step === "already-checked-in"
-                                                ? "bg-white/60"
-                                                : arr.indexOf(step as typeof s) > idx
-                                                ? "bg-white/60"
-                                                : "bg-white/20"
-                                        }`}
-                                    />
-                                ))}
-                        </div>
-                    </div>
-
-                    {/* ── Google Login ── */}
-                    {step === "google-login" && (
-                        <div className="rounded-4xl border border-slate-100 bg-white/90 p-6 shadow-sm">
-                            <div className="flex flex-col items-center text-center gap-5">
-                                <span className="flex h-16 w-16 items-center justify-center rounded-3xl bg-sky-50 border border-sky-100">
-                                    <Icon icon="solar:user-circle-bold-duotone" className="text-3xl text-sky-600" />
-                                </span>
-                                <div>
-                                    <h2 className="text-lg font-bold text-slate-900">{t("signInWithGoogle")}</h2>
-                                    <p className="mt-1 text-sm text-slate-500">{t("useStudentEmail")}</p>
-                                </div>
-                                <button
-                                    onClick={handleGoogleLogin}
-                                    className="inline-flex w-full max-w-70 items-center justify-center gap-2.5 rounded-full border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-[0.98]"
-                                >
-                                    <Icon icon="logos:google-icon" className="text-lg" />
-                                    {t("signInWithGoogle")}
-                                </button>
-                                <p className="text-xs text-slate-400">{t("systemVerifiesStudentEmail")}</p>
-                            </div>
+                    {stepIndex >= 0 && flowSteps.length > 1 && (
+                        <div className="cg-steps">
+                            {flowSteps.map((s, i) => (
+                                <span key={s} data-state={i < stepIndex ? "done" : i === stepIndex ? "now" : undefined} />
+                            ))}
                         </div>
                     )}
 
-                    {/* ── Location ── */}
-                    {step === "location" && (
-                        <div className="rounded-4xl border border-slate-100 bg-white/90 p-6 shadow-sm">
-                            <div className="flex flex-col items-center text-center gap-5">
-                                <span className="flex h-16 w-16 items-center justify-center rounded-3xl bg-sky-50 border border-sky-100">
-                                    <Icon icon="solar:map-point-bold-duotone" className="text-3xl text-sky-600" />
+                    <SessionCard />
+
+                    {/* ── sign in ── */}
+                    {step === "google-login" && (
+                        <>
+                            <div className="cg-card flex flex-col items-center gap-4 text-center">
+                                <span className="cg-state-badge" style={{ background: "var(--cg-accent-soft)", color: "var(--cg-accent)" }}>
+                                    <Icon icon="solar:user-circle-linear" width={40} height={40} />
                                 </span>
                                 <div>
-                                    <h2 className="text-lg font-bold text-slate-900">{t("verifyLocation")}</h2>
-                                    <p className="mt-1 text-sm text-slate-500">
+                                    <h2 className="text-[17px] font-medium leading-relaxed">{t("signInWithGoogle")}</h2>
+                                    <p className="mt-1 text-[12.5px] font-light leading-relaxed" style={{ color: "var(--cg-text-2)" }}>
+                                        {t("useStudentEmail")}
+                                    </p>
+                                </div>
+                                <p className="text-[11px] font-light" style={{ color: "var(--cg-text-3)" }}>
+                                    {t("systemVerifiesStudentEmail")}
+                                </p>
+                            </div>
+                            <div className="cg-task-cta">
+                                <button type="button" className="cg-btn" onClick={handleGoogleLogin}>
+                                    {t("signInWithGoogle")}
+                                </button>
+                            </div>
+                        </>
+                    )}
+
+                    {/* ── location ── */}
+                    {step === "location" && (
+                        <>
+                            <div className="cg-card flex flex-col items-center gap-4 text-center">
+                                <span className="cg-state-badge" style={{ background: "var(--cg-accent-soft)", color: "var(--cg-accent)" }}>
+                                    <Icon icon="solar:map-point-linear" width={40} height={40} />
+                                </span>
+                                <div>
+                                    <h2 className="text-[17px] font-medium leading-relaxed">{t("verifyLocation")}</h2>
+                                    <p className="mt-1 text-[12.5px] font-light leading-relaxed" style={{ color: "var(--cg-text-2)" }}>
                                         {session?.radius_meters
                                             ? t("locationWithinRadius", { radius: session.radius_meters })
                                             : t("locationRequiredForSession")}
                                     </p>
                                 </div>
-
                                 {locationError && (
-                                    <div className="w-full rounded-3xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-600 flex items-center gap-2">
-                                        <Icon icon="solar:danger-triangle-bold" className="shrink-0 text-lg" />
-                                        <span>{locationError}</span>
-                                    </div>
+                                    <p className="cg-badge cg-badge-danger w-full justify-center py-2">{locationError}</p>
                                 )}
                                 {location && (
-                                    <div className="w-full rounded-3xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 flex items-center gap-2">
-                                        <Icon icon="solar:check-circle-bold" className="shrink-0 text-lg" />
-                                        <span>{t("locationVerifiedSuccessfully")}</span>
-                                    </div>
+                                    <p className="cg-badge cg-badge-success w-full justify-center py-2">
+                                        {t("locationVerifiedSuccessfully")}
+                                    </p>
                                 )}
-
-                                <button
-                                    disabled={isGettingLocation}
-                                    onClick={getLocation}
-                                    className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-linear-to-r from-sky-600 to-cyan-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-sky-300/40 transition active:scale-[0.98] disabled:opacity-60"
-                                >
-                                    {isGettingLocation ? (
-                                        <Spinner size="sm" color="white" />
-                                    ) : (
-                                        <Icon icon="solar:gps-bold" className="text-xl" />
-                                    )}
+                                <p className="text-[11px] font-light" style={{ color: "var(--cg-text-3)" }}>
+                                    {t("ifNoLocationMayBeMarked")}
+                                </p>
+                            </div>
+                            <div className="cg-task-cta">
+                                <button type="button" className="cg-btn" disabled={isGettingLocation} onClick={getLocation}>
                                     {isGettingLocation ? t("checkingStatus") : t("allowLocationAccess")}
                                 </button>
-                                <p className="text-xs text-slate-400">{t("ifNoLocationMayBeMarked")}</p>
                             </div>
-                        </div>
+                        </>
                     )}
 
-                    {/* ── PIN Entry ── */}
+                    {/* ── PIN ── */}
                     {step === "pin-entry" && (
-                        <div className="space-y-3">
-                            {/* student identity card */}
+                        <>
                             {studentInfo && (
-                                <div className="flex items-center gap-3 rounded-4xl border border-slate-100 bg-white/90 px-4 py-3.5 shadow-sm">
-                                    <Avatar
-                                        name={studentInfo.full_name}
-                                        src={googleUser?.picture}
-                                        size="md"
-                                        className="shrink-0"
-                                        classNames={{ base: "bg-sky-500 text-white" }}
-                                    />
-                                    <div className="min-w-0">
-                                        <p className="font-bold text-slate-900 truncate">{studentInfo.full_name}</p>
-                                        <p className="text-xs text-slate-500">{studentInfo.student_id}</p>
+                                <div className="cg-list">
+                                    <div className="cg-row">
+                                        <Avatar
+                                            name={studentInfo.full_name}
+                                            src={googleUser?.picture}
+                                            size="sm"
+                                            className="shrink-0"
+                                            classNames={{ base: "bg-[var(--cg-accent)] text-white" }}
+                                        />
+                                        <span className="cg-row-body">
+                                            <span className="cg-row-title truncate">{studentInfo.full_name}</span>
+                                            <span className="cg-row-sub cg-mono">{studentInfo.student_id}</span>
+                                        </span>
+                                        <span className="cg-badge cg-badge-success">{isEn ? "Verified" : "ยืนยันแล้ว"}</span>
                                     </div>
+                                    {location && (
+                                        <div className="cg-row">
+                                            <span className="cg-row-ico" style={{ background: "var(--cg-success-soft)", color: "var(--cg-success)" }}>
+                                                <Icon icon="solar:map-point-linear" width={17} height={17} />
+                                            </span>
+                                            <span className="cg-row-body">
+                                                <span className="cg-row-title">{t("locationCaptured")}</span>
+                                            </span>
+                                            <Icon icon="solar:check-circle-linear" width={18} height={18} style={{ color: "var(--cg-success)" }} />
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
-                            {/* PIN card */}
-                            <div className="rounded-4xl border border-slate-100 bg-white/90 p-6 shadow-sm">
-                                <div className="flex flex-col items-center text-center gap-5">
-                                    <span className="flex h-14 w-14 items-center justify-center rounded-3xl bg-sky-50 border border-sky-100">
-                                        <Icon icon="solar:key-bold-duotone" className="text-2xl text-sky-600" />
-                                    </span>
-                                    <div>
-                                        <h2 className="text-lg font-bold text-slate-900">{t("enterPin")}</h2>
-                                        <p className="mt-1 text-sm text-slate-500">{t("sixDigitsFromClassroomDisplay")}</p>
-                                    </div>
+                            <div className="cg-card">
+                                <div className="flex items-center justify-between gap-2.5">
+                                    <p className="cg-section-label" style={{ padding: 0 }}>{t("enterPin")}</p>
                                     {(session?.pin_mode === "rotating" || (session?.pin_mode == null && session?.auto_rotate_pin)) && pinCountdown !== null && pinTotal !== null && (
-                                        <div className="w-full">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <span className="text-xs text-slate-400">
-                                                    {language === "en" ? "PIN rotates every minute" : "PIN เปลี่ยนทุก 1 นาที"}
-                                                </span>
-                                                <span className={`text-xs font-mono font-semibold tabular-nums ${
-                                                    pinCountdown <= 10 ? "text-red-500" :
-                                                    pinCountdown <= 20 ? "text-amber-500" : "text-sky-500"
-                                                }`}>{pinCountdown}s</span>
-                                            </div>
-                                            <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
-                                                <div
-                                                    className={`h-full rounded-full transition-[width] duration-1000 ease-linear ${
-                                                        pinCountdown <= 10 ? "bg-red-500" :
-                                                        pinCountdown <= 20 ? "bg-amber-400" : "bg-sky-500"
-                                                    }`}
-                                                    style={{ width: `${Math.max(0, (pinCountdown / pinTotal) * 100)}%` }}
-                                                />
-                                            </div>
-                                        </div>
+                                        <span
+                                            className="cg-badge cg-mono"
+                                            style={pinCountdown <= 10
+                                                ? { background: "var(--cg-danger-soft)", color: "var(--cg-danger)" }
+                                                : { background: "var(--cg-warning-soft)", color: "var(--cg-warning)" }}
+                                        >
+                                            {pinCountdown}s
+                                        </span>
                                     )}
+                                </div>
+                                <p className="mb-4 mt-1.5 text-[11.5px] font-light leading-relaxed" style={{ color: "var(--cg-text-2)" }}>
+                                    {t("sixDigitsFromClassroomDisplay")}
+                                    {(session?.pin_mode === "rotating" || (session?.pin_mode == null && session?.auto_rotate_pin))
+                                        ? (isEn ? " The PIN changes every minute." : " รหัสเปลี่ยนทุก 1 นาที")
+                                        : ""}
+                                </p>
+
+                                <div className="flex justify-center">
                                     <InputOtp
                                         length={6}
                                         value={pinCode}
@@ -675,112 +841,102 @@ export default function StudentCheckInPage() {
                                         color="primary"
                                         onComplete={handleCheckIn}
                                         classNames={{
-                                            segment: "w-12 h-14 text-2xl font-bold rounded-2xl",
+                                            segment: "w-12 h-14 text-2xl font-medium rounded-2xl",
                                             segmentWrapper: "gap-2",
                                         }}
                                     />
-
-                                    {location && (
-                                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                                            <Icon icon="solar:map-point-bold" />
-                                            {t("locationCaptured")}
-                                        </span>
-                                    )}
-
-                                    <button
-                                        disabled={pinCode.length !== 6 || isSubmitting}
-                                        onClick={handleCheckIn}
-                                        className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-linear-to-r from-sky-600 to-cyan-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-sky-300/40 transition active:scale-[0.98] disabled:opacity-50"
-                                    >
-                                        {isSubmitting ? <Spinner size="sm" color="white" /> : <Icon icon="solar:check-circle-bold" className="text-lg" />}
-                                        {t("checkInAction")}
-                                    </button>
-                                    {isSubmitting && (
-                                        <p className="text-xs text-slate-500">
-                                            {submitElapsedSeconds < 4
-                                                ? (language === "en" ? "Submitting check-in request..." : "กำลังส่งคำขอเช็คชื่อ...")
-                                                : submitElapsedSeconds < 10
-                                                ? (language === "en" ? "Confirming your attendance with server..." : "กำลังยืนยันข้อมูลกับเซิร์ฟเวอร์...")
-                                                : (language === "en"
-                                                    ? "Still processing due to high traffic. Please keep this page open."
-                                                    : "ระบบกำลังประมวลผลจากผู้ใช้งานจำนวนมาก กรุณาอย่าปิดหน้านี้")}
-                                        </p>
-                                    )}
                                 </div>
+
+                                {isSubmitting && (
+                                    <p className="mt-3.5 text-center text-[11.5px] font-light leading-relaxed" style={{ color: "var(--cg-text-2)" }}>
+                                        {submitElapsedSeconds < 4
+                                            ? (isEn ? "Submitting check-in request" : "กำลังส่งคำขอเช็กชื่อ")
+                                            : submitElapsedSeconds < 10
+                                            ? (isEn ? "Confirming your attendance with server" : "กำลังยืนยันข้อมูลกับเซิร์ฟเวอร์")
+                                            : (isEn
+                                                ? "Still processing due to high traffic. Please keep this page open."
+                                                : "ระบบกำลังประมวลผลจากผู้ใช้งานจำนวนมาก กรุณาอย่าปิดหน้านี้")}
+                                    </p>
+                                )}
                             </div>
-                        </div>
+
+                            <div className="cg-task-cta">
+                                <button
+                                    type="button"
+                                    className="cg-btn inline-flex items-center justify-center gap-2"
+                                    disabled={pinCode.length !== 6 || isSubmitting}
+                                    onClick={handleCheckIn}
+                                >
+                                    {isSubmitting && <Spinner size="sm" color="white" />}
+                                    {t("checkInAction")}
+                                </button>
+                            </div>
+                        </>
                     )}
 
-                    {/* ── Success ── */}
+                    {/* ── success ── */}
                     {step === "success" && checkInResult && (
-                        <div className="rounded-4xl border border-slate-100 bg-white/90 p-6 shadow-sm">
-                            <div className="flex flex-col items-center text-center gap-5">
-                                <span className={`flex h-20 w-20 items-center justify-center rounded-4xl ${
-                                    checkInResult.status === "present" ? "bg-emerald-50 border border-emerald-100" :
-                                    checkInResult.status === "late"    ? "bg-amber-50  border border-amber-100"   :
-                                                                         "bg-slate-50  border border-slate-100"
-                                }`}>
-                                    <Icon
-                                        icon={statusDisplay[checkInResult.status]?.icon || "solar:check-circle-bold"}
-                                        className={`text-4xl ${
-                                            checkInResult.status === "present" ? "text-emerald-600" :
-                                            checkInResult.status === "late"    ? "text-amber-500"   : "text-slate-500"
-                                        }`}
-                                    />
+                        <>
+                            <div className="flex flex-col items-center gap-2 pt-2 text-center">
+                                <span className="cg-state-badge" style={{ background: "var(--cg-success-soft)", color: "var(--cg-success)" }}>
+                                    <Icon icon={statusDisplay[checkInResult.status]?.icon || "solar:check-circle-linear"} width={42} height={42} />
                                 </span>
+                                <h2 className="mt-1 text-[22px] font-semibold leading-snug">{t("checkInSuccessful")}</h2>
+                                <span className={`cg-badge ${checkInResult.status === "late" ? "cg-badge-warning" : "cg-badge-success"}`} style={{ fontSize: 13, padding: "6px 15px" }}>
+                                    {statusDisplay[checkInResult.status]?.label ?? checkInResult.status}
+                                </span>
+                            </div>
 
-                                <div>
-                                    <h2 className="text-2xl font-bold text-slate-900">{t("checkInSuccessful")}</h2>
-                                    <span className={`mt-2 inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-sm font-bold ${statusDisplay[checkInResult.status]?.color}`}>
-                                        {statusDisplay[checkInResult.status]?.label}
+                            <div className="cg-list">
+                                <div className="cg-row">
+                                    <span className="cg-row-ico">
+                                        <Icon icon="solar:clock-circle-linear" width={17} height={17} />
                                     </span>
+                                    <span className="cg-row-body"><span className="cg-row-title">{t("checkInTime")}</span></span>
+                                    <span className="cg-mono text-[13.5px] font-medium">{formatTime(checkInResult.check_in_time)}</span>
                                 </div>
-
-                                <div className="w-full rounded-3xl border border-slate-100 bg-slate-50/80 px-5 py-4 space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm text-slate-500">{t("checkInTime")}</span>
-                                        <span className="font-mono text-sm font-bold text-slate-900">
-                                            {formatTime(checkInResult.check_in_time)}
+                                {checkInResult.location_verified && (
+                                    <div className="cg-row">
+                                        <span className="cg-row-ico">
+                                            <Icon icon="solar:map-point-linear" width={17} height={17} />
+                                        </span>
+                                        <span className="cg-row-body"><span className="cg-row-title">{t("locationPermission")}</span></span>
+                                        <span className="cg-badge cg-badge-success">
+                                            {t("locationVerifiedWithDistance", { distance: checkInResult.distance_meters?.toFixed(0) || 0 })}
                                         </span>
                                     </div>
-                                    {checkInResult.location_verified && (
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm text-slate-500">{t("locationPermission")}</span>
-                                            <span className="flex items-center gap-1 text-sm font-semibold text-emerald-600">
-                                                <Icon icon="solar:check-circle-bold" />
-                                                {t("locationVerifiedWithDistance", { distance: checkInResult.distance_meters?.toFixed(0) || 0 })}
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <p className="text-sm text-slate-400">{t("youCanCloseThisPage")}</p>
+                                )}
                             </div>
-                        </div>
+
+                            <div className="cg-task-cta">
+                                <Link href="/student" className="cg-btn text-center">{isEn ? "Back to home" : "กลับหน้าหลัก"}</Link>
+                            </div>
+                        </>
                     )}
 
-                    {/* ── Already Checked In ── */}
+                    {/* ── already checked in ── */}
                     {step === "already-checked-in" && alreadyCheckedIn && (
-                        <div className="rounded-4xl border border-sky-100 bg-sky-50/80 p-6 shadow-sm">
-                            <div className="flex flex-col items-center text-center gap-5">
-                                <span className="flex h-16 w-16 items-center justify-center rounded-3xl bg-sky-100 border border-sky-200">
-                                    <Icon icon="solar:info-circle-bold-duotone" className="text-3xl text-sky-600" />
+                        <>
+                            <div className="flex flex-col items-center gap-2 pt-2 text-center">
+                                <span className="cg-state-badge" style={{ background: "var(--cg-accent-soft)", color: "var(--cg-accent)" }}>
+                                    <Icon icon="solar:check-circle-linear" width={42} height={42} />
                                 </span>
-                                <div>
-                                    <h2 className="text-lg font-bold text-slate-900">{t("alreadyCheckedIn")}</h2>
-                                    <p className="mt-1 text-sm text-slate-500">
-                                        {t("checkedInThisSessionAt", { time: formatTime(alreadyCheckedIn.check_in_time) })}
-                                    </p>
-                                </div>
-                                <span className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-bold ${statusDisplay[alreadyCheckedIn.status]?.color || "bg-slate-100 text-slate-700"}`}>
-                                    {statusDisplay[alreadyCheckedIn.status]?.label || alreadyCheckedIn.status}
+                                <h2 className="mt-1 text-[22px] font-semibold leading-snug">{t("alreadyCheckedIn")}</h2>
+                                <span className={`cg-badge ${alreadyCheckedIn.status === "late" ? "cg-badge-warning" : "cg-badge-success"}`} style={{ fontSize: 13, padding: "6px 15px" }}>
+                                    {statusDisplay[alreadyCheckedIn.status]?.label ?? alreadyCheckedIn.status}
                                 </span>
+                                <p className="max-w-[32ch] text-[12.5px] font-light leading-relaxed" style={{ color: "var(--cg-text-2)" }}>
+                                    {t("checkedInThisSessionAt", { time: formatTime(alreadyCheckedIn.check_in_time) })}
+                                </p>
                             </div>
-                        </div>
-                    )}
 
+                            <div className="cg-task-cta">
+                                <Link href="/student" className="cg-btn text-center">{isEn ? "Back to home" : "กลับหน้าหลัก"}</Link>
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
-        </div>
+        </>
     );
 }

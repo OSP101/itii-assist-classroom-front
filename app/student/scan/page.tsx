@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Input } from "@heroui/input";
 import { Icon } from "@iconify/react";
 import { addToast } from "@heroui/toast";
 
@@ -319,7 +318,9 @@ export default function StudentScanPage() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const frameRef = useRef<number | null>(null);
-  const [manualValue, setManualValue] = useState("");
+  const [pinDigits, setPinDigits] = useState<string[]>(() => Array(6).fill(""));
+  const [linkValue, setLinkValue] = useState("");
+  const pinInputsRef = useRef<Array<HTMLInputElement | null>>([]);
   const [cameraReady, setCameraReady] = useState(false);
   const [isStartingCamera, setIsStartingCamera] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -550,176 +551,219 @@ export default function StudentScanPage() {
     };
   }, [stopCamera]);
 
-  const preview = useMemo(() => {
-    if (!manualValue.trim()) {
-      return null;
+  const pinCode = pinDigits.join("");
+  const isPinComplete = pinCode.length === 6;
+
+  const focusPin = (index: number) => {
+    pinInputsRef.current[index]?.focus();
+  };
+
+  const handlePinChange = (index: number, raw: string) => {
+    const digits = raw.replace(/[^0-9]/g, "");
+    if (!digits) {
+      setPinDigits((prev) => {
+        const next = [...prev];
+        next[index] = "";
+        return next;
+      });
+      return;
     }
-    const raw = manualValue.trim();
-    if (/^\d{6}$/.test(raw)) {
-      return {
-        ok: true as const,
-        target: {
-          kind: "queue" as const,
-          href: "",
-          title: "ตรวจสอบ PIN",
-          description: `จะตรวจสอบว่า PIN ${raw} ใช้สำหรับเช็กชื่อหรือจองคิว`,
-        },
-      };
+
+    // Pasting the whole PIN into any box should fill the row, not just one cell.
+    setPinDigits((prev) => {
+      const next = [...prev];
+      for (let i = 0; i < digits.length && index + i < 6; i++) {
+        next[index + i] = digits[i];
+      }
+      return next;
+    });
+    focusPin(Math.min(index + digits.length, 5));
+  };
+
+  const handlePinKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Backspace" && !pinDigits[index] && index > 0) {
+      event.preventDefault();
+      focusPin(index - 1);
+      setPinDigits((prev) => {
+        const next = [...prev];
+        next[index - 1] = "";
+        return next;
+      });
     }
-    return parseStudentQrPayload(manualValue, typeof window !== "undefined" ? window.location.origin : undefined);
-  }, [manualValue]);
+  };
+
+  const submitPin = () => {
+    if (!isPinComplete || isResolvingPin) return;
+    void handleDecodedValue(pinCode);
+  };
+
+  const submitLink = () => {
+    if (!linkValue.trim() || isResolvingPin) return;
+    void handleDecodedValue(linkValue);
+  };
 
   return (
-    <div className="space-y-4 pb-2">
+    <div className="flex flex-col gap-4">
+      <h1 className="cg-page-title">สแกน</h1>
 
-      {/* ── Camera viewfinder ─────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-4xl bg-slate-950 shadow-xl shadow-slate-900/40">
-
-        {/* top bar inside camera card */}
-        <div className="flex items-center justify-between gap-3 px-5 py-4">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">COCO LABS</p>
-            <p className="mt-0.5 text-base font-bold text-white">สแกน QR</p>
-          </div>
+      {/* ── viewfinder ─────────────────────────────────────────────── */}
+      <div className="overflow-hidden rounded-[20px]" style={{ background: "#0a0e18", boxShadow: "var(--cg-shadow-1)" }}>
+        <div className="flex items-center justify-between gap-2.5 px-3.5 pt-3.5">
+          <b className="text-sm font-medium text-white">สแกน QR เข้าเรียน</b>
           <button
+            type="button"
             onClick={() => { if (cameraReady) { stopCamera(); } else { void startCamera(); } }}
             disabled={isStartingCamera}
-            className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition active:scale-95 ${
-              cameraReady
-                ? "bg-rose-500/20 text-rose-300 hover:bg-rose-500/30"
-                : "bg-sky-500 text-white hover:bg-sky-400"
-            }`}
+            className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-[7px] text-[11.5px] font-normal text-white disabled:opacity-60"
+            style={{ background: "rgba(255,255,255,.14)", border: "1px solid rgba(255,255,255,.18)", backdropFilter: "blur(14px)" }}
           >
             {isStartingCamera ? (
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
             ) : (
-              <Icon icon={cameraReady ? "solar:close-circle-bold" : "solar:camera-add-bold"} className="text-base" />
+              <Icon icon={cameraReady ? "solar:close-circle-linear" : "solar:camera-add-linear"} width={13} height={13} />
             )}
-            {isStartingCamera ? "กำลังเปิด..." : cameraReady ? "หยุดกล้อง" : "เปิดกล้อง"}
+            {isStartingCamera ? "กำลังเปิด" : cameraReady ? "หยุดกล้อง" : "เปิดกล้อง"}
           </button>
         </div>
 
-        {/* viewfinder */}
-        <div className="relative mx-4 mb-4 overflow-hidden rounded-3xl bg-black">
-          {/* hidden canvas for jsQR fallback */}
+        <div className="relative m-3 h-[214px] overflow-hidden rounded-[18px]" style={{ background: "radial-gradient(circle at 50% 42%,#1b2438,#05070e)" }}>
           <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
           <video
             ref={videoRef}
-            className="h-[42dvh] min-h-[250px] max-h-[360px] w-full object-cover sm:h-auto sm:min-h-0 sm:max-h-none sm:aspect-video"
+            className="h-full w-full object-cover"
             muted
             playsInline
             autoPlay
           />
 
-          {/* overlay corners */}
           {!cameraReady && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900/80 backdrop-blur-sm">
-              <span className="flex h-16 w-16 items-center justify-center rounded-3xl bg-white/10">
-                <Icon icon="solar:camera-bold-duotone" className="text-4xl text-white/60" />
-              </span>
-              <p className="text-sm font-medium text-white/60">
-                {cameraError ?? "แตะ 'เปิดกล้อง' เพื่อเริ่มสแกน"}
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center" style={{ background: "rgba(5,7,14,.82)" }}>
+              <Icon icon="solar:camera-linear" width={34} height={34} className="text-white/50" />
+              <p className="text-[12.5px] font-light leading-relaxed text-white/60">
+                {cameraError ?? "แตะปุ่มเปิดกล้องเพื่อเริ่มสแกน"}
               </p>
             </div>
           )}
 
-          {/* scanning frame overlay */}
           {cameraReady && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="relative h-48 w-48 sm:h-56 sm:w-56">
-                {/* corner lines */}
-                <span className="absolute left-0 top-0 h-8 w-8 border-l-3 border-t-3 border-sky-400 rounded-tl-lg" />
-                <span className="absolute right-0 top-0 h-8 w-8 border-r-3 border-t-3 border-sky-400 rounded-tr-lg" />
-                <span className="absolute bottom-0 left-0 h-8 w-8 border-b-3 border-l-3 border-sky-400 rounded-bl-lg" />
-                <span className="absolute bottom-0 right-0 h-8 w-8 border-b-3 border-r-3 border-sky-400 rounded-br-lg" />
-                {/* scan line */}
-                <span className="scan-beam absolute inset-x-1 h-0.5 rounded-full bg-sky-400/80 shadow-[0_0_8px_2px_rgba(14,165,233,0.6)]" />
+              <div className="relative h-[152px] w-[152px]">
+                <span className="absolute left-0 top-0 h-6 w-6 rounded-tl-lg border-l-[2.5px] border-t-[2.5px]" style={{ borderColor: "var(--cg-accent)" }} />
+                <span className="absolute right-0 top-0 h-6 w-6 rounded-tr-lg border-r-[2.5px] border-t-[2.5px]" style={{ borderColor: "var(--cg-accent)" }} />
+                <span className="absolute bottom-0 left-0 h-6 w-6 rounded-bl-lg border-b-[2.5px] border-l-[2.5px]" style={{ borderColor: "var(--cg-accent)" }} />
+                <span className="absolute bottom-0 right-0 h-6 w-6 rounded-br-lg border-b-[2.5px] border-r-[2.5px]" style={{ borderColor: "var(--cg-accent)" }} />
+                <span className="scan-beam absolute inset-x-1 h-0.5 rounded-full" style={{ background: "var(--cg-accent)" }} />
               </div>
             </div>
           )}
         </div>
 
-        {/* status bar */}
-        <div className="mx-4 mb-4 flex items-center justify-between gap-3 rounded-2xl bg-white/5 px-4 py-3">
-          <div className="flex items-center gap-3">
-            <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${cameraReady ? "animate-pulse bg-emerald-400" : cameraError ? "bg-rose-400" : "bg-amber-400"}`} />
-            <p className="text-sm font-medium text-white">
-              {cameraReady ? "กำลังสแกน..." : cameraError ? "เกิดข้อผิดพลาด" : "ยังไม่พร้อม"}
-            </p>
-          </div>
-          {cameraReady && (
-            <p className="text-xs text-slate-400">หันกล้องไปที่ QR</p>
-          )}
-          {cameraError && (
-            <p className="max-w-[60%] text-right text-xs text-slate-400">{cameraError}</p>
-          )}
-        </div>
-      </div>
-
-      {/* ── Manual entry ──────────────────────────────────────────────── */}
-      <div className="rounded-4xl border border-slate-100 bg-white/90 p-5 shadow-sm shadow-slate-100">
-        <div className="mb-4 flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-50">
-            <Icon icon="solar:keyboard-bold-duotone" className="text-xl text-sky-600" />
+        <div className="mx-3 mb-3.5 flex items-center justify-between gap-2.5 rounded-[13px] px-3 py-2.5" style={{ background: "rgba(255,255,255,.07)" }}>
+          <span className="flex items-center gap-2 text-xs font-normal text-white">
+            <span
+              className={`h-[7px] w-[7px] shrink-0 rounded-full ${cameraReady ? "animate-pulse" : ""}`}
+              style={{ background: cameraReady ? "#4ade80" : cameraError ? "#f87171" : "#fbbf24" }}
+            />
+            {cameraReady ? "กำลังสแกน" : cameraError ? "เกิดข้อผิดพลาด" : "ยังไม่เปิดกล้อง"}
           </span>
-          <div>
-            <p className="text-sm font-bold text-slate-900">กรอก PIN หรือวางลิงก์</p>
-            <p className="text-xs text-slate-400">ใช้เมื่อกล้องเปิดไม่ได้หรือมีข้อมูล QR อยู่แล้ว</p>
-          </div>
+          <span className="text-[10.5px] font-light text-white/55">
+            {cameraReady ? "หันกล้องไปที่ QR หน้าห้อง" : ""}
+          </span>
         </div>
-
-        <div className="flex gap-3">
-          <Input
-            value={manualValue}
-            onValueChange={setManualValue}
-            placeholder="PIN 6 หลัก หรือวางลิงก์ QR"
-            onKeyDown={(e) => { if (e.key === "Enter" && manualValue.trim() && !isResolvingPin) void handleDecodedValue(manualValue); }}
-            classNames={{
-              inputWrapper: "h-12 rounded-2xl border border-slate-200 bg-slate-50 shadow-none data-[focused=true]:border-sky-400",
-              input: "text-slate-900 placeholder:text-slate-400",
-            }}
-          />
-          <button
-            onClick={() => { void handleDecodedValue(manualValue); }}
-            disabled={!manualValue.trim() || isResolvingPin}
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-600 text-white shadow-sm transition hover:bg-sky-500 active:scale-95 disabled:opacity-40"
-          >
-            {isResolvingPin ? (
-              <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-            ) : (
-              <Icon icon="solar:arrow-right-bold" className="text-xl" />
-            )}
-          </button>
-        </div>
-
-        {preview && (
-          <div className={`mt-3 flex items-center gap-3 rounded-2xl px-4 py-3 text-sm ${preview.ok ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
-            <Icon icon={preview.ok ? "solar:check-circle-bold" : "solar:danger-triangle-bold"} className="shrink-0 text-lg" />
-            <span>{preview.ok ? `พร้อมเปิด: ${preview.target.title}` : preview.reason}</span>
-          </div>
-        )}
       </div>
 
-      {/* ── Last result ───────────────────────────────────────────────── */}
+      {/* ── PIN ────────────────────────────────────────────────────── */}
+      <div className="cg-card">
+        <p className="cg-section-label" style={{ padding: 0 }}>กรอกรหัส PIN 6 หลัก</p>
+        <p className="mb-3.5 mt-1.5 text-[11.5px] font-light leading-relaxed" style={{ color: "var(--cg-text-2)" }}>
+          ใช้เมื่อกล้องเปิดไม่ได้ โดยอาจารย์จะแจ้งรหัสที่หน้าห้องหรือบนจอฉาย
+        </p>
+
+        <div className="cg-pin-wrap">
+          {pinDigits.map((digit, index) => (
+            <input
+              key={index}
+              ref={(el) => { pinInputsRef.current[index] = el; }}
+              className="cg-pin"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={digit}
+              aria-label={`PIN หลักที่ ${index + 1}`}
+              onChange={(e) => handlePinChange(index, e.target.value)}
+              onKeyDown={(e) => handlePinKeyDown(index, e)}
+            />
+          ))}
+        </div>
+
+        <button
+          type="button"
+          className="cg-btn mt-3.5"
+          disabled={!isPinComplete || isResolvingPin}
+          onClick={submitPin}
+        >
+          {isResolvingPin ? "กำลังตรวจสอบ" : "ยืนยันรหัส"}
+        </button>
+      </div>
+
+      {/* ── link fallback ──────────────────────────────────────────── */}
+      <div className="flex items-center gap-2.5 text-[11px] font-light" style={{ color: "var(--cg-text-3)" }}>
+        <span className="h-px flex-1" style={{ background: "var(--cg-line)" }} />
+        หรือวางลิงก์ QR
+        <span className="h-px flex-1" style={{ background: "var(--cg-line)" }} />
+      </div>
+
+      <div className="flex gap-2">
+        <div className="cg-field-box flex-1">
+          <Icon icon="solar:link-linear" width={17} height={17} style={{ color: "var(--cg-text-3)" }} />
+          <input
+            type="text"
+            value={linkValue}
+            onChange={(e) => setLinkValue(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") submitLink(); }}
+            placeholder="วางลิงก์ที่ได้รับจากอาจารย์"
+            aria-label="ลิงก์ QR"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={submitLink}
+          disabled={!linkValue.trim() || isResolvingPin}
+          className="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-[14px] text-white disabled:opacity-40"
+          style={{ background: "var(--cg-accent)" }}
+          aria-label="เปิดลิงก์"
+        >
+          <Icon icon="solar:arrow-right-linear" width={19} height={19} />
+        </button>
+      </div>
+
       {lastResult?.ok && (
-        <div className="flex items-center gap-3 rounded-4xl border border-sky-100 bg-sky-50/80 px-5 py-4">
-          <Icon icon="solar:history-bold-duotone" className="text-xl text-sky-600" />
-          <div>
-            <p className="text-xs font-semibold text-sky-700/70 uppercase tracking-wide">สแกนล่าสุด</p>
-            <p className="mt-0.5 text-sm font-semibold text-sky-900">{lastResult.target.title}</p>
+        <div className="cg-list">
+          <div className="cg-row">
+            <span className="cg-row-ico" style={{ background: "var(--cg-info-soft)", color: "var(--cg-info)" }}>
+              <Icon icon="solar:history-linear" width={17} height={17} />
+            </span>
+            <span className="cg-row-body">
+              <span className="cg-row-sub" style={{ marginTop: 0 }}>สแกนล่าสุด</span>
+              <span className="cg-row-title">{lastResult.target.title}</span>
+            </span>
           </div>
         </div>
       )}
 
       <style jsx>{`
         @keyframes beam {
-          0%   { top: 15%; }
-          50%  { top: 80%; }
-          100% { top: 15%; }
+          0%   { top: 8%; }
+          50%  { top: 88%; }
+          100% { top: 8%; }
         }
         .scan-beam {
           position: absolute;
-          animation: beam 2s ease-in-out infinite;
+          animation: beam 2.2s ease-in-out infinite;
+          box-shadow: 0 0 12px 2px rgba(96, 165, 250, 0.65);
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .scan-beam { animation: none; top: 50%; }
         }
       `}</style>
     </div>

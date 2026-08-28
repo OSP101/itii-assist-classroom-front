@@ -24,7 +24,7 @@ const supportPriorityToFeedbackPriority: Record<string, 'low' | 'medium' | 'high
 const SUPPORT_CATEGORY_LABELS = {
     technical: { th: 'ปัญหาทางเทคนิค', en: 'Technical issue' },
     account: { th: 'บัญชีผู้ใช้และสิทธิ์', en: 'Account and access' },
-    learning: { th: 'งาน, เช็คชื่อ, คิว, คะแนน', en: 'Assignments, attendance, queues, scores' },
+    learning: { th: 'งาน, เช็กชื่อ, คิว, คะแนน', en: 'Assignments, attendance, queues, scores' },
     feature: { th: 'ขอฟีเจอร์หรือปรับปรุง UX', en: 'Feature or UX request' },
     security: { th: 'ความปลอดภัยหรือ abuse', en: 'Security or abuse' },
     other: { th: 'อื่นๆ', en: 'Other' },

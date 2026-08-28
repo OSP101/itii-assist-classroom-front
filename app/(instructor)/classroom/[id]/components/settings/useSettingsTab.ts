@@ -900,7 +900,7 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
                     return sidA.localeCompare(sidB);
                 });
 
-                const attWs = wb.addWorksheet("การเช็คชื่อ");
+                const attWs = wb.addWorksheet("การเช็กชื่อ");
                 const AFIXED = 3;
                 const ASUM = 6; // summary cols
                 const ATOTAL = AFIXED + closedSessions.length + ASUM;
@@ -1039,8 +1039,8 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
 
                 attWs.views = [{ state: "frozen", xSplit: 3, ySplit: 2 }];
             } else {
-                const ws = wb.addWorksheet("การเช็คชื่อ");
-                ws.addRow(["ยังไม่มีการเช็คชื่อในรายวิชานี้"]);
+                const ws = wb.addWorksheet("การเช็กชื่อ");
+                ws.addRow(["ยังไม่มีการเช็กชื่อในรายวิชานี้"]);
             }
 
             // ════════════════════════════════════════════════════════════════

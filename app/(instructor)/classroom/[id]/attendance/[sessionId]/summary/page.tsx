@@ -202,11 +202,11 @@ export default function AttendanceSummaryPage() {
     useEffect(() => {
         document.title = isEnglish
             ? "Attendance Summary - COCO LABS"
-            : "สรุปการเช็คชื่อ - COCO LABS";
+            : "สรุปการเช็กชื่อ - COCO LABS";
     }, [isEnglish]);
 
     useEffect(() => {
-        const pageLabel = isEnglish ? "Attendance Summary" : "สรุปการเช็คชื่อ";
+        const pageLabel = isEnglish ? "Attendance Summary" : "สรุปการเช็กชื่อ";
         document.title = buildPageTitle(pageLabel, courseContext);
     }, [courseContext, isEnglish]);
 
@@ -265,7 +265,7 @@ export default function AttendanceSummaryPage() {
 
         const headers = isEnglish
             ? ["Student ID", "Student name", "Section", "Status", "Check-in time", "Note"]
-            : ["รหัสนักศึกษา", "ชื่อ-นามสกุล", "Section", "สถานะ", "เวลาเช็คชื่อ", "หมายเหตุ"];
+            : ["รหัสนักศึกษา", "ชื่อ-นามสกุล", "Section", "สถานะ", "เวลาเช็กชื่อ", "หมายเหตุ"];
         const rows = records.map((r) => [
             r.student?.student_id || "",
             r.student?.full_name || "",
@@ -292,8 +292,8 @@ export default function AttendanceSummaryPage() {
     if (!session && !isLoading) {
         return (
             <div className="flex min-h-screen flex-col items-center justify-center bg-background text-foreground">
-                <Icon icon="solar:clipboard-remove-bold-duotone" className="mb-4 text-6xl text-default-300" aria-label={t("ไม่พบรอบการเช็คชื่อ", "Attendance session not found")} />
-                <h2 className="text-xl font-semibold text-default-700">{t("ไม่พบรอบการเช็คชื่อ", "Attendance session not found")}</h2>
+                <Icon icon="solar:clipboard-remove-bold-duotone" className="mb-4 text-6xl text-default-300" aria-label={t("ไม่พบรอบการเช็กชื่อ", "Attendance session not found")} />
+                <h2 className="text-xl font-semibold text-default-700">{t("ไม่พบรอบการเช็กชื่อ", "Attendance session not found")}</h2>
                 <Button
                     color="primary"
                     variant="light"
@@ -468,7 +468,7 @@ export default function AttendanceSummaryPage() {
                 <CardBody className="p-0">
                     <div className="overflow-x-auto">
                         <Table
-                            aria-label={t("ตารางเช็คชื่อนักศึกษา", "Student attendance table")}
+                            aria-label={t("ตารางเช็กชื่อนักศึกษา", "Student attendance table")}
                             removeWrapper
                             classNames={{
                                 th: "bg-content2 text-default-600 font-semibold text-sm",
@@ -480,7 +480,7 @@ export default function AttendanceSummaryPage() {
                                     const columns = [
                                         <TableColumn key="student">{t("นักศึกษา", "Student")}</TableColumn>,
                                         <TableColumn key="section">{t("Section", "Section")}</TableColumn>,
-                                        <TableColumn key="checkin">{t("เวลาเช็คชื่อ", "Check-in time")}</TableColumn>,
+                                        <TableColumn key="checkin">{t("เวลาเช็กชื่อ", "Check-in time")}</TableColumn>,
                                         <TableColumn key="status">{t("สถานะ", "Status")}</TableColumn>,
                                         <TableColumn key="verification">{t("การยืนยัน", "Verification")}</TableColumn>,
                                         <TableColumn key="note">{t("หมายเหตุ", "Note")}</TableColumn>,
@@ -626,7 +626,7 @@ export default function AttendanceSummaryPage() {
             {/* Status Update Modal */}
             <Modal isOpen={isStatusModalOpen} onClose={() => setIsStatusModalOpen(false)}>
                 <ModalContent>
-                    <ModalHeader>{t("แก้ไขสถานะการเช็คชื่อ", "Edit attendance status")}</ModalHeader>
+                    <ModalHeader>{t("แก้ไขสถานะการเช็กชื่อ", "Edit attendance status")}</ModalHeader>
                     <ModalBody>
                         {selectedRecord && (
                             <div className="space-y-4">

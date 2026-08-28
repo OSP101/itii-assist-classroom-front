@@ -87,6 +87,12 @@ export interface AttendanceSession {
         checked_in: number;
         not_checked_in: number;
     };
+    network_guard?: {
+        allowed: boolean;
+        exempt: boolean;
+        failed_checks: Array<'device' | 'network' | 'domain'>;
+        device_type: string;
+    };
 }
 
 export interface AttendanceRecord {
@@ -433,11 +439,15 @@ const attendanceService = {
      * Get session info for student check-in (public)
      */
     async getSessionInfo(sessionId: number): Promise<AttendanceSession | null> {
-        const response = await api.get<AttendanceSession>(`/attendance/check-in/${sessionId}/info`);
+        const response = await api.get<AttendanceSession>(`/attendance/check-in/${sessionId}/info`) as
+            AttendanceErrorPayload & { data?: AttendanceSession; network_guard?: AttendanceSession['network_guard'] };
         if (!response.success) {
-            throwAttendanceRequestError(response as AttendanceErrorPayload, 'ไม่พบรอบการเช็คชื่อ');
+            throwAttendanceRequestError(response, 'ไม่พบรอบการเช็กชื่อ');
         }
-        return response.data || null;
+        if (!response.data) {
+            return null;
+        }
+        return { ...response.data, network_guard: response.network_guard };
     },
 
     /**
@@ -461,7 +471,7 @@ const attendanceService = {
         }>(`/attendance/check-in/${sessionId}`, data);
         
         if (!response.success) {
-            throwAttendanceRequestError(response as AttendanceErrorPayload, 'เช็คชื่อไม่สำเร็จ');
+            throwAttendanceRequestError(response as AttendanceErrorPayload, 'เช็กชื่อไม่สำเร็จ');
         }
         
         return response.data || null;
@@ -529,7 +539,7 @@ const attendanceService = {
         });
 
         if (!response.success) {
-            throw new Error(response.message || 'PIN ไม่ถูกต้อง หรือไม่มีการเปิดเช็คชื่อ');
+            throw new Error(response.message || 'PIN ไม่ถูกต้อง หรือไม่มีการเปิดเช็กชื่อ');
         }
 
         return response.data || null;

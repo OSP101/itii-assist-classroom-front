@@ -11,6 +11,7 @@ import { authService } from "@/services/auth.service";
 import { SessionTimeoutWatcher } from "@/components/auth/SessionTimeoutWatcher";
 import { IconifyPreload } from "@/components/IconifyPreload";
 import { PwaBootstrap } from "@/components/system/PwaBootstrap";
+import { VisualViewportBootstrap } from "@/components/system/VisualViewportBootstrap";
 import { SWRProvider, clearAllCaches } from "@/lib/swr";
 import { clearClassroomCache } from "@/app/(instructor)/classroom/[id]/hooks/useClassroomData";
 
@@ -64,6 +65,7 @@ export function Providers({ children, initialSettings }: ProvidersProps) {
   return (
     <HeroUIProvider navigate={router.push}>
       <PwaBootstrap />
+      <VisualViewportBootstrap />
       <IconifyPreload />
       <GlobalSettingsProvider initialSettings={initialSettings}>
         <SWRProvider>

@@ -274,7 +274,7 @@ export function useAttendanceTab(
             console.error("Error fetching attendance sessions:", error);
             addToast({
                 title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
-                description: isEnglish ? "Unable to load attendance data." : "ไม่สามารถโหลดข้อมูลการเช็คชื่อได้",
+                description: isEnglish ? "Unable to load attendance data." : "ไม่สามารถโหลดข้อมูลการเช็กชื่อได้",
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -426,7 +426,7 @@ export function useAttendanceTab(
         if (!formData.title.trim()) {
             addToast({
                 title: isEnglish ? "Please complete the form" : "กรุณากรอกข้อมูล",
-                description: isEnglish ? "Please enter an attendance session title." : "กรุณากรอกชื่อรอบการเช็คชื่อ",
+                description: isEnglish ? "Please enter an attendance session title." : "กรุณากรอกชื่อรอบการเช็กชื่อ",
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -444,7 +444,7 @@ export function useAttendanceTab(
                 if (result) {
                     addToast({
                         title: isEnglish ? "Success" : "สำเร็จ",
-                        description: isEnglish ? "Attendance session updated successfully." : "แก้ไขรอบการเช็คชื่อเรียบร้อยแล้ว",
+                        description: isEnglish ? "Attendance session updated successfully." : "แก้ไขรอบการเช็กชื่อเรียบร้อยแล้ว",
                         color: "success",
                         timeout: 3000,
                         shouldShowTimeoutProgress: true,
@@ -457,7 +457,7 @@ export function useAttendanceTab(
                 console.error("Error updating session:", error);
                 addToast({
                     title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
-                    description: error instanceof Error ? error.message : (isEnglish ? "Unable to update the attendance session." : "ไม่สามารถแก้ไขรอบการเช็คชื่อได้"),
+                    description: error instanceof Error ? error.message : (isEnglish ? "Unable to update the attendance session." : "ไม่สามารถแก้ไขรอบการเช็กชื่อได้"),
                     color: "danger",
                     timeout: 3000,
                     shouldShowTimeoutProgress: true,
@@ -534,7 +534,7 @@ export function useAttendanceTab(
             if (result) {
                 addToast({
                     title: isEnglish ? "Success" : "สำเร็จ",
-                    description: isEnglish ? "Attendance session created successfully." : "สร้างรอบการเช็คชื่อเรียบร้อยแล้ว",
+                    description: isEnglish ? "Attendance session created successfully." : "สร้างรอบการเช็กชื่อเรียบร้อยแล้ว",
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -548,7 +548,7 @@ export function useAttendanceTab(
             console.error("Error creating session:", error);
             addToast({
                 title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
-                description: error instanceof Error ? error.message : (isEnglish ? "Unable to create the attendance session." : "ไม่สามารถสร้างรอบการเช็คชื่อได้"),
+                description: error instanceof Error ? error.message : (isEnglish ? "Unable to create the attendance session." : "ไม่สามารถสร้างรอบการเช็กชื่อได้"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -564,7 +564,7 @@ export function useAttendanceTab(
         if (!formData.title.trim()) {
             addToast({
                 title: isEnglish ? "Please complete the form" : "กรุณากรอกข้อมูล",
-                description: isEnglish ? "Please enter an attendance session title." : "กรุณากรอกชื่อรอบการเช็คชื่อ",
+                description: isEnglish ? "Please enter an attendance session title." : "กรุณากรอกชื่อรอบการเช็กชื่อ",
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -714,7 +714,7 @@ export function useAttendanceTab(
             if (result) {
                 addToast({
                     title: isEnglish ? "Success" : "สำเร็จ",
-                    description: isEnglish ? "Attendance session updated successfully." : "แก้ไขรอบการเช็คชื่อเรียบร้อยแล้ว",
+                    description: isEnglish ? "Attendance session updated successfully." : "แก้ไขรอบการเช็กชื่อเรียบร้อยแล้ว",
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -727,7 +727,7 @@ export function useAttendanceTab(
             console.error("Error updating session:", error);
             addToast({
                 title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
-                description: error instanceof Error ? error.message : (isEnglish ? "Unable to update the attendance session." : "ไม่สามารถแก้ไขรอบการเช็คชื่อได้"),
+                description: error instanceof Error ? error.message : (isEnglish ? "Unable to update the attendance session." : "ไม่สามารถแก้ไขรอบการเช็กชื่อได้"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -759,7 +759,7 @@ export function useAttendanceTab(
                     title: isEnglish ? "Saved" : "บันทึกเรียบร้อย",
                     description: parts.length > 0
                         ? (isEnglish ? `Updated the time and attendance statuses: ${parts.join(", ")}` : `แก้ไขเวลาและปรับปรุงสถานะ: ${parts.join(', ')}`)
-                        : (isEnglish ? "Attendance session updated successfully." : "แก้ไขรอบการเช็คชื่อเรียบร้อยแล้ว"),
+                        : (isEnglish ? "Attendance session updated successfully." : "แก้ไขรอบการเช็กชื่อเรียบร้อยแล้ว"),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -808,7 +808,7 @@ export function useAttendanceTab(
             if (result) {
                 addToast({
                     title: isEnglish ? "Success" : "สำเร็จ",
-                    description: isEnglish ? "Attendance session updated successfully." : "แก้ไขรอบการเช็คชื่อเรียบร้อยแล้ว",
+                    description: isEnglish ? "Attendance session updated successfully." : "แก้ไขรอบการเช็กชื่อเรียบร้อยแล้ว",
                     color: "success",
                     timeout: 3000,
                     shouldShowTimeoutProgress: true,
@@ -822,7 +822,7 @@ export function useAttendanceTab(
             console.error("Error updating session after section change confirmation:", error);
             addToast({
                 title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
-                description: error instanceof Error ? error.message : (isEnglish ? "Unable to update the attendance session." : "ไม่สามารถแก้ไขรอบการเช็คชื่อได้"),
+                description: error instanceof Error ? error.message : (isEnglish ? "Unable to update the attendance session." : "ไม่สามารถแก้ไขรอบการเช็กชื่อได้"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -841,7 +841,7 @@ export function useAttendanceTab(
             if (success) {
                 addToast({
                     title: isEnglish ? "Success" : "สำเร็จ",
-                    description: isEnglish ? "Attendance session deleted successfully." : "ลบรอบการเช็คชื่อเรียบร้อยแล้ว",
+                    description: isEnglish ? "Attendance session deleted successfully." : "ลบรอบการเช็กชื่อเรียบร้อยแล้ว",
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -855,7 +855,7 @@ export function useAttendanceTab(
             console.error("Error deleting session:", error);
             addToast({
                 title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
-                description: error instanceof Error ? error.message : (isEnglish ? "Unable to delete the attendance session." : "ไม่สามารถลบรอบการเช็คชื่อได้"),
+                description: error instanceof Error ? error.message : (isEnglish ? "Unable to delete the attendance session." : "ไม่สามารถลบรอบการเช็กชื่อได้"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -889,7 +889,7 @@ export function useAttendanceTab(
                 }
                 addToast({
                     title: isEnglish ? "Success" : "สำเร็จ",
-                    description: isEnglish ? "Attendance session is now open." : "เริ่มเปิดรอบเช็คชื่อแล้ว",
+                    description: isEnglish ? "Attendance session is now open." : "เริ่มเปิดรอบเช็กชื่อแล้ว",
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -900,7 +900,7 @@ export function useAttendanceTab(
                 console.error("Error activating session:", error);
                 addToast({
                     title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
-                    description: error instanceof Error ? error.message : (isEnglish ? "Unable to open the attendance session." : "ไม่สามารถเปิดรอบเช็คชื่อได้"),
+                    description: error instanceof Error ? error.message : (isEnglish ? "Unable to open the attendance session." : "ไม่สามารถเปิดรอบเช็กชื่อได้"),
                     color: "danger",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -920,7 +920,7 @@ export function useAttendanceTab(
             if (result) {
                 addToast({
                     title: isEnglish ? "Success" : "สำเร็จ",
-                    description: isEnglish ? "Attendance session closed successfully." : "ปิดรอบการเช็คชื่อเรียบร้อยแล้ว",
+                    description: isEnglish ? "Attendance session closed successfully." : "ปิดรอบการเช็กชื่อเรียบร้อยแล้ว",
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -933,7 +933,7 @@ export function useAttendanceTab(
             console.error("Error closing session:", error);
             addToast({
                 title: isEnglish ? "Error" : "เกิดข้อผิดพลาด",
-                description: error instanceof Error ? error.message : (isEnglish ? "Unable to close the attendance session." : "ไม่สามารถปิดรอบการเช็คชื่อได้"),
+                description: error instanceof Error ? error.message : (isEnglish ? "Unable to close the attendance session." : "ไม่สามารถปิดรอบการเช็กชื่อได้"),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,

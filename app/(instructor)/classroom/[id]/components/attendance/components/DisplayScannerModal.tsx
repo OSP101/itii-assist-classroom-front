@@ -480,7 +480,7 @@ const DisplayScannerModal = memo(function DisplayScannerModal({
                         <Icon icon="solar:shield-warning-bold-duotone" className="mt-0.5 shrink-0 text-xl text-amber-500" />
                         <p className="text-xs leading-relaxed text-amber-700">
                             {t(
-                                "ตรวจสอบ Ref. ให้ตรงกับที่แสดงบนจอฉาย ห้ามแชร์รหัสกับนักศึกษา รหัสนี้ให้สิทธิ์ควบคุมหน้าเช็คชื่อทันที",
+                                "ตรวจสอบ Ref. ให้ตรงกับที่แสดงบนจอฉาย ห้ามแชร์รหัสกับนักศึกษา รหัสนี้ให้สิทธิ์ควบคุมหน้าเช็กชื่อทันที",
                                 "Verify Ref. matches the projector. Never share this code with students - it grants immediate control of the attendance display.",
                             )}
                         </p>
@@ -489,7 +489,7 @@ const DisplayScannerModal = memo(function DisplayScannerModal({
                     <div className="space-y-2">
                         {[
                             { icon: "solar:monitor-bold-duotone", text: t("บนจอฉาย: กรอกรหัส 6 หลักในช่องยืนยัน", "On projector: enter the 6-digit code in the Verify field") },
-                            { icon: "solar:check-circle-bold-duotone", text: t("จอฉายจะเปิดหน้าแสดงผลเช็คชื่อโดยอัตโนมัติ", "The projector will open the live attendance display automatically") },
+                            { icon: "solar:check-circle-bold-duotone", text: t("จอฉายจะเปิดหน้าแสดงผลเช็กชื่อโดยอัตโนมัติ", "The projector will open the live attendance display automatically") },
                         ].map(({ icon, text }, idx) => (
                             <div key={idx} className="flex items-start gap-3 rounded-xl bg-content2 px-3 py-3">
                                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-[11px] font-bold text-sky-600">

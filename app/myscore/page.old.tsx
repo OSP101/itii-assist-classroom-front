@@ -1143,7 +1143,7 @@ export default function MyScorePage() {
                                         <p className="text-3xl font-bold text-purple-600">
                                             {data.courses.reduce((sum, c) => sum + c.attendance.records.length, 0)}
                                         </p>
-                                        <p className="text-xs text-gray-500 mt-1">เช็คชื่อ</p>
+                                        <p className="text-xs text-gray-500 mt-1">เช็กชื่อ</p>
                                     </div>
                                 </div> */}
                             </CardBody>

@@ -9,13 +9,13 @@ export const docsCategoryGroups = [
     key: "student",
     title: "สำหรับนักศึกษา",
     icon: "solar:book-open-bold",
-    description: "ส่งงาน เช็คชื่อ เข้าคิว และติดตามคะแนนของตนเอง",
+    description: "ส่งงาน เช็กชื่อ เข้าคิว และติดตามคะแนนของตนเอง",
   },
   {
     key: "teaching",
     title: "สำหรับผู้สอนและ TA",
     icon: "solar:diploma-bold",
-    description: "จัดการรายวิชา งาน คะแนน เช็คชื่อ คิว และบันทึกกิจกรรม",
+    description: "จัดการรายวิชา งาน คะแนน เช็กชื่อ คิว และบันทึกกิจกรรม",
   },
   {
     key: "admin",

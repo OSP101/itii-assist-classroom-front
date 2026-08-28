@@ -405,8 +405,8 @@ function AssignmentModalComponent({
                                         <Icon icon="solar:clipboard-check-bold" className="text-lg text-blue-600" />
                                     </div>
                                     <div>
-                                        <span className="font-semibold text-slate-700">ลิงก์กับการเช็คชื่อ</span>
-                                        <p className="text-xs text-slate-500">สามารถเลือกหลายรอบเช็คชื่อได้</p>
+                                        <span className="font-semibold text-slate-700">ลิงก์กับการเช็กชื่อ</span>
+                                        <p className="text-xs text-slate-500">สามารถเลือกหลายรอบเช็กชื่อได้</p>
                                     </div>
                                 </div>
                                 <Button
@@ -441,7 +441,7 @@ function AssignmentModalComponent({
                                 </div>
                             ) : attendanceSessions.length > 0 ? (
                                 <Select
-                                    placeholder="เลือกรอบเช็คชื่อที่ต้องการลิงก์ (เลือกได้หลายรอบ)"
+                                    placeholder="เลือกรอบเช็กชื่อที่ต้องการลิงก์ (เลือกได้หลายรอบ)"
                                     selectionMode="multiple"
                                     size="md"
                                     selectedKeys={new Set(formData.linked_attendance_session_ids.map(String))}
@@ -479,7 +479,7 @@ function AssignmentModalComponent({
                             ) : (
                                 <div className="p-3 bg-slate-100 rounded-lg text-center">
                                     <Icon icon="solar:clipboard-list-linear" className="text-slate-400 text-xl mb-1" />
-                                    <p className="text-sm text-slate-500">ยังไม่มีรอบเช็คชื่อ</p>
+                                    <p className="text-sm text-slate-500">ยังไม่มีรอบเช็กชื่อ</p>
                                 </div>
                             )}
                             
@@ -487,7 +487,7 @@ function AssignmentModalComponent({
                             {formData.linked_attendance_session_ids.length > 1 && (
                                 <div className="mt-4 p-3 bg-white rounded-lg border border-slate-200">
                                     <label className="text-slate-600 font-medium text-sm mb-3 block">
-                                        เงื่อนไขการเช็คชื่อ
+                                        เงื่อนไขการเช็กชื่อ
                                     </label>
                                     <div className="grid grid-cols-2 gap-3">
                                         <button
@@ -541,7 +541,7 @@ function AssignmentModalComponent({
                                         <div className="text-sm">
                                             <span className="font-medium">
                                                 {formData.linked_attendance_session_ids.length === 1 
-                                                    ? "นักศึกษาที่ขาดเรียนในรอบเช็คชื่อนี้ จะไม่สามารถลงคะแนนได้"
+                                                    ? "นักศึกษาที่ขาดเรียนในรอบเช็กชื่อนี้ จะไม่สามารถลงคะแนนได้"
                                                     : formData.attendance_condition === "or"
                                                         ? `นักศึกษาที่ขาดเรียนทั้ง ${formData.linked_attendance_session_ids.length} รอบ จะไม่สามารถลงคะแนนได้`
                                                         : `นักศึกษาต้องมาเรียนครบทุกรอบ (${formData.linked_attendance_session_ids.length} รอบ) จึงจะลงคะแนนได้`

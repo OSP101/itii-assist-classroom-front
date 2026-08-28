@@ -472,7 +472,7 @@ export function useClassroomData(courseId: string) {
             if (event.action === "delete") return "มีการลบงานในรายวิชานี้";
             return "มีการแก้ไขข้อมูลงานในรายวิชานี้";
         }
-        if (event.resource === "attendance") return "มีการอัปเดตข้อมูลการเช็คชื่อ";
+        if (event.resource === "attendance") return "มีการอัปเดตข้อมูลการเช็กชื่อ";
         if (event.resource === "section") return "มีการอัปเดตข้อมูลกลุ่มเรียน";
         if (event.resource === "group") return "มีการอัปเดตข้อมูลทีม";
         if (event.resource === "score") return "มีการอัปเดตข้อมูลคะแนน";

@@ -306,7 +306,7 @@ export const FiltersCard = memo(function FiltersCard({
             <CardBody className="p-4">
                 <div className="flex flex-col sm:flex-row gap-3">
                     <Input
-                        placeholder={isEnglish ? "Search attendance sessions..." : "ค้นหาชื่อรอบการเช็คชื่อ..."}
+                        placeholder={isEnglish ? "Search attendance sessions..." : "ค้นหาชื่อรอบการเช็กชื่อ..."}
                         value={searchQuery}
                         onValueChange={onSearchChange}
                         startContent={<Icon icon="solar:magnifer-linear" className="text-default-400" />}
@@ -376,12 +376,12 @@ export const EmptyState = memo(function EmptyState({ onCreateClick, isCourseActi
                     <Icon
                         icon="solar:clipboard-check-bold-duotone"
                         className="text-5xl text-blue-500"
-                        aria-label={isEnglish ? "No attendance sessions" : "ยังไม่มีรอบการเช็คชื่อ"}
+                        aria-label={isEnglish ? "No attendance sessions" : "ยังไม่มีรอบการเช็กชื่อ"}
                     />
                 </div>
-                <h3 className="mb-2 text-lg font-semibold text-default-700">{isEnglish ? "No attendance sessions yet" : "ยังไม่มีรอบการเช็คชื่อ"}</h3>
+                <h3 className="mb-2 text-lg font-semibold text-default-700">{isEnglish ? "No attendance sessions yet" : "ยังไม่มีรอบการเช็กชื่อ"}</h3>
                 <p className="mx-auto mb-6 max-w-md text-default-500">
-                    {isEnglish ? "Create an attendance session so students can check in." : "สร้างรอบการเช็คชื่อเพื่อให้นักศึกษาสามารถเช็คชื่อเข้าเรียนได้"}
+                    {isEnglish ? "Create an attendance session so students can check in." : "สร้างรอบการเช็กชื่อเพื่อให้นักศึกษาสามารถเช็กชื่อเข้าเรียนได้"}
                 </p>
                 {canCreateAttendanceSessions && (
                     <Button
@@ -391,7 +391,7 @@ export const EmptyState = memo(function EmptyState({ onCreateClick, isCourseActi
                         isDisabled={!isCourseActive}
                         className="bg-linear-to-r from-blue-400 to-indigo-500 shadow-lg shadow-blue-400/25"
                     >
-                        {isEnglish ? "Create first attendance session" : "สร้างรอบเช็คชื่อแรก"}
+                        {isEnglish ? "Create first attendance session" : "สร้างรอบเช็กชื่อแรก"}
                     </Button>
                 )}
             </CardBody>
@@ -439,7 +439,7 @@ export const QRPreviewModal = memo(function QRPreviewModal({
         navigator.clipboard.writeText(checkInUrl);
         addToast({
             title: isEnglish ? "Copied" : "คัดลอกแล้ว",
-            description: isEnglish ? "Check-in link copied to clipboard." : "ลิงก์เช็คชื่อถูกคัดลอกไปยังคลิปบอร์ดแล้ว",
+            description: isEnglish ? "Check-in link copied to clipboard." : "ลิงก์เช็กชื่อถูกคัดลอกไปยังคลิปบอร์ดแล้ว",
             color: "success",
             timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -521,14 +521,14 @@ export const QRPreviewModal = memo(function QRPreviewModal({
                             <div className="inline-block rounded-2xl border border-dashed border-default-300 bg-content2 px-6 py-5 text-sm text-default-500">
                                 {isStaticPinSession
                                     ? (isEnglish ? "This session uses one fixed PIN, but it is not ready yet." : "รอบนี้ใช้ PIN คงที่ แต่ยังไม่พร้อมแสดงในขณะนี้")
-                                    : (isEnglish ? "PIN will appear when check-in opens and rotate every minute." : "PIN จะปรากฏเมื่อเริ่มรอบเช็คชื่อ และจะเปลี่ยนทุก 1 นาที")}
+                                    : (isEnglish ? "PIN will appear when check-in opens and rotate every minute." : "PIN จะปรากฏเมื่อเริ่มรอบเช็กชื่อ และจะเปลี่ยนทุก 1 นาที")}
                             </div>
                         )}
                     </div>
 
                     {/* URL */}
                     <div className="rounded-xl bg-content2 p-3">
-                        <p className="mb-1 text-xs text-default-400">{isEnglish ? "Check-in link" : "ลิงก์เช็คชื่อ"}</p>
+                        <p className="mb-1 text-xs text-default-400">{isEnglish ? "Check-in link" : "ลิงก์เช็กชื่อ"}</p>
                         <div className="flex items-center gap-2">
                             <code className="flex-1 truncate rounded-lg border border-default-200 bg-content1 px-3 py-2 text-sm text-blue-600">
                                 {checkInUrl}
@@ -601,7 +601,7 @@ const SessionRowActions = memo(function SessionRowActions({
 
     const view: RowAction = {
         key: "view",
-        label: isEnglish ? "Open attendance page" : "ดูหน้าเช็คชื่อ",
+        label: isEnglish ? "Open attendance page" : "ดูหน้าเช็กชื่อ",
         icon: "solar:eye-bold",
         href: `/attendance/${courseId}/session/${session.id}/live`,
         iconClassName: "text-blue-600",
@@ -627,7 +627,7 @@ const SessionRowActions = memo(function SessionRowActions({
         if (canUpdateAttendanceSessions) {
             primary.push({
                 key: "open-now",
-                label: isEnglish ? "Open now" : "เริ่มเปิดเช็คชื่อทันที",
+                label: isEnglish ? "Open now" : "เริ่มเปิดเช็กชื่อทันที",
                 icon: "solar:play-bold",
                 color: "success",
                 isDisabled: !isCourseActive,
@@ -792,7 +792,7 @@ export const SessionsTable = memo(function SessionsTable({
                         className={STICKY_SCROLL_CONTAINER_CLASS}
                     >
                         <Table
-                            aria-label={isEnglish ? "Attendance sessions table" : "ตารางรอบการเช็คชื่อ"}
+                            aria-label={isEnglish ? "Attendance sessions table" : "ตารางรอบการเช็กชื่อ"}
                             removeWrapper
                             classNames={{
                                 base: "min-w-225",
@@ -801,7 +801,7 @@ export const SessionsTable = memo(function SessionsTable({
                             }}
                         >
                             <TableHeader>
-                                <TableColumn className="min-w-40">{isEnglish ? "Attendance session" : "รอบการเช็คชื่อ"}</TableColumn>
+                                <TableColumn className="min-w-40">{isEnglish ? "Attendance session" : "รอบการเช็กชื่อ"}</TableColumn>
                                 <TableColumn className="min-w-25">{isEnglish ? "Section" : "เซคชัน"}</TableColumn>
                                 <TableColumn className="min-w-22.5">{isEnglish ? "Type" : "ประเภท"}</TableColumn>
                                 <TableColumn className="min-w-35">{isEnglish ? "Date & time" : "วันเวลา"}</TableColumn>
@@ -816,7 +816,7 @@ export const SessionsTable = memo(function SessionsTable({
                                             icon="solar:clipboard-list-linear"
                                             className="mx-auto mb-3 text-5xl text-default-300"
                                         />
-                                        <p className="text-default-400">{isEnglish ? "No attendance sessions match the current filters." : "ไม่พบรอบการเช็คชื่อที่ตรงกับเงื่อนไข"}</p>
+                                        <p className="text-default-400">{isEnglish ? "No attendance sessions match the current filters." : "ไม่พบรอบการเช็กชื่อที่ตรงกับเงื่อนไข"}</p>
                                         {canCreateAttendanceSessions && (
                                             <Button
                                                 color="primary"
@@ -826,7 +826,7 @@ export const SessionsTable = memo(function SessionsTable({
                                                 isDisabled={!isCourseActive}
                                                 onPress={onCreateClick}
                                             >
-                                                {isEnglish ? "Create attendance session" : "สร้างรอบเช็คชื่อ"}
+                                                {isEnglish ? "Create attendance session" : "สร้างรอบเช็กชื่อ"}
                                             </Button>
                                         )}
                                     </div>
@@ -1154,7 +1154,7 @@ export const LocationCheckCard = memo(function LocationCheckCard({
                                 </div>
                                 <div>
                                     <span className="font-medium text-default-700">{isEnglish ? "Allowed radius" : "รัศมีที่อนุญาต"}</span>
-                                    <p className="text-xs text-default-500">{isEnglish ? "Maximum distance from the selected point allowed for check-in." : "ระยะห่างจากจุดกำหนดที่อนุญาตให้เช็คชื่อได้"}</p>
+                                    <p className="text-xs text-default-500">{isEnglish ? "Maximum distance from the selected point allowed for check-in." : "ระยะห่างจากจุดกำหนดที่อนุญาตให้เช็กชื่อได้"}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
@@ -1253,9 +1253,9 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                             <Icon icon="solar:clipboard-check-bold" className="text-2xl text-white" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-foreground">{isEnglish ? "Create attendance session" : "สร้างรอบการเช็คชื่อ"}</h3>
+                            <h3 className="text-xl font-bold text-foreground">{isEnglish ? "Create attendance session" : "สร้างรอบการเช็กชื่อ"}</h3>
                             <p className="mt-1 text-sm font-normal text-default-500">
-                                {isEnglish ? "Set the attendance session details." : "กำหนดรายละเอียดการเช็คชื่อเข้าเรียน"}
+                                {isEnglish ? "Set the attendance session details." : "กำหนดรายละเอียดการเช็กชื่อเข้าเรียน"}
                             </p>
                         </div>
                     </div>
@@ -1265,8 +1265,8 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                         {/* Title */}
                         <div>
                             <Input
-                                label={isEnglish ? "Attendance session title" : "ชื่อรอบการเช็คชื่อ"}
-                                placeholder={isEnglish ? "e.g. Week 1 attendance, Lab 1" : "เช่น เช็คชื่อสัปดาห์ที่ 1, Lab 1"}
+                                label={isEnglish ? "Attendance session title" : "ชื่อรอบการเช็กชื่อ"}
+                                placeholder={isEnglish ? "e.g. Week 1 attendance, Lab 1" : "เช่น เช็กชื่อสัปดาห์ที่ 1, Lab 1"}
                                 value={formData.title}
                                 onValueChange={(value) => setFormData((prev) => ({ ...prev, title: value }))}
                                 isRequired
@@ -1371,7 +1371,7 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                                 onChange={setLateThresholdTime}
                                 isRequired
                                 colorScheme="amber"
-                                description={isEnglish ? "Check-ins after this time will be marked late." : "เช็คอินหลังเวลานี้จะถูกนับเป็นสาย"}
+                                description={isEnglish ? "Check-ins after this time will be marked late." : "เช็กอินหลังเวลานี้จะถูกนับเป็นสาย"}
                                 min={toDateTimeLocalStr(startDateTime)}
                                 max={toDateTimeLocalStr(endDateTime)}
                             />
@@ -1419,7 +1419,7 @@ export const CreateSessionModal = memo(function CreateSessionModal({
                         isDisabled={!isCourseActive || !formData.title?.trim()}
                         className="w-full bg-linear-to-r from-blue-400 to-indigo-500 sm:w-auto"
                     >
-                        {isEnglish ? "Create attendance session" : "สร้างรอบเช็คชื่อ"}
+                        {isEnglish ? "Create attendance session" : "สร้างรอบเช็กชื่อ"}
                     </Button>
                 </ModalFooter>
             </ModalContent>
@@ -1533,7 +1533,7 @@ export const EditSessionModal = memo(function EditSessionModal({
                             <Icon icon="solar:pen-bold" className="text-2xl text-white" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-foreground">{isEnglish ? "Edit attendance session" : "แก้ไขรอบการเช็คชื่อ"}</h3>
+                            <h3 className="text-xl font-bold text-foreground">{isEnglish ? "Edit attendance session" : "แก้ไขรอบการเช็กชื่อ"}</h3>
                             <p className="mt-1 text-sm font-normal text-default-500">
                                 {editTarget?.title}
                             </p>
@@ -1544,7 +1544,7 @@ export const EditSessionModal = memo(function EditSessionModal({
                     <div className="space-y-3">
                         {/* Title */}
                         <Input
-                            label={isEnglish ? "Attendance session title" : "ชื่อรอบการเช็คชื่อ"}
+                            label={isEnglish ? "Attendance session title" : "ชื่อรอบการเช็กชื่อ"}
                             value={formData.title}
                             onValueChange={(value) => setFormData((prev: CreateAttendanceData) => ({ ...prev, title: value }))}
                             isRequired
@@ -1645,13 +1645,13 @@ export const EditSessionModal = memo(function EditSessionModal({
                         {/* Late Threshold Time */}
                         <div className="">
                             <DateTimeInput
-                                label={isEnglish ? "Late cutoff time" : "เวลาสำหรับเช็คสาย"}
+                                label={isEnglish ? "Late cutoff time" : "เวลาสำหรับเช็กสาย"}
                                 value={lateThresholdTime}
                                 onChange={setLateThresholdTime}
                                 isRequired
                                 isDisabled={isClosedSession}
                                 colorScheme="amber"
-                                description={isEnglish ? "Check-ins after this time will be marked late." : "เช็คอินหลังเวลานี้จะถูกนับเป็นสาย"}
+                                description={isEnglish ? "Check-ins after this time will be marked late." : "เช็กอินหลังเวลานี้จะถูกนับเป็นสาย"}
                                 min={toDateTimeLocalStr(startDateTime)}
                                 max={toDateTimeLocalStr(endDateTime)}
                             />
@@ -1681,7 +1681,7 @@ export const EditSessionModal = memo(function EditSessionModal({
                                 <div className="mb-4 flex items-center justify-between gap-4">
                                     <div>
                                         <p className="font-medium text-default-700">{isEnglish ? "GPS location check" : "ตรวจสอบตำแหน่ง GPS"}</p>
-                                        <p className="text-sm text-default-500">{isEnglish ? "Restrict check-in to the selected area." : "ให้นักศึกษาเช็คชื่อได้เฉพาะในพื้นที่ที่กำหนด"}</p>
+                                        <p className="text-sm text-default-500">{isEnglish ? "Restrict check-in to the selected area." : "ให้นักศึกษาเช็กชื่อได้เฉพาะในพื้นที่ที่กำหนด"}</p>
                                     </div>
                                     <Switch
                                         isSelected={formData.check_location}
@@ -1736,7 +1736,7 @@ export const EditSessionModal = memo(function EditSessionModal({
 
                                         {/* Radius */}
                                         <div>
-                                            <p className="mb-2 text-sm text-default-600">{isEnglish ? "Attendance radius" : "รัศมีการเช็คชื่อ"}</p>
+                                            <p className="mb-2 text-sm text-default-600">{isEnglish ? "Attendance radius" : "รัศมีการเช็กชื่อ"}</p>
                                             <div className="flex gap-1.5">
                                                 {RADIUS_OPTIONS.map((r) => (
                                                     <Button
@@ -1810,12 +1810,12 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
                         <div className="p-2 bg-red-100 rounded-lg">
                             <Icon icon="solar:trash-bin-trash-bold" className="text-xl text-red-600" />
                         </div>
-                        <span>{isEnglish ? "Confirm attendance session deletion" : "ยืนยันการลบรอบเช็คชื่อ"}</span>
+                        <span>{isEnglish ? "Confirm attendance session deletion" : "ยืนยันการลบรอบเช็กชื่อ"}</span>
                     </div>
                 </ModalHeader>
                 <ModalBody>
                     <p>
-                        {isEnglish ? "Do you want to delete attendance session " : "คุณต้องการลบรอบการเช็คชื่อ "}<strong className="text-red-600">{targetTitle}</strong>{isEnglish ? "?" : " หรือไม่?"}
+                        {isEnglish ? "Do you want to delete attendance session " : "คุณต้องการลบรอบการเช็กชื่อ "}<strong className="text-red-600">{targetTitle}</strong>{isEnglish ? "?" : " หรือไม่?"}
                     </p>
                     <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
                         <div className="flex items-start gap-2">
@@ -1823,8 +1823,8 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
                             <div className="text-sm text-red-700">
                                 <p className="font-bold">{isEnglish ? "Warning: this action cannot be undone!" : "คำเตือน: การลบจะไม่สามารถกู้คืนได้!"}</p>
                                 <ul className="list-disc list-inside mt-2 space-y-1">
-                                    <li>{isEnglish ? "All attendance data will be permanently deleted." : <><span>ข้อมูลการเช็คชื่อทั้งหมดจะ</span><strong>หายไปถาวร</strong></>}</li>
-                                    <li>{isEnglish ? "Student attendance results will be removed." : "ผลการเช็คชื่อของนักศึกษาจะถูกลบ"}</li>
+                                    <li>{isEnglish ? "All attendance data will be permanently deleted." : <><span>ข้อมูลการเช็กชื่อทั้งหมดจะ</span><strong>หายไปถาวร</strong></>}</li>
+                                    <li>{isEnglish ? "Student attendance results will be removed." : "ผลการเช็กชื่อของนักศึกษาจะถูกลบ"}</li>
                                     <li>{isEnglish ? "The data cannot be restored." : "ไม่สามารถกู้คืนข้อมูลได้"}</li>
                                 </ul>
                             </div>
@@ -1876,12 +1876,12 @@ export const CloseSessionModal = memo(function CloseSessionModal({
                         <div className="p-2 bg-red-100 rounded-lg">
                             <Icon icon="solar:stop-bold" className="text-xl text-red-600" />
                         </div>
-                        <span>{isEnglish ? "Confirm attendance session closure" : "ยืนยันการปิดรอบเช็คชื่อ"}</span>
+                        <span>{isEnglish ? "Confirm attendance session closure" : "ยืนยันการปิดรอบเช็กชื่อ"}</span>
                     </div>
                 </ModalHeader>
                 <ModalBody>
                     <p>
-                        {isEnglish ? "Do you want to close attendance session " : "คุณต้องการปิดรอบการเช็คชื่อ "}<strong>{targetTitle}</strong>{isEnglish ? " immediately?" : " ทันทีหรือไม่?"}
+                        {isEnglish ? "Do you want to close attendance session " : "คุณต้องการปิดรอบการเช็กชื่อ "}<strong>{targetTitle}</strong>{isEnglish ? " immediately?" : " ทันทีหรือไม่?"}
                     </p>
                     <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                         <div className="flex items-start gap-2">
@@ -1889,8 +1889,8 @@ export const CloseSessionModal = memo(function CloseSessionModal({
                             <div className="text-sm text-amber-700">
                                 <p className="font-medium">{isEnglish ? "After closing:" : "หลังจากปิดแล้ว:"}</p>
                                 <ul className="list-disc list-inside mt-1 space-y-1">
-                                    <li>{isEnglish ? "Students will no longer be able to check in." : "นักศึกษาจะไม่สามารถเช็คชื่อได้อีก"}</li>
-                                    <li>{isEnglish ? "This attendance session can no longer be edited." : "ไม่สามารถแก้ไขรอบเช็คชื่อได้"}</li>
+                                    <li>{isEnglish ? "Students will no longer be able to check in." : "นักศึกษาจะไม่สามารถเช็กชื่อได้อีก"}</li>
+                                    <li>{isEnglish ? "This attendance session can no longer be edited." : "ไม่สามารถแก้ไขรอบเช็กชื่อได้"}</li>
                                     <li>{isEnglish ? "The PIN will be released for other sessions." : "รหัส PIN จะถูกปล่อยให้รอบอื่นใช้งานได้"}</li>
                                 </ul>
                             </div>
@@ -1902,7 +1902,7 @@ export const CloseSessionModal = memo(function CloseSessionModal({
                         {isEnglish ? "Cancel" : "ยกเลิก"}
                     </Button>
                     <Button color="danger" onPress={onConfirm} isLoading={isSubmitting} isDisabled={!isCourseActive}>
-                        {isEnglish ? "Close attendance session" : "ปิดรอบเช็คชื่อ"}
+                        {isEnglish ? "Close attendance session" : "ปิดรอบเช็กชื่อ"}
                     </Button>
                 </ModalFooter>
             </ModalContent>
@@ -1977,7 +1977,7 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                                         : (isEnglish ? "No impact on existing records" : 'ไม่มีผลกระทบต่อข้อมูลที่มีอยู่')}
                             </h3>
                             <p className="mt-1 text-sm font-normal text-default-500">
-                                {preview.session_title} — {summary.total_checked_in} {isEnglish ? "check-ins" : "รายการเช็คชื่อ"}
+                                {preview.session_title} ({summary.total_checked_in} {isEnglish ? "check-ins" : "รายการเช็กชื่อ"})
                             </p>
                         </div>
                     </div>
@@ -2044,7 +2044,7 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                         <div className="space-y-2">
                             <h4 className="flex items-center gap-2 text-sm font-semibold text-default-700">
                                 <Icon icon="solar:chart-2-bold" className="text-indigo-500" />
-                                {isEnglish ? "Impact on attendance records" : 'ผลกระทบต่อข้อมูลเช็คชื่อ'}
+                                {isEnglish ? "Impact on attendance records" : 'ผลกระทบต่อข้อมูลเช็กชื่อ'}
                             </h4>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                 {summary.will_be_invalidated > 0 && (
@@ -2086,17 +2086,17 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                                 <Icon icon="solar:shield-warning-bold" className="text-2xl text-red-600 mt-0.5 shrink-0" />
                                 <div className="space-y-1.5">
                                     <p className="font-semibold text-red-800">
-                                        {isEnglish ? `${summary.will_be_invalidated} attendance records will become "Absent"` : `การเช็คชื่อ ${summary.will_be_invalidated} รายการจะถูกเปลี่ยนเป็น "ขาด"`}
+                                        {isEnglish ? `${summary.will_be_invalidated} attendance records will become "Absent"` : `การเช็กชื่อ ${summary.will_be_invalidated} รายการจะถูกเปลี่ยนเป็น "ขาด"`}
                                     </p>
                                     <p className="text-sm text-red-600">
-                                        {isEnglish ? "Check-in times that fall outside the new time window will keep their timestamps, but their status will change." : 'เนื่องจากเวลาเช็คอินอยู่นอกช่วงเวลาใหม่ ข้อมูลเวลาเช็คอินจะยังคงอยู่ แต่สถานะจะเปลี่ยน'}
+                                        {isEnglish ? "Check-in times that fall outside the new time window will keep their timestamps, but their status will change." : 'เนื่องจากเวลาเช็กอินอยู่นอกช่วงเวลาใหม่ ข้อมูลเวลาเช็กอินจะยังคงอยู่ แต่สถานะจะเปลี่ยน'}
                                     </p>
                                     <ul className="text-sm text-red-600 list-disc ml-4 space-y-0.5">
                                         {timeChanges.start_time.changed && new Date(timeChanges.start_time.new) > new Date(timeChanges.start_time.old) && (
-                                            <li>{isEnglish ? 'Moving the start time later means students who checked in before the new start time will be marked "Absent".' : 'เลื่อนเวลาเริ่มไปข้างหน้า — นักศึกษาที่เช็คชื่อก่อนเวลาเริ่มใหม่จะถูกนับเป็น "ขาด"'}</li>
+                                            <li>{isEnglish ? 'Moving the start time later means students who checked in before the new start time will be marked "Absent".' : 'หากเลื่อนเวลาเริ่มไปข้างหน้า นักศึกษาที่เช็กชื่อก่อนเวลาเริ่มใหม่จะถูกนับเป็น "ขาด"'}</li>
                                         )}
                                         {timeChanges.end_time.changed && new Date(timeChanges.end_time.new) < new Date(timeChanges.end_time.old) && (
-                                            <li>{isEnglish ? 'Moving the end time earlier means students who checked in after the new end time will be marked "Absent".' : 'เลื่อนเวลาสิ้นสุดให้เร็วขึ้น — นักศึกษาที่เช็คชื่อหลังเวลาสิ้นสุดใหม่จะถูกนับเป็น "ขาด"'}</li>
+                                            <li>{isEnglish ? 'Moving the end time earlier means students who checked in after the new end time will be marked "Absent".' : 'หากเลื่อนเวลาสิ้นสุดให้เร็วขึ้น นักศึกษาที่เช็กชื่อหลังเวลาสิ้นสุดใหม่จะถูกนับเป็น "ขาด"'}</li>
                                         )}
                                     </ul>
                                     <p className="text-xs text-red-500 mt-1">
@@ -2148,7 +2148,7 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                                         {isEnglish ? `${summary.recovered} students will be restored` : `${summary.recovered} คนจะกลับมาถูกต้อง`}
                                     </p>
                                     <p className="text-sm text-blue-600 mt-0.5">
-                                        {isEnglish ? "Students who were previously outside the old time window now fall inside the new one and will regain the appropriate status." : 'นักศึกษาที่เคยอยู่นอกช่วงเวลาเดิมจะกลับมาอยู่ในช่วงเวลาใหม่ และได้รับสถานะตามเวลาเช็คอิน'}
+                                        {isEnglish ? "Students who were previously outside the old time window now fall inside the new one and will regain the appropriate status." : 'นักศึกษาที่เคยอยู่นอกช่วงเวลาเดิมจะกลับมาอยู่ในช่วงเวลาใหม่ และได้รับสถานะตามเวลาเช็กอิน'}
                                     </p>
                                 </div>
                             </div>
@@ -2161,7 +2161,7 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                             <div className="flex items-center gap-2">
                                 <Icon icon="solar:shield-check-bold" className="text-purple-500 shrink-0" />
                                 <p className="text-xs text-purple-600">
-                                    {isEnglish ? 'Students with "Leave" status set by the instructor will not be changed automatically.' : 'นักศึกษาที่มีสถานะ "ลา" (กำหนดโดยอาจารย์) จะไม่ถูกเปลี่ยนแปลง — ข้อมูลจะถูกข้ามโดยอัตโนมัติ'}
+                                    {isEnglish ? 'Students with "Leave" status set by the instructor will not be changed automatically.' : 'นักศึกษาที่มีสถานะ "ลา" (กำหนดโดยอาจารย์) จะไม่ถูกเปลี่ยนแปลง โดยระบบจะข้ามข้อมูลดังกล่าวโดยอัตโนมัติ'}
                                 </p>
                             </div>
                         </div>
@@ -2178,7 +2178,7 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                                 <Table removeWrapper aria-label={isEnglish ? "Attendance impact preview" : "ผลกระทบ"} classNames={{ th: "bg-content2 text-default-600 text-xs", td: "text-sm" }}>
                                     <TableHeader>
                                         <TableColumn>{isEnglish ? "Student" : 'นักศึกษา'}</TableColumn>
-                                        <TableColumn align="center">{isEnglish ? "Check-in time" : 'เวลาเช็คอิน'}</TableColumn>
+                                        <TableColumn align="center">{isEnglish ? "Check-in time" : 'เวลาเช็กอิน'}</TableColumn>
                                         <TableColumn align="center">{isEnglish ? "Change" : 'การเปลี่ยนแปลง'}</TableColumn>
                                     </TableHeader>
                                     <TableBody items={changes.slice(0, 20)}>
@@ -2222,9 +2222,9 @@ export const TimeChangePreviewModal = memo(function TimeChangePreviewModal({
                             <div className="w-16 h-16 mx-auto mb-3 bg-emerald-100 rounded-full flex items-center justify-center">
                                 <Icon icon="solar:check-circle-bold" className="text-3xl text-emerald-500" />
                             </div>
-                            <p className="font-medium text-default-700">{isEnglish ? "No impact on attendance records" : 'ไม่มีผลกระทบต่อข้อมูลเช็คชื่อ'}</p>
+                            <p className="font-medium text-default-700">{isEnglish ? "No impact on attendance records" : 'ไม่มีผลกระทบต่อข้อมูลเช็กชื่อ'}</p>
                             <p className="mt-1 text-sm text-default-500">
-                                {isEnglish ? "The time changes do not affect existing attendance statuses." : 'การเปลี่ยนแปลงเวลาไม่ส่งผลกระทบต่อสถานะเช็คชื่อที่มีอยู่'}
+                                {isEnglish ? "The time changes do not affect existing attendance statuses." : 'การเปลี่ยนแปลงเวลาไม่ส่งผลกระทบต่อสถานะเช็กชื่อที่มีอยู่'}
                             </p>
                         </div>
                     )}
@@ -2293,7 +2293,7 @@ export const SectionChangeWarningModal = memo(function SectionChangeWarningModal
                         </div>
                         <div>
                             <h3 className="text-xl font-bold text-foreground">
-                                {isEnglish ? "Warning: checked-in students found" : 'คำเตือน: มีนักศึกษาที่เช็คชื่อแล้ว'}
+                                {isEnglish ? "Warning: checked-in students found" : 'คำเตือน: มีนักศึกษาที่เช็กชื่อแล้ว'}
                             </h3>
                             <p className="mt-1 text-sm font-normal text-default-500">
                                 {preview.session_title}
@@ -2330,10 +2330,10 @@ export const SectionChangeWarningModal = memo(function SectionChangeWarningModal
                             <Icon icon="solar:shield-warning-bold" className="text-2xl text-red-600 mt-0.5 shrink-0" />
                             <div className="space-y-1.5">
                                 <p className="font-semibold text-red-800">
-                                        {isEnglish ? `Attendance data for ${total_affected} students will be removed` : `ข้อมูลการเช็คชื่อของนักศึกษา ${total_affected} คนจะถูกลบออก`}
+                                        {isEnglish ? `Attendance data for ${total_affected} students will be removed` : `ข้อมูลการเช็กชื่อของนักศึกษา ${total_affected} คนจะถูกลบออก`}
                                 </p>
                                 <p className="text-sm text-red-600">
-                                        {isEnglish ? "Students in the removed sections who already checked in will lose all attendance data for this session. This action cannot be undone." : 'นักศึกษาในกลุ่มที่ถูกนำออกซึ่งเช็คชื่อแล้วจะสูญเสียข้อมูลการเช็คชื่อทั้งหมดในรอบนี้ การดำเนินการนี้ไม่สามารถย้อนกลับได้'}
+                                        {isEnglish ? "Students in the removed sections who already checked in will lose all attendance data for this session. This action cannot be undone." : 'นักศึกษาในกลุ่มที่ถูกนำออกซึ่งเช็กชื่อแล้วจะสูญเสียข้อมูลการเช็กชื่อทั้งหมดในรอบนี้ การดำเนินการนี้ไม่สามารถย้อนกลับได้'}
                                 </p>
                             </div>
                         </div>
@@ -2352,7 +2352,7 @@ export const SectionChangeWarningModal = memo(function SectionChangeWarningModal
                                         <TableColumn>{isEnglish ? "Student" : 'นักศึกษา'}</TableColumn>
                                         <TableColumn align="center">{isEnglish ? "Section" : 'กลุ่ม'}</TableColumn>
                                         <TableColumn align="center">{isEnglish ? "Status" : 'สถานะ'}</TableColumn>
-                                        <TableColumn align="center">{isEnglish ? "Check-in time" : 'เวลาเช็คอิน'}</TableColumn>
+                                        <TableColumn align="center">{isEnglish ? "Check-in time" : 'เวลาเช็กอิน'}</TableColumn>
                                     </TableHeader>
                                     <TableBody items={affected_students.slice(0, 30)}>
                                         {(student) => {

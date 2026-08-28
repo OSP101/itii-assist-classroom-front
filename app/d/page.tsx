@@ -109,7 +109,7 @@ export default function AttendanceDisplayPage() {
             setPageState("pairing");
         } catch (error) {
             console.error("Failed to bootstrap attendance display:", error);
-            setErrorMessage(error instanceof Error ? error.message : "ไม่สามารถเปิดหน้าจอเช็คชื่อได้");
+            setErrorMessage(error instanceof Error ? error.message : "ไม่สามารถเปิดหน้าจอเช็กชื่อได้");
             setPageState("error");
         }
     }, []);
@@ -249,8 +249,8 @@ export default function AttendanceDisplayPage() {
                         session: value.session ? { ...value.session, status: "closed" } : value.session,
                     } : value);
                     addToast({
-                        title: "ปิดรอบเช็คชื่อแล้ว",
-                        description: "หน้าจอนี้ยังดูข้อมูลล่าสุดได้ แต่จะไม่รับเช็คชื่อเพิ่ม",
+                        title: "ปิดรอบเช็กชื่อแล้ว",
+                        description: "หน้าจอนี้ยังดูข้อมูลล่าสุดได้ แต่จะไม่รับเช็กชื่อเพิ่ม",
                         color: "warning",
                         timeout: 3000,
                         shouldShowTimeoutProgress: true,
@@ -293,7 +293,7 @@ export default function AttendanceDisplayPage() {
             setShowPinModal(false);
             addToast({
                 title: "จับคู่สำเร็จ",
-                description: "กำลังเปิดหน้าเช็คชื่อ...",
+                description: "กำลังเปิดหน้าเช็กชื่อ...",
                 color: "success",
                 timeout: 2000,
                 shouldShowTimeoutProgress: true,
@@ -381,7 +381,7 @@ export default function AttendanceDisplayPage() {
                                         </div>
                                         <h2 className="text-2xl font-black text-white">สแกน QR เพื่อเชื่อมต่อหน้าจอ</h2>
                                         <p className="mx-auto max-w-lg text-sm text-sky-100/80">
-                                            ใช้มือถืออาจารย์หรือ TA ที่ล็อกอินแล้วสแกน QR นี้ เพื่อเลือกรอบเช็คชื่อและสร้างรหัสยืนยันสำหรับจอนี้
+                                            ใช้มือถืออาจารย์หรือ TA ที่ล็อกอินแล้วสแกน QR นี้ เพื่อเลือกรอบเช็กชื่อและสร้างรหัสยืนยันสำหรับจอนี้
                                         </p>
                                     </div>
                                 </div>
@@ -437,7 +437,7 @@ export default function AttendanceDisplayPage() {
                                         onPress={() => { setVerificationCode(""); setShowPinModal(true); }}
                                     >
                                         <Icon icon="solar:key-bold-duotone" className="text-lg" />
-                                        ได้รับรหัสแล้ว — กรอกยืนยัน
+                                        ได้รับรหัสแล้ว กรอกเพื่อยืนยัน
                                     </Button>
 
                                     <button
@@ -615,7 +615,7 @@ export default function AttendanceDisplayPage() {
                                     <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-5">
                                         <div className="flex flex-wrap items-center justify-between gap-3">
                                             <div>
-                                                <p className="text-sm font-semibold text-slate-800">หน้านี้พร้อมให้เช็คชื่อแล้ว</p>
+                                                <p className="text-sm font-semibold text-slate-800">หน้านี้พร้อมให้เช็กชื่อแล้ว</p>
                                                 <p className="text-sm text-slate-500">ให้นักศึกษาสแกน QR หรือเข้า URL ด้านขวาเพื่อไปยังหน้ากรอก PIN ส่วนรายการด้านล่างจะอัปเดตสดแบบ read-only</p>
                                             </div>
                                             <Button variant="flat" color="warning" onPress={handleResetDisplay}>
@@ -630,7 +630,7 @@ export default function AttendanceDisplayPage() {
                                 <CardBody className="gap-4 p-6 lg:p-8">
                                     <div className="flex items-center justify-between gap-3">
                                         <div>
-                                            <h3 className="text-xl font-bold text-slate-900">รายการเช็คชื่อล่าสุด</h3>
+                                            <h3 className="text-xl font-bold text-slate-900">รายการเช็กชื่อล่าสุด</h3>
                                             <p className="text-sm text-slate-500">แสดงเฉพาะข้อมูลที่จำเป็นสำหรับจอห้องเรียน</p>
                                         </div>
                                         <Chip className="bg-slate-100 text-slate-700">ทั้งหมด {stats.total}</Chip>
@@ -638,7 +638,7 @@ export default function AttendanceDisplayPage() {
 
                                     {recentRecords.length === 0 ? (
                                         <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
-                                            ยังไม่มีนักศึกษาเช็คชื่อในรอบนี้
+                                            ยังไม่มีนักศึกษาเช็กชื่อในรอบนี้
                                         </div>
                                     ) : (
                                         <div className="space-y-3">

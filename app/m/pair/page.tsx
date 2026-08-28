@@ -71,7 +71,7 @@ export default function AttendancePairMobilePage() {
             console.error("Failed to load attendance sessions:", error);
             setSessions([]);
             setSelectedSessionId(null);
-            setErrorMessage(error instanceof Error ? error.message : "ไม่สามารถโหลดรอบเช็คชื่อได้");
+            setErrorMessage(error instanceof Error ? error.message : "ไม่สามารถโหลดรอบเช็กชื่อได้");
         } finally {
             setIsSessionsLoading(false);
         }
@@ -131,7 +131,7 @@ export default function AttendancePairMobilePage() {
     const handleClaim = useCallback(async () => {
         if (!selectedSessionId) {
             addToast({
-                title: "ยังไม่ได้เลือกรอบเช็คชื่อ",
+                title: "ยังไม่ได้เลือกรอบเช็กชื่อ",
                 description: "เลือกรอบที่ต้องการแสดงบนจอห้องเรียนก่อน",
                 color: "warning",
                 timeout: 2500,
@@ -228,12 +228,12 @@ export default function AttendancePairMobilePage() {
                     </div>
                     <div>
                         <p className="text-xs text-sky-200 font-medium">Mobile Approval</p>
-                        <h1 className="text-lg font-bold leading-tight">ยืนยันหน้าจอเช็คชื่อ</h1>
+                        <h1 className="text-lg font-bold leading-tight">ยืนยันหน้าจอเช็กชื่อ</h1>
                     </div>
                 </div>
                 <p className="text-sm text-sky-100 leading-relaxed">
                     ล็อกอินในฐานะ <span className="font-semibold text-white">{user?.full_name || user?.email}</span>
-                    {" — "}เลือกรอบแล้วนำรหัส 6 หลักไปกรอกบนจอหน้าห้อง
+                    {" "}เลือกรอบแล้วนำรหัส 6 หลักไปกรอกบนจอหน้าห้อง
                 </p>
             </div>
 
@@ -330,18 +330,18 @@ export default function AttendancePairMobilePage() {
 
                 <Divider />
 
-                {/* ── Section: เลือกรอบเช็คชื่อ ── */}
+                {/* ── Section: เลือกรอบเช็กชื่อ ── */}
                 <div className="space-y-3">
                     <div className="flex items-center justify-between px-1">
                         <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-                            รอบเช็คชื่อ
+                            รอบเช็กชื่อ
                         </p>
                         {isSessionsLoading && <Spinner size="sm" color="primary" />}
                     </div>
 
                     {sessions.length === 0 && !isSessionsLoading && (
                         <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-8 text-center text-sm text-slate-400">
-                            ไม่พบรอบเช็คชื่อที่ยังใช้งานได้
+                            ไม่พบรอบเช็กชื่อที่ยังใช้งานได้
                         </div>
                     )}
 

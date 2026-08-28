@@ -54,8 +54,8 @@ documents:
     audience: [student]
     chunks:
       - chunk_id: std-checkin
-        heading: เช็คชื่อ
-        content: เช็คชื่อผ่าน /check-in/[sessionId], ตรวจชื่อวิชา, กรอก PIN (ถ้ามี), อนุญาต location และตรวจผลสำเร็จ
+        heading: เช็กชื่อ
+        content: เช็กชื่อผ่าน /check-in/[sessionId], ตรวจชื่อวิชา, กรอก PIN (ถ้ามี), อนุญาต location และตรวจผลสำเร็จ
       - chunk_id: std-myscore
         heading: ติดตามคะแนน
         content: ตรวจคะแนนผ่าน /myscore และหากผิดปกติให้รวบรวมหลักฐานก่อนติดต่อผู้สอนหรือ TA
@@ -82,7 +82,7 @@ documents:
         heading: ปัญหาเข้าสู่ระบบ
         content: ตรวจบัญชี, รีเซ็ตรหัสผ่าน, ตรวจ spam, ตรวจเวลาเครื่อง (สำหรับ TOTP) และเก็บหลักฐานก่อนส่งซัพพอร์ต
       - chunk_id: ts-attendance
-        heading: ปัญหาเช็คชื่อ
+        heading: ปัญหาเช็กชื่อ
         content: ตรวจว่า session active, อนุญาต location, ทดลอง browser อื่น และส่งหลักฐานเวลา/ภาพหน้าจอ
 
 qa_policies:

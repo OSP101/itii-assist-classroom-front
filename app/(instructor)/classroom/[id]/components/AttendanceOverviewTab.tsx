@@ -721,7 +721,7 @@ export default function AttendanceOverviewTab({
                                                 </div>
                                             )}
 
-                                            {/* Section: สถานะการเช็คชื่อ */}
+                                            {/* Section: สถานะการเช็กชื่อ */}
                                             <div className="overflow-hidden rounded-xl border border-default-200">
                                                 <div className="flex items-center gap-2 border-b border-divider bg-content2 px-4 py-3">
                                                     <Icon icon="solar:check-circle-bold" className="text-emerald-500" />

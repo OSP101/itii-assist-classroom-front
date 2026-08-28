@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Icon } from "@iconify/react";
-import { Accordion, AccordionItem } from "@heroui/accordion";
 import { useI18n } from "@/hooks/useI18n";
+import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { formatScoreValue } from "@/lib/score-input";
+import { notifStyleFor } from "@/lib/student-notification-style";
+import { getNotificationHeadline, getNotificationMessage } from "@/lib/notification-display";
 import {
   studentService,
   type AttendanceRecordData,
@@ -17,25 +19,16 @@ import {
 } from "@/services/student.service";
 import userNotificationService, { type UserNotificationItem } from "@/services/user-notification.service";
 import { getMyExamSeats, type MyExamSeat } from "@/services/examSeat.service";
-import { CourseCoverImage } from "@/components/course";
+import { CourseCoverImage, courseCoverFallback } from "@/components/course";
 
 // ─── tabs ─────────────────────────────────────────────────────────────────────
 
-const tabs    = ["ภาพรวม", "คะแนน", "เช็กชื่อ", "ที่นั่งสอบ", "อัปเดต"] as const;
 const tabKeys = ["Overview", "Scores", "Attendance", "ExamSeats", "Updates"] as const;
 type TabKey = (typeof tabKeys)[number];
 type ScoreCategoryKey = "all" | "lab" | "homework" | "group" | "weekly" | "exams" | "bonus";
 
 const TAB_MAP: Record<string, TabKey> = {
   Overview: "Overview", Scores: "Scores", Attendance: "Attendance", ExamSeats: "ExamSeats", Updates: "Updates",
-};
-
-const TAB_ICONS: Record<TabKey, string> = {
-  Overview:   "solar:chart-square-bold-duotone",
-  Scores:     "solar:medal-star-bold-duotone",
-  Attendance: "solar:calendar-mark-bold-duotone",
-  ExamSeats:  "solar:armchair-bold-duotone",
-  Updates:    "solar:bell-bing-bold-duotone",
 };
 
 // ─── utils ────────────────────────────────────────────────────────────────────
@@ -55,11 +48,11 @@ function bonusDateKey(value: string | null | undefined) {
   return `${year}-${month}-${day}`;
 }
 
-const ATTEND_STATUS_COLORS: Record<string, string> = {
-  present: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  late:    "bg-amber-50  text-amber-700  border-amber-200",
-  leave:   "bg-sky-50    text-sky-700    border-sky-200",
-  absent:  "bg-rose-50   text-rose-700   border-rose-200",
+const ATTEND_BADGE: Record<string, string> = {
+  present: "cg-badge-success",
+  late: "cg-badge-warning",
+  leave: "cg-badge-info",
+  absent: "cg-badge-danger",
 };
 const ATTEND_STATUS_TH: Record<string, string> = {
   present: "มาเรียน", late: "สาย", leave: "ลา", absent: "ขาดเรียน",
@@ -72,153 +65,38 @@ function assignTypeTH(type: string) {
 }
 
 function assignTypeIcon(type: string) {
-  if (type === "assignment") return "solar:notebook-bold-duotone";
-  if (type === "permanent_group" || type === "weekly_group") return "solar:users-group-rounded-bold-duotone";
-  return "solar:laptop-bold-duotone";
+  if (type === "assignment") return "solar:notebook-linear";
+  if (type === "permanent_group" || type === "weekly_group") return "solar:users-group-rounded-linear";
+  return "solar:laptop-linear";
 }
 
-function assignTypeColor(type: string): string {
-  if (type === "assignment") return "bg-violet-50 text-violet-700 border-violet-100";
-  if (type === "permanent_group" || type === "weekly_group") return "bg-amber-50 text-amber-700 border-amber-100";
-  return "bg-sky-50 text-sky-700 border-sky-100";
+function assignTypeTone(type: string): { bg: string; fg: string } {
+  if (type === "assignment") return { bg: "var(--cg-violet-soft)", fg: "var(--cg-violet)" };
+  if (type === "permanent_group" || type === "weekly_group") return { bg: "var(--cg-warning-soft)", fg: "var(--cg-warning)" };
+  return { bg: "var(--cg-info-soft)", fg: "var(--cg-info)" };
 }
 
 function examTypeTH(type: string, component: string) {
   const t = type === "midterm" ? "กลางภาค" : "ปลายภาค";
-  const c = component === "lab" ? "(Lab)" : "(บรรยาย)";
+  const c = component === "lab" ? "(ปฏิบัติ)" : "(บรรยาย)";
   return `${t} ${c}`;
-}
-
-function notifTypeIcon(type: string) {
-  if (type.startsWith("queue")) return "solar:users-group-rounded-bold-duotone";
-  if (type.startsWith("attendance")) return "solar:calendar-bold-duotone";
-  if (type.startsWith("score")) return "solar:medal-ribbons-bold-duotone";
-  return "solar:bell-bing-bold-duotone";
-}
-
-function notifTypeColor(type: string) {
-  if (type.startsWith("queue")) return "bg-violet-50 text-violet-600";
-  if (type.startsWith("attendance")) return "bg-emerald-50 text-emerald-600";
-  if (type.startsWith("score")) return "bg-amber-50 text-amber-600";
-  return "bg-sky-50 text-sky-600";
 }
 
 function displayScore(value: number | null | undefined) {
   return typeof value === "number" && Number.isFinite(value) ? formatScoreValue(value) : "-";
 }
 
+function scoreTone(pct: number | null): string {
+  if (pct == null) return "var(--cg-text-3)";
+  if (pct >= 80) return "var(--cg-success)";
+  if (pct >= 60) return "var(--cg-warning)";
+  return "var(--cg-danger)";
+}
+
 function studentGroupTypeLabel(group: StudentCourseGroup) {
   if (group.group_type === "permanent") return "กลุ่มโปรเจกต์";
-  if (group.week_number != null) return `กลุ่มสัปดาห์ ${group.week_number}`;
+  if (group.week_number != null) return `กลุ่มสัปดาห์ที่ ${group.week_number}`;
   return "กลุ่มสัปดาห์";
-}
-
-// ─── sub-components ───────────────────────────────────────────────────────────
-
-function AttendanceRow({ record }: { record: AttendanceRecordData }) {
-  const colorClass = ATTEND_STATUS_COLORS[record.status] ?? "bg-slate-50 text-slate-600 border-slate-200";
-  const labelTh = ATTEND_STATUS_TH[record.status] ?? record.status;
-  return (
-    <div className="flex items-center gap-4 rounded-4xl border border-slate-100 bg-white/90 p-4 shadow-sm">
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-slate-900">{record.session_title}</p>
-        <p className="mt-0.5 text-xs text-slate-400">{fmt(record.date, { day: "numeric", month: "short", year: "numeric" })}</p>
-        {record.check_in_time && <p className="mt-0.5 text-xs text-slate-400">เช็กอิน: {fmt(record.check_in_time)}</p>}
-        {record.note && <p className="mt-1 text-xs text-slate-500">{record.note}</p>}
-      </div>
-      <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-bold ${colorClass}`}>{labelTh}</span>
-    </div>
-  );
-}
-
-function AssignmentCard({ a }: { a: AssignmentScore }) {
-  const [expanded, setExpanded] = useState(false);
-  const hasSubItems = a.sub_items && a.sub_items.length > 0;
-  const pct = a.score != null && a.max_score > 0 ? Math.round((a.score / a.max_score) * 100) : null;
-  const scoreColor = pct == null ? "text-slate-400" : pct >= 80 ? "text-emerald-600" : pct >= 60 ? "text-amber-600" : "text-rose-600";
-  const barColor  = pct == null ? "bg-slate-200"   : pct >= 80 ? "bg-emerald-500"   : pct >= 60 ? "bg-amber-400"   : "bg-rose-400";
-
-  return (
-    <div className="rounded-4xl border border-slate-100 bg-white/90 shadow-sm overflow-hidden">
-      <button className="w-full text-left p-4" onClick={() => hasSubItems && setExpanded((v) => !v)}>
-        <div className="flex items-start gap-3">
-          <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl border text-sm ${assignTypeColor(a.type)}`}>
-            <Icon icon={assignTypeIcon(a.type)} />
-          </span>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-sm font-bold text-slate-900 leading-snug">{a.title}</p>
-              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${assignTypeColor(a.type)}`}>
-                {assignTypeTH(a.type)}
-              </span>
-            </div>
-            <div className="mt-2 flex items-center gap-2">
-              <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: pct != null ? `${pct}%` : "0%" }} />
-              </div>
-              <span className={`text-sm font-bold tabular-nums ${scoreColor}`}>
-                {displayScore(a.score)} / {displayScore(a.max_score)}
-              </span>
-            </div>
-          </div>
-          {a.status === "graded" ? (
-            <span className="shrink-0 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[10px] font-bold text-emerald-700">ตรวจแล้ว</span>
-          ) : (
-            <span className="shrink-0 rounded-full bg-slate-50 border border-slate-200 px-2.5 py-1 text-[10px] font-bold text-slate-500">รอตรวจ</span>
-          )}
-        </div>
-        {a.status === "graded" && (
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-            {a.grader && (
-              <span className="flex items-center gap-1">
-                <Icon icon="solar:user-bold" className="text-slate-400" />{a.grader}
-              </span>
-            )}
-            {a.graded_at && (
-              <span className="flex items-center gap-1">
-                <Icon icon="solar:clock-circle-bold" className="text-slate-400" />{fmt(a.graded_at)}
-              </span>
-            )}
-            {a.graded_via && (
-              <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${a.graded_via === "queue" ? "bg-violet-50 text-violet-700" : "bg-slate-50 text-slate-600"}`}>
-                <Icon icon={a.graded_via === "queue" ? "solar:sort-by-time-bold" : "solar:pen-new-square-bold"} />
-                {a.graded_via === "queue" ? "จองคิว" : "กรอกตรง"}
-              </span>
-            )}
-            {a.is_group_assignment && a.group_info && (
-              <span className="flex items-center gap-1">
-                <Icon icon="solar:users-group-rounded-bold" className="text-slate-400" />{a.group_info.name}
-              </span>
-            )}
-          </div>
-        )}
-        {a.comment && (
-          <p className="mt-2 rounded-2xl bg-slate-50 px-3 py-2 text-xs text-slate-600 border border-slate-100">{a.comment}</p>
-        )}
-        {hasSubItems && (
-          <div className="mt-2 flex items-center gap-1 text-xs text-slate-400">
-            <Icon icon="solar:alt-arrow-down-bold" className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
-            {expanded ? "ซ่อนรายละเอียดย่อย" : `ดูรายละเอียดย่อย ${a.sub_items.length} หัวข้อ`}
-          </div>
-        )}
-      </button>
-      {hasSubItems && expanded && (
-        <div className="border-t border-slate-100 bg-slate-50/70 px-4 py-3 space-y-2">
-          {a.sub_items.map((si) => (
-            <div key={si.id} className="flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-slate-700">{si.name}</p>
-                {si.grader && <p className="text-[10px] text-slate-400">{si.grader}{si.graded_at ? ` · ${fmt(si.graded_at)}` : ""}</p>}
-              </div>
-              <span className="text-xs font-bold tabular-nums text-slate-700">
-                {displayScore(si.score)} / {displayScore(si.max_score)}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
 }
 
 function shouldHideGroupAssignment(a: AssignmentScore) {
@@ -226,53 +104,125 @@ function shouldHideGroupAssignment(a: AssignmentScore) {
   return isGroupAssignment && !a.group_info;
 }
 
-function ExamCard({ e }: { e: ExamScoreData }) {
-  const pct = e.score != null && e.max_score > 0 ? Math.round((e.score / e.max_score) * 100) : null;
-  const scoreColor = pct == null ? "text-slate-400" : pct >= 60 ? "text-emerald-600" : pct >= 40 ? "text-amber-600" : "text-rose-600";
-  const barColor  = pct == null ? "bg-slate-200"   : pct >= 60 ? "bg-emerald-500"   : pct >= 40 ? "bg-amber-400"   : "bg-rose-400";
+// ─── rows ─────────────────────────────────────────────────────────────────────
+
+function ScoreBar({ score, max }: { score: number | null | undefined; max: number }) {
+  const pct = score != null && max > 0 ? Math.round((score / max) * 100) : null;
+  const tone = scoreTone(pct);
   return (
-    <div className="rounded-4xl border border-slate-100 bg-white/90 p-4 shadow-sm">
-      <div className="flex items-center gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 text-sm">
-          <Icon icon="solar:diploma-bold-duotone" />
+    <span className="mt-1.5 flex items-center gap-2.5">
+      <span className="cg-progress flex-1">
+        <i style={{ width: pct != null ? `${Math.min(pct, 100)}%` : "0%", background: tone }} />
+      </span>
+      <span className="cg-mono shrink-0 text-xs font-medium" style={{ color: tone }}>
+        {displayScore(score)}/{displayScore(max)}
+      </span>
+    </span>
+  );
+}
+
+function AssignmentRow({ a }: { a: AssignmentScore }) {
+  const [expanded, setExpanded] = useState(false);
+  const hasSubItems = Boolean(a.sub_items && a.sub_items.length > 0);
+  const tone = assignTypeTone(a.type);
+  const isGraded = a.status === "graded";
+
+  return (
+    <>
+      <button
+        type="button"
+        className="cg-row items-start"
+        onClick={() => hasSubItems && setExpanded((v) => !v)}
+        style={hasSubItems ? undefined : { cursor: "default" }}
+      >
+        <span className="cg-row-ico mt-0.5" style={{ background: tone.bg, color: tone.fg }}>
+          <Icon icon={assignTypeIcon(a.type)} width={17} height={17} />
         </span>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-slate-900">{examTypeTH(e.exam_type, e.component)}</p>
-          <div className="mt-1.5 flex items-center gap-2">
-            <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-              <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: pct != null ? `${pct}%` : "0%" }} />
-            </div>
-            <span className={`text-sm font-bold tabular-nums ${scoreColor}`}>
-              {displayScore(e.score)} / {displayScore(e.max_score)}
+        <span className="cg-row-body">
+          <span className="cg-row-title">{a.title}</span>
+          {isGraded ? <ScoreBar score={a.score} max={a.max_score} /> : null}
+          <span className="cg-row-sub">
+            {isGraded
+              ? [
+                  a.grader ? `ตรวจโดย ${a.grader}` : "ตรวจแล้ว",
+                  a.graded_via === "queue" ? "ผ่านการจองคิว" : "",
+                  a.is_group_assignment && a.group_info ? a.group_info.name : "",
+                ].filter(Boolean).join(" ")
+              : `${assignTypeTH(a.type)} รอผู้ตรวจ`}
+          </span>
+          {a.comment && (
+            <span className="cg-row-sub mt-1.5 block rounded-xl px-2.5 py-2" style={{ background: "var(--cg-fill)" }}>
+              {a.comment}
             </span>
-          </div>
-        </div>
-      </div>
-      {e.grader && (
-        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-          <span className="flex items-center gap-1"><Icon icon="solar:user-bold" className="text-slate-400" />{e.grader}</span>
-          {e.graded_at && <span className="flex items-center gap-1"><Icon icon="solar:clock-circle-bold" className="text-slate-400" />{fmt(e.graded_at)}</span>}
+          )}
+          {hasSubItems && (
+            <span className="cg-row-sub mt-1 flex items-center gap-1" style={{ color: "var(--cg-accent)" }}>
+              <Icon icon={expanded ? "solar:alt-arrow-up-linear" : "solar:alt-arrow-down-linear"} width={12} height={12} />
+              {expanded ? "ซ่อนรายละเอียดย่อย" : `ดูรายละเอียดย่อย ${a.sub_items.length} หัวข้อ`}
+            </span>
+          )}
+        </span>
+        {!isGraded && <span className="cg-badge cg-badge-neutral mt-0.5">รอตรวจ</span>}
+      </button>
+
+      {hasSubItems && expanded && (
+        <div className="flex flex-col gap-1.5 px-3.5 pb-3.5" style={{ background: "var(--cg-fill)" }}>
+          {a.sub_items.map((si) => (
+            <div key={si.id} className="flex items-center justify-between gap-3 rounded-[10px] px-2.5 py-2" style={{ background: "var(--cg-surface)" }}>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[11.5px] font-medium">{si.name}</span>
+                {si.grader && (
+                  <span className="block text-[10.5px] font-light" style={{ color: "var(--cg-text-3)" }}>
+                    {si.grader}{si.graded_at ? ` ${fmt(si.graded_at)}` : ""}
+                  </span>
+                )}
+              </span>
+              <span className="cg-mono shrink-0 text-[11.5px] font-medium">
+                {displayScore(si.score)}/{displayScore(si.max_score)}
+              </span>
+            </div>
+          ))}
         </div>
       )}
-      {e.comment && <p className="mt-2 rounded-2xl bg-slate-50 px-3 py-2 text-xs text-slate-600 border border-slate-100">{e.comment}</p>}
+    </>
+  );
+}
+
+function ExamRow({ e }: { e: ExamScoreData }) {
+  const graded = e.score != null;
+  return (
+    <div className="cg-row items-start">
+      <span className="cg-row-ico mt-0.5" style={graded ? { background: "var(--cg-info-soft)", color: "var(--cg-info)" } : undefined}>
+        <Icon icon="solar:diploma-linear" width={17} height={17} />
+      </span>
+      <span className="cg-row-body">
+        <span className="cg-row-title">{examTypeTH(e.exam_type, e.component)}</span>
+        {graded ? <ScoreBar score={e.score} max={e.max_score} /> : <span className="cg-row-sub">ยังไม่มีคะแนน</span>}
+        {e.grader && <span className="cg-row-sub">ตรวจโดย {e.grader}{e.graded_at ? ` เมื่อ ${fmt(e.graded_at)}` : ""}</span>}
+        {e.comment && (
+          <span className="cg-row-sub mt-1.5 block rounded-xl px-2.5 py-2" style={{ background: "var(--cg-fill)" }}>
+            {e.comment}
+          </span>
+        )}
+      </span>
     </div>
   );
 }
 
-function NotifCard({ n }: { n: UserNotificationItem }) {
+function AttendanceRow({ record }: { record: AttendanceRecordData }) {
+  const badge = ATTEND_BADGE[record.status] ?? "cg-badge-neutral";
+  const label = ATTEND_STATUS_TH[record.status] ?? record.status;
   return (
-    <div className={`flex items-start gap-3 rounded-3xl border bg-white/90 p-3.5 shadow-sm ${!n.is_read ? "border-slate-300" : "border-slate-200/80"}`}>
-      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl text-sm ${notifTypeColor(n.type)}`}>
-        <Icon icon={notifTypeIcon(n.type)} />
+    <div className="cg-row">
+      <span className="cg-row-body">
+        <span className="cg-row-title">{record.session_title}</span>
+        <span className="cg-row-sub">
+          {fmt(record.date, { day: "numeric", month: "short", year: "numeric" })}
+          {record.check_in_time ? ` เวลา ${fmt(record.check_in_time, { hour: "2-digit", minute: "2-digit", day: undefined, month: undefined, year: undefined })} น.` : ""}
+        </span>
+        {record.note && <span className="cg-row-sub">{record.note}</span>}
       </span>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <p className="text-xs font-bold text-slate-800 leading-snug">{n.title}</p>
-          {!n.is_read && <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-slate-700" />}
-        </div>
-        <p className="mt-0.5 text-[11px] text-slate-500 leading-relaxed line-clamp-2">{n.message}</p>
-        <p className="mt-1 text-[10px] text-slate-400">{fmt(n.created_at)}</p>
-      </div>
+      <span className={`cg-badge ${badge}`}>{label}</span>
     </div>
   );
 }
@@ -282,7 +232,10 @@ function NotifCard({ n }: { n: UserNotificationItem }) {
 export default function StudentCourseDetailPage() {
   const params = useParams<{ courseId: string }>();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const t = useI18n();
+  const { language } = useGlobalSettings();
+
   const requestedTab = searchParams.get("tab");
   const initialTabKey: TabKey = (requestedTab && TAB_MAP[requestedTab]) ? TAB_MAP[requestedTab] : "Overview";
   const [activeTab, setActiveTab] = useState<TabKey>(initialTabKey);
@@ -293,6 +246,7 @@ export default function StudentCourseDetailPage() {
   const [notifs, setNotifs] = useState<UserNotificationItem[]>([]);
   const [examSeats, setExamSeats] = useState<MyExamSeat[]>([]);
   const [isExamSeatsLoading, setIsExamSeatsLoading] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [expandedBonusDays, setExpandedBonusDays] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -350,13 +304,10 @@ export default function StudentCourseDetailPage() {
 
   useEffect(() => {
     setExpandedBonusDays({});
-  }, [params.courseId]);
-
-  useEffect(() => {
     setSelectedScoreCategory("all");
   }, [params.courseId]);
 
-  const bonusRecords = data?.course.bonusScore?.records ?? [];
+  const bonusRecords = useMemo(() => data?.course.bonusScore?.records ?? [], [data]);
   const bonusGroups = useMemo(() => {
     const grouped = new Map<string, { label: string; total: number; records: typeof bonusRecords }>();
 
@@ -368,7 +319,6 @@ export default function StudentCourseDetailPage() {
         existing.records.push(record);
         return;
       }
-
       grouped.set(key, {
         label: fmt(record.given_at, { day: "numeric", month: "long", year: "numeric" }),
         total: record.score,
@@ -389,16 +339,19 @@ export default function StudentCourseDetailPage() {
   // ── loading ──
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="animate-pulse space-y-3 rounded-4xl border border-slate-100 bg-white/90 p-6">
-          <div className="h-5 w-20 rounded-full bg-slate-200" />
-          <div className="h-7 w-2/3 rounded-full bg-slate-200" />
-          <div className="h-4 w-full rounded-full bg-slate-100" />
-          <div className="mt-4 grid grid-cols-4 gap-2">
-            {[1,2,3,4].map((i) => <div key={i} className="h-20 rounded-3xl bg-slate-100" />)}
-          </div>
+      <div className="flex flex-col gap-4">
+        <div className="cg-cover animate-pulse" style={{ background: "var(--cg-fill-strong)" }} />
+        <div className="cg-list">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="cg-row animate-pulse">
+              <div className="h-9 w-9 shrink-0 rounded-xl" style={{ background: "var(--cg-fill-strong)" }} />
+              <div className="flex-1 space-y-2">
+                <div className="h-3.5 w-2/3 rounded-full" style={{ background: "var(--cg-fill-strong)" }} />
+                <div className="h-2.5 w-1/2 rounded-full" style={{ background: "var(--cg-fill)" }} />
+              </div>
+            </div>
+          ))}
         </div>
-        <div className="space-y-2">{[1,2,3].map((i) => <div key={i} className="h-20 animate-pulse rounded-4xl bg-white/80" />)}</div>
       </div>
     );
   }
@@ -406,106 +359,87 @@ export default function StudentCourseDetailPage() {
   // ── error ──
   if (errorMessage || !data) {
     return (
-      <div className="space-y-4">
-        <div className="flex items-start gap-4 rounded-4xl border border-rose-200 bg-rose-50/80 p-6">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-100">
-            <Icon icon="solar:danger-triangle-bold-duotone" className="text-2xl text-rose-600" />
-          </span>
-          <div>
-            <p className="font-bold text-rose-900">ไม่สามารถเปิดรายวิชาได้</p>
-            <p className="mt-1 text-sm text-rose-700/80">{errorMessage ?? "ไม่พบข้อมูลรายวิชา"}</p>
-            <Link href="/student" className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 active:scale-95">
-              <Icon icon="solar:arrow-left-bold" />กลับหน้าหลัก
-            </Link>
+      <div className="flex flex-col gap-4" style={{ paddingTop: "calc(var(--app-safe-top) + 24px)" }}>
+        <div className="cg-list">
+          <div className="cg-row items-start">
+            <span className="cg-row-ico mt-0.5" style={{ background: "var(--cg-danger-soft)", color: "var(--cg-danger)" }}>
+              <Icon icon="solar:danger-triangle-linear" width={17} height={17} />
+            </span>
+            <span className="cg-row-body">
+              <span className="cg-row-title">ไม่สามารถเปิดรายวิชาได้</span>
+              <span className="cg-row-sub">{errorMessage ?? "ไม่พบข้อมูลรายวิชา"}</span>
+            </span>
           </div>
         </div>
+        <Link href="/student/courses" className="cg-btn text-center">กลับไปหน้ารายวิชา</Link>
       </div>
     );
   }
 
   const course = data.course;
-  const totalAttend = course.attendance.summary.present + course.attendance.summary.late + course.attendance.summary.leave + course.attendance.summary.absent;
-  const attendPct = totalAttend > 0 ? Math.round((course.attendance.summary.present / totalAttend) * 100) : 0;
-  const initials = course.course.code.replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase() || course.course.code.slice(0, 2).toUpperCase();
+  const summary = course.attendance.summary;
+  const totalAttend = summary.present + summary.late + summary.leave + summary.absent;
+  const attendPct = totalAttend > 0 ? Math.round((summary.present / totalAttend) * 100) : 0;
+
+  const visibleAssignments = course.assignments.filter((a) => !shouldHideGroupAssignment(a));
+  const visibleTotalScore = visibleAssignments.reduce((sum, a) => sum + (a.score ?? 0), 0);
+  const visibleTotalMaxScore = visibleAssignments.reduce((sum, a) => sum + a.max_score, 0);
+
+  const scoreGroups = {
+    lab: visibleAssignments.filter((a) => a.type !== "assignment" && a.type !== "permanent_group" && a.type !== "weekly_group"),
+    homework: visibleAssignments.filter((a) => a.type === "assignment"),
+    group: visibleAssignments.filter((a) => a.type === "permanent_group"),
+    weekly: visibleAssignments.filter((a) => a.type === "weekly_group"),
+  };
+
+  const scoreCategoryOptions = ([
+    { key: "all", label: "ทั้งหมด" },
+    { key: "lab", label: "งานในคาบ", count: scoreGroups.lab.length },
+    { key: "homework", label: "การบ้าน", count: scoreGroups.homework.length },
+    { key: "group", label: "งานกลุ่ม", count: scoreGroups.group.length },
+    { key: "weekly", label: "งานสัปดาห์", count: scoreGroups.weekly.length },
+    { key: "exams", label: "คะแนนสอบ", count: course.examScores.length },
+    { key: "bonus", label: "คะแนนพิเศษ", count: bonusGroups.length },
+  ] as Array<{ key: ScoreCategoryKey; label: string; count?: number }>)
+    .filter((o) => o.key === "all" || (o.count ?? 0) > 0);
+
+  const scoreSections = ([
+    { key: "lab" as const, label: "งานในคาบ", items: scoreGroups.lab },
+    { key: "homework" as const, label: "การบ้าน", items: scoreGroups.homework },
+    { key: "group" as const, label: "งานกลุ่ม", items: scoreGroups.group },
+    { key: "weekly" as const, label: "งานสัปดาห์", items: scoreGroups.weekly },
+  ]).filter((s) => s.items.length > 0 && (selectedScoreCategory === "all" || selectedScoreCategory === s.key));
+
+  const summaryCells = [
+    { label: "มาเรียน", val: summary.present, icon: "solar:check-circle-linear", bg: "var(--cg-success-soft)", fg: "var(--cg-success)" },
+    { label: "สาย", val: summary.late, icon: "solar:clock-circle-linear", bg: "var(--cg-warning-soft)", fg: "var(--cg-warning)" },
+    { label: "ลา", val: summary.leave, icon: "solar:letter-linear", bg: "var(--cg-info-soft)", fg: "var(--cg-info)" },
+    { label: "ขาด", val: summary.absent, icon: "solar:close-circle-linear", bg: "var(--cg-danger-soft)", fg: "var(--cg-danger)" },
+  ];
+
   const tabLabels: Record<TabKey, string> = {
-    Overview: tabs[0],
-    Scores: tabs[1],
-    Attendance: tabs[2],
+    Overview: "ภาพรวม",
+    Scores: "คะแนน",
+    Attendance: "เช็กชื่อ",
     ExamSeats: t("examSeats"),
     Updates: "อัปเดต",
   };
+
+  const sectionText = course.course.sections
+    .map((s) => s.section_no || s.name || String(s.id))
+    .filter(Boolean)
+    .join(", ");
+
   const formatExamSeatType = (seat: MyExamSeat) => {
     const examTypeLabel = seat.exam_type === "midterm" ? t("midtermExam") : t("finalExam");
     const componentLabel = seat.component === "lab" ? t("practicalComponent") : t("lectureComponent");
     return `${examTypeLabel} (${componentLabel})`;
   };
 
-  // group assignments by type
-  const visibleAssignments = course.assignments.filter((a) => !shouldHideGroupAssignment(a));
-  const visibleTotalScore = visibleAssignments.reduce((sum, a) => sum + (a.score ?? 0), 0);
-  const visibleTotalMaxScore = visibleAssignments.reduce((sum, a) => sum + a.max_score, 0);
-
-  const assignByType: Record<string, AssignmentScore[]> = {};
-  for (const a of visibleAssignments) {
-    const g = a.type === "assignment" ? "assignment" : (a.type === "permanent_group" || a.type === "weekly_group") ? "group" : "individual";
-    if (!assignByType[g]) assignByType[g] = [];
-    assignByType[g].push(a);
-  }
-  const assignGroups = [
-    { key: "individual", label: "งานในคาบ",  icon: "solar:laptop-bold-duotone",                  cls: "text-sky-600 bg-sky-50 border-sky-100" },
-    { key: "assignment", label: "งานบ้าน",   icon: "solar:notebook-bold-duotone",                cls: "text-violet-600 bg-violet-50 border-violet-100" },
-    { key: "group",      label: "งานกลุ่ม",  icon: "solar:users-group-rounded-bold-duotone",     cls: "text-amber-600 bg-amber-50 border-amber-100" },
-  ].filter((g) => (assignByType[g.key]?.length ?? 0) > 0);
-
-  function groupSummary(key: string) {
-    const arr = assignByType[key] ?? [];
-    return {
-      total:    arr.reduce((s, a) => s + (a.score ?? 0), 0),
-      maxTotal: arr.reduce((s, a) => s + a.max_score, 0),
-      graded:   arr.filter((a) => a.status === "graded").length,
-      count:    arr.length,
-    };
-  }
-
-  const scoreAssignmentGroups = {
-    lab: visibleAssignments.filter((a) => a.type !== "assignment" && a.type !== "permanent_group" && a.type !== "weekly_group"),
-    homework: visibleAssignments.filter((a) => a.type === "assignment"),
-    group: visibleAssignments.filter((a) => a.type === "permanent_group"),
-    weekly: visibleAssignments.filter((a) => a.type === "weekly_group"),
-  };
-  const scoreCategoryOptions = [
-    { key: "all",      label: "ทั้งหมด",      count: visibleAssignments.length + course.examScores.length + bonusGroups.length },
-    { key: "lab",      label: "คะแนนแลป",     count: scoreAssignmentGroups.lab.length },
-    { key: "homework", label: "การบ้าน",      count: scoreAssignmentGroups.homework.length },
-    { key: "group",    label: "งานกลุ่ม",     count: scoreAssignmentGroups.group.length },
-    { key: "weekly",   label: "งานสัปดาห์",   count: scoreAssignmentGroups.weekly.length },
-    { key: "exams",    label: "คะแนนสอบ",     count: course.examScores.length },
-    { key: "bonus",    label: "คะแนนพิเศษ",   count: bonusGroups.length },
-  ].filter((option) => option.key === "all" || option.count > 0) as Array<{ key: ScoreCategoryKey; label: string; count: number }>;
-  const scoreCategorySections = [
-    { key: "lab" as const,      label: "คะแนนแลป",   icon: "solar:laptop-bold-duotone",              cls: "text-sky-600 bg-sky-50 border-sky-100", items: scoreAssignmentGroups.lab },
-    { key: "homework" as const, label: "การบ้าน",    icon: "solar:notebook-bold-duotone",            cls: "text-violet-600 bg-violet-50 border-violet-100", items: scoreAssignmentGroups.homework },
-    { key: "group" as const,    label: "งานกลุ่ม",   icon: "solar:users-group-rounded-bold-duotone", cls: "text-amber-600 bg-amber-50 border-amber-100", items: scoreAssignmentGroups.group },
-    { key: "weekly" as const,   label: "งานสัปดาห์", icon: "solar:calendar-bold-duotone",            cls: "text-orange-600 bg-orange-50 border-orange-100", items: scoreAssignmentGroups.weekly },
-  ].filter((section) => section.items.length > 0);
-  const filteredScoreSections = selectedScoreCategory === "all"
-    ? scoreCategorySections
-    : scoreCategorySections.filter((section) => section.key === selectedScoreCategory);
-  assignByType.lab = scoreAssignmentGroups.lab;
-  assignByType.homework = scoreAssignmentGroups.homework;
-  assignByType.weekly = scoreAssignmentGroups.weekly;
-
-  const summaryItems = [
-    { label: "มาเรียน", val: course.attendance.summary.present, icon: "solar:check-circle-bold-duotone", cls: "text-emerald-600 bg-emerald-50" },
-    { label: "สาย",     val: course.attendance.summary.late,    icon: "solar:clock-circle-bold-duotone",  cls: "text-amber-600 bg-amber-50" },
-    { label: "ลา",      val: course.attendance.summary.leave,   icon: "solar:letter-bold-duotone",        cls: "text-sky-600 bg-sky-50" },
-    { label: "ขาด",     val: course.attendance.summary.absent,  icon: "solar:close-circle-bold-duotone",  cls: "text-rose-600 bg-rose-50" },
-  ];
-
   return (
-    <div className="space-y-4 pb-2">
-      {/* ── course header ──────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-4xl border border-slate-200/70 bg-slate-900 shadow-lg shadow-slate-300/40">
+    <div className="flex flex-col gap-4">
+      {/* ── cover ──────────────────────────────────────────────────── */}
+      <div className="cg-cover">
         {course.course.image ? (
           <CourseCoverImage
             src={course.course.image}
@@ -513,414 +447,348 @@ export default function StudentCourseDetailPage() {
             positionX={course.course.cover_position_x}
             positionY={course.course.cover_position_y}
             zoom={course.course.cover_zoom}
-            className="h-44 w-full sm:h-48"
-            overlay={<div className="absolute inset-0 bg-linear-to-r from-slate-950/75 via-slate-900/45 to-slate-950/20" />}
+            className="absolute inset-0"
+            priority
           />
-        ) : null}
-        <span className="pointer-events-none absolute -right-8 -top-8 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
-        <div className="relative flex items-start gap-4 p-5 sm:p-6">
-          <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-lg font-bold text-white ring-2 ring-white/25 backdrop-blur-sm ${course.course.image ? "bg-white/15 -mt-8" : "bg-white/20"}`}>
-            {initials}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-300">{course.course.code}</p>
-            <h2 className="mt-0.5 text-lg font-bold leading-snug text-white sm:text-xl">{course.course.name}</h2>
-            <p className="mt-1 text-xs text-slate-400">
-              {data.student.full_name} · ปีการศึกษา {course.course.year} เทอม {course.course.semester}
-              {course.course.sections.length > 0 && (
-                <> · Sec {course.course.sections.map((s) => s.section_no).filter(Boolean).join(", ") || course.course.sections.map((s) => s.id).join(", ")}</>
-              )}
-            </p>
-          </div>
+        ) : (
+          <span className="absolute inset-0" style={{ background: courseCoverFallback(course.course.code) }} />
+        )}
+        <span className="cg-cover-scrim" />
+
+        <button type="button" className="cg-cover-btn left-4" onClick={() => router.back()}>
+          <Icon icon="solar:alt-arrow-left-linear" width={17} height={17} />
+          ย้อนกลับ
+        </button>
+        <span className="cg-cover-btn right-4" style={{ cursor: "default" }}>
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: course.course.is_active ? "#4ade80" : "#94a3b8" }} />
+          {course.course.is_active ? "กำลังเรียน" : "ปิดแล้ว"}
+        </span>
+
+        <div className="cg-cover-text">
+          <span className="cg-cover-code">{course.course.code}</span>
+          <h1 className="cg-cover-name">{course.course.name}</h1>
         </div>
       </div>
 
-      {/* ── tab bar ────────────────────────────────────── */}
-      <div className="flex gap-1 overflow-x-auto rounded-4xl border border-slate-100 bg-white/80 p-1.5 shadow-sm scrollbar-hide">
-        {tabKeys.filter((key) => key !== "ExamSeats").map((key, i) => (
-          <button
-            key={key}
-            onClick={() => setActiveTab(key)}
-            className={`flex shrink-0 items-center gap-1.5 rounded-3xl px-3 py-2 text-xs font-semibold transition ${
-              activeTab === key ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-            }`}
-          >
-            <Icon icon={TAB_ICONS[key]} className="text-sm" />
-            {tabLabels[key] ?? tabs[i]}
+      {/* ── meta ───────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap gap-[7px]">
+        <span className="cg-meta-chip">
+          <Icon icon="solar:calendar-linear" width={13} height={13} style={{ color: "var(--cg-text-3)" }} />
+          เทอม <b className="font-medium" style={{ color: "var(--cg-text)" }}>{course.course.semester}/{course.course.year}</b>
+        </span>
+        {sectionText && (
+          <span className="cg-meta-chip">
+            <Icon icon="solar:bookmark-linear" width={13} height={13} style={{ color: "var(--cg-text-3)" }} />
+            กลุ่มเรียนที่ <b className="font-medium" style={{ color: "var(--cg-text)" }}>{sectionText}</b>
+          </span>
+        )}
+        <span className="cg-meta-chip">
+          <Icon icon="solar:user-linear" width={13} height={13} style={{ color: "var(--cg-text-3)" }} />
+          {data.student.full_name}
+        </span>
+      </div>
+
+      {/* ── tabs ───────────────────────────────────────────────────── */}
+      <div className="cg-pill-row">
+        {tabKeys.map((key) => (
+          <button key={key} type="button" className="cg-pill" data-active={activeTab === key} onClick={() => setActiveTab(key)}>
+            {tabLabels[key]}
           </button>
         ))}
       </div>
 
-      {/* ── OVERVIEW tab ───────────────────────────────── */}
+      {/* ── overview ───────────────────────────────────────────────── */}
       {activeTab === "Overview" && (
-        <div className="space-y-4">
-          {/* My groups */}
-          <div className="rounded-4xl border border-slate-100 bg-white/90 p-5 shadow-sm">
-            <div className="mb-3 flex items-center gap-2">
-              <Icon icon="solar:users-group-rounded-bold-duotone" className="text-base text-slate-700" />
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-600">กลุ่มของฉัน</p>
-            </div>
-            {course.course.my_groups && course.course.my_groups.length > 0 ? (
-              <Accordion
-                variant="splitted"
-                selectionMode="multiple"
-                className="gap-2.5 p-0"
-                itemClasses={{
-                  base: "rounded-3xl border border-slate-200/80 bg-slate-50/90 shadow-none",
-                  heading: "px-0",
-                  trigger: "rounded-3xl px-3.5 py-3 data-[hover=true]:bg-slate-100/70",
-                  indicator: "text-slate-400",
-                  content: "px-3.5 pb-3.5 pt-0",
-                }}
-              >
-                {course.course.my_groups.map((group) => (
-                  <AccordionItem
-                    key={group.id}
-                    aria-label={group.name}
-                    title={
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-200/70 px-2 py-0.5 text-[10px] font-bold text-slate-700">
-                          <Icon icon="solar:users-group-rounded-bold" className="text-[11px]" />
-                          {group.name}
-                        </span>
-                        <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                          {studentGroupTypeLabel(group)}
-                        </span>
-                        <span className="ml-auto text-[10px] font-medium text-slate-400">
-                          {group.members.length} สมาชิก
-                        </span>
-                      </div>
-                    }
-                  >
-                    {group.members.length > 0 ? (
-                      <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-2">
-                        <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">สมาชิก</p>
-                        <ul className="mt-1 space-y-1">
-                          {group.members.map((member) => (
-                            <li key={member.id} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2 py-1 text-[11px] text-slate-600">
-                              <span className="truncate font-medium text-slate-700">{member.full_name}</span>
-                              <span className="shrink-0 rounded-full bg-slate-200/80 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
-                                {member.student_id}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : (
-                      <p className="text-[11px] text-slate-500">ยังไม่มีสมาชิกในกลุ่ม</p>
-                    )}
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            ) : (
-              <div className="flex items-center gap-3 rounded-3xl border border-dashed border-slate-200 bg-white/60 p-4">
-                <Icon icon="solar:users-group-rounded-bold-duotone" className="text-xl text-slate-300 shrink-0" />
-                <p className="text-xs text-slate-400">ยังไม่ถูกจัดกลุ่มในรายวิชานี้</p>
-              </div>
-            )}
-          </div>
-
-          {/* Course notifications */}
-          <div>
-            <div className="mb-2 flex items-center gap-2">
-              <Icon icon="solar:bell-bing-bold-duotone" className="text-base text-slate-700" />
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-600">ประกาศจากรายวิชา</p>
-            </div>
-            {notifs.length > 0 ? (
-              <div className="space-y-2">{notifs.map((n) => <NotifCard key={n.id} n={n} />)}</div>
-            ) : (
-              <div className="flex items-center gap-3 rounded-3xl border border-dashed border-slate-200 bg-white/60 p-4">
-                <Icon icon="solar:bell-off-bold-duotone" className="text-xl text-slate-300 shrink-0" />
-                <p className="text-xs text-slate-400">ยังไม่มีประกาศจากรายวิชานี้</p>
-              </div>
-            )}
-          </div>
-
-          {/* Attendance summary */}
-          <div className="rounded-4xl border border-emerald-100 bg-white/90 p-5 shadow-sm">
-            <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">สรุปการเข้าเรียน</p>
-            <div className="grid grid-cols-4 gap-2">
-              {summaryItems.map((s) => (
-                <div key={s.label} className={`flex flex-col items-center gap-1 rounded-3xl ${s.cls} py-3`}>
-                  <Icon icon={s.icon} className="text-xl" />
-                  <p className="text-lg font-bold text-slate-900">{s.val}</p>
-                  <p className="text-[10px] font-semibold text-slate-500">{s.label}</p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
-              <div className="h-full rounded-full bg-linear-to-r from-emerald-500 to-teal-400 transition-all" style={{ width: `${attendPct}%` }} />
-            </div>
-            <p className="mt-1.5 text-right text-xs text-slate-400">{attendPct}% เข้าเรียน</p>
-          </div>
-
-          {/* Score summary by type */}
-          {assignGroups.length > 0 && (
-            <div className="rounded-4xl border border-slate-100 bg-white/90 p-5 shadow-sm">
-              <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">สรุปคะแนนงาน</p>
-              <div className="space-y-3">
-                {assignGroups.map((g) => {
-                  const { total, maxTotal, graded, count } = groupSummary(g.key);
-                  const pct = maxTotal > 0 ? Math.round((total / maxTotal) * 100) : 0;
-                  const barCls = pct >= 80 ? "from-emerald-500 to-teal-400" : pct >= 60 ? "from-amber-400 to-orange-400" : "from-rose-400 to-pink-400";
+        <div className="flex flex-col gap-[18px]">
+          <section className="flex flex-col gap-2">
+            <p className="cg-section-label">กลุ่มของฉัน</p>
+            <div className="cg-list">
+              {course.course.my_groups && course.course.my_groups.length > 0 ? (
+                course.course.my_groups.map((group) => {
+                  const open = openGroups[group.id] ?? false;
                   return (
-                    <div key={g.key}>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className={`flex h-6 w-6 items-center justify-center rounded-xl border text-xs ${g.cls}`}><Icon icon={g.icon} /></span>
-                        <p className="text-xs font-semibold text-slate-700">{g.label}</p>
-                        <span className="ml-auto text-xs text-slate-400">ตรวจแล้ว {graded}/{count}</span>
-                        <span className="text-xs font-bold text-slate-800 tabular-nums">{displayScore(total)} / {displayScore(maxTotal)}</span>
-                      </div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
-                        <div className={`h-full rounded-full bg-linear-to-r ${barCls} transition-all`} style={{ width: `${pct}%` }} />
-                      </div>
+                    <div key={group.id}>
+                      <button
+                        type="button"
+                        className="cg-row"
+                        onClick={() => setOpenGroups((prev) => ({ ...prev, [group.id]: !prev[group.id] }))}
+                      >
+                        <span className="cg-row-ico" style={{ background: "var(--cg-violet-soft)", color: "var(--cg-violet)" }}>
+                          <Icon icon="solar:users-group-rounded-linear" width={17} height={17} />
+                        </span>
+                        <span className="cg-row-body">
+                          <span className="cg-row-title">{group.name}</span>
+                          <span className="cg-row-sub">{studentGroupTypeLabel(group)} สมาชิก {group.members.length} คน</span>
+                        </span>
+                        <Icon
+                          icon="solar:alt-arrow-down-linear"
+                          className="cg-chevron"
+                          width={15}
+                          height={15}
+                          style={{ transform: open ? "rotate(180deg)" : undefined, transition: "transform .18s" }}
+                        />
+                      </button>
+                      {open && (
+                        <div className="flex flex-col gap-1.5 px-3.5 pb-3.5 pl-[62px]">
+                          {group.members.length > 0 ? group.members.map((member) => (
+                            <div key={member.id} className="flex items-center justify-between gap-2 rounded-[10px] px-2.5 py-1.5" style={{ background: "var(--cg-fill)" }}>
+                              <span className="truncate text-[11.5px] font-light">{member.full_name}</span>
+                              <span className="cg-mono shrink-0 text-[10.5px]" style={{ color: "var(--cg-text-3)" }}>{member.student_id}</span>
+                            </div>
+                          )) : (
+                            <p className="text-[11.5px] font-light" style={{ color: "var(--cg-text-3)" }}>ยังไม่มีสมาชิกในกลุ่ม</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
-                })}
-              </div>
-              {course.bonusScore && course.bonusScore.total > 0 && (
-                <div className="mt-3 flex items-center gap-2 rounded-3xl bg-amber-50 border border-amber-100 px-3 py-2">
-                  <Icon icon="solar:gift-bold-duotone" className="text-amber-500" />
-                  <p className="text-xs font-semibold text-amber-800">โบนัสพิเศษ <span className="font-bold">+{course.bonusScore.total}</span> คะแนน</p>
+                })
+              ) : (
+                <div className="cg-empty">
+                  <Icon icon="solar:users-group-rounded-linear" width={27} height={27} />
+                  <span className="text-[11.5px] font-light">ยังไม่ถูกจัดกลุ่มในรายวิชานี้</span>
                 </div>
               )}
             </div>
-          )}
+          </section>
 
-          {/* Exam scores summary */}
-          {course.examScores && course.examScores.length > 0 && (
-            <div className="rounded-4xl border border-indigo-100 bg-white/90 p-5 shadow-sm">
-              <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">สรุปคะแนนสอบ</p>
-              <div className="space-y-3">
-                {course.examScores.map((e) => {
-                  const pct = e.score != null && e.max_score > 0 ? Math.round((e.score / e.max_score) * 100) : null;
-                  const barCls = pct == null ? "bg-slate-200" : pct >= 60 ? "bg-emerald-500" : pct >= 40 ? "bg-amber-400" : "bg-rose-400";
-                  return (
-                    <div key={e.id}>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <Icon icon="solar:diploma-bold-duotone" className="text-indigo-500 text-sm shrink-0" />
-                        <p className="text-xs font-semibold text-slate-700">{examTypeTH(e.exam_type, e.component)}</p>
-                        <span className="ml-auto text-xs font-bold text-slate-800 tabular-nums">{displayScore(e.score)} / {displayScore(e.max_score)}</span>
-                      </div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
-                        <div className={`h-full rounded-full transition-all ${barCls}`} style={{ width: pct != null ? `${pct}%` : "0%" }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+          <section className="flex flex-col gap-2">
+            <p className="cg-section-label">สรุปการเข้าเรียน</p>
+            <div className="cg-stat4">
+              {summaryCells.map((s) => (
+                <div key={s.label} style={{ background: s.bg, color: s.fg }}>
+                  <Icon icon={s.icon} width={16} height={16} />
+                  <b className="cg-mono text-base font-semibold leading-tight">{s.val}</b>
+                  <span className="text-[10px] font-normal" style={{ color: "var(--cg-text-2)" }}>{s.label}</span>
+                </div>
+              ))}
             </div>
-          )}
+            <div className="cg-progress mt-0.5"><i style={{ width: `${attendPct}%`, background: "var(--cg-success)" }} /></div>
+            <p className="text-right text-[11px] font-light" style={{ color: "var(--cg-text-3)" }}>เข้าเรียน {attendPct}%</p>
+          </section>
 
-          {/* Sections */}
-          {course.course.sections.length > 0 && (
-            <div className="rounded-4xl border border-slate-100 bg-white/90 p-5 shadow-sm">
-              <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">กลุ่มเรียน</p>
-              <div className="flex flex-wrap gap-2">
-                {course.course.sections.map((s) => (
-                  <span key={s.id} className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                    Section {s.section_no || s.name || s.id}
+          <section className="flex flex-col gap-2">
+            <p className="cg-section-label">สรุปคะแนน</p>
+            <div className="cg-list">
+              <div className="cg-row items-start">
+                <span className="cg-row-ico mt-0.5" style={{ background: "var(--cg-info-soft)", color: "var(--cg-info)" }}>
+                  <Icon icon="solar:medal-ribbon-linear" width={17} height={17} />
+                </span>
+                <span className="cg-row-body">
+                  <span className="cg-row-title">คะแนนรวมจากงานทั้งหมด</span>
+                  <ScoreBar score={visibleTotalScore} max={visibleTotalMaxScore} />
+                </span>
+              </div>
+              {course.bonusScore && course.bonusScore.total > 0 && (
+                <div className="cg-row">
+                  <span className="cg-row-ico" style={{ background: "var(--cg-warning-soft)", color: "var(--cg-warning)" }}>
+                    <Icon icon="solar:star-linear" width={17} height={17} />
                   </span>
-                ))}
-              </div>
+                  <span className="cg-row-body"><span className="cg-row-title">คะแนนพิเศษสะสม</span></span>
+                  <span className="cg-mono text-sm font-semibold" style={{ color: "var(--cg-warning)" }}>+{course.bonusScore.total}</span>
+                </div>
+              )}
             </div>
-          )}
+          </section>
+
+          <section className="flex flex-col gap-2">
+            <p className="cg-section-label">ประกาศจากรายวิชา</p>
+            <div className="cg-list">
+              {notifs.length > 0 ? notifs.slice(0, 3).map((n) => {
+                const style = notifStyleFor(n.type);
+                return (
+                  <div key={n.id} className="cg-row items-start">
+                    <span className="cg-row-ico mt-0.5" style={{ background: style.bg, color: style.fg }}>
+                      <Icon icon={style.icon} width={17} height={17} />
+                    </span>
+                    <span className="cg-row-body">
+                      <span className="cg-row-title">{getNotificationHeadline(n, language, t)}</span>
+                      <span className="cg-row-sub line-clamp-2">{getNotificationMessage(n, language, t)}</span>
+                    </span>
+                  </div>
+                );
+              }) : (
+                <div className="cg-empty">
+                  <Icon icon="solar:bell-off-linear" width={27} height={27} />
+                  <span className="text-[11.5px] font-light">ยังไม่มีประกาศจากรายวิชานี้</span>
+                </div>
+              )}
+            </div>
+          </section>
         </div>
       )}
 
-      {/* ── SCORES tab ─────────────────────────────────── */}
+      {/* ── scores ─────────────────────────────────────────────────── */}
       {activeTab === "Scores" && (
-        <div className="space-y-4">
-          {/* Score total banner */}
-          <div className="rounded-4xl border border-slate-200 bg-slate-50 p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-700">คะแนนรวม (งาน)</p>
-              <span className="text-xl font-bold text-slate-900 tabular-nums">
-                {displayScore(visibleTotalScore)} <span className="text-sm font-medium text-slate-400">/ {displayScore(visibleTotalMaxScore)}</span>
-              </span>
-            </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
-              <div
-                className="h-full rounded-full bg-slate-900 transition-all"
-                style={{ width: `${visibleTotalMaxScore > 0 ? Math.round((visibleTotalScore / visibleTotalMaxScore) * 100) : 0}%` }}
-              />
-            </div>
+        <div className="flex flex-col gap-4">
+          <div className="cg-card flex items-center justify-between gap-3">
+            <span className="text-[12.5px] font-normal" style={{ color: "var(--cg-text-2)" }}>คะแนนรวมจากงานทั้งหมด</span>
+            <span className="cg-mono text-xl font-semibold">
+              {displayScore(visibleTotalScore)}
+              <small className="text-[12.5px] font-normal" style={{ color: "var(--cg-text-3)" }}> / {displayScore(visibleTotalMaxScore)}</small>
+            </span>
           </div>
 
-          <div className="rounded-4xl border border-slate-100 bg-white/90 p-4 shadow-sm">
-            <div className="flex items-center gap-2">
-              <Icon icon="solar:filter-bold-duotone" className="text-base text-slate-500" />
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">เลือกหมวดคะแนน</p>
-            </div>
-            <div className="mt-3 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-              {scoreCategoryOptions.map((option) => (
-                <button
-                  key={option.key}
-                  type="button"
-                  onClick={() => setSelectedScoreCategory(option.key)}
-                  className={`shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition ${
-                    selectedScoreCategory === option.key
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-white"
-                  }`}
-                >
-                  {option.label} ({option.count})
-                </button>
-              ))}
-            </div>
+          <div className="cg-pill-row">
+            {scoreCategoryOptions.map((o) => (
+              <button key={o.key} type="button" className="cg-pill" data-active={selectedScoreCategory === o.key} onClick={() => setSelectedScoreCategory(o.key)}>
+                {o.label}{o.count != null ? ` (${o.count})` : ""}
+              </button>
+            ))}
           </div>
 
-          {filteredScoreSections.length === 0 && course.examScores.length === 0 && bonusGroups.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 rounded-4xl border border-dashed border-slate-200 bg-white/60 py-12 text-center">
-              <Icon icon="solar:medal-star-bold-duotone" className="text-3xl text-slate-300" />
-              <p className="text-sm text-slate-400">ยังไม่มีงานที่แสดงได้</p>
-            </div>
-          ) : (
-            filteredScoreSections.map((g) => (
-              <div key={g.key}>
-                <div className="mb-2 flex items-center gap-2 px-1">
-                  <span className={`flex h-6 w-6 items-center justify-center rounded-xl border text-xs ${g.cls}`}><Icon icon={g.icon} /></span>
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-600">{g.label}</p>
-                  <span className="text-xs text-slate-400">({(assignByType[g.key] ?? []).length} งาน)</span>
-                </div>
-                <div className="space-y-2">
-                  {g.items.map((a) => <AssignmentCard key={a.id} a={a} />)}
-                </div>
+          {scoreSections.map((section) => (
+            <section key={section.key} className="flex flex-col gap-2">
+              <p className="cg-section-label">{section.label}</p>
+              <div className="cg-list">
+                {section.items.map((a) => <AssignmentRow key={a.id} a={a} />)}
               </div>
-            ))
+            </section>
+          ))}
+
+          {course.examScores.length > 0 && (selectedScoreCategory === "all" || selectedScoreCategory === "exams") && (
+            <section className="flex flex-col gap-2">
+              <p className="cg-section-label">คะแนนสอบ</p>
+              <div className="cg-list">
+                {course.examScores.map((e) => <ExamRow key={e.id} e={e} />)}
+              </div>
+            </section>
           )}
 
-          {/* Bonus scores */}
-          {course.bonusScore && course.bonusScore.total > 0 && (selectedScoreCategory === "all" || selectedScoreCategory === "bonus") && (
-            <div className="rounded-4xl border border-amber-100 bg-white/90 p-5 shadow-sm">
-              <div className="mb-3 flex items-center gap-2">
-                <Icon icon="solar:gift-bold-duotone" className="text-amber-500 text-base" />
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">โบนัสพิเศษ</p>
-                <span className="ml-auto text-sm font-bold text-amber-700">+{course.bonusScore.total}</span>
-              </div>
-              <div className="space-y-2">
+          {bonusGroups.length > 0 && (selectedScoreCategory === "all" || selectedScoreCategory === "bonus") && (
+            <section className="flex flex-col gap-2">
+              <p className="cg-section-label">คะแนนพิเศษ รวม +{course.bonusScore.total}</p>
+              <div className="cg-list">
                 {bonusGroups.map((group) => {
                   const isExpanded = expandedBonusDays[group.key] ?? false;
-                  const previewRecords = isExpanded ? group.records : group.records.slice(0, 1);
-
+                  const shown = isExpanded ? group.records : group.records.slice(0, 1);
                   return (
-                    <div key={group.key} className="rounded-3xl border border-amber-100 bg-amber-50/70 p-3">
+                    <div key={group.key}>
                       <button
                         type="button"
+                        className="cg-row"
                         onClick={() => setExpandedBonusDays((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
-                        className="flex w-full items-center gap-3 text-left"
                       >
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white/70 text-amber-500">
-                          <Icon icon="solar:star-bold" className="text-sm" />
+                        <span className="cg-row-ico" style={{ background: "var(--cg-warning-soft)", color: "var(--cg-warning)" }}>
+                          <Icon icon="solar:star-linear" width={17} height={17} />
                         </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-semibold text-amber-800">{group.label}</p>
-                          <p className="text-[10px] text-amber-600">{group.records.length} รายการในวัน +{group.total}</p>
-                        </div>
-                        <Icon
-                          icon={isExpanded ? "solar:alt-arrow-up-linear" : "solar:alt-arrow-down-linear"}
-                          className="shrink-0 text-base text-amber-500"
-                        />
+                        <span className="cg-row-body">
+                          <span className="cg-row-title">{group.label}</span>
+                          <span className="cg-row-sub">{group.records.length} รายการในวันนี้</span>
+                        </span>
+                        <span className="cg-mono text-sm font-semibold" style={{ color: "var(--cg-warning)" }}>+{group.total}</span>
                       </button>
-
-                      <div className="mt-3 space-y-2">
-                        {previewRecords.map((b, i) => (
-                          <div key={`${group.key}-${i}`} className="flex items-start gap-3 rounded-2xl bg-white/80 p-3">
-                            <Icon icon="solar:star-bold" className="mt-0.5 shrink-0 text-sm text-amber-400" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs font-semibold text-amber-800">{b.reason}</p>
-                              {b.given_by && <p className="mt-0.5 text-[10px] text-amber-600">โดย {b.given_by} · {fmt(b.given_at)}</p>}
-                            </div>
-                            <span className="shrink-0 text-xs font-bold text-amber-700 tabular-nums">+{b.score}</span>
+                      <div className="flex flex-col gap-1.5 px-3.5 pb-3.5 pl-[62px]">
+                        {shown.map((b, i) => (
+                          <div key={`${group.key}-${i}`} className="flex items-start justify-between gap-3 rounded-[10px] px-2.5 py-2" style={{ background: "var(--cg-fill)" }}>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-[11.5px] font-medium">{b.reason}</span>
+                              {b.given_by && (
+                                <span className="block text-[10.5px] font-light" style={{ color: "var(--cg-text-3)" }}>
+                                  โดย {b.given_by} เมื่อ {fmt(b.given_at)}
+                                </span>
+                              )}
+                            </span>
+                            <span className="cg-mono shrink-0 text-[11.5px] font-medium" style={{ color: "var(--cg-warning)" }}>+{b.score}</span>
                           </div>
                         ))}
                         {!isExpanded && group.records.length > 1 && (
-                          <p className="px-1 text-[10px] font-medium text-amber-600">และอีก {group.records.length - 1} รายการ</p>
+                          <p className="text-[10.5px] font-light" style={{ color: "var(--cg-text-3)" }}>
+                            และอีก {group.records.length - 1} รายการ
+                          </p>
                         )}
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </div>
+            </section>
           )}
 
-          {/* Exam scores */}
-          {course.examScores && course.examScores.length > 0 && (selectedScoreCategory === "all" || selectedScoreCategory === "exams") && (
-            <div>
-              <div className="mb-2 flex items-center gap-2 px-1">
-                <Icon icon="solar:diploma-bold-duotone" className="text-blue-700 text-base" />
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-600">คะแนนสอบ</p>
-              </div>
-              <div className="space-y-2">
-                {course.examScores.map((e) => <ExamCard key={e.id} e={e} />)}
+          {scoreSections.length === 0 && course.examScores.length === 0 && bonusGroups.length === 0 && (
+            <div className="cg-list">
+              <div className="cg-empty">
+                <Icon icon="solar:medal-ribbon-linear" width={27} height={27} />
+                <span className="text-[11.5px] font-light">ยังไม่มีคะแนนที่แสดงได้</span>
               </div>
             </div>
           )}
         </div>
       )}
 
-      {/* ── ATTENDANCE tab ─────────────────────────────── */}
+      {/* ── attendance ─────────────────────────────────────────────── */}
       {activeTab === "Attendance" && (
-        <div className="space-y-3">
-          <div className="grid grid-cols-4 gap-2">
-            {summaryItems.map((s) => (
-              <div key={s.label} className={`flex flex-col items-center gap-1 rounded-3xl ${s.cls} py-3`}>
-                <Icon icon={s.icon} className="text-xl" />
-                <p className="text-lg font-bold text-slate-900">{s.val}</p>
-                <p className="text-[10px] font-semibold text-slate-500">{s.label}</p>
+        <div className="flex flex-col gap-4">
+          <div className="cg-stat4">
+            {summaryCells.map((s) => (
+              <div key={s.label} style={{ background: s.bg, color: s.fg }}>
+                <Icon icon={s.icon} width={16} height={16} />
+                <b className="cg-mono text-base font-semibold leading-tight">{s.val}</b>
+                <span className="text-[10px] font-normal" style={{ color: "var(--cg-text-2)" }}>{s.label}</span>
               </div>
             ))}
           </div>
-          {course.attendance.records.length > 0 ? (
-            course.attendance.records.map((r) => <AttendanceRow key={r.id} record={r} />)
-          ) : (
-            <div className="flex flex-col items-center gap-3 rounded-4xl border border-dashed border-slate-200 bg-white/60 py-12 text-center">
-              <Icon icon="solar:calendar-bold-duotone" className="text-3xl text-slate-300" />
-              <p className="text-sm text-slate-400">ยังไม่มีบันทึกการเช็กชื่อ</p>
-            </div>
-          )}
+
+          <div className="cg-list">
+            {course.attendance.records.length > 0 ? (
+              course.attendance.records.map((r) => <AttendanceRow key={r.id} record={r} />)
+            ) : (
+              <div className="cg-empty">
+                <Icon icon="solar:calendar-linear" width={27} height={27} />
+                <span className="text-[11.5px] font-light">ยังไม่มีบันทึกการเช็กชื่อ</span>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {/* ── EXAM SEATS tab ─────────────────────────────── */}
+      {/* ── exam seats ─────────────────────────────────────────────── */}
       {activeTab === "ExamSeats" && (
-        <div className="space-y-3">
+        <div className="flex flex-col gap-4">
           {isExamSeatsLoading ? (
-            <div className="flex justify-center py-12">
-              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-slate-700" />
+            <div className="cg-list">
+              <div className="cg-row animate-pulse">
+                <div className="h-9 w-9 shrink-0 rounded-xl" style={{ background: "var(--cg-fill-strong)" }} />
+                <div className="h-3.5 w-1/2 rounded-full" style={{ background: "var(--cg-fill-strong)" }} />
+              </div>
             </div>
           ) : examSeats.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 rounded-4xl border border-dashed border-slate-200 bg-white/60 py-12 text-center">
-              <Icon icon="solar:armchair-bold-duotone" className="text-3xl text-slate-300" />
-              <p className="text-sm text-slate-400">{t("studentExamSeatEmpty")}</p>
+            <div className="cg-list">
+              <div className="cg-empty">
+                <Icon icon="solar:armchair-linear" width={27} height={27} />
+                <span className="text-[11.5px] font-light">{t("studentExamSeatEmpty")}</span>
+              </div>
             </div>
           ) : (
             examSeats.map((seat) => (
-              <div key={`${seat.session_id}-${seat.exam_type}-${seat.component}`} className="rounded-4xl border border-blue-100 bg-white/90 p-4 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 text-blue-700">
-                    <Icon icon="solar:armchair-bold-duotone" />
+              <div key={`${seat.session_id}-${seat.exam_type}-${seat.component}`} className="cg-card">
+                <div className="flex items-center justify-between gap-2.5">
+                  <span className="text-[12.5px] font-medium">{formatExamSeatType(seat)}</span>
+                  <span className="cg-badge cg-badge-success">ยืนยันที่นั่งแล้ว</span>
+                </div>
+                <div className="mt-3.5 flex items-center gap-4">
+                  <span className="cg-queue-num">{seat.seat_label || seat.desk_number}</span>
+                  <span className="self-stretch" style={{ width: 1, background: "var(--cg-line)" }} />
+                  <span className="flex flex-col gap-1.5">
+                    <span className="flex items-center gap-1.5 text-[12.5px] font-medium">
+                      <Icon icon="solar:buildings-linear" width={14} height={14} style={{ color: "var(--cg-text-3)" }} />
+                      {seat.classroom_name}
+                    </span>
+                    <span className="flex items-center gap-1.5 text-[12.5px] font-light">
+                      <Icon icon="solar:armchair-linear" width={14} height={14} style={{ color: "var(--cg-text-3)" }} />
+                      โต๊ะที่ {seat.desk_number}
+                    </span>
                   </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-bold text-slate-900">{formatExamSeatType(seat)}</p>
-                      <span className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
-                        {seat.exam_date}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-slate-500">{seat.start_time}–{seat.end_time}</p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                        <Icon icon="solar:buildings-bold" className="text-slate-500" />
-                        {seat.classroom_name}
-                      </span>
-                      <span className="flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                        <Icon icon="solar:chair-bold" className="text-emerald-500" />
-                        {t("studentExamSeatChip", { seat: seat.seat_label || `${seat.classroom_name}-${seat.desk_number}` })}
-                      </span>
-                    </div>
-                  </div>
+                </div>
+                <div className="mt-3.5 flex gap-5 border-t pt-3.5" style={{ borderColor: "var(--cg-line)" }}>
+                  <span className="flex flex-col gap-0.5">
+                    <span className="text-[10.5px]" style={{ color: "var(--cg-text-3)" }}>วันสอบ</span>
+                    <b className="cg-mono text-[13px] font-medium">{seat.exam_date}</b>
+                  </span>
+                  <span className="flex flex-col gap-0.5">
+                    <span className="text-[10.5px]" style={{ color: "var(--cg-text-3)" }}>เวลา</span>
+                    <b className="cg-mono text-[13px] font-medium">{seat.start_time}–{seat.end_time} น.</b>
+                  </span>
                 </div>
               </div>
             ))
@@ -928,15 +796,27 @@ export default function StudentCourseDetailPage() {
         </div>
       )}
 
-      {/* ── UPDATES tab ────────────────────────────────── */}
+      {/* ── updates ────────────────────────────────────────────────── */}
       {activeTab === "Updates" && (
-        <div className="space-y-2">
-          {notifs.length > 0 ? (
-            notifs.map((n) => <NotifCard key={n.id} n={n} />)
-          ) : (
-            <div className="flex flex-col items-center gap-3 rounded-4xl border border-dashed border-slate-200 bg-white/60 py-12 text-center">
-              <Icon icon="solar:bell-bing-bold-duotone" className="text-3xl text-slate-300" />
-              <p className="text-sm text-slate-400">ยังไม่มีการแจ้งเตือนจากรายวิชานี้</p>
+        <div className="cg-list">
+          {notifs.length > 0 ? notifs.map((n) => {
+            const style = notifStyleFor(n.type);
+            return (
+              <div key={n.id} className="cg-row items-start">
+                <span className="cg-row-ico mt-0.5" style={{ background: style.bg, color: style.fg }}>
+                  <Icon icon={style.icon} width={17} height={17} />
+                </span>
+                <span className="cg-row-body">
+                  <span className="cg-row-title">{getNotificationHeadline(n, language, t)}</span>
+                  <span className="cg-row-sub line-clamp-2">{getNotificationMessage(n, language, t)}</span>
+                  <span className="cg-row-sub" style={{ color: "var(--cg-text-3)" }}>{fmt(n.created_at)}</span>
+                </span>
+              </div>
+            );
+          }) : (
+            <div className="cg-empty">
+              <Icon icon="solar:bell-off-linear" width={27} height={27} />
+              <span className="text-[11.5px] font-light">ยังไม่มีการแจ้งเตือนจากรายวิชานี้</span>
             </div>
           )}
         </div>

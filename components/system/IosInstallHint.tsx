@@ -52,7 +52,7 @@ export function IosInstallHint({ className }: { className?: string }) {
       <div className="flex-1">
         <p className="font-semibold text-violet-700">เพิ่มลงหน้าจอโฮมก่อนเปิดการแจ้งเตือน</p>
         <p className="text-xs text-violet-600">
-          iPhone/iPad ต้องติดตั้งเป็นแอปก่อนถึงจะรับการแจ้งเตือนได้ — แตะปุ่มแชร์{" "}
+          iPhone/iPad ต้องติดตั้งเป็นแอปก่อนจึงจะรับการแจ้งเตือนได้ โดยแตะปุ่มแชร์{" "}
           <Icon icon="solar:square-share-line-bold" className="inline text-sm" /> ด้านล่างจอ แล้วเลือก
           &quot;เพิ่มไปยังหน้าจอโฮม&quot;
         </p>

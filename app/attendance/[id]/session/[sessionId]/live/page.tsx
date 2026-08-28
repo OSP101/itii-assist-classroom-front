@@ -144,6 +144,9 @@ export default function LiveAttendancePage() {
     // QR Modal
     const [isQRModalOpen, setIsQRModalOpen] = useState(false);
 
+    // Campus Wi-Fi / device reminder shown once when the projector page opens
+    const [showNetworkReminder, setShowNetworkReminder] = useState(true);
+
     // Search filter
     const [searchQuery, setSearchQuery] = useState("");
     const { secondsLeft: pinCountdown, totalSeconds: pinTotal } = useAttendancePinPresentation(session);
@@ -228,8 +231,8 @@ export default function LiveAttendancePage() {
                 return [...prev, data.record];
             });
             addToast({
-                title: t("นักศึกษาเช็คชื่อ", "Student checked in"),
-                description: `${data.record.student?.full_name || t("นักศึกษา", "Student")} ${t("เช็คชื่อเรียบร้อย", "checked in successfully")}`,
+                title: t("นักศึกษาเช็กชื่อ", "Student checked in"),
+                description: `${data.record.student?.full_name || t("นักศึกษา", "Student")} ${t("เช็กชื่อเรียบร้อย", "checked in successfully")}`,
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -260,8 +263,8 @@ export default function LiveAttendancePage() {
         // Listen for session closed
         socket.on("session-closed", () => {
             addToast({
-                title: t("ปิดรอบเช็คชื่อแล้ว", "Check-in closed"),
-                description: t("รอบการเช็คชื่อถูกปิดแล้ว", "This attendance session has been closed."),
+                title: t("ปิดรอบเช็กชื่อแล้ว", "Check-in closed"),
+                description: t("รอบการเช็กชื่อถูกปิดแล้ว", "This attendance session has been closed."),
                 color: "warning",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -351,11 +354,11 @@ export default function LiveAttendancePage() {
     useEffect(() => {
         document.title = isEnglish
             ? "Live Attendance - COCO LABS"
-            : "เช็คชื่อ Live - COCO LABS";
+            : "เช็กชื่อ Live - COCO LABS";
     }, [isEnglish]);
 
     useEffect(() => {
-        const pageLabel = isEnglish ? "Live Attendance" : "เช็คชื่อ Live";
+        const pageLabel = isEnglish ? "Live Attendance" : "เช็กชื่อ Live";
         const courseContext = buildCourseTitleContext(session?.course);
         document.title = buildPageTitle(pageLabel, courseContext);
     }, [isEnglish, session?.course]);
@@ -450,7 +453,7 @@ export default function LiveAttendancePage() {
                 setSession(result);
                 addToast({
                     title: t("สำเร็จ", "Success"),
-                    description: t("ปิดรอบการเช็คชื่อเรียบร้อยแล้ว", "The attendance session was closed successfully."),
+                    description: t("ปิดรอบการเช็กชื่อเรียบร้อยแล้ว", "The attendance session was closed successfully."),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -460,7 +463,7 @@ export default function LiveAttendancePage() {
             console.error("Error closing session:", error);
             addToast({
                 title: t("เกิดข้อผิดพลาด", "Error"),
-                description: t("ไม่สามารถปิดรอบเช็คชื่อได้", "Unable to close the attendance session."),
+                description: t("ไม่สามารถปิดรอบเช็กชื่อได้", "Unable to close the attendance session."),
                 color: "danger",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -549,7 +552,7 @@ export default function LiveAttendancePage() {
         : session.status === "closed"
             ? t("PIN ถูกคืนเข้าระบบแล้ว", "PIN has been released.")
             : notStarted
-                ? t("PIN จะออกเมื่อเริ่มรอบเช็คชื่อ", "PIN will be issued when check-in opens.")
+                ? t("PIN จะออกเมื่อเริ่มรอบเช็กชื่อ", "PIN will be issued when check-in opens.")
                 : t("กำลังออกรหัสใหม่...", "Refreshing PIN...");
 
     // Total students count (should be fetched from course enrollment)
@@ -561,7 +564,7 @@ export default function LiveAttendancePage() {
                 <Card className="max-w-md border-2 border-dashed border-default-300 bg-content1 shadow-xl">
                     <CardBody className="text-center py-12">
                         <Icon icon="solar:clipboard-remove-bold-duotone" className="mx-auto mb-4 text-6xl text-default-300" />
-                        <p className="mb-2 text-lg text-default-600">{t("ไม่พบข้อมูลการเช็คชื่อ", "Attendance session not found")}</p>
+                        <p className="mb-2 text-lg text-default-600">{t("ไม่พบข้อมูลการเช็กชื่อ", "Attendance session not found")}</p>
                         <p className="mb-6 text-sm text-default-400">{t("กรุณาตรวจสอบลิงก์อีกครั้ง", "Please check the link and try again.")}</p>
                         <Button
                             className="w-full bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg"
@@ -613,7 +616,7 @@ export default function LiveAttendancePage() {
                                     onPress={handleCloseSession}
                                     isLoading={isClosing}
                                 >
-                                    {t("ปิดรับการเช็คชื่อ", "Close check-in")}
+                                    {t("ปิดรับการเช็กชื่อ", "Close check-in")}
                                 </Button>
                             )}
 
@@ -641,7 +644,7 @@ export default function LiveAttendancePage() {
                         <CardHeader className="pb-2">
                             <div className="flex items-center gap-2">
                                 <Icon icon="solar:key-minimalistic-square-2-linear" className="text-xl text-blue-500" />
-                                <h3 className="text-lg font-semibold text-default-700">{t("รหัสและช่องทางการเช็คชื่อ", "PIN and check-in access")}</h3>
+                                <h3 className="text-lg font-semibold text-default-700">{t("รหัสและช่องทางการเช็กชื่อ", "PIN and check-in access")}</h3>
                             </div>
                         </CardHeader>
                         <CardBody className="text-center pt-2">
@@ -735,7 +738,7 @@ export default function LiveAttendancePage() {
                         <CardHeader className="pb-2">
                             <div className="flex items-center gap-2">
                                 <Icon icon="solar:chart-2-linear" className="text-xl text-blue-500" />
-                                <h3 className="text-lg font-semibold text-default-700">{t("สถิติภาพรวมการเช็คชื่อ", "Attendance overview")}</h3>
+                                <h3 className="text-lg font-semibold text-default-700">{t("สถิติภาพรวมการเช็กชื่อ", "Attendance overview")}</h3>
                             </div>
                         </CardHeader>
                         <CardBody>
@@ -751,7 +754,7 @@ export default function LiveAttendancePage() {
                                         <p className="text-xs text-amber-600 dark:text-amber-400">
                                             {isEnglish
                                                 ? `Check-ins after ${lateThresholdDisplay} are marked as "Late"`
-                                                : `เช็คชื่อหลัง ${lateThresholdDisplay} น. จะถือว่า "สาย"`}
+                                                : `เช็กชื่อหลัง ${lateThresholdDisplay} น. จะถือว่า "สาย"`}
                                         </p>
                                     </div>
                                 </div>
@@ -764,7 +767,7 @@ export default function LiveAttendancePage() {
                                         <div className="p-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
                                             <Icon icon="solar:users-group-rounded-bold" className="text-lg text-blue-500 dark:text-blue-400" />
                                         </div>
-                                        <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">{t("เช็คชื่อแล้ว", "Checked in")}</p>
+                                        <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">{t("เช็กชื่อแล้ว", "Checked in")}</p>
                                     </div>
                                     <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.checkedIn}</p>
                                 </div>
@@ -821,7 +824,7 @@ export default function LiveAttendancePage() {
                         <CardHeader className="flex flex-col items-start justify-between gap-3 border-b border-divider bg-content2 p-4 sm:flex-row sm:items-center">
                             <h2 className="flex items-center gap-2 text-lg font-bold text-foreground">
                                 <Icon icon="solar:checklist-minimalistic-linear" className="text-xl text-blue-600" />
-                                {t("รายชื่อผู้เช็คชื่อ", "Checked-in students")}
+                                {t("รายชื่อผู้เช็กชื่อ", "Checked-in students")}
                                 <Chip size="sm" variant="flat" color="primary">{formatStudentCount(stats.checkedIn)}</Chip>
                             </h2>
                             <Input
@@ -853,7 +856,7 @@ export default function LiveAttendancePage() {
                                         {[
                                             <TableColumn key="status">{t("สถานะ", "Status")}</TableColumn>,
                                             <TableColumn key="name">{t("ชื่อนักศึกษา / รหัส", "Student / ID")}</TableColumn>,
-                                            <TableColumn key="time" align="center">{t("เวลาเช็คชื่อ", "Check-in time")}</TableColumn>,
+                                            <TableColumn key="time" align="center">{t("เวลาเช็กชื่อ", "Check-in time")}</TableColumn>,
                                             ...(session.check_location ? [<TableColumn key="distance" align="center">{t("ระยะห่าง", "Distance")}</TableColumn>] : [])
                                         ]}
                                     </TableHeader>
@@ -866,7 +869,7 @@ export default function LiveAttendancePage() {
                                                         className="text-5xl text-default-300"
                                                     />
                                                 </div>
-                                                <p className="font-medium text-default-500">{t("ยังไม่มีนักศึกษาเช็คชื่อ", "No students have checked in yet")}</p>
+                                                <p className="font-medium text-default-500">{t("ยังไม่มีนักศึกษาเช็กชื่อ", "No students have checked in yet")}</p>
                                                 <p className="mt-1 text-sm text-default-400">
                                                     {t("รอนักศึกษาสแกน QR Code หรือกรอก PIN", "Wait for students to scan the QR code or enter the PIN")}
                                                 </p>
@@ -958,7 +961,7 @@ export default function LiveAttendancePage() {
                                 <h2 className="mb-2 text-3xl font-bold text-foreground">
                                     {session.title}
                                 </h2>
-                                <p className="mb-6 text-default-500">{t("สแกน QR Code เพื่อเช็คชื่อเข้าเรียน", "Scan the QR code to check in")}</p>
+                                <p className="mb-6 text-default-500">{t("สแกน QR Code เพื่อเช็กชื่อเข้าเรียน", "Scan the QR code to check in")}</p>
                                 
                                 {/* QR Code - optimized for scanning */}
                                 <div className="rounded-3xl border-4 border-default-200 bg-white p-2 shadow-xl">
@@ -1000,7 +1003,7 @@ export default function LiveAttendancePage() {
                                 {session.late_threshold_minutes > 0 && (
                                     <div className="mt-6 flex items-center gap-2 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-4 py-2 rounded-lg">
                                         <Icon icon="solar:clock-circle-bold" className="text-xl" />
-                                        <span className="text-sm">{isEnglish ? `Check-ins after ${session.late_threshold_minutes} minutes are marked as late` : `เช็คชื่อหลัง ${session.late_threshold_minutes} นาที ถือว่าสาย`}</span>
+                                        <span className="text-sm">{isEnglish ? `Check-ins after ${session.late_threshold_minutes} minutes are marked as late` : `เช็กชื่อหลัง ${session.late_threshold_minutes} นาที ถือว่าสาย`}</span>
                                     </div>
                                 )}
 
@@ -1021,13 +1024,41 @@ export default function LiveAttendancePage() {
 
 
 
+            {/* Campus Wi-Fi / device reminder */}
+            <Modal
+                isOpen={showNetworkReminder && !!session && session.session_type !== "online"}
+                onClose={() => setShowNetworkReminder(false)}
+            >
+                <ModalContent>
+                    <ModalHeader>
+                        <div className="flex items-center gap-2">
+                            <Icon icon="solar:wi-fi-router-bold-duotone" className="text-xl text-amber-500" />
+                            {t("ข้อควรทราบก่อนเช็กชื่อ", "Before students check in")}
+                        </div>
+                    </ModalHeader>
+                    <ModalBody className="py-4">
+                        <p className="text-sm text-default-600">
+                            {t(
+                                "นักศึกษาต้องเชื่อมต่อ Wi-Fi ของมหาวิทยาลัยขอนแก่น (WiFi-KKU) และเช็กชื่อผ่านมือถือหรือแท็บเล็ตเท่านั้น ทั้งนี้ คอมพิวเตอร์ โน้ตบุ๊ก หรือเครือข่ายนอกมหาวิทยาลัยจะไม่สามารถเช็กชื่อได้",
+                                "Students must be connected to KKU campus Wi-Fi (WiFi-KKU) and check in using a mobile phone or tablet only — desktop/laptop or off-campus networks will be blocked."
+                            )}
+                        </p>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button color="primary" onPress={() => setShowNetworkReminder(false)}>
+                            {t("เข้าใจแล้ว", "Got it")}
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
             {/* Status Update Modal */}
             <Modal isOpen={isStatusModalOpen} onClose={() => setIsStatusModalOpen(false)}>
                 <ModalContent>
                     <ModalHeader>
                         <div className="flex items-center gap-2">
                             <Icon icon="solar:pen-new-square-linear" className="text-xl text-blue-500" />
-                            {t("เปลี่ยนสถานะการเช็คชื่อ", "Change attendance status")}
+                            {t("เปลี่ยนสถานะการเช็กชื่อ", "Change attendance status")}
                         </div>
                     </ModalHeader>
                     <ModalBody className="py-4">

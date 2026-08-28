@@ -439,10 +439,10 @@ const ACTION_LABELS: Record<string, string> = {
   delete_assignment: "ลบงานในชั้นเรียน",
 
   // Attendance
-  "attendance.session.created": "สร้างรอบเช็คชื่อ",
-  "attendance.record.updated": "แก้ไขสถานะการเช็คชื่อ",
-  activate_attendance_session: "เปิดรอบเช็คชื่อ",
-  close_attendance_session: "ปิดรอบเช็คชื่อ",
+  "attendance.session.created": "สร้างรอบเช็กชื่อ",
+  "attendance.record.updated": "แก้ไขสถานะการเช็กชื่อ",
+  activate_attendance_session: "เปิดรอบเช็กชื่อ",
+  close_attendance_session: "ปิดรอบเช็กชื่อ",
 
   // Queue
   "queue.session.opened": "เปิดรอบจองคิว",

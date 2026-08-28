@@ -2724,7 +2724,7 @@ export default function ScoreModal({
                                                                 <div>
                                                                     <p className="text-sm font-semibold text-red-800">{t("ไม่สามารถลงคะแนนได้", "Scoring unavailable")}</p>
                                                                     <p className="text-xs text-red-700 mt-1">
-                                                                        {t("นักศึกษาคนนี้ขาดเรียนในรอบเช็คชื่อที่เชื่อมกับงานนี้", "This student was absent in the attendance session linked to this assignment.")}
+                                                                        {t("นักศึกษาคนนี้ขาดเรียนในรอบเช็กชื่อที่เชื่อมกับงานนี้", "This student was absent in the attendance session linked to this assignment.")}
                                                                     </p>
                                                                 </div>
                                                             </div>
@@ -3339,7 +3339,7 @@ export default function ScoreModal({
                                                                             {isGroupPartiallyScored && groupStatus && (
                                                                                 <p className="text-xs text-orange-700 mt-0.5">
                                                                                     {t(
-                                                                                        `ลงคะแนนแล้ว ${groupStatus.scoredMembers.length}/${groupStatus.eligibleCount} คน — จะบันทึกให้อีก ${groupStatus.unscoredMemberNames.length} คนที่ยังไม่ได้ลง`,
+                                                                                        `ลงคะแนนแล้ว ${groupStatus.scoredMembers.length}/${groupStatus.eligibleCount} คน จะบันทึกให้อีก ${groupStatus.unscoredMemberNames.length} คนที่ยังไม่ได้ลง`,
                                                                                         `Already scored for ${groupStatus.scoredMembers.length}/${groupStatus.eligibleCount} — new score will only apply to the remaining ${groupStatus.unscoredMemberNames.length}`,
                                                                                     )}
                                                                                 </p>

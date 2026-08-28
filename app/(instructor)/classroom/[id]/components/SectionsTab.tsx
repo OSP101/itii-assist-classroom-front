@@ -1129,7 +1129,7 @@ export default function SectionsTab({
                             <div className="rounded-xl border border-default-200 bg-content2/60 p-4 text-sm text-default-600">
                                 {isEnglish
                                     ? "Choose a new section. The student's attendance and scores stay in place because only the active section membership changes."
-                                    : "เลือกกลุ่มใหม่ ระบบจะย้ายเฉพาะสมาชิกที่ใช้งานอยู่ โดยไม่แตะข้อมูลเช็คชื่อหรือคะแนนย้อนหลัง"}
+                                    : "เลือกกลุ่มใหม่ ระบบจะย้ายเฉพาะสมาชิกที่ใช้งานอยู่ โดยไม่แตะข้อมูลเช็กชื่อหรือคะแนนย้อนหลัง"}
                             </div>
                             <Select
                                 label={isEnglish ? "Target section" : "กลุ่มเป้าหมาย"}

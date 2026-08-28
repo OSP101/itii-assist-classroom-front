@@ -8,10 +8,10 @@ import { authService } from "@/services/auth.service";
 import { adminSettingsService, type StudentProgram } from "@/services/admin-settings.service";
 
 function getInitials(name: string | undefined | null): string {
-  if (!name) return "น";
+  if (!name) return "นศ";
   const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
+  if (parts.length === 1) return parts[0].slice(0, 2);
+  return parts[0][0] + parts[1][0];
 }
 
 export default function StudentProfilePage() {
@@ -66,19 +66,6 @@ export default function StudentProfilePage() {
     };
   }, []);
 
-  const profileSubtitle = useMemo(() => {
-    if (!programValue) {
-      return "นักศึกษา";
-    }
-
-    const normalized = programValue.toLowerCase();
-    const definition = programs.find((program) =>
-      program.short_name.toLowerCase() === normalized || program.full_name.toLowerCase() === normalized,
-    );
-
-    return definition?.full_name || programValue;
-  }, [programValue, programs]);
-
   const programDisplay = useMemo(() => {
     if (!programValue) return "-";
 
@@ -90,91 +77,106 @@ export default function StudentProfilePage() {
     return definition?.full_name || programValue;
   }, [programValue, programs]);
 
-  const infoRows = [
-    { icon: "solar:letter-bold-duotone", label: "อีเมล", value: user?.email || "-", copyable: false },
-    { icon: "solar:user-id-bold-duotone", label: "รหัสนักศึกษา", value: user?.username || "-", copyable: true },
-    { icon: "solar:shield-user-bold-duotone", label: "สาขา", value: programDisplay, copyable: false },
-  ];
-
-  const menuItems = [
-    { icon: "solar:shield-check-bold-duotone", label: "สิทธิ์เครื่อง", desc: "กล้อง · ตำแหน่ง · แผนที่", href: "/student/device-check" },
-    { icon: "solar:question-circle-bold-duotone", label: "ช่วยเหลือ", desc: "คู่มือและการติดต่อสนับสนุน", href: "/support" },
-  ];
+  const profileSubtitle = programValue ? programDisplay : "นักศึกษา";
 
   return (
-    <div className="space-y-4 pb-2">
-      <div className="relative overflow-hidden rounded-4xl border border-slate-200/70 bg-slate-900 p-6 shadow-lg shadow-slate-300/40">
-        <span className="pointer-events-none absolute -right-8 -top-8 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
-        <span className="pointer-events-none absolute -bottom-10 -left-6 h-36 w-36 rounded-full bg-white/5 blur-2xl" />
+    <div className="flex flex-col gap-4">
+      <h1 className="cg-page-title">บัญชี</h1>
 
-        <div className="relative flex flex-col items-center gap-4 pt-2">
-          <div className="relative">
-            <span className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white/25 text-2xl font-bold text-white ring-4 ring-white/30 backdrop-blur-sm">
-              {initials}
-            </span>
-            <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-400 ring-2 ring-white">
-              <Icon icon="solar:check-circle-bold" className="text-xs text-white" />
-            </span>
-          </div>
-
-          <div className="text-center">
-            <h2 className="text-xl font-bold text-white">{user?.full_name || "ชื่อผู้ใช้"}</h2>
-            <p className="mt-0.5 text-sm text-slate-300">{profileSubtitle} · COCO LABS</p>
+      <div className="cg-list">
+        <div className="flex items-center gap-3.5 p-4">
+          <span
+            className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-full text-[17px] font-medium"
+            style={{ background: "var(--cg-accent-soft)", color: "var(--cg-accent-strong)" }}
+          >
+            {initials}
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-base font-medium leading-snug">{user?.full_name || "นักศึกษา"}</h2>
+            <p className="mt-0.5 truncate text-xs font-light leading-relaxed" style={{ color: "var(--cg-text-2)" }}>
+              {profileSubtitle}
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="divide-y divide-slate-100 overflow-hidden rounded-4xl border border-slate-100 bg-white/90 shadow-sm">
-        {infoRows.map((row) => (
-          <div key={row.label} className="flex items-center gap-4 px-5 py-4">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100">
-              <Icon icon={row.icon} className="text-xl text-slate-700" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{row.label}</p>
-              <p className="mt-0.5 truncate text-sm font-semibold text-slate-900">{row.value}</p>
-            </div>
-            {row.copyable && (
-              <button
-                onClick={handleCopyStudentId}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition active:scale-95 hover:border-slate-300 hover:bg-slate-100 hover:text-slate-700"
-                title="คัดลอกรหัสนักศึกษา"
-              >
-                <Icon icon={copied ? "solar:check-circle-bold" : "solar:copy-bold"} className={`text-base transition ${copied ? "text-emerald-500" : ""}`} />
-              </button>
-            )}
-          </div>
-        ))}
+      <div className="cg-list">
+        <div className="cg-row">
+          <span className="cg-row-ico">
+            <Icon icon="solar:letter-linear" width={17} height={17} />
+          </span>
+          <span className="cg-row-body">
+            <span className="cg-row-sub" style={{ marginTop: 0 }}>อีเมล</span>
+            <span className="cg-row-title break-all">{user?.email || "-"}</span>
+          </span>
+        </div>
+
+        <div className="cg-row">
+          <span className="cg-row-ico">
+            <Icon icon="solar:user-id-linear" width={17} height={17} />
+          </span>
+          <span className="cg-row-body">
+            <span className="cg-row-sub" style={{ marginTop: 0 }}>รหัสนักศึกษา</span>
+            <span className="cg-row-title cg-mono text-sm">{user?.username || "-"}</span>
+          </span>
+          {user?.username && (
+            <button
+              type="button"
+              onClick={() => void handleCopyStudentId()}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px]"
+              style={{ background: "var(--cg-fill)", color: copied ? "var(--cg-success)" : "var(--cg-text-2)" }}
+              aria-label="คัดลอกรหัสนักศึกษา"
+            >
+              <Icon icon={copied ? "solar:check-circle-linear" : "solar:copy-linear"} width={15} height={15} />
+            </button>
+          )}
+        </div>
+
+        <div className="cg-row">
+          <span className="cg-row-ico">
+            <Icon icon="solar:shield-user-linear" width={17} height={17} />
+          </span>
+          <span className="cg-row-body">
+            <span className="cg-row-sub" style={{ marginTop: 0 }}>สาขาวิชา</span>
+            <span className="cg-row-title">{programDisplay}</span>
+          </span>
+        </div>
       </div>
 
-      <div className="divide-y divide-slate-100 overflow-hidden rounded-4xl border border-slate-100 bg-white/90 shadow-sm">
-        {menuItems.map((item) => (
-          <Link
-            key={item.label}
-            href={item.href}
-            className="flex items-center gap-4 px-5 py-4 transition hover:bg-slate-50 active:scale-[0.99]"
-          >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-50">
-              <Icon icon={item.icon} className="text-xl text-slate-600" />
-            </span>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-slate-900">{item.label}</p>
-              <p className="text-xs text-slate-400">{item.desc}</p>
-            </div>
-            <Icon icon="solar:arrow-right-bold" className="text-slate-300" />
-          </Link>
-        ))}
+      <div className="cg-list">
+        <Link href="/student/device-check" className="cg-row">
+          <span className="cg-row-ico">
+            <Icon icon="solar:shield-check-linear" width={17} height={17} />
+          </span>
+          <span className="cg-row-body">
+            <span className="cg-row-title">สิทธิ์เครื่อง</span>
+            <span className="cg-row-sub">กล้อง ตำแหน่ง และการแจ้งเตือน</span>
+          </span>
+          <Icon icon="solar:alt-arrow-right-linear" className="cg-chevron" width={15} height={15} />
+        </Link>
+
+        <Link href="/support" className="cg-row">
+          <span className="cg-row-ico">
+            <Icon icon="solar:question-circle-linear" width={17} height={17} />
+          </span>
+          <span className="cg-row-body">
+            <span className="cg-row-title">ช่วยเหลือ</span>
+            <span className="cg-row-sub">คู่มือและการติดต่อสนับสนุน</span>
+          </span>
+          <Icon icon="solar:alt-arrow-right-linear" className="cg-chevron" width={15} height={15} />
+        </Link>
       </div>
 
-      <button
-        onClick={() => void handleLogout()}
-        className="flex w-full items-center justify-center gap-2 rounded-4xl border border-rose-200 bg-rose-50/80 py-4 text-sm font-bold text-rose-600 transition hover:bg-rose-100 active:scale-[0.99]"
-      >
-        <Icon icon="solar:logout-2-bold-duotone" className="text-lg" />
-        ออกจากระบบ
-      </button>
-
-      <p className="text-center text-[11px] text-slate-400">© 2026 COCO LABS v1.2.90. สงวนลิขสิทธิ์</p>
+      <div className="cg-list">
+        <button
+          type="button"
+          className="cg-row justify-center text-center"
+          style={{ color: "var(--cg-danger)", fontWeight: 500, fontSize: "13.5px" }}
+          onClick={() => void handleLogout()}
+        >
+          ออกจากระบบ
+        </button>
+      </div>
     </div>
   );
 }

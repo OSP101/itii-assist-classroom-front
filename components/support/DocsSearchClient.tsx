@@ -148,7 +148,7 @@ export function DocsSearchClient({ articles, categories }: DocsSearchClientProps
             learningPaths: {
                 student: {
                     title: 'เส้นทางสำหรับนักศึกษา',
-                    description: 'เริ่มจากบัญชีและสิทธิ์ Browser แล้วต่อด้วยส่งงาน เช็คชื่อ เข้าคิว และติดตามคะแนน',
+                    description: 'เริ่มจากบัญชีและสิทธิ์ Browser แล้วต่อด้วยส่งงาน เช็กชื่อ เข้าคิว และติดตามคะแนน',
                 },
                 teacher: {
                     title: 'เส้นทางสำหรับผู้สอนและ TA',

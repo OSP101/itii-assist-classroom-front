@@ -74,8 +74,8 @@
       "chunks": [
         {
           "chunk_id": "std-checkin",
-          "heading": "เช็คชื่อ",
-          "content": "เช็คชื่อผ่าน /check-in/[sessionId], ตรวจชื่อวิชา, กรอก PIN (ถ้ามี), อนุญาต location และตรวจผลสำเร็จ"
+          "heading": "เช็กชื่อ",
+          "content": "เช็กชื่อผ่าน /check-in/[sessionId], ตรวจชื่อวิชา, กรอก PIN (ถ้ามี), อนุญาต location และตรวจผลสำเร็จ"
         },
         {
           "chunk_id": "std-myscore",
@@ -114,7 +114,7 @@
         },
         {
           "chunk_id": "ts-attendance",
-          "heading": "ปัญหาเช็คชื่อ",
+          "heading": "ปัญหาเช็กชื่อ",
           "content": "ตรวจว่า session active, อนุญาต location, ทดลอง browser อื่น และส่งหลักฐานเวลา/ภาพหน้าจอ"
         }
       ]

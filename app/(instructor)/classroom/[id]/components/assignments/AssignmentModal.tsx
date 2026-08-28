@@ -553,8 +553,8 @@ function AssignmentModalComponent({
                                         <Icon icon="solar:clipboard-check-bold" className="text-lg text-blue-600" />
                                     </div>
                                     <div>
-                                        <span className="font-semibold text-default-700">{isEnglish ? "Link attendance sessions" : "ลิงก์กับการเช็คชื่อ"}</span>
-                                        <p className="text-xs text-default-500">{isEnglish ? "You can link multiple attendance sessions." : "สามารถเลือกหลายรอบเช็คชื่อได้"}</p>
+                                        <span className="font-semibold text-default-700">{isEnglish ? "Link attendance sessions" : "ลิงก์กับการเช็กชื่อ"}</span>
+                                        <p className="text-xs text-default-500">{isEnglish ? "You can link multiple attendance sessions." : "สามารถเลือกหลายรอบเช็กชื่อได้"}</p>
                                     </div>
                                 </div>
                                 <Button
@@ -591,7 +591,7 @@ function AssignmentModalComponent({
                                 </div>
                             ) : attendanceSessions.length > 0 ? (
                                 <Select
-                                    placeholder={isEnglish ? "Select attendance sessions to link (multiple allowed)" : "เลือกรอบเช็คชื่อที่ต้องการลิงก์ (เลือกได้หลายรอบ)"}
+                                    placeholder={isEnglish ? "Select attendance sessions to link (multiple allowed)" : "เลือกรอบเช็กชื่อที่ต้องการลิงก์ (เลือกได้หลายรอบ)"}
                                     selectionMode="multiple"
                                     size="md"
                                     selectedKeys={new Set(formData.linked_attendance_session_ids.map(String))}
@@ -625,7 +625,7 @@ function AssignmentModalComponent({
                             ) : (
                                 <div className="rounded-lg bg-content3 p-3 text-center">
                                     <Icon icon="solar:clipboard-list-linear" className="mb-1 text-xl text-default-400" />
-                                    <p className="text-sm text-default-500">{isEnglish ? "No attendance sessions yet" : "ยังไม่มีรอบเช็คชื่อ"}</p>
+                                    <p className="text-sm text-default-500">{isEnglish ? "No attendance sessions yet" : "ยังไม่มีรอบเช็กชื่อ"}</p>
                                 </div>
                             )}
                             
@@ -633,7 +633,7 @@ function AssignmentModalComponent({
                             {formData.linked_attendance_session_ids.length > 1 && (
                                 <div className="mt-4 rounded-lg border border-default-200 bg-content1 p-3">
                                     <label className="mb-3 block text-sm font-medium text-default-600">
-                                        {isEnglish ? "Attendance requirement" : "เงื่อนไขการเช็คชื่อ"}
+                                        {isEnglish ? "Attendance requirement" : "เงื่อนไขการเช็กชื่อ"}
                                     </label>
                                     <div className="grid grid-cols-2 gap-3">
                                         <button
@@ -687,7 +687,7 @@ function AssignmentModalComponent({
                                         <div className="text-sm">
                                             <span className="font-medium">
                                                 {formData.linked_attendance_session_ids.length === 1 
-                                                    ? (isEnglish ? "Students absent from this attendance session cannot receive a score." : "นักศึกษาที่ขาดเรียนในรอบเช็คชื่อนี้ จะไม่สามารถลงคะแนนได้")
+                                                    ? (isEnglish ? "Students absent from this attendance session cannot receive a score." : "นักศึกษาที่ขาดเรียนในรอบเช็กชื่อนี้ จะไม่สามารถลงคะแนนได้")
                                                     : formData.attendance_condition === "or"
                                                         ? (isEnglish
                                                             ? `Students absent from all ${formatCount(formData.linked_attendance_session_ids.length, "linked session", "linked sessions")} cannot receive a score.`

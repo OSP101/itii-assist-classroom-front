@@ -520,7 +520,7 @@ function SettingsTabViewComponent({
                             { label: isEnglish ? "Lab scores" : "คะแนนแลป",        icon: "solar:test-tube-bold",                  color: "bg-blue-100 text-blue-700" },
                             { label: isEnglish ? "Homework scores" : "คะแนนการบ้าน",    icon: "solar:document-text-bold",              color: "bg-indigo-100 text-indigo-700" },
                             { label: isEnglish ? "Group scores" : "คะแนนกลุ่ม",      icon: "solar:users-group-two-rounded-bold",    color: "bg-violet-100 text-violet-700" },
-                            { label: isEnglish ? "Attendance" : "เช็คชื่อ",         icon: "solar:check-square-bold",               color: "bg-emerald-100 text-emerald-700" },
+                            { label: isEnglish ? "Attendance" : "เช็กชื่อ",         icon: "solar:check-square-bold",               color: "bg-emerald-100 text-emerald-700" },
                             { label: isEnglish ? "TA performance" : "การทำงานทีเอ",    icon: "solar:star-bold",                       color: "bg-amber-100 text-amber-700" },
                             { label: isEnglish ? "Exam scores" : "คะแนนสอบ",       icon: "solar:diploma-bold",                    color: "bg-purple-100 text-purple-700" },
                             { label: isEnglish ? "Score summary" : "สรุปคะแนน",       icon: "solar:chart-2-bold",                    color: "bg-rose-100 text-rose-700" },

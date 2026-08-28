@@ -13,7 +13,7 @@ export default function Error({
     <PageErrorState
       error={error}
       reset={reset}
-      title="เกิดข้อผิดพลาดในหน้าเช็คชื่อ"
+      title="เกิดข้อผิดพลาดในหน้าเช็กชื่อ"
     />
   );
 }
