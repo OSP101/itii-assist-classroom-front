@@ -251,6 +251,33 @@ export default function StudentCheckInPage() {
         }
     }, [router, sessionId, t]);
 
+    // Pulls only the rotating-PIN fields and merges them into the session the
+    // same way the "attendance-pin-updated" socket event does. Deliberately
+    // does NOT touch `step` the way fetchSessionInfo does — resyncing the PIN
+    // must never bounce a student who is already at the PIN entry step back to
+    // the location or login step.
+    const refreshPinState = useCallback(async () => {
+        try {
+            const data = await attendanceService.getSessionInfo(sessionId);
+            if (!data) {
+                return;
+            }
+            setSession((prev) => prev
+                ? {
+                    ...prev,
+                    pin_code: data.pin_code ?? prev.pin_code,
+                    pin_rotates_at: data.pin_rotates_at ?? prev.pin_rotates_at,
+                    pin_issued_at: data.pin_issued_at ?? prev.pin_issued_at,
+                    auto_rotate_pin: data.auto_rotate_pin ?? prev.auto_rotate_pin,
+                    pin_mode: data.pin_mode ?? prev.pin_mode,
+                }
+                : prev);
+        } catch (error) {
+            // Non-fatal: the socket event or the next poll attempt recovers.
+            console.error("Failed to refresh attendance PIN state:", error);
+        }
+    }, [sessionId]);
+
     // Google login: a full top-level redirect through the backend OAuth flow
     // (same one /student/login uses), not the Google Identity Services JS
     // widget. GIS's button relies on a popup or FedCM, both of which Google
@@ -448,8 +475,17 @@ export default function StudentCheckInPage() {
 
     const socket = io(socketUrl);
 
+        // Every rotation that happened while the socket was down was missed, so
+        // a reconnect has to pull the current PIN rather than wait for the next
+        // event. The first connect is skipped — fetchSessionInfo just ran.
+        let hasConnectedBefore = false;
+
         socket.on("connect", () => {
             socket.emit("join-attendance", sessionId);
+            if (hasConnectedBefore) {
+                void refreshPinState();
+            }
+            hasConnectedBefore = true;
         });
 
         socket.on("session-closed", () => {
@@ -478,7 +514,7 @@ export default function StudentCheckInPage() {
             socket.emit("leave-attendance", sessionId);
             socket.disconnect();
         };
-    }, [sessionId, t]);
+    }, [refreshPinState, sessionId, t]);
 
     // Fetch session on mount
     useEffect(() => {
@@ -487,6 +523,67 @@ export default function StudentCheckInPage() {
         }
         fetchSessionInfo();
     }, [fetchSessionInfo]);
+
+    const isRotatingPin =
+        session?.status === "active" &&
+        (session.pin_mode === "rotating" || (session.pin_mode == null && !!session.auto_rotate_pin));
+
+    // Fallback resync, mirroring the one the projector page already runs. The
+    // "attendance-pin-updated" socket event is the fast path, but when it never
+    // arrives (socket dropped, proxy killed the upgrade, phone slept through
+    // the rotation) the countdown used to sit at 0s forever showing a PIN that
+    // no longer matches the projector. Polling starts when the window expires
+    // and stops as soon as a fresh pin_rotates_at pushes the countdown back
+    // above zero, or after maxAttempts so a closed/stuck session can't poll
+    // forever.
+    useEffect(() => {
+        if (!isRotatingPin || pinCountdown === null || pinCountdown > 0) {
+            return;
+        }
+
+        let disposed = false;
+        let attempts = 0;
+        const maxAttempts = 12;
+
+        const syncPin = () => {
+            if (!disposed) {
+                void refreshPinState();
+            }
+        };
+
+        syncPin();
+        const interval = window.setInterval(() => {
+            attempts += 1;
+            if (attempts >= maxAttempts) {
+                window.clearInterval(interval);
+                return;
+            }
+            syncPin();
+        }, 1500);
+
+        return () => {
+            disposed = true;
+            window.clearInterval(interval);
+        };
+    }, [isRotatingPin, pinCountdown, refreshPinState]);
+
+    // A phone that was locked or backgrounded misses every socket event while
+    // it sleeps, so catch up on the current PIN the moment the page is looked
+    // at again.
+    useEffect(() => {
+        if (!isRotatingPin) {
+            return;
+        }
+
+        const handleVisibility = () => {
+            if (document.visibilityState === "visible") {
+                void refreshPinState();
+            }
+        };
+
+        document.addEventListener("visibilitychange", handleVisibility);
+        return () => document.removeEventListener("visibilitychange", handleVisibility);
+    }, [isRotatingPin, refreshPinState]);
 
     // Status display
     const statusDisplay: Record<string, { label: string; color: string; icon: string }> = {

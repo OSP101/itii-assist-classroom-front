@@ -132,7 +132,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     <div data-theme-scope="student" className="cg-scope app-mobile-screen">
       <div className="mx-auto flex h-full w-full max-w-2xl flex-col overflow-hidden app-safe-x">
         <GlobalAnnouncementLayer />
-        <main className="app-mobile-scroll cg-scroll flex-1 px-4">{children}</main>
+        <main className="app-mobile-scroll cg-scroll cg-gutter flex-1">{children}</main>
       </div>
 
       <nav className="cg-tabbar">

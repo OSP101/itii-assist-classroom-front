@@ -44,8 +44,33 @@
 	--cg-r-lg: 20px;
 	--cg-r-md: 16px;
 
+	/* The single horizontal gutter for every screen in this zone. The pieces
+	   that deliberately reach the screen edge (cover photo, task header, action
+	   bar) cancel it with a negative margin derived from this same token, so the
+	   gutter can be retuned here without leaving them misaligned. */
+	--cg-gutter: 20px;
+
 	background: var(--cg-bg);
 	color: var(--cg-text);
+}
+
+/* Phones wider than a compact iPhone can carry a roomier gutter without
+   squeezing the content column. */
+@media (min-width: 420px) {
+	.cg-scope {
+		--cg-gutter: 24px;
+	}
+}
+
+/* Applied to the scroll container of every screen in this zone, in place of a
+   hardcoded Tailwind px-* value. */
+.cg-gutter {
+	padding-inline: var(--cg-gutter);
+}
+
+/* Cancels the gutter so an element spans the full screen width. */
+.cg-bleed {
+	margin-inline: calc(var(--cg-gutter) * -1);
 }
 
 :is(html.dark, html[data-theme="dark"]) .cg-scope {
@@ -97,8 +122,8 @@
    that float over a cover photo. Content surfaces stay opaque. */
 .cg-tabbar {
 	position: fixed;
-	left: max(13px, var(--app-safe-left));
-	right: max(13px, var(--app-safe-right));
+	left: max(var(--cg-gutter), var(--app-safe-left));
+	right: max(var(--cg-gutter), var(--app-safe-right));
 	bottom: calc(11px + var(--app-safe-bottom));
 	z-index: 30;
 	display: grid;
@@ -327,7 +352,7 @@ button.cg-row:active {
 	position: relative;
 	height: 206px;
 	overflow: hidden;
-	margin: 0 -16px;
+	margin: 0 calc(var(--cg-gutter) * -1);
 }
 
 .cg-cover-scrim {
@@ -363,8 +388,8 @@ button.cg-row:active {
 
 .cg-cover-text {
 	position: absolute;
-	left: 18px;
-	right: 18px;
+	left: var(--cg-gutter);
+	right: var(--cg-gutter);
 	bottom: 16px;
 	z-index: 2;
 }
@@ -564,8 +589,8 @@ button.cg-row:active {
 	display: flex;
 	align-items: center;
 	gap: 10px;
-	margin: 0 -16px;
-	padding: 12px 16px;
+	margin: 0 calc(var(--cg-gutter) * -1);
+	padding: 12px var(--cg-gutter);
 	padding-top: calc(12px + var(--app-safe-top));
 	background: var(--cg-glass-bg);
 	border-bottom: 1px solid var(--cg-line);
@@ -628,8 +653,8 @@ button.cg-row:active {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
-	margin: auto -16px 0;
-	padding: 26px 16px calc(12px + var(--app-safe-bottom));
+	margin: auto calc(var(--cg-gutter) * -1) 0;
+	padding: 26px var(--cg-gutter) calc(12px + var(--app-safe-bottom));
 	background: linear-gradient(to bottom, transparent, var(--cg-bg) 42%);
 }
 

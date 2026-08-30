@@ -12,7 +12,6 @@ type PinSessionLike = {
 type PinPresentationState = {
     isPending: boolean;
     isStatic: boolean;
-    progressPercent: number | null;
     secondsLeft: number | null;
     totalSeconds: number | null;
 };
@@ -20,41 +19,39 @@ type PinPresentationState = {
 const initialState: PinPresentationState = {
     isPending: false,
     isStatic: false,
-    progressPercent: null,
     secondsLeft: null,
     totalSeconds: null,
 };
+
+function sameState(a: PinPresentationState, b: PinPresentationState): boolean {
+    return (
+        a.isPending === b.isPending &&
+        a.isStatic === b.isStatic &&
+        a.secondsLeft === b.secondsLeft &&
+        a.totalSeconds === b.totalSeconds
+    );
+}
 
 export function useAttendancePinPresentation(session: PinSessionLike | null | undefined): PinPresentationState {
     const [state, setState] = useState<PinPresentationState>(initialState);
 
     useEffect(() => {
         if (!session || session.status !== "active") {
-            setState(initialState);
+            setState((prev) => (sameState(prev, initialState) ? prev : initialState));
             return;
         }
 
         if (!session.pin_code) {
-            setState({
-                isPending: true,
-                isStatic: false,
-                progressPercent: null,
-                secondsLeft: null,
-                totalSeconds: null,
-            });
+            const pending = { ...initialState, isPending: true };
+            setState((prev) => (sameState(prev, pending) ? prev : pending));
             return;
         }
 
         const isStaticMode = session.pin_mode === "static" || !session.auto_rotate_pin;
 
         if (isStaticMode || !session.pin_rotates_at) {
-            setState({
-                isPending: false,
-                isStatic: true,
-                progressPercent: null,
-                secondsLeft: null,
-                totalSeconds: null,
-            });
+            const staticState = { ...initialState, isStatic: true };
+            setState((prev) => (sameState(prev, staticState) ? prev : staticState));
             return;
         }
 
@@ -62,40 +59,46 @@ export function useAttendancePinPresentation(session: PinSessionLike | null | un
         const rotatesAtMs = new Date(session.pin_rotates_at).getTime();
 
         if (!Number.isFinite(issuedAtMs) || !Number.isFinite(rotatesAtMs) || rotatesAtMs <= issuedAtMs) {
-            setState({
-                isPending: false,
-                isStatic: false,
-                progressPercent: 0,
-                secondsLeft: 0,
-                totalSeconds: null,
-            });
+            const expired = { ...initialState, secondsLeft: 0 };
+            setState((prev) => (sameState(prev, expired) ? prev : expired));
             return;
         }
 
-        let frameId = 0;
+        let timeoutId = 0;
         const totalSeconds = Math.max(1, Math.ceil((rotatesAtMs - issuedAtMs) / 1000));
 
+        // Only whole seconds are ever rendered, so the timer wakes on second
+        // boundaries instead of every animation frame. The rAF loop this
+        // replaces re-rendered the whole consuming page ~60 times a second for
+        // a number that changes once a second, which on a phone starved the
+        // touch handling of the buttons and PIN inputs sitting under it (taps
+        // needed a second attempt to register) and thrashed every effect that
+        // depends on the countdown.
         const tick = () => {
-            const nowMs = Date.now();
-            const remainingMs = Math.max(0, rotatesAtMs - nowMs);
-            const remainingSeconds = Math.ceil(remainingMs / 1000);
-            const progressPercent = Math.max(0, Math.min(100, (remainingMs / (rotatesAtMs - issuedAtMs)) * 100));
-
-            setState({
+            const remainingMs = Math.max(0, rotatesAtMs - Date.now());
+            const next: PinPresentationState = {
                 isPending: false,
                 isStatic: false,
-                progressPercent,
-                secondsLeft: remainingSeconds,
+                secondsLeft: Math.ceil(remainingMs / 1000),
                 totalSeconds,
-            });
+            };
 
-            if (remainingMs > 0) {
-                frameId = window.requestAnimationFrame(tick);
+            setState((prev) => (sameState(prev, next) ? prev : next));
+
+            if (remainingMs <= 0) {
+                return;
             }
+
+            // `remainingMs % 1000` is exactly how long until the ceil() above
+            // drops to the next whole second (0 means we just landed on a
+            // boundary, so wait a full second); the small pad absorbs timer
+            // jitter so a tick never lands a hair early and repeats itself.
+            timeoutId = window.setTimeout(tick, (remainingMs % 1000 || 1000) + 20);
         };
 
         tick();
-        return () => window.cancelAnimationFrame(frameId);
+
+        return () => window.clearTimeout(timeoutId);
     }, [
         session?.auto_rotate_pin,
         session?.pin_mode,

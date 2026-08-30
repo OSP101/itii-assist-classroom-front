@@ -17,7 +17,7 @@ export default function CheckInLayout({
 }) {
   return (
     <div data-theme-scope="student" className="cg-scope app-mobile-screen">
-      <div className="app-mobile-scroll mx-auto w-full max-w-2xl px-4 app-safe-x">{children}</div>
+      <div className="app-mobile-scroll cg-gutter mx-auto w-full max-w-2xl app-safe-x">{children}</div>
     </div>
   );
 }
