@@ -3,6 +3,7 @@
  */
 
 import api from './api.service';
+import type { ClientDeviceSignals } from '@/lib/device-signals';
 
 interface AttendanceErrorPayload {
     success?: boolean;
@@ -151,6 +152,34 @@ export interface StudentCheckInData {
     student_id?: number;
     location_lat?: number;
     location_lng?: number;
+    /** Best-effort physical-device hint for the audit log — never gates check-in. See lib/device-signals.ts. */
+    client_signals?: ClientDeviceSignals;
+}
+
+/** One anti-spoofing flag raised during a session. A hint for review, not proof. */
+export interface AttendanceSecurityFlag {
+    id: number;
+    at: string;
+    /** "device_flip" = blocked for device then passed; "client_signal_mismatch" = UA disagrees with what the browser reports. */
+    kind: "device_flip" | "client_signal_mismatch";
+    severity: string;
+    student_id?: number;
+    student_code?: string;
+    student_name?: string;
+    ip_address?: string;
+    device_type?: string;
+    browser?: string;
+    os?: string;
+    reasons?: string[];
+    /** "same_student" or "ip_only" for a device flip. */
+    confidence?: string;
+}
+
+export interface AttendanceSecurityFlagsResult {
+    session_id: number;
+    flags: AttendanceSecurityFlag[];
+    /** true when more flags exist than the endpoint returned. */
+    truncated: boolean;
 }
 
 export interface AttendanceSessionStartResult {
@@ -418,6 +447,18 @@ const attendanceService = {
         }
         const response = await api.get<AttendanceRecord[]>(url);
         return response.data || [];
+    },
+
+    /**
+     * Anti-spoofing flags raised during a session, for the instructor or TA
+     * running the class. Every entry is a hint, never proof: see
+     * lib/device-signals.ts for what these signals can and cannot detect.
+     */
+    async getSecurityFlags(sessionId: number): Promise<AttendanceSecurityFlagsResult> {
+        const response = await api.get<AttendanceSecurityFlagsResult>(
+            `/attendance/${sessionId}/security-flags`
+        );
+        return response.data || { session_id: sessionId, flags: [], truncated: false };
     },
 
     /**

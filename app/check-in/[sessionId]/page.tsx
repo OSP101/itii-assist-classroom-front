@@ -16,6 +16,7 @@ import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { useI18n } from "@/hooks/useI18n";
 import { useAttendancePinPresentation } from "@/hooks/useAttendancePinPresentation";
 import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
+import { collectClientDeviceSignals, type ClientDeviceSignals } from "@/lib/device-signals";
 
 // Check-in step type
 type Step = "loading" | "redirecting" | "session-info" | "google-login" | "location" | "pin-entry" | "success" | "error" | "already-checked-in" | "blocked";
@@ -162,6 +163,22 @@ export default function StudentCheckInPage() {
     // Socket ref
     const socketRef = useRef<Socket | null>(null);
     const checkInRequestIdRef = useRef("");
+
+    // Kept in a ref (not state) so re-collecting never triggers a re-render;
+    // started fresh after every attempt (see handleCheckIn) rather than once
+    // for the whole page, so a retry reports the device state at the time of
+    // that retry instead of a stale snapshot from page load.
+    const clientSignalsRef = useRef<Promise<ClientDeviceSignals> | null>(null);
+    const startCollectingClientSignals = useCallback(() => {
+        clientSignalsRef.current = collectClientDeviceSignals();
+    }, []);
+
+    // Kicked off on mount (not at submit time) so the ~400ms motion-event
+    // wait (see lib/device-signals.ts) has usually already resolved by the
+    // time the student finishes entering the PIN on their first attempt.
+    useEffect(() => {
+        startCollectingClientSignals();
+    }, [startCollectingClientSignals]);
 
     const { secondsLeft, totalSeconds } = useAttendancePinPresentation(session);
     const pinCountdown = secondsLeft;
@@ -337,6 +354,10 @@ export default function StudentCheckInPage() {
         setSubmitElapsedSeconds(0);
         setIsSubmitting(true);
         try {
+            const clientSignals = await (clientSignalsRef.current ?? (clientSignalsRef.current = collectClientDeviceSignals()));
+            // Start the next snapshot immediately so a retry after a failed
+            // attempt reports a fresh reading instead of reusing this one.
+            startCollectingClientSignals();
             const result = await attendanceService.studentCheckIn(sessionId, {
                 pin_code: pinCode,
                 google_email: googleUser?.email,
@@ -346,6 +367,7 @@ export default function StudentCheckInPage() {
                 student_id: studentInfo?.id,
                 location_lat: location?.lat,
                 location_lng: location?.lng,
+                client_signals: clientSignals,
             });
 
             if (result) {
@@ -818,7 +840,9 @@ export default function StudentCheckInPage() {
                                             className="cg-badge cg-mono"
                                             style={pinCountdown <= 10
                                                 ? { background: "var(--cg-danger-soft)", color: "var(--cg-danger)" }
-                                                : { background: "var(--cg-warning-soft)", color: "var(--cg-warning)" }}
+                                                : pinCountdown <= 20
+                                                ? { background: "var(--cg-warning-soft)", color: "var(--cg-warning)" }
+                                                : { background: "var(--cg-info-soft)", color: "var(--cg-info)" }}
                                         >
                                             {pinCountdown}s
                                         </span>

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { addToast } from "@heroui/toast";
+import { InputOtp } from "@heroui/input-otp";
 
 import jsQR from "jsqr";
 import { parseStudentQrPayload, type StudentQrParseResult } from "@/lib/qr-deeplink";
@@ -318,9 +319,8 @@ export default function StudentScanPage() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const frameRef = useRef<number | null>(null);
-  const [pinDigits, setPinDigits] = useState<string[]>(() => Array(6).fill(""));
+  const [pinCode, setPinCode] = useState("");
   const [linkValue, setLinkValue] = useState("");
-  const pinInputsRef = useRef<Array<HTMLInputElement | null>>([]);
   const [cameraReady, setCameraReady] = useState(false);
   const [isStartingCamera, setIsStartingCamera] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -551,46 +551,7 @@ export default function StudentScanPage() {
     };
   }, [stopCamera]);
 
-  const pinCode = pinDigits.join("");
   const isPinComplete = pinCode.length === 6;
-
-  const focusPin = (index: number) => {
-    pinInputsRef.current[index]?.focus();
-  };
-
-  const handlePinChange = (index: number, raw: string) => {
-    const digits = raw.replace(/[^0-9]/g, "");
-    if (!digits) {
-      setPinDigits((prev) => {
-        const next = [...prev];
-        next[index] = "";
-        return next;
-      });
-      return;
-    }
-
-    // Pasting the whole PIN into any box should fill the row, not just one cell.
-    setPinDigits((prev) => {
-      const next = [...prev];
-      for (let i = 0; i < digits.length && index + i < 6; i++) {
-        next[index + i] = digits[i];
-      }
-      return next;
-    });
-    focusPin(Math.min(index + digits.length, 5));
-  };
-
-  const handlePinKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Backspace" && !pinDigits[index] && index > 0) {
-      event.preventDefault();
-      focusPin(index - 1);
-      setPinDigits((prev) => {
-        const next = [...prev];
-        next[index - 1] = "";
-        return next;
-      });
-    }
-  };
 
   const submitPin = () => {
     if (!isPinComplete || isResolvingPin) return;
@@ -679,21 +640,24 @@ export default function StudentScanPage() {
           ใช้เมื่อกล้องเปิดไม่ได้ โดยอาจารย์จะแจ้งรหัสที่หน้าห้องหรือบนจอฉาย
         </p>
 
-        <div className="cg-pin-wrap">
-          {pinDigits.map((digit, index) => (
-            <input
-              key={index}
-              ref={(el) => { pinInputsRef.current[index] = el; }}
-              className="cg-pin"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              value={digit}
-              aria-label={`PIN หลักที่ ${index + 1}`}
-              onChange={(e) => handlePinChange(index, e.target.value)}
-              onKeyDown={(e) => handlePinKeyDown(index, e)}
-            />
-          ))}
+        <div className="flex justify-center">
+          <InputOtp
+            length={6}
+            value={pinCode}
+            onValueChange={setPinCode}
+            size="lg"
+            variant="bordered"
+            color="primary"
+            onComplete={submitPin}
+            // The segments are decorative; the real field is a single hidden
+            // input, so without this it reaches a screen reader unnamed. The
+            // per-digit inputs this replaced each carried their own label.
+            aria-label="รหัสเช็กชื่อ 6 หลัก"
+            // Stated rather than inherited: the PIN is numeric, and this is
+            // what drives the numeric keypad on mobile.
+            allowedKeys="^[0-9]*$"
+            classNames={{ segment: "w-11 h-14 text-xl font-medium rounded-2xl", segmentWrapper: "gap-1.5" }}
+          />
         </div>
 
         <button

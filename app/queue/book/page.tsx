@@ -187,6 +187,21 @@ const clearBookingState = () => {
     localStorage.removeItem(STORAGE_KEY);
 };
 
+/**
+ * Renders "who this result belongs to" for a screen a stranger may be looking
+ * at: the last four digits of the student id and the given name only.
+ *
+ * Enough for the owner to recognise themselves at a glance, not enough for the
+ * next person at the desk to walk away with someone's full student id and full
+ * name. Short or missing values degrade to whatever is safe to show.
+ */
+function maskStudentIdentity(studentCode?: string, fullName?: string): string {
+    const code = (studentCode || "").trim();
+    const masked = code.length > 4 ? `••••${code.slice(-4)}` : code;
+    const givenName = (fullName || "").trim().split(/\s+/)[0] || "";
+    return [masked, givenName].filter(Boolean).join(" ");
+}
+
 function BookQueueContent() {
     const searchParams = useSearchParams();
     const initialPin = searchParams.get("pin") || "";
@@ -1547,6 +1562,19 @@ function BookQueueContent() {
                     </div>
                 )}
 
+                {/* completed: always confirm the request is done, even when there's no
+                    score to show — a "help" booking has nothing to grade, so
+                    score_details is legitimately absent for it. */}
+                {isCompleted && !bookingStatus?.score_details && (
+                    <div className="cg-note" style={{ background: "var(--cg-success-soft)" }}>
+                        <Icon icon="solar:check-circle-linear" width={16} height={16} className="mt-0.5 shrink-0" style={{ color: "var(--cg-success)" }} />
+                        <p className="m-0">
+                            {status.booking_type === "help" ? "ผู้ตรวจดำเนินการให้ความช่วยเหลือเรียบร้อยแล้ว" : "ตรวจงานเสร็จสิ้นแล้ว"}
+                            {bookingStatus?.assignedWorker ? ` โดย ${bookingStatus.assignedWorker.full_name}` : ""}
+                        </p>
+                    </div>
+                )}
+
                 {/* completed: the score is what the student came back for */}
                 {isCompleted && bookingStatus?.score_details && (
                     <section className="flex flex-col gap-2">
@@ -1600,6 +1628,23 @@ function BookQueueContent() {
                             </div>
                         </div>
                     </section>
+                )}
+
+                {/* On the shared desk-scan flow (fromScan) this screen can be seen on a
+                    classroom terminal other students also use — show whose result this
+                    is so a student can catch a mismatch before trusting it.
+
+                    Masked on purpose. The whole reason this line exists is that
+                    someone else is looking at the screen, so printing a full
+                    student id and full name here would hand the next person in
+                    the queue exactly the identifiers they should not have. The
+                    owner recognises their own last four digits and given name
+                    instantly; a stranger learns nothing useful. */}
+                {isCompleted && bookingStatus?.student && (
+                    <p className="text-center text-[11px] font-light" style={{ color: "var(--cg-text-3)" }}>
+                        <Icon icon="solar:user-id-linear" width={12} height={12} className="mr-1 inline" />
+                        {maskStudentIdentity(bookingStatus.student.student_id, bookingStatus.student.full_name)}
+                    </p>
                 )}
 
                 {!isCompleted && !isEnded && (

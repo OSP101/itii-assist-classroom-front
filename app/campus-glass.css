@@ -670,31 +670,6 @@ button.cg-row:active {
 	font-weight: 300;
 }
 
-.cg-pin-wrap {
-	display: flex;
-	gap: 8px;
-	justify-content: center;
-}
-
-.cg-pin {
-	width: 15%;
-	aspect-ratio: 1;
-	text-align: center;
-	font-family: var(--font-mono), monospace;
-	font-size: 19px;
-	font-weight: 500;
-	border-radius: 13px;
-	border: 1.5px solid var(--cg-line);
-	background: var(--cg-fill);
-	color: var(--cg-text);
-	outline: none;
-}
-
-.cg-pin:focus {
-	border-color: var(--cg-accent);
-	background: var(--cg-surface);
-}
-
 /* ---------- guard checklist (blocked check-in) ---------- */
 
 .cg-check-block {

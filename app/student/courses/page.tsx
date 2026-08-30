@@ -26,10 +26,31 @@ export default function StudentCoursesPage() {
       setIsLoading(true);
       setError(null);
       try {
-        const res = await courseService.getMyCourses({ status: "active", limit: 50, sortBy: "created_at", sortOrder: "DESC" });
-        if (!active) return;
-        if (!res.success || !res.data) throw new Error(res.message || "ไม่สามารถโหลดรายวิชาได้");
-        setCourses(res.data.courses || []);
+        // No status filter here on purpose — the "all / active / closed" tabs
+        // below filter this same fetched list client-side (see `visible`), so
+        // the request must include both active and closed courses up front.
+        //
+        // Paged through to the end rather than asking for one big limit and
+        // hoping it covers everyone. A raised limit is still a guess: the
+        // backend is free to clamp it, and when it does the extra courses do
+        // not error, they just quietly never appear in the list. PAGE_CAP only
+        // stops a broken `hasMore` from looping forever.
+        const PAGE_SIZE = 100;
+        const PAGE_CAP = 20;
+        const collected: Course[] = [];
+        for (let page = 1; page <= PAGE_CAP; page++) {
+          const res = await courseService.getMyCourses({ page, limit: PAGE_SIZE, sortBy: "created_at", sortOrder: "DESC" });
+          if (!active) return;
+          if (!res.success || !res.data) throw new Error(res.message || "ไม่สามารถโหลดรายวิชาได้");
+          collected.push(...(res.data.courses || []));
+
+          const pagination = res.data.pagination;
+          const reachedLastPage = !pagination || page >= pagination.totalPages;
+          // An empty page also ends the loop: without it, a backend that ignores
+          // `page` would hand back the same first page until PAGE_CAP.
+          if (reachedLastPage || !pagination.hasMore || (res.data.courses || []).length === 0) break;
+        }
+        setCourses(collected);
       } catch (err) {
         if (!active) return;
         console.error("Failed to load student courses:", err);

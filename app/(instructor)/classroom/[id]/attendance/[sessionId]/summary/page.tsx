@@ -35,7 +35,56 @@ import type { CourseMemberPermissions } from "@/services/course.service";
 import attendanceService, {
     type AttendanceSession,
     type AttendanceRecord,
+    type AttendanceSecurityFlag,
 } from "@/services/attendance.service";
+
+/**
+ * Plain-language rendering of one anti-spoofing flag. Deliberately worded as an
+ * observation rather than an accusation: every one of these signals has an
+ * innocent explanation, and the person reading this is about to talk to a real
+ * student about it.
+ */
+function securityFlagLabel(flag: AttendanceSecurityFlag, isEnglish: boolean): string {
+    if (flag.kind === "device_flip") {
+        return isEnglish ? "Blocked, then passed" : "ถูกบล็อกแล้วผ่านทันที";
+    }
+    return isEnglish ? "Device does not match its browser" : "อุปกรณ์ไม่ตรงกับที่เบราว์เซอร์แจ้ง";
+}
+
+function securityFlagDetailText(flag: AttendanceSecurityFlag, isEnglish: boolean): string {
+    if (flag.kind === "device_flip") {
+        if (flag.confidence === "same_student") {
+            return isEnglish
+                ? "The same signed-in student failed the device check and passed it moments later."
+                : "นักศึกษาคนเดียวกันไม่ผ่านการตรวจอุปกรณ์ แล้วผ่านในเวลาไม่นานหลังจากนั้น";
+        }
+        return isEnglish
+            ? "Same IP and session, blocked then allowed. Campus Wi-Fi shares one IP across many students, so this can be two different people."
+            : "ไอพีและคาบเดียวกัน ถูกบล็อกแล้วผ่าน แต่ไวไฟของมหาวิทยาลัยใช้ไอพีร่วมกันหลายคน จึงอาจเป็นคนละคนก็ได้";
+    }
+
+    const reasonText: Record<string, [string, string]> = {
+        ua_platform_conflict: [
+            "เบราว์เซอร์แจ้งว่าเป็นคอมพิวเตอร์ แต่ตัวระบุอุปกรณ์บอกว่าเป็นมือถือ",
+            "The browser reports a desktop platform while the User-Agent claims a phone.",
+        ],
+        ua_ch_not_mobile: [
+            "ตัวระบุอุปกรณ์บอกว่าเป็นมือถือ แต่เบราว์เซอร์ยืนยันว่าไม่ใช่",
+            "The User-Agent claims mobile but the browser says it is not a mobile device.",
+        ],
+        no_device_traits: [
+            "ไม่พบทั้งการสัมผัสหน้าจอ ตัวชี้แบบนิ้ว และเซนเซอร์การเคลื่อนไหว ซึ่งแท็บเล็ตที่ต่อเมาส์ก็เป็นแบบนี้ได้",
+            "No touch, coarse pointer or motion sensor was seen, which is also true of a tablet with a mouse.",
+        ],
+    };
+
+    const parts = (flag.reasons || []).map((reason) => {
+        const text = reasonText[reason];
+        if (!text) return reason;
+        return isEnglish ? text[1] : text[0];
+    });
+    return parts.join(" ");
+}
 
 // Status display config
 const statusConfig: Record<
@@ -118,6 +167,8 @@ export default function AttendanceSummaryPage() {
     const [courseContext, setCourseContext] = useState<string | null>(null);
     const [courseData, setCourseData] = useState<{ instructors?: any[]; tas?: any[]; is_active: boolean } | null>(null);
     const [isCourseActive, setIsCourseActive] = useState(true);
+    const [securityFlags, setSecurityFlags] = useState<AttendanceSecurityFlag[]>([]);
+    const [securityFlagsTruncated, setSecurityFlagsTruncated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -180,6 +231,17 @@ export default function AttendanceSummaryPage() {
                 setSession(sessionData);
             }
             setRecords(recordsData);
+
+            // Loaded separately and swallowed on failure: the flags are a
+            // review aid, and losing them must never take the attendance list
+            // down with them.
+            try {
+                const flagsResult = await attendanceService.getSecurityFlags(sessionId);
+                setSecurityFlags(flagsResult.flags || []);
+                setSecurityFlagsTruncated(Boolean(flagsResult.truncated));
+            } catch (flagsError) {
+                console.error("Error fetching attendance security flags:", flagsError);
+            }
         } catch (error) {
             console.error("Error fetching data:", error);
             addToast({
@@ -434,6 +496,88 @@ export default function AttendanceSummaryPage() {
                     />
                 </CardBody>
             </Card>
+
+            {/* Anti-spoofing review. Rendered only when something was actually
+                flagged: an always-visible "0 suspicious" panel trains people to
+                stop reading it. */}
+            {securityFlags.length > 0 && (
+                <Card className="mb-6 border border-warning-200 shadow-sm">
+                    <CardHeader className="flex flex-col items-start gap-1">
+                        <div className="flex items-center gap-2">
+                            <Icon icon="solar:shield-warning-linear" width={18} height={18} className="text-warning-600" />
+                            <h3 className="text-lg font-semibold text-foreground">
+                                {t("รายการที่ควรตรวจสอบ", "Attempts worth reviewing")}
+                            </h3>
+                            <Chip size="sm" color="warning" variant="flat">{securityFlags.length}</Chip>
+                        </div>
+                        <p className="text-xs text-default-500">
+                            {t(
+                                "เป็นเพียงข้อสังเกตจากอุปกรณ์ที่ใช้เช็กชื่อ ไม่ใช่หลักฐานว่าทุจริต และไม่ได้ปิดกั้นการเช็กชื่อ กรุณาสอบถามนักศึกษาก่อนตัดสิน",
+                                "These are hints from the device used to check in, not proof of cheating, and nothing was blocked. Ask the student before drawing a conclusion.",
+                            )}
+                        </p>
+                    </CardHeader>
+                    <CardBody className="p-0">
+                        <Table aria-label={t("รายการที่ควรตรวจสอบ", "Attempts worth reviewing")} removeWrapper>
+                            <TableHeader>
+                                <TableColumn>{t("เวลา", "Time")}</TableColumn>
+                                <TableColumn>{t("นักศึกษา", "Student")}</TableColumn>
+                                <TableColumn>{t("ข้อสังเกต", "Observation")}</TableColumn>
+                                <TableColumn>{t("อุปกรณ์ / ไอพี", "Device / IP")}</TableColumn>
+                            </TableHeader>
+                            <TableBody>
+                                {securityFlags.map((flag) => (
+                                    <TableRow key={flag.id}>
+                                        <TableCell className="whitespace-nowrap text-xs text-default-600">
+                                            {new Date(flag.at).toLocaleString(isEnglish ? "en-GB" : "th-TH")}
+                                        </TableCell>
+                                        <TableCell className="text-sm">
+                                            {flag.student_name ? (
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium">{flag.student_name}</span>
+                                                    <span className="text-xs text-default-500">{flag.student_code}</span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-default-400">
+                                                    {t("ระบุตัวตนไม่ได้", "Not identified")}
+                                                </span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-sm">
+                                            <div className="flex flex-col gap-1">
+                                                <Chip
+                                                    size="sm"
+                                                    variant="flat"
+                                                    color={flag.severity === "warn" ? "warning" : "default"}
+                                                >
+                                                    {securityFlagLabel(flag, isEnglish)}
+                                                </Chip>
+                                                <span className="text-xs text-default-500">
+                                                    {securityFlagDetailText(flag, isEnglish)}
+                                                </span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-xs text-default-600">
+                                            <div className="flex flex-col">
+                                                <span>{[flag.device_type, flag.os, flag.browser].filter(Boolean).join(" / ") || "-"}</span>
+                                                <span className="text-default-400">{flag.ip_address || "-"}</span>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                        {securityFlagsTruncated && (
+                            <p className="px-4 py-3 text-xs text-default-500">
+                                {t(
+                                    "แสดงเฉพาะรายการล่าสุด ยังมีมากกว่านี้",
+                                    "Showing the most recent entries only, there are more.",
+                                )}
+                            </p>
+                        )}
+                    </CardBody>
+                </Card>
+            )}
 
             {/* Filters & Table */}
             <Card className="border border-default-200 shadow-sm">
