@@ -58,7 +58,7 @@ documents:
         content: เช็กชื่อผ่าน /check-in/[sessionId], ตรวจชื่อวิชา, กรอก PIN (ถ้ามี), อนุญาต location และตรวจผลสำเร็จ
       - chunk_id: std-myscore
         heading: ติดตามคะแนน
-        content: ตรวจคะแนนผ่าน /myscore และหากผิดปกติให้รวบรวมหลักฐานก่อนติดต่อผู้สอนหรือ TA
+        content: เข้าสู่ระบบที่ /student/login แล้วตรวจคะแนนผ่าน /student/courses และหากผิดปกติให้รวบรวมหลักฐานก่อนติดต่อผู้สอนหรือ TA
 
   - id: permission-matrix
     title: ตารางสิทธิ์ตามบทบาท

@@ -1,5 +1,0 @@
-import { TableSkeleton } from "@/components/ui/table-skeleton";
-
-export default function Loading() {
-  return <TableSkeleton rows={6} cols={5} showToolbar={false} />;
-}

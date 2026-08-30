@@ -58,8 +58,8 @@ What you should do:
 
 ## D. Review your scores
 
-1. Open `/myscore`.
-2. Select the course.
+1. Sign in at `/student/login`.
+2. Open `/student/courses` and select the course.
 3. Review scores by assignment category.
 4. Check the total score and the information the instructor has chosen to publish.
 5. If you see a problem, gather evidence before contacting the instructor or TA.

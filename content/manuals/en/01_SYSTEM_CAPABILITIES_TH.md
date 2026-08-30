@@ -89,7 +89,7 @@ This overview summarizes the roles, core modules, major frontend surfaces, acces
 3. Student areas
 - `/check-in/[sessionId]`
 - `/queue/book`
-- `/myscore`
+- `/student/courses` (review scores; login required)
 - `/permissions` for browser access checks such as location, notifications, and camera
 
 ## 4) Access control model

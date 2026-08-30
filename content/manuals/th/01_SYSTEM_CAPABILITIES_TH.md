@@ -87,7 +87,7 @@
 3. งานนักศึกษา
 - `/check-in/[sessionId]`
 - `/queue/book`
-- `/myscore`
+- `/student/courses` (ตรวจคะแนน ต้อง login)
 - `/permissions` (ตรวจสิทธิ์ browser: location, notification, camera)
 
 ## 4) หลักการควบคุมสิทธิ์

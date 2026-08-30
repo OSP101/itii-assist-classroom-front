@@ -15,7 +15,7 @@ Complete the main course workflows: attendance, queue booking, and score review.
 7. Confirm that the attendance result is successful.
 8. When you need to join a queue, open `/queue/book`.
 9. Track the queue and prepare your files before your turn.
-10. Review your own scores regularly at `/myscore`.
+10. Review your own scores regularly at `/student/courses` (sign in first).
 
 ## Checklist before class starts
 - Internet connection is stable

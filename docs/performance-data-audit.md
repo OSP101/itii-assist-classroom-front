@@ -24,7 +24,6 @@ Generated: 2026-05-08
 | `/` (root redirect) | authService.me | none | auth session | — | — | none | none | Low |
 | `/login` | none (form submit) | none | — | — | — | no-cache | none | Low |
 | `/profile` | getCurrentUser | none | user profile | sessions list, 2FA status | — | `global:me` minutes | profile skeleton | Medium |
-| `/myscore` | score fetch (student) | none | score summary | — | — | short minutes | table skeleton | Medium |
 | `/permissions` | courseService.getAll | none | permissions list | — | — | `global:my-courses` minutes | list skeleton | Low |
 | `/(instructor)/home` | 5x (user, instructors, courses, stats, socket) | courses fetched 2x | my-courses, user | recent activity, stats | course updates (socket) | `global:my-courses` minutes | CourseGridSkeleton | **High** |
 | `/(instructor)/home/closed` | archived courses | none | closed courses | — | — | `global:my-courses` minutes | CourseGridSkeleton | Low |
@@ -93,9 +92,8 @@ The frontend `monitoring.service.ts` calls endpoints that **do not exist** in th
 
 Backend routes confirmed at `/api/system/*`:
 - `GET /system/metrics` → `GetSystemMetricsHandler`
-- `GET /system/cpu` → `GetCpuUsageHandler`
-- `GET /system/memory` → `GetMemoryUsageHandler`
-- `GET /system/info` → `GetServerInfoHandler`
+
+(`/system/cpu`, `/system/memory`, `/system/info` were removed — nothing called them, `/system/metrics` already covers this data.)
 
 **Action**: Update `config/api.ts` MONITORING endpoints to use `/system/*` where possible. Mark container and website endpoints as TODO until backend confirms or adds endpoints.
 
@@ -114,7 +112,6 @@ No `loading.tsx` exists for:
 - `/(instructor)/home`
 - `/(instructor)/classroom/[id]` and all sub-routes
 - `/profile`
-- `/myscore`
 - `/check-in/[sessionId]`
 - `/queue/book`
 - `/queue/projector/[sessionId]`
@@ -176,7 +173,6 @@ app/(instructor)/classroom/[id]/ta-stats/loading.tsx
 app/(instructor)/classroom/[id]/activity-log/loading.tsx
 app/(instructor)/classroom/[id]/settings/loading.tsx
 app/profile/loading.tsx
-app/myscore/loading.tsx
 app/check-in/[sessionId]/loading.tsx
 app/queue/book/loading.tsx
 app/queue/projector/[sessionId]/loading.tsx
@@ -189,7 +185,6 @@ app/attendance/[id]/session/[sessionId]/live/loading.tsx
 app/(instructor)/error.tsx
 app/(instructor)/classroom/[id]/error.tsx
 app/profile/error.tsx
-app/myscore/error.tsx
 app/check-in/[sessionId]/error.tsx
 app/queue/book/error.tsx
 app/queue/projector/[sessionId]/error.tsx

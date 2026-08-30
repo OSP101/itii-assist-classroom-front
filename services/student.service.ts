@@ -306,13 +306,6 @@ class StudentService {
     return apiService.post<ImportResult>(`${API_ENDPOINTS.STUDENTS}/import`, { students });
   }
 
-  /**
-   * Lookup student scores by student_id (public endpoint)
-   */
-  async lookupStudentScores(studentId: string) {
-    return apiService.get<StudentScoreLookupResponse>(`${API_ENDPOINTS.STUDENTS}/lookup/${studentId}`);
-  }
-
   async getMyCourse(courseId: string) {
     return apiService.get<MyStudentCourseResponse>(`${API_ENDPOINTS.STUDENTS}/me/courses/${courseId}`);
   }
