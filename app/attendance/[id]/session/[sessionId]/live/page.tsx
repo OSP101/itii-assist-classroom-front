@@ -32,6 +32,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { useAttendancePinPresentation } from "@/hooks/useAttendancePinPresentation";
 import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
+import { getAppUrl } from "@/lib/app-url";
 import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket";
 import attendanceService, {
     type AttendanceSession,
@@ -543,9 +544,7 @@ export default function LiveAttendancePage() {
     };
 
     // Generate check-in URL
-    const checkInUrl = typeof window !== "undefined"
-        ? `${window.location.origin}/check-in/${sessionId}`
-        : "";
+    const checkInUrl = getAppUrl(`/check-in/${sessionId}`);
 
     // Copy PIN to clipboard
     const copyPIN = () => {

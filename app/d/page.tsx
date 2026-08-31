@@ -18,6 +18,7 @@ import attendanceDisplayService, {
 } from "@/services/attendance-display.service";
 import { type AttendanceRecord } from "@/services/attendance.service";
 import { getRealtimeSocketBaseUrl, io, type Socket } from "@/services/realtime-socket";
+import { getAppOrigin } from "@/lib/app-url";
 
 type DisplayState = "loading" | "pairing" | "active" | "error";
 
@@ -70,12 +71,7 @@ export default function AttendanceDisplayPage() {
     const [, setTick] = useState(0);
     const socketRef = useRef<Socket | null>(null);
 
-    const origin = useMemo(() => {
-        if (typeof window === "undefined") {
-            return process.env.NEXT_PUBLIC_FRONTEND_URL || "";
-        }
-        return window.location.origin;
-    }, []);
+    const origin = useMemo(() => getAppOrigin(), []);
 
     const pairUrl = bootstrap ? `${origin}/m/pair?t=${encodeURIComponent(bootstrap.pairing_token)}` : "";
     const checkInUrl = current ? `${origin}/check-in/${current.attendance_session_id}` : "";

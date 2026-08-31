@@ -26,11 +26,16 @@ ARG NEXT_DEPLOYMENT_ID=""
 # on the page's own origin. Build-time only — Next.js bakes it into every
 # asset URL, so switching it means a rebuild.
 ARG NEXT_PUBLIC_ASSET_PREFIX=""
+# Origin pinned into student-facing links/QRs (check-in, queue booking,
+# display pairing) — see lib/app-url.ts. Build-time only, like
+# NEXT_PUBLIC_ASSET_PREFIX above.
+ARG NEXT_PUBLIC_STUDENT_LINK_ORIGIN=""
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_FRONTEND_URL=$NEXT_PUBLIC_FRONTEND_URL
 ENV NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL
 ENV NEXT_DEPLOYMENT_ID=$NEXT_DEPLOYMENT_ID
 ENV NEXT_PUBLIC_ASSET_PREFIX=$NEXT_PUBLIC_ASSET_PREFIX
+ENV NEXT_PUBLIC_STUDENT_LINK_ORIGIN=$NEXT_PUBLIC_STUDENT_LINK_ORIGIN
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
