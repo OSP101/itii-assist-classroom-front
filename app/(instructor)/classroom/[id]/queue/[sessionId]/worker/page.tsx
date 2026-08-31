@@ -344,7 +344,7 @@ function formatBookingStatusLabel(status: string, isEnglish = false): string {
 // ============================================================
 
 export default function WorkerDashboardPage() {
-    const OFFER_TIMEOUT_SECONDS = 30;
+    const OFFER_TIMEOUT_SECONDS = 90;
     const params = useParams();
     const router = useRouter();
     const { language } = useGlobalSettings();
@@ -719,7 +719,7 @@ export default function WorkerDashboardPage() {
                     addToast({
                         title: t("มีงานใหม่!", "New task assigned"),
                         description: result.currentBooking.status === "waiting"
-                            ? t("กรุณากดรับงานภายใน 30 วินาที", "Please accept this task within 30 seconds.")
+                            ? t("กรุณากดรับงานภายใน 90 วินาที", "Please accept this task within 90 seconds.")
                             : `${formatDeskLabel(result.currentBooking.desk_number, isEnglish)} - ${formatBookingTypeLabel(result.currentBooking.booking_type, isEnglish)}`,
                         color: "primary",
                         timeout: 3000,
@@ -778,7 +778,7 @@ export default function WorkerDashboardPage() {
             addToast({
                 title: t("มีงานใหม่!", "New task assigned"),
                 description: data.booking.status === "waiting"
-                    ? t("กรุณากดรับงานภายใน 30 วินาที", "Please accept this task within 30 seconds.")
+                    ? t("กรุณากดรับงานภายใน 90 วินาที", "Please accept this task within 90 seconds.")
                     : `${formatDeskLabel(data.booking.desk_number, isEnglish)} - ${formatBookingTypeLabel(data.booking.booking_type, isEnglish)}`,
                 color: "primary",
                 timeout: 3000,
@@ -835,9 +835,11 @@ export default function WorkerDashboardPage() {
         // Adaptive fallback polling: poll only when socket is not connected,
         // and back off when requests fail to reduce pressure during outages.
         const scheduleNextPoll = () => {
+            // Capped well under the server's 90s offer-accept window (queueOfferTimeoutSeconds)
+            // so a disconnected TA still has time to see and accept a new offer via fallback polling.
             const nextIntervalMs = Math.min(
                 5000 * Math.pow(1.5, pollingBackoffStepRef.current),
-                30000
+                10000
             );
 
             pollingRef.current = setTimeout(async () => {
@@ -912,7 +914,7 @@ export default function WorkerDashboardPage() {
                 addToast({
                     title: t("มีงานรอตรวจ!", "Task assigned immediately"),
                     description: result.assignedBooking.status === "waiting"
-                        ? t("กรุณากดรับงานภายใน 30 วินาที", "Please accept this task within 30 seconds.")
+                        ? t("กรุณากดรับงานภายใน 90 วินาที", "Please accept this task within 90 seconds.")
                         : `${formatDeskLabel(result.assignedBooking.desk_number, isEnglish)} - ${formatBookingTypeLabel(result.assignedBooking.booking_type, isEnglish)}`,
                     color: "primary",
                     timeout: 3000,
@@ -1781,7 +1783,7 @@ export default function WorkerDashboardPage() {
                                                         <div className="flex items-center gap-2 text-amber-700">
                                                             <Icon icon="solar:alarm-bold" className="text-lg" />
                                                             <p className="text-sm font-medium">
-                                                                {t("กรุณากดรับงานภายใน 30 วินาที", "Please accept this task within 30 seconds")}
+                                                                {t("กรุณากดรับงานภายใน 90 วินาที", "Please accept this task within 90 seconds")}
                                                             </p>
                                                         </div>
                                                         <div className="flex items-center gap-2">
