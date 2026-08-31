@@ -1218,7 +1218,9 @@ function BookQueueContent() {
                             <input
                                 id="q-student-id"
                                 type="text"
-                                inputMode="numeric"
+                                inputMode="text"
+                                autoCapitalize="off"
+                                autoCorrect="off"
                                 placeholder="เช่น 65010000-0"
                                 value={studentId}
                                 onChange={(e) => {
