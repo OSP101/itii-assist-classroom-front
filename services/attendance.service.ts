@@ -3,7 +3,7 @@
  */
 
 import api from './api.service';
-import type { ClientDeviceSignals } from '@/lib/device-signals';
+import { DEVICE_HINTS_HEADER, buildDeviceHintsHeader, type ClientDeviceSignals } from '@/lib/device-signals';
 
 interface AttendanceErrorPayload {
     success?: boolean;
@@ -31,6 +31,16 @@ export class AttendanceRequestError extends Error {
 
 function throwAttendanceRequestError(payload: AttendanceErrorPayload, fallbackMessage: string): never {
     throw new AttendanceRequestError(payload, fallbackMessage);
+}
+
+/**
+ * Every request the campus network guard evaluates must carry these hints, or an
+ * iPad is rejected as a desktop — see buildDeviceHintsHeader. That means the
+ * session-info GET (whose verdict the check-in page renders before the student
+ * can act) as well as the check-in POSTs the guard middleware runs on.
+ */
+function deviceHintsOptions(): { headers: Record<string, string> } {
+    return { headers: { [DEVICE_HINTS_HEADER]: buildDeviceHintsHeader() } };
 }
 
 export interface AttendanceSession {
@@ -498,7 +508,7 @@ const attendanceService = {
      * Get session info for student check-in (public)
      */
     async getSessionInfo(sessionId: number): Promise<AttendanceSession | null> {
-        const response = await api.get<AttendanceSession>(`/attendance/check-in/${sessionId}/info`) as
+        const response = await api.get<AttendanceSession>(`/attendance/check-in/${sessionId}/info`, deviceHintsOptions()) as
             AttendanceErrorPayload & { data?: AttendanceSession; network_guard?: AttendanceSession['network_guard'] };
         if (!response.success) {
             throwAttendanceRequestError(response, 'ไม่พบรอบการเช็กชื่อ');
@@ -527,7 +537,7 @@ const attendanceService = {
             location_verified: boolean;
             distance_meters: number | null;
             is_duplicate?: boolean;
-        }>(`/attendance/check-in/${sessionId}`, data);
+        }>(`/attendance/check-in/${sessionId}`, data, deviceHintsOptions());
         
         if (!response.success) {
             throwAttendanceRequestError(response as AttendanceErrorPayload, 'เช็กชื่อไม่สำเร็จ');
@@ -547,7 +557,7 @@ const attendanceService = {
             check_in_time: string;
             location_verified: boolean;
             distance_meters: number | null;
-        }>('/attendance/check-in', data);
+        }>('/attendance/check-in', data, deviceHintsOptions());
         if (!response.success) {
             throwAttendanceRequestError(response as AttendanceErrorPayload, 'Attendance check-in failed');
         }

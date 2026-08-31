@@ -97,6 +97,33 @@ function observeMotionEvent(timeoutMs: number): Promise<boolean> {
   });
 }
 
+/** Header name the campus guard reads these hints from. Must match utils.DeviceHintsHeader. */
+export const DEVICE_HINTS_HEADER = "X-Client-Device-Hints";
+
+/**
+ * Builds the device-hints header the campus network guard needs to recognise an
+ * iPad.
+ *
+ * Since iPadOS 13 Safari sends a MacBook User-Agent by default, so server-side
+ * UA parsing classifies every stock iPad as a desktop and the guard's device
+ * check rejects it — students on iPads could not check in at all. No Mac has
+ * ever had a touchscreen, so touch plus a coarse pointer is what separates the
+ * two, and only the browser can report that.
+ *
+ * Synchronous and cheap on purpose: unlike collectClientDeviceSignals this runs
+ * on the blocking path of the session-info request, so it must not wait on a
+ * motion event.
+ */
+export function buildDeviceHintsHeader(): string {
+  if (typeof window === "undefined") return "";
+  const maxTouchPoints = typeof navigator !== "undefined" ? (navigator.maxTouchPoints ?? 0) : 0;
+  return [
+    `touch=${hasTouchSupport() ? 1 : 0}`,
+    `coarse=${hasCoarsePointer() ? 1 : 0}`,
+    `maxtouch=${maxTouchPoints}`,
+  ].join(";");
+}
+
 /** Collects every signal. Never throws, never blocks longer than `motionTimeoutMs`. */
 export async function collectClientDeviceSignals(motionTimeoutMs = 400): Promise<ClientDeviceSignals> {
   const motion = await observeMotionEvent(motionTimeoutMs);
