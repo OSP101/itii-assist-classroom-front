@@ -83,6 +83,7 @@ interface OverviewTabViewProps {
   onNavigateToScores?: () => void;
   onNavigateToApproval?: () => void;
   onNavigateToPeople?: () => void;
+  pendingApprovalCount?: number;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -92,12 +93,16 @@ function OverviewTabViewComponent({
   filteredAssignments, onNavigateToAssignments, onSetSelectedAssignmentType,
   onResetAssignmentTypeFilter, onNavigateToAttendance, onNavigateToQueue,
   onNavigateToScores, onNavigateToApproval, onNavigateToPeople,
+  pendingApprovalCount = 0,
 }: OverviewTabViewProps) {
   const t = useI18n();
   const [selectedStudent, setSelectedStudent] = useState<OverviewStudent | null>(null);
 
   const healthScore = useMemo(() => overview ? computeHealthScore(overview, t) : null, [overview, t]);
-  const actionItems = useMemo(() => overview ? computeActionItems(overview, t) : [], [overview, t]);
+  const actionItems = useMemo(
+    () => overview ? computeActionItems(overview, t, pendingApprovalCount) : [],
+    [overview, t, pendingApprovalCount],
+  );
   const insights    = useMemo(() => overview ? generateInsights(overview, t) : [], [overview, t]);
   const riskStudents = useMemo(
     () => overview ? computeRiskStudents(overview.lowPerformers, overview.summary.totalAssignments, t) : [],

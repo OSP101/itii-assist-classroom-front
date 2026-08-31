@@ -1581,6 +1581,11 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                                     <div className="flex items-center gap-2">
                                                         <Icon icon={group.icon} className="text-base text-default-400" />
                                                         <span>{group.label}</span>
+                                                        {group.key === "work-score-management" && pendingApprovalCount > 0 && (
+                                                            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+                                                                {pendingApprovalCount > 99 ? "99+" : pendingApprovalCount}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <Icon
@@ -1604,12 +1609,17 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                                                     }
                                                                 }}
                                                                 disabled={item.status === "coming_soon"}
-                                                                className={`w-full rounded-md px-3 py-2 text-left transition-colors ${activeTab === item.key
+                                                                className={`w-full flex items-center justify-between gap-2 rounded-md px-3 py-2 text-left transition-colors ${activeTab === item.key
                                                                     ? "bg-primary/10 text-primary font-medium"
                                                                     : "text-default-600 hover:bg-content2"
                                                                     } ${item.status === "coming_soon" ? "cursor-not-allowed bg-content2 opacity-50" : "cursor-pointer"}`}
                                                             >
                                                                 <span className="text-sm font-medium">{item.label}</span>
+                                                                {item.key === "approval" && pendingApprovalCount > 0 && (
+                                                                    <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+                                                                        {pendingApprovalCount > 99 ? "99+" : pendingApprovalCount}
+                                                                    </span>
+                                                                )}
                                                             </button>
                                                         ))}
                                                     </div>
@@ -1715,12 +1725,15 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                                     navigateToTab(item.key as ClassroomTabKey);
                                                 }
                                             }}
-                                            className={`w-full flex items-center justify-center rounded-md px-3 py-2 transition-colors ${activeTab === item.key
+                                            className={`relative w-full flex items-center justify-center rounded-md px-3 py-2 transition-colors ${activeTab === item.key
                                                 ? "bg-primary/10 text-primary"
                                                 : "text-default-600 hover:bg-content2"
                                                 } ${item.status === "coming_soon" ? "cursor-not-allowed bg-content2 opacity-50" : "cursor-pointer"}`}
                                         >
                                             <Icon icon={item.icon} className={`text-base ${activeTab === item.key ? "text-primary" : "text-default-400"}`} />
+                                            {item.key === "approval" && pendingApprovalCount > 0 && (
+                                                <span className="absolute top-1 right-1.5 h-2 w-2 rounded-full bg-red-500" />
+                                            )}
                                         </button>
                                     </Tooltip>
                                 ))}
@@ -1762,6 +1775,11 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                                 <div className="flex items-center gap-2">
                                                     <Icon icon={group.icon} className="text-base text-default-400" />
                                                     <span>{group.label}</span>
+                                                    {group.key === "work-score-management" && pendingApprovalCount > 0 && (
+                                                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+                                                            {pendingApprovalCount > 99 ? "99+" : pendingApprovalCount}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <Icon
@@ -1784,12 +1802,17 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                                                     navigateToTab(item.key as ClassroomTabKey);
                                                                 }
                                                             }}
-                                                            className={`w-full rounded-md px-3 py-2 text-left transition-colors ${activeTab === item.key
+                                                            className={`w-full flex items-center justify-between gap-2 rounded-md px-3 py-2 text-left transition-colors ${activeTab === item.key
                                                                 ? "bg-primary/10 text-primary font-medium"
                                                                 : "text-default-600 hover:bg-content2"
                                                                 } ${item.status === "coming_soon" ? "cursor-not-allowed bg-content2 opacity-50" : "cursor-pointer"}`}
                                                         >
                                                             <span className="text-sm font-medium">{item.label}</span>
+                                                            {item.key === "approval" && pendingApprovalCount > 0 && (
+                                                                <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+                                                                    {pendingApprovalCount > 99 ? "99+" : pendingApprovalCount}
+                                                                </span>
+                                                            )}
                                                         </button>
                                                     ))}
                                                 </div>
@@ -1992,6 +2015,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                             onNavigateToScores={() => navigateToTab("scores")}
                                             onNavigateToApproval={() => navigateToTab("approval")}
                                             onNavigateToPeople={() => navigateToTab("people")}
+                                            pendingApprovalCount={canAccessApproval && approvalRole === "instructor" ? pendingApprovalCount : 0}
                                         />
                                     )}
 

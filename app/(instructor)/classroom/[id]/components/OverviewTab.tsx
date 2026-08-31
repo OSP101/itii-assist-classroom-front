@@ -16,6 +16,7 @@ interface OverviewTabProps {
     onNavigateToScores?: () => void;
     onNavigateToApproval?: () => void;
     onNavigateToPeople?: () => void;
+    pendingApprovalCount?: number;
 }
 
 /**
@@ -42,6 +43,7 @@ export default function OverviewTab({
     onNavigateToScores,
     onNavigateToApproval,
     onNavigateToPeople,
+    pendingApprovalCount,
 }: OverviewTabProps) {
     const {
         // State
@@ -76,6 +78,7 @@ export default function OverviewTab({
             onNavigateToScores={onNavigateToScores}
             onNavigateToApproval={onNavigateToApproval}
             onNavigateToPeople={onNavigateToPeople}
+            pendingApprovalCount={pendingApprovalCount}
         />
     );
 }

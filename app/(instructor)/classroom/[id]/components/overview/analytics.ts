@@ -123,9 +123,22 @@ export function computeHealthScore(overview: CourseOverview, t: TranslateFn): He
 
 // ─── Action Items ────────────────────────────────────────────────────────────
 
-export function computeActionItems(overview: CourseOverview, t: TranslateFn): ActionItem[] {
+export function computeActionItems(overview: CourseOverview, t: TranslateFn, pendingApprovalCount = 0): ActionItem[] {
   const actions: ActionItem[] = [];
   const { assignments, lowPerformers, summary } = overview;
+
+  // Pending score edit requests
+  if (pendingApprovalCount > 0) {
+    actions.push({
+      id: "pending_approval",
+      icon: "solar:clipboard-check-bold",
+      title: t("actionPendingApprovalTitle"),
+      description: t("actionPendingApprovalDescription", { count: pendingApprovalCount }),
+      count: pendingApprovalCount,
+      severity: pendingApprovalCount > 10 ? "high" : pendingApprovalCount > 3 ? "medium" : "low",
+      tab: "approval",
+    });
+  }
 
   // Ungraded assignments
   const ungradedCount = assignments.reduce((s, a) => s + a.notScoredCount, 0);
