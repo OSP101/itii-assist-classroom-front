@@ -265,7 +265,7 @@ export default function StudentCheckInPage() {
             setSession((prev) => prev
                 ? {
                     ...prev,
-                    pin_code: data.pin_code ?? prev.pin_code,
+                    pin_issued: data.pin_issued ?? prev.pin_issued,
                     pin_rotates_at: data.pin_rotates_at ?? prev.pin_rotates_at,
                     pin_issued_at: data.pin_issued_at ?? prev.pin_issued_at,
                     auto_rotate_pin: data.auto_rotate_pin ?? prev.auto_rotate_pin,
@@ -494,11 +494,16 @@ export default function StudentCheckInPage() {
             setStep("error");
         });
 
-        socket.on("attendance-pin-updated", (data: { pin_code?: string; pin_issued_at?: string | null; pin_rotates_at?: string | null; auto_rotate_pin?: boolean; pin_mode?: AttendanceSession["pin_mode"] }) => {
+        // The student room's copy of this event carries the rotation timings
+        // only — never pin_code, which stays with the instructor and classroom
+        // display rooms (see EmitToAttendanceStudents on the backend). This is
+        // the fast path for staying in step with the projector; the countdown
+        // poll above is the fallback for when the socket is down.
+        socket.on("attendance-pin-updated", (data: { pin_issued?: boolean; pin_issued_at?: string | null; pin_rotates_at?: string | null; auto_rotate_pin?: boolean; pin_mode?: AttendanceSession["pin_mode"] }) => {
             setSession((prev) => prev
                 ? {
                     ...prev,
-                    pin_code: data.pin_code ?? prev.pin_code,
+                    pin_issued: data.pin_issued ?? prev.pin_issued,
                     pin_rotates_at: data.pin_rotates_at ?? prev.pin_rotates_at,
                     pin_issued_at: data.pin_issued_at ?? prev.pin_issued_at,
                     auto_rotate_pin: data.auto_rotate_pin ?? prev.auto_rotate_pin,

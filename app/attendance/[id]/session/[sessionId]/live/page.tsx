@@ -208,9 +208,37 @@ export default function LiveAttendancePage() {
             reconnectionDelay: 1000,
         });
 
+        // The instructor room streams the live PIN and every check-in record, so
+        // the hub now refuses to admit a client without a ticket minted behind
+        // the same permission checks that guard this page. Fetch one on every
+        // connect (tickets are short-lived, and a reconnect needs a fresh one).
+        let disposed = false;
+
+        const joinInstructorRoom = async () => {
+            try {
+                const ticket = await attendanceService.getSocketTicket(sessionId);
+                if (disposed || !socket.connected) {
+                    return;
+                }
+                if (!ticket) {
+                    console.warn("Attendance socket: no ticket issued — live updates are off for this session.");
+                    return;
+                }
+                socket.emit("join-instructor", { ticket });
+            } catch (error) {
+                if (!disposed) {
+                    console.error("Attendance socket: could not obtain a room ticket:", error);
+                }
+            }
+        };
+
         socket.on("connect", () => {
             hasWarnedAboutConnectError.current = false;
-            socket.emit("join-instructor", sessionId);
+            void joinInstructorRoom();
+        });
+
+        socket.on("instructor-join-rejected", () => {
+            console.warn("Attendance socket: room join rejected, live updates are off. Reload to retry.");
         });
 
         socket.on("connect_error", (err) => {
@@ -275,6 +303,7 @@ export default function LiveAttendancePage() {
         socketRef.current = socket;
 
         return () => {
+            disposed = true;
             socket.emit("leave-instructor", sessionId);
             socket.disconnect();
         };

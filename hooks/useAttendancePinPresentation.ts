@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 type PinSessionLike = {
     pin_code?: string | null;
+    pin_issued?: boolean;
     pin_issued_at?: string | null;
     pin_rotates_at?: string | null;
     auto_rotate_pin?: boolean;
@@ -41,7 +42,13 @@ export function useAttendancePinPresentation(session: PinSessionLike | null | un
             return;
         }
 
-        if (!session.pin_code) {
+        // The public check-in route withholds pin_code and answers with the
+        // pin_issued flag instead, while the instructor and classroom-display
+        // routes still send the code itself — accept either as proof that a
+        // PIN exists, so this hook works on all three screens.
+        const hasPin = session.pin_issued ?? Boolean(session.pin_code);
+
+        if (!hasPin) {
             const pending = { ...initialState, isPending: true };
             setState((prev) => (sameState(prev, pending) ? prev : pending));
             return;
@@ -103,6 +110,7 @@ export function useAttendancePinPresentation(session: PinSessionLike | null | un
         session?.auto_rotate_pin,
         session?.pin_mode,
         session?.pin_code,
+        session?.pin_issued,
         session?.pin_issued_at,
         session?.pin_rotates_at,
         session?.status,

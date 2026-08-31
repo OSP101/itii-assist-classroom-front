@@ -41,7 +41,14 @@ export interface AttendanceSession {
     title: string;
     auto_rotate_pin: boolean;
     pin_mode?: 'static' | 'rotating';
+    /**
+     * Only the privileged endpoints (instructor live view, paired classroom
+     * display) return the code. The public check-in info route withholds it —
+     * a student is meant to read the PIN off the projector — so this is an
+     * empty string there and `pin_issued` is the flag to use instead.
+     */
     pin_code: string;
+    pin_issued?: boolean;
     pin_issued_at?: string | null;
     pin_rotates_at?: string | null;
     started_at?: string | null;
@@ -345,6 +352,17 @@ const attendanceService = {
     async getSession(sessionId: number): Promise<AttendanceSession | null> {
         const response = await api.get<AttendanceSession>(`/attendance/${sessionId}`);
         return response.data || null;
+    },
+
+    /**
+     * Mint a short-lived ticket for joining this session's instructor realtime
+     * room. That room streams the live PIN and every check-in record, so the
+     * WebSocket hub will not admit a client without one — see
+     * GetAttendanceSessionSocketTicketHandler on the backend.
+     */
+    async getSocketTicket(sessionId: number): Promise<string | null> {
+        const response = await api.get<{ ticket: string; expires_at: string }>(`/attendance/sessions/${sessionId}/socket-ticket`);
+        return response.data?.ticket || null;
     },
 
     /**
