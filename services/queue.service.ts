@@ -99,7 +99,9 @@ export interface QueueBooking {
     queue_session_id: number;
     student_id: number;
     desk_id: number;
-    desk_number: string;
+    // int on the server (models.QueueBooking.DeskNumber); coerce with String()
+    // before handing it to anything that expects text
+    desk_number: number;
     booking_type: 'grading' | 'help';
     queue_number: number;
     is_late_booking?: boolean;

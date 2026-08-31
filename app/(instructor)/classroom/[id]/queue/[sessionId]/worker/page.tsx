@@ -120,8 +120,9 @@ function MiniRoomMap({
     previousDeskNumber,
 }: {
     desks: MiniDeskInfo[];
-    currentDeskNumber: string | null;
-    previousDeskNumber: string | null;
+    // desk numbers arrive from the API as ints; both are matched via String()
+    currentDeskNumber: string | number | null;
+    previousDeskNumber: string | number | null;
 }) {
     const enabled = desks.filter(
         (d) =>
@@ -429,7 +430,7 @@ export default function WorkerDashboardPage() {
 
     // Mini room map
     const [deskLayout, setDeskLayout] = useState<MiniDeskInfo[]>([]);
-    const [previousDeskNumber, setPreviousDeskNumber] = useState<string | null>(null);
+    const [previousDeskNumber, setPreviousDeskNumber] = useState<string | number | null>(null);
 
     // Socket
     const socketRef = useRef<Socket | null>(null);

@@ -34,7 +34,25 @@ import {
   type Pagination as PaginationData,
   type ActivityLogFilters,
   type ActivityLogStats,
+  type ActivityEventType,
+  type ResolvedRef,
 } from "@/services/courseActivityLog.service";
+import {
+  STICKY_ACTION_HEADER_CLASS,
+  STICKY_ACTION_CELL_CLASS,
+  STICKY_SCROLL_CONTAINER_CLASS,
+  useHorizontalOverflow,
+} from "./shared/stickyActionColumn";
+import ActivityLogDetailModal from "./activity-log/ActivityLogDetailModal";
+import ActivityTimelineList from "./activity-log/ActivityTimelineList";
+import {
+  buildDetailExportText,
+  formatDevice,
+  formatTarget,
+  isOutsiderAdminView,
+  isSystemDetectedEvent,
+  splitDetailParts,
+} from "./activity-log/activityDetail";
 
 interface ActivityLogTabProps {
   courseId: string;
@@ -53,6 +71,7 @@ function getCategoryConfig(isEnglish: boolean): Record<string, { label: string; 
     score: { label: isEnglish ? "Scores" : "คะแนน", icon: "solar:chart-square-bold", bgClass: "bg-amber-100", iconClass: "text-amber-600" },
     attendance: { label: isEnglish ? "Attendance" : "เช็กชื่อ", icon: "solar:user-check-bold", bgClass: "bg-rose-100", iconClass: "text-rose-600" },
     queue: { label: isEnglish ? "Queue" : "คิว", icon: "solar:sort-by-time-bold", bgClass: "bg-content3", iconClass: "text-default-600" },
+    access: { label: isEnglish ? "Viewed" : "การเข้าดู", icon: "solar:eye-bold", bgClass: "bg-cyan-100", iconClass: "text-cyan-600" },
     general: { label: isEnglish ? "General" : "ทั่วไป", icon: "solar:info-circle-bold", bgClass: "bg-content3", iconClass: "text-default-600" },
   };
 }
@@ -64,6 +83,7 @@ const categoryChipColor: Record<string, "primary" | "secondary" | "success" | "w
   score: "warning",
   attendance: "danger",
   queue: "default",
+  access: "secondary",
   general: "default",
 };
 
@@ -141,6 +161,21 @@ function getActionLabels(isEnglish: boolean): Record<string, string> {
     reject_score_edit_request: isEnglish ? "Reject score edit" : "ปฏิเสธแก้ไขคะแนน",
     batch_approve_score_edit_requests: isEnglish ? "Batch approve score edits" : "อนุมัติแก้ไขคะแนน (กลุ่ม)",
     batch_reject_score_edit_requests: isEnglish ? "Batch reject score edits" : "ปฏิเสธแก้ไขคะแนน (กลุ่ม)",
+
+    // Read audit (category "access")
+    view_course: isEnglish ? "Opened the course" : "เข้าดูรายวิชา",
+    view_scores: isEnglish ? "Viewed scores" : "เข้าดูคะแนน",
+    view_roster: isEnglish ? "Viewed student list" : "เข้าดูรายชื่อนักศึกษา",
+    view_attendance: isEnglish ? "Viewed attendance" : "เข้าดูข้อมูลเช็กชื่อ",
+    view_exam: isEnglish ? "Viewed exam data" : "เข้าดูข้อมูลสอบ",
+    view_activity_log: isEnglish ? "Opened the activity log" : "เข้าดูบันทึกกิจกรรม",
+    export_exam_seats: isEnglish ? "Exported exam seating" : "ส่งออกผังที่นั่งสอบ",
+    export_activity_log: isEnglish ? "Exported the activity log" : "ส่งออกบันทึกกิจกรรม",
+
+    // Mirrored from the check-in security log
+    attendance_checkin_failed: isEnglish ? "Check-in failed" : "เช็กชื่อไม่สำเร็จ",
+    attendance_checkin_blocked: isEnglish ? "Check-in blocked by campus guard" : "เช็กชื่อถูกด่านเครือข่ายปฏิเสธ",
+    attendance_checkin_rate_limited: isEnglish ? "Check-in rate limited" : "เช็กชื่อถี่เกินกำหนด",
   };
 }
 
@@ -164,27 +199,6 @@ function formatDate(dateStr: string, isEnglish: boolean) {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function getDetailText(detail: Record<string, unknown> | null | undefined, isEnglish: boolean): string {
-  if (!detail || typeof detail !== "object") return "";
-  const parts: string[] = [];
-  const d = detail as Record<string, unknown>;
-  if (d.score !== undefined && d.score !== null) parts.push(`${isEnglish ? "Score" : "คะแนน"}: ${String(d.score)}`);
-  if (d.reason) parts.push(`${isEnglish ? "Reason" : "เหตุผล"}: ${String(d.reason)}`);
-  if (d.status) parts.push(`${isEnglish ? "Status" : "สถานะ"}: ${String(d.status)}`);
-  if (d.new_status) parts.push(`${isEnglish ? "New status" : "สถานะใหม่"}: ${String(d.new_status)}`);
-  if (d.count !== undefined) parts.push(`${isEnglish ? "Count" : "จำนวน"}: ${String(d.count)}`);
-  if (d.added !== undefined) parts.push(`${isEnglish ? "Added" : "เพิ่ม"}: ${String(d.added)}`);
-  if (d.skipped !== undefined) parts.push(`${isEnglish ? "Skipped" : "ข้าม"}: ${String(d.skipped)}`);
-  if (d.saved !== undefined) parts.push(`${isEnglish ? "Saved" : "บันทึก"}: ${String(d.saved)}`);
-  if (d.section_no) parts.push(`${isEnglish ? "Section" : "กลุ่ม"}: ${String(d.section_no)}`);
-  if (d.action) parts.push(`${isEnglish ? "Action" : "การกระทำ"}: ${String(d.action)}`);
-  if (d.source) parts.push(`${isEnglish ? "Source" : "ที่มา"}: ${String(d.source)}`);
-  if (d.accept_grading !== undefined) parts.push(`${isEnglish ? "Grading" : "ตรวจงาน"}: ${d.accept_grading ? (isEnglish ? "yes" : "ใช่") : (isEnglish ? "no" : "ไม่")}`);
-  if (d.created !== undefined) parts.push(`${isEnglish ? "Created" : "สร้าง"}: ${String(d.created)}`);
-  if (d.updated !== undefined) parts.push(`${isEnglish ? "Updated" : "อัปเดต"}: ${String(d.updated)}`);
-  return parts.join(", ");
 }
 
 // ============================================
@@ -255,6 +269,7 @@ function downloadCSV(logs: ActivityLog[], granularity: Granularity, actionLabels
     isEnglish ? "Category" : "หมวดหมู่",
     isEnglish ? "Target" : "เป้าหมาย",
     isEnglish ? "Details" : "รายละเอียด",
+    isEnglish ? "Device" : "อุปกรณ์",
     isEnglish ? "User Agent" : "User Agent",
   ];
 
@@ -271,27 +286,24 @@ function downloadCSV(logs: ActivityLog[], granularity: Granularity, actionLabels
       rows.push([escape(`▶ ${group}`), ...Array(headers.length - 1).fill('""')].join(","));
       lastGroup = group;
     }
-    const detailParts: string[] = [];
-    const d = log.detail ?? {};
-    if (d.score !== undefined && d.score !== null) detailParts.push(`score=${String(d.score)}`);
-    if (d.reason) detailParts.push(`reason=${String(d.reason)}`);
-    if (d.status) detailParts.push(`status=${String(d.status)}`);
-    if (d.count !== undefined) detailParts.push(`count=${String(d.count)}`);
-    if (d.added !== undefined) detailParts.push(`added=${String(d.added)}`);
-    if (d.skipped !== undefined) detailParts.push(`skipped=${String(d.skipped)}`);
-    if (d.section_no) detailParts.push(`section=${String(d.section_no)}`);
-    if (d.action) detailParts.push(`action=${String(d.action)}`);
-
     rows.push([
       escape(date.toLocaleString(locale)),
-      escape(log.actor?.full_name ?? "Unknown"),
+      // System-detected rows carry no user account; naming the student the row
+      // is about beats an "Unknown" column in an exported audit trail.
+      escape(
+        log.actor?.full_name
+          ?? (isSystemDetectedEvent(log)
+            ? `${isEnglish ? "System" : "ระบบ"} (${formatTarget(log, isEnglish) || "-"})`
+            : "Unknown"),
+      ),
       escape(log.actor_role ?? log.actor?.role ?? ""),
       escape(log.actor_email ?? log.actor?.email ?? ""),
       escape(log.ip_address ?? ""),
       escape(actionLabels[log.action] ?? log.action),
       escape(log.category),
-      escape(log.target_name ?? ""),
-      escape(detailParts.join("; ")),
+      escape(formatTarget(log, isEnglish)),
+      escape(buildDetailExportText(log, isEnglish)),
+      escape(formatDevice(log, isEnglish)),
       escape(log.user_agent ?? ""),
     ].join(","));
   }
@@ -322,12 +334,19 @@ export default function ActivityLogTab({ courseId, courseCode }: ActivityLogTabP
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(true);
   const [rowsPerPage, setRowsPerPage] = useState(30);
+  const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
+  const { scrollRef, hasOverflow } = useHorizontalOverflow();
 
   // Filter state
   const [category, setCategory] = useState("");
   const [action, setAction] = useState("");
   const [actorId, setActorId] = useState("");
   const [searchText, setSearchText] = useState("");
+  const [eventType, setEventType] = useState<ActivityEventType>("");
+  const [actorRole, setActorRole] = useState("");
+  /** The one entity the timeline is narrowed to, e.g. a single student. */
+  const [subject, setSubject] = useState<{ type: string; id: string; label: string } | null>(null);
+  const [viewMode, setViewMode] = useState<"table" | "timeline">("table");
   const [activeSubTab, setActiveSubTab] = useState("timeline");
 
   // Date range state
@@ -363,6 +382,10 @@ export default function ActivityLogTab({ courseId, courseCode }: ActivityLogTabP
         const data = await getActivityLogs(courseId, {
           page,
           limit,
+          eventType,
+          actorRole,
+          subjectType: subject?.type ?? "",
+          subjectId: subject?.id ?? "",
           category,
           action,
           actorId,
@@ -379,7 +402,7 @@ export default function ActivityLogTab({ courseId, courseCode }: ActivityLogTabP
         setLoading(false);
       }
     },
-    [action, actorId, category, courseId, endDate, isEnglish, rowsPerPage, searchText, startDate],
+    [action, actorId, actorRole, category, courseId, endDate, eventType, isEnglish, rowsPerPage, searchText, startDate, subject],
   );
 
   // Fetch stats
@@ -428,10 +451,21 @@ export default function ActivityLogTab({ courseId, courseCode }: ActivityLogTabP
     return role || "";
   }, [isEnglish]);
 
+  // Narrowing to one entity is the log's most-asked question ("who touched this
+  // student's scores"), so any resolved reference in the UI is a way in.
+  const focusSubject = useCallback((ref: ResolvedRef) => {
+    setSubject({ type: ref.type, id: ref.id, label: ref.sub ? `${ref.label} (${ref.sub})` : ref.label });
+    setSelectedLog(null);
+  }, []);
+
   const handleExport = useCallback(async () => {
     setExportLoading(true);
     try {
       const logs = await exportActivityLogs(courseId, {
+        eventType,
+        actorRole,
+        subjectType: subject?.type ?? "",
+        subjectId: subject?.id ?? "",
         category,
         action,
         actorId,
@@ -451,7 +485,7 @@ export default function ActivityLogTab({ courseId, courseCode }: ActivityLogTabP
     } finally {
       setExportLoading(false);
     }
-  }, [action, actionLabels, actorId, category, courseId, exportDateRange.end, exportDateRange.start, exportGranularity, isEnglish, searchText]);
+  }, [action, actionLabels, actorId, actorRole, category, courseId, eventType, exportDateRange.end, exportDateRange.start, exportGranularity, isEnglish, searchText, subject]);
 
   return (
     <div className="space-y-4">
@@ -524,6 +558,89 @@ export default function ActivityLogTab({ courseId, courseCode }: ActivityLogTabP
           <Card className="border border-default-200 shadow-sm">
             <CardBody className="py-3 px-4">
               <div className="flex flex-col gap-3">
+                {/* Subject banner: everything that happened to one entity */}
+                {subject && (
+                  <div className="flex flex-wrap items-center gap-2 rounded-xl border border-primary-200 bg-primary-50 p-2.5 dark:bg-primary-100/10">
+                    <Icon icon="solar:target-bold" className="text-primary-600" width={16} />
+                    <span className="text-sm text-primary-700 dark:text-primary-400">
+                      {isEnglish ? "Showing everything about" : "กำลังแสดงทุกอย่างที่เกี่ยวกับ"}
+                    </span>
+                    <Chip size="sm" variant="flat" color="primary">
+                      {subject.label}
+                    </Chip>
+                    <Button
+                      size="sm"
+                      variant="light"
+                      className="ml-auto text-default-600"
+                      startContent={<Icon icon="solar:close-circle-linear" width={14} />}
+                      onPress={() => setSubject(null)}
+                    >
+                      {isEnglish ? "Clear" : "ล้างตัวกรองนี้"}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Event kind row */}
+                <div className="flex flex-wrap gap-2 items-center">
+                  <span className="text-xs text-default-500 shrink-0">{isEnglish ? "Show:" : "แสดง:"}</span>
+                  {(["", "changes", "access"] as ActivityEventType[]).map((kind) => {
+                    const label = kind === ""
+                      ? (isEnglish ? "Everything" : "ทั้งหมด")
+                      : kind === "changes"
+                        ? (isEnglish ? "Changes" : "การแก้ไข")
+                        : (isEnglish ? "Views" : "การเข้าดู");
+                    const active = eventType === kind;
+                    return (
+                      <Button
+                        key={kind || "all"}
+                        size="sm"
+                        variant={active ? "solid" : "flat"}
+                        color={active ? "primary" : "default"}
+                        onPress={() => setEventType(kind)}
+                        className={active ? "text-white" : "text-default-600"}
+                        startContent={
+                          kind === "access"
+                            ? <Icon icon="solar:eye-linear" className="text-sm" />
+                            : kind === "changes"
+                              ? <Icon icon="solar:pen-2-linear" className="text-sm" />
+                              : undefined
+                        }
+                      >
+                        {label}
+                      </Button>
+                    );
+                  })}
+
+                  <div className="ml-auto flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant={actorRole === "admin" ? "solid" : "flat"}
+                      color={actorRole === "admin" ? "danger" : "default"}
+                      className={actorRole === "admin" ? "text-white" : "text-default-600"}
+                      startContent={<Icon icon="solar:shield-warning-linear" className="text-sm" />}
+                      onPress={() => setActorRole((prev) => (prev === "admin" ? "" : "admin"))}
+                    >
+                      {isEnglish ? "Admins only" : "เฉพาะแอดมิน"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      className="text-default-600"
+                      startContent={
+                        <Icon
+                          icon={viewMode === "table" ? "solar:calendar-linear" : "solar:list-linear"}
+                          className="text-sm"
+                        />
+                      }
+                      onPress={() => setViewMode((prev) => (prev === "table" ? "timeline" : "table"))}
+                    >
+                      {viewMode === "table"
+                        ? (isEnglish ? "Timeline" : "มุมมองไทม์ไลน์")
+                        : (isEnglish ? "Table" : "มุมมองตาราง")}
+                    </Button>
+                  </div>
+                </div>
+
                 {/* Date preset row */}
                 <div className="flex flex-wrap gap-2 items-center">
                   <span className="text-xs text-default-500 shrink-0">{isEnglish ? "Period:" : "ช่วงเวลา:"}</span>
@@ -703,8 +820,42 @@ export default function ActivityLogTab({ courseId, courseCode }: ActivityLogTabP
                   <Icon icon="solar:clipboard-list-linear" className="mx-auto mb-3 text-5xl text-default-300" />
                   <p className="text-default-500">{isEnglish ? "No activity logs yet." : "ยังไม่มีบันทึกกิจกรรม"}</p>
                 </div>
+              ) : viewMode === "timeline" ? (
+                <div className="px-1 py-2">
+                  <ActivityTimelineList
+                    logs={logs}
+                    isEnglish={isEnglish}
+                    categoryConfig={categoryConfig}
+                    actionLabels={actionLabels}
+                    getRoleLabel={getRoleLabel}
+                    onSelect={setSelectedLog}
+                    onSubjectSelect={focusSubject}
+                  />
+                  <TablePaginationFooter
+                    totalItems={pagination.total}
+                    currentPage={pagination.page}
+                    rowsPerPage={rowsPerPage}
+                    totalPages={Math.max(1, pagination.totalPages)}
+                    isEnglish={isEnglish}
+                    nounEnglish="activity"
+                    nounEnglishPlural="activities"
+                    nounThai="รายการ"
+                    rowsPerPageOptions={[10, 20, 30, 50]}
+                    onPageChange={(nextPage) => {
+                      void fetchLogs(nextPage);
+                    }}
+                    onRowsPerPageChange={(nextRows) => {
+                      setRowsPerPage(nextRows);
+                      void fetchLogs(1, nextRows);
+                    }}
+                  />
+                </div>
               ) : (
-                <div className="overflow-x-auto">
+                <div
+                  ref={scrollRef}
+                  data-overflow={hasOverflow ? "true" : "false"}
+                  className={STICKY_SCROLL_CONTAINER_CLASS}
+                >
                 <Table
                   aria-label="Activity log table"
                   removeWrapper
@@ -722,31 +873,60 @@ export default function ActivityLogTab({ courseId, courseCode }: ActivityLogTabP
                     <TableColumn className="min-w-37.5">{isEnglish ? "Target" : "เป้าหมาย"}</TableColumn>
                     <TableColumn className="min-w-35">{isEnglish ? "Details" : "รายละเอียด"}</TableColumn>
                     <TableColumn className="min-w-30">{isEnglish ? "Time" : "เวลา"}</TableColumn>
+                    <TableColumn align="center" className={`${STICKY_ACTION_HEADER_CLASS} min-w-20`}>
+                      {isEnglish ? "Detail" : "รายละเอียด"}
+                    </TableColumn>
                   </TableHeader>
                   <TableBody>
                     {logs.map((log) => {
                       const catConf = categoryConfig[log.category] || categoryConfig.general;
                       const chipColor = categoryChipColor[log.category] || "default";
-                      const detailText = getDetailText(log.detail as Record<string, unknown>, isEnglish);
+                      const { changes: changeParts, summary: detailText } = splitDetailParts(log, isEnglish);
+                      const targetText = formatTarget(log, isEnglish);
+                      const deviceText = formatDevice(log, isEnglish);
+                      const outsiderAdmin = isOutsiderAdminView(log);
+                      const systemDetected = isSystemDetectedEvent(log);
 
                       return (
-                        <TableRow key={log.id}>
+                        <TableRow
+                          key={log.id}
+                          className={outsiderAdmin ? "bg-danger-50/60 dark:bg-danger-100/10" : undefined}
+                        >
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <Avatar
-                                name={log.actor?.full_name || "Unknown"}
-                                size="sm"
-                                src={log.actor?.avatar || undefined}
-                                className={`shrink-0 ${catConf.bgClass} `}
-                              />
+                              {systemDetected ? (
+                                <div className={`flex size-8 shrink-0 items-center justify-center rounded-full ${catConf.bgClass}`}>
+                                  <Icon icon="solar:shield-check-bold" width={16} className={catConf.iconClass} />
+                                </div>
+                              ) : (
+                                <Avatar
+                                  name={log.actor?.full_name || "Unknown"}
+                                  size="sm"
+                                  src={log.actor?.avatar || undefined}
+                                  className={`shrink-0 ${catConf.bgClass} `}
+                                />
+                              )}
                               <div>
                                 <p className="text-sm font-medium text-foreground">
-                                  {log.actor?.full_name || "Unknown"}
+                                  {systemDetected
+                                    ? (targetText || (isEnglish ? "Student" : "นักศึกษา"))
+                                    : (log.actor?.full_name || (isEnglish ? "Unknown user" : "ไม่ทราบผู้ใช้"))}
                                 </p>
-                                {(log.actor_role || log.actor?.role) === "admin" ? (
+                                {systemDetected ? (
+                                    <span className="text-xs text-default-400">
+                                      {isEnglish ? "detected by the system" : "ระบบตรวจพบ"}
+                                    </span>
+                                ) : (log.actor_role || log.actor?.role) === "admin" ? (
                                     <span className="inline-flex items-center gap-1 text-xs font-semibold text-danger-600 dark:text-danger-400">
                                         <Icon icon="solar:shield-warning-bold" width={12} />
                                         {getRoleLabel(log.actor_role || log.actor?.role)}
+                                        {outsiderAdmin && (
+                                          <Tooltip content={isEnglish ? "This admin is not an instructor or TA on this course." : "แอดมินคนนี้ไม่ได้เป็นอาจารย์หรือผู้ช่วยสอนในรายวิชานี้"}>
+                                            <span className="rounded-md bg-danger-100 px-1 py-px text-[10px] font-semibold text-danger-700 dark:bg-danger-100/20 dark:text-danger-400">
+                                              {isEnglish ? "outside course" : "นอกรายวิชา"}
+                                            </span>
+                                          </Tooltip>
+                                        )}
                                     </span>
                                 ) : (
                                     <p className="text-xs text-default-400">
@@ -755,6 +935,9 @@ export default function ActivityLogTab({ courseId, courseCode }: ActivityLogTabP
                                 )}
                                 {log.ip_address && (
                                   <p className="text-xs text-default-300 font-mono">{log.ip_address}</p>
+                                )}
+                                {(log.browser || log.os) && (
+                                  <p className="text-xs text-default-300">{deviceText}</p>
                                 )}
                               </div>
                             </div>
@@ -771,28 +954,71 @@ export default function ActivityLogTab({ courseId, courseCode }: ActivityLogTabP
                             </div>
                           </TableCell>
                           <TableCell>
-                            {log.target_name ? (
-                              <Tooltip content={log.target_name}>
-                                <span className="block max-w-37.5 truncate text-sm text-default-700">
-                                  {log.target_name}
-                                </span>
+                            {targetText ? (
+                              <Tooltip
+                                content={
+                                  log.target_ref
+                                    ? (isEnglish ? "Show everything about this" : "ดูทุกอย่างที่เกี่ยวกับรายการนี้")
+                                    : targetText
+                                }
+                              >
+                                {log.target_ref ? (
+                                  <button
+                                    type="button"
+                                    className="block max-w-37.5 truncate text-left text-sm text-primary-600 hover:underline"
+                                    onClick={() => log.target_ref && focusSubject(log.target_ref)}
+                                  >
+                                    {targetText}
+                                  </button>
+                                ) : (
+                                  <span className="block max-w-37.5 truncate text-sm text-default-700">
+                                    {targetText}
+                                  </span>
+                                )}
                               </Tooltip>
                             ) : (
                               <span className="text-default-300">-</span>
                             )}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="whitespace-normal">
+                            {changeParts.map((part) => (
+                              <div key={part.key} className="mb-1 flex flex-wrap items-center gap-1 text-xs">
+                                <span className="text-default-400">{part.label}</span>
+                                <span className="text-default-400 line-through">{part.change?.from}</span>
+                                <Icon icon="solar:arrow-right-linear" width={12} className="text-default-400" />
+                                <span className={part.tone === "score" ? "font-semibold text-amber-600" : "font-medium text-success-600"}>
+                                  {part.change?.to}
+                                </span>
+                              </div>
+                            ))}
                             {detailText ? (
-                              <span className="text-xs text-default-500">{detailText}</span>
-                            ) : (
+                              <Tooltip content={detailText} className="max-w-xs">
+                                <span className="line-clamp-2 block max-w-60 text-xs text-default-500">
+                                  {detailText}
+                                </span>
+                              </Tooltip>
+                            ) : changeParts.length === 0 ? (
                               <span className="text-default-300">-</span>
-                            )}
+                            ) : null}
                           </TableCell>
                           <TableCell>
                             <Tooltip content={new Date(log.created_at).toLocaleString(isEnglish ? "en-US" : "th-TH")}>
                               <span className="whitespace-nowrap text-sm text-default-500">
                                 {formatDate(log.created_at, isEnglish)}
                               </span>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell className={STICKY_ACTION_CELL_CLASS}>
+                            <Tooltip content={isEnglish ? "View full detail" : "ดูรายละเอียดทั้งหมด"}>
+                              <Button
+                                isIconOnly
+                                size="sm"
+                                variant="light"
+                                aria-label={isEnglish ? "View full detail" : "ดูรายละเอียดทั้งหมด"}
+                                onPress={() => setSelectedLog(log)}
+                              >
+                                <Icon icon="solar:document-text-linear" className="text-lg text-default-500" />
+                              </Button>
                             </Tooltip>
                           </TableCell>
                         </TableRow>
@@ -1138,7 +1364,7 @@ export default function ActivityLogTab({ courseId, courseCode }: ActivityLogTabP
                 </div>
 
                 {/* Active filters notice */}
-                {(category || action || actorId || searchText) && (
+                {(category || action || actorId || searchText || actorRole || subject || eventType) && (
                   <div className="rounded-xl bg-blue-50 border border-blue-200 p-3">
                     <p className="text-xs font-semibold text-blue-700 mb-1.5">
                       {isEnglish ? "3. Active filters (will be applied to export)" : "3. ตัวกรองที่ใช้งานอยู่ (จะส่งออกเฉพาะข้อมูลที่ผ่านตัวกรองนี้)"}
@@ -1148,6 +1374,15 @@ export default function ActivityLogTab({ courseId, courseCode }: ActivityLogTabP
                       {action && <Chip size="sm" variant="flat" color="secondary">{actionLabels[action] || action}</Chip>}
                       {actorId && <Chip size="sm" variant="flat" color="default">{filters?.actors.find((a) => String(a.id) === actorId)?.fullName || actorId}</Chip>}
                       {searchText && <Chip size="sm" variant="flat" color="warning">&ldquo;{searchText}&rdquo;</Chip>}
+                      {eventType && (
+                        <Chip size="sm" variant="flat" color="primary">
+                          {eventType === "access"
+                            ? (isEnglish ? "Views only" : "เฉพาะการเข้าดู")
+                            : (isEnglish ? "Changes only" : "เฉพาะการแก้ไข")}
+                        </Chip>
+                      )}
+                      {actorRole && <Chip size="sm" variant="flat" color="danger">{getRoleLabel(actorRole)}</Chip>}
+                      {subject && <Chip size="sm" variant="flat" color="secondary">{subject.label}</Chip>}
                     </div>
                   </div>
                 )}
@@ -1180,6 +1415,29 @@ export default function ActivityLogTab({ courseId, courseCode }: ActivityLogTabP
           )}
         </ModalContent>
       </Modal>
+
+      {/* ============================================ */}
+      {/* Detail Drill-down Modal                      */}
+      {/* ============================================ */}
+      <ActivityLogDetailModal
+        log={selectedLog}
+        isOpen={selectedLog !== null}
+        onClose={() => setSelectedLog(null)}
+        isEnglish={isEnglish}
+        actionLabel={selectedLog ? (actionLabels[selectedLog.action] || selectedLog.action) : ""}
+        categoryLabel={
+          selectedLog
+            ? (categoryConfig[selectedLog.category] || categoryConfig.general).label
+            : ""
+        }
+        categoryIcon={
+          selectedLog
+            ? (categoryConfig[selectedLog.category] || categoryConfig.general).icon
+            : "solar:info-circle-bold"
+        }
+        roleLabel={getRoleLabel(selectedLog?.actor_role || selectedLog?.actor?.role)}
+        onSubjectSelect={focusSubject}
+      />
     </div>
   );
 }

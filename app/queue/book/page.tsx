@@ -43,7 +43,9 @@ interface BookingResult {
     queue_number: number;
     session_title: string;
     booking_type: string;
-    desk_number: string;
+    // number over the wire (models.QueueBooking.DeskNumber is an int),
+    // string when this page fills it in from the form field
+    desk_number: number | string;
     status: string;
     is_late_booking?: boolean;
     late_reason?: string;
@@ -53,7 +55,7 @@ interface BookingStatus {
     id: number;
     queue_number: number;
     booking_type: string;
-    desk_number: string;
+    desk_number: number | string;
     status: string;
     assigned_worker_id?: number | null;
     position_in_queue: number;
@@ -1426,7 +1428,10 @@ function BookQueueContent() {
             setStep("form");
             if (keepDesk) {
                 if (loggedInUser) setStudentId(loggedInUser.username ?? "");
-                setDeskNumber(status.desk_number || "");
+                // The API sends desk_number as a JSON number; this state feeds a
+                // text input and String.trim() on submit, so it must be a string
+                // or the next "จองคิว" press throws and the button looks dead.
+                setDeskNumber(status.desk_number == null ? "" : String(status.desk_number));
                 setBookingType(status.booking_type === "help" ? "help" : "grading");
                 setNote("");
                 setShowNote(false);

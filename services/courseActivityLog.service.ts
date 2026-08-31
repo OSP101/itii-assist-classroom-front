@@ -17,6 +17,34 @@ export interface ActivityLogActor {
   avatar?: string | null;
 }
 
+/**
+ * The two kinds of row stored in the activity log: things that changed the
+ * course, and the read audit recording who opened what.
+ */
+export type ActivityEventType = "" | "changes" | "access";
+
+/** The category the backend uses for read-audit rows. */
+export const ACCESS_CATEGORY = "access";
+
+/**
+ * One field's value before and after an update, written into `detail.changes`
+ * by the backend's diff. Either side is null when the field had no value.
+ */
+export interface FieldChange {
+  from: unknown;
+  to: unknown;
+}
+
+/** A detail value the backend resolved from a raw foreign key into a name. */
+export interface ResolvedRef {
+  /** Entity kind: student, user, section, assignment, sub_item, group, classroom, exam_setting, attendance_session, queue_session */
+  type: string;
+  id: string;
+  label: string;
+  /** Secondary line: student code, email, building, exam component, ... */
+  sub?: string;
+}
+
 export interface ActivityLog {
   id: number;
   course_id: string;
@@ -29,8 +57,18 @@ export interface ActivityLog {
   target_id: string | null;
   target_name: string | null;
   detail: Record<string, unknown> | null;
+  /**
+   * Detail keys whose IDs were resolved to entities. Same keys as `detail`.
+   * The `changes` key resolves to `{field: {from?: ResolvedRef, to?: ResolvedRef}}`.
+   */
+  resolved?: Record<string, ResolvedRef | ResolvedRef[] | Record<string, { from?: ResolvedRef; to?: ResolvedRef }>> | null;
+  /** The log target resolved to an entity, when the target type is lookupable. */
+  target_ref?: ResolvedRef | null;
   ip_address?: string;
   user_agent?: string;
+  device_type?: string;
+  browser?: string;
+  os?: string;
   created_at: string;
   actor?: ActivityLogActor;
 }
@@ -213,9 +251,16 @@ export interface TADetailData {
 export const exportActivityLogs = async (
   courseId: string,
   params: {
+    /** '' = both kinds, 'changes' = mutations only, 'access' = read audit only */
+    eventType?: ActivityEventType;
     category?: string;
     action?: string;
     actorId?: string;
+    actorRole?: string;
+    /** Entity kind to narrow to, e.g. "student" (a ResolvedRef.type). */
+    subjectType?: string;
+    /** That entity's id. Both must be set for the filter to apply. */
+    subjectId?: string;
     startDate?: string;
     endDate?: string;
     search?: string;
@@ -239,9 +284,16 @@ export const getActivityLogs = async (
   params: {
     page?: number;
     limit?: number;
+    /** '' = both kinds, 'changes' = mutations only, 'access' = read audit only */
+    eventType?: ActivityEventType;
     category?: string;
     action?: string;
     actorId?: string;
+    actorRole?: string;
+    /** Entity kind to narrow to, e.g. "student" (a ResolvedRef.type). */
+    subjectType?: string;
+    /** That entity's id. Both must be set for the filter to apply. */
+    subjectId?: string;
     startDate?: string;
     endDate?: string;
     search?: string;
