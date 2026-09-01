@@ -423,6 +423,11 @@ export default function InstructorLayout({
             refreshCourses
         }}>
             <div data-auth-shell="true" className="flex min-h-screen flex-col bg-background text-foreground">
+                {/* Announcement ribbon sits above the header: it is a notice about
+                    the whole site, so it reads as the topmost row of the page
+                    rather than something inside the app chrome. */}
+                <GlobalAnnouncementTopbar />
+
                 {/* Top Navigation Bar - Shared Header */}
                 <header className="sticky top-0 z-50 border-b border-divider bg-content1">
                     <div className="flex items-center justify-between h-12 px-4">
@@ -789,8 +794,6 @@ export default function InstructorLayout({
                         </div>
                     </div>
                 </header>
-
-                <GlobalAnnouncementTopbar />
 
                 {/* Main Content */}
                 <main className={`w-full flex-1 ${isHomePage ? "max-w-7xl mx-auto px-4 py-6" : ""}`}>

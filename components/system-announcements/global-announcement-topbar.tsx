@@ -48,8 +48,12 @@ export function GlobalAnnouncementTopbar() {
     const isAcknowledging = acknowledgingIds.has(current.id);
 
     return (
-        <div className={`w-full ${style.bar} ${style.text}`}>
-            <div className="mx-auto flex w-full max-w-7xl items-center gap-2 px-4 py-2 text-sm">
+        <div className={`relative w-full ${style.bar} ${style.text}`}>
+            {/* The notice itself is centred on the screen; the close cross is
+                pinned to the right edge instead of riding along at the end of
+                the row, which is what pushed the text off-centre. The
+                horizontal padding reserves room for it. */}
+            <div className="mx-auto flex w-full max-w-7xl items-center justify-center gap-2 px-12 py-2 text-center text-sm">
                 <Icon icon={style.icon} className="hidden shrink-0 text-base sm:block" />
 
                 <span className={`hidden shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold sm:inline ${style.badge}`}>
@@ -59,7 +63,7 @@ export function GlobalAnnouncementTopbar() {
                 {/* The message stays on one line: a ribbon that wraps to three
                     lines stops being a ribbon. The full text is always in the
                     notification inbox. */}
-                <span className="min-w-0 flex-1 truncate">
+                <span className="min-w-0 truncate">
                     <span className="font-medium sm:hidden">{getLocalizedTitle(current)} </span>
                     {message}
                 </span>
@@ -97,17 +101,18 @@ export function GlobalAnnouncementTopbar() {
                     </button>
                 )}
 
-                {current.is_dismissible && !current.require_acknowledge ? (
-                    <button
-                        type="button"
-                        onClick={() => dismiss(current.id)}
-                        className="shrink-0 rounded-md p-1 opacity-80 hover:bg-white/20 hover:opacity-100"
-                        aria-label={t("dismiss")}
-                    >
-                        <Icon icon="solar:close-circle-linear" className="text-base" />
-                    </button>
-                ) : null}
             </div>
+
+            {current.is_dismissible && !current.require_acknowledge ? (
+                <button
+                    type="button"
+                    onClick={() => dismiss(current.id)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 opacity-80 hover:bg-white/20 hover:opacity-100"
+                    aria-label={t("dismiss")}
+                >
+                    <Icon icon="solar:close-circle-linear" className="text-base" />
+                </button>
+            ) : null}
         </div>
     );
 }

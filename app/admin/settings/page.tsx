@@ -287,8 +287,14 @@ export default function AdminSettingsPage() {
     // re-uploading it; revoked when the composer resets.
     const announcementImageBlobUrlRef = useRef<string>("");
 
-    const loadAllSettings = async () => {
-        setIsLoading(true);
+    const loadAllSettings = async (options?: { silent?: boolean }) => {
+        // A silent refresh leaves the page mounted. The full-page loading state
+        // replaces this screen with a skeleton, which unmounts every open modal
+        // along with it — fine on first load, destructive as a post-save
+        // refresh.
+        if (!options?.silent) {
+            setIsLoading(true);
+        }
         const [backupRows, backupStatusRow, announcementRows, flags, maintenanceCfg, health] = await Promise.all([
             adminSettingsService.getBackups(),
             adminSettingsService.getBackupStatus(),
@@ -314,7 +320,9 @@ export default function AdminSettingsPage() {
             }
         }).catch(() => {});
 
-        setIsLoading(false);
+        if (!options?.silent) {
+            setIsLoading(false);
+        }
     };
 
     useEffect(() => {
@@ -717,7 +725,7 @@ export default function AdminSettingsPage() {
             setRestoreConfirmInput("");
             setRestoreAcknowledgeOverwrite(false);
             setRestoreReason("");
-            await loadAllSettings();
+            await loadAllSettings({ silent: true });
             addToast({ title: t("success"), description: t("adminBackupRestoreSuccessWithSnapshot"), color: "success" });
         });
 
@@ -733,7 +741,7 @@ export default function AdminSettingsPage() {
                 setRestoreConfirmInput("");
                 setRestoreAcknowledgeOverwrite(false);
                 setRestoreReason("");
-                await loadAllSettings();
+                await loadAllSettings({ silent: true });
                 addToast({ title: t("success"), description: t("adminBackupRestoreSuccessWithSnapshot"), color: "success" });
             });
         }
@@ -854,8 +862,8 @@ export default function AdminSettingsPage() {
                     return false;
                 }
 
-                resetAnnouncementComposer();
-                await loadAllSettings();
+                closeAnnouncementComposer();
+                await loadAllSettings({ silent: true });
                 addToast({
                     title: t("success"),
                     description: t("adminAnnouncementBatchCreated", { count: created.length }),
@@ -871,8 +879,8 @@ export default function AdminSettingsPage() {
                 addToast({ title: t("error"), description: t("adminSettingsUpdateFailed"), color: "danger" });
                 return false;
             }
-            resetAnnouncementComposer();
-            await loadAllSettings();
+            closeAnnouncementComposer();
+            await loadAllSettings({ silent: true });
             addToast({
                 title: t("success"),
                 description: wasEditing ? t("adminAnnouncementUpdated") : t("adminAnnouncementCreated"),
@@ -912,7 +920,7 @@ export default function AdminSettingsPage() {
             addToast({ title: t("error"), description: t("adminAnnouncementStatusUpdateFailed"), color: "danger" });
             return;
         }
-        await loadAllSettings();
+        await loadAllSettings({ silent: true });
         addToast({ title: t("success"), description: t("adminAnnouncementStatusUpdated"), color: "success" });
     };
 
@@ -924,7 +932,7 @@ export default function AdminSettingsPage() {
             addToast({ title: t("error"), description: t("adminAnnouncementDeleteFailed"), color: "danger" });
             return;
         }
-        await loadAllSettings();
+        await loadAllSettings({ silent: true });
         addToast({ title: t("success"), description: t("adminAnnouncementDeleted"), color: "success" });
     };
 

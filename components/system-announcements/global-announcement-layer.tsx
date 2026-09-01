@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@heroui/button";
 import { Icon } from "@iconify/react";
 import { useAnnouncementViewer } from "@/hooks/useAnnouncementViewer";
@@ -42,6 +43,15 @@ export function GlobalAnnouncementLayer() {
   // dismissible; for those the close is remembered only until the next page
   // load rather than recorded on the server.
   const [locallyHiddenIds, setLocallyHiddenIds] = useState<Set<number>>(new Set());
+  // The blocking overlays are portalled to <body>, so no ancestor of wherever
+  // this component happens to be mounted can capture their clicks or trap them
+  // in a stacking context. A full-screen announcement nobody can close is the
+  // worst failure this component has, so it does not rely on the tree above it.
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Every fullscreen announcement is shown, one after another, instead of only
   // whichever one happened to sort first. Both fullscreen shapes queue
@@ -86,13 +96,38 @@ export function GlobalAnnouncementLayer() {
 
   const fullscreenAnnouncement = fullscreenAnnouncements[fullscreenIndex];
 
-  const closeFullscreenImage = (item: VisibleAnnouncement) => {
-    if (item.is_dismissible) {
-      dismiss(item.id);
+  // Every full-screen announcement can be closed, whatever it was configured
+  // with. A dismissible one is recorded on the server; anything else is hidden
+  // only until the next page load. The one exception is an announcement that
+  // requires acknowledgement, which closes by being acknowledged.
+  const closeFullscreen = useCallback(
+    (item: VisibleAnnouncement) => {
+      if (item.is_dismissible && !item.require_acknowledge) {
+        dismiss(item.id);
+        return;
+      }
+      setLocallyHiddenIds((prev) => new Set([...prev, item.id]));
+    },
+    [dismiss],
+  );
+
+  // Escape is the reflex when something covers the screen, so it works here
+  // too.
+  useEffect(() => {
+    const current = fullscreenAnnouncements[fullscreenIndex];
+    if (!current || current.require_acknowledge) {
       return;
     }
-    setLocallyHiddenIds((prev) => new Set([...prev, item.id]));
-  };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeFullscreen(current);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [closeFullscreen, fullscreenAnnouncements, fullscreenIndex]);
 
   const renderActionButtons = (item: VisibleAnnouncement, mode: AnnouncementDisplayMode) => {
     const isOverlay = mode !== "banner_top";
@@ -216,8 +251,8 @@ export function GlobalAnnouncementLayer() {
         </div>
       )}
 
-      {fullscreenAnnouncement && (
-        <div className={`fixed inset-0 z-120 flex items-center justify-center bg-black/85 ${isFullBleedImage ? "" : "p-4"}`}>
+      {fullscreenAnnouncement && isMounted && createPortal(
+        <div className={`fixed inset-0 z-9999 flex items-center justify-center bg-black/85 ${isFullBleedImage ? "" : "p-4"}`}>
           {isFullBleedImage ? (
             /* Nothing but the poster. It already carries the wording, so a
                caption bar over the bottom of it would only cover the part of
@@ -278,7 +313,7 @@ export function GlobalAnnouncementLayer() {
               ) : (
                 <button
                   type="button"
-                  onClick={() => closeFullscreenImage(fullscreenAnnouncement)}
+                  onClick={() => closeFullscreen(fullscreenAnnouncement)}
                   className="absolute right-4 top-4 rounded-full bg-black/60 p-2 text-white backdrop-blur transition hover:bg-black/80"
                   aria-label={t("dismiss")}
                 >
@@ -287,8 +322,18 @@ export function GlobalAnnouncementLayer() {
               )}
             </div>
           ) : (
-            <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-black/60 p-5 text-white backdrop-blur">
-              <div className="space-y-3">
+            <div className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-black/60 p-5 text-white backdrop-blur">
+              {!fullscreenAnnouncement.require_acknowledge && (
+                <button
+                  type="button"
+                  onClick={() => closeFullscreen(fullscreenAnnouncement)}
+                  className="absolute right-3 top-3 rounded-full bg-black/50 p-1.5 text-white transition hover:bg-black/80"
+                  aria-label={t("dismiss")}
+                >
+                  <Icon icon="solar:close-circle-linear" className="text-xl" />
+                </button>
+              )}
+              <div className="space-y-3 pr-10">
                 <div className="flex flex-wrap items-center gap-2">
                   <Icon
                     icon={getAnnouncementSeverityStyle(fullscreenAnnouncement.severity).icon}
@@ -333,21 +378,25 @@ export function GlobalAnnouncementLayer() {
               </div>
             </div>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
 
-      <AnnouncementCornerCard
-        items={cornerAnnouncements}
-        index={cornerIndex}
-        onNext={() => setCornerIndex((prev) => (prev + 1) % cornerAnnouncements.length)}
-        onDismiss={dismiss}
-        onAcknowledge={(item) => void acknowledge(item)}
-        acknowledgingIds={acknowledgingIds}
-        getTitle={getLocalizedTitle}
-        getMessage={getLocalizedMessage}
-        getActionLabel={getLocalizedActionLabel}
-        t={t}
-      />
+      {isMounted && createPortal(
+        <AnnouncementCornerCard
+          items={cornerAnnouncements}
+          index={cornerIndex}
+          onNext={() => setCornerIndex((prev) => (prev + 1) % cornerAnnouncements.length)}
+          onDismiss={dismiss}
+          onAcknowledge={(item) => void acknowledge(item)}
+          acknowledgingIds={acknowledgingIds}
+          getTitle={getLocalizedTitle}
+          getMessage={getLocalizedMessage}
+          getActionLabel={getLocalizedActionLabel}
+          t={t}
+        />,
+        document.body,
+      )}
     </>
   );
 }
