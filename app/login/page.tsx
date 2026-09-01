@@ -404,9 +404,9 @@ export default function LoginPage() {
 
                     {/* TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN — ทางสำรองระหว่างรอสำนักอัปเดตข้อมูลใน SSO
                         ลบทั้งบล็อกนี้เมื่อข้อมูลครบแล้ว ดู lib/auth-providers.ts */}
-                    {loginProviderMode === "kku" && TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN ? (
+                    {/* {loginProviderMode === "kku" && TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN ? (
                             <GoogleSignInButton onPress={handleGoogleLogin} />
-                    ) : null}
+                    ) : null} */}
 
                     {LEGACY_SOCIAL_LOGIN_ENABLED ? (
                         <div className={`mt-2 grid gap-2 ${isStudentLoginMode ? "grid-cols-1" : "grid-cols-2"}`}>

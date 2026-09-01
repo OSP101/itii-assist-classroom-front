@@ -12,6 +12,10 @@ import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket
 import attendanceService, { AttendanceRequestError, type AttendanceSession } from "@/services/attendance.service";
 import { authService } from "@/services/auth.service";
 import { storeOAuthReturnPath } from "@/lib/auth-resume";
+import { TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN } from "@/lib/auth-providers";
+import { useLoginProviderMode } from "@/hooks/useLoginProviderMode";
+import { KKULogoMark } from "@/components/auth/KKUSSOButton";
+import { GoogleLogoMark } from "@/components/auth/GoogleSignInButton";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { useI18n } from "@/hooks/useI18n";
 import { useAttendancePinPresentation } from "@/hooks/useAttendancePinPresentation";
@@ -19,7 +23,7 @@ import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
 import { collectClientDeviceSignals, type ClientDeviceSignals } from "@/lib/device-signals";
 
 // Check-in step type
-type Step = "loading" | "redirecting" | "session-info" | "google-login" | "location" | "pin-entry" | "success" | "error" | "already-checked-in" | "blocked";
+type Step = "loading" | "redirecting" | "session-info" | "sign-in" | "location" | "pin-entry" | "success" | "error" | "already-checked-in" | "blocked";
 
 type NetworkGuardCheck = "device" | "network" | "domain";
 
@@ -69,6 +73,9 @@ export default function StudentCheckInPage() {
     const sessionId = Number(params.sessionId);
     const { language } = useGlobalSettings();
     const t = useI18n();
+    // ช่องทางล็อกอินหลักของโดเมนนี้ หน้านี้ถูกบังคับให้อยู่บนโดเมนของคณะอยู่แล้ว
+    // (ดู useEffect ด้านล่าง) แต่ยังใช้ฮุกเดียวกับหน้าอื่นเพื่อให้ตรงกันเสมอ
+    const loginProviderMode = useLoginProviderMode();
     const locale = language === "en" ? "en-US" : "th-TH";
 
     // State
@@ -227,7 +234,7 @@ export default function StudentCheckInPage() {
                         }
                     }
 
-                    setStep("google-login");
+                    setStep("sign-in");
                 } else if (data.status === "closed") {
                     setErrorTitle(t("accessUnavailable"));
                     setErrorMessage(t("sessionClosedAlready"));
@@ -290,6 +297,12 @@ export default function StudentCheckInPage() {
     const handleGoogleLogin = () => {
         storeOAuthReturnPath(`/check-in/${sessionId}`);
         window.location.href = authService.getGoogleAuthUrl("student");
+    };
+
+    // KKU SSO ใช้การ redirect เต็มหน้าเหมือนกัน จึงทำงานได้ในเบราว์เซอร์ของแอปสแกน QR
+    const handleKKULogin = () => {
+        storeOAuthReturnPath(`/check-in/${sessionId}`);
+        window.location.href = authService.getKKUAuthUrl("student");
     };
 
     // Get current location
@@ -368,7 +381,7 @@ export default function StudentCheckInPage() {
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
             });
-            setStep("google-login");
+            setStep("sign-in");
             return;
         }
 
@@ -640,8 +653,8 @@ export default function StudentCheckInPage() {
     const deviceBlocked = blockedReasons.includes("device");
 
     // Which of the three preparation steps the student is on.
-    const flowSteps: Array<"google-login" | "location" | "pin-entry"> = [
-        ...(!authService.isAuthenticated() ? (["google-login"] as const) : []),
+    const flowSteps: Array<"sign-in" | "location" | "pin-entry"> = [
+        ...(!authService.isAuthenticated() ? (["sign-in"] as const) : []),
         ...(session?.check_location ? (["location"] as const) : []),
         "pin-entry",
     ];
@@ -842,14 +855,28 @@ export default function StudentCheckInPage() {
                     <SessionCard />
 
                     {/* ── sign in ── */}
-                    {step === "google-login" && (
+                    {step === "sign-in" && (
                         <>
                             <div className="cg-card flex flex-col items-center gap-4 text-center">
-                                <span className="cg-state-badge" style={{ background: "var(--cg-accent-soft)", color: "var(--cg-accent)" }}>
-                                    <Icon icon="solar:user-circle-linear" width={40} height={40} />
+                                <span
+                                    className="cg-state-badge"
+                                    // ตราของผู้ให้บริการต้องอยู่บนพื้นขาวเสมอ ไม่งั้นจมในโหมดมืด
+                                    style={loginProviderMode === null
+                                        ? { background: "var(--cg-accent-soft)", color: "var(--cg-accent)" }
+                                        : { background: "#fff", color: "var(--cg-accent)" }}
+                                >
+                                    {loginProviderMode === "kku"
+                                        ? <KKULogoMark className="h-9" />
+                                        : loginProviderMode === "google"
+                                        ? <GoogleLogoMark className="h-8 w-8" />
+                                        : <Icon icon="solar:user-circle-linear" width={40} height={40} />}
                                 </span>
                                 <div>
-                                    <h2 className="text-[17px] font-medium leading-relaxed">{t("signInWithGoogle")}</h2>
+                                    <h2 className="text-[17px] font-medium leading-relaxed">
+                                        {loginProviderMode === "google"
+                                            ? (isEn ? "Sign in with your Google account" : "เข้าสู่ระบบด้วยบัญชี Google")
+                                            : (isEn ? "Sign in with your KKU account" : "เข้าสู่ระบบด้วยบัญชี KKU")}
+                                    </h2>
                                     <p className="mt-1 text-[12.5px] font-light leading-relaxed" style={{ color: "var(--cg-text-2)" }}>
                                         {t("useStudentEmail")}
                                     </p>
@@ -859,9 +886,35 @@ export default function StudentCheckInPage() {
                                 </p>
                             </div>
                             <div className="cg-task-cta">
-                                <button type="button" className="cg-btn" onClick={handleGoogleLogin}>
-                                    {t("signInWithGoogle")}
-                                </button>
+                                {loginProviderMode === "google" ? (
+                                    <button type="button" className="cg-btn" onClick={handleGoogleLogin}>
+                                        Login with Google Account
+                                    </button>
+                                ) : (
+                                    <button type="button" className="cg-btn" onClick={handleKKULogin}>
+                                        Login with KKU Account
+                                    </button>
+                                )}
+
+                                {/* TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN — ทางสำรองระหว่างรอสำนักอัปเดตข้อมูลใน SSO
+                                    ลบทั้งบล็อกนี้เมื่อข้อมูลครบแล้ว ดู lib/auth-providers.ts */}
+                                {loginProviderMode === "kku" && TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN && (
+                                    <>
+                                        <p className="px-1 text-center text-[11.5px] font-light leading-relaxed" style={{ color: "var(--cg-text-3)" }}>
+                                            {isEn
+                                                ? "If KKU SSO does not recognise your account yet, use Google instead."
+                                                : "ถ้า KKU SSO ยังไม่มีข้อมูลของคุณ ให้ใช้ช่องทางสำรองด้านล่างไปก่อน"}
+                                        </p>
+                                        <button
+                                            type="button"
+                                            className="cg-btn-ghost inline-flex items-center justify-center gap-2"
+                                            onClick={handleGoogleLogin}
+                                        >
+                                            <GoogleLogoMark className="h-4 w-4" />
+                                            Login with Google Account
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </>
                     )}
