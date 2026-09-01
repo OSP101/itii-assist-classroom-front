@@ -779,8 +779,8 @@ export default function ExamScoresTab({
                             </div>
                             <p className="mb-3 text-sm text-default-600">{isEnglish ? "Copy the Excel data in this column order:" : "คัดลอกข้อมูลจาก Excel โดยเรียงคอลัมน์ดังนี้:"}</p>
                             <div className="flex flex-wrap gap-2 mb-3">
-                                <Chip size="sm" variant="flat" className="bg-blue-100 text-blue-700">{isEnglish ? "Column A: Student ID" : "คอลัมน์ A: รหัสนักศึกษา"}</Chip>
-                                <Chip size="sm" variant="flat" className="bg-emerald-100 text-emerald-700">{isEnglish ? "Column B: Score" : "คอลัมน์ B: คะแนน"}</Chip>
+                                <Chip size="sm" variant="flat" className="bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">{isEnglish ? "Column A: Student ID" : "คอลัมน์ A: รหัสนักศึกษา"}</Chip>
+                                <Chip size="sm" variant="flat" className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">{isEnglish ? "Column B: Score" : "คอลัมน์ B: คะแนน"}</Chip>
                             </div>
                             <div className="flex items-start gap-2 text-xs text-default-500">
                                 <Icon icon="solar:lightbulb-bolt-bold" className="text-amber-500 mt-0.5" />
@@ -794,7 +794,7 @@ export default function ExamScoresTab({
                                 <Icon icon="solar:clipboard-list-bold" className="text-default-500" />
                                 <span className="text-sm font-medium text-default-700">{isEnglish ? "Score data" : "ข้อมูลคะแนน"}</span>
                                 {bulkSettingId && settings.find(s => s.id === bulkSettingId) && (
-                                    <Chip size="sm" variant="flat" className="bg-purple-100 text-purple-700 ml-auto">
+                                    <Chip size="sm" variant="flat" className="bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 ml-auto">
                                         {isEnglish ? "Max score" : "คะแนนเต็ม"}: {settings.find(s => s.id === bulkSettingId)?.max_score}
                                     </Chip>
                                 )}
@@ -837,10 +837,10 @@ export default function ExamScoresTab({
                                         <div 
                                             key={index}
                                             className={`p-3 flex items-center justify-between ${
-                                                item.status === "valid" ? "bg-emerald-50" :
-                                                item.status === "not_found" ? "bg-red-50" :
-                                                item.status === "score_exceeds" ? "bg-amber-50" :
-                                                "bg-red-50"
+                                                item.status === "valid" ? "bg-emerald-50 dark:bg-emerald-900/20" :
+                                                item.status === "not_found" ? "bg-red-50 dark:bg-red-900/20" :
+                                                item.status === "score_exceeds" ? "bg-amber-50 dark:bg-amber-900/20" :
+                                                "bg-red-50 dark:bg-red-900/20"
                                             }`}
                                         >
                                             <div className="flex items-center gap-3">
@@ -866,10 +866,10 @@ export default function ExamScoresTab({
                                             </div>
                                             <div className="text-right text-sm">
                                                 {item.status === "valid" && item.matchedStudent && (
-                                                    <span className="text-emerald-600">{item.matchedStudent.full_name}</span>
+                                                    <span className="text-emerald-600 dark:text-emerald-300">{item.matchedStudent.full_name}</span>
                                                 )}
                                                 {item.status !== "valid" && (
-                                                    <span className={item.status === "score_exceeds" ? "text-amber-600" : "text-red-600"}>
+                                                    <span className={item.status === "score_exceeds" ? "text-amber-600 dark:text-amber-300" : "text-red-600 dark:text-red-300"}>
                                                         {getBulkStatusText(item.status, isEnglish, settings.find(s => s.id === bulkSettingId)?.max_score)}
                                                     </span>
                                                 )}

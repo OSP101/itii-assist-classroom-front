@@ -13,8 +13,10 @@ import { addToast } from "@heroui/toast";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { twoFactorService, TwoFactorStatus } from "@/services/twoFactor.service";
 import { oauthService, OAuthAccount } from "@/services/oauth.service";
-import { LEGACY_SOCIAL_LOGIN_ENABLED } from "@/lib/auth-providers";
+import { LEGACY_SOCIAL_LOGIN_ENABLED, TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN } from "@/lib/auth-providers";
 import { KKUSSOButton, KKULogoMark } from "@/components/auth/KKUSSOButton";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { useLoginProviderMode } from "@/hooks/useLoginProviderMode";
 import TwoFactorSetupModal from "./TwoFactorSetupModal";
 import TwoFactorDisableModal from "./TwoFactorDisableModal";
 import RegenerateBackupCodesModal from "./RegenerateBackupCodesModal";
@@ -35,7 +37,6 @@ const PROVIDERS = [
       en: 'Sign in with your Khon Kaen University account',
     },
     manageUrl: 'https://ssonext.kku.ac.th',
-    enabled: true,
     comingSoon: false,
   },
   { 
@@ -47,9 +48,8 @@ const PROVIDERS = [
       en: 'Sign in with your Google account',
     },
     manageUrl: 'https://myaccount.google.com/connections',
-    // ตามประกาศของคณะ เหลือช่องทาง KKU SSO อย่างเดียว บัญชีที่ผูกไว้แล้วยัง
-    // ยกเลิกการเชื่อมต่อได้ แต่จะผูกใหม่ไม่ได้
-    enabled: LEGACY_SOCIAL_LOGIN_ENABLED,
+    // ผูกใหม่ได้เฉพาะบนโดเมนที่ใช้ช่องทางนั้นเป็นหลัก (ดู isProviderConnectable)
+    // บัญชีที่ผูกไว้แล้วยังยกเลิกการเชื่อมต่อได้ทุกโดเมน
     comingSoon: false,
   },
   { 
@@ -61,7 +61,6 @@ const PROVIDERS = [
       en: 'Sign in with your GitHub account',
     },
     manageUrl: 'https://github.com/settings/applications',
-    enabled: LEGACY_SOCIAL_LOGIN_ENABLED,
     comingSoon: false,
   },
   { 
@@ -73,7 +72,6 @@ const PROVIDERS = [
       en: 'Sign in with your Apple ID',
     },
     manageUrl: 'https://appleid.apple.com/account/manage',
-    enabled: false,
     comingSoon: true,
   },
 ] as const;
@@ -113,6 +111,8 @@ const AUTHENTICATION_COPY = {
     connect: "Connect",
     comingSoon: "Coming soon",
     providerUnavailable: "Not available",
+    kkuMainDomainOnly: "Main domain only",
+    googleBackupDomainOnly: "Backup domain only",
     linkedAccountsInfo: "Connected accounts can be used to sign in without entering your password.",
     connectSuccessTitle: "Connected",
     connectSuccessDescription: "Your {provider} account is now connected.",
@@ -168,6 +168,8 @@ const AUTHENTICATION_COPY = {
     connect: "เชื่อมต่อ",
     comingSoon: "กำลังพัฒนา",
     providerUnavailable: "ปิดใช้งาน",
+    kkuMainDomainOnly: "ใช้ได้บนโดเมนหลัก",
+    googleBackupDomainOnly: "ใช้ได้บนโดเมนสำรอง",
     linkedAccountsInfo: "บัญชีที่เชื่อมต่อสามารถใช้เข้าสู่ระบบได้โดยไม่ต้องกรอกรหัสผ่าน",
     connectSuccessTitle: "เชื่อมต่อสำเร็จ",
     connectSuccessDescription: "เชื่อมต่อบัญชี {provider} เรียบร้อยแล้ว",
@@ -213,6 +215,20 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
   const [linkingProvider, setLinkingProvider] = useState<string | null>(null);
   const [showUnlinkModal, setShowUnlinkModal] = useState(false);
   const [providerToUnlink, setProviderToUnlink] = useState<string | null>(null);
+  const loginProviderMode = useLoginProviderMode();
+
+  // ช่องทางที่ผูกบัญชีใหม่ได้ ขึ้นกับโดเมนที่กำลังเปิดอยู่ เพราะ flow ผูกบัญชีใช้
+  // redirect callback ชุดเดียวกับการล็อกอิน ดู lib/auth-providers.ts
+  const isProviderConnectable = (key: string) => {
+    if (LEGACY_SOCIAL_LOGIN_ENABLED && (key === 'google' || key === 'github')) return true;
+    if (key === 'kku') return loginProviderMode === 'kku';
+    // TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN — ระหว่างรอสำนักอัปเดตข้อมูลใน SSO
+    // ยังผูกบัญชี Google ได้บนโดเมนหลักด้วย ลบเงื่อนไขนี้เมื่อข้อมูลครบแล้ว
+    if (key === 'google') {
+      return loginProviderMode === 'google' || (loginProviderMode === 'kku' && TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN);
+    }
+    return false;
+  };
 
   // Snapshot of linked provider keys before initiating a link — used to detect new links
   const linkedBeforeLinkRef = useRef<Set<string>>(new Set());
@@ -811,7 +827,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                           </DropdownMenu>
                         </Dropdown>
                       </div>
-                    ) : provider.enabled && provider.key === 'kku' ? (
+                    ) : isProviderConnectable(provider.key) && provider.key === 'kku' ? (
                       // ใช้ปุ่มเดียวกับหน้าล็อกอิน เพื่อให้ผู้ใช้จำช่องทาง KKU SSO ได้ทันที
                       <KKUSSOButton
                         size="sm"
@@ -820,7 +836,15 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                         isLoading={linkingProvider === provider.key}
                         isDisabled={linkingProvider !== null && linkingProvider !== provider.key}
                       />
-                    ) : provider.enabled ? (
+                    ) : isProviderConnectable(provider.key) && provider.key === 'google' && !LEGACY_SOCIAL_LOGIN_ENABLED ? (
+                      <GoogleSignInButton
+                        size="sm"
+                        fullWidth={false}
+                        onPress={() => handleLink(provider.key)}
+                        isLoading={linkingProvider === provider.key}
+                        isDisabled={linkingProvider !== null && linkingProvider !== provider.key}
+                      />
+                    ) : isProviderConnectable(provider.key) ? (
                       <Button 
                         size="sm" 
                         color="primary" 
@@ -832,6 +856,16 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                       >
                         {linkingProvider === provider.key ? copy.connecting : copy.connect}
                       </Button>
+                    ) : (provider.key === 'kku' || provider.key === 'google') && loginProviderMode !== null ? (
+                      <Chip
+                        size="sm"
+                        variant="flat"
+                        color="default"
+                        startContent={<Icon icon="solar:global-linear" className="text-sm" />}
+                        className="text-xs"
+                      >
+                        {provider.key === 'kku' ? copy.kkuMainDomainOnly : copy.googleBackupDomainOnly}
+                      </Chip>
                     ) : provider.comingSoon ? (
                       <Chip 
                         size="sm" 
