@@ -401,23 +401,11 @@ export default function LoginPage() {
                     ) : (
                         <GoogleSignInButton onPress={handleGoogleLogin} />
                     )}
-                    {loginProviderMode !== null ? (
-                        <p className="mt-2 text-[13px] leading-5 text-slate-500 dark:max-sm:text-slate-300">
-                            {loginProviderMode === "google"
-                                ? "ตอนนี้คุณอยู่บนโดเมนสำรอง จึงเข้าสู่ระบบด้วยบัญชี Google ของมหาวิทยาลัย"
-                                : "ใช้บัญชีผู้ใช้ของมหาวิทยาลัยขอนแก่น (KKU SSO)"}
-                        </p>
-                    ) : null}
 
                     {/* TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN — ทางสำรองระหว่างรอสำนักอัปเดตข้อมูลใน SSO
                         ลบทั้งบล็อกนี้เมื่อข้อมูลครบแล้ว ดู lib/auth-providers.ts */}
                     {loginProviderMode === "kku" && TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN ? (
-                        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 dark:max-sm:border-amber-400/30 dark:max-sm:bg-amber-400/10">
-                            <p className="mb-2 text-[13px] leading-5 text-amber-900 dark:max-sm:text-amber-100">
-                                ถ้าเข้าผ่าน KKU SSO ไม่ได้ เพราะข้อมูลผู้ใช้ในระบบของสำนักยังไม่ครบ ให้ใช้ช่องทางสำรองนี้ไปก่อน
-                            </p>
                             <GoogleSignInButton onPress={handleGoogleLogin} />
-                        </div>
                     ) : null}
 
                     {LEGACY_SOCIAL_LOGIN_ENABLED ? (
