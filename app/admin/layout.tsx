@@ -245,13 +245,14 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
             {/* Main Content - Responsive margin */}
             <div className={`flex-1 min-w-0 flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
-                {/* Above the header, at the top of the content column. The
-                    sidebar is fixed and full height, so a ribbon spanning the
-                    whole viewport would be hidden behind it on the left. */}
+                {/* Ribbon and header pin together as one block. The sidebar is
+                    fixed and full height, so this sits at the top of the content
+                    column rather than spanning the whole viewport. */}
+                <div className="sticky top-0 z-30">
                 <GlobalAnnouncementTopbar />
 
                 {/* Header */}
-                <header className="sticky top-0 z-30 h-14 border-b border-divider bg-content1/95 backdrop-blur sm:h-16">
+                <header className="h-14 border-b border-divider bg-content1/95 backdrop-blur sm:h-16">
                     <div className="flex items-center justify-between h-full px-4 sm:px-6">
                         <div className="flex items-center gap-3">
                             {/* Mobile Menu Button */}
@@ -308,6 +309,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                         </div>
                     </div>
                 </header>
+                </div>
 
                 {/* Page Content - Responsive padding */}
                 <main className="flex-1 p-3 sm:p-4 lg:p-6">

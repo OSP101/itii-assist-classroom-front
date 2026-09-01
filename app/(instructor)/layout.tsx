@@ -423,13 +423,16 @@ export default function InstructorLayout({
             refreshCourses
         }}>
             <div data-auth-shell="true" className="flex min-h-screen flex-col bg-background text-foreground">
-                {/* Announcement ribbon sits above the header: it is a notice about
-                    the whole site, so it reads as the topmost row of the page
-                    rather than something inside the app chrome. */}
+                {/* The announcement ribbon and the navigation bar stick as one
+                    block: two separate sticky elements would each pin on their
+                    own and need the header offset by the ribbon's measured
+                    height. Wrapping them makes them a single unit that moves
+                    and pins together. */}
+                <div className="sticky top-0 z-50">
                 <GlobalAnnouncementTopbar />
 
                 {/* Top Navigation Bar - Shared Header */}
-                <header className="sticky top-0 z-50 border-b border-divider bg-content1">
+                <header className="border-b border-divider bg-content1">
                     <div className="flex items-center justify-between h-12 px-4">
                         {/* Left: Breadcrumb Navigation */}
                         <div className="flex min-w-0 items-center gap-1 text-sm overflow-x-auto">
@@ -794,6 +797,7 @@ export default function InstructorLayout({
                         </div>
                     </div>
                 </header>
+                </div>
 
                 {/* Main Content */}
                 <main className={`w-full flex-1 ${isHomePage ? "max-w-7xl mx-auto px-4 py-6" : ""}`}>
