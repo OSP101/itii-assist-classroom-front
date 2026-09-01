@@ -17,14 +17,24 @@ import { KKUSSOButton } from "@/components/auth/KKUSSOButton";
 
 function AppMark({ className = "h-8" }: { className?: string }) {
   return (
-    <Image
-      src="/images/logo-cp-full.png"
-      alt="ITII Assist Classroom"
-      width={692}
-      height={200}
-      priority
-      className={`w-auto object-contain ${className}`}
-    />
+    <>
+      <Image
+        src="/images/logo-cp-full.png"
+        alt="ITII Assist Classroom"
+        width={692}
+        height={200}
+        priority
+        className={`w-auto object-contain dark:max-sm:hidden ${className}`}
+      />
+      <Image
+        src="/images/logo-cp-full-black.png"
+        alt="ITII Assist Classroom"
+        width={305}
+        height={89}
+        priority
+        className={`hidden w-auto object-contain dark:max-sm:block ${className}`}
+      />
+    </>
   );
 }
 
@@ -118,9 +128,7 @@ export default function StudentLoginPage() {
 
           <div className="space-y-4">
             <KKUSSOButton onPress={handleKKULogin} />
-            <p className="text-[13px] leading-5 text-slate-500 dark:max-sm:text-slate-300">
-              ใช้บัญชีผู้ใช้ของมหาวิทยาลัยขอนแก่น (KKU SSO) บัญชีเดียวกับที่ใช้กับระบบทะเบียน
-            </p>
+            
             {LEGACY_SOCIAL_LOGIN_ENABLED ? (
               <Button
                 type="button"
