@@ -38,15 +38,20 @@ export function GlobalAnnouncementLayer() {
   const [isStackExpanded, setIsStackExpanded] = useState(false);
   const [fullscreenIndex, setFullscreenIndex] = useState(0);
   const [cornerIndex, setCornerIndex] = useState(0);
+  // Full-screen posters can always be closed, even ones marked not
+  // dismissible; for those the close is remembered only until the next page
+  // load rather than recorded on the server.
+  const [locallyHiddenIds, setLocallyHiddenIds] = useState<Set<number>>(new Set());
 
   // Every fullscreen announcement is shown, one after another, instead of only
   // whichever one happened to sort first. Both fullscreen shapes queue
   // together — they occupy the same screen.
   const fullscreenAnnouncements = useMemo(
     () => visibleAnnouncements.filter(
-      (item) => item.display_mode === "fullscreen" || item.display_mode === "fullscreen_image",
+      (item) => (item.display_mode === "fullscreen" || item.display_mode === "fullscreen_image")
+        && !locallyHiddenIds.has(item.id),
     ),
-    [visibleAnnouncements],
+    [visibleAnnouncements, locallyHiddenIds],
   );
 
   const bannerAnnouncements = useMemo(
@@ -80,6 +85,14 @@ export function GlobalAnnouncementLayer() {
   }, [cornerAnnouncements.length, cornerIndex]);
 
   const fullscreenAnnouncement = fullscreenAnnouncements[fullscreenIndex];
+
+  const closeFullscreenImage = (item: VisibleAnnouncement) => {
+    if (item.is_dismissible) {
+      dismiss(item.id);
+      return;
+    }
+    setLocallyHiddenIds((prev) => new Set([...prev, item.id]));
+  };
 
   const renderActionButtons = (item: VisibleAnnouncement, mode: AnnouncementDisplayMode) => {
     const isOverlay = mode !== "banner_top";
@@ -206,52 +219,72 @@ export function GlobalAnnouncementLayer() {
       {fullscreenAnnouncement && (
         <div className={`fixed inset-0 z-120 flex items-center justify-center bg-black/85 ${isFullBleedImage ? "" : "p-4"}`}>
           {isFullBleedImage ? (
-            /* The poster carries the message, so it gets the whole screen and
-               the text sits over it rather than in a card beside it. */
+            /* Nothing but the poster. It already carries the wording, so a
+               caption bar over the bottom of it would only cover the part of
+               the design that says the same thing. The controls are the
+               smallest they can be: a close cross, and a step counter when
+               more than one is queued. */
             <div className="relative h-full w-full">
-              <img
-                src={getFrontendAbsoluteUrl(fullscreenAnnouncement.image_url!)}
-                alt={getLocalizedTitle(fullscreenAnnouncement)}
-                className="h-full w-full object-contain"
-              />
+              {fullscreenAnnouncement.action_url ? (
+                <a
+                  href={getFrontendAbsoluteUrl(fullscreenAnnouncement.action_url)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block h-full w-full"
+                  aria-label={getLocalizedActionLabel(fullscreenAnnouncement)}
+                >
+                  <img
+                    src={getFrontendAbsoluteUrl(fullscreenAnnouncement.image_url!)}
+                    alt={getLocalizedTitle(fullscreenAnnouncement)}
+                    className="h-full w-full object-contain"
+                  />
+                </a>
+              ) : (
+                <img
+                  src={getFrontendAbsoluteUrl(fullscreenAnnouncement.image_url!)}
+                  alt={getLocalizedTitle(fullscreenAnnouncement)}
+                  className="h-full w-full object-contain"
+                />
+              )}
 
-              <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/90 via-black/70 to-transparent p-5 pt-16 text-white">
-                <div className="mx-auto w-full max-w-3xl space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Icon
-                      icon={getAnnouncementSeverityStyle(fullscreenAnnouncement.severity).icon}
-                      className={`text-xl ${getAnnouncementSeverityStyle(fullscreenAnnouncement.severity).iconClass}`}
-                    />
-                    <p className="text-xl font-semibold">{getLocalizedTitle(fullscreenAnnouncement)}</p>
-                    {fullscreenAnnouncements.length > 1 && (
-                      <span className="ml-auto rounded-full bg-white/15 px-2 py-0.5 text-xs">
-                        {t("announcementStepIndicator", {
-                          current: fullscreenIndex + 1,
-                          total: fullscreenAnnouncements.length,
-                        })}
-                      </span>
-                    )}
-                  </div>
-                  {getLocalizedMessage(fullscreenAnnouncement) ? (
-                    <p className="whitespace-pre-line text-sm text-white/90">
-                      {getLocalizedMessage(fullscreenAnnouncement)}
-                    </p>
-                  ) : null}
-                  <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
-                    {fullscreenIndex < fullscreenAnnouncements.length - 1 && (
-                      <Button
-                        variant="bordered"
-                        size="sm"
-                        className="border-white/40 text-white"
-                        onPress={() => setFullscreenIndex((prev) => prev + 1)}
-                      >
-                        {t("announcementNext")}
-                      </Button>
-                    )}
-                    {renderActionButtons(fullscreenAnnouncement, "fullscreen_image")}
-                  </div>
-                </div>
-              </div>
+              {fullscreenAnnouncements.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setFullscreenIndex((prev) => (prev + 1) % fullscreenAnnouncements.length)}
+                  className="absolute left-4 top-4 rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white backdrop-blur hover:bg-black/80"
+                  aria-label={t("announcementNext")}
+                >
+                  {t("announcementStepIndicator", {
+                    current: fullscreenIndex + 1,
+                    total: fullscreenAnnouncements.length,
+                  })}
+                </button>
+              )}
+
+              {fullscreenAnnouncement.require_acknowledge ? (
+                /* An announcement that demands acknowledgement cannot offer a
+                   plain close, or the acknowledgement would never be recorded.
+                   The button is a floating pill rather than a bar so it covers
+                   as little of the poster as possible. */
+                <Button
+                  color="primary"
+                  size="md"
+                  className="absolute bottom-6 left-1/2 -translate-x-1/2 shadow-lg"
+                  isLoading={acknowledgingIds.has(fullscreenAnnouncement.id)}
+                  onPress={() => void acknowledge(fullscreenAnnouncement)}
+                >
+                  {t("adminAcknowledgeAction")}
+                </Button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => closeFullscreenImage(fullscreenAnnouncement)}
+                  className="absolute right-4 top-4 rounded-full bg-black/60 p-2 text-white backdrop-blur transition hover:bg-black/80"
+                  aria-label={t("dismiss")}
+                >
+                  <Icon icon="solar:close-circle-linear" className="text-2xl" />
+                </button>
+              )}
             </div>
           ) : (
             <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-black/60 p-5 text-white backdrop-blur">

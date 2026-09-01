@@ -26,7 +26,7 @@ function AppMark({ className = "h-8" }: { className?: string }) {
         width={692}
         height={200}
         priority
-        className={`w-auto object-contain dark:max-sm:hidden ${className}`}
+        className={`w-auto object-contain dark:hidden ${className}`}
       />
       <Image
         src="/images/logo-cp-full-black.png"
@@ -34,7 +34,7 @@ function AppMark({ className = "h-8" }: { className?: string }) {
         width={305}
         height={89}
         priority
-        className={`hidden w-auto object-contain dark:max-sm:block ${className}`}
+        className={`hidden w-auto object-contain dark:block ${className}`}
       />
     </>
   );

@@ -42,10 +42,42 @@ import { getAnnouncementRibbonStyle, getAnnouncementSeverityStyle } from "@/lib/
 import TablePaginationFooter, { DEFAULT_TABLE_ROWS_PER_PAGE } from "@/components/ui/table-pagination-footer";
 
 const ANNOUNCEMENT_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
-const ANNOUNCEMENT_IMAGE_MIN_WIDTH = 1200;
-const ANNOUNCEMENT_IMAGE_MIN_HEIGHT = 600;
-const ANNOUNCEMENT_IMAGE_EDIT_WIDTH = 1920;
-const ANNOUNCEMENT_IMAGE_EDIT_HEIGHT = 1080;
+// The minimum used to be 1200 wide by 600 tall, which silently ruled out every
+// portrait poster: a 1024x1536 announcement graphic is plenty sharp but failed
+// the width check. The floor is now on the long and short edge instead, so it
+// says the same thing about sharpness without assuming landscape.
+const ANNOUNCEMENT_IMAGE_MIN_LONG_EDGE = 800;
+const ANNOUNCEMENT_IMAGE_MIN_SHORT_EDGE = 500;
+// Cropped output is capped on its long edge rather than forced to 1920x1080,
+// which is what flattened a portrait image into a letterbox.
+const ANNOUNCEMENT_IMAGE_MAX_EDGE = 2048;
+
+/** Crop ratios offered in the editor. `null` keeps the image's own shape. */
+const ANNOUNCEMENT_CROP_ASPECTS: { key: string; value: number | null; labelKey: string }[] = [
+    { key: "free", value: null, labelKey: "adminAnnouncementAspectFree" },
+    { key: "16-9", value: 16 / 9, labelKey: "adminAnnouncementAspect169" },
+    { key: "4-3", value: 4 / 3, labelKey: "adminAnnouncementAspect43" },
+    { key: "1-1", value: 1, labelKey: "adminAnnouncementAspect11" },
+    { key: "3-4", value: 3 / 4, labelKey: "adminAnnouncementAspect34" },
+    { key: "2-3", value: 2 / 3, labelKey: "adminAnnouncementAspect23" },
+    { key: "9-16", value: 9 / 16, labelKey: "adminAnnouncementAspect916" },
+];
+
+/**
+ * Which ratio the crop editor starts on. A full-screen image is usually a
+ * poster that should keep its own proportions, while the ribbon, banner and
+ * card all sit in wide slots.
+ */
+function getDefaultCropAspectKey(displayMode: AnnouncementDisplayMode): string {
+    switch (displayMode) {
+        case "fullscreen_image":
+            return "free";
+        case "corner_card":
+            return "4-3";
+        default:
+            return "16-9";
+    }
+}
 type AnnouncementListStatusFilter = "all" | "draft" | "scheduled" | "published" | "archived";
 
 /** One announcement's own wording inside a batch. */
@@ -107,9 +139,15 @@ async function cropImageFromSource(
         return null;
     }
 
+    // Output keeps the crop's own proportions, scaled down only if its long
+    // edge exceeds the cap. Writing every crop into a fixed 1920x1080 canvas
+    // stretched anything that was not 16:9.
+    const longEdge = Math.max(area.width, area.height);
+    const scale = longEdge > ANNOUNCEMENT_IMAGE_MAX_EDGE ? ANNOUNCEMENT_IMAGE_MAX_EDGE / longEdge : 1;
+
     const canvas = document.createElement("canvas");
-    canvas.width = ANNOUNCEMENT_IMAGE_EDIT_WIDTH;
-    canvas.height = ANNOUNCEMENT_IMAGE_EDIT_HEIGHT;
+    canvas.width = Math.max(1, Math.round(area.width * scale));
+    canvas.height = Math.max(1, Math.round(area.height * scale));
 
     const context = canvas.getContext("2d");
     if (!context) {
@@ -124,8 +162,8 @@ async function cropImageFromSource(
         area.height,
         0,
         0,
-        ANNOUNCEMENT_IMAGE_EDIT_WIDTH,
-        ANNOUNCEMENT_IMAGE_EDIT_HEIGHT,
+        canvas.width,
+        canvas.height,
     );
 
     const blob = await new Promise<Blob | null>((resolve) => {
@@ -243,7 +281,11 @@ export default function AdminSettingsPage() {
     const [announcementImageCropAreaPixels, setAnnouncementImageCropAreaPixels] = useState<Area | null>(null);
     const [isApplyingAnnouncementImageCrop, setIsApplyingAnnouncementImageCrop] = useState(false);
     const pendingStepUpActionRef = useRef<((token: string) => Promise<void>) | null>(null);
+    const [announcementImageCropAspectKey, setAnnouncementImageCropAspectKey] = useState("16-9");
     const announcementImageInputRef = useRef<HTMLInputElement | null>(null);
+    // Held so the crop editor can be reopened on the same image without
+    // re-uploading it; revoked when the composer resets.
+    const announcementImageBlobUrlRef = useRef<string>("");
 
     const loadAllSettings = async () => {
         setIsLoading(true);
@@ -317,6 +359,12 @@ export default function AdminSettingsPage() {
         setIsAnnouncementBatchMode(false);
         setAnnouncementBatchItems([createEmptyBatchItem()]);
         setAnnouncementComposerTab("content");
+        if (announcementImageBlobUrlRef.current.startsWith("blob:")) {
+            URL.revokeObjectURL(announcementImageBlobUrlRef.current);
+        }
+        announcementImageBlobUrlRef.current = "";
+        setAnnouncementImageCropSourceUrl("");
+        setAnnouncementImageCropFileName("announcement.jpg");
     };
 
     const openAnnouncementComposerSafely = () => {
@@ -1113,17 +1161,52 @@ export default function AdminSettingsPage() {
         return getBackendPublicAssetUrl(pathOrUrl);
     };
 
+    const setAnnouncementImageBlobSource = useCallback((objectUrl: string) => {
+        const previous = announcementImageBlobUrlRef.current;
+        if (previous && previous !== objectUrl && previous.startsWith("blob:")) {
+            URL.revokeObjectURL(previous);
+        }
+        announcementImageBlobUrlRef.current = objectUrl;
+        setAnnouncementImageCropSourceUrl(objectUrl);
+    }, []);
+
+    // Closing the editor no longer throws the source away: keeping it is what
+    // lets the admin reopen the crop and adjust it again, the same way the
+    // profile photo editor behaves.
     const resetAnnouncementCropModal = useCallback(() => {
         setIsAnnouncementImageCropModalOpen(false);
         setAnnouncementImageCropPosition({ x: 0, y: 0 });
         setAnnouncementImageCropZoom(1);
         setAnnouncementImageCropAreaPixels(null);
-        if (announcementImageCropSourceUrl.startsWith("blob:")) {
-            URL.revokeObjectURL(announcementImageCropSourceUrl);
+    }, []);
+
+    const openAnnouncementImageCropper = useCallback(async () => {
+        let sourceUrl = announcementImageCropSourceUrl;
+
+        if (!sourceUrl) {
+            // Editing an announcement written in an earlier session: the
+            // original file is not in this browser, so read the stored image
+            // back as a blob rather than pointing the canvas at a URL it may
+            // not be allowed to read.
+            const storedUrl = getBackendPublicAssetUrl(announcementForm.image_url);
+            if (!storedUrl) return;
+            try {
+                const response = await fetch(storedUrl);
+                if (!response.ok) throw new Error("failed to read stored image");
+                sourceUrl = URL.createObjectURL(await response.blob());
+                setAnnouncementImageBlobSource(sourceUrl);
+            } catch {
+                addToast({ title: t("error"), description: t("adminAnnouncementImageCropFailed"), color: "danger" });
+                return;
+            }
         }
-        setAnnouncementImageCropSourceUrl("");
-        setAnnouncementImageCropFileName("announcement.jpg");
-    }, [announcementImageCropSourceUrl]);
+
+        setAnnouncementImageCropAspectKey(getDefaultCropAspectKey(announcementForm.display_mode));
+        setAnnouncementImageCropPosition({ x: 0, y: 0 });
+        setAnnouncementImageCropZoom(1);
+        setAnnouncementImageCropAreaPixels(null);
+        setIsAnnouncementImageCropModalOpen(true);
+    }, [announcementForm.display_mode, announcementForm.image_url, announcementImageCropSourceUrl, setAnnouncementImageBlobSource, t]);
 
     const uploadAnnouncementImageFile = async (file: File) => {
         setIsUploadingAnnouncementImage(true);
@@ -1177,22 +1260,32 @@ export default function AdminSettingsPage() {
             return;
         }
 
-        if (dimensions.width < ANNOUNCEMENT_IMAGE_MIN_WIDTH || dimensions.height < ANNOUNCEMENT_IMAGE_MIN_HEIGHT) {
+        const longEdge = Math.max(dimensions.width, dimensions.height);
+        const shortEdge = Math.min(dimensions.width, dimensions.height);
+
+        if (longEdge < ANNOUNCEMENT_IMAGE_MIN_LONG_EDGE || shortEdge < ANNOUNCEMENT_IMAGE_MIN_SHORT_EDGE) {
             URL.revokeObjectURL(dimensions.objectUrl);
             addToast({
                 title: t("error"),
                 description: t("adminAnnouncementImageTooSmall", {
-                    width: ANNOUNCEMENT_IMAGE_MIN_WIDTH,
-                    height: ANNOUNCEMENT_IMAGE_MIN_HEIGHT,
+                    width: ANNOUNCEMENT_IMAGE_MIN_LONG_EDGE,
+                    height: ANNOUNCEMENT_IMAGE_MIN_SHORT_EDGE,
                 }),
                 color: "danger",
             });
             return;
         }
 
-        if (dimensions.width > ANNOUNCEMENT_IMAGE_EDIT_WIDTH || dimensions.height > ANNOUNCEMENT_IMAGE_EDIT_HEIGHT) {
-            setAnnouncementImageCropSourceUrl(dimensions.objectUrl);
-            setAnnouncementImageCropFileName(file.name || "announcement.jpg");
+        // The source is kept whatever happens next, so the crop editor can be
+        // opened later without re-picking the file.
+        setAnnouncementImageBlobSource(dimensions.objectUrl);
+        setAnnouncementImageCropFileName(file.name || "announcement.jpg");
+
+        // Only an image past the output cap has to go through the editor; it
+        // opens on the free ratio, so confirming just scales it down and the
+        // shape is preserved.
+        if (longEdge > ANNOUNCEMENT_IMAGE_MAX_EDGE) {
+            setAnnouncementImageCropAspectKey(getDefaultCropAspectKey(announcementForm.display_mode));
             setAnnouncementImageCropPosition({ x: 0, y: 0 });
             setAnnouncementImageCropZoom(1);
             setAnnouncementImageCropAreaPixels(null);
@@ -1201,7 +1294,6 @@ export default function AdminSettingsPage() {
             return;
         }
 
-        URL.revokeObjectURL(dimensions.objectUrl);
         await uploadAnnouncementImageFile(file);
         if (announcementImageInputRef.current) {
             announcementImageInputRef.current.value = "";
@@ -1736,17 +1828,39 @@ export default function AdminSettingsPage() {
                                                     <div className="space-y-3 rounded-lg border border-default-200 p-3">
                                                         <div className="flex items-center justify-between gap-3">
                                                             <p className="text-sm font-medium text-foreground">{t("adminAnnouncementImageSection")}</p>
-                                                            <Button
-                                                                size="sm"
-                                                                variant="flat"
-                                                                color="primary"
-                                                                isLoading={isUploadingAnnouncementImage}
-                                                                startContent={<Icon icon="solar:upload-bold" />}
-                                                                onPress={() => announcementImageInputRef.current?.click()}
-                                                            >
-                                                                {t("adminAnnouncementUploadImage")}
-                                                            </Button>
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="flat"
+                                                                    color="primary"
+                                                                    isLoading={isUploadingAnnouncementImage}
+                                                                    startContent={<Icon icon="solar:upload-bold" />}
+                                                                    onPress={() => announcementImageInputRef.current?.click()}
+                                                                >
+                                                                    {t("adminAnnouncementUploadImage")}
+                                                                </Button>
+                                                                {/* Crop is now available whenever there is an
+                                                                    image, not only when an oversized one is
+                                                                    first uploaded. */}
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="bordered"
+                                                                    isDisabled={!announcementForm.image_url?.trim()}
+                                                                    startContent={<Icon icon="solar:crop-linear" />}
+                                                                    onPress={() => void openAnnouncementImageCropper()}
+                                                                >
+                                                                    {t("adminAnnouncementAdjustCrop")}
+                                                                </Button>
+                                                            </div>
                                                         </div>
+
+                                                        <p className="text-xs text-default-500">
+                                                            {t(announcementForm.display_mode === "fullscreen_image"
+                                                                ? "adminAnnouncementImageSizeHintPoster"
+                                                                : announcementForm.display_mode === "corner_card"
+                                                                    ? "adminAnnouncementImageSizeHintCard"
+                                                                    : "adminAnnouncementImageSizeHintWide")}
+                                                        </p>
                                                         <input
                                                             ref={announcementImageInputRef}
                                                             type="file"
@@ -2234,39 +2348,30 @@ export default function AdminSettingsPage() {
                                                             <img
                                                                 src={toAnnouncementImagePreviewUrl(announcementForm.image_url)}
                                                                 alt="announcement-preview"
-                                                                className="h-64 w-full object-contain"
+                                                                className="h-72 w-full object-contain"
                                                             />
                                                         ) : (
-                                                            <div className="flex h-64 w-full items-center justify-center text-xs text-white/60">
+                                                            <div className="flex h-72 w-full items-center justify-center text-xs text-white/60">
                                                                 {t("adminAnnouncementRequireImage")}
                                                             </div>
                                                         )}
-                                                        <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/90 via-black/70 to-transparent p-4 pt-12 text-white">
-                                                            <div className="flex flex-wrap items-center gap-2">
-                                                                <Icon icon={previewSeverityStyle.icon} className={`text-lg ${previewSeverityStyle.iconClass}`} />
-                                                                <p className="text-base font-semibold">{localizedPreviewTitle}</p>
-                                                            </div>
-                                                            {localizedPreviewMessage ? (
-                                                                <p className="mt-1 whitespace-pre-line text-xs text-white/90">{localizedPreviewMessage}</p>
-                                                            ) : null}
-                                                            <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
-                                                                {!!announcementForm.action_url && (
-                                                                    <Button size="sm" color="primary" variant="solid">
-                                                                        {localizedPreviewActionLabel}
-                                                                    </Button>
-                                                                )}
-                                                                {announcementForm.require_acknowledge ? (
-                                                                    <Button size="sm" color="primary" variant="solid">
-                                                                        {t("adminAcknowledgeAction")}
-                                                                    </Button>
-                                                                ) : null}
-                                                                {!announcementForm.require_acknowledge && announcementForm.is_dismissible ? (
-                                                                    <Button size="sm" variant="bordered" className="border-white/40 text-white">
-                                                                        {t("dismiss")}
-                                                                    </Button>
-                                                                ) : null}
-                                                            </div>
-                                                        </div>
+
+                                                        {/* No caption bar: the poster carries its own wording,
+                                                            so the only control is the close cross — or the
+                                                            acknowledge button when one is required. */}
+                                                        {announcementForm.require_acknowledge ? (
+                                                            <Button
+                                                                color="primary"
+                                                                size="sm"
+                                                                className="absolute bottom-4 left-1/2 -translate-x-1/2 shadow-lg"
+                                                            >
+                                                                {t("adminAcknowledgeAction")}
+                                                            </Button>
+                                                        ) : (
+                                                            <span className="absolute right-3 top-3 rounded-full bg-black/60 p-1.5 text-white backdrop-blur">
+                                                                <Icon icon="solar:close-circle-linear" className="text-xl" />
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 ) : announcementForm.display_mode === "banner_top" ? (
                                                     <div className={`rounded-xl border px-4 py-3 shadow-sm ${previewSeverityStyle.banner}`}>
