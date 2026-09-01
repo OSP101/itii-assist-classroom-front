@@ -5,14 +5,27 @@
  * Use variant to pick a pre-configured shape, or compose with className.
  *
  * Rules:
- * - ONE shimmer style system-wide (tailwind animate-pulse via HeroUI Skeleton)
+ * - ONE shimmer style system-wide
  * - NEVER nest ProSkeleton inside another ProSkeleton
  * - Match the real content's height/width so layout doesn't shift on load
  * - Don't use spinner as primary loading — use skeletons
+ *
+ * Deliberately imports no HeroUI JavaScript. It used to wrap @heroui/skeleton,
+ * which drags in `client-only` and therefore cannot be used from a Server
+ * Component — and every `loading.tsx` is a Server Component. Turbopack let
+ * that slide; `next build --webpack` does not. Keeping this module free of
+ * HeroUI JS is what allows either bundler to build the app, which matters
+ * because Turbopack names chunks from an alphabet containing `~` and digits,
+ * and the university WAF rejects any URL matching `~<digit>` (the Windows
+ * 8.3 short-name pattern) with a 403.
+ *
+ * The markup below reproduces @heroui/theme's skeleton slot exactly, so it
+ * still looks identical. Those colour tokens and `animate-shimmer` come from
+ * HeroUI's Tailwind plugin, which is loaded app-wide in globals.css — the CSS
+ * side of HeroUI is untouched, only the JS import is gone.
  */
 
-import { Skeleton } from "@heroui/skeleton";
-import { cn } from "@heroui/react";
+import { cn } from "@/lib/cn";
 
 export type ProSkeletonVariant =
   | "text"
@@ -51,10 +64,21 @@ const variantDefaults: Record<ProSkeletonVariant, string> = {
   stat: "h-20 w-full rounded-xl",
 };
 
+const shimmerBase = [
+  "relative overflow-hidden pointer-events-none",
+  "bg-content3 dark:bg-content2",
+  "before:absolute before:inset-0 before:opacity-100",
+  "before:-translate-x-full before:animate-shimmer",
+  "before:border-t before:border-content4/30",
+  "before:bg-gradient-to-r before:from-transparent before:via-content4 before:to-transparent",
+  "dark:before:via-default-700/10",
+].join(" ");
+
 export function ProSkeleton({ variant = "card", className, width, style }: ProSkeletonProps) {
   return (
-    <Skeleton
-      className={cn(variantDefaults[variant], width, className)}
+    <div
+      aria-hidden="true"
+      className={cn(shimmerBase, variantDefaults[variant], width, className)}
       style={style}
     />
   );

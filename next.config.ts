@@ -1,19 +1,35 @@
 import type { NextConfig } from "next";
 
 // Where /_next/static/* is served from. Empty (the default) keeps assets on
-// the same origin as the page, i.e. behaviour before this existed.
+// the same origin as the page, which is where they belong.
 //
-// Set it to a Cloudflare-fronted origin to keep static assets off the KKU
-// reverse proxy, whose per-URL rate limiter is what breaks the app: once a
-// bucket saturates, that chunk 429s for everyone, Next.js retries it in a
-// loop, and every component behind it dies while the page still looks fine
-// (see deploy-vm-https/scripts/asset-watchdog.sh, which only papers over it
-// by rotating ?dpl= on redeploy). Assets served from Cloudflare's edge never
-// reach that limiter at all.
+// This exists as an escape hatch: pointing it at the Cloudflare-fronted host
+// routes assets around the university's edge entirely. That was the emergency
+// workaround while the off-campus 403s were still unexplained — the cause is
+// now known and fixed at the source by building with webpack (see the note
+// below), so this should normally stay unset.
+//
+// It was introduced on the theory that a per-URL rate limiter was 429-ing hot
+// chunks. That theory was wrong: KKU confirmed no rate limit exists, host
+// metrics showed the origin idle throughout, and the real failure was a WAF
+// pattern match. deploy-vm-https/scripts/asset-watchdog.sh still watches for
+// 429s and is harmless, but it was never what was happening.
 //
 // Baked in at build time, so changing it requires a rebuild, not a restart.
 const assetPrefix = process.env.NEXT_PUBLIC_ASSET_PREFIX?.trim() || undefined;
 
+// NOTE: production builds run `next build --webpack` (see package.json), not
+// the default Turbopack. Turbopack names chunks from an alphabet that includes
+// both `~` and digits, so roughly 7% of every build's filenames land on the
+// `~<digit>` sequence — the Windows 8.3 short-name pattern that the university
+// WAF in front of cocolabs.computing.kku.ac.th rejects with a 403, but only
+// for traffic arriving from outside the campus network. A page pulls ~52
+// files, so in practice nearly every off-campus page load lost at least one
+// chunk: the HTML rendered, plain links worked, and every HeroUI control was
+// dead. Webpack's hashes are hex, so no filename can ever match.
+//
+// Verify after changing bundlers:
+//   ls .next/static/chunks .next/static/media | grep -c '~[0-9]'   # must be 0
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["10.199.10.10"],
   poweredByHeader: false,
