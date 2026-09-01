@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Spinner } from "@heroui/spinner";
-import { IoSchool } from "react-icons/io5";
 import { authService } from "@/services/auth.service";
 import { getDefaultRouteForRole } from "@/lib/auth-routing";
 
@@ -50,9 +50,14 @@ export default function Home() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-blue-50 via-sky-50 to-indigo-100">
       <div className="flex flex-col items-center gap-4">
-        <div className="w-15 h-15 bg-linear-to-br from-blue-400 to-indigo-500 rounded flex items-center justify-center text-white text-4xl">
-          <IoSchool />
-        </div>
+        <Image
+          src="/images/logo-cp.png"
+          alt="ITII Assist Classroom"
+          width={60}
+          height={60}
+          priority
+          className="h-15 w-15 rounded object-contain"
+        />
         <Spinner size="lg" color="primary" />
       </div>
     </div>

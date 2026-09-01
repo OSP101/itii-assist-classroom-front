@@ -3,24 +3,28 @@
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@heroui/button";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
-import { IoSchool } from "react-icons/io5";
 import { authService } from "@/services";
 import { AppFooter } from "@/components/Footer";
 import { useI18n } from "@/hooks/useI18n";
 import { getDefaultRouteForRole, isStudentRole } from "@/lib/auth-routing";
 import { normalizeAppReturnPath, storeOAuthReturnPath } from "@/lib/auth-resume";
+import { LEGACY_SOCIAL_LOGIN_ENABLED } from "@/lib/auth-providers";
+import { KKUSSOButton } from "@/components/auth/KKUSSOButton";
 
-function AppMark({ className = "" }: { className?: string }) {
+function AppMark({ className = "h-8" }: { className?: string }) {
   return (
-    <div
-      className={`flex h-8 w-8 items-center justify-center rounded bg-linear-to-br from-blue-400 to-indigo-500 text-xl text-white shadow-sm shadow-blue-200 ${className}`}
-      aria-hidden="true"
-    >
-      <IoSchool />
-    </div>
+    <Image
+      src="/images/logo-cp-full.png"
+      alt="ITII Assist Classroom"
+      width={692}
+      height={200}
+      priority
+      className={`w-auto object-contain ${className}`}
+    />
   );
 }
 
@@ -113,28 +117,22 @@ export default function StudentLoginPage() {
           </div>
 
           <div className="space-y-4">
-            <Button
-              type="button"
-              variant="bordered"
-              radius="sm"
-              className="h-10.5 w-full border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:text-white dark:max-sm:data-[hover=true]:border-sky-400/45 dark:max-sm:data-[hover=true]:bg-sky-400/10 disabled:cursor-not-allowed disabled:opacity-55"
-              onPress={handleGoogleLogin}
-              startContent={<SocialIconGoogle />}
-            >
-              เข้าสู่ระบบด้วย Google
-            </Button>
-            {process.env.NEXT_PUBLIC_KKU_SSO_ENABLED === 'true' && (
+            <KKUSSOButton onPress={handleKKULogin} />
+            <p className="text-[13px] leading-5 text-slate-500 dark:max-sm:text-slate-300">
+              ใช้บัญชีผู้ใช้ของมหาวิทยาลัยขอนแก่น (KKU SSO) บัญชีเดียวกับที่ใช้กับระบบทะเบียน
+            </p>
+            {LEGACY_SOCIAL_LOGIN_ENABLED ? (
               <Button
                 type="button"
                 variant="bordered"
                 radius="sm"
-                className="h-10.5 w-full border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:text-white dark:max-sm:data-[hover=true]:border-sky-400/45 dark:max-sm:data-[hover=true]:bg-sky-400/10"
-                onPress={handleKKULogin}
-                startContent={<Icon icon="solar:key-minimalistic-linear" className="text-[17px] text-blue-500" />}
+                className="h-10.5 w-full border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:text-white dark:max-sm:data-[hover=true]:border-sky-400/45 dark:max-sm:data-[hover=true]:bg-sky-400/10 disabled:cursor-not-allowed disabled:opacity-55"
+                onPress={handleGoogleLogin}
+                startContent={<SocialIconGoogle />}
               >
-                เข้าสู่ระบบด้วย KKU Account
+                เข้าสู่ระบบด้วย Google
               </Button>
-            )}
+            ) : null}
           </div>
         </section>
       </main>

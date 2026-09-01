@@ -21,7 +21,11 @@ export default function StudentProfilePage() {
   const [programs, setPrograms] = useState<StudentProgram[]>([]);
 
   const handleLogout = async () => {
-    await authService.logout();
+    const { ssoLogoutUrl } = await authService.logout();
+    if (ssoLogoutUrl) {
+      window.location.href = ssoLogoutUrl;
+      return;
+    }
     router.replace("/student/login");
   };
 

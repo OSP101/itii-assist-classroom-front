@@ -44,10 +44,15 @@ export function SessionTimeoutWatcher() {
       if (reason === "timeout") {
         markSessionExpiredByTimeout();
       }
+      let ssoLogoutUrl: string | undefined;
       try {
-        await authService.logout();
+        ({ ssoLogoutUrl } = await authService.logout());
       } catch {
         // authService.logout() already fails soft (clears local state either way).
+      }
+      if (ssoLogoutUrl) {
+        window.location.href = ssoLogoutUrl;
+        return;
       }
       const nextPath =
         typeof window !== "undefined"

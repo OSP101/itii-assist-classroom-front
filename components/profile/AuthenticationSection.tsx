@@ -13,6 +13,8 @@ import { addToast } from "@heroui/toast";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { twoFactorService, TwoFactorStatus } from "@/services/twoFactor.service";
 import { oauthService, OAuthAccount } from "@/services/oauth.service";
+import { LEGACY_SOCIAL_LOGIN_ENABLED } from "@/lib/auth-providers";
+import { KKUSSOButton, KKULogoMark } from "@/components/auth/KKUSSOButton";
 import TwoFactorSetupModal from "./TwoFactorSetupModal";
 import TwoFactorDisableModal from "./TwoFactorDisableModal";
 import RegenerateBackupCodesModal from "./RegenerateBackupCodesModal";
@@ -24,6 +26,18 @@ interface AuthenticationSectionProps {
 
 // Provider definitions with management URLs
 const PROVIDERS = [
+  {
+    key: 'kku',
+    name: 'KKU SSO',
+    icon: 'solar:key-minimalistic-linear',
+    descriptions: {
+      th: 'เข้าสู่ระบบด้วยบัญชีผู้ใช้ของมหาวิทยาลัยขอนแก่น',
+      en: 'Sign in with your Khon Kaen University account',
+    },
+    manageUrl: 'https://ssonext.kku.ac.th',
+    enabled: true,
+    comingSoon: false,
+  },
   { 
     key: 'google', 
     name: 'Google', 
@@ -33,7 +47,10 @@ const PROVIDERS = [
       en: 'Sign in with your Google account',
     },
     manageUrl: 'https://myaccount.google.com/connections',
-    enabled: true,
+    // ตามประกาศของคณะ เหลือช่องทาง KKU SSO อย่างเดียว บัญชีที่ผูกไว้แล้วยัง
+    // ยกเลิกการเชื่อมต่อได้ แต่จะผูกใหม่ไม่ได้
+    enabled: LEGACY_SOCIAL_LOGIN_ENABLED,
+    comingSoon: false,
   },
   { 
     key: 'github', 
@@ -44,7 +61,8 @@ const PROVIDERS = [
       en: 'Sign in with your GitHub account',
     },
     manageUrl: 'https://github.com/settings/applications',
-    enabled: true,
+    enabled: LEGACY_SOCIAL_LOGIN_ENABLED,
+    comingSoon: false,
   },
   { 
     key: 'apple', 
@@ -94,6 +112,7 @@ const AUTHENTICATION_COPY = {
     connecting: "Connecting...",
     connect: "Connect",
     comingSoon: "Coming soon",
+    providerUnavailable: "Not available",
     linkedAccountsInfo: "Connected accounts can be used to sign in without entering your password.",
     connectSuccessTitle: "Connected",
     connectSuccessDescription: "Your {provider} account is now connected.",
@@ -148,6 +167,7 @@ const AUTHENTICATION_COPY = {
     connecting: "กำลังเชื่อมต่อ...",
     connect: "เชื่อมต่อ",
     comingSoon: "กำลังพัฒนา",
+    providerUnavailable: "ปิดใช้งาน",
     linkedAccountsInfo: "บัญชีที่เชื่อมต่อสามารถใช้เข้าสู่ระบบได้โดยไม่ต้องกรอกรหัสผ่าน",
     connectSuccessTitle: "เชื่อมต่อสำเร็จ",
     connectSuccessDescription: "เชื่อมต่อบัญชี {provider} เรียบร้อยแล้ว",
@@ -295,7 +315,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
     if (!linkingProvider) return;
 
     const provider = linkingProvider;
-    const providerName = provider === "github" ? "GitHub" : provider === "google" ? "Google" : provider;
+    const providerName = oauthService.getProviderDisplayName(provider);
     let checking = false;
 
     const handleTabFocus = async () => {
@@ -420,7 +440,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
       clearInterval(dbPollRef.current);
     }
 
-    const providerName = provider === "github" ? "GitHub" : provider === "google" ? "Google" : provider;
+    const providerName = oauthService.getProviderDisplayName(provider);
 
     const checkOnce = async () => {
       try {
@@ -720,8 +740,13 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                   {index > 0 && <Divider />}
                   <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 hover:bg-default-50 transition-colors">
                     <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                      <div className={`p-1.5 sm:p-2 rounded-lg shrink-0 bg-default-100`}>
-                        <Icon icon={provider.icon} className="text-lg sm:text-xl" />
+                      <div className={`p-1.5 sm:p-2 rounded-lg shrink-0 ${provider.key === 'kku' ? 'bg-white' : 'bg-default-100'}`}>
+                        {provider.key === 'kku' ? (
+                          // ตราเป็นสีแดงอิฐ ต้องวางบนพื้นขาวเสมอ ไม่งั้นจมหายในโหมดมืด
+                          <KKULogoMark className="h-7 sm:h-8" />
+                        ) : (
+                          <Icon icon={provider.icon} className="text-lg sm:text-xl" />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -786,6 +811,15 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                           </DropdownMenu>
                         </Dropdown>
                       </div>
+                    ) : provider.enabled && provider.key === 'kku' ? (
+                      // ใช้ปุ่มเดียวกับหน้าล็อกอิน เพื่อให้ผู้ใช้จำช่องทาง KKU SSO ได้ทันที
+                      <KKUSSOButton
+                        size="sm"
+                        fullWidth={false}
+                        onPress={() => handleLink(provider.key)}
+                        isLoading={linkingProvider === provider.key}
+                        isDisabled={linkingProvider !== null && linkingProvider !== provider.key}
+                      />
                     ) : provider.enabled ? (
                       <Button 
                         size="sm" 
@@ -798,7 +832,7 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                       >
                         {linkingProvider === provider.key ? copy.connecting : copy.connect}
                       </Button>
-                    ) : (
+                    ) : provider.comingSoon ? (
                       <Chip 
                         size="sm" 
                         variant="flat"
@@ -807,6 +841,16 @@ function AuthenticationSection({ onOpenPasswordModal, userEmail }: Authenticatio
                         className="text-xs"
                       >
                         {copy.comingSoon}
+                      </Chip>
+                    ) : (
+                      <Chip
+                        size="sm"
+                        variant="flat"
+                        color="default"
+                        startContent={<Icon icon="solar:lock-keyhole-minimalistic-linear" className="text-sm" />}
+                        className="text-xs"
+                      >
+                        {copy.providerUnavailable}
                       </Chip>
                     )}
                   </div>

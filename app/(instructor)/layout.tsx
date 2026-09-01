@@ -18,7 +18,7 @@ import { AuthLoadingScreen } from "@/components/ui/auth-loading-screen";
 import { useI18n } from "@/hooks/useI18n";
 import { getNotificationHeadline, getNotificationMessage } from "@/lib/notification-display";
 import Link from "next/link";
-import { IoSchool } from "react-icons/io5";
+import Image from "next/image";
 import { AppFooter } from "@/components/Footer";
 import { GlobalAnnouncementLayer } from "@/components/system-announcements/global-announcement-layer";
 import type { UserNotificationItem } from "@/services/user-notification.service";
@@ -362,7 +362,12 @@ export default function InstructorLayout({
 
     const handleLogout = async () => {
         try {
-            await authService.logout();
+            const { ssoLogoutUrl } = await authService.logout();
+            if (ssoLogoutUrl) {
+                // ปิดเซสชันกลางที่ KKU SSO ต่อ แล้วระบบจะพากลับมาที่ /logout เอง
+                window.location.href = ssoLogoutUrl;
+                return;
+            }
             router.push("/login");
         } catch (error) {
             console.error("Logout failed:", error);
@@ -427,9 +432,13 @@ export default function InstructorLayout({
                                 href={getBackPath()}
                                 className="relative z-30 flex shrink-0 items-center gap-2 rounded-md px-2 py-1 text-default-600 transition-colors hover:bg-content2 hover:text-foreground"
                             >
-                                <div className="w-6 h-6 bg-linear-to-br from-blue-400 to-indigo-500 rounded flex items-center justify-center text-white text-xs">
-                                    <IoSchool />
-                                </div>
+                                <Image
+                                    src="/images/logo-cp.png"
+                                    alt="ITII Assist Classroom"
+                                    width={24}
+                                    height={24}
+                                    className="w-6 h-6 rounded object-contain"
+                                />
                             </Link>
 
                             {/* Separator */}
@@ -549,6 +558,15 @@ export default function InstructorLayout({
 
                         {/* Right: User Avatar */}
                         <div className="flex items-center gap-2 shrink-0">
+                            <Link
+                                href="/docs"
+                                target="_blank"
+                                className="relative rounded-full p-1.5 transition-colors hover:bg-content2"
+                                aria-label={t("userGuide")}
+                                title={t("userGuide")}
+                            >
+                                <Icon icon="solar:book-2-linear" className="text-xl text-default-600" />
+                            </Link>
                             <Popover
                                 isOpen={isNotifOpen}
                                 onOpenChange={(isOpen) => {
@@ -777,7 +795,7 @@ export default function InstructorLayout({
                     {children}
                 </main>
 
-                <AppFooter userEmail={user?.email} />
+                <AppFooter />
             </div>
         </InstructorContext.Provider>
     );

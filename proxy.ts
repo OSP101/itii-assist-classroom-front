@@ -141,6 +141,9 @@ const protectedPrefixes = [
 const publicRoutes = [
     '/login',
     '/auth/callback',
+    // Redirect Logout URL ที่ลงทะเบียนไว้กับ KKU SSO — ผู้ใช้มาถึงหน้านี้
+    // ตอนที่ไม่มีเซสชันแล้ว จึงต้องเข้าถึงได้เสมอ
+    '/logout',
 ];
 
 // Routes that start with these prefixes are public
@@ -155,6 +158,7 @@ const publicPrefixes = [
 const maintenanceExempt = [
     '/maintenance',
     '/auth/',
+    '/logout',
     '/check-in/',
     '/display/',
 ];

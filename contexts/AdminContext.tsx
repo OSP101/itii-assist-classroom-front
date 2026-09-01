@@ -103,7 +103,11 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   };
 
   const handleLogout = async () => {
-    await authService.logout();
+    const { ssoLogoutUrl } = await authService.logout();
+    if (ssoLogoutUrl) {
+      window.location.href = ssoLogoutUrl;
+      return;
+    }
     addToast({
       title: "ออกจากระบบสำเร็จ",
       description: "กำลังนำท่านไปยังหน้าเข้าสู่ระบบ",

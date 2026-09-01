@@ -1,4 +1,4 @@
-import { IoSchool } from "react-icons/io5";
+import Image from "next/image";
 
 type AuthLoadingScreenProps = {
   message: string;
@@ -8,9 +8,14 @@ export function AuthLoadingScreen({ message }: AuthLoadingScreenProps) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
       <div className="flex flex-col items-center gap-4">
-        <div className="w-15 h-15 rounded bg-linear-to-br from-blue-400 to-indigo-500 text-4xl text-white flex items-center justify-center">
-          <IoSchool />
-        </div>
+        <Image
+          src="/images/logo-cp.png"
+          alt="ITII Assist Classroom"
+          width={60}
+          height={60}
+          priority
+          className="h-15 w-15 rounded object-contain"
+        />
         <p className="text-xl text-default-700">{message}</p>
 
         <div className="relative h-2 w-44 overflow-hidden rounded-full bg-default-200/90 dark:bg-default-700/90">

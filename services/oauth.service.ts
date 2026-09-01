@@ -74,6 +74,7 @@ class OAuthService {
    */
   getProviderDisplayName(provider: string): string {
     const names: Record<string, string> = {
+      kku: "KKU SSO",
       google: "Google",
       github: "GitHub",
       apple: "Apple",
@@ -86,6 +87,7 @@ class OAuthService {
    */
   getProviderIcon(provider: string): string {
     const icons: Record<string, string> = {
+      kku: "solar:key-minimalistic-linear",
       google: "logos:google-icon",
       github: "mingcute:github-fill",
       apple: "ic:baseline-apple",

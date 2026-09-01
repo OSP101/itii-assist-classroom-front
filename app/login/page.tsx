@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 import { Link } from "@heroui/link";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { Icon } from "@iconify/react";
-import { IoSchool } from "react-icons/io5";
 import { addToast } from "@heroui/toast";
 import { API_BASE_URL } from "@/config/api";
 import { authService } from "@/services";
@@ -16,15 +16,19 @@ import { loginPolicyLinks } from "@/config/public-links";
 import { useI18n } from "@/hooks/useI18n";
 import { getDefaultRouteForRole } from "@/lib/auth-routing";
 import { normalizeAppReturnPath, storeOAuthReturnPath, storePendingAuthReturnPath } from "@/lib/auth-resume";
+import { LEGACY_SOCIAL_LOGIN_ENABLED } from "@/lib/auth-providers";
+import { KKUSSOButton } from "@/components/auth/KKUSSOButton";
 
-function AppMark({ className = "" }: { className?: string }) {
+function AppMark({ className = "h-8" }: { className?: string }) {
     return (
-        <div
-            className={`flex h-8 w-8 items-center justify-center rounded bg-linear-to-br from-blue-400 to-indigo-500 text-xl text-white shadow-sm shadow-blue-200 ${className}`}
-            aria-hidden="true"
-        >
-            <IoSchool />
-        </div>
+        <Image
+            src="/images/logo-cp-full.png"
+            alt="ITII Assist Classroom"
+            width={692}
+            height={200}
+            priority
+            className={`w-auto object-contain ${className}`}
+        />
     );
 }
 
@@ -277,7 +281,7 @@ export default function LoginPage() {
 
     const handleKKULogin = () => {
         storeOAuthReturnPath(nextPath);
-        window.location.href = authService.getKKUAuthUrl();
+        window.location.href = authService.getKKUAuthUrl(isStudentLoginMode ? "student" : undefined);
     };
 
     const handleUnavailableLogin = (provider: string) => {
@@ -339,7 +343,7 @@ export default function LoginPage() {
         return (
             <div data-auth-shell="true" className="flex min-h-screen flex-col items-center justify-center bg-background text-foreground">
                 <div className="flex flex-col items-center gap-4" aria-label={t("checkingSignInStatus")}>
-                    <AppMark />
+                    <AppMark className="h-12" />
                     <div className="h-1 w-12 overflow-hidden rounded-full bg-blue-100">
                         <div className="h-full w-5 animate-pulse rounded-full bg-linear-to-r from-blue-400 to-indigo-500" />
                     </div>
@@ -368,7 +372,7 @@ export default function LoginPage() {
                     {nextPath ? (
                         <div className="mb-5 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:max-sm:border-sky-500/30 dark:max-sm:bg-sky-500/10 dark:max-sm:text-sky-100">
                             {isStudentLoginMode
-                                ? <>Student access continues with <span className="font-medium">Google Sign-In</span> to <span className="font-medium">{nextPath}</span></>
+                                ? <>เข้าสู่ระบบนักศึกษาด้วย <span className="font-medium">KKU SSO</span> เพื่อไปยัง <span className="font-medium">{nextPath}</span></>
                                 : <>Sign in to continue to <span className="font-medium">{nextPath}</span></>}
                         </div>
                     ) : null}
@@ -376,19 +380,24 @@ export default function LoginPage() {
                         {t("signInToITIIAssistClassroom")}
                     </h1>
 
-                    <div className={`grid gap-2 ${isStudentLoginMode ? "grid-cols-1" : "grid-cols-2"}`}>
-                        <Button
-                            type="button"
-                            variant="bordered"
-                            radius="sm"
-                            className="h-10.5 border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:text-white dark:max-sm:data-[hover=true]:border-sky-400/45 dark:max-sm:data-[hover=true]:bg-sky-400/10"
-                            onPress={handleGoogleLogin}
-                            startContent={<SocialIconGoogle />}
-                        >
-                            Google
-                        </Button>
-                        {!isStudentLoginMode ? (
-                            <>
+                    <KKUSSOButton onPress={handleKKULogin} />
+                    <p className="mt-2 text-[13px] leading-5 text-slate-500 dark:max-sm:text-slate-300">
+                        ใช้บัญชีผู้ใช้ของมหาวิทยาลัยขอนแก่น (KKU SSO)
+                    </p>
+
+                    {LEGACY_SOCIAL_LOGIN_ENABLED ? (
+                        <div className={`mt-2 grid gap-2 ${isStudentLoginMode ? "grid-cols-1" : "grid-cols-2"}`}>
+                            <Button
+                                type="button"
+                                variant="bordered"
+                                radius="sm"
+                                className="h-10.5 border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:text-white dark:max-sm:data-[hover=true]:border-sky-400/45 dark:max-sm:data-[hover=true]:bg-sky-400/10"
+                                onPress={handleGoogleLogin}
+                                startContent={<SocialIconGoogle />}
+                            >
+                                Google
+                            </Button>
+                            {!isStudentLoginMode ? (
                                 <Button
                                     type="button"
                                     variant="bordered"
@@ -399,22 +408,9 @@ export default function LoginPage() {
                                 >
                                     GitHub
                                 </Button>
-                            </>
-                        ) : null}
-                    </div>
-
-                    {process.env.NEXT_PUBLIC_KKU_SSO_ENABLED === 'true' && (
-                        <Button
-                            type="button"
-                            variant="bordered"
-                            radius="sm"
-                            className="mt-2 h-10.5 w-full border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:text-white dark:max-sm:data-[hover=true]:border-sky-400/45 dark:max-sm:data-[hover=true]:bg-sky-400/10"
-                            onPress={handleKKULogin}
-                            startContent={<Icon icon="solar:key-minimalistic-linear" className="text-[17px] text-blue-500" />}
-                        >
-                            {t("loginWithKKUAccount")}
-                        </Button>
-                    )}
+                            ) : null}
+                        </div>
+                    ) : null}
 
                     {!isStudentLoginMode ? (
                         <>

@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Button } from "@heroui/button";
 import { Avatar } from "@heroui/avatar";
@@ -9,7 +10,6 @@ import { Tooltip } from "@heroui/tooltip";
 import { Chip } from "@heroui/chip";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, DropdownSection } from "@heroui/dropdown";
 import { Icon } from "@iconify/react";
-import { IoSchool } from "react-icons/io5";
 import { AdminProvider, useAdmin } from "@/contexts/AdminContext";
 import { AppFooter } from "@/components/Footer";
 import { AuthLoadingScreen } from "@/components/ui/auth-loading-screen";
@@ -193,9 +193,13 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 {/* Logo */}
                 <div className="flex items-center h-16 border-b border-divider px-4">
                     <Link href="/admin/dashboard" className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-linear-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-500/30 shrink-0">
-                            <IoSchool />
-                        </div>
+                        <Image
+                            src="/images/logo-cp.png"
+                            alt="ITII Assist Classroom"
+                            width={32}
+                            height={32}
+                            className="w-8 h-8 rounded-lg object-contain shadow-lg shadow-blue-500/30 shrink-0"
+                        />
                         {(!sidebarCollapsed || isMobileSidebarOpen) && (
                             <span className="text-md font-bold text-foreground">COCO LABS</span>
                         )}
@@ -307,7 +311,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
                 <NetworkMetricsPanel />
 
-                <AppFooter userEmail={user?.email} />
+                <AppFooter />
             </div>
         </div>
     );

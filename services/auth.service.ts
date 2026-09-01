@@ -1,8 +1,9 @@
 import apiService from './api.service';
 import { API_ENDPOINTS } from '@/config/api';
 import { clearAppearanceHintCookieString } from '@/lib/appearance-hint';
-import type { AppRole } from '@/lib/auth-routing';
+import { isStudentRole, type AppRole } from '@/lib/auth-routing';
 import { setSessionExpiresAt } from '@/lib/session-timeout';
+import { POST_LOGOUT_LOGIN_PATH_KEY } from '@/lib/auth-providers';
 
 export const AUTH_USER_UPDATED_EVENT = 'auth:user-updated';
 export const PENDING_PREFERENCES_STORAGE_KEY = 'auth:pending-preferences';
@@ -273,11 +274,31 @@ class AuthService {
   }
 
    // Logout
-  async logout(): Promise<void> {
+  // คืน ssoLogoutUrl เมื่อเซสชันนี้มาจาก KKU SSO ผู้เรียกต้องพาเบราว์เซอร์ไป URL
+  // นั้นต่อ เพื่อปิดเซสชันกลางของมหาวิทยาลัย ไม่งั้นกดเข้าสู่ระบบอีกครั้งจะเด้ง
+  // กลับเข้ามาทันทีโดยไม่ถามรหัสผ่าน
+  async logout(): Promise<{ ssoLogoutUrl?: string }> {
+    let ssoLogoutUrl: string | undefined;
+    // จำโซนของผู้ใช้ไว้ก่อนล้างข้อมูล เพราะหลังกลับจากหน้า logout ของ KKU SSO
+    // เราไม่เหลือบริบทว่าเขาเป็นนักศึกษาหรือบุคลากร
+    if (typeof window !== 'undefined') {
+      const current = this.getStoredUser();
+      try {
+        localStorage.setItem(
+          POST_LOGOUT_LOGIN_PATH_KEY,
+          current && isStudentRole(current.role) ? '/student/login' : '/login',
+        );
+      } catch {
+        // localStorage ใช้ไม่ได้ (โหมดส่วนตัว) — ไม่เป็นไร ค่าเริ่มต้นคือ /login
+      }
+    }
     try {
       // The backend reads the refresh token from its httpOnly cookie and
       // revokes + clears it server-side; no body needed.
-      await apiService.post(API_ENDPOINTS.LOGOUT);
+      const response = await apiService.post<{ ssoLogoutUrl?: string }>(API_ENDPOINTS.LOGOUT);
+      if (response.success && response.data?.ssoLogoutUrl) {
+        ssoLogoutUrl = response.data.ssoLogoutUrl;
+      }
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -286,6 +307,7 @@ class AuthService {
       // Broadcast logout to other tabs
       authChannel?.postMessage({ type: 'logout' });
     }
+    return { ssoLogoutUrl };
   }
 
 
