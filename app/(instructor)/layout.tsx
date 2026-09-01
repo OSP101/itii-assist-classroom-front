@@ -21,6 +21,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { AppFooter } from "@/components/Footer";
 import { GlobalAnnouncementLayer } from "@/components/system-announcements/global-announcement-layer";
+import { GlobalAnnouncementTopbar } from "@/components/system-announcements/global-announcement-topbar";
 import type { UserNotificationItem } from "@/services/user-notification.service";
 
 interface User {
@@ -788,6 +789,8 @@ export default function InstructorLayout({
                         </div>
                     </div>
                 </header>
+
+                <GlobalAnnouncementTopbar />
 
                 {/* Main Content */}
                 <main className={`w-full flex-1 ${isHomePage ? "max-w-7xl mx-auto px-4 py-6" : ""}`}>

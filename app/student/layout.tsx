@@ -11,6 +11,7 @@ import { authService } from "@/services/auth.service";
 import { getDefaultRouteForRole, isStudentRole } from "@/lib/auth-routing";
 import { buildStudentLoginHref, getCurrentAppPath } from "@/lib/auth-resume";
 import { GlobalAnnouncementLayer } from "@/components/system-announcements/global-announcement-layer";
+import { GlobalAnnouncementTopbar } from "@/components/system-announcements/global-announcement-topbar";
 
 const navItems = [
   { href: "/student",               label: "หน้าหลัก", icon: "solar:home-2-linear",          activeIcon: "solar:home-2-bold" },
@@ -131,6 +132,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   return (
     <div data-theme-scope="student" className="cg-scope app-mobile-screen">
       <div className="mx-auto flex h-full w-full max-w-2xl flex-col overflow-hidden app-safe-x">
+        <GlobalAnnouncementTopbar />
         <GlobalAnnouncementLayer />
         <main className="app-mobile-scroll cg-scroll cg-gutter flex-1">{children}</main>
       </div>

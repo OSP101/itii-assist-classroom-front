@@ -48,7 +48,7 @@ export interface Announcement {
   message_th?: string;
   message_en?: string;
   content_type: "text" | "image" | "mixed";
-  display_mode: "banner_top" | "fullscreen";
+  display_mode: AnnouncementDisplayMode;
   image_url?: string;
   action_label?: string;
   action_label_th?: string;
@@ -61,9 +61,47 @@ export interface Announcement {
   audience: string[];
   require_acknowledge: boolean;
   is_active: boolean;
+  severity: AnnouncementSeverity;
+  priority: number;
+  status: AnnouncementStatus;
+  notify_inbox: boolean;
   created_at: string;
   ack_count: number;
+  dismiss_count?: number;
+  audience_count?: number;
   is_acknowledged?: boolean;
+}
+
+export type AnnouncementDisplayMode = "banner_top" | "fullscreen" | "topbar" | "fullscreen_image" | "corner_card";
+
+export type AnnouncementSeverity = "info" | "success" | "warning" | "urgent";
+
+export type AnnouncementStatus = "draft" | "scheduled" | "published" | "archived";
+
+export interface AnnouncementListFilter {
+  includeExpired?: boolean;
+  /** "live" covers published plus scheduled. */
+  status?: AnnouncementStatus | "live" | "all";
+  severity?: AnnouncementSeverity | "all";
+  search?: string;
+}
+
+export interface AnnouncementRecipient {
+  user_id: number;
+  full_name: string;
+  email: string;
+  role: string;
+  acknowledged_at?: string | null;
+}
+
+export interface AnnouncementStats {
+  announcement_id: number;
+  audience_count: number;
+  ack_count: number;
+  dismiss_count: number;
+  ack_percent: number;
+  pending: AnnouncementRecipient[];
+  acknowledged: AnnouncementRecipient[];
 }
 
 export interface MaintenanceConfig {
@@ -102,7 +140,7 @@ export interface AnnouncementPayload {
   message_th?: string | null;
   message_en?: string | null;
   content_type: "text" | "image" | "mixed";
-  display_mode: "banner_top" | "fullscreen";
+  display_mode: AnnouncementDisplayMode;
   image_url?: string | null;
   action_label?: string | null;
   action_label_th?: string | null;
@@ -115,6 +153,20 @@ export interface AnnouncementPayload {
   audience: string[];
   require_acknowledge: boolean;
   is_active: boolean;
+  severity: AnnouncementSeverity;
+  priority: number;
+  status: AnnouncementStatus;
+  notify_inbox: boolean;
+}
+
+/**
+ * Several announcements published in one request. Anything an item leaves
+ * empty falls back to `defaults`, so a set that differs only in wording does
+ * not have to repeat the audience, schedule and display settings.
+ */
+export interface AnnouncementBatchPayload {
+  defaults?: Partial<AnnouncementPayload>;
+  items: AnnouncementPayload[];
 }
 
 async function getBackups(limit = 20): Promise<DatabaseBackupRecord[]> {
@@ -183,9 +235,23 @@ async function getBackupDownloadURL(id: number, stepUpToken?: string): Promise<s
   return response.data.url;
 }
 
-async function getAnnouncements(includeExpired = false): Promise<Announcement[]> {
+async function getAnnouncements(
+  includeExpiredOrFilter: boolean | AnnouncementListFilter = false,
+): Promise<Announcement[]> {
+  const filter: AnnouncementListFilter =
+    typeof includeExpiredOrFilter === "boolean"
+      ? { includeExpired: includeExpiredOrFilter }
+      : includeExpiredOrFilter;
+
+  const params: Record<string, string> = {
+    includeExpired: String(filter.includeExpired ?? false),
+  };
+  if (filter.status && filter.status !== "all") params.status = filter.status;
+  if (filter.severity && filter.severity !== "all") params.severity = filter.severity;
+  if (filter.search?.trim()) params.search = filter.search.trim();
+
   const response = await apiService.get<Announcement[]>(API_ENDPOINTS.SYSTEM_SETTINGS.ANNOUNCEMENTS, {
-    params: { includeExpired: String(includeExpired) },
+    params,
   });
   if (!response.success || !response.data) return [];
   return response.data;
@@ -213,6 +279,37 @@ async function createAnnouncement(payload: AnnouncementPayload): Promise<Announc
 
 async function updateAnnouncement(id: number, payload: AnnouncementPayload): Promise<Announcement | null> {
   const response = await apiService.put<Announcement>(API_ENDPOINTS.SYSTEM_SETTINGS.ANNOUNCEMENT_BY_ID(id), payload);
+  if (!response.success || !response.data) return null;
+  return response.data;
+}
+
+async function createAnnouncementsBatch(payload: AnnouncementBatchPayload): Promise<Announcement[]> {
+  const response = await apiService.post<Announcement[]>(
+    API_ENDPOINTS.SYSTEM_SETTINGS.ANNOUNCEMENTS_BATCH,
+    payload,
+  );
+  if (!response.success || !response.data) return [];
+  return response.data;
+}
+
+async function setAnnouncementStatus(id: number, status: AnnouncementStatus): Promise<Announcement | null> {
+  const response = await apiService.patch<Announcement>(
+    API_ENDPOINTS.SYSTEM_SETTINGS.ANNOUNCEMENT_STATUS(id),
+    { status },
+  );
+  if (!response.success || !response.data) return null;
+  return response.data;
+}
+
+async function deleteAnnouncement(id: number): Promise<boolean> {
+  const response = await apiService.delete(API_ENDPOINTS.SYSTEM_SETTINGS.ANNOUNCEMENT_BY_ID(id));
+  return response.success === true;
+}
+
+async function getAnnouncementStats(id: number): Promise<AnnouncementStats | null> {
+  const response = await apiService.get<AnnouncementStats>(
+    API_ENDPOINTS.SYSTEM_SETTINGS.ANNOUNCEMENT_STATS(id),
+  );
   if (!response.success || !response.data) return null;
   return response.data;
 }
@@ -305,7 +402,11 @@ export const adminSettingsService = {
   getActiveAnnouncements,
   uploadAnnouncementImage,
   createAnnouncement,
+  createAnnouncementsBatch,
   updateAnnouncement,
+  setAnnouncementStatus,
+  deleteAnnouncement,
+  getAnnouncementStats,
   acknowledgeAnnouncement,
   getFeatureFlags,
   updateFeatureFlag,

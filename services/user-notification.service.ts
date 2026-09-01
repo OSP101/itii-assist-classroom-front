@@ -67,6 +67,17 @@ const userNotificationService = {
         const response = await api.post<{ success: boolean }>(`/notifications/announcements/${announcementId}/ack`) as unknown as { success: boolean };
         return !!response.success;
     },
+
+    /**
+     * Records a dismissal on the server. It is also kept in localStorage so the
+     * banner disappears immediately and stays gone if this call fails, but the
+     * server copy is what makes a dismissal follow the person to another
+     * device.
+     */
+    async dismissAnnouncement(announcementId: number): Promise<boolean> {
+        const response = await api.post<{ success: boolean }>(`/notifications/announcements/${announcementId}/dismiss`) as unknown as { success: boolean };
+        return !!response.success;
+    },
 };
 
 export default userNotificationService;

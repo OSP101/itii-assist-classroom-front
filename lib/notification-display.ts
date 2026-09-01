@@ -28,6 +28,9 @@ const ACTION_KEY_BY_TYPE: Record<string, string> = {
     score_edit_approved: "scoreEditApproved",
     score_edit_rejected: "scoreEditRejected",
     admin_message: "systemAnnouncement",
+    // The announcement fan-out writes type "announcement", which was missing
+    // here and fell through to the generic label.
+    announcement: "systemAnnouncement",
 };
 
 const MESSAGE_KEY_BY_TYPE: Record<string, string> = {
@@ -45,6 +48,7 @@ const MESSAGE_KEY_BY_TYPE: Record<string, string> = {
     score_edit_approved: "scoreEditApprovedMessage",
     score_edit_rejected: "scoreEditRejectedMessage",
     admin_message: "systemAnnouncementReceived",
+    announcement: "systemAnnouncementReceived",
 };
 
 function isRecord(value: unknown): value is NotificationData {
@@ -72,17 +76,37 @@ function containsThaiText(value: string): boolean {
 }
 
 function isSystemGeneratedNotification(type?: string | null): boolean {
-    return String(type || "") !== "admin_message";
+    const normalized = String(type || "");
+    return normalized !== "admin_message" && normalized !== "announcement";
 }
 
-function getRawTitle(notification: NotificationDisplaySource): string {
-    const data = getNotificationData(notification.data);
-    return pickString(notification.title, data.title);
+// System announcements are written in both languages, and the fan-out carries
+// both variants in the notification payload so the inbox can follow the
+// reader's language instead of freezing whichever one the admin typed first.
+function pickLocalized(
+    data: NotificationData,
+    language: AppLanguage,
+    thaiKey: string,
+    englishKey: string,
+): string {
+    return language === "th"
+        ? pickString(data[thaiKey], data[englishKey])
+        : pickString(data[englishKey], data[thaiKey]);
 }
 
-function getRawMessage(notification: NotificationDisplaySource): string {
+function getRawTitle(notification: NotificationDisplaySource, language: AppLanguage): string {
     const data = getNotificationData(notification.data);
-    return pickString(notification.message, data.body, data.message);
+    return pickString(pickLocalized(data, language, "title_th", "title_en"), notification.title, data.title);
+}
+
+function getRawMessage(notification: NotificationDisplaySource, language: AppLanguage): string {
+    const data = getNotificationData(notification.data);
+    return pickString(
+        pickLocalized(data, language, "message_th", "message_en"),
+        notification.message,
+        data.body,
+        data.message,
+    );
 }
 
 export function getNotificationActionLabel(
@@ -102,7 +126,7 @@ export function getNotificationEntityName(
         return fromPayload;
     }
 
-    const rawTitle = getRawTitle(notification);
+    const rawTitle = getRawTitle(notification, language);
     if (!rawTitle) {
         return "";
     }
@@ -133,7 +157,7 @@ export function getNotificationHeadline(
         return `${actionLabel}: ${entityName}`;
     }
 
-    const rawTitle = getRawTitle(notification);
+    const rawTitle = getRawTitle(notification, language);
     if (rawTitle && (language === "th" || !isSystemGeneratedNotification(notification.type) || !containsThaiText(rawTitle))) {
         return rawTitle;
     }
@@ -146,7 +170,7 @@ export function getNotificationMessage(
     language: AppLanguage,
     t: NotificationTranslator,
 ): string {
-    const rawMessage = getRawMessage(notification);
+    const rawMessage = getRawMessage(notification, language);
 
     if (rawMessage) {
         if (language === "th" || !isSystemGeneratedNotification(notification.type) || !containsThaiText(rawMessage)) {

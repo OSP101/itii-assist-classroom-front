@@ -1,206 +1,89 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@heroui/button";
-import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
-import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
-import { useI18n } from "@/hooks/useI18n";
-import { adminSettingsService, type Announcement } from "@/services/admin-settings.service";
-import { authService } from "@/services/auth.service";
-import userNotificationService from "@/services/user-notification.service";
+import { useAnnouncementViewer } from "@/hooks/useAnnouncementViewer";
+import type { VisibleAnnouncement } from "@/hooks/useActiveAnnouncements";
 import { getBackendPublicAssetUrl } from "@/lib/public-asset-url";
+import { getAnnouncementSeverityStyle } from "@/lib/announcement-severity";
+import { AnnouncementCornerCard } from "@/components/system-announcements/announcement-corner-card";
 
-const DISMISSED_KEY_PREFIX = "system-announcement-dismissed";
+/**
+ * How many banners are visible before the stack collapses. The rest stay one
+ * click away rather than being dropped: the old layer sliced the list to two
+ * and everything past that vanished with nothing on screen to say so.
+ */
+const COLLAPSED_BANNER_COUNT = 2;
 
-type AnnouncementDisplayMode = "banner_top" | "fullscreen";
-
-type VisibleAnnouncement = Announcement & {
-  is_acknowledged?: boolean;
-};
+type AnnouncementDisplayMode = "banner_top" | "fullscreen" | "fullscreen_image";
 
 function getFrontendAbsoluteUrl(pathOrUrl: string): string {
   return getBackendPublicAssetUrl(pathOrUrl);
 }
 
-function matchesDisplayPathRule(rule: string, pathname: string): boolean {
-  const normalizedRule = String(rule || "").trim().toLowerCase();
-  if (!normalizedRule || normalizedRule === "all_pages") return true;
-  if (normalizedRule === "admin_pages") return pathname.startsWith("/admin");
-  if (normalizedRule === "student_pages") return pathname.startsWith("/student");
-  if (normalizedRule === "student_notifications") return pathname.startsWith("/student/notifications");
-  if (normalizedRule === "instructor_pages") return pathname.startsWith("/classroom") || pathname.startsWith("/home");
-  if (normalizedRule === "classroom_pages") return pathname.startsWith("/classroom/");
-  if (normalizedRule.startsWith("/")) return pathname.startsWith(normalizedRule);
-  return false;
-}
-
-function getDismissedStorageKey(userId: number): string {
-  return `${DISMISSED_KEY_PREFIX}:${userId}`;
-}
-
-function getDismissedIds(userId: number): Set<number> {
-  if (typeof window === "undefined") {
-    return new Set();
-  }
-
-  try {
-    const raw = window.localStorage.getItem(getDismissedStorageKey(userId));
-    if (!raw) {
-      return new Set();
-    }
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      return new Set();
-    }
-    return new Set(parsed.map((item) => Number(item)).filter((item) => Number.isFinite(item) && item > 0));
-  } catch {
-    return new Set();
-  }
-}
-
-function saveDismissedIds(userId: number, ids: Set<number>): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(getDismissedStorageKey(userId), JSON.stringify(Array.from(ids)));
-  } catch {
-    // no-op
-  }
-}
-
-function shouldHideAnnouncement(item: VisibleAnnouncement, dismissedIds: Set<number>): boolean {
-  if (item.require_acknowledge && item.is_acknowledged) {
-    return true;
-  }
-
-  if (!item.require_acknowledge && item.is_dismissible && dismissedIds.has(item.id)) {
-    return true;
-  }
-
-  return false;
-}
-
 export function GlobalAnnouncementLayer() {
-  const t = useI18n();
-  const { language } = useGlobalSettings();
-  const pathname = usePathname();
-  const [announcements, setAnnouncements] = useState<VisibleAnnouncement[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [dismissedIds, setDismissedIds] = useState<Set<number>>(new Set());
-  const [acknowledgingIds, setAcknowledgingIds] = useState<Set<number>>(new Set());
+  const {
+    t,
+    user,
+    isLoading,
+    visibleAnnouncements,
+    acknowledgingIds,
+    dismiss,
+    acknowledge,
+    getLocalizedTitle,
+    getLocalizedMessage,
+    getLocalizedActionLabel,
+  } = useAnnouncementViewer();
+  const [isStackExpanded, setIsStackExpanded] = useState(false);
+  const [fullscreenIndex, setFullscreenIndex] = useState(0);
+  const [cornerIndex, setCornerIndex] = useState(0);
 
-  const user = authService.getStoredUser();
-
-  useEffect(() => {
-    if (!user?.id) {
-      setDismissedIds(new Set());
-      return;
-    }
-    setDismissedIds(getDismissedIds(user.id));
-  }, [user?.id]);
-
-  const refreshAnnouncements = useCallback(async () => {
-    if (!authService.isAuthenticated()) {
-      setAnnouncements([]);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const rows = await adminSettingsService.getActiveAnnouncements();
-      setAnnouncements(rows);
-    } catch {
-      setAnnouncements([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void refreshAnnouncements();
-    const timer = window.setInterval(() => {
-      void refreshAnnouncements();
-    }, 60000);
-
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, [refreshAnnouncements]);
-
-  const visibleAnnouncements = useMemo(
-    () => announcements.filter((item) => {
-      if (shouldHideAnnouncement(item, dismissedIds)) {
-        return false;
-      }
-      const displayPaths = item.display_paths && item.display_paths.length > 0 ? item.display_paths : ["all_pages"];
-      return displayPaths.some((rule) => matchesDisplayPathRule(rule, pathname));
-    }),
-    [announcements, dismissedIds, pathname],
-  );
-
-  const fullscreenAnnouncement = useMemo(
-    () => visibleAnnouncements.find((item) => item.display_mode === "fullscreen"),
+  // Every fullscreen announcement is shown, one after another, instead of only
+  // whichever one happened to sort first. Both fullscreen shapes queue
+  // together — they occupy the same screen.
+  const fullscreenAnnouncements = useMemo(
+    () => visibleAnnouncements.filter(
+      (item) => item.display_mode === "fullscreen" || item.display_mode === "fullscreen_image",
+    ),
     [visibleAnnouncements],
   );
 
   const bannerAnnouncements = useMemo(
-    () => visibleAnnouncements.filter((item) => item.display_mode === "banner_top").slice(0, 2),
+    () => visibleAnnouncements.filter((item) => item.display_mode === "banner_top"),
     [visibleAnnouncements],
   );
 
-  const dismissAnnouncement = useCallback(
-    (announcementId: number) => {
-      if (!user?.id) return;
-      setDismissedIds((prev) => {
-        const next = new Set(prev);
-        next.add(announcementId);
-        saveDismissedIds(user.id, next);
-        return next;
-      });
-    },
-    [user?.id],
+  // The corner card is rendered from here rather than from its own mount point
+  // because it is fixed-positioned: it does not need to sit anywhere
+  // particular in the tree the way the top ribbon does.
+  const cornerAnnouncements = useMemo(
+    () => visibleAnnouncements.filter((item) => item.display_mode === "corner_card"),
+    [visibleAnnouncements],
   );
 
-  const handleAcknowledge = useCallback(
-    async (item: VisibleAnnouncement) => {
-      if (!item.id) return;
-      setAcknowledgingIds((prev) => new Set([...prev, item.id]));
-      const ok = await userNotificationService.acknowledgeAnnouncement(item.id);
-      setAcknowledgingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(item.id);
-        return next;
-      });
+  const collapsedBanners = isStackExpanded
+    ? bannerAnnouncements
+    : bannerAnnouncements.slice(0, COLLAPSED_BANNER_COUNT);
+  const hiddenBannerCount = bannerAnnouncements.length - collapsedBanners.length;
 
-      if (!ok) {
-        addToast({
-          title: t("error"),
-          description: t("adminSettingsUpdateFailed"),
-          color: "danger",
-        });
-        return;
-      }
+  useEffect(() => {
+    if (fullscreenIndex > fullscreenAnnouncements.length - 1) {
+      setFullscreenIndex(Math.max(0, fullscreenAnnouncements.length - 1));
+    }
+  }, [fullscreenAnnouncements.length, fullscreenIndex]);
 
-      addToast({
-        title: t("success"),
-        description: t("adminAnnouncementAcknowledged"),
-        color: "success",
-      });
-      await refreshAnnouncements();
-    },
-    [refreshAnnouncements, t],
-  );
+  useEffect(() => {
+    if (cornerIndex > cornerAnnouncements.length - 1) {
+      setCornerIndex(Math.max(0, cornerAnnouncements.length - 1));
+    }
+  }, [cornerAnnouncements.length, cornerIndex]);
+
+  const fullscreenAnnouncement = fullscreenAnnouncements[fullscreenIndex];
 
   const renderActionButtons = (item: VisibleAnnouncement, mode: AnnouncementDisplayMode) => {
+    const isOverlay = mode !== "banner_top";
     const isAcknowledging = acknowledgingIds.has(item.id);
-    const actionButtonClass = mode === "fullscreen" ? "border-white/40 text-white" : "border-default-300 text-default-700";
-    const localizedActionLabel = language === "th"
-      ? (item.action_label_th?.trim() || item.action_label_en?.trim() || item.action_label?.trim() || t("adminAnnouncementOpenAction"))
-      : (item.action_label_en?.trim() || item.action_label_th?.trim() || item.action_label?.trim() || t("adminAnnouncementOpenAction"));
 
     return (
       <div className="flex flex-wrap items-center gap-2">
@@ -210,30 +93,30 @@ export function GlobalAnnouncementLayer() {
             href={getFrontendAbsoluteUrl(item.action_url)}
             target="_blank"
             rel="noopener noreferrer"
-            variant={mode === "fullscreen" ? "solid" : "flat"}
-            color={mode === "fullscreen" ? "primary" : "default"}
+            variant={isOverlay ? "solid" : "flat"}
+            color={isOverlay ? "primary" : "default"}
             size="sm"
           >
-            {localizedActionLabel}
+            {getLocalizedActionLabel(item)}
           </Button>
         ) : null}
         {item.require_acknowledge ? (
           <Button
             color="primary"
-            variant={mode === "fullscreen" ? "solid" : "flat"}
+            variant={isOverlay ? "solid" : "flat"}
             size="sm"
             isLoading={isAcknowledging}
-            onPress={() => void handleAcknowledge(item)}
+            onPress={() => void acknowledge(item)}
           >
             {t("adminAcknowledgeAction")}
           </Button>
         ) : null}
         {item.is_dismissible && !item.require_acknowledge ? (
           <Button
-            variant={mode === "fullscreen" ? "bordered" : "light"}
+            variant={isOverlay ? "bordered" : "light"}
             size="sm"
-            className={mode === "fullscreen" ? actionButtonClass : undefined}
-            onPress={() => dismissAnnouncement(item.id)}
+            className={isOverlay ? "border-white/40 text-white" : undefined}
+            onPress={() => dismiss(item.id)}
           >
             {t("dismiss")}
           </Button>
@@ -246,65 +129,192 @@ export function GlobalAnnouncementLayer() {
     return null;
   }
 
-  const getLocalizedTitle = (item: VisibleAnnouncement) => language === "th"
-    ? (item.title_th?.trim() || item.title_en?.trim() || item.title)
-    : (item.title_en?.trim() || item.title_th?.trim() || item.title);
-
-  const getLocalizedMessage = (item: VisibleAnnouncement) => language === "th"
-    ? (item.message_th?.trim() || item.message_en?.trim() || item.message)
-    : (item.message_en?.trim() || item.message_th?.trim() || item.message);
+  const isFullBleedImage = fullscreenAnnouncement?.display_mode === "fullscreen_image"
+    && !!fullscreenAnnouncement.image_url;
 
   return (
     <>
-      {bannerAnnouncements.length > 0 && (
+      {collapsedBanners.length > 0 && (
         <div className="mb-4 space-y-2">
-          {bannerAnnouncements.map((item) => (
-            <div
-              key={item.id}
-              className="rounded-xl border border-sky-200 bg-linear-to-r from-sky-50 to-cyan-50 px-4 py-3 shadow-sm"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-sky-900">{getLocalizedTitle(item)}</p>
-                  {getLocalizedMessage(item) ? <p className="text-sm text-sky-800/90">{getLocalizedMessage(item)}</p> : null}
-                </div>
-                <Icon icon="solar:bell-bold" className="text-xl text-sky-500" />
-              </div>
-              {item.content_type !== "text" && item.image_url ? (
-                <img
-                  src={getFrontendAbsoluteUrl(item.image_url)}
-                  alt={getLocalizedTitle(item)}
-                  className="mt-3 h-36 w-full rounded-lg object-cover"
-                  loading="lazy"
-                />
-              ) : null}
-              <div className="mt-3">{renderActionButtons(item, "banner_top")}</div>
+          {bannerAnnouncements.length > COLLAPSED_BANNER_COUNT && (
+            <div className="flex items-center justify-between gap-3 px-1">
+              <span className="text-xs font-medium text-default-500">
+                {t("announcementCountLabel", { count: bannerAnnouncements.length })}
+              </span>
+              <Button
+                size="sm"
+                variant="light"
+                onPress={() => setIsStackExpanded((prev) => !prev)}
+                endContent={<Icon icon={isStackExpanded ? "solar:alt-arrow-up-linear" : "solar:alt-arrow-down-linear"} />}
+              >
+                {isStackExpanded ? t("announcementShowLess") : t("announcementShowAll", { count: bannerAnnouncements.length })}
+              </Button>
             </div>
-          ))}
+          )}
+
+          {collapsedBanners.map((item) => {
+            const severityStyle = getAnnouncementSeverityStyle(item.severity);
+            const message = getLocalizedMessage(item);
+
+            return (
+              <div
+                key={item.id}
+                className={`rounded-xl border px-4 py-3 shadow-sm ${severityStyle.banner}`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className={`text-sm font-semibold ${severityStyle.title}`}>{getLocalizedTitle(item)}</p>
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${severityStyle.chip}`}>
+                        {t(severityStyle.labelKey)}
+                      </span>
+                    </div>
+                    {/* whitespace-pre-line keeps the paragraph breaks the admin
+                        typed; without it a multi-paragraph notice collapsed
+                        into one run-on block. */}
+                    {message ? (
+                      <p className={`whitespace-pre-line text-sm ${severityStyle.body}`}>{message}</p>
+                    ) : null}
+                  </div>
+                  <Icon icon={severityStyle.icon} className={`shrink-0 text-xl ${severityStyle.iconClass}`} />
+                </div>
+                {item.content_type !== "text" && item.image_url ? (
+                  <img
+                    src={getFrontendAbsoluteUrl(item.image_url)}
+                    alt={getLocalizedTitle(item)}
+                    className="mt-3 h-36 w-full rounded-lg object-cover"
+                    loading="lazy"
+                  />
+                ) : null}
+                <div className="mt-3">{renderActionButtons(item, "banner_top")}</div>
+              </div>
+            );
+          })}
+
+          {hiddenBannerCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setIsStackExpanded(true)}
+              className="w-full rounded-xl border border-dashed border-default-300 px-4 py-2 text-xs font-medium text-default-500 transition hover:bg-default-100"
+            >
+              {t("announcementShowAll", { count: bannerAnnouncements.length })}
+            </button>
+          )}
         </div>
       )}
 
       {fullscreenAnnouncement && (
-        <div className="fixed inset-0 z-120 flex items-center justify-center bg-black/75 p-4">
-          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-black/60 p-5 text-white backdrop-blur">
-            <div className="space-y-3">
-              <p className="text-xl font-semibold">{getLocalizedTitle(fullscreenAnnouncement)}</p>
-              {getLocalizedMessage(fullscreenAnnouncement) ? <p className="text-sm text-white/90">{getLocalizedMessage(fullscreenAnnouncement)}</p> : null}
-            </div>
-            {fullscreenAnnouncement.content_type !== "text" && fullscreenAnnouncement.image_url ? (
+        <div className={`fixed inset-0 z-120 flex items-center justify-center bg-black/85 ${isFullBleedImage ? "" : "p-4"}`}>
+          {isFullBleedImage ? (
+            /* The poster carries the message, so it gets the whole screen and
+               the text sits over it rather than in a card beside it. */
+            <div className="relative h-full w-full">
               <img
-                src={getFrontendAbsoluteUrl(fullscreenAnnouncement.image_url)}
+                src={getFrontendAbsoluteUrl(fullscreenAnnouncement.image_url!)}
                 alt={getLocalizedTitle(fullscreenAnnouncement)}
-                className="mt-4 max-h-[60vh] w-full rounded-xl object-contain bg-black/30"
-                loading="lazy"
+                className="h-full w-full object-contain"
               />
-            ) : null}
-            <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
-              {renderActionButtons(fullscreenAnnouncement, "fullscreen")}
+
+              <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/90 via-black/70 to-transparent p-5 pt-16 text-white">
+                <div className="mx-auto w-full max-w-3xl space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Icon
+                      icon={getAnnouncementSeverityStyle(fullscreenAnnouncement.severity).icon}
+                      className={`text-xl ${getAnnouncementSeverityStyle(fullscreenAnnouncement.severity).iconClass}`}
+                    />
+                    <p className="text-xl font-semibold">{getLocalizedTitle(fullscreenAnnouncement)}</p>
+                    {fullscreenAnnouncements.length > 1 && (
+                      <span className="ml-auto rounded-full bg-white/15 px-2 py-0.5 text-xs">
+                        {t("announcementStepIndicator", {
+                          current: fullscreenIndex + 1,
+                          total: fullscreenAnnouncements.length,
+                        })}
+                      </span>
+                    )}
+                  </div>
+                  {getLocalizedMessage(fullscreenAnnouncement) ? (
+                    <p className="whitespace-pre-line text-sm text-white/90">
+                      {getLocalizedMessage(fullscreenAnnouncement)}
+                    </p>
+                  ) : null}
+                  <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+                    {fullscreenIndex < fullscreenAnnouncements.length - 1 && (
+                      <Button
+                        variant="bordered"
+                        size="sm"
+                        className="border-white/40 text-white"
+                        onPress={() => setFullscreenIndex((prev) => prev + 1)}
+                      >
+                        {t("announcementNext")}
+                      </Button>
+                    )}
+                    {renderActionButtons(fullscreenAnnouncement, "fullscreen_image")}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-black/60 p-5 text-white backdrop-blur">
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Icon
+                    icon={getAnnouncementSeverityStyle(fullscreenAnnouncement.severity).icon}
+                    className={`text-xl ${getAnnouncementSeverityStyle(fullscreenAnnouncement.severity).iconClass}`}
+                  />
+                  <p className="text-xl font-semibold">{getLocalizedTitle(fullscreenAnnouncement)}</p>
+                  {fullscreenAnnouncements.length > 1 && (
+                    <span className="ml-auto rounded-full bg-white/15 px-2 py-0.5 text-xs">
+                      {t("announcementStepIndicator", {
+                        current: fullscreenIndex + 1,
+                        total: fullscreenAnnouncements.length,
+                      })}
+                    </span>
+                  )}
+                </div>
+                {getLocalizedMessage(fullscreenAnnouncement) ? (
+                  <p className="whitespace-pre-line text-sm text-white/90">{getLocalizedMessage(fullscreenAnnouncement)}</p>
+                ) : null}
+              </div>
+              {fullscreenAnnouncement.content_type !== "text" && fullscreenAnnouncement.image_url ? (
+                <img
+                  src={getFrontendAbsoluteUrl(fullscreenAnnouncement.image_url)}
+                  alt={getLocalizedTitle(fullscreenAnnouncement)}
+                  className="mt-4 max-h-[60vh] w-full rounded-xl object-contain bg-black/30"
+                  loading="lazy"
+                />
+              ) : null}
+              <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
+                {/* With more than one fullscreen notice queued, this steps
+                    through them rather than leaving the rest unseen. */}
+                {fullscreenIndex < fullscreenAnnouncements.length - 1 && (
+                  <Button
+                    variant="bordered"
+                    size="sm"
+                    className="border-white/40 text-white"
+                    onPress={() => setFullscreenIndex((prev) => prev + 1)}
+                  >
+                    {t("announcementNext")}
+                  </Button>
+                )}
+                {renderActionButtons(fullscreenAnnouncement, "fullscreen")}
+              </div>
+            </div>
+          )}
         </div>
       )}
+
+      <AnnouncementCornerCard
+        items={cornerAnnouncements}
+        index={cornerIndex}
+        onNext={() => setCornerIndex((prev) => (prev + 1) % cornerAnnouncements.length)}
+        onDismiss={dismiss}
+        onAcknowledge={(item) => void acknowledge(item)}
+        acknowledgingIds={acknowledgingIds}
+        getTitle={getLocalizedTitle}
+        getMessage={getLocalizedMessage}
+        getActionLabel={getLocalizedActionLabel}
+        t={t}
+      />
     </>
   );
 }

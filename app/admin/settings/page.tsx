@@ -16,6 +16,7 @@ import { Divider } from "@heroui/divider";
 import { Chip } from "@heroui/chip";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
+import { Tabs, Tab } from "@heroui/tabs";
 import Cropper, { type Area, type Point } from "react-easy-crop";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { useI18n } from "@/hooks/useI18n";
@@ -24,6 +25,10 @@ import {
     adminSettingsService,
     type Announcement,
     type AnnouncementPayload,
+    type AnnouncementDisplayMode,
+    type AnnouncementSeverity,
+    type AnnouncementStats,
+    type AnnouncementStatus,
     type BackupOperationStatus,
     type DatabaseBackupRecord,
     type FeatureFlag,
@@ -33,6 +38,7 @@ import {
 import { stepUpService } from "@/services/step-up.service";
 import { userService, type User } from "@/services/user.service";
 import { getBackendPublicAssetUrl } from "@/lib/public-asset-url";
+import { getAnnouncementRibbonStyle, getAnnouncementSeverityStyle } from "@/lib/announcement-severity";
 import TablePaginationFooter, { DEFAULT_TABLE_ROWS_PER_PAGE } from "@/components/ui/table-pagination-footer";
 
 const ANNOUNCEMENT_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
@@ -40,6 +46,31 @@ const ANNOUNCEMENT_IMAGE_MIN_WIDTH = 1200;
 const ANNOUNCEMENT_IMAGE_MIN_HEIGHT = 600;
 const ANNOUNCEMENT_IMAGE_EDIT_WIDTH = 1920;
 const ANNOUNCEMENT_IMAGE_EDIT_HEIGHT = 1080;
+type AnnouncementListStatusFilter = "all" | "draft" | "scheduled" | "published" | "archived";
+
+/** One announcement's own wording inside a batch. */
+interface AnnouncementBatchItem {
+    key: string;
+    title_th: string;
+    title_en: string;
+    message_th: string;
+    message_en: string;
+}
+
+function createEmptyBatchItem(): AnnouncementBatchItem {
+    return {
+        key: `batch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        title_th: "",
+        title_en: "",
+        message_th: "",
+        message_en: "",
+    };
+}
+
+const ANNOUNCEMENT_BATCH_LIMIT = 20;
+
+type AnnouncementComposerTab = "content" | "display" | "audience";
+
 const ANNOUNCEMENT_PREVIEW_BASE_URL = (process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "");
 
 async function getImageDimensions(file: File): Promise<{ width: number; height: number; objectUrl: string } | null> {
@@ -145,6 +176,10 @@ export default function AdminSettingsPage() {
         is_dismissible: true,
         require_acknowledge: false,
         is_active: true,
+        severity: "info",
+        priority: 0,
+        status: "published",
+        notify_inbox: true,
     });
     const [announcementLocalizedForm, setAnnouncementLocalizedForm] = useState({
         title_th: "",
@@ -164,7 +199,19 @@ export default function AdminSettingsPage() {
     const [backupListRowsPerPage, setBackupListRowsPerPage] = useState(DEFAULT_TABLE_ROWS_PER_PAGE);
     const [isAnnouncementListModalOpen, setIsAnnouncementListModalOpen] = useState(false);
     const [announcementListSearchQuery, setAnnouncementListSearchQuery] = useState("");
-    const [announcementListStatusFilter, setAnnouncementListStatusFilter] = useState<"all" | "active" | "inactive">("all");
+    const [announcementListStatusFilter, setAnnouncementListStatusFilter] = useState<AnnouncementListStatusFilter>("all");
+    const [announcementListSeverityFilter, setAnnouncementListSeverityFilter] = useState<AnnouncementSeverity | "all">("all");
+    // Batch mode reuses the composer for the shared settings and collects the
+    // per-announcement wording here.
+    const [announcementComposerTab, setAnnouncementComposerTab] = useState<AnnouncementComposerTab>("content");
+    const [isAnnouncementBatchMode, setIsAnnouncementBatchMode] = useState(false);
+    const [announcementBatchItems, setAnnouncementBatchItems] = useState<AnnouncementBatchItem[]>([createEmptyBatchItem()]);
+    const [isSavingAnnouncement, setIsSavingAnnouncement] = useState(false);
+    const [announcementStats, setAnnouncementStats] = useState<AnnouncementStats | null>(null);
+    const [announcementStatsTarget, setAnnouncementStatsTarget] = useState<Announcement | null>(null);
+    const [isAnnouncementStatsModalOpen, setIsAnnouncementStatsModalOpen] = useState(false);
+    const [isLoadingAnnouncementStats, setIsLoadingAnnouncementStats] = useState(false);
+    const [announcementDeleteTarget, setAnnouncementDeleteTarget] = useState<Announcement | null>(null);
     const [announcementListPage, setAnnouncementListPage] = useState(1);
     const [announcementListRowsPerPage, setAnnouncementListRowsPerPage] = useState(DEFAULT_TABLE_ROWS_PER_PAGE);
     const [shouldOpenAnnouncementComposer, setShouldOpenAnnouncementComposer] = useState(false);
@@ -254,6 +301,10 @@ export default function AdminSettingsPage() {
             is_dismissible: true,
             require_acknowledge: false,
             is_active: true,
+            severity: "info",
+            priority: 0,
+            status: "published",
+            notify_inbox: true,
         });
         setAnnouncementLocalizedForm({
             title_th: "",
@@ -263,6 +314,9 @@ export default function AdminSettingsPage() {
             action_label_th: "",
             action_label_en: "",
         });
+        setIsAnnouncementBatchMode(false);
+        setAnnouncementBatchItems([createEmptyBatchItem()]);
+        setAnnouncementComposerTab("content");
     };
 
     const openAnnouncementComposerSafely = () => {
@@ -317,6 +371,10 @@ export default function AdminSettingsPage() {
             is_dismissible: item.is_dismissible,
             require_acknowledge: item.require_acknowledge,
             is_active: item.is_active,
+            severity: item.severity || "info",
+            priority: item.priority ?? 0,
+            status: item.status || (item.is_active ? "published" : "archived"),
+            notify_inbox: item.notify_inbox ?? true,
         });
         setAnnouncementLocalizedForm({
             title_th: nextTitleTh,
@@ -353,6 +411,10 @@ export default function AdminSettingsPage() {
             is_dismissible: item.is_dismissible,
             require_acknowledge: item.require_acknowledge,
             is_active: item.is_active,
+            severity: item.severity || "info",
+            priority: item.priority ?? 0,
+            status: item.status || (item.is_active ? "published" : "archived"),
+            notify_inbox: item.notify_inbox ?? true,
         });
         setAnnouncementLocalizedForm({
             title_th: item.title_th || "",
@@ -673,17 +735,22 @@ export default function AdminSettingsPage() {
             || announcementLocalizedForm.action_label_en.trim()
             || (announcementForm.action_label || "").trim();
 
-        if (!localizedTitle) {
+        const isBatchCreate = isAnnouncementBatchMode && editingAnnouncementId === null;
+
+        if (!isBatchCreate && !localizedTitle) {
+            setAnnouncementComposerTab("content");
             addToast({ title: t("error"), description: t("adminAnnouncementRequireFields"), color: "danger" });
             return false;
         }
 
-        if (announcementForm.content_type === "text" && !localizedMessage) {
+        if (!isBatchCreate && announcementForm.content_type === "text" && !localizedMessage) {
+            setAnnouncementComposerTab("content");
             addToast({ title: t("error"), description: t("adminAnnouncementRequireMessage"), color: "danger" });
             return false;
         }
 
         if (announcementForm.content_type === "image" && !announcementForm.image_url?.trim()) {
+            setAnnouncementComposerTab("content");
             addToast({ title: t("error"), description: t("adminAnnouncementRequireImage"), color: "danger" });
             return false;
         }
@@ -700,21 +767,131 @@ export default function AdminSettingsPage() {
             action_label_th: announcementLocalizedForm.action_label_th.trim() || null,
             action_label_en: announcementLocalizedForm.action_label_en.trim() || null,
         };
-        const saved = editingAnnouncementId
-            ? await adminSettingsService.updateAnnouncement(editingAnnouncementId, payload)
-            : await adminSettingsService.createAnnouncement(payload);
-        if (!saved) {
-            addToast({ title: t("error"), description: t("adminSettingsUpdateFailed"), color: "danger" });
-            return false;
+        setIsSavingAnnouncement(true);
+        try {
+            // Batch mode publishes every filled-in item at once, sharing this
+            // announcement's audience, schedule, severity and display settings.
+            // It is only offered when creating, never when editing one row.
+            if (isBatchCreate) {
+                const items = announcementBatchItems
+                    .map((item) => ({
+                        title_th: item.title_th.trim(),
+                        title_en: item.title_en.trim(),
+                        message_th: item.message_th.trim(),
+                        message_en: item.message_en.trim(),
+                    }))
+                    .filter((item) => item.title_th || item.title_en);
+
+                if (items.length === 0) {
+                    setAnnouncementComposerTab("content");
+                    addToast({ title: t("error"), description: t("adminAnnouncementBatchNeedsItem"), color: "danger" });
+                    return false;
+                }
+
+                const created = await adminSettingsService.createAnnouncementsBatch({
+                    defaults: payload,
+                    items: items.map((item) => ({
+                        ...payload,
+                        title: item.title_th || item.title_en,
+                        title_th: item.title_th || null,
+                        title_en: item.title_en || null,
+                        message: item.message_th || item.message_en,
+                        message_th: item.message_th || null,
+                        message_en: item.message_en || null,
+                    })),
+                });
+
+                if (created.length === 0) {
+                    addToast({ title: t("error"), description: t("adminAnnouncementBatchFailed"), color: "danger" });
+                    return false;
+                }
+
+                resetAnnouncementComposer();
+                await loadAllSettings();
+                addToast({
+                    title: t("success"),
+                    description: t("adminAnnouncementBatchCreated", { count: created.length }),
+                    color: "success",
+                });
+                return true;
+            }
+
+            const saved = editingAnnouncementId
+                ? await adminSettingsService.updateAnnouncement(editingAnnouncementId, payload)
+                : await adminSettingsService.createAnnouncement(payload);
+            if (!saved) {
+                addToast({ title: t("error"), description: t("adminSettingsUpdateFailed"), color: "danger" });
+                return false;
+            }
+            resetAnnouncementComposer();
+            await loadAllSettings();
+            addToast({
+                title: t("success"),
+                description: wasEditing ? t("adminAnnouncementUpdated") : t("adminAnnouncementCreated"),
+                color: "success",
+            });
+            return true;
+        } finally {
+            setIsSavingAnnouncement(false);
         }
-        resetAnnouncementComposer();
-        await loadAllSettings();
-        addToast({
-            title: t("success"),
-            description: wasEditing ? t("adminAnnouncementUpdated") : t("adminAnnouncementCreated"),
-            color: "success",
+    };
+
+    const addAnnouncementBatchItem = () => {
+        setAnnouncementBatchItems((prev) => {
+            if (prev.length >= ANNOUNCEMENT_BATCH_LIMIT) {
+                addToast({
+                    title: t("error"),
+                    description: t("adminAnnouncementBatchLimit", { limit: ANNOUNCEMENT_BATCH_LIMIT }),
+                    color: "warning",
+                });
+                return prev;
+            }
+            return [...prev, createEmptyBatchItem()];
         });
-        return true;
+    };
+
+    const removeAnnouncementBatchItem = (key: string) => {
+        setAnnouncementBatchItems((prev) => (prev.length <= 1 ? prev : prev.filter((item) => item.key !== key)));
+    };
+
+    const updateAnnouncementBatchItem = (key: string, field: keyof Omit<AnnouncementBatchItem, "key">, value: string) => {
+        setAnnouncementBatchItems((prev) => prev.map((item) => (item.key === key ? { ...item, [field]: value } : item)));
+    };
+
+    const changeAnnouncementStatus = async (item: Announcement, status: AnnouncementStatus) => {
+        const updated = await adminSettingsService.setAnnouncementStatus(item.id, status);
+        if (!updated) {
+            addToast({ title: t("error"), description: t("adminAnnouncementStatusUpdateFailed"), color: "danger" });
+            return;
+        }
+        await loadAllSettings();
+        addToast({ title: t("success"), description: t("adminAnnouncementStatusUpdated"), color: "success" });
+    };
+
+    const confirmDeleteAnnouncement = async () => {
+        if (!announcementDeleteTarget) return;
+        const ok = await adminSettingsService.deleteAnnouncement(announcementDeleteTarget.id);
+        setAnnouncementDeleteTarget(null);
+        if (!ok) {
+            addToast({ title: t("error"), description: t("adminAnnouncementDeleteFailed"), color: "danger" });
+            return;
+        }
+        await loadAllSettings();
+        addToast({ title: t("success"), description: t("adminAnnouncementDeleted"), color: "success" });
+    };
+
+    const openAnnouncementStats = async (item: Announcement) => {
+        setAnnouncementStatsTarget(item);
+        setAnnouncementStats(null);
+        setIsAnnouncementStatsModalOpen(true);
+        setIsLoadingAnnouncementStats(true);
+        const stats = await adminSettingsService.getAnnouncementStats(item.id);
+        setIsLoadingAnnouncementStats(false);
+        if (!stats) {
+            addToast({ title: t("error"), description: t("adminAnnouncementStatsLoadFailed"), color: "danger" });
+            return;
+        }
+        setAnnouncementStats(stats);
     };
 
     const getAnnouncementTextByLanguage = (
@@ -876,10 +1053,39 @@ export default function AdminSettingsPage() {
         ],
         [t],
     );
+    const announcementSeverityOptions = useMemo(
+        () => [
+            { key: "info", label: t("adminAnnouncementSeverityInfo"), color: "primary" as const },
+            { key: "success", label: t("adminAnnouncementSeveritySuccess"), color: "success" as const },
+            { key: "warning", label: t("adminAnnouncementSeverityWarning"), color: "warning" as const },
+            { key: "urgent", label: t("adminAnnouncementSeverityUrgent"), color: "danger" as const },
+        ],
+        [t],
+    );
+    const announcementStatusOptions = useMemo(
+        () => [
+            { key: "draft", label: t("adminAnnouncementStatusDraft"), color: "default" as const },
+            { key: "scheduled", label: t("adminAnnouncementStatusScheduled"), color: "warning" as const },
+            { key: "published", label: t("adminAnnouncementStatusPublished"), color: "success" as const },
+            { key: "archived", label: t("adminAnnouncementStatusArchived"), color: "default" as const },
+        ],
+        [t],
+    );
+    const announcementSeverityLabelMap = useMemo(
+        () => new Map(announcementSeverityOptions.map((option) => [option.key, option])),
+        [announcementSeverityOptions],
+    );
+    const announcementStatusLabelMap = useMemo(
+        () => new Map(announcementStatusOptions.map((option) => [option.key, option])),
+        [announcementStatusOptions],
+    );
     const announcementDisplayModeOptions = useMemo(
         () => [
+            { key: "topbar", label: t("adminAnnouncementDisplayTopbar") },
             { key: "banner_top", label: t("adminAnnouncementDisplayBannerTop") },
             { key: "fullscreen", label: t("adminAnnouncementDisplayFullscreen") },
+            { key: "fullscreen_image", label: t("adminAnnouncementDisplayFullscreenImage") },
+            { key: "corner_card", label: t("adminAnnouncementDisplayCornerCard") },
         ],
         [t],
     );
@@ -1025,15 +1231,23 @@ export default function AdminSettingsPage() {
         trigger: "bg-content1 border-default-200 hover:border-default-300",
     };
 
+    // In batch mode the shared title and message are replaced by each item's
+    // own wording, so the preview follows the first item rather than text that
+    // will never be shown.
+    const isPreviewingBatchItem = isAnnouncementBatchMode && editingAnnouncementId === null;
+    const previewSourceText = isPreviewingBatchItem
+        ? announcementBatchItems[0]
+        : announcementLocalizedForm;
+
     const localizedPreviewTitle =
         announcementPreviewLanguage === "th"
-            ? (announcementLocalizedForm.title_th.trim() || announcementLocalizedForm.title_en.trim() || t("adminAnnouncementPreviewTitleFallback"))
-            : (announcementLocalizedForm.title_en.trim() || announcementLocalizedForm.title_th.trim() || t("adminAnnouncementPreviewTitleFallback"));
+            ? (previewSourceText.title_th.trim() || previewSourceText.title_en.trim() || t("adminAnnouncementPreviewTitleFallback"))
+            : (previewSourceText.title_en.trim() || previewSourceText.title_th.trim() || t("adminAnnouncementPreviewTitleFallback"));
 
     const localizedPreviewMessage =
         announcementPreviewLanguage === "th"
-            ? (announcementLocalizedForm.message_th.trim() || announcementLocalizedForm.message_en.trim())
-            : (announcementLocalizedForm.message_en.trim() || announcementLocalizedForm.message_th.trim());
+            ? (previewSourceText.message_th.trim() || previewSourceText.message_en.trim())
+            : (previewSourceText.message_en.trim() || previewSourceText.message_th.trim());
 
     const localizedPreviewActionLabel =
         announcementPreviewLanguage === "th"
@@ -1059,9 +1273,11 @@ export default function AdminSettingsPage() {
     const announcementToggleValues = [
         announcementForm.require_acknowledge ? "require_acknowledge" : "",
         announcementForm.is_dismissible ? "is_dismissible" : "",
-        announcementForm.is_active ? "is_active" : "",
+        announcementForm.notify_inbox ? "notify_inbox" : "",
     ].filter(Boolean);
 
+    const previewSeverityStyle = getAnnouncementSeverityStyle(announcementForm.severity);
+    const previewRibbonStyle = getAnnouncementRibbonStyle(announcementForm.severity);
     const previewDisplayPaths = announcementForm.display_paths.length > 0 ? announcementForm.display_paths : ["all_pages"];
     const previewMatchesSelectedPath = previewDisplayPaths.includes("all_pages") || previewDisplayPaths.includes(announcementPreviewPath);
     const previewPathLabel = announcementDisplayPathOptions.find((option) => option.key === announcementPreviewPath)?.label || announcementPreviewPath;
@@ -1069,8 +1285,9 @@ export default function AdminSettingsPage() {
     const filteredAnnouncements = useMemo(() => {
         const query = announcementListSearchQuery.trim().toLowerCase();
         return announcements.filter((item) => {
-            if (announcementListStatusFilter === "active" && !item.is_active) return false;
-            if (announcementListStatusFilter === "inactive" && item.is_active) return false;
+            const itemStatus = item.status || (item.is_active ? "published" : "archived");
+            if (announcementListStatusFilter !== "all" && itemStatus !== announcementListStatusFilter) return false;
+            if (announcementListSeverityFilter !== "all" && (item.severity || "info") !== announcementListSeverityFilter) return false;
             if (!query) return true;
 
             const searchable = [
@@ -1090,7 +1307,7 @@ export default function AdminSettingsPage() {
 
             return searchable.includes(query);
         });
-    }, [announcements, announcementListSearchQuery, announcementListStatusFilter]);
+    }, [announcements, announcementListSearchQuery, announcementListStatusFilter, announcementListSeverityFilter]);
 
     const sortedBackups = useMemo(() => {
         return [...backups].sort((a, b) => {
@@ -1137,7 +1354,7 @@ export default function AdminSettingsPage() {
 
     useEffect(() => {
         setAnnouncementListPage(1);
-    }, [announcementListSearchQuery, announcementListStatusFilter, announcementListRowsPerPage]);
+    }, [announcementListSearchQuery, announcementListStatusFilter, announcementListSeverityFilter, announcementListRowsPerPage]);
 
     useEffect(() => {
         setBackupListPage(1);
@@ -1413,295 +1630,491 @@ export default function AdminSettingsPage() {
                             <ModalHeader>{editingAnnouncementId ? t("adminEditAnnouncement") : t("adminAnnouncementsTitle")}</ModalHeader>
                             <ModalBody className="p-0 xl:overflow-hidden">
                                 <div className="grid grid-cols-1 xl:grid-cols-3 xl:h-[82vh]">
-                                    <div className="space-y-4 border-b border-default-100 p-5 xl:col-span-1 xl:h-full xl:overflow-y-auto xl:border-b-0 xl:border-r">
-                                        <div className="rounded-xl border border-default-200 bg-content2 p-3">
-                                            <p className="text-sm font-semibold text-foreground">{t("adminAnnouncementFormLanguageTitle")}</p>
-                                            <p className="text-xs text-default-500 mt-1">{t("adminAnnouncementFormLanguageHint")}</p>
-                                        </div>
-
-                                        <div className="space-y-3 rounded-xl border border-default-200 p-3">
-                                            <p className="text-sm font-semibold text-foreground">{t("adminAnnouncementThaiSection")}</p>
-                                            <Input
-                                                label={t("adminAnnouncementTitleThai")}
-                                                labelPlacement="outside-top"
-                                                value={announcementLocalizedForm.title_th}
-                                                onValueChange={(value) => setAnnouncementLocalizedForm((prev) => ({ ...prev, title_th: value }))}
-                                                variant="bordered"
-                                                classNames={fieldClassNames}
-                                            />
-                                            <Textarea
-                                                label={t("adminAnnouncementMessageThai")}
-                                                labelPlacement="outside-top"
-                                                value={announcementLocalizedForm.message_th}
-                                                onValueChange={(value) => setAnnouncementLocalizedForm((prev) => ({ ...prev, message_th: value }))}
-                                                minRows={3}
-                                                variant="bordered"
-                                                classNames={textareaClassNames}
-                                            />
-                                            <Input
-                                                label={t("adminAnnouncementActionLabelThai")}
-                                                labelPlacement="outside-top"
-                                                value={announcementLocalizedForm.action_label_th}
-                                                onValueChange={(value) => setAnnouncementLocalizedForm((prev) => ({ ...prev, action_label_th: value }))}
-                                                variant="bordered"
-                                                classNames={fieldClassNames}
-                                            />
-                                        </div>
-
-                                        <div className="space-y-3 rounded-xl border border-default-200 p-3">
-                                            <p className="text-sm font-semibold text-foreground">{t("adminAnnouncementEnglishSection")}</p>
-                                            <Input
-                                                label={t("adminAnnouncementTitleEnglish")}
-                                                labelPlacement="outside-top"
-                                                value={announcementLocalizedForm.title_en}
-                                                onValueChange={(value) => setAnnouncementLocalizedForm((prev) => ({ ...prev, title_en: value }))}
-                                                variant="bordered"
-                                                classNames={fieldClassNames}
-                                            />
-                                            <Textarea
-                                                label={t("adminAnnouncementMessageEnglish")}
-                                                labelPlacement="outside-top"
-                                                value={announcementLocalizedForm.message_en}
-                                                onValueChange={(value) => setAnnouncementLocalizedForm((prev) => ({ ...prev, message_en: value }))}
-                                                minRows={3}
-                                                variant="bordered"
-                                                classNames={textareaClassNames}
-                                            />
-                                            <Input
-                                                label={t("adminAnnouncementActionLabelEnglish")}
-                                                labelPlacement="outside-top"
-                                                value={announcementLocalizedForm.action_label_en}
-                                                onValueChange={(value) => setAnnouncementLocalizedForm((prev) => ({ ...prev, action_label_en: value }))}
-                                                variant="bordered"
-                                                classNames={fieldClassNames}
-                                            />
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <Select
-                                                label={t("adminAnnouncementContentType")}
-                                                labelPlacement="outside-top"
-                                                selectedKeys={new Set([announcementForm.content_type])}
-                                                onSelectionChange={(keys) => {
-                                                    const selected = Array.from(keys)[0] as "text" | "image" | "mixed" | undefined;
-                                                    if (!selected) return;
-                                                    setAnnouncementForm((prev) => ({ ...prev, content_type: selected }));
-                                                }}
-                                                variant="bordered"
-                                                classNames={selectClassNames}
+                                    <div className="border-b border-default-100 p-5 xl:col-span-1 xl:h-full xl:overflow-y-auto xl:border-b-0 xl:border-r">
+                                        {/* The form outgrew a single scrolling column once severity,
+                                            publication status, priority and batch mode were added, so it is
+                                            split by the question each group answers: what it says, how it
+                                            looks, and who sees it when. */}
+                                        <Tabs
+                                            aria-label={t("adminAnnouncementComposerTabs")}
+                                            selectedKey={announcementComposerTab}
+                                            onSelectionChange={(key) => setAnnouncementComposerTab(String(key) as AnnouncementComposerTab)}
+                                            variant="underlined"
+                                            classNames={{
+                                                base: "w-full",
+                                                tabList: "w-full gap-1 px-0",
+                                                tab: "px-2",
+                                                panel: "px-0 pt-4",
+                                            }}
+                                        >
+                                            <Tab
+                                                key="content"
+                                                title={<span className="flex items-center gap-1.5"><Icon icon="solar:document-text-linear" />{t("adminAnnouncementTabContent")}</span>}
                                             >
-                                                {announcementContentOptions.map((option) => (
-                                                    <SelectItem key={option.key}>{option.label}</SelectItem>
-                                                ))}
-                                            </Select>
-                                            <Select
-                                                label={t("adminAnnouncementDisplayMode")}
-                                                labelPlacement="outside-top"
-                                                selectedKeys={new Set([announcementForm.display_mode])}
-                                                onSelectionChange={(keys) => {
-                                                    const selected = Array.from(keys)[0] as "banner_top" | "fullscreen" | undefined;
-                                                    if (!selected) return;
-                                                    setAnnouncementForm((prev) => ({ ...prev, display_mode: selected }));
-                                                }}
-                                                variant="bordered"
-                                                classNames={selectClassNames}
-                                            >
-                                                {announcementDisplayModeOptions.map((option) => (
-                                                    <SelectItem key={option.key}>{option.label}</SelectItem>
-                                                ))}
-                                            </Select>
-                                        </div>
-
-                                        {announcementForm.content_type !== "text" && (
-                                            <div className="space-y-3 rounded-lg border border-default-200 p-3">
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <p className="text-sm font-medium text-foreground">{t("adminAnnouncementImageSection")}</p>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="flat"
-                                                        color="primary"
-                                                        isLoading={isUploadingAnnouncementImage}
-                                                        startContent={<Icon icon="solar:upload-bold" />}
-                                                        onPress={() => announcementImageInputRef.current?.click()}
-                                                    >
-                                                        {t("adminAnnouncementUploadImage")}
-                                                    </Button>
+                                                <div className="space-y-4">
+                                                <div className="rounded-xl border border-default-200 bg-content2 p-3">
+                                                    <p className="text-sm font-semibold text-foreground">{t("adminAnnouncementFormLanguageTitle")}</p>
+                                                    <p className="text-xs text-default-500 mt-1">{t("adminAnnouncementFormLanguageHint")}</p>
                                                 </div>
-                                                <input
-                                                    ref={announcementImageInputRef}
-                                                    type="file"
-                                                    accept="image/*"
-                                                    className="hidden"
-                                                    onChange={(event) => {
-                                                        const file = event.target.files?.[0] || null;
-                                                        void uploadAnnouncementImage(file);
-                                                    }}
-                                                />
-                                                <Input
-                                                    label={t("adminAnnouncementImageUrl")}
+
+                                                <div className="space-y-3 rounded-xl border border-default-200 p-3">
+                                                    <p className="text-sm font-semibold text-foreground">{t("adminAnnouncementThaiSection")}</p>
+                                                    <Input
+                                                        label={t("adminAnnouncementTitleThai")}
+                                                        labelPlacement="outside-top"
+                                                        value={announcementLocalizedForm.title_th}
+                                                        onValueChange={(value) => setAnnouncementLocalizedForm((prev) => ({ ...prev, title_th: value }))}
+                                                        variant="bordered"
+                                                        classNames={fieldClassNames}
+                                                    />
+                                                    <Textarea
+                                                        label={t("adminAnnouncementMessageThai")}
+                                                        labelPlacement="outside-top"
+                                                        value={announcementLocalizedForm.message_th}
+                                                        onValueChange={(value) => setAnnouncementLocalizedForm((prev) => ({ ...prev, message_th: value }))}
+                                                        minRows={3}
+                                                        variant="bordered"
+                                                        classNames={textareaClassNames}
+                                                    />
+                                                    <Input
+                                                        label={t("adminAnnouncementActionLabelThai")}
+                                                        labelPlacement="outside-top"
+                                                        value={announcementLocalizedForm.action_label_th}
+                                                        onValueChange={(value) => setAnnouncementLocalizedForm((prev) => ({ ...prev, action_label_th: value }))}
+                                                        variant="bordered"
+                                                        classNames={fieldClassNames}
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-3 rounded-xl border border-default-200 p-3">
+                                                    <p className="text-sm font-semibold text-foreground">{t("adminAnnouncementEnglishSection")}</p>
+                                                    <Input
+                                                        label={t("adminAnnouncementTitleEnglish")}
+                                                        labelPlacement="outside-top"
+                                                        value={announcementLocalizedForm.title_en}
+                                                        onValueChange={(value) => setAnnouncementLocalizedForm((prev) => ({ ...prev, title_en: value }))}
+                                                        variant="bordered"
+                                                        classNames={fieldClassNames}
+                                                    />
+                                                    <Textarea
+                                                        label={t("adminAnnouncementMessageEnglish")}
+                                                        labelPlacement="outside-top"
+                                                        value={announcementLocalizedForm.message_en}
+                                                        onValueChange={(value) => setAnnouncementLocalizedForm((prev) => ({ ...prev, message_en: value }))}
+                                                        minRows={3}
+                                                        variant="bordered"
+                                                        classNames={textareaClassNames}
+                                                    />
+                                                    <Input
+                                                        label={t("adminAnnouncementActionLabelEnglish")}
+                                                        labelPlacement="outside-top"
+                                                        value={announcementLocalizedForm.action_label_en}
+                                                        onValueChange={(value) => setAnnouncementLocalizedForm((prev) => ({ ...prev, action_label_en: value }))}
+                                                        variant="bordered"
+                                                        classNames={fieldClassNames}
+                                                    />
+                                                </div>
+
+                                                <Select
+                                                    label={t("adminAnnouncementContentType")}
                                                     labelPlacement="outside-top"
-                                                    value={announcementForm.image_url || ""}
-                                                    onValueChange={(value) => setAnnouncementForm((prev) => ({ ...prev, image_url: value }))}
+                                                    selectedKeys={new Set([announcementForm.content_type])}
+                                                    onSelectionChange={(keys) => {
+                                                        const selected = Array.from(keys)[0] as "text" | "image" | "mixed" | undefined;
+                                                        if (!selected) return;
+                                                        setAnnouncementForm((prev) => ({ ...prev, content_type: selected }));
+                                                    }}
+                                                    variant="bordered"
+                                                    classNames={selectClassNames}
+                                                >
+                                                    {announcementContentOptions.map((option) => (
+                                                        <SelectItem key={option.key}>{option.label}</SelectItem>
+                                                    ))}
+                                                </Select>
+
+                                                {announcementForm.content_type !== "text" && (
+                                                    <div className="space-y-3 rounded-lg border border-default-200 p-3">
+                                                        <div className="flex items-center justify-between gap-3">
+                                                            <p className="text-sm font-medium text-foreground">{t("adminAnnouncementImageSection")}</p>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="flat"
+                                                                color="primary"
+                                                                isLoading={isUploadingAnnouncementImage}
+                                                                startContent={<Icon icon="solar:upload-bold" />}
+                                                                onPress={() => announcementImageInputRef.current?.click()}
+                                                            >
+                                                                {t("adminAnnouncementUploadImage")}
+                                                            </Button>
+                                                        </div>
+                                                        <input
+                                                            ref={announcementImageInputRef}
+                                                            type="file"
+                                                            accept="image/*"
+                                                            className="hidden"
+                                                            onChange={(event) => {
+                                                                const file = event.target.files?.[0] || null;
+                                                                void uploadAnnouncementImage(file);
+                                                            }}
+                                                        />
+                                                        <Input
+                                                            label={t("adminAnnouncementImageUrl")}
+                                                            labelPlacement="outside-top"
+                                                            value={announcementForm.image_url || ""}
+                                                            onValueChange={(value) => setAnnouncementForm((prev) => ({ ...prev, image_url: value }))}
+                                                            variant="bordered"
+                                                            placeholder="https://..."
+                                                            description={t("adminAnnouncementImageUrlHint")}
+                                                            classNames={fieldClassNames}
+                                                        />
+                                                    </div>
+                                                )}
+
+                                                <Input
+                                                    label={t("adminAnnouncementActionUrl")}
+                                                    labelPlacement="outside-top"
+                                                    value={announcementForm.action_url || ""}
+                                                    onValueChange={(value) => setAnnouncementForm((prev) => ({ ...prev, action_url: value }))}
                                                     variant="bordered"
                                                     placeholder="https://..."
-                                                    description={t("adminAnnouncementImageUrlHint")}
                                                     classNames={fieldClassNames}
                                                 />
-                                            </div>
-                                        )}
 
-                                        <Input
-                                            label={t("adminAnnouncementActionUrl")}
-                                            labelPlacement="outside-top"
-                                            value={announcementForm.action_url || ""}
-                                            onValueChange={(value) => setAnnouncementForm((prev) => ({ ...prev, action_url: value }))}
-                                            variant="bordered"
-                                            placeholder="https://..."
-                                            classNames={fieldClassNames}
-                                        />
+                                                {editingAnnouncementId === null && (
+                                                    <div className="space-y-3 rounded-lg border border-default-200 p-3">
+                                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                                            <div>
+                                                                <p className="text-sm font-medium text-foreground">{t("adminAnnouncementBatchTitle")}</p>
+                                                                <p className="text-xs text-default-500">{t("adminAnnouncementBatchDescription")}</p>
+                                                            </div>
+                                                            <Checkbox
+                                                                isSelected={isAnnouncementBatchMode}
+                                                                onValueChange={setIsAnnouncementBatchMode}
+                                                                color="primary"
+                                                                classNames={{ label: "text-sm font-medium text-foreground" }}
+                                                            >
+                                                                {t("adminAnnouncementBatchMode")}
+                                                            </Checkbox>
+                                                        </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <Input
-                                                label={t("adminScheduleAt")}
-                                                labelPlacement="outside-top"
-                                                type="datetime-local"
-                                                value={toLocalInputValue(announcementForm.scheduled_at)}
-                                                onValueChange={(value) => setAnnouncementForm((prev) => ({
-                                                    ...prev,
-                                                    scheduled_at: value ? new Date(value).toISOString() : null,
-                                                }))}
-                                                variant="bordered"
-                                                classNames={fieldClassNames}
-                                            />
-                                            <Input
-                                                label={t("adminExpiresAt")}
-                                                labelPlacement="outside-top"
-                                                type="datetime-local"
-                                                value={toLocalInputValue(announcementForm.expires_at)}
-                                                onValueChange={(value) => setAnnouncementForm((prev) => ({
-                                                    ...prev,
-                                                    expires_at: value ? new Date(value).toISOString() : null,
-                                                }))}
-                                                variant="bordered"
-                                                classNames={fieldClassNames}
-                                            />
-                                        </div>
+                                                        {isAnnouncementBatchMode && (
+                                                            <div className="space-y-3">
+                                                                {announcementBatchItems.map((item, index) => (
+                                                                    <div key={item.key} className="space-y-2 rounded-md border border-default-200 bg-default-50/60 p-3">
+                                                                        <div className="flex items-center justify-between gap-2">
+                                                                            <p className="text-xs font-semibold text-default-600">
+                                                                                {t("adminAnnouncementBatchItem", { index: index + 1 })}
+                                                                            </p>
+                                                                            {announcementBatchItems.length > 1 && (
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    variant="light"
+                                                                                    color="danger"
+                                                                                    startContent={<Icon icon="solar:trash-bin-trash-linear" />}
+                                                                                    onPress={() => removeAnnouncementBatchItem(item.key)}
+                                                                                >
+                                                                                    {t("adminAnnouncementBatchRemoveItem")}
+                                                                                </Button>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                                            <Input
+                                                                                label={t("adminAnnouncementTitleThai")}
+                                                                                labelPlacement="outside-top"
+                                                                                value={item.title_th}
+                                                                                onValueChange={(value) => updateAnnouncementBatchItem(item.key, "title_th", value)}
+                                                                                variant="bordered"
+                                                                                classNames={fieldClassNames}
+                                                                            />
+                                                                            <Input
+                                                                                label={t("adminAnnouncementTitleEnglish")}
+                                                                                labelPlacement="outside-top"
+                                                                                value={item.title_en}
+                                                                                onValueChange={(value) => updateAnnouncementBatchItem(item.key, "title_en", value)}
+                                                                                variant="bordered"
+                                                                                classNames={fieldClassNames}
+                                                                            />
+                                                                            <Textarea
+                                                                                label={t("adminAnnouncementMessageThai")}
+                                                                                labelPlacement="outside-top"
+                                                                                value={item.message_th}
+                                                                                onValueChange={(value) => updateAnnouncementBatchItem(item.key, "message_th", value)}
+                                                                                minRows={2}
+                                                                                variant="bordered"
+                                                                                classNames={textareaClassNames}
+                                                                            />
+                                                                            <Textarea
+                                                                                label={t("adminAnnouncementMessageEnglish")}
+                                                                                labelPlacement="outside-top"
+                                                                                value={item.message_en}
+                                                                                onValueChange={(value) => updateAnnouncementBatchItem(item.key, "message_en", value)}
+                                                                                minRows={2}
+                                                                                variant="bordered"
+                                                                                classNames={textareaClassNames}
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="flat"
+                                                                        color="primary"
+                                                                        startContent={<Icon icon="solar:add-circle-linear" />}
+                                                                        onPress={addAnnouncementBatchItem}
+                                                                        isDisabled={announcementBatchItems.length >= ANNOUNCEMENT_BATCH_LIMIT}
+                                                                    >
+                                                                        {t("adminAnnouncementBatchAddItem")}
+                                                                    </Button>
+                                                                    <span className="text-xs text-default-500">
+                                                                        {t("adminAnnouncementBatchLimit", { limit: ANNOUNCEMENT_BATCH_LIMIT })}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                </div>
+                                            </Tab>
 
-                                        <Select
-                                            label={t("adminAudienceRoles")}
-                                            labelPlacement="outside-top"
-                                            placeholder={t("adminAudienceRolesPlaceholder")}
-                                            selectionMode="multiple"
-                                            selectedKeys={new Set(announcementForm.audience.length > 0 ? announcementForm.audience : ["all"])}
-                                            onSelectionChange={(keys) => {
-                                                if (keys === "all") {
-                                                    setAnnouncementForm((prev) => ({ ...prev, audience: ["all"] }));
-                                                    return;
-                                                }
-
-                                                const selected = Array.from(keys as Set<string>).map(String);
-                                                const normalized = selected.filter((item) => item !== "all");
-                                                if (selected.length === 0 || normalized.length === 0) {
-                                                    setAnnouncementForm((prev) => ({ ...prev, audience: ["all"] }));
-                                                    return;
-                                                }
-
-                                                setAnnouncementForm((prev) => ({ ...prev, audience: normalized }));
-                                            }}
-                                            variant="bordered"
-                                            description={t("adminAudienceRolesHint")}
-                                            classNames={selectClassNames}
-                                        >
-                                            {audienceOptions.map((option) => (
-                                                <SelectItem key={option.key} textValue={option.label}>
-                                                    {option.label}
-                                                </SelectItem>
-                                            ))}
-                                        </Select>
-
-                                        <Select
-                                            label={t("adminAnnouncementDisplayPaths")}
-                                            labelPlacement="outside-top"
-                                            selectionMode="multiple"
-                                            selectedKeys={new Set(announcementForm.display_paths.length > 0 ? announcementForm.display_paths : ["all_pages"])}
-                                            onSelectionChange={(keys) => {
-                                                if (keys === "all") {
-                                                    setAnnouncementForm((prev) => ({ ...prev, display_paths: ["all_pages"] }));
-                                                    return;
-                                                }
-
-                                                const selected = Array.from(keys as Set<string>).map(String);
-                                                const normalized = selected.filter((item) => item !== "all_pages");
-                                                if (selected.length === 0 || normalized.length === 0) {
-                                                    setAnnouncementForm((prev) => ({ ...prev, display_paths: ["all_pages"] }));
-                                                    return;
-                                                }
-
-                                                setAnnouncementForm((prev) => ({ ...prev, display_paths: normalized }));
-                                            }}
-                                            variant="bordered"
-                                            description={t("adminAnnouncementDisplayPathsHint")}
-                                            classNames={selectClassNames}
-                                        >
-                                            {announcementDisplayPathOptions.map((option) => (
-                                                <SelectItem key={option.key}>{option.label}</SelectItem>
-                                            ))}
-                                        </Select>
-
-                                        <CheckboxGroup
-                                            value={announcementToggleValues}
-                                            onValueChange={(values) => {
-                                                const selectedValues = new Set(values);
-                                                setAnnouncementForm((prev) => ({
-                                                    ...prev,
-                                                    require_acknowledge: selectedValues.has("require_acknowledge"),
-                                                    is_dismissible: selectedValues.has("is_dismissible"),
-                                                    is_active: selectedValues.has("is_active"),
-                                                }));
-                                            }}
-                                            className="mt-2 px-1"
-                                            classNames={{
-                                                wrapper: "gap-3",
-                                            }}
-                                        >
-                                            <Checkbox
-                                                value="require_acknowledge"
-                                                color="primary"
-                                                className="w-full max-w-none rounded-md px-2 py-1.5 hover:bg-default-100/60"
-                                                classNames={{
-                                                    label: "text-sm font-medium text-foreground leading-6",
-                                                }}
+                                            <Tab
+                                                key="display"
+                                                title={<span className="flex items-center gap-1.5"><Icon icon="solar:pallete-2-linear" />{t("adminAnnouncementTabDisplay")}</span>}
                                             >
-                                                {t("adminRequireAcknowledge")}
-                                            </Checkbox>
-                                            <Checkbox
-                                                value="is_dismissible"
-                                                color="primary"
-                                                className="w-full max-w-none rounded-md px-2 py-1.5 hover:bg-default-100/60"
-                                                classNames={{
-                                                    label: "text-sm font-medium text-foreground leading-6",
-                                                }}
+                                                <div className="space-y-4">
+                                                <Select
+                                                    label={t("adminAnnouncementDisplayMode")}
+                                                    labelPlacement="outside-top"
+                                                    selectedKeys={new Set([announcementForm.display_mode])}
+                                                    onSelectionChange={(keys) => {
+                                                        const selected = Array.from(keys)[0] as AnnouncementDisplayMode | undefined;
+                                                        if (!selected) return;
+                                                        setAnnouncementForm((prev) => ({ ...prev, display_mode: selected }));
+                                                    }}
+                                                    variant="bordered"
+                                                    classNames={selectClassNames}
+                                                >
+                                                    {announcementDisplayModeOptions.map((option) => (
+                                                        <SelectItem key={option.key}>{option.label}</SelectItem>
+                                                    ))}
+                                                </Select>
+
+                                                <Select
+                                                    label={t("adminAnnouncementSeverity")}
+                                                    labelPlacement="outside-top"
+                                                    selectedKeys={new Set([announcementForm.severity])}
+                                                    onSelectionChange={(keys) => {
+                                                        const selected = Array.from(keys)[0] as AnnouncementSeverity | undefined;
+                                                        if (!selected) return;
+                                                        setAnnouncementForm((prev) => ({ ...prev, severity: selected }));
+                                                    }}
+                                                    variant="bordered"
+                                                    description={t("adminAnnouncementSeverityHint")}
+                                                    classNames={selectClassNames}
+                                                >
+                                                    {announcementSeverityOptions.map((option) => (
+                                                        <SelectItem key={option.key}>{option.label}</SelectItem>
+                                                    ))}
+                                                </Select>
+
+                                                <Input
+                                                    label={t("adminAnnouncementPriority")}
+                                                    labelPlacement="outside-top"
+                                                    type="number"
+                                                    min={0}
+                                                    max={100}
+                                                    value={String(announcementForm.priority ?? 0)}
+                                                    onValueChange={(value) => {
+                                                        const parsed = Number(value);
+                                                        setAnnouncementForm((prev) => ({
+                                                            ...prev,
+                                                            priority: Number.isFinite(parsed) ? Math.min(100, Math.max(0, parsed)) : 0,
+                                                        }));
+                                                    }}
+                                                    variant="bordered"
+                                                    description={t("adminAnnouncementPriorityHint")}
+                                                    classNames={fieldClassNames}
+                                                />
+
+                                                <Select
+                                                    label={t("adminAnnouncementDisplayPaths")}
+                                                    labelPlacement="outside-top"
+                                                    selectionMode="multiple"
+                                                    selectedKeys={new Set(announcementForm.display_paths.length > 0 ? announcementForm.display_paths : ["all_pages"])}
+                                                    onSelectionChange={(keys) => {
+                                                        if (keys === "all") {
+                                                            setAnnouncementForm((prev) => ({ ...prev, display_paths: ["all_pages"] }));
+                                                            return;
+                                                        }
+
+                                                        const selected = Array.from(keys as Set<string>).map(String);
+                                                        const normalized = selected.filter((item) => item !== "all_pages");
+                                                        if (selected.length === 0 || normalized.length === 0) {
+                                                            setAnnouncementForm((prev) => ({ ...prev, display_paths: ["all_pages"] }));
+                                                            return;
+                                                        }
+
+                                                        setAnnouncementForm((prev) => ({ ...prev, display_paths: normalized }));
+                                                    }}
+                                                    variant="bordered"
+                                                    description={t("adminAnnouncementDisplayPathsHint")}
+                                                    classNames={selectClassNames}
+                                                >
+                                                    {announcementDisplayPathOptions.map((option) => (
+                                                        <SelectItem key={option.key}>{option.label}</SelectItem>
+                                                    ))}
+                                                </Select>
+
+                                                <CheckboxGroup
+                                                    value={announcementToggleValues}
+                                                    onValueChange={(values) => {
+                                                        const selectedValues = new Set(values);
+                                                        setAnnouncementForm((prev) => ({
+                                                            ...prev,
+                                                            require_acknowledge: selectedValues.has("require_acknowledge"),
+                                                            is_dismissible: selectedValues.has("is_dismissible"),
+                                                            notify_inbox: selectedValues.has("notify_inbox"),
+                                                        }));
+                                                    }}
+                                                    className="mt-2 px-1"
+                                                    classNames={{
+                                                        wrapper: "gap-3",
+                                                    }}
+                                                >
+                                                    <Checkbox
+                                                        value="require_acknowledge"
+                                                        color="primary"
+                                                        className="w-full max-w-none rounded-md px-2 py-1.5 hover:bg-default-100/60"
+                                                        classNames={{
+                                                            label: "text-sm font-medium text-foreground leading-6",
+                                                        }}
+                                                    >
+                                                        {t("adminRequireAcknowledge")}
+                                                    </Checkbox>
+                                                    <Checkbox
+                                                        value="is_dismissible"
+                                                        color="primary"
+                                                        className="w-full max-w-none rounded-md px-2 py-1.5 hover:bg-default-100/60"
+                                                        classNames={{
+                                                            label: "text-sm font-medium text-foreground leading-6",
+                                                        }}
+                                                    >
+                                                        {t("adminAnnouncementDismissible")}
+                                                    </Checkbox>
+                                                    <Checkbox
+                                                        value="notify_inbox"
+                                                        color="primary"
+                                                        className="w-full max-w-none rounded-md px-2 py-1.5 hover:bg-default-100/60"
+                                                        classNames={{
+                                                            label: "text-sm font-medium text-foreground leading-6",
+                                                        }}
+                                                    >
+                                                        {t("adminAnnouncementNotifyInbox")}
+                                                    </Checkbox>
+                                                </CheckboxGroup>
+                                                </div>
+                                            </Tab>
+
+                                            <Tab
+                                                key="audience"
+                                                title={<span className="flex items-center gap-1.5"><Icon icon="solar:users-group-rounded-linear" />{t("adminAnnouncementTabAudience")}</span>}
                                             >
-                                                {t("adminAnnouncementDismissible")}
-                                            </Checkbox>
-                                            <Checkbox
-                                                value="is_active"
-                                                color="primary"
-                                                className="w-full max-w-none rounded-md px-2 py-1.5 hover:bg-default-100/60"
-                                                classNames={{
-                                                    label: "text-sm font-medium text-foreground leading-6",
-                                                }}
-                                            >
-                                                {t("status")}
-                                            </Checkbox>
-                                        </CheckboxGroup>
+                                                <div className="space-y-4">
+                                                <Select
+                                                    label={t("adminAudienceRoles")}
+                                                    labelPlacement="outside-top"
+                                                    placeholder={t("adminAudienceRolesPlaceholder")}
+                                                    selectionMode="multiple"
+                                                    selectedKeys={new Set(announcementForm.audience.length > 0 ? announcementForm.audience : ["all"])}
+                                                    onSelectionChange={(keys) => {
+                                                        if (keys === "all") {
+                                                            setAnnouncementForm((prev) => ({ ...prev, audience: ["all"] }));
+                                                            return;
+                                                        }
+
+                                                        const selected = Array.from(keys as Set<string>).map(String);
+                                                        const normalized = selected.filter((item) => item !== "all");
+                                                        if (selected.length === 0 || normalized.length === 0) {
+                                                            setAnnouncementForm((prev) => ({ ...prev, audience: ["all"] }));
+                                                            return;
+                                                        }
+
+                                                        setAnnouncementForm((prev) => ({ ...prev, audience: normalized }));
+                                                    }}
+                                                    variant="bordered"
+                                                    description={t("adminAudienceRolesHint")}
+                                                    classNames={selectClassNames}
+                                                >
+                                                    {audienceOptions.map((option) => (
+                                                        <SelectItem key={option.key} textValue={option.label}>
+                                                            {option.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </Select>
+
+                                                <Select
+                                                    label={t("adminAnnouncementStatus")}
+                                                    labelPlacement="outside-top"
+                                                    selectedKeys={new Set([announcementForm.status])}
+                                                    onSelectionChange={(keys) => {
+                                                        const selected = Array.from(keys)[0] as AnnouncementStatus | undefined;
+                                                        if (!selected) return;
+                                                        // is_active is kept in step with the status so older
+                                                        // readers of this record keep behaving correctly.
+                                                        setAnnouncementForm((prev) => ({
+                                                            ...prev,
+                                                            status: selected,
+                                                            is_active: selected === "published" || selected === "scheduled",
+                                                        }));
+                                                    }}
+                                                    variant="bordered"
+                                                    description={t("adminAnnouncementStatusHint")}
+                                                    classNames={selectClassNames}
+                                                >
+                                                    {announcementStatusOptions.map((option) => (
+                                                        <SelectItem key={option.key}>{option.label}</SelectItem>
+                                                    ))}
+                                                </Select>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <Input
+                                                        label={t("adminScheduleAt")}
+                                                        labelPlacement="outside-top"
+                                                        type="datetime-local"
+                                                        value={toLocalInputValue(announcementForm.scheduled_at)}
+                                                        onValueChange={(value) => setAnnouncementForm((prev) => ({
+                                                            ...prev,
+                                                            scheduled_at: value ? new Date(value).toISOString() : null,
+                                                        }))}
+                                                        variant="bordered"
+                                                        classNames={fieldClassNames}
+                                                    />
+                                                    <Input
+                                                        label={t("adminExpiresAt")}
+                                                        labelPlacement="outside-top"
+                                                        type="datetime-local"
+                                                        value={toLocalInputValue(announcementForm.expires_at)}
+                                                        onValueChange={(value) => setAnnouncementForm((prev) => ({
+                                                            ...prev,
+                                                            expires_at: value ? new Date(value).toISOString() : null,
+                                                        }))}
+                                                        variant="bordered"
+                                                        classNames={fieldClassNames}
+                                                    />
+                                                </div>
+                                                </div>
+                                            </Tab>
+                                        </Tabs>
                                     </div>
-
                                     <div className="space-y-4 bg-default-50/60 p-5 xl:col-span-2 xl:sticky xl:top-0 xl:h-full">
                                         <div className="flex items-center justify-between gap-3">
                                             <div>
                                                 <p className="text-sm font-semibold text-foreground">{t("adminAnnouncementPreviewBrowserTitle")}</p>
-                                                <p className="text-xs text-default-500">{t("adminAnnouncementPreviewBrowserHint")}</p>
+                                                <p className="text-xs text-default-500">
+                                                    {isPreviewingBatchItem
+                                                        ? t("adminAnnouncementPreviewBatchHint", { count: announcementBatchItems.length })
+                                                        : t("adminAnnouncementPreviewBrowserHint")}
+                                                </p>
                                             </div>
                                             <div className="inline-flex rounded-lg border border-default-200 bg-content1 p-1">
                                                 <Button
@@ -1757,14 +2170,119 @@ export default function AdminSettingsPage() {
                                                         <p className="text-sm font-medium text-foreground">{t("adminAnnouncementNotVisibleOnPreviewPath")}</p>
                                                         <p className="mt-1 text-xs text-default-500">{t("adminAnnouncementNotVisibleOnPreviewPathHint", { path: previewPathLabel })}</p>
                                                     </div>
-                                                ) : announcementForm.display_mode === "banner_top" ? (
-                                                    <div className="rounded-xl border border-sky-200 bg-linear-to-r from-sky-50 to-cyan-50 px-4 py-3 shadow-sm">
-                                                        <div className="flex items-start justify-between gap-4">
-                                                            <div className="space-y-1">
-                                                                <p className="text-sm font-semibold text-sky-900">{localizedPreviewTitle}</p>
-                                                                {localizedPreviewMessage ? <p className="text-sm text-sky-800/90">{localizedPreviewMessage}</p> : null}
+                                                ) : announcementForm.display_mode === "topbar" ? (
+                                                    <div className={`-mx-4 -mt-4 flex items-center gap-2 px-4 py-2 text-sm ${previewRibbonStyle.bar} ${previewRibbonStyle.text}`}>
+                                                        <Icon icon={previewRibbonStyle.icon} className="shrink-0 text-base" />
+                                                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${previewRibbonStyle.badge}`}>
+                                                            {localizedPreviewTitle}
+                                                        </span>
+                                                        <span className="min-w-0 flex-1 truncate">{localizedPreviewMessage}</span>
+                                                        {!!announcementForm.action_url && (
+                                                            <span className="shrink-0 rounded-md bg-white/20 px-2.5 py-1 text-xs font-semibold">
+                                                                {localizedPreviewActionLabel}
+                                                            </span>
+                                                        )}
+                                                        {announcementForm.require_acknowledge && (
+                                                            <span className="shrink-0 rounded-md bg-white/20 px-2.5 py-1 text-xs font-semibold">
+                                                                {t("adminAcknowledgeAction")}
+                                                            </span>
+                                                        )}
+                                                        {!announcementForm.require_acknowledge && announcementForm.is_dismissible && (
+                                                            <Icon icon="solar:close-circle-linear" className="shrink-0 text-base opacity-80" />
+                                                        )}
+                                                    </div>
+                                                ) : announcementForm.display_mode === "corner_card" ? (
+                                                    <div className="relative min-h-56 rounded-xl border border-dashed border-default-300 bg-default-100/60 p-3">
+                                                        <p className="text-[11px] text-default-500">{t("adminAnnouncementPreviewCornerHint")}</p>
+                                                        <div className="absolute bottom-3 left-3 w-64 overflow-hidden rounded-2xl border border-default-200 bg-content1 shadow-2xl">
+                                                            {announcementForm.content_type !== "text" && announcementForm.image_url ? (
+                                                                <img
+                                                                    src={toAnnouncementImagePreviewUrl(announcementForm.image_url)}
+                                                                    alt="announcement-preview"
+                                                                    className="h-28 w-full object-cover"
+                                                                />
+                                                            ) : null}
+                                                            <div className="space-y-2 p-3">
+                                                                <div className="flex items-start gap-2">
+                                                                    <Icon icon={previewSeverityStyle.icon} className={`mt-0.5 shrink-0 text-base ${previewSeverityStyle.iconClass}`} />
+                                                                    <p className="min-w-0 flex-1 text-sm font-semibold text-foreground">{localizedPreviewTitle}</p>
+                                                                </div>
+                                                                {localizedPreviewMessage ? (
+                                                                    <p className="whitespace-pre-line text-xs leading-relaxed text-default-600">{localizedPreviewMessage}</p>
+                                                                ) : null}
+                                                                <div className="flex flex-wrap items-center gap-2 pt-1">
+                                                                    {!announcementForm.require_acknowledge && announcementForm.is_dismissible && (
+                                                                        <Button size="sm" variant="bordered">{t("close")}</Button>
+                                                                    )}
+                                                                    {!!announcementForm.action_url && (
+                                                                        <Button size="sm" color="primary" className="flex-1">
+                                                                            {localizedPreviewActionLabel}
+                                                                        </Button>
+                                                                    )}
+                                                                    {announcementForm.require_acknowledge && (
+                                                                        <Button size="sm" color="primary" className="flex-1">
+                                                                            {t("adminAcknowledgeAction")}
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
                                                             </div>
-                                                            <Icon icon="solar:bell-bold" className="text-xl text-sky-500" />
+                                                        </div>
+                                                    </div>
+                                                ) : announcementForm.display_mode === "fullscreen_image" ? (
+                                                    <div className="relative overflow-hidden rounded-xl bg-black">
+                                                        {announcementForm.image_url ? (
+                                                            <img
+                                                                src={toAnnouncementImagePreviewUrl(announcementForm.image_url)}
+                                                                alt="announcement-preview"
+                                                                className="h-64 w-full object-contain"
+                                                            />
+                                                        ) : (
+                                                            <div className="flex h-64 w-full items-center justify-center text-xs text-white/60">
+                                                                {t("adminAnnouncementRequireImage")}
+                                                            </div>
+                                                        )}
+                                                        <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/90 via-black/70 to-transparent p-4 pt-12 text-white">
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <Icon icon={previewSeverityStyle.icon} className={`text-lg ${previewSeverityStyle.iconClass}`} />
+                                                                <p className="text-base font-semibold">{localizedPreviewTitle}</p>
+                                                            </div>
+                                                            {localizedPreviewMessage ? (
+                                                                <p className="mt-1 whitespace-pre-line text-xs text-white/90">{localizedPreviewMessage}</p>
+                                                            ) : null}
+                                                            <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+                                                                {!!announcementForm.action_url && (
+                                                                    <Button size="sm" color="primary" variant="solid">
+                                                                        {localizedPreviewActionLabel}
+                                                                    </Button>
+                                                                )}
+                                                                {announcementForm.require_acknowledge ? (
+                                                                    <Button size="sm" color="primary" variant="solid">
+                                                                        {t("adminAcknowledgeAction")}
+                                                                    </Button>
+                                                                ) : null}
+                                                                {!announcementForm.require_acknowledge && announcementForm.is_dismissible ? (
+                                                                    <Button size="sm" variant="bordered" className="border-white/40 text-white">
+                                                                        {t("dismiss")}
+                                                                    </Button>
+                                                                ) : null}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ) : announcementForm.display_mode === "banner_top" ? (
+                                                    <div className={`rounded-xl border px-4 py-3 shadow-sm ${previewSeverityStyle.banner}`}>
+                                                        <div className="flex items-start justify-between gap-4">
+                                                            <div className="min-w-0 space-y-1">
+                                                                <div className="flex flex-wrap items-center gap-2">
+                                                                    <p className={`text-sm font-semibold ${previewSeverityStyle.title}`}>{localizedPreviewTitle}</p>
+                                                                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${previewSeverityStyle.chip}`}>
+                                                                        {t(previewSeverityStyle.labelKey)}
+                                                                    </span>
+                                                                </div>
+                                                                {localizedPreviewMessage ? (
+                                                                    <p className={`whitespace-pre-line text-sm ${previewSeverityStyle.body}`}>{localizedPreviewMessage}</p>
+                                                                ) : null}
+                                                            </div>
+                                                            <Icon icon={previewSeverityStyle.icon} className={`shrink-0 text-xl ${previewSeverityStyle.iconClass}`} />
                                                         </div>
                                                         {announcementForm.content_type !== "text" && announcementForm.image_url ? (
                                                             <img src={toAnnouncementImagePreviewUrl(announcementForm.image_url)} alt="announcement-preview" className="mt-3 h-36 w-full rounded-lg object-cover" />
@@ -1789,8 +2307,13 @@ export default function AdminSettingsPage() {
                                                     </div>
                                                 ) : (
                                                     <div className="rounded-xl bg-black/80 p-4 text-white">
-                                                        <p className="text-lg font-semibold">{localizedPreviewTitle}</p>
-                                                        {localizedPreviewMessage ? <p className="text-sm text-white/90 mt-1">{localizedPreviewMessage}</p> : null}
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <Icon icon={previewSeverityStyle.icon} className={`text-lg ${previewSeverityStyle.iconClass}`} />
+                                                            <p className="text-lg font-semibold">{localizedPreviewTitle}</p>
+                                                        </div>
+                                                        {localizedPreviewMessage ? (
+                                                            <p className="mt-1 whitespace-pre-line text-sm text-white/90">{localizedPreviewMessage}</p>
+                                                        ) : null}
                                                         {announcementForm.content_type !== "text" && announcementForm.image_url ? (
                                                             <img src={toAnnouncementImagePreviewUrl(announcementForm.image_url)} alt="announcement-preview" className="mt-3 h-44 w-full rounded-xl object-contain bg-black/30" />
                                                         ) : null}
@@ -2219,7 +2742,7 @@ export default function AdminSettingsPage() {
                                             placeholder={t("adminAnnouncementListStatusFilter")}
                                             selectedKeys={new Set([announcementListStatusFilter])}
                                             onSelectionChange={(keys) => {
-                                                const selected = Array.from(keys)[0] as "all" | "active" | "inactive" | undefined;
+                                                const selected = Array.from(keys)[0] as AnnouncementListStatusFilter | undefined;
                                                 if (!selected) return;
                                                 setAnnouncementListStatusFilter(selected);
                                             }}
@@ -2230,8 +2753,34 @@ export default function AdminSettingsPage() {
                                             }}
                                         >
                                             <SelectItem key="all">{t("adminAnnouncementListStatusAll")}</SelectItem>
-                                            <SelectItem key="active">{t("adminAnnouncementListStatusActive")}</SelectItem>
-                                            <SelectItem key="inactive">{t("adminAnnouncementListStatusInactive")}</SelectItem>
+                                            <SelectItem key="published">{t("adminAnnouncementStatusPublished")}</SelectItem>
+                                            <SelectItem key="scheduled">{t("adminAnnouncementStatusScheduled")}</SelectItem>
+                                            <SelectItem key="draft">{t("adminAnnouncementStatusDraft")}</SelectItem>
+                                            <SelectItem key="archived">{t("adminAnnouncementStatusArchived")}</SelectItem>
+                                        </Select>
+                                    </div>
+                                    <div className="mt-3">
+                                        <Select
+                                            aria-label={t("adminAnnouncementSeverity")}
+                                            placeholder={t("adminAnnouncementSeverity")}
+                                            selectedKeys={new Set([announcementListSeverityFilter])}
+                                            onSelectionChange={(keys) => {
+                                                const selected = Array.from(keys)[0] as AnnouncementSeverity | "all" | undefined;
+                                                if (!selected) return;
+                                                setAnnouncementListSeverityFilter(selected);
+                                            }}
+                                            variant="bordered"
+                                            disallowEmptySelection
+                                            classNames={{
+                                                trigger: "border-default-200 bg-content1 hover:border-primary-300 data-[focus=true]:border-primary",
+                                            }}
+                                        >
+                                            <>
+                                                <SelectItem key="all">{t("adminAnnouncementListStatusAll")}</SelectItem>
+                                                {announcementSeverityOptions.map((option) => (
+                                                    <SelectItem key={option.key}>{option.label}</SelectItem>
+                                                ))}
+                                            </>
                                         </Select>
                                     </div>
                                 </div>
@@ -2275,12 +2824,33 @@ export default function AdminSettingsPage() {
                                                             <Chip size="sm" color="primary" variant="flat">
                                                                 {announcementDisplayModeLabelMap.get(item.display_mode) || item.display_mode}
                                                             </Chip>
-                                                            <Chip size="sm" color={item.is_active ? "success" : "default"} variant="flat">
-                                                                {item.is_active ? t("active") : t("inactive")}
+                                                            <Chip
+                                                                size="sm"
+                                                                color={announcementSeverityLabelMap.get(item.severity || "info")?.color || "primary"}
+                                                                variant="flat"
+                                                            >
+                                                                {announcementSeverityLabelMap.get(item.severity || "info")?.label || item.severity}
                                                             </Chip>
+                                                            <Chip
+                                                                size="sm"
+                                                                color={announcementStatusLabelMap.get(item.status || (item.is_active ? "published" : "archived"))?.color || "default"}
+                                                                variant="flat"
+                                                            >
+                                                                {announcementStatusLabelMap.get(item.status || (item.is_active ? "published" : "archived"))?.label || item.status}
+                                                            </Chip>
+                                                            {(item.priority ?? 0) > 0 && (
+                                                                <Chip size="sm" variant="flat" startContent={<Icon icon="solar:pin-bold" />}>
+                                                                    {item.priority}
+                                                                </Chip>
+                                                            )}
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell className="text-center text-xs text-default-500">{item.ack_count}</TableCell>
+                                                    <TableCell className="text-center text-xs text-default-500">
+                                                        {/* A bare count says nothing without a denominator. */}
+                                                        {item.audience_count
+                                                            ? `${item.ack_count}/${item.audience_count} (${Math.round((item.ack_count / item.audience_count) * 100)}%)`
+                                                            : item.ack_count}
+                                                    </TableCell>
                                                     <TableCell>
                                                         <div className="flex flex-wrap items-center justify-center gap-2">
                                                             <Button
@@ -2299,6 +2869,44 @@ export default function AdminSettingsPage() {
                                                                 onPress={() => openAnnouncementEditorFromList(item)}
                                                             >
                                                                 {t("editAction")}
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="flat"
+                                                                startContent={<Icon icon="solar:chart-square-bold" />}
+                                                                onPress={() => void openAnnouncementStats(item)}
+                                                            >
+                                                                {t("adminAnnouncementViewStats")}
+                                                            </Button>
+                                                            {(item.status || (item.is_active ? "published" : "archived")) === "archived" ? (
+                                                                <Button
+                                                                    size="sm"
+                                                                    color="success"
+                                                                    variant="flat"
+                                                                    startContent={<Icon icon="solar:play-circle-bold" />}
+                                                                    onPress={() => void changeAnnouncementStatus(item, "published")}
+                                                                >
+                                                                    {t("adminAnnouncementRepublish")}
+                                                                </Button>
+                                                            ) : (
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="flat"
+                                                                    startContent={<Icon icon="solar:archive-down-bold" />}
+                                                                    onPress={() => void changeAnnouncementStatus(item, "archived")}
+                                                                >
+                                                                    {t("adminAnnouncementArchive")}
+                                                                </Button>
+                                                            )}
+                                                            <Button
+                                                                size="sm"
+                                                                color="danger"
+                                                                variant="light"
+                                                                isIconOnly
+                                                                aria-label={t("adminAnnouncementDelete")}
+                                                                onPress={() => setAnnouncementDeleteTarget(item)}
+                                                            >
+                                                                <Icon icon="solar:trash-bin-trash-bold" />
                                                             </Button>
                                                         </div>
                                                     </TableCell>
@@ -2324,6 +2932,105 @@ export default function AdminSettingsPage() {
                             </ModalBody>
                             <ModalFooter>
                                 <Button variant="light" onPress={onClose}>{t("adminCloseButton")}</Button>
+                            </ModalFooter>
+                        </>
+                    )}
+                </ModalContent>
+            </Modal>
+
+            <Modal
+                isOpen={isAnnouncementStatsModalOpen}
+                onClose={() => setIsAnnouncementStatsModalOpen(false)}
+                size="2xl"
+                scrollBehavior="inside"
+            >
+                <ModalContent>
+                    {(onClose) => (
+                        <>
+                            <ModalHeader className="flex flex-col gap-1">
+                                <p className="text-base font-semibold text-foreground">{t("adminAnnouncementStatsTitle")}</p>
+                                {announcementStatsTarget && (
+                                    <p className="text-xs text-default-500">
+                                        {getAnnouncementTextByLanguage(announcementStatsTarget, "title", language)}
+                                    </p>
+                                )}
+                            </ModalHeader>
+                            <ModalBody className="space-y-4">
+                                {isLoadingAnnouncementStats && (
+                                    <p className="text-sm text-default-500">{t("loading")}</p>
+                                )}
+                                {!isLoadingAnnouncementStats && !announcementStats && (
+                                    <p className="text-sm text-default-500">{t("adminAnnouncementStatsEmpty")}</p>
+                                )}
+                                {announcementStats && (
+                                    <>
+                                        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                                            <div className="rounded-lg border border-default-200 p-3">
+                                                <p className="text-xs text-default-500">{t("adminAnnouncementStatsAudience")}</p>
+                                                <p className="text-lg font-semibold text-foreground">{announcementStats.audience_count}</p>
+                                            </div>
+                                            <div className="rounded-lg border border-default-200 p-3">
+                                                <p className="text-xs text-default-500">{t("adminAnnouncementStatsAcknowledged")}</p>
+                                                <p className="text-lg font-semibold text-success">
+                                                    {announcementStats.ack_count} ({Math.round(announcementStats.ack_percent)}%)
+                                                </p>
+                                            </div>
+                                            <div className="rounded-lg border border-default-200 p-3">
+                                                <p className="text-xs text-default-500">{t("adminAnnouncementStatsPending")}</p>
+                                                <p className="text-lg font-semibold text-warning">{announcementStats.pending.length}</p>
+                                            </div>
+                                            <div className="rounded-lg border border-default-200 p-3">
+                                                <p className="text-xs text-default-500">{t("adminAnnouncementStatsDismissed")}</p>
+                                                <p className="text-lg font-semibold text-foreground">{announcementStats.dismiss_count}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <p className="text-sm font-medium text-foreground">{t("adminAnnouncementStatsPending")}</p>
+                                            <div className="max-h-60 overflow-y-auto rounded-lg border border-default-200">
+                                                {announcementStats.pending.length === 0 ? (
+                                                    <p className="p-3 text-xs text-default-500">{t("adminAnnouncementStatsEmpty")}</p>
+                                                ) : (
+                                                    <ul className="divide-y divide-default-200">
+                                                        {announcementStats.pending.map((recipient) => (
+                                                            <li key={recipient.user_id} className="flex items-center justify-between gap-3 px-3 py-2">
+                                                                <span className="min-w-0 truncate text-sm text-foreground">{recipient.full_name}</span>
+                                                                <Chip size="sm" variant="flat">{recipient.role}</Chip>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </ModalBody>
+                            <ModalFooter>
+                                <Button variant="light" onPress={onClose}>{t("adminCloseButton")}</Button>
+                            </ModalFooter>
+                        </>
+                    )}
+                </ModalContent>
+            </Modal>
+
+            <Modal isOpen={announcementDeleteTarget !== null} onClose={() => setAnnouncementDeleteTarget(null)} size="md">
+                <ModalContent>
+                    {(onClose) => (
+                        <>
+                            <ModalHeader>{t("adminAnnouncementDeleteConfirmTitle")}</ModalHeader>
+                            <ModalBody className="space-y-2">
+                                {announcementDeleteTarget && (
+                                    <p className="text-sm font-medium text-foreground">
+                                        {getAnnouncementTextByLanguage(announcementDeleteTarget, "title", language)}
+                                    </p>
+                                )}
+                                <p className="text-sm text-default-500">{t("adminAnnouncementDeleteConfirmBody")}</p>
+                            </ModalBody>
+                            <ModalFooter>
+                                <Button variant="light" onPress={onClose}>{t("cancel")}</Button>
+                                <Button color="danger" onPress={() => void confirmDeleteAnnouncement()}>
+                                    {t("adminAnnouncementDelete")}
+                                </Button>
                             </ModalFooter>
                         </>
                     )}

@@ -17,6 +17,7 @@ import { NetworkMetricsPanel } from "@/components/dev/network-metrics-panel";
 import { useSettingsMenuItems } from "@/components/SettingsPanel";
 import { useI18n } from "@/hooks/useI18n";
 import { GlobalAnnouncementLayer } from "@/components/system-announcements/global-announcement-layer";
+import { GlobalAnnouncementTopbar } from "@/components/system-announcements/global-announcement-topbar";
 
 interface MenuItem {
     key: string;
@@ -302,6 +303,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                         </div>
                     </div>
                 </header>
+
+                <GlobalAnnouncementTopbar />
 
                 {/* Page Content - Responsive padding */}
                 <main className="flex-1 p-3 sm:p-4 lg:p-6">
