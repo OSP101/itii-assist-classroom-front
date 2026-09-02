@@ -57,6 +57,7 @@ import {
 } from "../config";
 import { type AttendanceSession, type TimeChangePreview, type TimeChangeRecord, type SectionChangePreview } from "@/services/attendance.service";
 import { getAppUrl } from "@/lib/app-url";
+import { isStaticPinSession as isStaticPinMode } from "@/hooks/useAttendancePinPresentation";
 import DisplayScannerModal from "./DisplayScannerModal";
 
 // Lazy load LocationPicker
@@ -420,7 +421,7 @@ export const QRPreviewModal = memo(function QRPreviewModal({
     if (!session) return null;
 
     const checkInUrl = getAppUrl(`/check-in/${session.id}`);
-    const isStaticPinSession = session.pin_mode === "static" || (session.pin_mode == null && !session.auto_rotate_pin);
+    const isStaticPinSession = isStaticPinMode(session);
 
     const copyPIN = () => {
         if (session.pin_code) {

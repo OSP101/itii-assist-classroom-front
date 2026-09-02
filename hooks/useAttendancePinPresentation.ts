@@ -10,6 +10,31 @@ type PinSessionLike = {
     status?: "draft" | "active" | "closed" | string;
 };
 
+/**
+ * The one rule every screen must use to decide "does this session's PIN
+ * rotate?". It used to be re-written inline on each screen, and the variants
+ * disagreed: the countdown hook read `pin_mode === "static" || !auto_rotate_pin`
+ * (static wins) while the check-in page and the instructor's QR modal read
+ * `pin_mode === "rotating" || ...` (rotating wins). `pin_mode` is served from
+ * the Redis runtime state and `auto_rotate_pin` from the session row, so the
+ * two can briefly disagree — and when they did, the same session showed a
+ * "PIN เปลี่ยนทุก 1 นาที" label with no countdown next to it.
+ *
+ * An explicit "this does not rotate" from either field wins; a field that is
+ * missing from the payload defers to the other one.
+ */
+export function isRotatingPinSession(session: PinSessionLike | null | undefined): boolean {
+    if (!session) return false;
+    if (session.pin_mode === "static") return false;
+    if (session.pin_mode === "rotating") return session.auto_rotate_pin !== false;
+    return Boolean(session.auto_rotate_pin);
+}
+
+/** Convenience inverse of {@link isRotatingPinSession}, for static-mode copy. */
+export function isStaticPinSession(session: PinSessionLike | null | undefined): boolean {
+    return !isRotatingPinSession(session);
+}
+
 type PinPresentationState = {
     isPending: boolean;
     isStatic: boolean;
@@ -54,9 +79,7 @@ export function useAttendancePinPresentation(session: PinSessionLike | null | un
             return;
         }
 
-        const isStaticMode = session.pin_mode === "static" || !session.auto_rotate_pin;
-
-        if (isStaticMode || !session.pin_rotates_at) {
+        if (!isRotatingPinSession(session) || !session.pin_rotates_at) {
             const staticState = { ...initialState, isStatic: true };
             setState((prev) => (sameState(prev, staticState) ? prev : staticState));
             return;

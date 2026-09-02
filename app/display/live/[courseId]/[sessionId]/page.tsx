@@ -25,7 +25,7 @@ import attendanceDisplayService, {
     AttendanceDisplayError,
 } from "@/services/attendance-display.service";
 import type { AttendanceRecord, AttendanceSession } from "@/services/attendance.service";
-import { useAttendancePinPresentation } from "@/hooks/useAttendancePinPresentation";
+import { isRotatingPinSession, useAttendancePinPresentation } from "@/hooks/useAttendancePinPresentation";
 import { getAppUrl } from "@/lib/app-url";
 import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
 
@@ -221,9 +221,7 @@ export default function DisplayLivePage() {
     }, [session?.pin_code]);
 
     useEffect(() => {
-        const isRotatingMode =
-            session?.status === "active" &&
-            (session.pin_mode === "rotating" || (session.pin_mode == null && !!session.auto_rotate_pin));
+        const isRotatingMode = session?.status === "active" && isRotatingPinSession(session);
 
         if (!isRotatingMode || pinCountdown === null || pinCountdown > 2 || !session?.pin_code) {
             return;
@@ -613,7 +611,7 @@ export default function DisplayLivePage() {
                                 </div>
                             )}
                             {/* PIN rotation progress bar */}
-                            {session.status === "active" && (session.pin_mode === "static" || !session.auto_rotate_pin) ? (
+                            {!isRotatingPinSession(session) ? (
                                 <p className="mb-6 text-xs text-slate-400">PIN คงที่ตลอดรอบนี้</p>
                             ) : session.status === "active" && pinCountdown !== null && pinTotal !== null ? (
                                 <div className="mb-6 w-full">

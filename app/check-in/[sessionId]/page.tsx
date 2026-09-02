@@ -18,7 +18,7 @@ import { KKULogoMark } from "@/components/auth/KKUSSOButton";
 import { GoogleLogoMark } from "@/components/auth/GoogleSignInButton";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { useI18n } from "@/hooks/useI18n";
-import { useAttendancePinPresentation } from "@/hooks/useAttendancePinPresentation";
+import { isRotatingPinSession, useAttendancePinPresentation } from "@/hooks/useAttendancePinPresentation";
 import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
 import { collectClientDeviceSignals, type ClientDeviceSignals } from "@/lib/device-signals";
 
@@ -273,7 +273,11 @@ export default function StudentCheckInPage() {
                 ? {
                     ...prev,
                     pin_issued: data.pin_issued ?? prev.pin_issued,
-                    pin_rotates_at: data.pin_rotates_at ?? prev.pin_rotates_at,
+                    // `?? prev` would keep a stale rotation deadline alive: when
+                    // rotation is switched off the server sends pin_rotates_at
+                    // as an explicit null, which is a value to apply, not a
+                    // missing field to fall back on.
+                    pin_rotates_at: data.pin_rotates_at !== undefined ? data.pin_rotates_at : prev.pin_rotates_at,
                     pin_issued_at: data.pin_issued_at ?? prev.pin_issued_at,
                     auto_rotate_pin: data.auto_rotate_pin ?? prev.auto_rotate_pin,
                     pin_mode: data.pin_mode ?? prev.pin_mode,
@@ -517,7 +521,7 @@ export default function StudentCheckInPage() {
                 ? {
                     ...prev,
                     pin_issued: data.pin_issued ?? prev.pin_issued,
-                    pin_rotates_at: data.pin_rotates_at ?? prev.pin_rotates_at,
+                    pin_rotates_at: data.pin_rotates_at !== undefined ? data.pin_rotates_at : prev.pin_rotates_at,
                     pin_issued_at: data.pin_issued_at ?? prev.pin_issued_at,
                     auto_rotate_pin: data.auto_rotate_pin ?? prev.auto_rotate_pin,
                     pin_mode: data.pin_mode ?? prev.pin_mode,
@@ -542,9 +546,7 @@ export default function StudentCheckInPage() {
         fetchSessionInfo();
     }, [fetchSessionInfo]);
 
-    const isRotatingPin =
-        session?.status === "active" &&
-        (session.pin_mode === "rotating" || (session.pin_mode == null && !!session.auto_rotate_pin));
+    const isRotatingPin = session?.status === "active" && isRotatingPinSession(session);
 
     // Fallback resync, mirroring the one the projector page already runs. The
     // "attendance-pin-updated" socket event is the fast path, but when it never
@@ -990,7 +992,7 @@ export default function StudentCheckInPage() {
                             <div className="cg-card">
                                 <div className="flex items-center justify-between gap-2.5">
                                     <p className="cg-section-label" style={{ padding: 0 }}>{t("enterPin")}</p>
-                                    {(session?.pin_mode === "rotating" || (session?.pin_mode == null && session?.auto_rotate_pin)) && pinCountdown !== null && pinTotal !== null && (
+                                    {isRotatingPinSession(session) && pinCountdown !== null && pinTotal !== null && (
                                         <span
                                             className="cg-badge cg-mono"
                                             style={pinCountdown <= 10
@@ -1005,7 +1007,7 @@ export default function StudentCheckInPage() {
                                 </div>
                                 <p className="mb-4 mt-1.5 text-[11.5px] font-light leading-relaxed" style={{ color: "var(--cg-text-2)" }}>
                                     {t("sixDigitsFromClassroomDisplay")}
-                                    {(session?.pin_mode === "rotating" || (session?.pin_mode == null && session?.auto_rotate_pin))
+                                    {isRotatingPinSession(session)
                                         ? (isEn ? " The PIN changes every minute." : " รหัสเปลี่ยนทุก 1 นาที")
                                         : ""}
                                 </p>

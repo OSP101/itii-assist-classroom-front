@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./campus-glass.css";
+@import "./attendance-live.css";
 @plugin "@tailwindcss/typography";
 
 @plugin "../hero.js";
