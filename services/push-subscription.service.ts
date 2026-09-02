@@ -78,10 +78,21 @@ export async function ensurePushSubscription(): Promise<PushSubscriptionJSON> {
     let subscription = await registration.pushManager.getSubscription();
     const nextKey = bufferToBase64(urlBase64ToUint8Array(publicKey).buffer as ArrayBuffer);
     if (subscription) {
+        // Safari (iOS and macOS) does not echo applicationServerKey back on
+        // PushSubscriptionOptions - it is a known WebKit gap, not a real key
+        // mismatch. Treating a null read as "different" made this function
+        // unsubscribe and re-subscribe on literally every call on iOS: each
+        // join/retry/auto-resume minted a brand new push endpoint, and the
+        // backend (which dedupes by endpoint) kept every prior one as a
+        // separate "active" row - which is how one worker account ended up
+        // with 177 subscriptions, only a handful of which were still real by
+        // the time a push went out. Only force a resubscribe when the browser
+        // actually reports a key and it provably differs (a genuine VAPID key
+        // rotation on the server); otherwise keep the existing subscription.
         const currentKey = subscription.options.applicationServerKey
             ? bufferToBase64(subscription.options.applicationServerKey as ArrayBuffer)
             : null;
-        if (currentKey !== nextKey) {
+        if (currentKey !== null && currentKey !== nextKey) {
             await subscription.unsubscribe();
             subscription = null;
         }
