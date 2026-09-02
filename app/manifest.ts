@@ -6,7 +6,15 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "COCO LABS",
     description: "ระบบจัดการห้องเรียน COCO LABS พร้อมการแจ้งเตือนและการใช้งานแบบติดตั้งได้",
     id: "/",
-    start_url: "/student/login",
+    // Not "/student/login": this app is shared by admins, instructors/TAs and
+    // students. "/" already does the right thing for everyone — it reads the
+    // stored session and redirects by role (see app/page.tsx +
+    // getDefaultRouteForRole), or to /login when signed out. Hardcoding the
+    // student login page meant every instructor/TA who installed this to
+    // their home screen got dumped on a login page for a role that was not
+    // theirs every time they reopened the icon, instead of landing back in
+    // the worker/queue flow they had it installed for.
+    start_url: "/",
     scope: "/",
     display: "standalone",
     orientation: "portrait",
