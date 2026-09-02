@@ -346,6 +346,9 @@ function formatBookingStatusLabel(status: string, isEnglish = false): string {
 
 export default function WorkerDashboardPage() {
     const OFFER_TIMEOUT_SECONDS = 90;
+    // How stale the last successful server sync may get before the fallback loop
+    // re-validates, even when the socket reports itself connected.
+    const REVALIDATE_INTERVAL_MS = 20000;
     const params = useParams();
     const router = useRouter();
     const { language } = useGlobalSettings();
@@ -427,6 +430,10 @@ export default function WorkerDashboardPage() {
     const [rejectOfferReason, setRejectOfferReason] = useState("busy_with_student");
     const [isRejectingOffer, setIsRejectingOffer] = useState(false);
     const previousOfferPausedUntilRef = useRef<string | null>(null);
+    // Set when the server auto-pauses this worker, cleared when they resume or
+    // leave on purpose. Gates the automatic re-join below.
+    const autoResumeArmedRef = useRef(false);
+    const resumeAfterOfferPauseRef = useRef<() => Promise<void>>(async () => {});
 
     // Mini room map
     const [deskLayout, setDeskLayout] = useState<MiniDeskInfo[]>([]);
@@ -482,6 +489,10 @@ export default function WorkerDashboardPage() {
         setIsWorkerOnline(worker.status === "online" || worker.status === "busy" || worker.status === "paused");
 
         if (isOfferPausedNow && !wasOfferPaused) {
+            // A pause the system imposed (3 missed offers), not something the TA
+            // asked for — so the countdown reaching zero should put them back on
+            // duty by itself. Cleared again if they leave on purpose.
+            autoResumeArmedRef.current = true;
             const pauseSeconds = Math.max(0, Math.ceil((nextPauseMs - now) / 1000));
             addToast({
                 title: t("ระบบพักรับงานอัตโนมัติ", "Task offers auto-paused"),
@@ -527,6 +538,13 @@ export default function WorkerDashboardPage() {
 
             if (seconds <= 0) {
                 setWorkerOfferPausedUntil(null);
+                // The server parks an auto-paused worker at status "offline",
+                // which switches off this page's socket and its polling loop, so
+                // nothing here could ever bring them back: the banner vanished
+                // and the TA sat on the join screen believing they had resumed.
+                if (autoResumeArmedRef.current) {
+                    void resumeAfterOfferPauseRef.current();
+                }
             }
         };
 
@@ -681,16 +699,34 @@ export default function WorkerDashboardPage() {
     const skipPollingRef = useRef(false);
     // Ref to track paused state (to avoid stale closure issues)
     const isPausedRef = useRef(false);
-    
+    // Mirror of currentBooking so pollForBooking does not have to depend on it —
+    // its identity feeds the socket effect below, which must not be torn down
+    // every time a booking arrives or clears.
+    const currentBookingRef = useRef<QueueBooking | null>(null);
+    // Timestamp of the last successful sync with the server, used to re-validate
+    // periodically even while the socket looks healthy.
+    const lastSyncAtRef = useRef(0);
+
     // Keep ref in sync with state
     useEffect(() => {
         isPausedRef.current = isPausedAfterComplete;
     }, [isPausedAfterComplete]);
+
+    useEffect(() => {
+        currentBookingRef.current = currentBooking;
+    }, [currentBooking]);
     
+    const localeRef = useRef({ t, isEnglish });
+    localeRef.current = { t, isEnglish };
+
     const pollForBooking = useCallback(async (force: boolean = false) => {
         // Skip if not online or paused (unless forced)
         if (!isWorkerOnline) return;
-        if (isPausedRef.current) return; // Don't poll for new tasks when paused
+        // A forced poll must get through even while paused: it is what clears a
+        // stale card and what makes the server run its offer-expiry pass. The
+        // server never assigns new work to a paused worker, so this cannot pull
+        // in a task the TA opted out of.
+        if (!force && isPausedRef.current) return; // Don't poll for new tasks when paused
         if (!force && socketRef.current?.connected) return;
         if (!force && skipPollingRef.current) return; // Skip only via flag, not currentBooking (allows re-validation)
         
@@ -698,6 +734,7 @@ export default function WorkerDashboardPage() {
             const result = await queueService.getWorkerCurrentBooking(courseId, sessionId);
             syncWorkerState(result.worker);
             pollingBackoffStepRef.current = 0;
+            lastSyncAtRef.current = Date.now();
 
             if (result.worker && result.worker.status === "offline" && result.worker.offer_paused_until) {
                 setCurrentBooking(null);
@@ -712,7 +749,8 @@ export default function WorkerDashboardPage() {
                 }
 
                 // Only play sound/toast for genuinely new bookings (avoid duplicate on re-validation)
-                const isNewBooking = !currentBooking || currentBooking.id !== result.currentBooking.id;
+                const previousBooking = currentBookingRef.current;
+                const isNewBooking = !previousBooking || previousBooking.id !== result.currentBooking.id;
                 setCurrentBooking(result.currentBooking);
                 skipPollingRef.current = true;
                 if (isNewBooking) {
@@ -730,7 +768,7 @@ export default function WorkerDashboardPage() {
             } else {
                 // Backend reports no active booking — clear any stale state
                 // (handles: cancelled from projector, expired on server, missed socket events)
-                if (currentBooking) {
+                if (currentBookingRef.current) {
                     setCurrentBooking(null);
                 }
                 skipPollingRef.current = false;
@@ -739,7 +777,12 @@ export default function WorkerDashboardPage() {
             pollingBackoffStepRef.current = Math.min(pollingBackoffStepRef.current + 1, 6);
             console.error("Polling error:", err);
         }
-    }, [courseId, sessionId, isWorkerOnline, currentBooking, isEnglish, t, syncWorkerState]);
+    }, [courseId, sessionId, isWorkerOnline, isEnglish, t, syncWorkerState]);
+
+    const pollForBookingRef = useRef(pollForBooking);
+    useEffect(() => {
+        pollForBookingRef.current = pollForBooking;
+    }, [pollForBooking]);
 
     // Socket connection - connect only when worker is online
     useEffect(() => {
@@ -765,8 +808,11 @@ export default function WorkerDashboardPage() {
 
         // Listen for task assignment
         socket.on("new-task", (data: { booking: QueueBooking }) => {
-            // Ignore if paused - we shouldn't receive this but just in case
+            // Should not happen: the server never offers work to a paused worker.
+            // If it ever does, re-sync with the server instead of dropping the
+            // task silently — the booking is already assigned to us server-side.
             if (isPausedRef.current) {
+                setTimeout(() => pollForBookingRef.current(true), 200);
                 return;
             }
             
@@ -777,10 +823,10 @@ export default function WorkerDashboardPage() {
             triggerNotificationVibration();
             playWorkerNotificationSound();
             addToast({
-                title: t("มีงานใหม่!", "New task assigned"),
+                title: localeRef.current.t("มีงานใหม่!", "New task assigned"),
                 description: data.booking.status === "waiting"
-                    ? t("กรุณากดรับงานภายใน 90 วินาที", "Please accept this task within 90 seconds.")
-                    : `${formatDeskLabel(data.booking.desk_number, isEnglish)} - ${formatBookingTypeLabel(data.booking.booking_type, isEnglish)}`,
+                    ? localeRef.current.t("กรุณากดรับงานภายใน 90 วินาที", "Please accept this task within 90 seconds.")
+                    : `${formatDeskLabel(data.booking.desk_number, localeRef.current.isEnglish)} - ${formatBookingTypeLabel(data.booking.booking_type, localeRef.current.isEnglish)}`,
                 color: "primary",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -805,8 +851,8 @@ export default function WorkerDashboardPage() {
                 isPausedRef.current = false;
 
                 addToast({
-                    title: t("Session ถูกปิด", "Session closed"),
-                    description: t("ปิดรับงานถาวรแล้ว ระบบตั้งผู้รับงานเป็นออฟไลน์อัตโนมัติ", "Task intake is permanently closed. Workers were set offline automatically."),
+                    title: localeRef.current.t("Session ถูกปิด", "Session closed"),
+                    description: localeRef.current.t("ปิดรับงานถาวรแล้ว ระบบตั้งผู้รับงานเป็นออฟไลน์อัตโนมัติ", "Task intake is permanently closed. Workers were set offline automatically."),
                     color: "warning",
                     timeout: 3000,
                     shouldShowTimeoutProgress: true,
@@ -823,12 +869,24 @@ export default function WorkerDashboardPage() {
         // Without this, the worker page stays frozen on the cancelled booking forever.
         socket.on("booking-cancelled", () => {
             skipPollingRef.current = false;
-            setTimeout(() => pollForBooking(true), 200);
+            setTimeout(() => pollForBookingRef.current(true), 200);
+        });
+
+        // The server re-routed an offer this TA did not accept in time, or released
+        // one when they closed intake. Without this the card sits on a dead offer
+        // whose Accept button can only fail.
+        socket.on("offer-expired", (data: { booking_id?: number }) => {
+            const expiredId = data?.booking_id;
+            if (expiredId && currentBookingRef.current && currentBookingRef.current.id !== expiredId) return;
+            setCurrentBooking(null);
+            setOfferSecondsLeft(null);
+            skipPollingRef.current = false;
+            setTimeout(() => pollForBookingRef.current(true), 200);
         });
 
         socket.on("booking-skipped", () => {
             skipPollingRef.current = false;
-            setTimeout(() => pollForBooking(true), 200);
+            setTimeout(() => pollForBookingRef.current(true), 200);
         });
 
         socketRef.current = socket;
@@ -844,11 +902,16 @@ export default function WorkerDashboardPage() {
             );
 
             pollingRef.current = setTimeout(async () => {
-                // Always re-validate — re-syncs stale state if socket missed a cancel/expire event.
-                // pollForBooking returns early when socket is connected, so this only hits the API
-                // when socket is disconnected (acting as a reliable fallback).
+                // Re-validate against the server on a fixed cadence even while the
+                // socket reports connected. A connected socket is not proof that
+                // every event arrived: an assignment emitted while this page was
+                // reconnecting, or a frame dropped on a flaky mobile link, is never
+                // resent, and an unforced poll bails out as long as the socket looks
+                // healthy — which left the page blank while the overview showed the
+                // task as assigned to this TA.
+                const forceRevalidate = Date.now() - lastSyncAtRef.current >= REVALIDATE_INTERVAL_MS;
                 skipPollingRef.current = false;
-                await pollForBooking();
+                await pollForBookingRef.current(forceRevalidate);
                 scheduleNextPoll();
             }, nextIntervalMs);
         };
@@ -864,7 +927,7 @@ export default function WorkerDashboardPage() {
                 pollingRef.current = null;
             }
         };
-    }, [sessionId, currentUser, isWorkerOnline, pollForBooking, isEnglish]);
+    }, [sessionId, currentUser, isWorkerOnline, pollForBooking, localeRef.current.isEnglish]);
 
     // Join as worker
     const handleJoinAsWorker = async () => {
@@ -905,6 +968,7 @@ export default function WorkerDashboardPage() {
             }
 
             const result = await queueService.joinAsWorker(courseId, sessionId, workerPreferences);
+            autoResumeArmedRef.current = false;
             setIsWorkerOnline(true);
             setIsPausedAfterComplete(false);
             setWorkerOfferPausedUntil(null);
@@ -946,6 +1010,55 @@ export default function WorkerDashboardPage() {
         }
     };
 
+    // Auto-resume once the 1-minute offer pause runs out. Same server call as
+    // the "ปลดพักรับงานเลย" button, minus the push-permission flow: the TA already
+    // granted (or declined) it when they first joined this session.
+    const resumeAfterOfferPause = useCallback(async () => {
+        if (!autoResumeArmedRef.current) return;
+        autoResumeArmedRef.current = false;
+
+        if (!isCourseActive) return;
+        if (!workerPreferences.accept_grading && !workerPreferences.accept_help) return;
+
+        try {
+            const result = await queueService.joinAsWorker(courseId, sessionId, workerPreferences);
+            setIsWorkerOnline(true);
+            setIsPausedAfterComplete(false);
+            setWorkerOfferPausedUntil(null);
+
+            if (result.assignedBooking) {
+                setCurrentBooking(result.assignedBooking);
+                skipPollingRef.current = true;
+                playWorkerNotificationSound();
+            }
+
+            addToast({
+                title: t("กลับมารับงานแล้ว", "Back on duty"),
+                description: result.assignedBooking
+                    ? t("ระบบปลดพักให้อัตโนมัติ และมีงานรออยู่", "The pause was lifted automatically and a task is waiting.")
+                    : t("ระบบปลดพักให้อัตโนมัติแล้ว", "The pause was lifted automatically."),
+                color: "success",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } catch (error: unknown) {
+            console.error("Error resuming after offer pause:", error);
+            addToast({
+                title: t("ปลดพักไม่สำเร็จ", "Could not resume automatically"),
+                description: isEnglish
+                    ? "Please press \"Start receiving tasks\" again."
+                    : "กรุณากดเปิดรับงานอีกครั้ง",
+                color: "warning",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        }
+    }, [courseId, sessionId, isCourseActive, workerPreferences, isEnglish, t]);
+
+    useEffect(() => {
+        resumeAfterOfferPauseRef.current = resumeAfterOfferPause;
+    }, [resumeAfterOfferPause]);
+
     // Leave as worker
     const handleLeaveAsWorker = async () => {
         if (!isCourseActive) {
@@ -954,11 +1067,16 @@ export default function WorkerDashboardPage() {
         }
 
         setIsLeaving(true);
+        // Leaving on purpose outranks any pending auto-resume.
+        autoResumeArmedRef.current = false;
         try {
-            await queueService.leaveAsWorker(courseId, sessionId);
-            
-            if (currentBooking) {
-                // Has current booking - mark as paused, will fully leave after completing
+            const leaveResult = await queueService.leaveAsWorker(courseId, sessionId);
+
+            // Follow the server, not the local card: an offer that was never
+            // accepted is released to another TA, so holding a booking on screen
+            // no longer means we stay paused.
+            if (leaveResult.status === "paused") {
+                // Has a task already in progress - fully leave after completing it
                 setIsPausedAfterComplete(true);
                 addToast({
                     title: t("หยุดรับงานใหม่", "Stopped receiving new tasks"),
@@ -968,12 +1086,16 @@ export default function WorkerDashboardPage() {
                 shouldShowTimeoutProgress: true,
                 });
             } else {
-                // No current booking - leave immediately
                 setIsWorkerOnline(false);
                 setIsPausedAfterComplete(false);
+                setCurrentBooking(null);
+                setOfferSecondsLeft(null);
+                skipPollingRef.current = false;
                 addToast({
                     title: t("สำเร็จ", "Success"),
-                    description: t("ออกจากการรับงานเรียบร้อยแล้ว", "You have stopped receiving tasks."),
+                    description: leaveResult.releasedOffers > 0
+                        ? t("ออกจากการรับงานแล้ว งานที่ยังไม่ได้กดรับถูกส่งต่อให้คนอื่น", "You have stopped receiving tasks. The task you had not accepted was passed to someone else.")
+                        : t("ออกจากการรับงานเรียบร้อยแล้ว", "You have stopped receiving tasks."),
                     color: "success",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,

@@ -707,8 +707,18 @@ const queueService = {
     /**
      * Leave as worker
      */
-    async leaveAsWorker(courseId: string, sessionId: string): Promise<void> {
-        await api.post(`/courses/${courseId}/queue/sessions/${sessionId}/workers/leave`);
+    async leaveAsWorker(
+        courseId: string,
+        sessionId: string
+    ): Promise<{ status: "paused" | "offline"; releasedOffers: number }> {
+        const response = await api.post<{ status?: string; released_offers?: number }>(
+            `/courses/${courseId}/queue/sessions/${sessionId}/workers/leave`
+        );
+        // The server decides the outcome: only a task the TA already started keeps
+        // them "paused". An offer they never accepted is released to another TA,
+        // and the worker goes offline right away.
+        const status = response.data?.status === "paused" ? "paused" : "offline";
+        return { status, releasedOffers: response.data?.released_offers ?? 0 };
     },
 
     /**
