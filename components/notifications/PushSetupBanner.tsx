@@ -17,6 +17,31 @@ import {
 import { sendTestPush } from "@/services/push-subscription.service";
 import IosInstallPromptModal from "./IosInstallPromptModal";
 
+// Once a device has confirmed working push, showing "พร้อมรับแจ้งเตือนแล้ว" every
+// single time the worker page loads is just noise — the TA already knows.
+// Persisted per-device (not per-session) since the whole point is "don't ask
+// again on this phone." Wrapped in try/catch: private-browsing / storage-
+// blocked contexts throw on access, and the banner should just fall back to
+// showing every time rather than crash the page.
+const PUSH_READY_DISMISSED_KEY = "labtas-push-ready-dismissed";
+
+function readPushReadyDismissed(): boolean {
+  try {
+    return typeof window !== "undefined" && window.localStorage.getItem(PUSH_READY_DISMISSED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writePushReadyDismissed() {
+  try {
+    window.localStorage.setItem(PUSH_READY_DISMISSED_KEY, "1");
+  } catch {
+    // Ignore — worst case the banner reappears next time, which is the
+    // pre-existing behavior anyway.
+  }
+}
+
 interface PushSetupBannerProps {
   sessionId: string;
 }
@@ -53,6 +78,7 @@ export default function PushSetupBanner({ sessionId }: PushSetupBannerProps) {
   const [iosModalOpen, setIosModalOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [testCooldown, setTestCooldown] = useState(false);
+  const [readyDismissed, setReadyDismissed] = useState(readPushReadyDismissed);
 
   const needsIosInstall =
     typeof window !== "undefined" && requiresHomeScreenInstallForPush();
@@ -206,7 +232,15 @@ export default function PushSetupBanner({ sessionId }: PushSetupBannerProps) {
     );
   }
 
-  // Fully working — compact success banner with permanent test button
+  // Fully working — once the TA has seen this and dismissed it, it stays
+  // gone on this device. (The test button lives here too, so dismissing does
+  // mean losing the quick way to re-test — that's the intended trade-off;
+  // the retry/denied/not-subscribed states above are unaffected and will
+  // still surface immediately if the subscription ever actually breaks.)
+  if (readyDismissed) {
+    return null;
+  }
+
   return (
     <BannerShell
       tone="success"
@@ -217,6 +251,10 @@ export default function PushSetupBanner({ sessionId }: PushSetupBannerProps) {
           {testCooldown ? t("pushTestCooldown") : t("pushTestButton")}
         </Button>
       }
+      onDismiss={() => {
+        writePushReadyDismissed();
+        setReadyDismissed(true);
+      }}
     />
   );
 }
@@ -226,9 +264,10 @@ interface BannerShellProps {
   title: string;
   description: string;
   actions?: React.ReactNode;
+  onDismiss?: () => void;
 }
 
-function BannerShell({ tone, title, description, actions }: BannerShellProps) {
+function BannerShell({ tone, title, description, actions, onDismiss }: BannerShellProps) {
   const style = TONE_STYLES[tone];
   return (
     <div className={`flex items-start gap-3 rounded-lg border px-4 py-3 ${style.wrap}`}>
@@ -238,6 +277,16 @@ function BannerShell({ tone, title, description, actions }: BannerShellProps) {
         <p className="text-sm opacity-90 mt-0.5">{description}</p>
       </div>
       {actions && <div className="flex-none">{actions}</div>}
+      {onDismiss && (
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="ปิด"
+          className="flex-none rounded-md p-1 opacity-60 transition hover:opacity-100"
+        >
+          <Icon icon="ph:x-bold" width={16} />
+        </button>
+      )}
     </div>
   );
 }

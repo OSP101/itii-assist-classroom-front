@@ -499,6 +499,19 @@ export interface ConcurrentGroupData {
 // ============================================
 
 const queueService = {
+    /**
+     * Mint a short-lived ticket for joining this worker's own realtime room.
+     * That room streams every task the moment it's assigned - student name,
+     * student id, course, assignment name - so the WebSocket hub will not
+     * admit a client without one. See GetWorkerSocketTicketHandler on the
+     * backend; the ticket is always minted for the caller's own id, never
+     * anyone else's.
+     */
+    async getWorkerSocketTicket(): Promise<string | null> {
+        const response = await api.get<{ ticket: string; expires_at: string }>('/queue/worker/socket-ticket');
+        return response.data?.ticket || null;
+    },
+
     // ============================================
     // Session Management (Instructor/TA)
     // ============================================

@@ -791,12 +791,38 @@ export default function WorkerDashboardPage() {
 
         const socket = io(getRealtimeSocketBaseUrl());
 
+        // The worker room streams every task the instant it's assigned -
+        // student name, student id, course, assignment name - so the hub now
+        // refuses to admit a client without a ticket minted behind an
+        // authenticated route (see GetWorkerSocketTicketHandler). Fetch one on
+        // every connect: tickets are short-lived, and a reconnect needs a
+        // fresh one, same as the attendance instructor room this pattern is
+        // copied from.
+        let disposed = false;
+        const joinWorkerRoom = async () => {
+            try {
+                const ticket = await queueService.getWorkerSocketTicket();
+                if (disposed || !socket.connected) {
+                    return;
+                }
+                if (!ticket) {
+                    console.warn("Worker socket: no ticket issued — live task alerts are off until you reopen this page.");
+                    return;
+                }
+                socket.emit("join-worker", { ticket });
+            } catch (error) {
+                if (!disposed) {
+                    console.error("Worker socket: could not obtain a room ticket:", error);
+                }
+            }
+        };
+
         socket.on("connect", () => {
             hasWarnedAboutConnectError.current = false;
             pollingBackoffStepRef.current = 0;
             // Join queue and worker rooms
             socket.emit("join-queue", sessionId);
-            socket.emit("join-worker", String(currentUser.id));
+            void joinWorkerRoom();
         });
 
         socket.on("connect_error", (err) => {
@@ -920,6 +946,7 @@ export default function WorkerDashboardPage() {
         scheduleNextPoll();
 
         return () => {
+            disposed = true;
             socket.emit("leave-queue", sessionId);
             socket.emit("leave-worker", String(currentUser.id));
             socket.disconnect();
@@ -928,7 +955,11 @@ export default function WorkerDashboardPage() {
                 pollingRef.current = null;
             }
         };
-    }, [sessionId, currentUser, isWorkerOnline, pollForBooking, localeRef.current.isEnglish]);
+        // pollForBooking, t and isEnglish are read through refs on purpose: as
+        // plain dependencies this effect tore the socket down and rebuilt it on
+        // every booking change, and any new-task emitted during that gap was lost
+        // for good — the hub has no replay when a client rejoins.
+    }, [sessionId, currentUser, isWorkerOnline]);
 
     // Join as worker
     const handleJoinAsWorker = async () => {
@@ -1735,14 +1766,35 @@ export default function WorkerDashboardPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        {/* <Button
+                        <Button
                             variant="light"
+                            size="sm"
                             startContent={<Icon icon="solar:arrow-left-bold" />}
-                            onPress={() => router.back()}
+                            onPress={() => {
+                                // The page used to always open in its own tab, so
+                                // there was nothing useful to go "back" to. Now
+                                // it opens in the same tab (deliberately, so Web
+                                // Push notifications reach the tab that's
+                                // actually joined as a worker), which makes
+                                // getting back to the queue overview hard on
+                                // mobile — no visible browser back button once
+                                // installed as a PWA, and no swipe-back gesture
+                                // on Android. window.history.length is a rough
+                                // signal: 1 means this tab was opened fresh (a
+                                // push notification tap, a reopened PWA, a
+                                // reload) with no page to go back to, so route
+                                // to the queue tab explicitly instead of leaving
+                                // the button silently do nothing.
+                                if (typeof window !== "undefined" && window.history.length > 1) {
+                                    router.back();
+                                } else {
+                                    router.push(`/classroom/${courseId}/queue`);
+                                }
+                            }}
                             className="mb-2"
                         >
-                            กลับ
-                        </Button> */}
+                            {t("กลับ", "Back")}
+                        </Button>
                         <h1 className="text-xl font-bold text-foreground">{session.title}</h1>
                         <p className="text-sm text-default-500">
                             {t("ห้อง", "Room")} {session.classroom?.name} • PIN: <span className="font-mono font-bold text-blue-600">{session.pin_code}</span>
