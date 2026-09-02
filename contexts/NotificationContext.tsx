@@ -121,6 +121,30 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         if (supported && typeof Notification !== "undefined") {
             setPermissionStatus(Notification.permission);
         }
+
+        // Read the browser's actual subscription state instead of defaulting to
+        // false. pushSubscribed used to only ever flip to true after this tab
+        // called registerPushToken itself, so a worker who subscribed last
+        // session (or on another tab) saw the "retry subscribing" banner every
+        // time they reopened the page, even though the device was already
+        // subscribed and receiving pushes fine.
+        //
+        // getRegistration() (not register()) so this never creates a service
+        // worker or triggers a permission prompt on its own — it only reads
+        // state that already exists.
+        if (supported) {
+            navigator.serviceWorker
+                .getRegistration("/")
+                .then((registration) => registration?.pushManager.getSubscription())
+                .then((subscription) => {
+                    setPushSubscribed(Boolean(subscription));
+                })
+                .catch(() => {
+                    // Leave pushSubscribed as-is — the retry banner is the safe
+                    // default when we genuinely can't tell.
+                });
+        }
+
         setIsLoading(false);
     }, []);
 

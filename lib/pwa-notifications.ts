@@ -49,6 +49,41 @@ export function triggerNotificationVibration(pattern: readonly number[] = DEFAUL
 let _notificationAudio: HTMLAudioElement | null = null;
 let _workerNotificationAudio: HTMLAudioElement | null = null;
 
+// iOS Safari (browser tab or installed PWA) only allows Audio#play() to
+// succeed synchronously inside a real user gesture (tap/click); a call
+// triggered later by a socket event or push is silently rejected, and
+// play().catch(() => {}) below swallows that rejection, so the chime for a
+// new task simply never played on iPhone/iPad. Calling this once inside an
+// existing click handler (e.g. "Start receiving tasks") "primes" both audio
+// elements — muted play+pause — which iOS then treats as unlocked for any
+// later, non-gesture play() call on the same elements for the rest of the
+// page's lifetime.
+export function unlockNotificationAudio(): void {
+    if (typeof window === "undefined") return;
+    for (const audio of [
+        (_notificationAudio ??= new Audio("/notification.mp3")),
+        (_workerNotificationAudio ??= new Audio("/notification_woker.mp3")),
+    ]) {
+        try {
+            const previousVolume = audio.volume;
+            audio.volume = 0;
+            audio
+                .play()
+                .then(() => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                    audio.volume = previousVolume;
+                })
+                .catch(() => {
+                    audio.volume = previousVolume;
+                });
+        } catch {
+            // Silently ignore — playWorkerNotificationSound will just stay
+            // blocked on this device, same as before this function existed.
+        }
+    }
+}
+
 export function playNotificationSound(): void {
   if (typeof window === "undefined") return;
   try {

@@ -38,6 +38,7 @@ import {
     triggerNotificationVibration,
     playWorkerNotificationSound,
     requiresHomeScreenInstallForPush,
+    unlockNotificationAudio,
 } from "@/lib/pwa-notifications";
 import { API_BASE_URL } from "@/config/api";
 import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
@@ -931,6 +932,12 @@ export default function WorkerDashboardPage() {
 
     // Join as worker
     const handleJoinAsWorker = async () => {
+        // Must run synchronously inside this click handler, not after an await —
+        // iOS only honors the audio unlock within the actual user gesture. This
+        // is the TA's real "start of shift" tap, so it is the one gesture
+        // guaranteed to happen before the first task can possibly arrive.
+        unlockNotificationAudio();
+
         if (!isCourseActive) {
             showCourseClosedReadOnlyToast();
             return;

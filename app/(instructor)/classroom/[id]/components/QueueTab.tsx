@@ -761,9 +761,14 @@ export default function QueueTab({
         window.open(`/queue/projector/${session.id}`, '_blank');
     };
 
-    // Navigate to worker dashboard
+    // Navigate to worker dashboard in the same tab. Opening it in a new tab used
+    // to leave the original tab (with its Web Push subscription/service worker
+    // context) as the one the TA kept looking at, while the actual worker page -
+    // the one that needs to receive the push - sat in a background tab a mobile
+    // browser is free to suspend. That is why notifications stopped arriving
+    // once the screen locked or the TA switched apps.
     const handleGoToWorker = (session: QueueSession) => {
-        window.open(`/classroom/${course.id}/queue/${session.id}/worker`, '_blank');
+        router.push(`/classroom/${course.id}/queue/${session.id}/worker`);
     };
 
     // Handle start queue with confirmation

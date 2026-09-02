@@ -12,6 +12,7 @@ import {
   isStandaloneMode,
   requiresHomeScreenInstallForPush,
   supportsServiceWorkerNotifications,
+  unlockNotificationAudio,
 } from "@/lib/pwa-notifications";
 import { sendTestPush } from "@/services/push-subscription.service";
 import IosInstallPromptModal from "./IosInstallPromptModal";
@@ -60,6 +61,10 @@ export default function PushSetupBanner({ sessionId }: PushSetupBannerProps) {
 
   const handleEnable = useCallback(async () => {
     if (busy) return;
+    // Same reasoning as the worker page's join button: this tap is a real user
+    // gesture, so it is a valid (and often earlier) place to unlock audio
+    // playback on iOS before the first task notification needs it.
+    unlockNotificationAudio();
     setBusy(true);
     try {
       const { granted } = await requestPermission();
