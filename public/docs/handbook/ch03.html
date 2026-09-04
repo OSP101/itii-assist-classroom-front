@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>บทที่ 3 การใช้งานสำหรับผู้ดูแลระบบ (Admin) — คู่มือ LabTAS</title>
+<title>บทที่ 3 การใช้งานสำหรับผู้ดูแลระบบ (Admin) — คู่มือ COCO LABS</title>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -12,7 +12,7 @@
   <button class="burger" onclick="document.body.classList.toggle('nav-open')" aria-label="เมนู">
     <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3h14v2H1zm0 4h14v2H1zm0 4h14v2H1z"/></svg>
   </button>
-  <a class="brand" href="index.html"><span class="logo">L</span> LabTAS <span class="muted">Docs</span></a>
+  <a class="brand" href="index.html"><span class="logo">C</span> COCO LABS <span class="muted">Docs</span></a>
   <div class="search">
     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.7 10.3a6 6 0 10-1.4 1.4l3 3 1.4-1.4-3-3zM2 6.5a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0z"/></svg>
     <input id="q" type="search" placeholder="ค้นหาในคู่มือ… " autocomplete="off">
@@ -39,9 +39,8 @@
 <a href="ch07.html"><span class="chip">บทที่ 7</span>งานมอบหมายและการให้คะแนน</a>
 <a href="ch08.html"><span class="chip">บทที่ 8</span>การอนุมัติคำขอแก้ไขคะแนน</a>
 <a href="ch09.html"><span class="chip">บทที่ 9</span>การสอบและคะแนนสอบ</a>
-<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็คชื่อเข้าเรียน</a>
+<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็กชื่อเข้าเรียน</a>
 <a href="ch11.html"><span class="chip">บทที่ 11</span>ระบบคิวตรวจงาน</a>
-<a href="ch12.html"><span class="chip">บทที่ 12</span>การจับคู่จอแสดงผลหน้าห้อง</a>
 <a href="ch13.html"><span class="chip">บทที่ 13</span>การติดตามผลงานทีมและบันทึกกิจกรรม</a>
 <a href="ch14.html"><span class="chip">บทที่ 14</span>การตั้งค่ารายวิชา</a>
 </details>
@@ -54,173 +53,399 @@
 <details class="side-group"><summary>นักศึกษา</summary>
 <a href="ch19.html"><span class="chip">บทที่ 19</span>การใช้งานสำหรับนักศึกษา (Student)</a>
 </details>
-<details class="side-group"><summary>ภาคผนวก</summary>
-<a href="app-a.html"><span class="chip">ภาคผนวก ก</span>สิทธิ์รายวิชาทั้งหมด (39 สิทธิ์)</a>
-<a href="app-b.html"><span class="chip">ภาคผนวก ข</span>ฟังก์ชันที่เพิ่มหลังคู่มือฉบับสอบจบ</a>
-<a href="app-c.html"><span class="chip">ภาคผนวก ค</span>การกระทำที่ต้องยืนยันตัวตนสองชั้นซ้ำ (Step-up 2FA)</a>
-<a href="app-d.html"><span class="chip">ภาคผนวก ง</span>สรุปเมนูหลักตามบทบาท</a>
-</details>
-    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">LabTAS v1.2.90</span></div>
+    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">COCO LABS Docs</span></div>
   </aside>
   <main class="main">
-    <div class="crumb"><a href="index.html">คู่มือ LabTAS</a> <span>/</span> ผู้ดูแลระบบ <span>/</span> บทที่ 3</div>
+    <div class="crumb"><a href="index.html">คู่มือ COCO LABS</a> <span>/</span> ผู้ดูแลระบบ <span>/</span> บทที่ 3</div>
     <div class="page-label">บทที่ 3</div><h1>การใช้งานสำหรับผู้ดูแลระบบ (Admin)</h1>
-    <article class="doc"><h2 id="sec-3-1">3.1 แดชบอร์ดผู้ดูแลระบบ<a class="hlink" href="#sec-3-1">#</a></h2>
-<p>เมื่อผู้ดูแลระบบเข้าสู่ระบบ ระบบจะพาไปยังหน้า <strong>แดชบอร์ด</strong> โดยอัตโนมัติ</p>
-<ol class="steps">
-<li><strong>สถิติรวม</strong> จำนวนผู้ใช้ นักศึกษา รายวิชา และห้องเรียนทั้งหมด</li>
-<li><strong>ผู้ใช้งานตามบทบาท</strong> และ <strong>รายละเอียดห้องเรียน</strong> (โต๊ะทั้งหมด คอมพิวเตอร์ ใช้งานได้/ปิดใช้งาน)</li>
-<li><strong>สถานะเซิร์ฟเวอร์</strong> CPU หน่วยความจำ และเวลาทำงาน พร้อมบันทึกระบบ 24 ชั่วโมงล่าสุด</li>
-<li><strong>เมนูด้านซ้าย</strong> เข้าถึงทุกโมดูล ได้แก่ ผู้ใช้งาน นักศึกษา รายวิชา ห้องเรียน ข้อเสนอแนะ บันทึกระบบ มอนิเตอร์ระบบ และตั้งค่า</li>
-</ol>
-<figure><img src="img/admin_01_dashboard.png" alt="ภาพที่ 3.1 แดชบอร์ดผู้ดูแลระบบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.1 แดชบอร์ดผู้ดูแลระบบ</figcaption></figure>
+    <article class="doc"><p>บทนี้ครอบคลุมทุกเมนูของบทบาทผู้ดูแลระบบ ตั้งแต่แดชบอร์ด การจัดการผู้ใช้ นักศึกษา รายวิชา และห้องเรียน ไปจนถึงข้อเสนอแนะ บันทึกระบบ มอนิเตอร์ระบบ การตั้งค่าระบบ (สำรองข้อมูล Feature Flags โหมดบำรุงรักษา) และประกาศระบบซึ่งเป็นเมนูที่มีรายละเอียดมากที่สุดในบทนี้ ท่านที่เป็นผู้ดูแลระบบควรอ่านบทที่ 2 เรื่องบัญชีผู้ใช้และความปลอดภัยก่อน โดยเฉพาะหัวข้อการยืนยันตัวตนสองชั้น เนื่องจากการดำเนินงานสำคัญหลายจุดในบทนี้ต้องยืนยันตัวตนซ้ำ (Step-up 2FA)</p>
+
+<h2 id="sec-3-1">3.1 แดชบอร์ดผู้ดูแลระบบ<a class="hlink" href="#sec-3-1">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> เห็นภาพรวมของระบบทั้งหมดทันทีที่เข้าสู่ระบบ โดยไม่ต้องเปิดหลายเมนูแยกกัน</p>
+<p>เมื่อผู้ดูแลระบบเข้าสู่ระบบ ระบบจะพาไปยังหน้า <b>แดชบอร์ด</b> โดยอัตโนมัติ</p>
+<div class="see-block"><div class="see-label">องค์ประกอบบนหน้านี้</div><dl class="see">
+<div><dt>สถิติรวม</dt><dd>จำนวนผู้ใช้ นักศึกษา รายวิชา และห้องเรียนทั้งหมด แต่ละการ์ดคลิกเข้าเมนูที่เกี่ยวข้องได้ทันที</dd></div>
+<div><dt>ผู้ใช้งานตามบทบาท</dt><dd>จำนวนผู้ดูแลระบบ อาจารย์ และผู้ช่วยสอน</dd></div>
+<div><dt>รายละเอียดห้องเรียน</dt><dd>จำนวนโต๊ะทั้งหมด โต๊ะคอมพิวเตอร์ โต๊ะที่เปิดใช้งาน และปิดใช้งาน</dd></div>
+<div><dt>สถานะเซิร์ฟเวอร์</dt><dd>CPU หน่วยความจำ และเวลาทำงานของเซิร์ฟเวอร์ ดึงข้อมูลสด เป็นมุมมองสรุปย่อ หากต้องการรายละเอียดเต็มให้ไปที่เมนูมอนิเตอร์ระบบ (ข้อ 3.8)</dd></div>
+<div><dt>บันทึกระบบ 24 ชั่วโมงล่าสุด</dt><dd>จำนวนรวมและจำนวนแยกตามประเภท (ผิดพลาด/ยืนยันตัว/ความปลอดภัย) พร้อมลิงก์ไปหน้าบันทึกระบบทั้งหมด</dd></div>
+<div><dt>ทางลัด</dt><dd>ปุ่มลัดไปยังเมนูที่ใช้บ่อย ได้แก่ ผู้ใช้งาน นำเข้าข้อมูลนักศึกษา รายวิชา และบันทึกระบบ</dd></div>
+<div><dt>เมนูด้านซ้าย</dt><dd>เข้าถึงทุกโมดูล ได้แก่ ผู้ใช้งาน นักศึกษา รายวิชา ห้องเรียน ข้อเสนอแนะ บันทึกระบบ มอนิเตอร์ระบบ และตั้งค่า</dd></div>
+</dl></div>
+<figure><img src="img/ch03_fig01_dashboard-overview.png" alt="ภาพที่ 3.1 แดชบอร์ดผู้ดูแลระบบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.1 แดชบอร์ดผู้ดูแลระบบ</figcaption></figure>
+
 <h2 id="sec-3-2">3.2 จัดการผู้ใช้ (แอดมิน อาจารย์ ผู้ช่วยสอน)<a class="hlink" href="#sec-3-2">#</a></h2>
-<p>เมนู <strong>ผู้ใช้งาน</strong> ใช้จัดการบัญชีผู้ใช้ระบบทั้งหมด</p>
-<ol class="steps">
-<li>ส่วนบนสรุปจำนวน <strong>ผู้ใช้ทั้งหมด ผู้ดูแลระบบ อาจารย์ และผู้ช่วยสอน</strong></li>
-<li>คลิกปุ่ม <strong>เพิ่มผู้ใช้</strong> เพื่อสร้างบัญชีใหม่</li>
-<li>ใช้ <strong>ช่องค้นหา</strong> และตัวกรองบทบาท/สถานะ</li>
-<li>แต่ละแถวแสดง <strong>บทบาท สถานะ การเปิด 2FA และประเภทบัญชี</strong> พร้อมปุ่มแก้ไข รีเซ็ตรหัสผ่าน และเปิด/ปิดการใช้งาน</li>
-</ol>
-<figure><img src="img/admin_02_users.png" alt="ภาพที่ 3.2 หน้าจัดการผู้ใช้" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.2 หน้าจัดการผู้ใช้</figcaption></figure>
-<p>เมื่อคลิก <strong>เพิ่มผู้ใช้</strong> ระบบจะเปิดฟอร์มกรอกข้อมูล</p>
-<ol class="steps">
-<li><strong>รูปโปรไฟล์</strong> (ไม่บังคับ)</li>
-<li><strong>ข้อมูลส่วนตัว</strong> ชื่อ-นามสกุล และอีเมล (ไม่บังคับ)</li>
-<li><strong>ข้อมูลบัญชี</strong> ชื่อผู้ใช้ และเลือกบทบาท (ผู้ดูแลระบบ / อาจารย์ / ผู้ช่วยสอน)</li>
-<li>คลิก <strong>เพิ่มผู้ใช้</strong> ระบบจะสร้าง <strong>รหัสผ่านชั่วคราว</strong> แสดงขึ้นมาหนึ่งครั้ง ให้ส่งต่อแก่ผู้ใช้เพื่อเข้าสู่ระบบครั้งแรก (ระบบจะบังคับเปลี่ยนรหัสผ่านเมื่อเข้าครั้งแรก)</li>
-</ol>
-<figure><img src="img/admin_14_adduser.png" alt="ภาพที่ 3.3 ฟอร์มเพิ่มผู้ใช้ใหม่" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.3 ฟอร์มเพิ่มผู้ใช้ใหม่</figcaption></figure>
-<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>การปิดการใช้งานบัญชี (ไอคอนรูปตา) มีผลทันทีทำให้ผู้ใช้นั้นเข้าสู่ระบบไม่ได้ และการลบผู้ใช้เป็นแบบ soft delete ข้อมูลยังอยู่ในระบบเพื่อการตรวจสอบย้อนหลัง</p></div>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> สร้างและดูแลบัญชีผู้ใช้ระบบทั้งหมดที่ไม่ใช่นักศึกษา</p>
+<p>เมนู <b>ผู้ใช้งาน</b> ใช้จัดการบัญชีผู้ใช้ระบบทั้งหมด</p>
+<div class="see-block"><div class="see-label">องค์ประกอบบนหน้านี้</div><dl class="see">
+<div><dt>สรุปด้านบน</dt><dd>จำนวนผู้ใช้ทั้งหมด ผู้ดูแลระบบ อาจารย์ และผู้ช่วยสอน</dd></div>
+<div><dt>ช่องค้นหาและตัวกรอง</dt><dd>ค้นด้วยชื่อหรืออีเมล กรองตามบทบาทและสถานะ (ใช้งาน/ปิดใช้งาน)</dd></div>
+<div><dt>คอลัมน์ในตาราง</dt><dd>บทบาท สถานะ การเปิด 2FA (2FA enabled/disabled) และประเภทบัญชี (เข้าสู่ระบบด้วยรหัสผ่านในระบบ หรือเชื่อมต่อผ่าน Google)</dd></div>
+</dl></div>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิกไอคอนดินสอเพื่อ <b>แก้ไข</b> ข้อมูลบัญชี</li>
+<li>คลิกไอคอนกุญแจเพื่อ <b>รีเซ็ตรหัสผ่าน</b> ให้ผู้ใช้รายนั้น ระบบจะสร้างรหัสผ่านชั่วคราวใหม่ให้ทันที</li>
+<li>คลิกไอคอนรูปตาเพื่อ <b>เปิด/ปิดการใช้งาน</b> บัญชี</li>
+</ol></div>
+<figure><img src="img/ch03_fig02_users-list.png" alt="ภาพที่ 3.2 หน้าจัดการผู้ใช้" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.2 หน้าจัดการผู้ใช้</figcaption></figure>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>หน้านี้ยังไม่มีปุ่มลบบัญชีถาวร มีเพียงปุ่มปิดการใช้งานซึ่งมีผลทันทีทำให้ผู้ใช้นั้นเข้าสู่ระบบไม่ได้ หากพบว่าเวอร์ชันที่ใช้งานจริงมีปุ่มลบปรากฏขึ้น ให้ตรวจสอบกับทีมพัฒนาว่าเปิดใช้ฟีเจอร์นี้แล้วหรือยัง</p></div>
+
+<h3 id="sec-เพ-มผ-ใช-ใหม-">เพิ่มผู้ใช้ใหม่</h3>
+<p>คลิกปุ่ม <b>เพิ่มผู้ใช้</b> ที่มุมขวาบนของหน้ารายชื่อ ระบบจะเปิดฟอร์มกรอกข้อมูล</p>
+<div class="fields">
+<div><div class="fname">รูปโปรไฟล์</div><span class="freq opt">ไม่บังคับ</span><div class="fdesc">อัปโหลดหรือข้ามไปก่อนก็ได้ ผู้ใช้แก้ไขเองได้ภายหลังจากหน้าตั้งค่าโปรไฟล์</div></div>
+<div><div class="fname">ชื่อ-นามสกุล</div><span class="freq req">ต้องกรอก</span><div class="fdesc">ใช้แสดงในระบบทุกจุด</div></div>
+<div><div class="fname">อีเมล</div><span class="freq opt">ไม่บังคับ</span><div class="fdesc">หากกรอกอีเมล KKU Mail ระบบจะเชื่อมบัญชีเข้ากับ KKU SSO ให้อัตโนมัติเมื่อผู้ใช้เข้าสู่ระบบครั้งแรกด้วยอีเมลเดียวกัน</div></div>
+<div><div class="fname">ชื่อผู้ใช้ (Username)</div><span class="freq req">ต้องกรอก</span><div class="fdesc">ใช้เข้าสู่ระบบคู่กับรหัสผ่าน แก้ไขไม่ได้ภายหลัง</div></div>
+<div><div class="fname">บทบาท</div><span class="freq req">ต้องกรอก</span><div class="fdesc">เลือกได้ 1 บทบาท ระหว่างผู้ดูแลระบบ อาจารย์ หรือผู้ช่วยสอน</div></div>
+</div>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>กรอกข้อมูลตามฟิลด์ด้านบนให้ครบ แล้วคลิก <b>เพิ่มผู้ใช้</b></li>
+<li>คัดลอก <b>รหัสผ่านชั่วคราว</b> ที่ระบบแสดงขึ้นเพียงครั้งเดียว แล้วส่งต่อให้ผู้ใช้เพื่อเข้าสู่ระบบครั้งแรก</li>
+</ol></div>
+<figure><img src="img/ch03_fig03_users-add-form.png" alt="ภาพที่ 3.3 ฟอร์มเพิ่มผู้ใช้ใหม่" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.3 ฟอร์มเพิ่มผู้ใช้ใหม่</figcaption></figure>
+<div class="cx good"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M13.7 3.7L6 11.4 2.3 7.7l1.4-1.4L6 8.6l6.3-6.3z"/></svg>ผลลัพธ์ที่ควรเห็น</div><p>กล่องรหัสผ่านชั่วคราวปรากฏพร้อมปุ่มคัดลอก บัญชีใหม่จะปรากฏในรายชื่อทันที และระบบบังคับให้เปลี่ยนรหัสผ่านทันทีที่ผู้ใช้เข้าสู่ระบบครั้งแรกด้วยรหัสผ่านชั่วคราวนั้น</p></div>
+<div class="cx tip"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 00-3 9v1.5a1 1 0 001 1h4a1 1 0 001-1V10a5 5 0 00-3-9zM6 14h4v1H6z"/></svg>คำแนะนำ</div><p>หากกู้คืนบัญชีที่เคยปิดใช้งานแล้วพบว่าชื่อผู้ใช้หรืออีเมลซ้ำกับบัญชีที่เปิดใช้งานอยู่แล้ว ระบบจะเปิดหน้าต่างให้เลือกว่าจะเก็บบัญชีที่กำลังเปิดใช้งาน หรือคืนบัญชีเดิมแล้วปิดบัญชีที่ซ้ำแทน กรุณาอ่านข้อความในหน้าต่างนั้นให้ครบก่อนเลือก</p></div>
+
 <h2 id="sec-3-3">3.3 จัดการนักศึกษา<a class="hlink" href="#sec-3-3">#</a></h2>
-<p>เมนู <strong>นักศึกษา</strong> ใช้จัดการข้อมูลนักศึกษาทั้งหมด ซึ่งเป็นข้อมูลแยกจากบัญชีผู้ใช้ระบบ (นักศึกษาโดยปกติไม่มีรหัสผ่านเข้าระบบ)</p>
-<ol class="steps">
-<li>ส่วนบนสรุปจำนวนนักศึกษา <strong>ทั้งหมด ใช้งาน และปิดใช้งาน</strong></li>
-<li>ปุ่มด้านขวาบนใช้ <strong>จัดการหลักสูตร นำเข้าข้อมูล (Excel/CSV) และเพิ่มนักศึกษา</strong> รายคน</li>
-<li>ใช้ <strong>ช่องค้นหา</strong> ค้นด้วยรหัสนักศึกษา ชื่อ หรืออีเมล</li>
-<li>แต่ละแถวแสดง <strong>หลักสูตร สถานะ วันที่สร้าง</strong> พร้อมปุ่มแก้ไขและเปิด/ปิดสถานะ</li>
-</ol>
-<figure><img src="img/admin_03_students.png" alt="ภาพที่ 3.4 หน้าจัดการนักศึกษา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.4 หน้าจัดการนักศึกษา</figcaption></figure>
-<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>เฉพาะผู้ดูแลระบบเท่านั้นที่สร้าง แก้ไข นำเข้า และลบนักศึกษาได้ อาจารย์และผู้ช่วยสอนทำได้เพียงค้นหาและดูรายชื่อ การนำเข้าแบบกลุ่มควรตรวจสอบรูปแบบไฟล์ให้ถูกต้องก่อนทุกครั้ง</p></div>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ดูแลข้อมูลนักศึกษาซึ่งแยกจากบัญชีผู้ใช้ระบบ</p>
+<p>เมนู <b>นักศึกษา</b> ใช้จัดการข้อมูลนักศึกษาทั้งหมด นักศึกษาโดยปกติไม่มีรหัสผ่านเข้าระบบแบบเดียวกับผู้ใช้ในข้อ 3.2</p>
+<div class="see-block"><div class="see-label">องค์ประกอบบนหน้านี้</div><dl class="see">
+<div><dt>สรุปด้านบน</dt><dd>จำนวนนักศึกษาทั้งหมด ใช้งาน และปิดใช้งาน</dd></div>
+<div><dt>ปุ่มด้านขวาบน</dt><dd>จัดการหลักสูตร นำเข้าข้อมูล (Excel/CSV หรือวางข้อความ) และเพิ่มนักศึกษารายคน</dd></div>
+<div><dt>ช่องค้นหา</dt><dd>ค้นด้วยรหัสนักศึกษา ชื่อ หรืออีเมล พร้อมตัวกรองสถานะ</dd></div>
+<div><dt>คอลัมน์ในตาราง</dt><dd>หลักสูตร สถานะ และวันที่สร้าง</dd></div>
+</dl></div>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิกไอคอนดินสอเพื่อ <b>แก้ไข</b> ข้อมูลนักศึกษารายคน</li>
+<li>คลิกไอคอนรูปตาเพื่อ <b>เปิด/ปิดสถานะ</b> การใช้งาน</li>
+</ol></div>
+<figure><img src="img/ch03_fig04_students-list-import.png" alt="ภาพที่ 3.4 หน้าจัดการนักศึกษาและการนำเข้าข้อมูล" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.4 หน้าจัดการนักศึกษาและการนำเข้าข้อมูล</figcaption></figure>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>เฉพาะผู้ดูแลระบบเท่านั้นที่สร้าง แก้ไข และนำเข้าข้อมูลนักศึกษาได้ อาจารย์และผู้ช่วยสอนทำได้เพียงค้นหาและดูรายชื่อ กรุณาตรวจสอบรูปแบบไฟล์ให้ถูกต้องก่อนนำเข้าแบบกลุ่มทุกครั้ง ระบบรองรับทั้งไฟล์ที่ส่งออกจากระบบทะเบียนโดยตรงและการวางข้อความ</p></div>
+
+<h3 id="sec-จ-ดการหล-กส-ตร">จัดการหลักสูตร</h3>
+<p>คลิกปุ่ม <b>จัดการหลักสูตร</b> เพื่อเปิดหน้าต่างเพิ่ม แก้ไข หรือลบหลักสูตรที่ใช้กำหนดให้นักศึกษาแต่ละคน</p>
+<div class="fields">
+<div><div class="fname">ชื่อย่อหลักสูตร</div><span class="freq req">ต้องกรอก</span><div class="fdesc">ต้องไม่ซ้ำกับหลักสูตรอื่น ใช้แสดงในคอลัมน์ตารางนักศึกษา</div></div>
+<div><div class="fname">ชื่อเต็มหลักสูตร</div><span class="freq req">ต้องกรอก</span><div class="fdesc">ใช้แสดงในตัวเลือกดรอปดาวน์ตอนเพิ่ม/แก้ไขนักศึกษา</div></div>
+</div>
+<figure><img src="img/ch03_fig05_students-program-mgmt.png" alt="ภาพที่ 3.5 หน้าต่างจัดการหลักสูตร" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.5 หน้าต่างจัดการหลักสูตร</figcaption></figure>
+<div class="cx tip"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 00-3 9v1.5a1 1 0 001 1h4a1 1 0 001-1V10a5 5 0 00-3-9zM6 14h4v1H6z"/></svg>คำแนะนำ</div><p>ระบบต้องมีหลักสูตรอย่างน้อย 1 รายการเสมอ และไม่อนุญาตให้ตั้งชื่อย่อซ้ำกัน กรุณาตั้งชื่อย่อให้สั้นและจำได้ง่ายเนื่องจากใช้แสดงในตารางบ่อยที่สุด</p></div>
+
 <h2 id="sec-3-4">3.4 จัดการรายวิชา<a class="hlink" href="#sec-3-4">#</a></h2>
-<p>เมนู <strong>รายวิชา</strong> ใช้จัดการรายวิชาทั้งหมดในระบบ</p>
-<ol class="steps">
-<li>ส่วนบนสรุปจำนวนรายวิชา <strong>ทั้งหมด ใช้งาน ปิดใช้งาน และของปีนี้</strong></li>
-<li>คลิกปุ่ม <strong>เพิ่มรายวิชา</strong> เพื่อสร้างรายวิชาใหม่ (กำหนดรหัสวิชา ชื่อวิชา ปีการศึกษา ภาคเรียน และอาจารย์เจ้าของวิชา)</li>
-<li>ใช้ <strong>ตัวกรอง</strong> ตามปีการศึกษา ภาคเรียน และสถานะ</li>
-<li>ปุ่มจัดการท้ายแถวใช้ <strong>เข้าสู่วิชา แก้ไข เปิด/ปิด และลบ</strong> และยังเลือกหลายวิชาพร้อมกันเพื่อเปิด/ปิด/ลบแบบกลุ่ม รวมถึงส่งออกข้อมูลเป็น CSV ได้</li>
-</ol>
-<figure><img src="img/admin_04_courses.png" alt="ภาพที่ 3.5 หน้าจัดการรายวิชา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.5 หน้าจัดการรายวิชา</figcaption></figure>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> สร้างและควบคุมรายวิชาทั้งหมดในระบบ</p>
+<p>เมนู <b>รายวิชา</b> ใช้จัดการรายวิชาทั้งหมด</p>
+<div class="see-block"><div class="see-label">องค์ประกอบบนหน้านี้</div><dl class="see">
+<div><dt>สรุปด้านบน</dt><dd>จำนวนรายวิชาทั้งหมด ใช้งาน ปิดใช้งาน และของปีการศึกษานี้</dd></div>
+<div><dt>ตัวกรอง</dt><dd>ปีการศึกษา ภาคเรียน และสถานะ ค้นหาได้ด้วยรหัสวิชาหรือชื่อวิชา</dd></div>
+</dl></div>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิกปุ่ม <b>เพิ่มรายวิชา</b> เพื่อสร้างรายวิชาใหม่</li>
+<li>ปุ่มจัดการท้ายแถวใช้ <b>เข้าสู่วิชา แก้ไข เปิด/ปิด และลบ</b></li>
+<li>ทำเครื่องหมายเลือกได้หลายแถวพร้อมกัน เพื่อ <b>เปิดใช้งาน ปิดใช้งาน หรือลบแบบกลุ่ม</b> จากแถบเครื่องมือที่ปรากฏด้านบนตาราง</li>
+</ol></div>
+<figure><img src="img/ch03_fig06_courses-list.png" alt="ภาพที่ 3.6 หน้าจัดการรายวิชา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.6 หน้าจัดการรายวิชา</figcaption></figure>
+<figure><img src="img/ch03_fig07_courses-bulk-actions.png" alt="ภาพที่ 3.7 แถบเครื่องมือจัดการรายวิชาแบบกลุ่ม" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.7 แถบเครื่องมือจัดการรายวิชาแบบกลุ่มเมื่อเลือกหลายแถว</figcaption></figure>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>คู่มือฉบับก่อนหน้าระบุว่าหน้านี้ส่งออกข้อมูลรายวิชาเป็น CSV ได้ ปัจจุบันหน้าจัดการรายวิชาไม่มีปุ่มส่งออก CSV ฟีเจอร์ส่งออก CSV มีเฉพาะที่หน้าบันทึกระบบเท่านั้น (ดูข้อ 3.7)</p></div>
+
+<h3 id="sec-เพ-มรายว-ชาใหม-">เพิ่มรายวิชาใหม่</h3>
+<div class="fields">
+<div><div class="fname">รหัสวิชา</div><span class="freq req">ต้องกรอก</span><div class="fdesc"></div></div>
+<div><div class="fname">ชื่อวิชา</div><span class="freq req">ต้องกรอก</span><div class="fdesc"></div></div>
+<div><div class="fname">ปีการศึกษา</div><span class="freq req">ต้องกรอก</span><div class="fdesc"></div></div>
+<div><div class="fname">ภาคเรียน</div><span class="freq req">ต้องกรอก</span><div class="fdesc">เลือกภาคเรียนที่ 1 ภาคเรียนที่ 2 หรือภาคฤดูร้อน</div></div>
+<div><div class="fname">อาจารย์ผู้สอน</div><span class="freq req">ต้องกรอก</span><div class="fdesc">เลือกได้มากกว่า 1 คน รายวิชาหนึ่งวิชามีอาจารย์ผู้สอนร่วมกันได้</div></div>
+<div><div class="fname">รูปปกวิชา</div><span class="freq opt">ไม่บังคับ</span><div class="fdesc">ปรับตำแหน่งและซูมได้หลังอัปโหลด</div></div>
+<div><div class="fname">คำอธิบายวิชา</div><span class="freq opt">ไม่บังคับ</span><div class="fdesc"></div></div>
+</div>
+<div class="cx tip"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 00-3 9v1.5a1 1 0 001 1h4a1 1 0 001-1V10a5 5 0 00-3-9zM6 14h4v1H6z"/></svg>คำแนะนำ</div><p>หากเปิดใช้งานรายวิชาที่มีรหัสวิชา ปีการศึกษา และภาคเรียนซ้ำกับวิชาที่เปิดใช้งานอยู่แล้ว ระบบจะเตือนก่อนเสมอ และมีศูนย์จัดการความขัดแย้ง (Conflict Center) ให้ตรวจสอบภาพรวมของรายวิชาที่ชนกันทั้งหมดได้ในหน้าเดียว</p></div>
+
 <h2 id="sec-3-5">3.5 จัดการห้องเรียนและผังที่นั่ง<a class="hlink" href="#sec-3-5">#</a></h2>
-<p>เมนู <strong>ห้องเรียน</strong> ใช้จัดการห้องปฏิบัติการสำหรับระบบจองคิว โครงสร้างเป็น ห้อง → โซน → โต๊ะ โดยโต๊ะแต่ละตัวเก็บพิกัด ประเภท (คอมพิวเตอร์/เรียน/อาจารย์) และข้อมูลเครื่อง</p>
-<ol class="steps">
-<li>ส่วนบนสรุป <strong>ห้องเรียนทั้งหมด โต๊ะทั้งหมด โต๊ะคอมพิวเตอร์ และถังขยะ</strong></li>
-<li>ปุ่ม <strong>สร้างห้องเรียนใหม่</strong> ใช้เพิ่มห้อง และ <strong>ดูถังขยะ</strong> ใช้กู้คืนห้องที่ถูกลบ</li>
-<li>คอลัมน์ <strong>จำนวนโต๊ะ</strong> แสดงจำนวนโต๊ะและคอมพิวเตอร์ของแต่ละห้อง</li>
-<li>ปุ่มจัดการท้ายแถว ได้แก่ ปิด/เปิดใช้งานห้อง แก้ผังที่นั่ง แก้ไขข้อมูล ดู QR ประจำโต๊ะ และลบห้อง</li>
-</ol>
-<figure><img src="img/admin_05_classrooms.png" alt="ภาพที่ 3.6 หน้าจัดการห้องเรียน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.6 หน้าจัดการห้องเรียน</figcaption></figure>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> จัดการห้องปฏิบัติการสำหรับระบบจองคิว ตั้งแต่สร้างห้อง จัดผังโต๊ะ ไปจนถึงกู้คืนห้องที่ลบไปแล้ว</p>
+<p>เมนู <b>ห้องเรียน</b> โครงสร้างเป็น ห้อง → โซน → โต๊ะ โดยโต๊ะแต่ละตัวเก็บพิกัด ประเภท (คอมพิวเตอร์/เรียน/อาจารย์) และข้อมูลเครื่อง</p>
+<div class="see-block"><div class="see-label">องค์ประกอบบนหน้านี้</div><dl class="see">
+<div><dt>สรุปด้านบน</dt><dd>ห้องเรียนทั้งหมด โต๊ะทั้งหมด โต๊ะคอมพิวเตอร์ และจำนวนในถังขยะ</dd></div>
+<div><dt>คอลัมน์จำนวนโต๊ะ</dt><dd>จำนวนโต๊ะและคอมพิวเตอร์ของแต่ละห้อง</dd></div>
+</dl></div>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิกปุ่ม <b>สร้างห้องเรียนใหม่</b> เพื่อเพิ่มห้อง</li>
+<li>ปุ่มจัดการท้ายแถว ได้แก่ <b>ปิด/เปิดใช้งานห้อง แก้ผังที่นั่ง แก้ไขข้อมูล พิมพ์ QR ประจำโต๊ะ และลบห้อง</b></li>
+</ol></div>
+<figure><img src="img/ch03_fig08_classrooms-list.png" alt="ภาพที่ 3.8 หน้าจัดการห้องเรียน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.8 หน้าจัดการห้องเรียน</figcaption></figure>
+
 <h3 id="sec-การแก-ผ-งท-น-งแบบว-ชวล">การแก้ผังที่นั่งแบบวิชวล</h3>
-<p>คลิกไอคอนแก้ผังที่นั่งของห้องที่ต้องการ ระบบจะเปิด <strong>หน้าจัดผังห้อง</strong> แบบลากวาง</p>
-<ol class="steps">
-<li>ส่วน <strong>เพิ่มโต๊ะ</strong> เลือกจำนวนและประเภทโต๊ะ (โต๊ะคอม / โต๊ะเรียน / โต๊ะอาจารย์) แล้วคลิกเพื่อเพิ่มลงผัง</li>
-<li>ส่วน <strong>โซน</strong> ใช้แบ่งพื้นที่ห้องเป็นโซนย่อย</li>
-<li>ส่วน <strong>สัญลักษณ์</strong> อธิบายสีของโต๊ะแต่ละประเภทและสถานะปิดใช้งาน</li>
-<li><strong>พื้นที่ผัง</strong> ลากโต๊ะเพื่อย้ายตำแหน่ง คลิกโต๊ะเพื่อแก้ไขหรือลบ กด Ctrl+คลิกเพื่อเลือกหลายโต๊ะ และ Scroll เพื่อซูม</li>
-<li>เมื่อจัดเสร็จ คลิก <strong>บันทึกผัง</strong> (ระบบมีการบันทึกแบบร่างอัตโนมัติระหว่างทำงาน)</li>
-</ol>
-<figure><img src="img/admin_18_layout_editor.png" alt="ภาพที่ 3.7 หน้าจัดผังห้องแบบวิชวล" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.7 หน้าจัดผังห้องแบบวิชวล</figcaption></figure>
+<p>คลิกไอคอนแก้ผังที่นั่งของห้องที่ต้องการ ระบบจะเปิด <b>หน้าจัดผังห้อง</b> แบบลากวาง</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>ส่วน <b>เพิ่มโต๊ะ</b> เลือกจำนวนและประเภทโต๊ะ (โต๊ะคอม/โต๊ะเรียน/โต๊ะอาจารย์) แล้วคลิกเพื่อเพิ่มลงผัง</li>
+<li>ส่วน <b>โซน</b> ใช้แบ่งพื้นที่ห้องเป็นโซนย่อย</li>
+<li>ที่ <b>พื้นที่ผัง</b> ลากโต๊ะเพื่อย้ายตำแหน่ง คลิกโต๊ะเพื่อแก้ไขหรือลบ กด Ctrl ค้างพร้อมคลิกเพื่อเลือกหลายโต๊ะ และเลื่อนล้อเมาส์เพื่อซูม</li>
+<li>เมื่อจัดเสร็จ คลิก <b>บันทึกผัง</b></li>
+</ol></div>
+<figure><img src="img/ch03_fig09_classrooms-layout-editor.png" alt="ภาพที่ 3.9 หน้าจัดผังห้องแบบวิชวล" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.9 หน้าจัดผังห้องแบบวิชวล</figcaption></figure>
+<div class="cx tip"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 00-3 9v1.5a1 1 0 001 1h4a1 1 0 001-1V10a5 5 0 00-3-9zM6 14h4v1H6z"/></svg>คำแนะนำ</div><p>ระบบบันทึกผังฉบับร่างลงในเบราว์เซอร์ระหว่างที่ท่านทำงานอยู่ หากปิดหน้าต่างหรือเบราว์เซอร์ปิดกะทันหันโดยยังไม่ได้กด บันทึกผัง เมื่อเปิดหน้าจัดผังห้องเดิมอีกครั้งระบบจะเสนอให้กู้คืนฉบับร่างล่าสุด</p></div>
+
 <h3 id="sec-การป-ดใช-งานห-อง">การปิดใช้งานห้อง</h3>
-<p>เมื่อคลิกปิดใช้งานห้อง ระบบจะขอคำยืนยันก่อน</p>
-<ol class="steps">
-<li>ข้อความเตือนระบุผลกระทบ ห้องที่ปิดใช้งานจะไม่สามารถใช้ในระบบจองคิวได้ แต่ข้อมูลยังคงอยู่</li>
-<li>กด <strong>ปิดใช้งาน</strong> เพื่อยืนยัน หรือ <strong>ยกเลิก</strong> เพื่อยกเลิกรายการ</li>
-</ol>
-<figure><img src="img/admin_17_room_disable.png" alt="ภาพที่ 3.8 กล่องยืนยันการปิดใช้งานห้อง" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.8 กล่องยืนยันการปิดใช้งานห้อง</figcaption></figure>
+<p>เมื่อคลิกปิดใช้งานห้อง ระบบจะขอคำยืนยันก่อนเสมอ</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>อ่านข้อความเตือนที่ระบุผลกระทบ ห้องที่ปิดใช้งานจะไม่สามารถใช้ในระบบจองคิวได้ แต่ข้อมูลยังคงอยู่</li>
+<li>กด <b>ปิดใช้งาน</b> เพื่อยืนยัน หรือ <b>ยกเลิก</b> เพื่อยกเลิกรายการ</li>
+</ol></div>
+<figure><img src="img/ch03_fig10_classrooms-room-disable.png" alt="ภาพที่ 3.10 กล่องยืนยันการปิดใช้งานห้อง" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.10 กล่องยืนยันการปิดใช้งานห้อง</figcaption></figure>
+
+<h3 id="sec-ถ-งขยะและการก-ค-นห-อง">ถังขยะและการกู้คืนห้อง</h3>
+<p>ห้องเรียนที่ถูกลบไม่ได้หายไปทันที แต่ถูกย้ายไปยังถังขยะก่อน ถังขยะไม่ใช่หน้าแยกต่างหาก แต่เป็นการสลับมุมมองของตารางเดิม</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิกปุ่ม <b>ดูถังขยะ</b> ที่มุมขวาบน ตารางจะสลับไปแสดงเฉพาะห้องที่ถูกลบ</li>
+<li>ปุ่มท้ายแถวของห้องในถังขยะเปลี่ยนเป็น <b>กู้คืน</b> และ <b>ลบถาวร</b></li>
+<li>คลิก <b>แสดงห้องปกติ</b> เพื่อสลับตารางกลับมาแสดงห้องที่ใช้งานอยู่ตามเดิม</li>
+</ol></div>
+<figure><img src="img/ch03_fig11_classrooms-trash-restore.png" alt="ภาพที่ 3.11 มุมมองถังขยะห้องเรียนพร้อมปุ่มกู้คืน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.11 มุมมองถังขยะห้องเรียน สลับมาจากตารางเดียวกัน พร้อมปุ่มกู้คืน</figcaption></figure>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>การลบห้องแบบปกติ (ย้ายลงถังขยะ) กู้คืนได้เสมอ แต่การกดลบถาวรจากถังขยะไม่สามารถกู้คืนได้อีก กรุณาตรวจสอบให้แน่ใจก่อนกดลบถาวร</p></div>
+
 <h2 id="sec-3-6">3.6 จัดการข้อเสนอแนะ (Feedback)<a class="hlink" href="#sec-3-6">#</a></h2>
-<p>เมนู <strong>ข้อเสนอแนะ</strong> รวมข้อผิดพลาด ข้อเสนอแนะ และคำขอสนับสนุนจากผู้ใช้และบุคคลทั่วไป</p>
-<ol class="steps">
-<li>ส่วนบนสรุปจำนวนตามสถานะ <strong>ทั้งหมด รอดำเนินการ กำลังตรวจสอบ แก้ไขแล้ว ข้อผิดพลาด และคำขอสนับสนุน</strong></li>
-<li>ใช้ <strong>ตัวกรอง</strong> ตามประเภท สถานะ และระดับความสำคัญ</li>
-<li>แต่ละแถวแสดง <strong>สถานะและความสำคัญ</strong> ซึ่งผู้ดูแลระบบปรับได้พร้อมบันทึกภายใน</li>
-<li>ปุ่มท้ายแถวใช้ <strong>ดูรายละเอียดและลบ</strong></li>
-</ol>
-<figure><img src="img/admin_06_feedback.png" alt="ภาพที่ 3.9 หน้าจัดการข้อเสนอแนะ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.9 หน้าจัดการข้อเสนอแนะ</figcaption></figure>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ติดตามและตอบสนองข้อผิดพลาด ข้อเสนอแนะ และคำขอสนับสนุนจากผู้ใช้และบุคคลทั่วไป</p>
+<div class="see-block"><div class="see-label">องค์ประกอบบนหน้านี้</div><dl class="see">
+<div><dt>สรุปด้านบน</dt><dd>จำนวนตามสถานะ ทั้งหมด รอดำเนินการ กำลังตรวจสอบ แก้ไขแล้ว และจำนวนแยกตามประเภท ข้อผิดพลาด กับคำขอสนับสนุน</dd></div>
+<div><dt>ตัวกรอง</dt><dd>ประเภท สถานะ (รวมถึงปฏิเสธ) และระดับความสำคัญ พร้อมช่องค้นหา</dd></div>
+</dl></div>
+<figure><img src="img/ch03_fig12_feedback-list.png" alt="ภาพที่ 3.12 หน้าจัดการข้อเสนอแนะ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.12 หน้าจัดการข้อเสนอแนะ</figcaption></figure>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิกไอคอนรูปตาเพื่อ <b>ดูรายละเอียด</b> รายการนั้น</li>
+<li>ในหน้าต่างรายละเอียด ปรับ <b>สถานะ</b> และ <b>ระดับความสำคัญ</b> พร้อมกรอกหมายเหตุภายในได้ตามต้องการ แล้วกด <b>บันทึก</b></li>
+<li>คลิกไอคอนถังขยะเพื่อ <b>ลบ</b> รายการที่ไม่จำเป็นต้องเก็บไว้ (มีกล่องยืนยันก่อนลบ)</li>
+</ol></div>
+<div class="see-block"><div class="see-label">องค์ประกอบในหน้าต่างรายละเอียด</div><dl class="see">
+<div><dt>ข้อมูลผู้แจ้ง</dt><dd>ชื่อและอีเมลผู้แจ้ง หรือระบุว่าไม่ระบุตัวตนพร้อมอีเมลติดต่อกลับ กรณีส่งมาจากบุคคลทั่วไป</dd></div>
+<div><dt>รายละเอียดและไฟล์แนบ</dt><dd>คำอธิบายเต็มพร้อมรูปภาพประกอบ คลิกที่รูปเพื่อดูขนาดเต็ม</dd></div>
+<div><dt>ผู้ดำเนินการ</dt><dd>หากรายการนั้นถูกจัดการแล้ว จะแสดงชื่อผู้ดูแลระบบที่ดำเนินการและเวลา</dd></div>
+</dl></div>
+<figure><img src="img/ch03_fig13_feedback-detail.png" alt="ภาพที่ 3.13 หน้าต่างรายละเอียดข้อเสนอแนะ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.13 หน้าต่างรายละเอียดข้อเสนอแนะ</figcaption></figure>
+
 <h2 id="sec-3-7">3.7 บันทึกระบบ (System Logs)<a class="hlink" href="#sec-3-7">#</a></h2>
-<p>เมนู <strong>บันทึกระบบ</strong> รวมบันทึกการใช้งานและการกระทำสำคัญของผู้ดูแลระบบ</p>
-<ol class="steps">
-<li>แท็บ <strong>System Logs</strong> และ <strong>กิจกรรมรายวิชา</strong> แยกมุมมองระบบกับมุมมองรายวิชา</li>
-<li>แถบสรุปแบ่งตามประเภท <strong>การเข้าถึง ผิดพลาด ยืนยันตัว ความปลอดภัย</strong> พร้อมตัวนับ Permission changes / Member changes / Feedback actions / Course governance</li>
-<li>ใช้ <strong>ป้ายหมวดและตัวกรอง</strong> (ประเภท ระดับ ช่วงเวลา action) ค้นหาเหตุการณ์ ตารางแสดงเวลา ประเภท ระดับ action สถานะ IP และผู้ใช้</li>
-<li>ปุ่ม <strong>ส่งออก CSV</strong> ดาวน์โหลดบันทึกไปวิเคราะห์ต่อ</li>
-</ol>
-<figure><img src="img/admin_07_logs.png" alt="ภาพที่ 3.10 หน้าบันทึกระบบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.10 หน้าบันทึกระบบ</figcaption></figure>
-<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>การล้างบันทึก (cleanup logs) เป็นการกระทำที่ต้องยืนยันตัวตนสองชั้นซ้ำ (step-up 2FA) ก่อนดำเนินการทุกครั้ง</p></div>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ตรวจสอบย้อนหลังว่าใครทำอะไรในระบบ เมื่อใด และผลลัพธ์เป็นอย่างไร</p>
+<div class="see-block"><div class="see-label">องค์ประกอบบนหน้านี้</div><dl class="see">
+<div><dt>แท็บ System Logs และกิจกรรมรายวิชา</dt><dd>แยกมุมมองระบบโดยรวมกับมุมมองเฉพาะรายวิชา</dd></div>
+<div><dt>แถบสรุป</dt><dd>แบ่งตามประเภท การเข้าถึง ผิดพลาด ยืนยันตัว ความปลอดภัย พร้อมตัวนับ Permission changes / Member changes / Feedback actions / Course governance ซึ่งกดเป็นตัวกรองได้ด้วย</dd></div>
+<div><dt>ตัวกรอง</dt><dd>ค้นหาจาก action/URL/IP ประเภท ระดับความรุนแรง ช่วงเวลา (1 ชม. ถึง 90 วัน หรือกำหนดเอง) และสวิตช์ "เฉพาะการกระทำที่มีสิทธิ์สูง"</dd></div>
+<div><dt>คอลัมน์ในตาราง</dt><dd>เวลา ประเภท ระดับ action สถานะ IP และผู้ใช้ (มีป้ายกำกับหากผู้กระทำเป็นนักศึกษา)</dd></div>
+</dl></div>
+<figure><img src="img/ch03_fig14_logs-list.png" alt="ภาพที่ 3.14 หน้าบันทึกระบบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.14 หน้าบันทึกระบบ</figcaption></figure>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิกปุ่ม <b>ส่งออก CSV</b> เพื่อดาวน์โหลดบันทึกตามตัวกรองที่ตั้งไว้ไปวิเคราะห์ต่อ</li>
+</ol></div>
+<figure><img src="img/ch03_fig15_logs-csv-export.png" alt="ภาพที่ 3.15 ปุ่มส่งออก CSV ในหน้าบันทึกระบบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.15 ปุ่มส่งออก CSV ในหน้าบันทึกระบบ</figcaption></figure>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>การล้างบันทึก (cleanup logs) เป็นการกระทำที่ต้องยืนยันตัวตนสองชั้นซ้ำ (Step-up 2FA) ก่อนดำเนินการทุกครั้ง ดูหลักการนี้เพิ่มเติมได้ที่ <a href="ch02.html#sec-2-9">บทที่ 2 ข้อ 2.9</a></p></div>
+
 <h2 id="sec-3-8">3.8 มอนิเตอร์ระบบ<a class="hlink" href="#sec-3-8">#</a></h2>
-<p>เมนู <strong>มอนิเตอร์ระบบ</strong> ติดตามสุขภาพเซิร์ฟเวอร์ เว็บไซต์ และ container แบบเรียลไทม์ แบ่งเป็น 4 แท็บ</p>
-<ol class="steps">
-<li>แท็บ <strong>ภาพรวม</strong> แสดงสถานะรวม การ์ด CPU/หน่วยความจำ/ดิสก์/สถานะเว็บไซต์ เวลาตอบสนอง (P50/P95/P99) Error Rate และ Request Rate พร้อมกราฟแนวโน้มย้อนหลัง</li>
-</ol>
-<figure><img src="img/admin_08_monitoring.png" alt="ภาพที่ 3.11 มอนิเตอร์ระบบ แท็บภาพรวม" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.11 มอนิเตอร์ระบบ แท็บภาพรวม</figcaption></figure>
-<p>แท็บ <strong>สุขภาพเซิร์ฟเวอร์</strong> เจาะลึกตัวเครื่อง</p>
-<ol class="steps">
-<li>เลือกแท็บ <strong>สุขภาพเซิร์ฟเวอร์</strong></li>
-<li>การ์ดแสดง <strong>CPU หน่วยความจำ และดิสก์</strong> พร้อมจำนวนคอร์และขนาดรวม</li>
-<li>ส่วนล่างแสดง <strong>Network I/O, Load Average และเวลาทำงานเซิร์ฟเวอร์</strong> โดยรีเฟรชอัตโนมัติทุก 5 วินาที</li>
-</ol>
-<figure><img src="img/admin_15_mon_server.png" alt="ภาพที่ 3.12 แท็บสุขภาพเซิร์ฟเวอร์" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.12 แท็บสุขภาพเซิร์ฟเวอร์</figcaption></figure>
-<p>แท็บ <strong>Containers</strong> แสดงสถานะ container ที่ระบบรันอยู่ (ถ้ามีการเชื่อมต่อ)</p>
-<ol class="steps">
-<li>เลือกแท็บ <strong>Containers</strong></li>
-<li>ตารางแสดงรายการ container พร้อมสถานะและทรัพยากรที่ใช้</li>
-</ol>
-<figure><img src="img/admin_16_mon_containers.png" alt="ภาพที่ 3.13 แท็บ Containers" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.13 แท็บ Containers</figcaption></figure>
-<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>การสั่งดำเนินงานกับเซิร์ฟเวอร์ (รีสตาร์ทบริการ รีบูตโฮสต์) ทำจากหน้าตั้งค่าระบบ และต้องยืนยันตัวตนสองชั้นซ้ำทุกครั้ง ควรทำเฉพาะเมื่อจำเป็นเพราะกระทบผู้ใช้ทั้งระบบ</p></div>
-<h2 id="sec-3-9">3.9 ตั้งค่าระบบ<a class="hlink" href="#sec-3-9">#</a></h2>
-<p>เมนู <strong>ตั้งค่า</strong> รวมการดำเนินงานระดับระบบทั้งหมด</p>
-<h3 id="sec-สำรองฐานข-อม-ลและการควบค-มระบบ">สำรองฐานข้อมูลและการควบคุมระบบ</h3>
-<ol class="steps">
-<li>ส่วน <strong>สำรองฐานข้อมูล</strong> แสดงเวลาสำรองสำเร็จล่าสุดและจำนวนรายการ</li>
-<li>ปุ่ม <strong>สำรองทันที</strong> สั่งสำรองข้อมูลนอกรอบอัตโนมัติ</li>
-<li>ส่วน <strong>การควบคุมระบบ</strong> แสดงประวัติและไทม์ไลน์การดำเนินการ</li>
-<li>ปุ่ม <strong>รีสตาร์ทบริการ</strong> และ <strong>รีบูตโฮสต์</strong> ใช้เริ่มระบบใหม่ (ต้องยืนยัน 2FA ซ้ำ และยกเลิกได้ระหว่างนับถอยหลัง)</li>
-</ol>
-<figure><img src="img/admin_09_settings_backup.png" alt="ภาพที่ 3.14 ตั้งค่าระบบ ส่วนสำรองข้อมูลและการควบคุม" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.14 ตั้งค่าระบบ ส่วนสำรองข้อมูลและการควบคุม</figcaption></figure>
-<p>คลิก <strong>ดูรายการสำรอง</strong> เพื่อตรวจสอบและกู้คืนข้อมูล</p>
-<ol class="steps">
-<li>เลือกการเรียงลำดับ (ล่าสุดก่อน)</li>
-<li>ตารางแสดง <strong>ชื่อไฟล์สำรอง (เข้ารหัส) สล็อต วันที่สร้าง และขนาด</strong></li>
-<li>ปุ่ม <strong>กู้คืน</strong> ใช้ย้อนฐานข้อมูลกลับไปยังจุดสำรองนั้น (ต้องยืนยัน 2FA ซ้ำ) และ <strong>ลิงก์ดาวน์โหลด</strong> ใช้ดาวน์โหลดไฟล์สำรองเก็บภายนอก</li>
-</ol>
-<figure><img src="img/admin_13_backuplist.png" alt="ภาพที่ 3.15 รายการสำรองข้อมูล" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.15 รายการสำรองข้อมูล</figcaption></figure>
-<h3 id="sec-ประกาศระบบ">ประกาศระบบ</h3>
-<ol class="steps">
-<li>ส่วน <strong>ประกาศระบบ</strong> แสดงจำนวนประกาศทั้งหมดและที่ใช้งานอยู่ ปุ่ม <strong>สร้างประกาศ</strong> ใช้สร้างประกาศใหม่ โดยกำหนดได้ 2 ภาษา (ไทย/อังกฤษ) แนบรูป ตั้งช่วงเวลาแสดง เลือกกลุ่มเป้าหมาย รูปแบบการแสดง (เต็มหน้าจอ/แบนเนอร์ด้านบน) และบังคับให้ผู้ใช้กดรับทราบได้</li>
-</ol>
-<p>คลิก <strong>ดูประกาศทั้งหมด</strong> เพื่อจัดการประกาศที่มีอยู่</p>
-<ol class="steps">
-<li><strong>ค้นหาและกรอง</strong> ประกาศตามสถานะ</li>
-<li>ตารางแสดงประกาศพร้อม <strong>รูปแบบการแสดง สถานะ และจำนวนผู้กดรับทราบ</strong></li>
-<li>ปุ่ม <strong>ทำสำเนา</strong> และ <strong>แก้ไข</strong> ใช้จัดการรายประกาศ</li>
-</ol>
-<figure><img src="img/admin_11_announcelist.png" alt="ภาพที่ 3.16 รายการประกาศระบบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.16 รายการประกาศระบบ</figcaption></figure>
-<h3 id="sec-Feature-Flags">Feature Flags</h3>
-<p>คลิก <strong>จัดการ Feature Flags</strong> เพื่อเปิด/ปิดฟีเจอร์รายส่วนทั้งระบบ</p>
-<ol class="steps">
-<li>แถบเตือนย้ำว่า <strong>การเปลี่ยนสถานะมีผลทันทีต่อผู้ใช้ทุกคน</strong></li>
-<li><strong>ค้นหาและกรอง</strong> ฟีเจอร์จากชื่อหรือคำอธิบาย</li>
-<li>ปุ่ม <strong>ปิดทั้งหมด / เปิดทั้งหมด</strong> ใช้สลับทั้งชุด</li>
-<li>สวิตช์รายฟีเจอร์จัดกลุ่มตามหมวด เช่น งานสอนและการดำเนินการ (เช็คชื่อ คิว) และการวัดผล (งานและการบ้าน) โดยแต่ละรายการระบุรหัสฟีเจอร์กำกับ (เช่น menu.attendance)</li>
-</ol>
-<figure><img src="img/admin_12_flags.png" alt="ภาพที่ 3.17 หน้าต่างจัดการ Feature Flags" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.17 หน้าต่างจัดการ Feature Flags</figcaption></figure>
-<h3 id="sec-โหมดบำร-งร-กษาและส-ขภาพบร-การ">โหมดบำรุงรักษาและสุขภาพบริการ</h3>
-<p>ส่วน <strong>โหมดบำรุงรักษา</strong> ใช้กำหนดช่วงเวลาปิดปรับปรุงและข้อความที่จะแสดงหน้า maintenance แก่ผู้ใช้ (การเปิดโหมดต้องยืนยัน 2FA ซ้ำ ระหว่างปิดระบบผู้ดูแลยังเข้าผ่านหน้า login สำรองได้) และส่วน <strong>สุขภาพบริการ</strong> แสดงสถานะบริการย่อยทั้งหมด ได้แก่ ฐานข้อมูล อีเมล พื้นที่อัปโหลด ระบบเรียลไทม์ และพื้นที่จัดเก็บสำรอง</p>
-<figure><img src="img/admin_10_settings_announce.png" alt="ภาพที่ 3.18 ประกาศระบบ Feature Flags และโหมดบำรุงรักษา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.18 ประกาศระบบ Feature Flags และโหมดบำรุงรักษา</figcaption></figure>
-<h2 id="sec-3-10">3.10 การเข้าถึงรายวิชาในมุมมองผู้ดูแลระบบ<a class="hlink" href="#sec-3-10">#</a></h2>
-<p>ผู้ดูแลระบบสามารถเข้าไปในห้องเรียนของทุกรายวิชาได้เหมือนอาจารย์เจ้าของวิชา โดยระบบจะแสดงแถบเตือนสีแดง "คุณกำลังเข้าถึงในมุมมองผู้ดูแลระบบ" ไว้ด้านบนตลอดเวลา เพื่อย้ำว่าการทำงานบางอย่างอาจแตกต่างจากมุมมองผู้สอน การจัดการภายในรายวิชา (สมาชิก งาน คะแนน เช็คชื่อ คิว) ใช้ขั้นตอนเดียวกับที่อธิบายในภาคของอาจารย์ (บทที่ 4–14)</p>
-<figure><img src="img/perm_01_top.png" alt="ภาพที่ 3.19 มุมมองผู้ดูแลระบบภายในรายวิชา และหน้าต่างกำหนดสิทธิ์" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.19 มุมมองผู้ดูแลระบบภายในรายวิชา และหน้าต่างกำหนดสิทธิ์</figcaption></figure><div class="pn"><a class="pn-card" href="ch02.html"><span>← ก่อนหน้า</span><strong>บทที่ 2 บัญชีผู้ใช้และความปลอดภัย (ทุกบทบาท)</strong></a><a class="pn-card next" href="ch04.html"><span>ถัดไป →</span><strong>บทที่ 4 บทนำและการเข้าสู่ระบบ</strong></a></div></article>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ติดตามสุขภาพเซิร์ฟเวอร์ เว็บไซต์ และ container แบบเรียลไทม์</p>
+<p>เมนู <b>มอนิเตอร์ระบบ</b> แบ่งเป็น 4 แท็บ</p>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>คู่มือฉบับก่อนหน้าระบุว่ามอนิเตอร์ระบบมีเพียง 3 แท็บ (ภาพรวม สุขภาพเซิร์ฟเวอร์ Containers) และไม่ได้กล่าวถึงแท็บ <b>เว็บไซต์</b> ที่มีอยู่จริงในระบบ ฉบับนี้แก้ไขให้ครบทั้ง 4 แท็บ</p></div>
+<div class="see-block"><div class="see-label">แท็บทั้งหมดในหน้านี้</div><dl class="see">
+<div><dt>ภาพรวม</dt><dd>สรุปสถานะรวมของทั้งเซิร์ฟเวอร์และเว็บไซต์ในหน้าเดียว เหมาะสำหรับตรวจสุขภาพระบบอย่างเร็ว</dd></div>
+<div><dt>สุขภาพเซิร์ฟเวอร์</dt><dd>เจาะลึกตัวเครื่องเซิร์ฟเวอร์</dd></div>
+<div><dt>เว็บไซต์</dt><dd>เจาะลึกฝั่งเว็บไซต์ เวลาตอบสนอง (P50/P95/P99) Error Rate และ Request Rate พร้อมกราฟแนวโน้มย้อนหลัง</dd></div>
+<div><dt>Containers</dt><dd>สถานะ container ที่ระบบรันอยู่ (หากมีการเชื่อมต่อ)</dd></div>
+</dl></div>
+<figure><img src="img/ch03_fig16_monitoring-overview-tab.png" alt="ภาพที่ 3.16 มอนิเตอร์ระบบ แท็บภาพรวม" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.16 มอนิเตอร์ระบบ แท็บภาพรวม</figcaption></figure>
+<p>แท็บ <b>สุขภาพเซิร์ฟเวอร์</b> แสดงการ์ด CPU หน่วยความจำ และดิสก์ พร้อมจำนวนคอร์และขนาดรวม ส่วนล่างแสดง Network I/O, Load Average และเวลาทำงานเซิร์ฟเวอร์ โดยรีเฟรชอัตโนมัติทุก 5 วินาที</p>
+<figure><img src="img/ch03_fig17_monitoring-server-tab.png" alt="ภาพที่ 3.17 แท็บสุขภาพเซิร์ฟเวอร์" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.17 แท็บสุขภาพเซิร์ฟเวอร์</figcaption></figure>
+<p>แท็บ <b>Containers</b> แสดงตารางรายการ container พร้อมสถานะและทรัพยากรที่ใช้</p>
+<figure><img src="img/ch03_fig17_monitoring-server-tab.png" alt="ภาพที่ 3.18 แท็บ Containers (ภาพชั่วคราว)" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.18 แท็บ Containers<br><span class="ph-note">ภาพชั่วคราว รอถ่ายจริง</span></figcaption></figure>
+<p>แท็บ <b>เว็บไซต์</b> เจาะลึกด้านประสบการณ์ผู้ใช้ปลายทาง</p>
+<figure><img src="img/ch03_fig19_monitoring-website-tab.png" alt="ภาพที่ 3.19 แท็บเว็บไซต์" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.19 แท็บเว็บไซต์</figcaption></figure>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>การสั่งดำเนินงานกับเซิร์ฟเวอร์โดยตรง (รีสตาร์ทบริการ รีบูตโฮสต์) ทำจากหน้า <b>ตั้งค่าระบบ</b> ไม่ใช่จากหน้ามอนิเตอร์ระบบ ดูรายละเอียดที่ข้อ 3.9 และต้องยืนยันตัวตนสองชั้นซ้ำทุกครั้งเพราะกระทบผู้ใช้ทั้งระบบ</p></div>
+
+<h2 id="sec-3-9">3.9 ตั้งค่าระบบ: สำรองฐานข้อมูลและควบคุมระบบ<a class="hlink" href="#sec-3-9">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> สำรองฐานข้อมูลนอกรอบเมื่อจำเป็น และกู้คืนข้อมูลจากจุดสำรองเมื่อเกิดปัญหา</p>
+<p>เมนู <b>ตั้งค่า</b> รวมการดำเนินงานระดับระบบทั้งหมด เริ่มจากส่วนสำรองฐานข้อมูล</p>
+<div class="see-block"><div class="see-label">องค์ประกอบบนหน้านี้</div><dl class="see">
+<div><dt>ส่วนสำรองฐานข้อมูล</dt><dd>เวลาสำรองสำเร็จล่าสุดและจำนวนรายการสำรองทั้งหมด</dd></div>
+</dl></div>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิกปุ่ม <b>สำรองทันที</b> เพื่อสั่งสำรองข้อมูลนอกรอบอัตโนมัติ ระบบจะขอยืนยันตัวตนสองชั้นซ้ำก่อนเริ่มเสมอ</li>
+</ol></div>
+<figure><img src="img/ch03_fig20_settings-backup-panel.png" alt="ภาพที่ 3.20 ตั้งค่าระบบ ส่วนสำรองข้อมูลและการควบคุม" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.20 ตั้งค่าระบบ ส่วนสำรองข้อมูลและการควบคุม</figcaption></figure>
+<figure><img src="img/ch03_fig21_backup-run-now-stepup.png" alt="ภาพที่ 3.21 กล่องยืนยันตัวตนสองชั้นซ้ำก่อนสั่งสำรองทันที" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.21 กล่องยืนยันตัวตนสองชั้นซ้ำก่อนสั่งสำรองทันที</figcaption></figure>
+<div class="cx good"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M13.7 3.7L6 11.4 2.3 7.7l1.4-1.4L6 8.6l6.3-6.3z"/></svg>ผลลัพธ์ที่ควรเห็น</div><p>หลังยืนยัน 2FA สำเร็จ สถานะการสำรองจะเปลี่ยนเป็นกำลังดำเนินการแล้วอัปเดตเป็นสำเร็จพร้อมเวลาใหม่ และจำนวนรายการสำรองเพิ่มขึ้น 1 รายการ</p></div>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>การสั่งสำรองทันที การดาวน์โหลดไฟล์สำรอง และการกู้คืนข้อมูล ทั้งสามอย่างต้องยืนยันตัวตนสองชั้นซ้ำทุกครั้ง ไม่ใช่เฉพาะตอนกู้คืนเท่านั้น</p></div>
+
+<h3 id="sec-รายการสำรองและการก-ค-น">รายการสำรองและการกู้คืน</h3>
+<p>คลิก <b>ดูรายการสำรอง</b> เพื่อตรวจสอบและกู้คืนข้อมูล</p>
+<div class="see-block"><div class="see-label">คอลัมน์ในตาราง</div><dl class="see">
+<div><dt>ชื่อไฟล์สำรอง</dt><dd>ไฟล์ถูกเข้ารหัสไว้เสมอ เปิดอ่านตรง ๆ ไม่ได้หากไม่มีกุญแจถอดรหัสของระบบ</dd></div>
+<div><dt>สล็อต วันที่สร้าง และขนาด</dt><dd>ใช้ระบุตำแหน่งจัดเก็บและเวลาที่สำรอง</dd></div>
+</dl></div>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิกปุ่ม <b>กู้คืน</b> ที่แถวจุดสำรองที่ต้องการย้อนกลับไป ยืนยันตัวตนสองชั้นซ้ำ พิมพ์คำว่า <b>RESTORE</b> ตามที่ระบบกำหนด และทำเครื่องหมายรับทราบว่าข้อมูลปัจจุบันจะถูกเขียนทับ ก่อนยืนยันขั้นสุดท้าย</li>
+<li>คลิก <b>ลิงก์ดาวน์โหลด</b> เพื่อดาวน์โหลดไฟล์สำรองเก็บไว้ภายนอก (ต้องยืนยันตัวตนสองชั้นซ้ำเช่นกัน)</li>
+</ol></div>
+<figure><img src="img/ch03_fig22_backup-list-restore.png" alt="ภาพที่ 3.22 รายการสำรองข้อมูลพร้อมปุ่มกู้คืน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.22 รายการสำรองข้อมูลพร้อมปุ่มกู้คืน</figcaption></figure>
+
+<h3 id="sec-การควบค-มระบบ">การควบคุมระบบ</h3>
+<p>ส่วน <b>การควบคุมระบบ</b> อยู่ในหน้าตั้งค่าเดียวกัน แสดงประวัติและไทม์ไลน์การดำเนินการ ปุ่ม <b>รีสตาร์ทบริการ</b> และ <b>รีบูตโฮสต์</b> ใช้เริ่มระบบใหม่ ทั้งสองปุ่มต้องยืนยันตัวตนสองชั้นซ้ำก่อนเริ่มเสมอ และการรีบูตโฮสต์มีตัวนับถอยหลังที่ <b>ยกเลิกได้</b> ระหว่างรอ (ต้องยืนยันตัวตนสองชั้นซ้ำอีกครั้งเพื่อกดยกเลิก)</p>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>การรีสตาร์ทบริการและรีบูตโฮสต์กระทบผู้ใช้ทั้งระบบทันที กรุณาใช้เฉพาะเมื่อจำเป็นจริง และแจ้งผู้ใช้ล่วงหน้าผ่านประกาศระบบ (ข้อ 3.12) ทุกครั้งที่ทำได้</p></div>
+
+<h2 id="sec-3-10">3.10 ตั้งค่าระบบ: Feature Flags<a class="hlink" href="#sec-3-10">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> เปิดหรือปิดฟีเจอร์รายส่วนของระบบโดยไม่ต้องปรับโค้ดหรือปล่อยเวอร์ชันใหม่</p>
+<p>คลิก <b>จัดการ Feature Flags</b> จากหน้าตั้งค่า เพื่อเปิด/ปิดฟีเจอร์รายส่วนทั้งระบบ</p>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>แถบเตือนด้านบนของหน้าต่างนี้ย้ำว่า "การเปลี่ยนสถานะจะมีผลทันทีต่อผู้ใช้" การสลับฟีเจอร์แต่ละรายการต้องยืนยันตัวตนสองชั้นซ้ำทุกครั้งเช่นเดียวกับการสำรองข้อมูล</p></div>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>ใช้ <b>ช่องค้นหา</b> เพื่อกรองฟีเจอร์จากชื่อหรือคำอธิบาย</li>
+<li>คลิก <b>ปิดทั้งหมด / เปิดทั้งหมด</b> เพื่อสลับทั้งชุดในครั้งเดียว</li>
+<li>สลับสวิตช์รายฟีเจอร์ แล้วยืนยันตัวตนสองชั้นซ้ำเมื่อระบบร้องขอ</li>
+</ol></div>
+<figure><img src="img/ch03_fig23_feature-flags-list.png" alt="ภาพที่ 3.23 หน้าต่างจัดการ Feature Flags" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.23 หน้าต่างจัดการ Feature Flags</figcaption></figure>
+<figure><img src="img/ch03_fig24_feature-flags-toggle.png" alt="ภาพที่ 3.24 การสลับฟีเจอร์รายรายการพร้อมยืนยันตัวตนสองชั้นซ้ำ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.24 การสลับฟีเจอร์รายรายการพร้อมยืนยันตัวตนสองชั้นซ้ำ</figcaption></figure>
+<div class="see-block"><div class="see-label">หมวดหมู่ของฟีเจอร์</div><dl class="see">
+<div><dt>งานสอนและการดำเนินการ</dt><dd>เช่น เมนูเช็กชื่อ (รหัสฟีเจอร์ menu.attendance) และเมนูคิวตรวจงาน (menu.queue)</dd></div>
+<div><dt>การวัดผล</dt><dd>เมนูงานมอบหมาย คะแนน และการสอบ</dd></div>
+<div><dt>โครงสร้างรายวิชา</dt><dd>เมนูทีม สมาชิก บันทึกกิจกรรม สถิติผู้ช่วยสอน และตั้งค่ารายวิชา</dd></div>
+<div><dt>อื่น ๆ</dt><dd>ฟีเจอร์ที่ไม่เข้าหมวดข้างต้น</dd></div>
+</dl></div>
+<p>แต่ละรายการระบุรหัสฟีเจอร์กำกับไว้เสมอ เช่น <code>menu.attendance</code> สำหรับฟังก์ชันเช็กชื่อของอาจารย์และผู้ช่วยสอน</p>
+
+<h2 id="sec-3-11">3.11 ตั้งค่าระบบ: โหมดบำรุงรักษาและสุขภาพบริการ<a class="hlink" href="#sec-3-11">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ปิดปรับปรุงระบบชั่วคราวอย่างมีการควบคุม และตรวจสอบว่าบริการย่อยของระบบยังทำงานปกติ</p>
+<p>ส่วน <b>โหมดบำรุงรักษา</b> ใช้กำหนดช่วงเวลาปิดปรับปรุงและข้อความที่จะแสดงแก่ผู้ใช้</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>เลือกรูปแบบ <b>ไม่มีกำหนด</b> (เปิด/ปิดด้วยสวิตช์) หรือ <b>ตามกำหนดเวลา</b> (ตั้งเวลาเริ่มต้นและสิ้นสุด)</li>
+<li>กรอก <b>ข้อความ</b> ที่จะแสดงแก่ผู้ใช้ระหว่างปิดปรับปรุง</li>
+<li>เลือก <b>รายชื่อผู้ใช้ที่ยกเว้น</b> หากต้องการให้บัญชีที่ไม่ใช่ผู้ดูแลระบบบางบัญชีเข้าใช้งานได้ระหว่างปิดปรับปรุง</li>
+<li>บันทึกการตั้งค่า ระบบจะขอยืนยันตัวตนสองชั้นซ้ำทุกครั้งไม่ว่าจะเปิดหรือปิดโหมดนี้</li>
+</ol></div>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>คู่มือฉบับก่อนหน้าระบุว่าระหว่างปิดระบบ ผู้ดูแลยังเข้าผ่านหน้า login สำรองได้ ความจริงคือระบบใช้หน้าเข้าสู่ระบบหน้าเดียวกันตลอด และบัญชีบทบาทผู้ดูแลระบบทุกบัญชีข้ามโหมดบำรุงรักษาได้โดยอัตโนมัติอยู่แล้วโดยไม่ต้องเพิ่มชื่อในรายชื่อยกเว้น ช่องรายชื่อยกเว้นในฟอร์มมีไว้สำหรับให้สิทธิ์เฉพาะบัญชีที่ไม่ใช่ผู้ดูแลระบบ (เช่น อาจารย์หรือผู้ช่วยสอนบางคน) ให้เข้าใช้งานได้ระหว่างปิดปรับปรุงเท่านั้น</p></div>
+<p>ส่วน <b>สุขภาพบริการ</b> แสดงสถานะบริการย่อยทั้งหมด ได้แก่ ฐานข้อมูล อีเมล พื้นที่อัปโหลด ระบบเรียลไทม์ และพื้นที่จัดเก็บสำรอง สถานะรวมจะแสดงเป็นปกติ เว้นแต่มีบริการย่อยใดบริการหนึ่งขัดข้อง ซึ่งจะแสดงเป็นสถานะลดระดับ</p>
+
+<h2 id="sec-3-12">3.12 ประกาศระบบ<a class="hlink" href="#sec-3-12">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> สื่อสารข้อมูลสำคัญถึงผู้ใช้ทุกบทบาทผ่านช่องทางที่มองเห็นชัดเจนในตัวเว็บ ตั้งแต่ร่างจนถึงติดตามผลการรับทราบ</p>
+<p>ประกาศระบบเป็นส่วนหนึ่งของเมนู <b>ตั้งค่า</b> เช่นเดียวกับสำรองข้อมูลและ Feature Flags แต่มีรายละเอียดมากพอที่จะแยกอธิบายเป็นหัวข้อของตนเอง</p>
+
+<h3 id="sec-สถานะและวงจรช-ว-ตของประกาศ">สถานะและวงจรชีวิตของประกาศ</h3>
+<p>ประกาศทุกฉบับมีสถานะใดสถานะหนึ่งใน 4 สถานะ ไล่ตามลำดับการใช้งานจริง</p>
+<div class="see-block"><div class="see-label">สถานะของประกาศ</div><dl class="see">
+<div><dt>ร่าง (draft)</dt><dd>ยังแก้ไขได้อิสระ ไม่แสดงต่อผู้ใช้</dd></div>
+<div><dt>กำหนดเวลา (scheduled)</dt><dd>ตั้งเวลาเริ่มแสดงไว้ล่วงหน้าแล้ว รอถึงเวลาที่กำหนด</dd></div>
+<div><dt>เผยแพร่ (published)</dt><dd>กำลังแสดงผลอยู่ในขณะนี้</dd></div>
+<div><dt>เก็บถาวร (archived)</dt><dd>พ้นช่วงเวลาแสดงผลหรือถูกปิดใช้งานแล้ว ยังดูข้อมูลย้อนหลังและสถิติได้</dd></div>
+</dl></div>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิก <b>ดูประกาศทั้งหมด</b> จากส่วนประกาศระบบในหน้าตั้งค่า</li>
+<li>ค้นหาและกรองประกาศตามสถานะ</li>
+</ol></div>
+<figure><img src="img/ch03_fig25_announce-list-status.png" alt="ภาพที่ 3.25 รายการประกาศระบบพร้อมป้ายสถานะ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.25 รายการประกาศระบบพร้อมป้ายสถานะ</figcaption></figure>
+
+<h3 id="sec-สร-างประกาศ-เน-อหาและภาษา">สร้างประกาศ: เนื้อหาและภาษา</h3>
+<p>คลิกปุ่ม <b>สร้างประกาศ</b> ระบบจะเปิดหน้าต่างสร้างประกาศ แบ่งเป็น 3 แท็บย่อย ได้แก่ เนื้อหา การแสดงผล และผู้รับกับเวลา เริ่มจากแท็บ <b>เนื้อหา</b></p>
+<div class="fields">
+<div><div class="fname">หัวข้อ (ไทย)</div><span class="freq req">ต้องกรอก</span><div class="fdesc"></div></div>
+<div><div class="fname">ข้อความ (ไทย)</div><span class="freq req">ต้องกรอก</span><div class="fdesc"></div></div>
+<div><div class="fname">ข้อความปุ่ม (ไทย)</div><span class="freq opt">ไม่บังคับ</span><div class="fdesc">ป้ายกำกับปุ่มการทำงานในตัวประกาศ เช่น ปุ่มลิงก์ไปอ่านรายละเอียดเพิ่มเติม</div></div>
+<div><div class="fname">หัวข้อ (อังกฤษ)</div><span class="freq req">ต้องกรอก</span><div class="fdesc">ระบบรองรับ 2 ภาษาเสมอ กรอกครบทั้งไทยและอังกฤษก่อนบันทึกได้</div></div>
+<div><div class="fname">ข้อความ (อังกฤษ)</div><span class="freq req">ต้องกรอก</span><div class="fdesc"></div></div>
+<div><div class="fname">ข้อความปุ่ม (อังกฤษ)</div><span class="freq opt">ไม่บังคับ</span><div class="fdesc"></div></div>
+</div>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>กรอกเนื้อหาทั้งสองภาษาให้ครบ</li>
+<li>สลับปุ่ม <b>TH / EN</b> ที่กรอบตัวอย่างด้านขวา เพื่อตรวจดูตัวอย่างการแสดงผลของแต่ละภาษาก่อนบันทึก</li>
+</ol></div>
+<figure><img src="img/ch03_fig26_announce-create-form-1.png" alt="ภาพที่ 3.26 แท็บเนื้อหา กรอกหัวข้อและข้อความสองภาษา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.26 แท็บเนื้อหา กรอกหัวข้อและข้อความสองภาษา พร้อมตัวอย่างด้านขวา</figcaption></figure>
+
+<h3 id="sec-ระด-บความสำค-ญ">ระดับความสำคัญ (Severity)</h3>
+<p>เลือกระดับความสำคัญของประกาศ ซึ่งกำหนดสีของป้ายและกรอบที่ผู้ใช้เห็น</p>
+<div class="see-block"><div class="see-label">ระดับความสำคัญที่เลือกได้</div><dl class="see">
+<div><dt>ทั่วไป (info)</dt><dd>สีหลักของระบบ ใช้กับข่าวสารทั่วไป</dd></div>
+<div><dt>สำเร็จ (success)</dt><dd>สีเขียว ใช้แจ้งผลลัพธ์เชิงบวก เช่น ปรับปรุงเสร็จแล้ว</dd></div>
+<div><dt>คำเตือน (warning)</dt><dd>สีเหลือง/ส้ม ใช้แจ้งเตือนล่วงหน้า เช่น จะปิดปรับปรุงเร็ว ๆ นี้</dd></div>
+<div><dt>ด่วน (urgent)</dt><dd>สีแดง ใช้กับเหตุการณ์ที่ต้องให้ผู้ใช้สนใจทันที</dd></div>
+</dl></div>
+<figure><img src="img/ch03_fig27_announce-create-severity.png" alt="ภาพที่ 3.27 ตัวเลือกระดับความสำคัญของประกาศ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.27 ตัวเลือกระดับความสำคัญของประกาศ</figcaption></figure>
+
+<h3 id="sec-ร-ปแบบการแสดงผล-5-แบบ">รูปแบบการแสดงผล 5 แบบ</h3>
+<p>แท็บ <b>การแสดงผล</b> ให้เลือกว่าประกาศนี้จะปรากฏบนหน้าเว็บของผู้ใช้อย่างไร เลือกได้ 1 รูปแบบจาก 5 แบบ</p>
+<div class="see-block"><div class="see-label">รูปแบบการแสดงผลที่เลือกได้</div><dl class="see">
+<div><dt>แบนเนอร์ด้านบน (banner_top)</dt><dd>แถบข้อความบางแสดงเหนือเนื้อหาหน้าเว็บ ไม่บังเนื้อหาหลัก</dd></div>
+<div><dt>เต็มหน้าจอ (fullscreen)</dt><dd>บังเนื้อหาทั้งหมดจนกว่าผู้ใช้จะปิดหรือกดรับทราบ เหมาะกับข้อมูลสำคัญมาก</dd></div>
+<div><dt>แถบด้านบนสุด (topbar)</dt><dd>แถบเล็กที่ขอบบนสุดของหน้าจอ เห็นได้ตลอดโดยไม่รบกวนการใช้งาน</dd></div>
+<div><dt>เต็มหน้าจอแบบมีรูปภาพ (fullscreen_image)</dt><dd>เหมือนเต็มหน้าจอแต่เน้นภาพประกอบเป็นหลัก เหมาะกับประกาศเชิงประชาสัมพันธ์</dd></div>
+<div><dt>การ์ดมุมจอ (corner_card)</dt><dd>การ์ดขนาดเล็กที่มุมจอ ไม่บังคับความสนใจของผู้ใช้มากเท่ารูปแบบอื่น</dd></div>
+</dl></div>
+<figure><img src="img/ch03_fig28_announce-create-display-modes.png" alt="ภาพที่ 3.28 ตัวเลือกรูปแบบการแสดงผลทั้ง 5 แบบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.28 ตัวเลือกรูปแบบการแสดงผลทั้ง 5 แบบ</figcaption></figure>
+
+<h3 id="sec-แนบและครอบร-ปภาพ">แนบและครอบรูปภาพ</h3>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> แนบภาพประกอบให้พอดีกับพื้นที่แสดงผลของรูปแบบที่เลือกไว้</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>อัปโหลดรูปภาพประกอบในแท็บการแสดงผล</li>
+<li>เลือก <b>อัตราส่วนภาพ</b> จาก 7 แบบ ได้แก่ อิสระ, 16:9, 4:3, 1:1, 3:4, 2:3 และ 9:16</li>
+<li>ลากเพื่อจัดตำแหน่งและเลื่อนแถบเพื่อซูมภาพในกรอบครอบ แล้วยืนยันการครอบภาพ</li>
+</ol></div>
+<figure><img src="img/ch03_fig29_announce-image-crop.png" alt="ภาพที่ 3.29 หน้าต่างครอบรูปภาพพร้อมตัวเลือกอัตราส่วน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.29 หน้าต่างครอบรูปภาพพร้อมตัวเลือกอัตราส่วน</figcaption></figure>
+<div class="cx tip"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 00-3 9v1.5a1 1 0 001 1h4a1 1 0 001-1V10a5 5 0 00-3-9zM6 14h4v1H6z"/></svg>คำแนะนำ</div><p>อัตราส่วนเริ่มต้นจะเปลี่ยนตามรูปแบบการแสดงผลที่เลือกไว้ในแท็บก่อนหน้า เช่น รูปแบบเต็มหน้าจอแบบมีรูปภาพเริ่มต้นที่อิสระ ส่วนการ์ดมุมจอเริ่มต้นที่ 4:3 ท่านปรับเปลี่ยนเองได้เสมอ</p></div>
+
+<h3 id="sec-กำหนดเวลาแสดงและกล-มเป-าหมาย">กำหนดเวลาแสดงและกลุ่มเป้าหมาย</h3>
+<p>แท็บ <b>ผู้รับและเวลา</b> กำหนดว่าใครจะเห็นประกาศนี้ และเห็นในช่วงเวลาใด</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>ตั้ง <b>เวลาเริ่มแสดง</b> และ <b>เวลาสิ้นสุด</b> (เว้นว่างเวลาสิ้นสุดได้หากยังไม่ต้องการกำหนด)</li>
+<li>เลือก <b>กลุ่มเป้าหมาย</b> ได้หลายรายการ จากตัวเลือกทั้งหมด ทุกคน ผู้ดูแลระบบ อาจารย์ ผู้ช่วยสอน และนักศึกษา</li>
+<li>เลือก <b>หน้าที่จะแสดง</b> เพื่อจำกัดว่าประกาศนี้ปรากฏเฉพาะบางส่วนของเว็บ เช่น เฉพาะหน้านักศึกษา เฉพาะการแจ้งเตือนของนักศึกษา เฉพาะหน้าผู้ดูแลระบบ เฉพาะหน้าอาจารย์ เฉพาะหน้าห้องเรียน หรือทุกหน้า</li>
+</ol></div>
+<figure><img src="img/ch03_fig30_announce-schedule-audience.png" alt="ภาพที่ 3.30 กำหนดเวลาแสดงและกลุ่มเป้าหมาย" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.30 กำหนดเวลาแสดงและกลุ่มเป้าหมาย</figcaption></figure>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>กลุ่มเป้าหมายเลือกได้เฉพาะตามบทบาทเท่านั้น ระบบยังไม่รองรับการเลือกส่งประกาศเฉพาะรายวิชาใดวิชาหนึ่ง</p></div>
+
+<h3 id="sec-สร-างประกาศหลายรายการพร-อมก-น">สร้างประกาศหลายรายการพร้อมกัน (Batch)</h3>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> สร้างประกาศชุดเดียวกันหลายฉบับในคำขอเดียว โดยไม่ต้องเปิดฟอร์มใหม่ทีละฉบับ</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>เปิดโหมดสร้างหลายรายการจากหน้าต่างสร้างประกาศ</li>
+<li>ตั้งค่าเริ่มต้นร่วมกัน (กลุ่มเป้าหมาย กำหนดเวลา รูปแบบการแสดงผล ระดับความสำคัญ)</li>
+<li>เพิ่มรายการย่อยได้สูงสุด <b>20 รายการ</b> ต่อคำขอ แล้วแก้เฉพาะข้อความของแต่ละรายการให้ต่างกันตามต้องการ</li>
+</ol></div>
+<figure><img src="img/ch03_fig31_announce-batch-create.png" alt="ภาพที่ 3.31 สร้างประกาศหลายรายการพร้อมกัน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.31 สร้างประกาศหลายรายการพร้อมกัน สูงสุด 20 รายการต่อคำขอ</figcaption></figure>
+<div class="cx tip"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 00-3 9v1.5a1 1 0 001 1h4a1 1 0 001-1V10a5 5 0 00-3-9zM6 14h4v1H6z"/></svg>คำแนะนำ</div><p>โหมดนี้เหมาะเมื่อต้องการส่งประกาศชุดเดียวกันแต่ปรับถ้อยคำเล็กน้อยให้หลายกลุ่มเป้าหมาย เช่น แยกข้อความสำหรับอาจารย์กับผู้ช่วยสอน โดยไม่ต้องตั้งค่าการแสดงผลและกำหนดเวลาซ้ำทีละฉบับ</p></div>
+
+<h3 id="sec-บ-งค-บให-กดร-บทราบ">บังคับให้กดรับทราบ</h3>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>ทำเครื่องหมายที่ <b>บังคับให้กดรับทราบ</b> ในกลุ่มตัวเลือกเดียวกับอนุญาตให้ปิดได้ และแจ้งเตือนในกล่องข้อความ</li>
+</ol></div>
+<figure><img src="img/ch03_fig32_announce-require-ack.png" alt="ภาพที่ 3.32 ตัวเลือกบังคับให้กดรับทราบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.32 ตัวเลือกบังคับให้กดรับทราบ</figcaption></figure>
+<div class="cx good"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M13.7 3.7L6 11.4 2.3 7.7l1.4-1.4L6 8.6l6.3-6.3z"/></svg>ผลลัพธ์ที่ควรเห็น</div><p>เมื่อเปิดตัวเลือกนี้ ตัวอย่างการแสดงผลด้านขวาจะเปลี่ยนปุ่มปิดเป็นปุ่ม <b>รับทราบ</b> แทน ผู้ใช้ปลายทางต้องกดปุ่มนี้ก่อนประกาศจึงจะปิดได้</p></div>
+
+<h3 id="sec-ด-สถ-ต-การร-บทราบ">ดูสถิติการรับทราบ</h3>
+<p>คลิกไอคอนสถิติที่แถวของประกาศในรายการ เพื่อเปิดหน้าต่างสถิติ</p>
+<div class="see-block"><div class="see-label">องค์ประกอบในหน้าต่างสถิติ</div><dl class="see">
+<div><dt>จำนวนกลุ่มเป้าหมาย</dt><dd>จำนวนผู้ใช้ทั้งหมดที่เข้าเงื่อนไขกลุ่มเป้าหมายของประกาศนี้</dd></div>
+<div><dt>รับทราบแล้ว</dt><dd>จำนวนและร้อยละของผู้ที่กดรับทราบแล้ว</dd></div>
+<div><dt>รอรับทราบ</dt><dd>จำนวนที่ยังไม่กดรับทราบ พร้อมรายชื่อและบทบาทของแต่ละคน</dd></div>
+<div><dt>ปิดไปแล้ว</dt><dd>จำนวนที่ปิดประกาศไปแล้ว (เฉพาะประกาศที่อนุญาตให้ปิดได้โดยไม่บังคับรับทราบ)</dd></div>
+</dl></div>
+<figure><img src="img/ch03_fig33_announce-stats-modal.png" alt="ภาพที่ 3.33 หน้าต่างสถิติการรับทราบประกาศ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.33 หน้าต่างสถิติการรับทราบประกาศ พร้อมรายชื่อผู้ที่ยังไม่รับทราบ</figcaption></figure>
+
+<h3 id="sec-แก-ไข-ทำสำเนา-และลบประกาศ">แก้ไข ทำสำเนา และลบประกาศ</h3>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิกไอคอนดินสอเพื่อ <b>แก้ไข</b> ประกาศเดิม</li>
+<li>คลิกไอคอนคัดลอกเพื่อ <b>ทำสำเนา</b> ระบบจะเติมคำว่า "(copy)" ต่อท้ายหัวข้อทั้งสองภาษาให้อัตโนมัติ และเปิดเป็นประกาศใหม่แยกจากต้นฉบับ (ต้นฉบับไม่ถูกแก้ไข)</li>
+<li>คลิกไอคอนถังขยะเพื่อ <b>ลบ</b> ประกาศ ระบบจะขอยืนยันก่อนลบเสมอ</li>
+</ol></div>
+<figure><img src="img/ch03_fig34_announce-edit-duplicate.png" alt="ภาพที่ 3.34 ปุ่มแก้ไขและทำสำเนาที่แถวประกาศ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.34 ปุ่มแก้ไขและทำสำเนาที่แถวประกาศ</figcaption></figure>
+<figure><img src="img/ch03_fig35_announce-delete-confirm.png" alt="ภาพที่ 3.35 กล่องยืนยันก่อนลบประกาศ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.35 กล่องยืนยันก่อนลบประกาศ</figcaption></figure>
+
+<h3 id="sec-ต-วอย-างการแสดงผลจร-ง">ตัวอย่างการแสดงผลจริง</h3>
+<p>ภาพต่อไปนี้เป็นตัวอย่างการแสดงผลจริงของประกาศแต่ละรูปแบบ ที่ผู้ใช้ปลายทางจะเห็นบนหน้าเว็บ</p>
+<figure><img src="img/ch03_fig36_announce-live-fullscreen.png" alt="ภาพที่ 3.36 ตัวอย่างประกาศรูปแบบเต็มหน้าจอบนหน้าเว็บจริง" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.36 ตัวอย่างประกาศรูปแบบเต็มหน้าจอบนหน้าเว็บจริง</figcaption></figure>
+<figure><img src="img/ch03_fig37_announce-live-corner-card.png" alt="ภาพที่ 3.37 ตัวอย่างประกาศรูปแบบการ์ดมุมจอบนหน้าเว็บจริง" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.37 ตัวอย่างประกาศรูปแบบการ์ดมุมจอบนหน้าเว็บจริง</figcaption></figure>
+
+<h2 id="sec-3-13">3.13 การเข้าถึงรายวิชาในมุมมองผู้ดูแลระบบ<a class="hlink" href="#sec-3-13">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> เข้าไปช่วยเหลือหรือตรวจสอบภายในรายวิชาใดก็ได้ในระบบ โดยไม่ต้องเป็นอาจารย์เจ้าของวิชา</p>
+<p>ผู้ดูแลระบบเข้าไปในห้องเรียนของทุกรายวิชาได้เหมือนอาจารย์เจ้าของวิชา โดยระบบจะแสดงแถบเตือนสีแดง "คุณกำลังเข้าถึงในมุมมองผู้ดูแลระบบ" ไว้ด้านบนตลอดเวลา เพื่อย้ำว่าการทำงานบางอย่างอาจแตกต่างจากมุมมองผู้สอน การจัดการภายในรายวิชา (สมาชิก งาน คะแนน เช็กชื่อ คิว) ใช้ขั้นตอนเดียวกับที่อธิบายในภาคของอาจารย์ (บทที่ 4 ถึงบทที่ 14)</p>
+<div class="cx tip"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 00-3 9v1.5a1 1 0 001 1h4a1 1 0 001-1V10a5 5 0 00-3-9zM6 14h4v1H6z"/></svg>คำแนะนำ</div><p>หากท่านไม่แน่ใจว่าขั้นตอนใดในรายวิชาต้องทำอย่างไร กรุณาอ้างอิงบทของอาจารย์ผู้สอนโดยตรงแทนการเดาจากหน้าจอ เนื่องจากหน้าจอส่วนใหญ่ในมุมมองนี้เหมือนกับที่อาจารย์เห็นทุกประการ</p></div>
+
+<h2 id="sec-faq">คำถามที่พบบ่อย<a class="hlink" href="#sec-faq">#</a></h2>
+<div class="faq">
+<details open><summary>ทำไมประกาศถึงมีสถานะหลายแบบ</summary><div class="a">สถานะร่าง กำหนดเวลา เผยแพร่ และเก็บถาวร ช่วยป้องกันไม่ให้ประกาศที่ยังแก้ไขไม่เสร็จหลุดออกไปให้ผู้ใช้เห็นก่อนเวลา (สถานะร่าง) และช่วยให้เตรียมประกาศล่วงหน้าได้โดยยังไม่ต้องเผยแพร่ทันที (สถานะกำหนดเวลา) เมื่อพ้นช่วงเวลาแสดงผลหรือถูกปิดใช้งาน ประกาศจะเปลี่ยนเป็นเก็บถาวรโดยอัตโนมัติ แต่ข้อมูลและสถิติการรับทราบยังเรียกดูย้อนหลังได้เสมอ ไม่ได้ถูกลบทิ้ง</div></details>
+<details><summary>ลบห้องเรียนแล้วกู้คืนได้ไหม</summary><div class="a">กู้คืนได้ หากลบด้วยปุ่มลบตามปกติ ห้องจะถูกย้ายไปยังถังขยะก่อนเสมอ (ดูข้อ 3.5) ให้คลิกปุ่ม ดูถังขยะ ที่หน้าจัดการห้องเรียนแล้วกดกู้คืนที่แถวห้องนั้น แต่หากกดลบถาวรจากถังขยะไปแล้ว จะไม่สามารถกู้คืนข้อมูลห้องนั้นกลับมาได้อีก</div></details>
+<details><summary>ทำไมกดสำรองข้อมูลแล้วต้องยืนยัน 2FA ซ้ำ</summary><div class="a">การสั่งสำรองข้อมูลทันที การกู้คืนข้อมูล และการดาวน์โหลดไฟล์สำรอง ล้วนเป็นการกระทำสำคัญที่กระทบข้อมูลทั้งระบบ จึงต้องยืนยันตัวตนสองชั้นซ้ำทุกครั้งตามหลักการ Step-up 2FA แม้ท่านจะเข้าสู่ระบบค้างไว้อยู่แล้วก็ตาม เพื่อป้องกันกรณีมีผู้ไม่หวังดีเข้าถึงเซสชันที่เปิดค้างไว้โดยที่ท่านไม่รู้ตัว อ่านหลักการและตัวอย่างเพิ่มเติมได้ที่ <a href="ch02.html#sec-2-9">บทที่ 2 ข้อ 2.9</a></div></details>
+</div>
+<div class="pn"><a class="pn-card" href="ch02.html"><span>← ก่อนหน้า</span><strong>บทที่ 2 บัญชีผู้ใช้และความปลอดภัย (ทุกบทบาท)</strong></a><a class="pn-card next" href="ch04.html"><span>ถัดไป →</span><strong>บทที่ 4 บทนำและการเข้าสู่ระบบ</strong></a></div></article>
   </main>
-  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-3-1">3.1 แดชบอร์ดผู้ดูแลระบบ</a><a href="#sec-3-2">3.2 จัดการผู้ใช้ (แอดมิน อาจารย์ ผู้ช่วยสอน)</a><a href="#sec-3-3">3.3 จัดการนักศึกษา</a><a href="#sec-3-4">3.4 จัดการรายวิชา</a><a href="#sec-3-5">3.5 จัดการห้องเรียนและผังที่นั่ง</a><a href="#sec-3-6">3.6 จัดการข้อเสนอแนะ (Feedback)</a><a href="#sec-3-7">3.7 บันทึกระบบ (System Logs)</a><a href="#sec-3-8">3.8 มอนิเตอร์ระบบ</a><a href="#sec-3-9">3.9 ตั้งค่าระบบ</a><a href="#sec-3-10">3.10 การเข้าถึงรายวิชาในมุมมองผู้ดูแลระบบ</a></nav>
+  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-3-1">3.1 แดชบอร์ดผู้ดูแลระบบ</a><a href="#sec-3-2">3.2 จัดการผู้ใช้ (แอดมิน อาจารย์ ผู้ช่วยสอน)</a><a href="#sec-3-3">3.3 จัดการนักศึกษา</a><a href="#sec-3-4">3.4 จัดการรายวิชา</a><a href="#sec-3-5">3.5 จัดการห้องเรียนและผังที่นั่ง</a><a href="#sec-3-6">3.6 จัดการข้อเสนอแนะ (Feedback)</a><a href="#sec-3-7">3.7 บันทึกระบบ (System Logs)</a><a href="#sec-3-8">3.8 มอนิเตอร์ระบบ</a><a href="#sec-3-9">3.9 ตั้งค่าระบบ: สำรองข้อมูลและควบคุมระบบ</a><a href="#sec-3-10">3.10 ตั้งค่าระบบ: Feature Flags</a><a href="#sec-3-11">3.11 ตั้งค่าระบบ: โหมดบำรุงรักษาและสุขภาพบริการ</a><a href="#sec-3-12">3.12 ประกาศระบบ</a><a href="#sec-3-13">3.13 การเข้าถึงรายวิชาในมุมมองผู้ดูแลระบบ</a><a href="#sec-faq">คำถามที่พบบ่อย</a></nav>
 </div>
 <div id="lb" class="lb" onclick="this.classList.remove('on')"><img></div>
 <script src="assets/search-index.js"></script>

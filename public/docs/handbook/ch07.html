@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>บทที่ 7 งานมอบหมายและการให้คะแนน — คู่มือ LabTAS</title>
+<title>บทที่ 7 งานมอบหมายและการให้คะแนน — คู่มือ COCO LABS</title>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -12,7 +12,7 @@
   <button class="burger" onclick="document.body.classList.toggle('nav-open')" aria-label="เมนู">
     <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3h14v2H1zm0 4h14v2H1zm0 4h14v2H1z"/></svg>
   </button>
-  <a class="brand" href="index.html"><span class="logo">L</span> LabTAS <span class="muted">Docs</span></a>
+  <a class="brand" href="index.html"><span class="logo">C</span> COCO LABS <span class="muted">Docs</span></a>
   <div class="search">
     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.7 10.3a6 6 0 10-1.4 1.4l3 3 1.4-1.4-3-3zM2 6.5a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0z"/></svg>
     <input id="q" type="search" placeholder="ค้นหาในคู่มือ… " autocomplete="off">
@@ -39,9 +39,8 @@
 <a class="active" href="ch07.html"><span class="chip">บทที่ 7</span>งานมอบหมายและการให้คะแนน</a>
 <a href="ch08.html"><span class="chip">บทที่ 8</span>การอนุมัติคำขอแก้ไขคะแนน</a>
 <a href="ch09.html"><span class="chip">บทที่ 9</span>การสอบและคะแนนสอบ</a>
-<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็คชื่อเข้าเรียน</a>
+<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็กชื่อเข้าเรียน</a>
 <a href="ch11.html"><span class="chip">บทที่ 11</span>ระบบคิวตรวจงาน</a>
-<a href="ch12.html"><span class="chip">บทที่ 12</span>การจับคู่จอแสดงผลหน้าห้อง</a>
 <a href="ch13.html"><span class="chip">บทที่ 13</span>การติดตามผลงานทีมและบันทึกกิจกรรม</a>
 <a href="ch14.html"><span class="chip">บทที่ 14</span>การตั้งค่ารายวิชา</a>
 </details>
@@ -54,53 +53,97 @@
 <details class="side-group"><summary>นักศึกษา</summary>
 <a href="ch19.html"><span class="chip">บทที่ 19</span>การใช้งานสำหรับนักศึกษา (Student)</a>
 </details>
-<details class="side-group"><summary>ภาคผนวก</summary>
-<a href="app-a.html"><span class="chip">ภาคผนวก ก</span>สิทธิ์รายวิชาทั้งหมด (39 สิทธิ์)</a>
-<a href="app-b.html"><span class="chip">ภาคผนวก ข</span>ฟังก์ชันที่เพิ่มหลังคู่มือฉบับสอบจบ</a>
-<a href="app-c.html"><span class="chip">ภาคผนวก ค</span>การกระทำที่ต้องยืนยันตัวตนสองชั้นซ้ำ (Step-up 2FA)</a>
-<a href="app-d.html"><span class="chip">ภาคผนวก ง</span>สรุปเมนูหลักตามบทบาท</a>
-</details>
-    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">LabTAS v1.2.90</span></div>
+    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">COCO LABS Docs</span></div>
   </aside>
   <main class="main">
-    <div class="crumb"><a href="index.html">คู่มือ LabTAS</a> <span>/</span> อาจารย์ผู้สอน <span>/</span> บทที่ 7</div>
+    <div class="crumb"><a href="index.html">คู่มือ COCO LABS</a> <span>/</span> อาจารย์ผู้สอน <span>/</span> บทที่ 7</div>
     <div class="page-label">บทที่ 7</div><h1>งานมอบหมายและการให้คะแนน</h1>
-    <article class="doc"><h2 id="sec-7-1">7.1 ดูและจัดการงานมอบหมาย<a class="hlink" href="#sec-7-1">#</a></h2>
-<ol class="steps">
-<li>เข้าเมนู <strong>จัดการงานและคะแนน</strong> แล้วเลือก <strong>งานในชั้นเรียน</strong></li>
-<li>เลือกประเภทงานจากแท็บด้านบน ได้แก่ Laboratory (งานในคาบ) Assignment (การบ้าน) หรืองานกลุ่ม</li>
-<li>คลิกปุ่ม <strong>สร้างงานใหม่</strong> เพื่อเพิ่มงาน หรือปุ่ม <strong>คะแนนพิเศษ</strong> เพื่อให้คะแนนโบนัส</li>
-<li>แต่ละรายการงานแสดงสถานะการเผยแพร่ คะแนนเต็ม จำนวนข้อย่อย และจำนวนผู้ที่ยังไม่ได้รับการตรวจ</li>
-</ol>
-<figure><img src="img/instructor_assignment_01_list.png" alt="ภาพที่ 7.1 หน้ารายการงานในชั้นเรียน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 7.1 หน้ารายการงานในชั้นเรียน</figcaption></figure>
+    <article class="doc"><h2 id="sec-7-1">7.1 รายการงานมอบหมาย<a class="hlink" href="#sec-7-1">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ดูภาพรวมงานทั้งหมดในรายวิชา แยกตามประเภทงาน</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>เข้าเมนู <b>จัดการงานและคะแนน</b> แล้วเลือก <b>งานในชั้นเรียน</b></li>
+<li>เลือกประเภทงานจากแท็บด้านบน</li>
+</ol></div>
+<figure><img src="img/ch07_fig01_assignments-tabs.png" alt="ภาพที่ 7.1 แท็บเลือกประเภทงานด้านบนของหน้า" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 7.1 แท็บเลือกประเภทงานด้านบนของหน้า</figcaption></figure>
+<div class="see-block"><div class="see-label">องค์ประกอบบนหน้านี้</div><dl class="see">
+<div><dt>แต่ละรายการงาน</dt><dd>แสดงสถานะการเผยแพร่ คะแนนเต็ม จำนวนข้อย่อย และจำนวนผู้ที่ยังไม่ได้รับการตรวจ</dd></div>
+</dl></div>
+<figure><img src="img/ch07_fig02_assignments-list.png" alt="ภาพที่ 7.2 รายการงานพร้อมสถานะและคะแนนเต็มของแต่ละงาน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 7.2 รายการงานในชั้นเรียน พร้อมสถานะและคะแนนเต็มของแต่ละงาน</figcaption></figure>
+<p>หากต้องการเปลี่ยนลำดับการแสดงงานในรายการ สามารถลากรายการงานสลับตำแหน่งกันได้โดยตรง เป็นความสะดวกเสริม ไม่มีผลต่อคะแนนหรือการเผยแพร่งาน</p>
+<figure><img src="img/ch07_fig03_assignments-drag-reorder.gif" alt="ภาพเคลื่อนไหวที่ 7.3 การลากสลับลำดับรายการงาน" loading="lazy"><figcaption>ภาพที่ 7.3 การลากสลับลำดับรายการงานในหน้ารายการ</figcaption></figure>
+
 <h2 id="sec-7-2">7.2 สร้างงานใหม่<a class="hlink" href="#sec-7-2">#</a></h2>
-<p>เมื่อคลิก <strong>สร้างงานใหม่</strong> ระบบจะเปิดหน้าต่างให้กำหนดรายละเอียด</p>
-<ol class="steps">
-<li><strong>โหมดฉบับร่าง</strong> — เลือกบันทึกเป็นฉบับร่างไว้ก่อน เพื่อกลับมาแก้ไขหรือตั้งเวลาเผยแพร่ภายหลัง</li>
-<li>กรอก <strong>ชื่องาน</strong> ให้สื่อความหมายชัดเจน</li>
-<li>เลือก <strong>ประเภทงาน</strong> ได้แก่ Lab (งานในคาบ) Assignment (การบ้าน) กลุ่มโปรเจกต์ หรือกลุ่มรายสัปดาห์</li>
-<li>กำหนด <strong>การเชื่อมโยงกับการเช็คชื่อ</strong> หากต้องการให้ระบบตรวจสอบว่านักศึกษาเข้าเรียนก่อนจึงจะให้คะแนนได้</li>
-<li>เลือก <strong>รูปแบบคะแนน</strong> เป็นคะแนนเดียว หรือแบบมีข้อย่อยหลายข้อ</li>
-<li>เมื่อกำหนดครบ คลิกปุ่ม <strong>สร้างงาน</strong></li>
-</ol>
-<figure><img src="img/instructor_assignment_02_create.png" alt="ภาพที่ 7.2 หน้าต่างสร้างงานใหม่" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 7.2 หน้าต่างสร้างงานใหม่</figcaption></figure>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> สร้างงานมอบหมายใหม่พร้อมกำหนดรูปแบบคะแนนและเงื่อนไขที่ต้องการ</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิกปุ่ม <b>สร้างงานใหม่</b> ระบบจะเปิดหน้าต่างให้กำหนดรายละเอียด</li>
+</ol></div>
+<figure><img src="img/ch07_fig04_assignments-create-button.png" alt="ภาพที่ 7.4 ปุ่มสร้างงานใหม่ที่หน้ารายการงาน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 7.4 ปุ่มสร้างงานใหม่ที่หน้ารายการงาน</figcaption></figure>
+
+<div class="fields">
+<div><div class="fname">โหมดฉบับร่าง</div><span class="freq opt">ไม่บังคับ</span><div class="fdesc">เปิดสวิตช์เพื่อบันทึกเป็นฉบับร่างไว้ก่อน<small>กลับมาแก้ไขหรือตั้งเวลาเผยแพร่ภายหลังได้ นักศึกษาจะยังไม่เห็นงานจนกว่าจะเผยแพร่จริง</small></div></div>
+<div><div class="fname">ชื่องาน</div><span class="freq req">ต้องกรอก</span><div class="fdesc">ตั้งชื่อให้สื่อความหมายชัดเจน</div></div>
+<div><div class="fname">ประเภทงาน</div><span class="freq req">ต้องกรอก</span><div class="fdesc">เลือกได้แก่ Lab (งานในคาบ) Assignment (การบ้าน) กลุ่มโปรเจกต์ หรือกลุ่มรายสัปดาห์</div></div>
+<div><div class="fname">การเชื่อมโยงกับการเช็กชื่อ</div><span class="freq opt">ไม่บังคับ</span><div class="fdesc">เปิดหากต้องการให้ระบบตรวจสอบว่านักศึกษาเช็กชื่อเข้าเรียนก่อนจึงจะให้คะแนนงานนี้ได้</div></div>
+<div><div class="fname">รูปแบบคะแนน</div><span class="freq req">ต้องกรอก</span><div class="fdesc">เลือกเป็นคะแนนเดียว หรือแบบมีข้อย่อยหลายข้อ</div></div>
+</div>
+<figure><img src="img/ch07_fig05_assignments-create-draft-toggle.png" alt="ภาพที่ 7.5 สวิตช์โหมดฉบับร่างในหน้าต่างสร้างงาน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 7.5 สวิตช์โหมดฉบับร่างในหน้าต่างสร้างงาน</figcaption></figure>
+<figure><img src="img/ch07_fig06_assignments-create-types.png" alt="ภาพที่ 7.6 ตัวเลือกประเภทงานในหน้าต่างสร้างงาน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 7.6 ตัวเลือกประเภทงานในหน้าต่างสร้างงาน</figcaption></figure>
+<figure><img src="img/ch07_fig07_assignments-create-attendance-link.png" alt="ภาพที่ 7.7 การเชื่อมโยงงานกับการเช็กชื่อ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 7.7 การตั้งค่าเชื่อมโยงงานกับการเช็กชื่อ</figcaption></figure>
+<figure class="shot-seq-wrap">
+  <div class="shot-seq">
+    <img src="img/ch07_fig08_assignments-create-score-format-1.png" alt="ภาพที่ 7.8ก เลือกรูปแบบคะแนนเดียว" loading="lazy" onclick="lightbox(this)">
+    <img src="img/ch07_fig08_assignments-create-score-format-2.png" alt="ภาพที่ 7.8ข เลือกรูปแบบคะแนนแบบมีข้อย่อย" loading="lazy" onclick="lightbox(this)">
+  </div>
+  <figcaption>ภาพที่ 7.8 การเลือกรูปแบบคะแนน คะแนนเดียวเทียบกับแบบมีข้อย่อย</figcaption>
+</figure>
+<div class="cx good"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M13.7 3.7L6 11.4 2.3 7.7l1.4-1.4L6 8.6l6.3-6.3z"/></svg>ผลลัพธ์ที่ควรเห็น</div><p>เมื่อกำหนดครบและคลิกปุ่ม <b>สร้างงาน</b> งานใหม่จะปรากฏในรายการทันที ตามสถานะที่เลือกไว้ (ฉบับร่างหรือเผยแพร่แล้ว)</p></div>
+
 <h2 id="sec-7-3">7.3 การให้คะแนน<a class="hlink" href="#sec-7-3">#</a></h2>
-<ol class="steps">
-<li>เข้าเมนู <strong>จัดการงานและคะแนน</strong> แล้วเลือก <strong>คะแนนในชั้นเรียน</strong></li>
-<li>เลือกประเภทงานจากแท็บด้านบน ระบบจะแสดง <strong>ตารางคะแนนรวม</strong> ของนักศึกษาทุกคนเทียบกับทุกงาน (พร้อมค่าเฉลี่ยของแต่ละข้อ)</li>
-<li>คลิกที่ <strong>ช่องคะแนน</strong> ของนักศึกษาแต่ละคนเพื่อดูรายละเอียดและบันทึกคะแนน</li>
-</ol>
-<figure><img src="img/instructor_score_01_matrix.png" alt="ภาพที่ 7.3 ตารางคะแนนรวมในชั้นเรียน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 7.3 ตารางคะแนนรวมในชั้นเรียน</figcaption></figure>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ดูภาพรวมคะแนนของนักศึกษาทุกคน และบันทึกคะแนนรายบุคคลหรือเป็นกลุ่ม</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>เข้าเมนู <b>จัดการงานและคะแนน</b> แล้วเลือก <b>คะแนนในชั้นเรียน</b></li>
+<li>เลือกประเภทงานจากแท็บด้านบน ระบบจะแสดง <b>ตารางคะแนนรวม</b> ของนักศึกษาทุกคนเทียบกับทุกงาน พร้อมค่าเฉลี่ยของแต่ละข้อ</li>
+</ol></div>
+<figure><img src="img/ch07_fig09_score-matrix-view.png" alt="ภาพที่ 7.9 ตารางคะแนนรวมในชั้นเรียน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 7.9 ตารางคะแนนรวมในชั้นเรียน</figcaption></figure>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิกที่ <b>ช่องคะแนน</b> ของนักศึกษาแต่ละคนเพื่อดูรายละเอียดและบันทึกคะแนน</li>
+</ol></div>
+<figure><img src="img/ch07_fig10_score-cell-click-grade.png" alt="ภาพที่ 7.10 หน้าต่างบันทึกคะแนนเมื่อคลิกช่องคะแนน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 7.10 หน้าต่างบันทึกคะแนนเมื่อคลิกช่องคะแนนของนักศึกษา</figcaption></figure>
 <p>นอกจากการให้คะแนนรายบุคคลแล้ว ระบบยังรองรับการให้คะแนนแบบกลุ่มและแบบหลายคนพร้อมกัน (bulk) ตลอดจนการดูรายการนักศึกษาที่ยังไม่ได้รับคะแนน เพื่อไม่ให้ตกหล่น</p>
-<h2 id="sec-7-4">7.4 คะแนนพิเศษ (โบนัส)<a class="hlink" href="#sec-7-4">#</a></h2>
-<p>คลิกปุ่ม <strong>คะแนนพิเศษ</strong> ที่หน้ารายการงาน ระบบจะเปิดหน้าต่างให้คะแนนโบนัส</p>
-<ol class="steps">
-<li>ที่แท็บ <strong>ให้คะแนน</strong> ใช้ให้คะแนนพิเศษ ส่วนแท็บ <strong>ประวัติ</strong> ใช้ดูรายการที่เคยให้ไปแล้ว</li>
-<li><strong>ค้นหานักศึกษา</strong> แล้วเลือกรายชื่อ ระบบจะให้คะแนนพิเศษ +1 ทันที</li>
-</ol>
-<figure><img src="img/instructor_bonus_01.png" alt="ภาพที่ 7.4 หน้าต่างคะแนนพิเศษ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 7.4 หน้าต่างคะแนนพิเศษ</figcaption></figure><div class="pn"><a class="pn-card" href="ch06.html"><span>← ก่อนหน้า</span><strong>บทที่ 6 การจัดการสมาชิกและสิทธิ์ผู้ช่วยสอน</strong></a><a class="pn-card next" href="ch08.html"><span>ถัดไป →</span><strong>บทที่ 8 การอนุมัติคำขอแก้ไขคะแนน</strong></a></div></article>
+<figure><img src="img/ch07_fig11_score-bulk-group-grade.png" alt="ภาพที่ 7.11 การให้คะแนนแบบกลุ่มและแบบหลายคนพร้อมกัน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 7.11 การให้คะแนนแบบกลุ่มและแบบหลายคนพร้อมกัน</figcaption></figure>
+
+<h2 id="sec-7-4">7.4 คะแนนพิเศษ (ถาม-ตอบ)<a class="hlink" href="#sec-7-4">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ให้คะแนนเสริมแก่นักศึกษาที่ตอบคำถามในห้องเรียน และแก้ไขรายการที่ให้ไปแล้วเมื่อจำเป็น</p>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>คู่มือฉบับก่อนหน้าอธิบายฟีเจอร์นี้เป็นคะแนนโบนัสอเนกประสงค์ ในความเป็นจริงปุ่มนี้ระบุชัดเจนว่าเป็น "ให้คะแนนพิเศษ (ถาม-ตอบ)" และเหตุผลที่บันทึกไว้เป็น "ตอบคำถามในห้องเรียน" เสมอ จึงเหมาะสำหรับให้คะแนนการมีส่วนร่วมในชั้นเรียนเท่านั้น หากต้องการให้คะแนนเหตุผลอื่น กรุณาใช้การสร้างงานตามข้อ 7.2 แทน</p></div>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิกปุ่ม <b>คะแนนพิเศษ</b> ที่หน้ารายการงาน ระบบจะเปิดหน้าต่างให้คะแนนพิเศษ</li>
+<li>ที่แท็บ <b>ให้คะแนน</b> ใช้ <b>ค้นหานักศึกษา</b> แล้วเลือกรายชื่อ ระบบจะให้คะแนนพิเศษทันที</li>
+</ol></div>
+<figure><img src="img/ch07_fig12_bonus-give-tab.png" alt="ภาพที่ 7.12 แท็บให้คะแนนในหน้าต่างคะแนนพิเศษ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 7.12 แท็บ "ให้คะแนน" ในหน้าต่างคะแนนพิเศษ</figcaption></figure>
+<figure><img src="img/ch07_fig13_bonus-search-select.png" alt="ภาพที่ 7.13 ค้นหาและเลือกนักศึกษาเพื่อให้คะแนนพิเศษ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 7.13 ค้นหาและเลือกนักศึกษาเพื่อให้คะแนนพิเศษ</figcaption></figure>
+<div class="cx good"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M13.7 3.7L6 11.4 2.3 7.7l1.4-1.4L6 8.6l6.3-6.3z"/></svg>ผลลัพธ์ที่ควรเห็น</div><p>รายการคะแนนพิเศษที่เพิ่งให้ไปปรากฏในแท็บ <b>ประวัติ</b> ทันที พร้อมชื่อนักศึกษาและเหตุผล "ตอบคำถามในห้องเรียน"</p></div>
+
+<h3 id="sec-7-4-1">7.4.1 ยกเลิกหรือลบรายการคะแนนพิเศษ<a class="hlink" href="#sec-7-4-1">#</a></h3>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> แก้ไขคะแนนพิเศษที่ให้ผิดพลาด ด้วยการยกเลิกรายการล่าสุดหรือลบรายการที่ต้องการ</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>สลับไปแท็บ <b>ประวัติ</b> เพื่อดูรายการคะแนนพิเศษที่เคยให้ไปแล้วทั้งหมด</li>
+<li>คลิก <b>ยกเลิกล่าสุด</b> เพื่อยกเลิกรายการที่เพิ่งให้ไปล่าสุดอย่างรวดเร็ว</li>
+<li>หรือคลิกไอคอนลบที่แถวของรายการใดรายการหนึ่งโดยเฉพาะ เพื่อลบรายการนั้นทิ้ง</li>
+</ol></div>
+<figure><img src="img/ch07_fig14_bonus-history-tab.png" alt="ภาพที่ 7.14 แท็บประวัติคะแนนพิเศษ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 7.14 แท็บ "ประวัติ" แสดงรายการคะแนนพิเศษที่เคยให้ไปแล้ว</figcaption></figure>
+<figure><img src="img/ch07_fig15_bonus-undo-latest.png" alt="ภาพที่ 7.15 ปุ่มยกเลิกล่าสุดในแท็บประวัติ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 7.15 ปุ่ม "ยกเลิกล่าสุด" ในแท็บประวัติ</figcaption></figure>
+<figure><img src="img/ch07_fig16_bonus-delete-entry.png" alt="ภาพที่ 7.16 ไอคอนลบรายการคะแนนพิเศษรายการใดรายการหนึ่ง" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 7.16 ไอคอนลบรายการคะแนนพิเศษรายการใดรายการหนึ่ง</figcaption></figure>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>การลบรายการคะแนนพิเศษมีผลทันทีต่อคะแนนรวมของนักศึกษาคนนั้น กรุณาตรวจสอบให้แน่ใจว่าเลือกรายการถูกต้องก่อนลบ</p></div>
+
+<h2 id="sec-faq">คำถามที่พบบ่อย</h2>
+<div class="faq">
+<details open><summary>ทำไมปุ่มคะแนนพิเศษถึงเขียนว่าถาม-ตอบ</summary><div class="a">เพราะฟีเจอร์นี้ออกแบบมาสำหรับให้คะแนนเสริมการมีส่วนร่วมในชั้นเรียนโดยเฉพาะ ไม่ใช่ช่องให้คะแนนอเนกประสงค์ เหตุผลที่บันทึกไว้กับทุกรายการคือ "ตอบคำถามในห้องเรียน" เสมอ หากต้องการให้คะแนนด้วยเหตุผลอื่น กรุณาสร้างเป็นงานมอบหมายแยกตามข้อ 7.2 แทน</div></details>
+<details><summary>ให้คะแนนพิเศษผิดคน แก้ไขอย่างไร</summary><div class="a">ไปที่แท็บประวัติในหน้าต่างคะแนนพิเศษ หากเป็นรายการที่เพิ่งให้ไปล่าสุด คลิก "ยกเลิกล่าสุด" ได้ทันที หากเป็นรายการเก่ากว่านั้น ให้คลิกไอคอนลบที่แถวของรายการนั้นโดยตรง</div></details>
+<details><summary>งานฉบับร่างนักศึกษาเห็นหรือไม่</summary><div class="a">ไม่เห็น งานที่บันทึกเป็นฉบับร่างจะยังไม่แสดงแก่นักศึกษาจนกว่าอาจารย์จะเผยแพร่งานนั้นจริง ระหว่างนี้สามารถกลับมาแก้ไขรายละเอียดได้ตามสะดวก</div></details>
+</div>
+<div class="pn"><a class="pn-card" href="ch06.html"><span>← ก่อนหน้า</span><strong>บทที่ 6 การจัดการสมาชิกและสิทธิ์ผู้ช่วยสอน</strong></a><a class="pn-card next" href="ch08.html"><span>ถัดไป →</span><strong>บทที่ 8 การอนุมัติคำขอแก้ไขคะแนน</strong></a></div></article>
   </main>
-  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-7-1">7.1 ดูและจัดการงานมอบหมาย</a><a href="#sec-7-2">7.2 สร้างงานใหม่</a><a href="#sec-7-3">7.3 การให้คะแนน</a><a href="#sec-7-4">7.4 คะแนนพิเศษ (โบนัส)</a></nav>
+  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-7-1">7.1 รายการงานมอบหมาย</a><a href="#sec-7-2">7.2 สร้างงานใหม่</a><a href="#sec-7-3">7.3 การให้คะแนน</a><a href="#sec-7-4">7.4 คะแนนพิเศษ (ถาม-ตอบ)</a><a href="#sec-7-4-1">7.4.1 ยกเลิกหรือลบรายการคะแนนพิเศษ</a><a href="#sec-faq">คำถามที่พบบ่อย</a></nav>
 </div>
 <div id="lb" class="lb" onclick="this.classList.remove('on')"><img></div>
 <script src="assets/search-index.js"></script>

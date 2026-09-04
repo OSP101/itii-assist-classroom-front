@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>บทที่ 11 ระบบคิวตรวจงาน — คู่มือ LabTAS</title>
+<title>บทที่ 11 ระบบคิวตรวจงาน — คู่มือ COCO LABS</title>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -12,7 +12,7 @@
   <button class="burger" onclick="document.body.classList.toggle('nav-open')" aria-label="เมนู">
     <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3h14v2H1zm0 4h14v2H1zm0 4h14v2H1z"/></svg>
   </button>
-  <a class="brand" href="index.html"><span class="logo">L</span> LabTAS <span class="muted">Docs</span></a>
+  <a class="brand" href="index.html"><span class="logo">C</span> COCO LABS <span class="muted">Docs</span></a>
   <div class="search">
     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.7 10.3a6 6 0 10-1.4 1.4l3 3 1.4-1.4-3-3zM2 6.5a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0z"/></svg>
     <input id="q" type="search" placeholder="ค้นหาในคู่มือ… " autocomplete="off">
@@ -39,9 +39,8 @@
 <a href="ch07.html"><span class="chip">บทที่ 7</span>งานมอบหมายและการให้คะแนน</a>
 <a href="ch08.html"><span class="chip">บทที่ 8</span>การอนุมัติคำขอแก้ไขคะแนน</a>
 <a href="ch09.html"><span class="chip">บทที่ 9</span>การสอบและคะแนนสอบ</a>
-<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็คชื่อเข้าเรียน</a>
+<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็กชื่อเข้าเรียน</a>
 <a class="active" href="ch11.html"><span class="chip">บทที่ 11</span>ระบบคิวตรวจงาน</a>
-<a href="ch12.html"><span class="chip">บทที่ 12</span>การจับคู่จอแสดงผลหน้าห้อง</a>
 <a href="ch13.html"><span class="chip">บทที่ 13</span>การติดตามผลงานทีมและบันทึกกิจกรรม</a>
 <a href="ch14.html"><span class="chip">บทที่ 14</span>การตั้งค่ารายวิชา</a>
 </details>
@@ -54,47 +53,103 @@
 <details class="side-group"><summary>นักศึกษา</summary>
 <a href="ch19.html"><span class="chip">บทที่ 19</span>การใช้งานสำหรับนักศึกษา (Student)</a>
 </details>
-<details class="side-group"><summary>ภาคผนวก</summary>
-<a href="app-a.html"><span class="chip">ภาคผนวก ก</span>สิทธิ์รายวิชาทั้งหมด (39 สิทธิ์)</a>
-<a href="app-b.html"><span class="chip">ภาคผนวก ข</span>ฟังก์ชันที่เพิ่มหลังคู่มือฉบับสอบจบ</a>
-<a href="app-c.html"><span class="chip">ภาคผนวก ค</span>การกระทำที่ต้องยืนยันตัวตนสองชั้นซ้ำ (Step-up 2FA)</a>
-<a href="app-d.html"><span class="chip">ภาคผนวก ง</span>สรุปเมนูหลักตามบทบาท</a>
-</details>
-    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">LabTAS v1.2.90</span></div>
+    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">COCO LABS Docs</span></div>
   </aside>
   <main class="main">
-    <div class="crumb"><a href="index.html">คู่มือ LabTAS</a> <span>/</span> อาจารย์ผู้สอน <span>/</span> บทที่ 11</div>
+    <div class="crumb"><a href="index.html">คู่มือ COCO LABS</a> <span>/</span> อาจารย์ผู้สอน <span>/</span> บทที่ 11</div>
     <div class="page-label">บทที่ 11</div><h1>ระบบคิวตรวจงาน</h1>
-    <article class="doc"><h2 id="sec-11-1">11.1 ภาพรวม<a class="hlink" href="#sec-11-1">#</a></h2>
-<p>ระบบคิวช่วยจัดลำดับการตรวจงานและการขอคำปรึกษาในห้องปฏิบัติการให้เป็นระเบียบและยุติธรรม นักศึกษาจองคิวผ่าน QR / PIN / โต๊ะ แล้วผู้ช่วยสอนเรียกตรวจตามลำดับผ่านหน้าจอผู้ตรวจ (Worker)</p>
-<h2 id="sec-11-2">11.2 ดูและสร้างคิว<a class="hlink" href="#sec-11-2">#</a></h2>
-<ol class="steps">
-<li>เข้าเมนู <strong>คิวตรวจงาน</strong> ระบบจะแสดงรายการรอบคิวทั้งหมด พร้อมปุ่ม <strong>สร้างการจองคิว</strong></li>
-<li>แถบสรุปแสดงจำนวนรอบ ทั้งหมด / กำลังเปิด / หยุดชั่วคราว / ฉบับร่าง / ปิดแล้ว</li>
-<li>แต่ละแถวแสดงชื่อคิว ห้อง หัวข้อที่ลงคะแนน สถานะ และจำนวนคิวรอ/เสร็จ</li>
-</ol>
-<figure><img src="img/instructor_queue_01_list.png" alt="ภาพที่ 11.1 หน้ารายการคิวตรวจงาน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 11.1 หน้ารายการคิวตรวจงาน</figcaption></figure>
+    <article class="doc">
+
+<h2 id="sec-11-1">11.1 ภาพรวม<a class="hlink" href="#sec-11-1">#</a></h2>
+<p>ระบบคิวช่วยจัดลำดับการตรวจงานและการขอคำปรึกษาในห้องปฏิบัติการให้เป็นระเบียบและยุติธรรม นักศึกษาจองคิวผ่าน QR โค้ด รหัส PIN หรือหมายเลขโต๊ะ ผู้ช่วยสอนเรียกตรวจตามลำดับผ่านหน้าจอผู้ตรวจ (Worker) ทั้งนี้ ระบบยังรองรับการเชื่อมคิวข้ามรายวิชา ทำให้ผู้ช่วยสอนของอีกรายวิชาหนึ่งเข้ามาช่วยรับงานในคิวของท่านได้ด้วย รายละเอียดอยู่ในหัวข้อ 11.4</p>
+
+<h2 id="sec-11-2">11.2 เปิดหน้ารายการคิว<a class="hlink" href="#sec-11-2">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> เข้าสู่หน้าที่รวมรอบคิวตรวจงานทั้งหมดของรายวิชา ซึ่งเป็นจุดเริ่มต้นของทุกการทำงานในบทนี้</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>เข้าเมนู <b>คิวตรวจงาน</b> ที่แถบเมนูด้านซ้ายของรายวิชา</li>
+</ol></div>
+<figure><img src="img/ch11_fig01_queue-menu-item.png" alt="ภาพที่ 11.1 เมนูคิวตรวจงานในแถบด้านซ้าย" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 11.1 เมนู "คิวตรวจงาน" ในแถบด้านซ้ายของรายวิชา</figcaption></figure>
+<div class="see-block"><div class="see-label">องค์ประกอบบนหน้านี้</div><dl class="see">
+<div><dt>แถบสรุปจำนวนรอบ</dt><dd>นับจำนวนรอบทั้งหมด ทั้งหมด / กำลังเปิด / หยุดชั่วคราว / ฉบับร่าง / ปิดแล้ว</dd></div>
+<div><dt>แถวรายการคิว</dt><dd>ชื่อคิว ห้อง หัวข้อที่ลงคะแนน สถานะ และจำนวนคิวรอ/เสร็จ ของแต่ละรอบ</dd></div>
+</dl></div>
+<figure><img src="img/ch11_fig02_queue-list-empty.png" alt="ภาพที่ 11.2 หน้ารายการคิว ก่อนสร้างรอบใด ๆ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 11.2 หน้ารายการคิว ก่อนสร้างรอบใด ๆ ตารางจะว่างเปล่า ซึ่งเป็นเรื่องปกติ</figcaption></figure>
+
 <h2 id="sec-11-3">11.3 สร้างการจองคิว<a class="hlink" href="#sec-11-3">#</a></h2>
-<p>เมื่อคลิก <strong>สร้างการจองคิว</strong> ระบบจะเปิดหน้าต่างให้กำหนดรายละเอียด</p>
-<ol class="steps">
-<li>กรอก <strong>ชื่อการจองคิว</strong> เช่น "ตรวจ Lab 1"</li>
-<li>เลือก <strong>ห้องที่ใช้งาน</strong></li>
-<li>กำหนด <strong>การเชื่อมโยงกับหัวข้องาน</strong> เพื่อให้ระบบลงคะแนนอัตโนมัติเมื่อตรวจเสร็จ</li>
-<li>กำหนด <strong>การเชื่อมโยงกับการเช็คชื่อ</strong> หากไม่ต้องการให้นักศึกษาที่ขาดเรียนจองคิวได้</li>
-<li>คลิกปุ่ม <strong>สร้างการจองคิว</strong></li>
-</ol>
-<figure><img src="img/instructor_queue_02_create.png" alt="ภาพที่ 11.2 หน้าต่างสร้างการจองคิว" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 11.2 หน้าต่างสร้างการจองคิว</figcaption></figure>
-<h2 id="sec-11-4">11.4 ติดตามและดูรายงานคิว<a class="hlink" href="#sec-11-4">#</a></h2>
-<p>คลิกไอคอน <strong>สถิติ</strong> ที่ท้ายแถวของรอบคิว เพื่อเปิด <strong>รายงานการทำงานของคิว</strong></p>
-<ol class="steps">
-<li>ส่วนบนสรุปจำนวน <strong>รอคิว / กำลังตรวจ / เสร็จสิ้น / ต้องดูแล</strong></li>
-<li>แท็บ <strong>ภาพรวม / ประสิทธิภาพผู้ตรวจ / ประวัติการจอง</strong> ใช้ดูข้อมูลในมุมต่าง ๆ</li>
-<li>ส่วน <strong>ภาพรวมโดยย่อ</strong> แสดงจำนวนงานตรวจ เวลาเฉลี่ยต่อผู้ตรวจ และภาระงานของผู้ช่วยสอนแต่ละคน</li>
-</ol>
-<figure><img src="img/instructor_queue_03_report.png" alt="ภาพที่ 11.3 หน้ารายงานการทำงานของคิว" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 11.3 หน้ารายงานการทำงานของคิว</figcaption></figure>
-<p>หลังจากสร้างและเปิดคิวแล้ว ท่านสามารถสั่งเริ่ม/หยุดชั่วคราว/ปิดคิว และปิดรับคิว (cutoff) ได้ ผู้ช่วยสอนจะเข้าทำงานที่หน้าจอผู้ตรวจ (Worker) เพื่อเรียกและตรวจงานตามลำดับ (ดูรายละเอียดหน้าจอผู้ตรวจได้ในบทที่ 16) และระบบยังรองรับจอโปรเจกเตอร์แสดงคิวปัจจุบันหน้าห้องด้วย</p><div class="pn"><a class="pn-card" href="ch10.html"><span>← ก่อนหน้า</span><strong>บทที่ 10 การเช็คชื่อเข้าเรียน</strong></a><a class="pn-card next" href="ch12.html"><span>ถัดไป →</span><strong>บทที่ 12 การจับคู่จอแสดงผลหน้าห้อง</strong></a></div></article>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> กำหนดรายละเอียดของรอบคิวใหม่ ก่อนเปิดให้นักศึกษาจองจริง</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิกปุ่ม <b>สร้างการจองคิว</b> ระบบจะเปิดหน้าต่างฟอร์ม</li>
+<li>กรอกรายละเอียดตามหัวข้อด้านล่าง แล้วคลิก <b>สร้างการจองคิว</b> อีกครั้งเพื่อยืนยัน</li>
+</ol></div>
+<figure><img src="img/ch11_fig03_queue-create-form.png" alt="ภาพที่ 11.3 หน้าต่างสร้างการจองคิว" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 11.3 หน้าต่างสร้างการจองคิว</figcaption></figure>
+<div class="fields">
+<div><div class="fname">ชื่อการจองคิว</div><span class="freq req">ต้องกรอก</span><div class="fdesc">ชื่อสำหรับอ้างอิงภายหลัง เช่น "ตรวจ Lab 1"</div></div>
+<div><div class="fname">ห้องที่ใช้งาน</div><span class="freq req">ต้องกรอก</span><div class="fdesc">ห้องปฏิบัติการที่เปิดรับคิวในรอบนี้</div></div>
+<div><div class="fname">การเชื่อมโยงกับหัวข้องาน</div><span class="freq opt">ไม่บังคับ</span><div class="fdesc">ให้ระบบลงคะแนนอัตโนมัติเมื่อผู้ช่วยสอนตรวจเสร็จ</div></div>
+<div><div class="fname">การเชื่อมโยงกับการเช็กชื่อ</div><span class="freq opt">ไม่บังคับ</span><div class="fdesc">ป้องกันนักศึกษาที่ขาดเรียนไม่ให้จองคิวได้</div></div>
+</div>
+<div class="cx good"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M13.7 3.7L6 11.4 2.3 7.7l1.4-1.4L6 8.6l6.3-6.3z"/></svg>ผลลัพธ์ที่ควรเห็น</div><p>รอบใหม่ปรากฏบนสุดของตารางรายการคิว พร้อมสถานะเริ่มต้นตามเวลาที่ตั้งไว้</p></div>
+
+<h2 id="sec-11-4">11.4 การเชื่อมคิวพร้อมกันข้ามวิชา (คิวคู่)<a class="hlink" href="#sec-11-4">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ให้ผู้ช่วยสอนของอีกรายวิชาหนึ่งช่วยรับงานในคิวของท่านได้ โดยไม่ต้องเพิ่มเป็นสมาชิกของรายวิชาโดยตรง</p>
+<p>บนฟอร์มเดียวกับข้อ 11.3 ท่านเปิดสวิตช์ <strong>เชื่อมคิวพร้อมกัน</strong> แล้วเลือกรอบคิวของอีกรายวิชาที่ต้องการจับคู่ด้วยได้ เหมาะกับกรณีที่ทีมผู้ช่วยสอนของสองรายวิชาต้องการช่วยกันรับงานในช่วงเวลาเดียวกัน</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>เปิดสวิตช์ <b>เชื่อมคิวพร้อมกัน</b> ในฟอร์มสร้างหรือแก้ไขรอบคิว</li>
+<li>เลือกรอบคิวของรายวิชาอีกฝั่งที่ต้องการจับคู่ แล้วคลิก <b>บันทึก</b></li>
+</ol></div>
+<figure><img src="img/ch11_fig04_queue-pair-toggle.png" alt="ภาพที่ 11.4 สวิตช์เชื่อมคิวพร้อมกัน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 11.4 สวิตช์ "เชื่อมคิวพร้อมกัน" ในฟอร์มสร้าง/แก้ไขรอบคิว</figcaption></figure>
+<div class="cx good"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M13.7 3.7L6 11.4 2.3 7.7l1.4-1.4L6 8.6l6.3-6.3z"/></svg>ผลลัพธ์ที่ควรเห็น</div><p>รอบคิวทั้งสองฝั่งที่จับคู่กันจะแสดงป้าย <strong>คิวคู่</strong> กำกับไว้ เพื่อให้ทราบว่ากำลังทำงานร่วมกับอีกรายวิชาหนึ่งอยู่</p></div>
+<figure><img src="img/ch11_fig05_queue-pair-chip.png" alt="ภาพที่ 11.5 ป้ายคิวคู่บนรอบคิวที่จับคู่กันแล้ว" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 11.5 ป้าย "คิวคู่" บนรอบคิวที่จับคู่กันแล้ว</figcaption></figure>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>ผู้ช่วยสอนของอีกรายวิชาที่ถูกเชื่อมเข้ามาไม่จำเป็นต้องเป็นสมาชิกของรายวิชาท่านโดยตรง ระบบอนุญาตให้รับ ตรวจ หรือข้ามงานจองของอีกฝั่งได้ตามปกติเช่นเดียวกับผู้ช่วยสอนของท่านเอง รายละเอียดสิ่งที่ผู้ช่วยสอนเห็นอยู่ในหัวข้อ 11.7</p></div>
+
+<h2 id="sec-11-5">11.5 ติดตามสถานะระหว่างเปิดคิว<a class="hlink" href="#sec-11-5">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ดูสถานะและความคืบหน้าของรอบคิวระหว่างที่เปิดรับอยู่</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>ที่แถวของรอบซึ่งมีสถานะ <b>กำลังเปิด</b> คลิกเข้าไปดูรายละเอียด</li>
+</ol></div>
+<figure><img src="img/ch11_fig06_queue-status-open.png" alt="ภาพที่ 11.6 ป้ายสถานะกำลังเปิดของรอบคิว" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 11.6 ป้ายสถานะ "กำลังเปิด" ของรอบคิว</figcaption></figure>
+<div class="see-block"><div class="see-label">องค์ประกอบบนหน้านี้</div><dl class="see">
+<div><dt>แถบสถิติ</dt><dd>จำนวนรอคิว กำลังตรวจ เสร็จสิ้น และต้องดูแล ของรอบนั้น</dd></div>
+<div><dt>รายการจอง</dt><dd>รายชื่อนักศึกษาที่จองคิวทั้งหมด พร้อมสถานะปัจจุบันของแต่ละคน</dd></div>
+</dl></div>
+<figure><img src="img/ch11_fig07_queue-stats-bar.png" alt="ภาพที่ 11.7 แถบสถิติรอคิว กำลังตรวจ เสร็จสิ้น และต้องดูแล" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 11.7 แถบสถิติ "รอคิว / กำลังตรวจ / เสร็จสิ้น / ต้องดูแล"</figcaption></figure>
+<figure><img src="img/ch11_fig08_queue-booking-list.png" alt="ภาพที่ 11.8 รายการจองของรอบคิว" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 11.8 รายการจองของรอบคิว พร้อมสถานะรายบุคคล</figcaption></figure>
+<p>หลังจากสร้างและเปิดคิวแล้ว ท่านสั่งเริ่ม หยุดชั่วคราว หรือปิดคิว รวมถึงปิดรับคิว (cutoff) ได้จากหน้านี้</p>
+
+<h2 id="sec-11-6">11.6 มุมมองผู้ช่วยสอนที่หน้าจอผู้ตรวจ (Worker)<a class="hlink" href="#sec-11-6">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ทราบภาพรวมของหน้าจอที่ผู้ช่วยสอนใช้เรียกและตรวจงานจริง เพื่อช่วยตอบคำถามหน้างานได้</p>
+<p>ผู้ช่วยสอนเข้าทำงานที่หน้าจอผู้ตรวจ (Worker) เพื่อเรียกและตรวจงานตามลำดับคิว รายละเอียดฉบับเต็มอยู่ในบทที่ 16 ในที่นี้ขอสรุปเฉพาะส่วนที่เกี่ยวข้องกับหัวข้อ 11.7</p>
+<figure><img src="img/ch11_fig09_worker-page-entry.png" alt="ภาพที่ 11.9 จุดเข้าหน้าจอผู้ตรวจของผู้ช่วยสอน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 11.9 จุดเข้าหน้าจอผู้ตรวจของผู้ช่วยสอน</figcaption></figure>
+<figure><img src="img/ch11_fig10_worker-start-button.png" alt="ภาพที่ 11.10 ปุ่มเริ่มทำงานบนหน้าจอผู้ตรวจ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 11.10 ปุ่ม "เริ่มทำงาน" บนหน้าจอผู้ตรวจ</figcaption></figure>
+<figure><img src="img/ch11_fig11_worker-status-chip.png" alt="ภาพที่ 11.11 ป้ายสถานะของงานจองแต่ละรายการ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 11.11 ป้ายสถานะของงานจองแต่ละรายการ เช่น รอเรียก กำลังตรวจ เสร็จแล้ว</figcaption></figure>
+<p>เมื่อเริ่มทำงานครั้งแรก เบราว์เซอร์จะขอสิทธิ์แจ้งเตือน เพื่อแจ้งเมื่อถึงคิวถัดไปแม้สลับไปหน้าต่างอื่น แนะนำให้กด <strong>อนุญาต</strong></p>
+<figure><img src="img/ch11_fig13_worker-notification-permission.png" alt="ภาพที่ 11.13 กล่องขอสิทธิ์แจ้งเตือนของเบราว์เซอร์" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 11.13 กล่องขอสิทธิ์แจ้งเตือนของเบราว์เซอร์</figcaption></figure>
+
+<h2 id="sec-11-7">11.7 งานข้ามวิชาที่หน้าจอผู้ตรวจ (สำหรับคิวคู่)<a class="hlink" href="#sec-11-7">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ทำความเข้าใจสิ่งที่ผู้ช่วยสอนเห็น เมื่อได้รับงานจองจากรายวิชาที่ตนไม่ได้เป็นสมาชิกโดยตรง ผ่านการเชื่อมคิวพร้อมกัน</p>
+<p>เมื่อรอบคิวของสองรายวิชาถูกเชื่อมกันไว้ตามข้อ 11.4 ผู้ช่วยสอนของฝั่งหนึ่งจะถูกดึงเข้าไปทำงานในรอบคิวของอีกฝั่งโดยอัตโนมัติ ทำให้รับ ตรวจ หรือข้ามงานจองของรายวิชาที่ตนไม่มีสิทธิ์สมาชิกโดยตรงได้ตามปกติ เพื่อไม่ให้สับสนว่างานจองแต่ละรายการเป็นของรายวิชาใด หน้าจอผู้ตรวจจะติดป้ายชื่อรายวิชาต้นทางกำกับไว้ที่งานจองนั้นเสมอ</p>
+<figure><img src="img/ch11_fig11_worker-status-chip.png" alt="ภาพที่ 11.12 ป้ายวิชาต้นทางเมื่อรับงานข้ามวิชา (ภาพชั่วคราว)" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 11.12 ป้ายวิชาต้นทางกำกับงานจองที่รับมาจากคิวคู่<br><span class="ph-note">ภาพชั่วคราว รอถ่ายจริง</span></figcaption></figure>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>หัวข้อการให้คะแนนย่อยของงานจองที่รับข้ามวิชามาจะดึงจากงานมอบหมายต้นทางของรายวิชานั้นโดยตรง ไม่ใช่จากข้อมูลงานมอบหมายของรายวิชาที่ผู้ช่วยสอนสังกัดอยู่ ผู้ช่วยสอนจึงตรวจและให้คะแนนตามเกณฑ์ของรายวิชาต้นทางได้อย่างถูกต้อง แม้ไม่ได้เป็นสมาชิกของรายวิชานั้นโดยตรง</p></div>
+
+<h2 id="sec-11-8">11.8 ดูรายงานการทำงานของคิว<a class="hlink" href="#sec-11-8">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ประเมินประสิทธิภาพการทำงานของทีมผู้ช่วยสอนหลังปิดรอบคิว</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิกไอคอน <b>สถิติ</b> ที่ท้ายแถวของรอบคิว เพื่อเปิด <b>รายงานการทำงานของคิว</b></li>
+<li>เลือกแท็บ <b>ภาพรวม</b> <b>ประสิทธิภาพผู้ตรวจ</b> หรือ <b>ประวัติการจอง</b> ตามข้อมูลที่ต้องการดู</li>
+</ol></div>
+<figure><img src="img/ch11_fig14_queue-report-tabs.png" alt="ภาพที่ 11.14 แท็บภาพรวม ประสิทธิภาพผู้ตรวจ และประวัติการจอง" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 11.14 แท็บ "ภาพรวม / ประสิทธิภาพผู้ตรวจ / ประวัติการจอง"</figcaption></figure>
+<p>แท็บ "ประสิทธิภาพผู้ตรวจ" แสดงจำนวนงานที่ตรวจ เวลาเฉลี่ยต่อรายการ และภาระงานของผู้ช่วยสอนแต่ละคน รวมถึงผู้ช่วยสอนที่ถูกดึงเข้ามาจากรายวิชาที่จับคู่ไว้ตามข้อ 11.4 ด้วย</p>
+<figure><img src="img/ch11_fig15_queue-report-per-worker.png" alt="ภาพที่ 11.15 รายงานประสิทธิภาพแยกรายผู้ตรวจ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 11.15 รายงานประสิทธิภาพแยกรายผู้ตรวจ</figcaption></figure>
+
+<h2 id="sec-11-faq">คำถามที่พบบ่อย<a class="hlink" href="#sec-11-faq">#</a></h2>
+<div class="faq">
+<details open><summary>ทำไมงานในคิวบางรายการถึงมีชื่อวิชาอื่นติดป้ายอยู่</summary><div class="a">เกิดขึ้นเมื่อรอบคิวของรายวิชาท่านถูกเชื่อมกับรอบคิวของอีกรายวิชาหนึ่งไว้ตามข้อ 11.4 (คิวคู่) งานจองที่รับมาจากอีกฝั่งจะติดป้ายชื่อรายวิชาต้นทางกำกับไว้เสมอ ตามข้อ 11.7 เพื่อให้ผู้ตรวจทราบว่างานนั้นเป็นของรายวิชาใด</div></details>
+<details><summary>ผู้ช่วยสอนที่ไม่มีสิทธิ์สมาชิกในรายวิชานั้น รับงานจองได้อย่างไร</summary><div class="a">เมื่อรอบคิวสองรายวิชาถูกจับคู่กันไว้ ระบบจะดึงผู้ช่วยสอนของฝั่งหนึ่งเข้าไปทำงานในรอบคิวของอีกฝั่งโดยอัตโนมัติ ทำให้รับ ตรวจ หรือข้ามงานจองของรายวิชานั้นได้ตามปกติ โดยไม่ต้องเพิ่มชื่อเป็นสมาชิกของรายวิชาโดยตรง</div></details>
+<details><summary>คะแนนที่ผู้ช่วยสอนอีกวิชาตรวจให้ผ่านคิวคู่ บันทึกเข้ารายวิชาใด</summary><div class="a">บันทึกเข้ารายวิชาต้นทางของงานจองนั้นเสมอ เนื่องจากหัวข้อการให้คะแนนย่อยดึงมาจากงานมอบหมายต้นทางโดยตรงตามข้อ 11.7 ไม่ปะปนกับข้อมูลงานมอบหมายของรายวิชาที่ผู้ตรวจสังกัดอยู่</div></details>
+</div>
+<div class="pn"><a class="pn-card" href="ch10.html"><span>← ก่อนหน้า</span><strong>บทที่ 10 การเช็กชื่อเข้าเรียน</strong></a><a class="pn-card next" href="ch13.html"><span>ถัดไป →</span><strong>บทที่ 13 การติดตามผลงานทีมและบันทึกกิจกรรม</strong></a></div></article>
   </main>
-  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-11-1">11.1 ภาพรวม</a><a href="#sec-11-2">11.2 ดูและสร้างคิว</a><a href="#sec-11-3">11.3 สร้างการจองคิว</a><a href="#sec-11-4">11.4 ติดตามและดูรายงานคิว</a></nav>
+  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-11-1">11.1 ภาพรวม</a><a href="#sec-11-2">11.2 เปิดหน้ารายการคิว</a><a href="#sec-11-3">11.3 สร้างการจองคิว</a><a href="#sec-11-4">11.4 เชื่อมคิวข้ามวิชา (คิวคู่)</a><a href="#sec-11-5">11.5 ติดตามสถานะระหว่างเปิดคิว</a><a href="#sec-11-6">11.6 มุมมองหน้าจอผู้ตรวจ</a><a href="#sec-11-7">11.7 งานข้ามวิชาที่หน้าจอผู้ตรวจ</a><a href="#sec-11-8">11.8 ดูรายงานการทำงานของคิว</a><a href="#sec-11-faq">คำถามที่พบบ่อย</a></nav>
 </div>
 <div id="lb" class="lb" onclick="this.classList.remove('on')"><img></div>
 <script src="assets/search-index.js"></script>

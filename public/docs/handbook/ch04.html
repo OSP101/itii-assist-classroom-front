@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>บทที่ 4 บทนำและการเข้าสู่ระบบ — คู่มือ LabTAS</title>
+<title>บทที่ 4 บทนำและการเข้าสู่ระบบ — คู่มือ COCO LABS</title>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -12,7 +12,7 @@
   <button class="burger" onclick="document.body.classList.toggle('nav-open')" aria-label="เมนู">
     <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3h14v2H1zm0 4h14v2H1zm0 4h14v2H1z"/></svg>
   </button>
-  <a class="brand" href="index.html"><span class="logo">L</span> LabTAS <span class="muted">Docs</span></a>
+  <a class="brand" href="index.html"><span class="logo">C</span> COCO LABS <span class="muted">Docs</span></a>
   <div class="search">
     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.7 10.3a6 6 0 10-1.4 1.4l3 3 1.4-1.4-3-3zM2 6.5a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0z"/></svg>
     <input id="q" type="search" placeholder="ค้นหาในคู่มือ… " autocomplete="off">
@@ -39,9 +39,8 @@
 <a href="ch07.html"><span class="chip">บทที่ 7</span>งานมอบหมายและการให้คะแนน</a>
 <a href="ch08.html"><span class="chip">บทที่ 8</span>การอนุมัติคำขอแก้ไขคะแนน</a>
 <a href="ch09.html"><span class="chip">บทที่ 9</span>การสอบและคะแนนสอบ</a>
-<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็คชื่อเข้าเรียน</a>
+<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็กชื่อเข้าเรียน</a>
 <a href="ch11.html"><span class="chip">บทที่ 11</span>ระบบคิวตรวจงาน</a>
-<a href="ch12.html"><span class="chip">บทที่ 12</span>การจับคู่จอแสดงผลหน้าห้อง</a>
 <a href="ch13.html"><span class="chip">บทที่ 13</span>การติดตามผลงานทีมและบันทึกกิจกรรม</a>
 <a href="ch14.html"><span class="chip">บทที่ 14</span>การตั้งค่ารายวิชา</a>
 </details>
@@ -54,42 +53,54 @@
 <details class="side-group"><summary>นักศึกษา</summary>
 <a href="ch19.html"><span class="chip">บทที่ 19</span>การใช้งานสำหรับนักศึกษา (Student)</a>
 </details>
-<details class="side-group"><summary>ภาคผนวก</summary>
-<a href="app-a.html"><span class="chip">ภาคผนวก ก</span>สิทธิ์รายวิชาทั้งหมด (39 สิทธิ์)</a>
-<a href="app-b.html"><span class="chip">ภาคผนวก ข</span>ฟังก์ชันที่เพิ่มหลังคู่มือฉบับสอบจบ</a>
-<a href="app-c.html"><span class="chip">ภาคผนวก ค</span>การกระทำที่ต้องยืนยันตัวตนสองชั้นซ้ำ (Step-up 2FA)</a>
-<a href="app-d.html"><span class="chip">ภาคผนวก ง</span>สรุปเมนูหลักตามบทบาท</a>
-</details>
-    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">LabTAS v1.2.90</span></div>
+    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">COCO LABS Docs</span></div>
   </aside>
   <main class="main">
-    <div class="crumb"><a href="index.html">คู่มือ LabTAS</a> <span>/</span> อาจารย์ผู้สอน <span>/</span> บทที่ 4</div>
+    <div class="crumb"><a href="index.html">คู่มือ COCO LABS</a> <span>/</span> อาจารย์ผู้สอน <span>/</span> บทที่ 4</div>
     <div class="page-label">บทที่ 4</div><h1>บทนำและการเข้าสู่ระบบ</h1>
     <article class="doc"><h2 id="sec-4-1">4.1 เกี่ยวกับคู่มือฉบับนี้<a class="hlink" href="#sec-4-1">#</a></h2>
-<p>ส่วนนี้ของคู่มือจัดทำขึ้นสำหรับ <strong>อาจารย์ผู้สอน (Instructor)</strong> ผู้ใช้งานระบบจัดการเรียนการสอนปฏิบัติการและการประเมินผล (LabTAS) เพื่อให้สามารถใช้งานฟังก์ชันต่าง ๆ ได้อย่างถูกต้องและครบถ้วน เนื้อหาอธิบายเป็นขั้นตอนพร้อมภาพหน้าจอจริงจากระบบ โดยมีกรอบสีแดงและหมายเลขกำกับจุดที่ต้องดำเนินการให้ตรงกับข้อความในแต่ละขั้นตอน</p>
-<p>ภาพประกอบทั้งหมดถ่ายจากรายวิชาตัวอย่าง "TC321000 TEST" และได้ปกปิดข้อมูลส่วนบุคคลของนักศึกษาและผู้ช่วยสอน (ชื่อ-สกุลและรหัส) ด้วยการเบลอภาพเพื่อความเป็นส่วนตัว</p>
+<p>ส่วนนี้ของคู่มือจัดทำขึ้นสำหรับ <strong>อาจารย์ผู้สอน (Instructor)</strong> ผู้ใช้งานระบบ COCO LABS เพื่อให้สามารถใช้งานฟังก์ชันต่าง ๆ ได้อย่างถูกต้องและครบถ้วน เนื้อหาอธิบายเป็นขั้นตอนพร้อมภาพหน้าจอจริงจากระบบ</p>
+<p>ภาพประกอบทั้งหมดถ่ายจากรายวิชาตัวอย่าง และได้ปกปิดข้อมูลส่วนบุคคลของนักศึกษาและผู้ช่วยสอน (ชื่อ-สกุลและรหัส) ด้วยการเบลอภาพเพื่อความเป็นส่วนตัว</p>
+
 <h2 id="sec-4-2">4.2 สิ่งที่อาจารย์ทำได้ในระบบ<a class="hlink" href="#sec-4-2">#</a></h2>
-<p>ในฐานะอาจารย์เจ้าของวิชา ท่านสามารถบริหารจัดการรายวิชาของท่านได้ทั้งหมด ครอบคลุมการจัดการหมู่เรียนและกลุ่ม การมอบหมายสิทธิ์ให้ผู้ช่วยสอน การสร้างงานและให้คะแนน การอนุมัติคำขอแก้ไขคะแนน การจัดการคะแนนสอบ การเช็คชื่อเข้าเรียน ระบบคิวตรวจงาน การจับคู่จอแสดงผลหน้าห้อง การติดตามผลงานผู้ช่วยสอน การตั้งค่ารายวิชา ตลอดจนการตั้งค่าบัญชีส่วนตัว</p>
-<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>ระบบแสดงเมนูตามสิทธิ์ของผู้ใช้ อาจารย์เจ้าของวิชาจะเห็นเมนูครบทุกรายการ ส่วนผู้ช่วยสอน (TA) จะเห็นเฉพาะเมนูที่ได้รับสิทธิ์จากอาจารย์เท่านั้น ดังนั้นหากผู้ช่วยสอนแจ้งว่าไม่พบเมนูใด ให้ตรวจสอบการมอบสิทธิ์ที่อธิบายไว้ในบทที่ 6</p></div>
+<p>ในฐานะอาจารย์เจ้าของวิชา ท่านสามารถบริหารจัดการรายวิชาของท่านได้ทั้งหมด ครอบคลุมการจัดการหมู่เรียนและกลุ่ม การมอบหมายสิทธิ์ให้ผู้ช่วยสอน การสร้างงานและให้คะแนน การอนุมัติคำขอแก้ไขคะแนน การจัดการคะแนนสอบ การเช็กชื่อเข้าเรียน ระบบคิวตรวจงาน การติดตามผลงานผู้ช่วยสอน การตั้งค่ารายวิชา ตลอดจนการตั้งค่าบัญชีส่วนตัว</p>
+<div class="cx tip"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 00-3 9v1.5a1 1 0 001 1h4a1 1 0 001-1V10a5 5 0 00-3-9zM6 14h4v1H6z"/></svg>คำแนะนำ</div><p>ระบบแสดงเมนูตามสิทธิ์ของผู้ใช้ อาจารย์เจ้าของวิชาจะเห็นเมนูครบทุกรายการ ส่วนผู้ช่วยสอน (TA) จะเห็นเฉพาะเมนูที่ได้รับสิทธิ์จากอาจารย์เท่านั้น หากผู้ช่วยสอนแจ้งว่าไม่พบเมนูใด กรุณาตรวจสอบการมอบสิทธิ์ตามที่อธิบายไว้ในบทที่ 6</p></div>
+
 <h2 id="sec-4-3">4.3 การเข้าสู่ระบบ<a class="hlink" href="#sec-4-3">#</a></h2>
-<ol class="steps">
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> เข้าสู่ระบบด้วยบัญชี KKU และไปยังหน้ารายวิชาของฉัน</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
 <li>เปิดเว็บเบราว์เซอร์แล้วไปที่ที่อยู่เว็บของระบบ ระบบจะแสดงหน้าเข้าสู่ระบบ</li>
-<li>กรอก <strong>ชื่อผู้ใช้</strong> ในช่องแรก</li>
-<li>กรอก <strong>รหัสผ่าน</strong> ในช่องถัดมา</li>
-<li>คลิกปุ่ม <strong>เข้าสู่ระบบ</strong> (หรือจะเลือกเข้าสู่ระบบผ่านบัญชี Google หรือ GitHub ที่ผูกไว้ก็ได้)</li>
-</ol>
-<figure><img src="img/instructor_login.png" alt="ภาพที่ 4.1 หน้าเข้าสู่ระบบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 4.1 หน้าเข้าสู่ระบบ</figcaption></figure>
-<p>เมื่อเข้าสู่ระบบสำเร็จ ระบบจะพาไปยังหน้า <strong>"รายวิชาของฉัน"</strong> ซึ่งแสดงรายวิชาทั้งหมดที่ท่านเป็นผู้สอน</p>
-<ol class="steps">
-<li>คลิกที่ <strong>การ์ดรายวิชา</strong> ที่ต้องการเข้าไปจัดการ</li>
-</ol>
-<figure><img src="img/instructor_attendance_01_enter_course.png" alt="ภาพที่ 4.2 หน้ารายวิชาของฉัน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 4.2 หน้ารายวิชาของฉัน</figcaption></figure>
-<h2 id="sec-4-4">4.4 การใช้เมนูภายในรายวิชา<a class="hlink" href="#sec-4-4">#</a></h2>
-<p>หน้าแรกของรายวิชาคือหน้า <strong>ภาพรวมรายวิชา</strong> ซึ่งสรุปสถิติสำคัญ เช่น จำนวนนักศึกษา จำนวนงาน คะแนนเฉลี่ย อัตราการเช็คชื่อ และจำนวนผู้ช่วยสอน เมนูการทำงานหลักอยู่ที่แถบด้านซ้าย และมีปุ่มลัดไปยังงานที่ใช้บ่อย</p>
-<p>โดยทั่วไปแต่ละฟังก์ชันมีทางเข้าได้หลายทาง ตัวอย่างเช่น การเช็คชื่อสามารถเข้าได้จาก (1) เมนูด้านซ้าย (2) ปุ่มลัดที่มุมขวาบนของการ์ดรายวิชา หรือ (3) เมนูลัดด้านล่างของหน้า</p>
-<figure><img src="img/instructor_attendance_02_landing.png" alt="ภาพที่ 4.3 ทางเข้าฟังก์ชันหลายช่องทางในหน้าภาพรวมรายวิชา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 4.3 ทางเข้าฟังก์ชันหลายช่องทางในหน้าภาพรวมรายวิชา</figcaption></figure><div class="pn"><a class="pn-card" href="ch03.html"><span>← ก่อนหน้า</span><strong>บทที่ 3 การใช้งานสำหรับผู้ดูแลระบบ (Admin)</strong></a><a class="pn-card next" href="ch05.html"><span>ถัดไป →</span><strong>บทที่ 5 การจัดการหมู่เรียนและกลุ่ม</strong></a></div></article>
+<li>คลิกปุ่ม <b>KKU SSO</b> ซึ่งเป็นปุ่มหลักที่แสดงอยู่บนสุดของหน้า เพื่อเข้าสู่ระบบด้วยบัญชี KKU Mail ผ่านระบบยืนยันตัวตนกลางของมหาวิทยาลัย</li>
+</ol></div>
+<figure><img src="img/ch04_fig01_login-instructor-kku-sso.png" alt="ภาพที่ 4.1 หน้าเข้าสู่ระบบ ปุ่ม KKU SSO เป็นปุ่มหลัก" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 4.1 หน้าเข้าสู่ระบบ ปุ่ม KKU SSO เป็นปุ่มหลักที่แสดงอยู่บนสุด</figcaption></figure>
+<p>ใต้ปุ่ม KKU SSO ยังมีช่องชื่อผู้ใช้และรหัสผ่านเหลืออยู่ เป็นช่องทางสำรองสำหรับบุคลากรที่ยังเข้าผ่าน KKU SSO ไม่ได้ ไม่ใช่ช่องทางหลักของระบบ</p>
+<figure><img src="img/ch04_fig02_login-instructor-password-fallback.png" alt="ภาพที่ 4.2 ช่องชื่อผู้ใช้และรหัสผ่านที่เป็นทางสำรอง" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 4.2 ช่องชื่อผู้ใช้และรหัสผ่าน เป็นช่องทางสำรองใต้ปุ่ม KKU SSO</figcaption></figure>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>คู่มือฉบับก่อนหน้าระบุว่ามีปุ่ม Google หรือ GitHub ให้เลือกคู่กับชื่อผู้ใช้และรหัสผ่าน ปัจจุบันไม่ใช่แล้ว KKU SSO เป็นช่องทางหลักเพียงช่องทางเดียวของอาจารย์ผู้สอน ส่วนช่องชื่อผู้ใช้และรหัสผ่านเหลือไว้เป็นทางสำรองเท่านั้น รายละเอียดการเข้าสู่ระบบทุกช่องทางดูเพิ่มเติมได้ที่บทที่ 2</p></div>
+
+<h2 id="sec-4-4">4.4 หน้ารายวิชาของฉัน<a class="hlink" href="#sec-4-4">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> เข้าไปยังรายวิชาที่ต้องการจัดการจากหน้ารายการรายวิชา</p>
+<p>เมื่อเข้าสู่ระบบสำเร็จ ระบบจะพาไปยังหน้า <strong>รายวิชาของฉัน</strong> ซึ่งแสดงรายวิชาทั้งหมดที่ท่านเป็นผู้สอน</p>
+<figure><img src="img/ch04_fig03_landing-course-list.png" alt="ภาพที่ 4.3 หน้ารายวิชาของฉัน แสดงรายการรายวิชาทั้งหมด" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 4.3 หน้ารายวิชาของฉัน แสดงรายการรายวิชาทั้งหมดที่เป็นผู้สอน</figcaption></figure>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิกที่ <b>การ์ดรายวิชา</b> ที่ต้องการเข้าไปจัดการ</li>
+</ol></div>
+<figure><img src="img/ch04_fig04_course-card-click.png" alt="ภาพที่ 4.4 คลิกที่การ์ดรายวิชาเพื่อเข้าจัดการ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 4.4 คลิกที่การ์ดรายวิชาเพื่อเข้าจัดการ</figcaption></figure>
+
+<h2 id="sec-4-5">4.5 หน้าภาพรวมรายวิชา<a class="hlink" href="#sec-4-5">#</a></h2>
+<p>หน้าแรกของรายวิชาคือหน้า <strong>ภาพรวมรายวิชา</strong> ซึ่งสรุปสถิติสำคัญด้วยการ์ดสรุปด้านบน</p>
+<div class="see-block"><div class="see-label">องค์ประกอบบนหน้านี้</div><dl class="see">
+<div><dt>การ์ดสรุปสถิติ</dt><dd>จำนวนนักศึกษา จำนวนงาน คะแนนเฉลี่ย อัตราการเช็กชื่อ และจำนวนผู้ช่วยสอน</dd></div>
+<div><dt>ปุ่มลัดงานที่ใช้บ่อย</dt><dd>ทางลัดไปยังเมนูที่เข้าใช้งานบ่อย เช่น เช็กชื่อ ให้คะแนน</dd></div>
+</dl></div>
+<figure><img src="img/ch04_fig05_overview-stat-cards.png" alt="ภาพที่ 4.5 การ์ดสรุปสถิติในหน้าภาพรวมรายวิชา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 4.5 การ์ดสรุปสถิติในหน้าภาพรวมรายวิชา</figcaption></figure>
+
+<h2 id="sec-4-6">4.6 การใช้เมนูภายในรายวิชา<a class="hlink" href="#sec-4-6">#</a></h2>
+<p>เมนูการทำงานหลักอยู่ที่แถบด้านซ้าย จัดกลุ่มตามหมวดงาน เช่น จัดการชั้นเรียน จัดการงานและคะแนน การเช็กชื่อ และการตั้งค่ารายวิชา</p>
+<figure><img src="img/ch04_fig06_sidebar-menu-groups.png" alt="ภาพที่ 4.6 กลุ่มเมนูด้านซ้ายภายในรายวิชา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 4.6 กลุ่มเมนูด้านซ้ายภายในรายวิชา</figcaption></figure>
+<div class="cx tip"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 00-3 9v1.5a1 1 0 001 1h4a1 1 0 001-1V10a5 5 0 00-3-9zM6 14h4v1H6z"/></svg>คำแนะนำ</div><p>โดยทั่วไปแต่ละฟังก์ชันมีทางเข้าได้หลายทาง ตัวอย่างเช่น การเช็กชื่อเข้าได้จากเมนูด้านซ้าย จากปุ่มลัดที่การ์ดสรุปสถิติ หรือจากปุ่มลัดงานที่ใช้บ่อยในหน้าภาพรวม เลือกใช้ทางที่สะดวกที่สุดได้ตามต้องการ</p></div>
+<div class="pn"><a class="pn-card" href="ch03.html"><span>← ก่อนหน้า</span><strong>บทที่ 3 การใช้งานสำหรับผู้ดูแลระบบ (Admin)</strong></a><a class="pn-card next" href="ch05.html"><span>ถัดไป →</span><strong>บทที่ 5 การจัดการหมู่เรียนและกลุ่ม</strong></a></div></article>
   </main>
-  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-4-1">4.1 เกี่ยวกับคู่มือฉบับนี้</a><a href="#sec-4-2">4.2 สิ่งที่อาจารย์ทำได้ในระบบ</a><a href="#sec-4-3">4.3 การเข้าสู่ระบบ</a><a href="#sec-4-4">4.4 การใช้เมนูภายในรายวิชา</a></nav>
+  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-4-1">4.1 เกี่ยวกับคู่มือฉบับนี้</a><a href="#sec-4-2">4.2 สิ่งที่อาจารย์ทำได้ในระบบ</a><a href="#sec-4-3">4.3 การเข้าสู่ระบบ</a><a href="#sec-4-4">4.4 หน้ารายวิชาของฉัน</a><a href="#sec-4-5">4.5 หน้าภาพรวมรายวิชา</a><a href="#sec-4-6">4.6 การใช้เมนูภายในรายวิชา</a></nav>
 </div>
 <div id="lb" class="lb" onclick="this.classList.remove('on')"><img></div>
 <script src="assets/search-index.js"></script>

@@ -268,6 +268,15 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                             </div>
                         </div>
                         <div className="flex items-center gap-2 sm:gap-4">
+                            <Link
+                                href="/docs/handbook/index.html"
+                                target="_blank"
+                                className="relative rounded-full p-1.5 transition-colors hover:bg-default-100"
+                                aria-label={t("userGuide")}
+                                title={t("userGuide")}
+                            >
+                                <Icon icon="solar:book-2-linear" className="text-xl text-default-600" />
+                            </Link>
                             {/* User Menu */}
                             <Dropdown placement="bottom-end" isOpen={isUserMenuOpen} onOpenChange={setIsUserMenuOpen}>
                                 <DropdownTrigger>

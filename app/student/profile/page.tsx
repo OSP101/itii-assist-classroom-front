@@ -159,13 +159,13 @@ export default function StudentProfilePage() {
           <Icon icon="solar:alt-arrow-right-linear" className="cg-chevron" width={15} height={15} />
         </Link>
 
-        <Link href="/support" className="cg-row">
+        <Link href="/docs/handbook/ch19.html" className="cg-row">
           <span className="cg-row-ico">
             <Icon icon="solar:question-circle-linear" width={17} height={17} />
           </span>
           <span className="cg-row-body">
             <span className="cg-row-title">ช่วยเหลือ</span>
-            <span className="cg-row-sub">คู่มือและการติดต่อสนับสนุน</span>
+            <span className="cg-row-sub">คู่มือการใช้งานฉบับนักศึกษา</span>
           </span>
           <Icon icon="solar:alt-arrow-right-linear" className="cg-chevron" width={15} height={15} />
         </Link>

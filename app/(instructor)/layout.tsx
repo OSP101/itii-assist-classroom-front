@@ -429,7 +429,13 @@ export default function InstructorLayout({
                     height. Wrapping them makes them a single unit that moves
                     and pins together. */}
                 <div className="sticky top-0 z-50">
-                <GlobalAnnouncementTopbar />
+                {/* Classroom pages build their own fixed-position layout
+                    (sidebar pinned at top-12, assuming the header above it is
+                    exactly 48px tall at the very top of the viewport). The
+                    ribbon would push the header down without that layout
+                    knowing, so the sidebar would render under it — the same
+                    reason GlobalAnnouncementLayer is already skipped there. */}
+                {!pathname.startsWith("/classroom/") && <GlobalAnnouncementTopbar />}
 
                 {/* Top Navigation Bar - Shared Header */}
                 <header className="border-b border-divider bg-content1">
@@ -568,7 +574,7 @@ export default function InstructorLayout({
                         {/* Right: User Avatar */}
                         <div className="flex items-center gap-2 shrink-0">
                             <Link
-                                href="/docs"
+                                href="/docs/handbook/index.html"
                                 target="_blank"
                                 className="relative rounded-full p-1.5 transition-colors hover:bg-content2"
                                 aria-label={t("userGuide")}

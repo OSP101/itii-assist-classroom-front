@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>บทที่ 9 การสอบและคะแนนสอบ — คู่มือ LabTAS</title>
+<title>บทที่ 9 การสอบและคะแนนสอบ — คู่มือ COCO LABS</title>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -12,7 +12,7 @@
   <button class="burger" onclick="document.body.classList.toggle('nav-open')" aria-label="เมนู">
     <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3h14v2H1zm0 4h14v2H1zm0 4h14v2H1z"/></svg>
   </button>
-  <a class="brand" href="index.html"><span class="logo">L</span> LabTAS <span class="muted">Docs</span></a>
+  <a class="brand" href="index.html"><span class="logo">C</span> COCO LABS <span class="muted">Docs</span></a>
   <div class="search">
     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.7 10.3a6 6 0 10-1.4 1.4l3 3 1.4-1.4-3-3zM2 6.5a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0z"/></svg>
     <input id="q" type="search" placeholder="ค้นหาในคู่มือ… " autocomplete="off">
@@ -39,9 +39,8 @@
 <a href="ch07.html"><span class="chip">บทที่ 7</span>งานมอบหมายและการให้คะแนน</a>
 <a href="ch08.html"><span class="chip">บทที่ 8</span>การอนุมัติคำขอแก้ไขคะแนน</a>
 <a class="active" href="ch09.html"><span class="chip">บทที่ 9</span>การสอบและคะแนนสอบ</a>
-<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็คชื่อเข้าเรียน</a>
+<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็กชื่อเข้าเรียน</a>
 <a href="ch11.html"><span class="chip">บทที่ 11</span>ระบบคิวตรวจงาน</a>
-<a href="ch12.html"><span class="chip">บทที่ 12</span>การจับคู่จอแสดงผลหน้าห้อง</a>
 <a href="ch13.html"><span class="chip">บทที่ 13</span>การติดตามผลงานทีมและบันทึกกิจกรรม</a>
 <a href="ch14.html"><span class="chip">บทที่ 14</span>การตั้งค่ารายวิชา</a>
 </details>
@@ -54,35 +53,68 @@
 <details class="side-group"><summary>นักศึกษา</summary>
 <a href="ch19.html"><span class="chip">บทที่ 19</span>การใช้งานสำหรับนักศึกษา (Student)</a>
 </details>
-<details class="side-group"><summary>ภาคผนวก</summary>
-<a href="app-a.html"><span class="chip">ภาคผนวก ก</span>สิทธิ์รายวิชาทั้งหมด (39 สิทธิ์)</a>
-<a href="app-b.html"><span class="chip">ภาคผนวก ข</span>ฟังก์ชันที่เพิ่มหลังคู่มือฉบับสอบจบ</a>
-<a href="app-c.html"><span class="chip">ภาคผนวก ค</span>การกระทำที่ต้องยืนยันตัวตนสองชั้นซ้ำ (Step-up 2FA)</a>
-<a href="app-d.html"><span class="chip">ภาคผนวก ง</span>สรุปเมนูหลักตามบทบาท</a>
-</details>
-    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">LabTAS v1.2.90</span></div>
+    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">COCO LABS Docs</span></div>
   </aside>
   <main class="main">
-    <div class="crumb"><a href="index.html">คู่มือ LabTAS</a> <span>/</span> อาจารย์ผู้สอน <span>/</span> บทที่ 9</div>
+    <div class="crumb"><a href="index.html">คู่มือ COCO LABS</a> <span>/</span> อาจารย์ผู้สอน <span>/</span> บทที่ 9</div>
     <div class="page-label">บทที่ 9</div><h1>การสอบและคะแนนสอบ</h1>
-    <article class="doc"><h2 id="sec-9-1">9.1 ตั้งค่าการสอบ<a class="hlink" href="#sec-9-1">#</a></h2>
-<ol class="steps">
-<li>เข้าเมนู <strong>จัดการงานและคะแนน</strong> แล้วเลือก <strong>คะแนนสอบ</strong></li>
-<li>คลิกปุ่ม <strong>ตั้งค่าการสอบ</strong> ที่มุมขวาบน</li>
-<li>กำหนดการสอบแยกเป็น <strong>สอบกลางภาค</strong> และ <strong>สอบปลายภาค</strong> โดยแต่ละช่วงแยกองค์ประกอบเป็น <strong>บรรยาย</strong> และ <strong>ปฏิบัติการ</strong></li>
-<li>สำหรับแต่ละองค์ประกอบ ให้เปิดใช้งาน กำหนด <strong>คะแนนเต็ม</strong> และเลือกว่าจะ <strong>เปิดให้นักศึกษาดูคะแนน</strong> หรือไม่ จากนั้นคลิก <strong>บันทึก</strong></li>
-</ol>
-<figure><img src="img/instructor_exam_02_settings.png" alt="ภาพที่ 9.1 หน้าต่างตั้งค่าการสอบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 9.1 หน้าต่างตั้งค่าการสอบ</figcaption></figure>
-<h2 id="sec-9-2">9.2 บันทึกคะแนนสอบ<a class="hlink" href="#sec-9-2">#</a></h2>
-<ol class="steps">
-<li>ที่หน้า <strong>คะแนนสอบ</strong> เลือกแท็บ <strong>สอบกลางภาค</strong> หรือ <strong>สอบปลายภาค</strong></li>
-<li>ปุ่ม <strong>ตั้งค่าการสอบ</strong> ใช้ปรับองค์ประกอบและคะแนนเต็ม</li>
-<li>ส่วนสถิติแสดง <strong>คะแนนเฉลี่ย สูงสุด ต่ำสุด และคะแนนเต็ม</strong> ของรายวิชา</li>
-<li>กรอกคะแนนของนักศึกษาแต่ละคนในคอลัมน์ <strong>คะแนน</strong> หรือใช้ปุ่มดึงคะแนนจากไฟล์ Excel เพื่อบันทึกทีละหลายคน</li>
-</ol>
-<figure><img src="img/instructor_exam_01_scores.png" alt="ภาพที่ 9.2 หน้าคะแนนสอบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 9.2 หน้าคะแนนสอบ</figcaption></figure><div class="pn"><a class="pn-card" href="ch08.html"><span>← ก่อนหน้า</span><strong>บทที่ 8 การอนุมัติคำขอแก้ไขคะแนน</strong></a><a class="pn-card next" href="ch10.html"><span>ถัดไป →</span><strong>บทที่ 10 การเช็คชื่อเข้าเรียน</strong></a></div></article>
+    <article class="doc">
+
+<h2 id="sec-9-1">9.1 ภาพรวม<a class="hlink" href="#sec-9-1">#</a></h2>
+<p>คะแนนสอบแยกออกจากคะแนนงานตามปกติ โดยแบ่งเป็นสองช่วงคือ <strong>สอบกลางภาค</strong> และ <strong>สอบปลายภาค</strong> แต่ละช่วงแยกองค์ประกอบย่อยเป็น <strong>บรรยาย</strong> และ <strong>ปฏิบัติการ</strong> ท่านกำหนดคะแนนเต็มและเปิดหรือปิดการมองเห็นของนักศึกษาได้แยกเป็นรายองค์ประกอบ</p>
+
+<h2 id="sec-9-2">9.2 ตั้งค่าการสอบ<a class="hlink" href="#sec-9-2">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> กำหนดโครงสร้างคะแนนสอบของรายวิชา ก่อนเริ่มกรอกคะแนนจริง</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>เข้าเมนู <b>จัดการงานและคะแนน</b> แล้วเลือก <b>คะแนนสอบ</b></li>
+<li>คลิกปุ่ม <b>ตั้งค่าการสอบ</b> มุมขวาบน</li>
+</ol></div>
+<figure><img src="img/ch09_fig01_exam-settings-button.png" alt="ภาพที่ 9.1 ปุ่มตั้งค่าการสอบ มุมขวาบนของหน้าคะแนนสอบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 9.1 ปุ่ม "ตั้งค่าการสอบ" มุมขวาบนของหน้าคะแนนสอบ</figcaption></figure>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>เลือกแท็บ <b>สอบกลางภาค</b> หรือ <b>สอบปลายภาค</b> ที่ต้องการตั้งค่า</li>
+</ol></div>
+<figure><img src="img/ch09_fig02_exam-tabs-midterm-final.png" alt="ภาพที่ 9.2 แท็บสอบกลางภาคและสอบปลายภาค" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 9.2 แท็บ "สอบกลางภาค" และ "สอบปลายภาค"</figcaption></figure>
+<p>สำหรับแต่ละช่วง เปิดใช้งานองค์ประกอบ <strong>บรรยาย</strong> และ/หรือ <strong>ปฏิบัติการ</strong> ตามที่รายวิชาต้องการ</p>
+<figure><img src="img/ch09_fig03_exam-component-lecture-lab.png" alt="ภาพที่ 9.3 สวิตช์เปิดใช้งานองค์ประกอบบรรยายและปฏิบัติการ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 9.3 สวิตช์เปิดใช้งานองค์ประกอบ "บรรยาย" และ "ปฏิบัติการ"</figcaption></figure>
+<div class="fields">
+<div><div class="fname">คะแนนเต็ม</div><span class="freq req">ต้องกรอก</span><div class="fdesc">คะแนนเต็มของแต่ละองค์ประกอบ ใช้คำนวณสัดส่วนคะแนนรวมของรายวิชา</div></div>
+<div><div class="fname">เปิดให้นักศึกษาดูคะแนน</div><span class="freq opt">ไม่บังคับ</span><div class="fdesc">เปิดหรือปิดไม่ให้นักศึกษาเห็นคะแนนของตนในองค์ประกอบนั้น<small>แยกสวิตช์ต่อองค์ประกอบ ปิดไว้ก่อนได้จนกว่าจะพร้อมประกาศผล</small></div></div>
+</div>
+<figure><img src="img/ch09_fig04_exam-fullscore-field.png" alt="ภาพที่ 9.4 ช่องกรอกคะแนนเต็มของแต่ละองค์ประกอบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 9.4 ช่องกรอกคะแนนเต็มของแต่ละองค์ประกอบ</figcaption></figure>
+<figure><img src="img/ch09_fig05_exam-visible-to-student.png" alt="ภาพที่ 9.5 สวิตช์เปิดให้นักศึกษาดูคะแนน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 9.5 สวิตช์ "เปิดให้นักศึกษาดูคะแนน"</figcaption></figure>
+<div class="cx good"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M13.7 3.7L6 11.4 2.3 7.7l1.4-1.4L6 8.6l6.3-6.3z"/></svg>ผลลัพธ์ที่ควรเห็น</div><p>หลังคลิก <strong>บันทึก</strong> องค์ประกอบที่เปิดใช้งานจะปรากฏเป็นคอลัมน์ในตารางคะแนนสอบทันที พร้อมคะแนนเต็มที่กำหนดไว้</p></div>
+
+<h2 id="sec-9-3">9.3 นำเข้าคะแนนจากไฟล์ Excel<a class="hlink" href="#sec-9-3">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> บันทึกคะแนนของนักศึกษาจำนวนมากพร้อมกันในครั้งเดียว แทนการกรอกทีละคน</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>ที่แท็บ <b>สอบกลางภาค</b> หรือ <b>สอบปลายภาค</b> คลิกปุ่มนำเข้าคะแนนจากไฟล์ Excel</li>
+<li>เลือกไฟล์ตามรูปแบบที่ระบบกำหนด แล้วยืนยันการนำเข้า</li>
+</ol></div>
+<figure><img src="img/ch09_fig06_exam-scores-import-excel.png" alt="ภาพที่ 9.6 หน้าต่างนำเข้าคะแนนจากไฟล์ Excel" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 9.6 หน้าต่างนำเข้าคะแนนจากไฟล์ Excel</figcaption></figure>
+<div class="cx tip"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 00-3 9v1.5a1 1 0 001 1h4a1 1 0 001-1V10a5 5 0 00-3-9zM6 14h4v1H6z"/></svg>คำแนะนำ</div><p>ท่านกรอกคะแนนของนักศึกษาแต่ละคนในคอลัมน์ "คะแนน" ของตารางโดยตรงได้เช่นกัน หากต้องการแก้ไขเพียงบางราย ไม่จำเป็นต้องนำเข้าไฟล์ใหม่ทั้งหมด</p></div>
+
+<h2 id="sec-9-4">9.4 สถิติและตารางคะแนน<a class="hlink" href="#sec-9-4">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ตรวจสอบภาพรวมผลการสอบและรายละเอียดรายบุคคลของรายวิชา</p>
+<div class="see-block"><div class="see-label">องค์ประกอบบนหน้านี้</div><dl class="see">
+<div><dt>คะแนนเฉลี่ย</dt><dd>ค่าเฉลี่ยของทั้งรายวิชาในองค์ประกอบนั้น</dd></div>
+<div><dt>คะแนนสูงสุด / ต่ำสุด</dt><dd>คะแนนสูงสุดและต่ำสุดที่นักศึกษาทำได้ในองค์ประกอบนั้น</dd></div>
+<div><dt>คะแนนเต็ม</dt><dd>ค่าที่ตั้งไว้ในข้อ 9.2 ใช้อ้างอิงเทียบสัดส่วน</dd></div>
+</dl></div>
+<figure><img src="img/ch09_fig07_exam-stats-tiles.png" alt="ภาพที่ 9.7 การ์ดสถิติคะแนนเฉลี่ย สูงสุด ต่ำสุด และคะแนนเต็ม" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 9.7 การ์ดสถิติคะแนนเฉลี่ย สูงสุด ต่ำสุด และคะแนนเต็ม</figcaption></figure>
+<p>ตารางด้านล่างแสดงคะแนนของนักศึกษาทุกคนในรายวิชา แยกตามองค์ประกอบที่เปิดใช้งานไว้ในข้อ 9.2</p>
+<figure><img src="img/ch09_fig08_exam-scores-table.png" alt="ภาพที่ 9.8 ตารางคะแนนสอบของนักศึกษาทั้งรายวิชา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 9.8 ตารางคะแนนสอบของนักศึกษาทั้งรายวิชา</figcaption></figure>
+
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>ในระบบมีเครื่องมือ "ผังที่นั่งสอบ" ที่พัฒนาไว้สมบูรณ์แล้ว แต่ยังไม่มีเมนูเชื่อมโยงไปใช้งานในหน้าเว็บปัจจุบัน หากต้องการใช้งานฟีเจอร์นี้ กรุณาสอบถามทีมพัฒนาระบบว่าจะเปิดให้ใช้งานเมื่อใด</p></div>
+
+<h2 id="sec-9-faq">คำถามที่พบบ่อย<a class="hlink" href="#sec-9-faq">#</a></h2>
+<div class="faq">
+<details open><summary>เปิด "เปิดให้นักศึกษาดูคะแนน" แล้ว นักศึกษาเห็นคะแนนทันทีหรือไม่</summary><div class="a">นักศึกษาเห็นทันทีสำหรับคะแนนที่บันทึกไว้แล้วก่อนเปิดสวิตช์ ส่วนคะแนนที่กรอกภายหลัง นักศึกษาจะเห็นทันทีที่บันทึกเช่นกัน ตราบใดที่สวิตช์ตามข้อ 9.2 ยังเปิดอยู่</div></details>
+<details><summary>นำเข้าคะแนนจากไฟล์ Excel ทับคะแนนเดิมหรือไม่</summary><div class="a">คะแนนของนักศึกษาที่มีชื่อปรากฏอยู่ในไฟล์จะถูกปรับเป็นค่าล่าสุดตามไฟล์ที่นำเข้า ส่วนนักศึกษาที่ไม่มีชื่อในไฟล์จะไม่ถูกแตะต้อง กรุณาตรวจสอบไฟล์ให้ครบก่อนนำเข้าทุกครั้ง</div></details>
+<details><summary>หาเมนู "ผังที่นั่งสอบ" ไม่พบในระบบ ใช้งานได้หรือไม่</summary><div class="a">ยังใช้งานไม่ได้ในหน้าเว็บปัจจุบัน แม้เครื่องมือดังกล่าวจะพัฒนาไว้สมบูรณ์แล้วในระบบก็ตาม รายละเอียดอยู่ในข้อควรระวังท้ายข้อ 9.4 กรุณาสอบถามทีมพัฒนาระบบหากต้องการใช้งาน</div></details>
+</div>
+<div class="pn"><a class="pn-card" href="ch08.html"><span>← ก่อนหน้า</span><strong>บทที่ 8 การอนุมัติคำขอแก้ไขคะแนน</strong></a><a class="pn-card next" href="ch10.html"><span>ถัดไป →</span><strong>บทที่ 10 การเช็กชื่อเข้าเรียน</strong></a></div></article>
   </main>
-  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-9-1">9.1 ตั้งค่าการสอบ</a><a href="#sec-9-2">9.2 บันทึกคะแนนสอบ</a></nav>
+  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-9-1">9.1 ภาพรวม</a><a href="#sec-9-2">9.2 ตั้งค่าการสอบ</a><a href="#sec-9-3">9.3 นำเข้าคะแนนจาก Excel</a><a href="#sec-9-4">9.4 สถิติและตารางคะแนน</a><a href="#sec-9-faq">คำถามที่พบบ่อย</a></nav>
 </div>
 <div id="lb" class="lb" onclick="this.classList.remove('on')"><img></div>
 <script src="assets/search-index.js"></script>

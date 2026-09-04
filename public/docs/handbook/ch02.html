@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>บทที่ 2 บัญชีผู้ใช้และความปลอดภัย (ทุกบทบาท) — คู่มือ LabTAS</title>
+<title>บทที่ 2 บัญชีผู้ใช้และความปลอดภัย (ทุกบทบาท) — คู่มือ COCO LABS</title>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -12,7 +12,7 @@
   <button class="burger" onclick="document.body.classList.toggle('nav-open')" aria-label="เมนู">
     <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3h14v2H1zm0 4h14v2H1zm0 4h14v2H1z"/></svg>
   </button>
-  <a class="brand" href="index.html"><span class="logo">L</span> LabTAS <span class="muted">Docs</span></a>
+  <a class="brand" href="index.html"><span class="logo">C</span> COCO LABS <span class="muted">Docs</span></a>
   <div class="search">
     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.7 10.3a6 6 0 10-1.4 1.4l3 3 1.4-1.4-3-3zM2 6.5a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0z"/></svg>
     <input id="q" type="search" placeholder="ค้นหาในคู่มือ… " autocomplete="off">
@@ -39,9 +39,8 @@
 <a href="ch07.html"><span class="chip">บทที่ 7</span>งานมอบหมายและการให้คะแนน</a>
 <a href="ch08.html"><span class="chip">บทที่ 8</span>การอนุมัติคำขอแก้ไขคะแนน</a>
 <a href="ch09.html"><span class="chip">บทที่ 9</span>การสอบและคะแนนสอบ</a>
-<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็คชื่อเข้าเรียน</a>
+<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็กชื่อเข้าเรียน</a>
 <a href="ch11.html"><span class="chip">บทที่ 11</span>ระบบคิวตรวจงาน</a>
-<a href="ch12.html"><span class="chip">บทที่ 12</span>การจับคู่จอแสดงผลหน้าห้อง</a>
 <a href="ch13.html"><span class="chip">บทที่ 13</span>การติดตามผลงานทีมและบันทึกกิจกรรม</a>
 <a href="ch14.html"><span class="chip">บทที่ 14</span>การตั้งค่ารายวิชา</a>
 </details>
@@ -54,68 +53,106 @@
 <details class="side-group"><summary>นักศึกษา</summary>
 <a href="ch19.html"><span class="chip">บทที่ 19</span>การใช้งานสำหรับนักศึกษา (Student)</a>
 </details>
-<details class="side-group"><summary>ภาคผนวก</summary>
-<a href="app-a.html"><span class="chip">ภาคผนวก ก</span>สิทธิ์รายวิชาทั้งหมด (39 สิทธิ์)</a>
-<a href="app-b.html"><span class="chip">ภาคผนวก ข</span>ฟังก์ชันที่เพิ่มหลังคู่มือฉบับสอบจบ</a>
-<a href="app-c.html"><span class="chip">ภาคผนวก ค</span>การกระทำที่ต้องยืนยันตัวตนสองชั้นซ้ำ (Step-up 2FA)</a>
-<a href="app-d.html"><span class="chip">ภาคผนวก ง</span>สรุปเมนูหลักตามบทบาท</a>
-</details>
-    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">LabTAS v1.2.90</span></div>
+    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">COCO LABS Docs</span></div>
   </aside>
   <main class="main">
-    <div class="crumb"><a href="index.html">คู่มือ LabTAS</a> <span>/</span> เริ่มต้นใช้งาน <span>/</span> บทที่ 2</div>
+    <div class="crumb"><a href="index.html">คู่มือ COCO LABS</a> <span>/</span> เริ่มต้นใช้งาน <span>/</span> บทที่ 2</div>
     <div class="page-label">บทที่ 2</div><h1>บัญชีผู้ใช้และความปลอดภัย (ทุกบทบาท)</h1>
-    <article class="doc"><p>เนื้อหาบทนี้ใช้ได้กับผู้ดูแลระบบ อาจารย์ และผู้ช่วยสอนทุกคน เนื่องจากหน้าตั้งค่าบัญชีเป็นหน้าเดียวกันทุกบทบาท</p>
+    <article class="doc"><p>เนื้อหาบทนี้ใช้ได้กับผู้ดูแลระบบ อาจารย์ และผู้ช่วยสอนทุกคน เนื่องจากหน้าตั้งค่าบัญชีเป็นหน้าเดียวกันทุกบทบาท ส่วนการเข้าสู่ระบบของนักศึกษาก็ใช้หลักการเดียวกัน เพียงแต่แยกหน้าเข้าสู่ระบบต่างหาก</p>
+
 <h2 id="sec-2-1">2.1 การเข้าสู่ระบบ<a class="hlink" href="#sec-2-1">#</a></h2>
-<ol class="steps">
-<li>เปิดเว็บเบราว์เซอร์ไปที่ที่อยู่เว็บของระบบ ระบบจะแสดงหน้าเข้าสู่ระบบ</li>
-<li>กรอก <strong>ชื่อผู้ใช้</strong> ในช่องแรก</li>
-<li>กรอก <strong>รหัสผ่าน</strong> ในช่องถัดมา</li>
-<li>คลิกปุ่ม <strong>เข้าสู่ระบบ</strong> หรือเลือกเข้าสู่ระบบผ่านบัญชี <strong>Google / GitHub</strong> ที่ผูกไว้ (นักศึกษาใช้ปุ่ม "ล็อกอินนักศึกษา" ที่มุมขวาบน)</li>
-</ol>
-<figure><img src="img/instructor_login.png" alt="ภาพที่ 2.1 หน้าเข้าสู่ระบบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.1 หน้าเข้าสู่ระบบ</figcaption></figure>
-<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>ผู้ใช้ที่ผู้ดูแลระบบสร้างให้ใหม่จะได้รับรหัสผ่านชั่วคราว เมื่อเข้าสู่ระบบครั้งแรกระบบจะบังคับให้เปลี่ยนรหัสผ่านก่อนใช้งาน และหากลืมรหัสผ่านสามารถกด "ลืมรหัสผ่าน?" เพื่อรับลิงก์รีเซ็ตทางอีเมลได้</p></div>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> เข้าสู่ระบบด้วยช่องทางที่ถูกต้องของบทบาทและโดเมนที่ท่านใช้งานอยู่</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>เปิดเว็บเบราว์เซอร์ไปที่โดเมนหลักของระบบ ระบบจะแสดงหน้าเข้าสู่ระบบ</li>
+<li>คลิกปุ่ม <b>KKU SSO</b> ซึ่งเป็นปุ่มหลักที่แสดงอยู่บนสุด เพื่อเข้าสู่ระบบด้วยบัญชี KKU Mail ผ่านระบบยืนยันตัวตนกลางของมหาวิทยาลัย (ใช้ช่องทางเดียวกันทุกบทบาท)</li>
+<li>(นักศึกษา) ใช้ปุ่ม <b>ล็อกอินนักศึกษา</b> ที่มุมขวาบนของหน้าแรกเพื่อไปยังหน้าเข้าสู่ระบบฝั่งนักศึกษาโดยตรง ซึ่งมีปุ่ม KKU SSO เป็นปุ่มหลักเช่นเดียวกัน</li>
+</ol></div>
+<figure><img src="img/ch02_fig01_login-kku-sso-primary.png" alt="ภาพที่ 2.1 หน้าเข้าสู่ระบบ ปุ่ม KKU SSO เป็นปุ่มหลัก" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.1 หน้าเข้าสู่ระบบบนโดเมนหลัก ปุ่ม KKU SSO เป็นปุ่มหลัก</figcaption></figure>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>คู่มือฉบับก่อนหน้าระบุว่าปุ่ม Google หรือ GitHub เป็นช่องทางหลัก ปัจจุบันไม่ใช่แล้ว KKU SSO เป็นช่องทางหลักของทุกบทบาทตามประกาศของคณะ ส่วน Google เหลือเป็นทางเลือกสำรองเท่านั้น (ดูข้อ 2.1.1) และ GitHub ปิดใช้งานเป็นค่าเริ่มต้น</p></div>
+
+<h3 id="sec-2-1-1">2.1.1 เมื่อ KKU SSO ใช้ไม่ได้ชั่วคราว<a class="hlink" href="#sec-2-1-1">#</a></h3>
+<p>ระหว่างที่สำนักเทคโนโลยีดิจิทัลของมหาวิทยาลัยยังปรับปรุงข้อมูลบัญชีให้ครบทุกคน บางบัญชีอาจยังเข้าสู่ระบบผ่าน KKU SSO ไม่ได้ ระบบจึงเปิดปุ่ม Google ไว้เป็นทางสำรองชั่วคราวบนโดเมนหลักด้วย</p>
+<figure><img src="img/ch02_fig03_login-backup-domain.png" alt="ภาพที่ 2.1.1 ปุ่ม Google สำรองที่แสดงคู่กับ KKU SSO" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.1.1 ปุ่ม Google เป็นทางสำรอง แสดงอยู่ใต้ปุ่ม KKU SSO<br><span class="ph-note">ภาพชั่วคราว ยืมจากภาพหน้าล็อกอินโดเมนสำรอง รอถ่ายภาพจริงจากโดเมนหลัก</span></figcaption></figure>
+<div class="cx tip"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 00-3 9v1.5a1 1 0 001 1h4a1 1 0 001-1V10a5 5 0 00-3-9zM6 14h4v1H6z"/></svg>คำแนะนำ</div><p>ปุ่ม Google สำรองนี้เป็นมาตรการชั่วคราวระหว่างรอสำนักฯ ปรับปรุงข้อมูล เมื่อข้อมูลครบแล้วปุ่มนี้จะถูกถอดออก กรุณาใช้ KKU SSO เป็นหลักเสมอเมื่อเข้าสู่ระบบได้ตามปกติ</p></div>
+<p>หากเข้าถึงโดเมนหลักของมหาวิทยาลัยไม่ได้เลย ระบบมีโดเมนสำรอง <code>cocolab.osp101.com</code> ให้ใช้แทน โดเมนสำรองนี้ใช้ <b>Google เป็นช่องทางหลัก</b> ไม่ใช่ KKU SSO เนื่องจาก Redirect URL ของ KKU SSO ที่ลงทะเบียนไว้กับสำนักฯ ผูกกับโดเมนหลักเท่านั้น</p>
+<figure><img src="img/ch02_fig03_login-backup-domain.png" alt="ภาพที่ 2.1.2 หน้าเข้าสู่ระบบบนโดเมนสำรอง" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.1.2 หน้าเข้าสู่ระบบบนโดเมนสำรอง cocolab.osp101.com ใช้ Google เป็นช่องทางหลัก</figcaption></figure>
+
 <h2 id="sec-2-2">2.2 ข้อมูลส่วนตัวและรูปโปรไฟล์<a class="hlink" href="#sec-2-2">#</a></h2>
-<p>เข้าหน้าตั้งค่าบัญชีโดยคลิกรูปโปรไฟล์ที่มุมขวาบน แล้วเลือก <strong>ตั้งค่าโปรไฟล์</strong></p>
-<ol class="steps">
-<li>เมนูด้านซ้ายแบ่งเป็น 4 ส่วน ได้แก่ ข้อมูลส่วนตัว การยืนยันตัวตน อุปกรณ์ที่เข้าสู่ระบบ และการแสดงผลและภาษา</li>
-<li>ปุ่ม <strong>อัปโหลดรูปใหม่</strong> ใช้เปลี่ยนรูปโปรไฟล์ (JPG/PNG/GIF ไม่เกิน 5MB)</li>
-<li>แก้ไข <strong>ชื่อ-นามสกุลและอีเมล</strong> แล้วกดบันทึกการเปลี่ยนแปลง (ชื่อผู้ใช้ Username แก้ไขไม่ได้)</li>
-</ol>
-<figure><img src="img/instructor_account_01_profile.png" alt="ภาพที่ 2.2 หน้าข้อมูลส่วนตัว" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.2 หน้าข้อมูลส่วนตัว</figcaption></figure>
-<h2 id="sec-2-3">2.3 รหัสผ่าน การยืนยันตัวตนสองชั้น และการเชื่อมบัญชี<a class="hlink" href="#sec-2-3">#</a></h2>
-<p>ที่เมนู <strong>การยืนยันตัวตน</strong></p>
-<ol class="steps">
-<li>ปุ่ม <strong>เปลี่ยนรหัสผ่าน</strong> ใช้เปลี่ยนรหัสผ่านของบัญชี</li>
-<li>ปุ่ม <strong>ตั้งค่า 2FA</strong> ใช้เปิดการยืนยันตัวตนสองขั้นตอน รองรับทั้งแอป Authenticator (TOTP) และรหัสทางอีเมล พร้อมรหัสสำรอง (backup codes) สำหรับกรณีฉุกเฉิน เมื่อเปิดใช้แล้ว การเข้าสู่ระบบทุกครั้งต้องยืนยันรหัสเพิ่ม</li>
-<li>ส่วน <strong>เชื่อมต่อบัญชี</strong> ใช้เชื่อมหรือยกเลิกการเชื่อมบัญชี Google และ GitHub เพื่อเข้าสู่ระบบได้โดยไม่ต้องกรอกรหัสผ่าน</li>
-</ol>
-<figure><img src="img/instructor_account_02_security.png" alt="ภาพที่ 2.3 หน้าความปลอดภัยและการยืนยันตัวตน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.3 หน้าความปลอดภัยและการยืนยันตัวตน</figcaption></figure>
-<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>สำหรับผู้ดูแลระบบ การเปิด 2FA มีความจำเป็นเป็นพิเศษ เพราะการดำเนินงานสำคัญของระบบ (สำรอง/กู้คืนข้อมูล รีสตาร์ท โหมดบำรุงรักษา ฯลฯ) ต้องยืนยันรหัส 2FA ซ้ำทุกครั้ง หากยังไม่เปิด 2FA จะไม่สามารถทำรายการเหล่านั้นได้</p></div>
-<h2 id="sec-2-4">2.4 อุปกรณ์และเซสชันที่เข้าสู่ระบบ<a class="hlink" href="#sec-2-4">#</a></h2>
-<p>ที่เมนู <strong>อุปกรณ์ที่เข้าสู่ระบบ</strong> ระบบแสดงทุกอุปกรณ์และเบราว์เซอร์ที่บัญชีนี้เข้าสู่ระบบค้างไว้</p>
-<ol class="steps">
-<li>แต่ละรายการแสดง <strong>ระบบปฏิบัติการ เบราว์เซอร์ IP และเวลาเข้าสู่ระบบ</strong> โดยเซสชันที่ใช้อยู่ปัจจุบันมีป้ายกำกับ "เซสชันปัจจุบัน"</li>
-<li>ปุ่ม <strong>ออกจากระบบทั้งหมด</strong> ใช้บังคับออกจากระบบทุกอุปกรณ์พร้อมกัน</li>
-<li>ไอคอนท้ายแต่ละรายการใช้ <strong>เพิกถอนเซสชันรายอุปกรณ์</strong> เมื่อพบอุปกรณ์ที่ไม่รู้จักหรือเลิกใช้แล้ว</li>
-</ol>
-<figure><img src="img/common_sessions_01.png" alt="ภาพที่ 2.4 หน้าอุปกรณ์และเซสชันที่เข้าสู่ระบบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.4 หน้าอุปกรณ์และเซสชันที่เข้าสู่ระบบ</figcaption></figure>
-<h2 id="sec-2-5">2.5 การแสดงผลและภาษา<a class="hlink" href="#sec-2-5">#</a></h2>
-<p>ที่เมนู <strong>การแสดงผลและภาษา</strong> ปรับ <strong>ธีม</strong> (ตามระบบ/สว่าง/มืด) <strong>ภาษา</strong> (ไทย/อังกฤษ) และ <strong>ขนาดฟอนต์</strong> (เล็ก/กลาง/ใหญ่) ได้ตามความถนัด ระบบบันทึกการตั้งค่าเข้ากับบัญชีโดยอัตโนมัติ</p>
-<figure><img src="img/instructor_account_03_prefs.png" alt="ภาพที่ 2.5 หน้าการแสดงผลและภาษา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.5 หน้าการแสดงผลและภาษา</figcaption></figure>
-<h2 id="sec-2-6">2.6 การแจ้งเตือน<a class="hlink" href="#sec-2-6">#</a></h2>
-<p>คลิกไอคอน <strong>กระดิ่ง</strong> ที่มุมขวาบนของทุกหน้า เพื่อเปิดกล่องการแจ้งเตือน</p>
-<ol class="steps">
-<li>ปุ่ม <strong>อ่านทั้งหมด</strong> ทำเครื่องหมายอ่านทุกรายการ และ <strong>ลบที่อ่านแล้ว</strong> ใช้เคลียร์รายการ</li>
-<li>แท็บ <strong>ทั้งหมด / ยังไม่ได้อ่าน</strong> ใช้กรองรายการ</li>
-<li>ประเภทการแจ้งเตือนครอบคลุม งาน การเช็คชื่อ คิว การแก้คะแนน และประกาศจากผู้ดูแลระบบ นอกจากนี้ระบบยังรองรับ <strong>Push Notification</strong> ที่แจ้งเตือนถึงอุปกรณ์แม้ไม่ได้เปิดหน้าเว็บอยู่ (ใช้ปลุกผู้ช่วยสอนเมื่อมีคิวใหม่ โดยระบบจะขออนุญาตเมื่อเริ่มรับงาน)</li>
-</ol>
-<figure><img src="img/instructor_noti_01.png" alt="ภาพที่ 2.6 กล่องการแจ้งเตือน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.6 กล่องการแจ้งเตือน</figcaption></figure>
-<h2 id="sec-2-7">2.7 ศูนย์ช่วยเหลือ<a class="hlink" href="#sec-2-7">#</a></h2>
-<p>หน้า <strong>ศูนย์ช่วยเหลือ</strong> (ลิงก์ท้ายทุกหน้า) รวมคู่มือการใช้งาน คำถามที่พบบ่อย การตรวจสอบสถานะระบบ ช่องทางติดต่อทีมสนับสนุน และการแจ้งปัญหาความปลอดภัยไว้ในที่เดียว ผู้ใช้ทุกบทบาทรวมถึงบุคคลทั่วไปสามารถส่งคำขอสนับสนุนได้</p>
-<figure><img src="img/instructor_support_01.png" alt="ภาพที่ 2.7 หน้าศูนย์ช่วยเหลือ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.7 หน้าศูนย์ช่วยเหลือ</figcaption></figure><div class="pn"><a class="pn-card" href="ch01.html"><span>← ก่อนหน้า</span><strong>บทที่ 1 บทนำ</strong></a><a class="pn-card next" href="ch03.html"><span>ถัดไป →</span><strong>บทที่ 3 การใช้งานสำหรับผู้ดูแลระบบ (Admin)</strong></a></div></article>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> แก้ไขข้อมูลส่วนตัวและรูปโปรไฟล์ของบัญชี</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิกรูปโปรไฟล์ที่มุมขวาบนของทุกหน้า แล้วเลือก <b>ตั้งค่าโปรไฟล์</b></li>
+<li>คลิกปุ่ม <b>อัปโหลดรูปใหม่</b> เพื่อเปลี่ยนรูปโปรไฟล์ (รองรับ JPG, PNG, GIF ขนาดไม่เกิน 5MB)</li>
+<li>แก้ไข <b>ชื่อ-นามสกุลและอีเมล</b> แล้วกด <b>บันทึกการเปลี่ยนแปลง</b> (ชื่อผู้ใช้ Username แก้ไขไม่ได้)</li>
+</ol></div>
+<figure><img src="img/ch02_fig04_account-menu-sidebar.png" alt="ภาพที่ 2.2 เมนูซ้ายหน้าบัญชี 4 ส่วน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.2 เมนูซ้ายของหน้าบัญชี แบ่งเป็นข้อมูลส่วนตัว การยืนยันตัวตน เซสชัน และการแสดงผล</figcaption></figure>
+<figure><img src="img/ch02_fig05_account-profile-edit.png" alt="ภาพที่ 2.3 หน้าแก้ไขข้อมูลส่วนตัว" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.3 หน้าแก้ไขข้อมูลส่วนตัวและรูปโปรไฟล์</figcaption></figure>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>ไฟล์รูปที่เกินขนาดหรือผิดชนิดจะถูกปฏิเสธพร้อมข้อความแจ้งเตือน กรุณาตรวจสอบขนาดไฟล์ก่อนอัปโหลด</p></div>
+<figure><img src="img/ch02_fig06_account-avatar-upload-limit.png" alt="ภาพที่ 2.4 ข้อความแจ้งข้อจำกัดไฟล์รูป" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.4 ข้อความแจ้งข้อจำกัดไฟล์รูปเมื่ออัปโหลดไฟล์ที่ไม่รองรับ</figcaption></figure>
+
+<h2 id="sec-2-3">2.3 การยืนยันตัวตนสองชั้น (2FA)<a class="hlink" href="#sec-2-3">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> เปิดใช้การยืนยันตัวตนสองชั้นเพื่อเพิ่มความปลอดภัยของบัญชี</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>ที่เมนู <b>การยืนยันตัวตน</b> คลิกปุ่ม <b>ตั้งค่า 2FA</b></li>
+<li>เลือกวิธียืนยัน ระหว่างแอป Authenticator (TOTP) หรือรหัสทางอีเมล</li>
+<li>หากเลือกแอป Authenticator ให้สแกน QR ที่ปรากฏด้วยแอปยืนยันตัวตนของท่าน แล้วกรอกรหัส 6 หลักที่แอปสร้างขึ้นเพื่อยืนยัน</li>
+<li>บันทึก <b>รหัสสำรอง (Backup Codes)</b> ที่ระบบสร้างให้ไว้ในที่ปลอดภัย ใช้แทน 2FA ได้กรณีทำอุปกรณ์ยืนยันตัวตนหาย</li>
+</ol></div>
+<figure><img src="img/ch02_fig07_auth-2fa-setup-start.png" alt="ภาพที่ 2.5 เริ่มตั้งค่า 2FA เลือกวิธี" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.5 เริ่มตั้งค่า 2FA เลือกระหว่างแอป Authenticator หรืออีเมล</figcaption></figure>
+<figure><img src="img/ch02_fig08_auth-2fa-totp-scan.png" alt="ภาพที่ 2.6 สแกน QR ตั้งค่า TOTP" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.6 สแกน QR เพื่อตั้งค่ากับแอป Authenticator</figcaption></figure>
+<figure><img src="img/ch02_fig09_auth-2fa-backup-codes.png" alt="ภาพที่ 2.7 รายการรหัสสำรอง" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.7 รายการรหัสสำรองหลังตั้งค่า 2FA เสร็จ</figcaption></figure>
+<div class="see-block"><div class="see-label">องค์ประกอบเพิ่มเติมในหน้านี้</div><dl class="see">
+<div><dt>ปุ่มสร้างรหัสสำรองใหม่</dt><dd>ใช้เมื่อรหัสสำรองชุดเดิมถูกใช้ไปมากแล้วหรือทำหาย ระบบจะยกเลิกชุดเดิมทันทีที่สร้างชุดใหม่</dd></div>
+</dl></div>
+<figure><img src="img/ch02_fig10_auth-2fa-regenerate.png" alt="ภาพที่ 2.8 ปุ่มสร้างรหัสสำรองชุดใหม่" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.8 ปุ่มสร้างรหัสสำรองชุดใหม่</figcaption></figure>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>สำหรับผู้ดูแลระบบ การเปิด 2FA จำเป็นเป็นพิเศษ เพราะการดำเนินงานสำคัญของระบบ (สำรอง/กู้คืนข้อมูล แก้ไข Feature Flags ล้างบันทึกระบบ) ต้องยืนยันรหัส 2FA ซ้ำทุกครั้งตามหลักการ Step-up 2FA หากยังไม่เปิด 2FA จะทำรายการเหล่านั้นไม่ได้เลย ดูตัวอย่างในข้อ 2.9</p></div>
+
+<h2 id="sec-2-4">2.4 การเชื่อมต่อบัญชี<a class="hlink" href="#sec-2-4">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ผูกหรือยกเลิกการผูกบัญชีภายนอกเข้ากับบัญชีนี้ เพื่อเข้าสู่ระบบได้โดยไม่ต้องกรอกรหัสผ่าน</p>
+<p>ที่เมนู <b>การยืนยันตัวตน</b> ส่วน <b>เชื่อมต่อบัญชี</b> แสดงผู้ให้บริการทั้ง 4 ราย</p>
+<figure><img src="img/ch02_fig11_auth-connect-providers-list.png" alt="ภาพที่ 2.9 ส่วนเชื่อมต่อบัญชี แสดงครบ 4 ผู้ให้บริการ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.9 ส่วนเชื่อมต่อบัญชี แสดงครบ 4 ผู้ให้บริการ</figcaption></figure>
+<div class="see-block"><div class="see-label">สถานะของผู้ให้บริการแต่ละราย</div><dl class="see">
+<div><dt>KKU SSO</dt><dd>เชื่อมต่อได้ตามปกติ เป็นช่องทางหลักของระบบ</dd></div>
+<div><dt>Google</dt><dd>เชื่อมต่อได้ ใช้เป็นทางสำรองตามที่อธิบายในข้อ 2.1.1</dd></div>
+<div><dt>GitHub</dt><dd>ปิดใช้งานเป็นค่าเริ่มต้น ปุ่มเชื่อมต่อจะแสดงป้าย "ปิดใช้งาน" แทน</dd></div>
+<div><dt>Apple</dt><dd>ยังไม่เปิดให้ใช้งาน ปุ่มแสดงป้าย "กำลังพัฒนา"</dd></div>
+</dl></div>
+<figure><img src="img/ch02_fig12_auth-connect-kku-linked.png" alt="ภาพที่ 2.10 สถานะ KKU SSO ที่เชื่อมต่อแล้ว" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.10 สถานะ KKU SSO ที่เชื่อมต่อแล้ว</figcaption></figure>
+<figure><img src="img/ch02_fig13_auth-connect-github-disabled.png" alt="ภาพที่ 2.11 ป้ายปิดใช้งานบนปุ่มเชื่อม GitHub" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.11 ป้าย "ปิดใช้งาน" บนปุ่มเชื่อม GitHub</figcaption></figure>
+<figure><img src="img/ch02_fig14_auth-connect-apple-comingsoon.png" alt="ภาพที่ 2.12 ป้ายกำลังพัฒนาบนปุ่มเชื่อม Apple" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.12 ป้าย "กำลังพัฒนา" บนปุ่มเชื่อม Apple</figcaption></figure>
+
+<h2 id="sec-2-5">2.5 อุปกรณ์และเซสชันที่เข้าสู่ระบบ<a class="hlink" href="#sec-2-5">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ตรวจสอบอุปกรณ์ที่บัญชีนี้กำลังเข้าสู่ระบบอยู่ และเพิกถอนอุปกรณ์ที่ไม่รู้จัก</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>ที่เมนู <b>อุปกรณ์ที่เข้าสู่ระบบ</b> ตรวจสอบรายการทั้งหมด หากพบอุปกรณ์ที่ไม่รู้จัก ให้คลิกไอคอนท้ายแถวเพื่อ <b>เพิกถอนเซสชัน</b> รายอุปกรณ์นั้น</li>
+<li>หากไม่แน่ใจว่ามีอุปกรณ์ใดหลุดออกไปบ้าง คลิกปุ่ม <b>ออกจากระบบทั้งหมด</b> เพื่อบังคับออกจากระบบทุกอุปกรณ์พร้อมกัน แล้วเข้าสู่ระบบใหม่เฉพาะอุปกรณ์ที่ใช้จริง</li>
+</ol></div>
+<div class="see-block"><div class="see-label">องค์ประกอบบนหน้านี้</div><dl class="see">
+<div><dt>รายละเอียดต่อรายการ</dt><dd>ระบบปฏิบัติการ เบราว์เซอร์ IP และเวลาเข้าสู่ระบบ</dd></div>
+<div><dt>ป้าย "เซสชันปัจจุบัน"</dt><dd>กำกับเซสชันของอุปกรณ์ที่ท่านกำลังใช้ดูหน้านี้อยู่</dd></div>
+</dl></div>
+<figure><img src="img/ch02_fig15_sessions-list.png" alt="ภาพที่ 2.13 หน้าเซสชันที่ใช้งานอยู่" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.13 หน้าเซสชันที่ใช้งานอยู่ พร้อมป้าย "เซสชันปัจจุบัน"</figcaption></figure>
+<figure><img src="img/ch02_fig16_sessions-logout-all.png" alt="ภาพที่ 2.14 ปุ่มออกจากระบบทั้งหมดและกล่องยืนยัน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.14 ปุ่ม "ออกจากระบบทั้งหมด" พร้อมกล่องยืนยันก่อนดำเนินการ</figcaption></figure>
+
+<h2 id="sec-2-6">2.6 การแสดงผลและภาษา<a class="hlink" href="#sec-2-6">#</a></h2>
+<p>ที่เมนู <b>การแสดงผลและภาษา</b> ปรับ <b>ธีม</b> (ตามระบบ/สว่าง/มืด) <b>ภาษา</b> (ไทย/อังกฤษ) และ <b>ขนาดฟอนต์</b> (เล็ก/กลาง/ใหญ่) ได้ตามความถนัด ระบบบันทึกการตั้งค่าเข้ากับบัญชีโดยอัตโนมัติ</p>
+<figure><img src="img/ch02_fig17_account-preferences.png" alt="ภาพที่ 2.15 หน้าการแสดงผลและภาษา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.15 หน้าการแสดงผลและภาษา</figcaption></figure>
+
+<h2 id="sec-2-7">2.7 การแจ้งเตือน<a class="hlink" href="#sec-2-7">#</a></h2>
+<p>คลิกไอคอน <b>กระดิ่ง</b> ที่มุมขวาบนของทุกหน้า เพื่อเปิดกล่องการแจ้งเตือน ปุ่ม <b>อ่านทั้งหมด</b> ทำเครื่องหมายอ่านทุกรายการ และ <b>ลบที่อ่านแล้ว</b> ใช้เคลียร์รายการ แท็บ <b>ทั้งหมด / ยังไม่ได้อ่าน</b> ใช้กรองรายการ ประเภทการแจ้งเตือนครอบคลุมงาน การเช็กชื่อ คิว การแก้คะแนน และประกาศจากผู้ดูแลระบบ นอกจากนี้ระบบยังรองรับ <b>Push Notification</b> ที่แจ้งเตือนถึงอุปกรณ์แม้ไม่ได้เปิดหน้าเว็บอยู่ (ใช้ปลุกผู้ช่วยสอนเมื่อมีคิวใหม่ โดยระบบจะขออนุญาตเมื่อเริ่มรับงาน)</p>
+<figure><img src="img/instructor_noti_01.png" alt="ภาพที่ 2.16 กล่องการแจ้งเตือน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.16 กล่องการแจ้งเตือน</figcaption></figure>
+
+<h2 id="sec-2-8">2.8 ศูนย์ช่วยเหลือ<a class="hlink" href="#sec-2-8">#</a></h2>
+<p>หน้า <b>ศูนย์ช่วยเหลือ</b> (ลิงก์ท้ายทุกหน้า) รวมคู่มือการใช้งาน คำถามที่พบบ่อย การตรวจสอบสถานะระบบ ช่องทางติดต่อทีมสนับสนุน และการแจ้งปัญหาความปลอดภัยไว้ในที่เดียว ผู้ใช้ทุกบทบาทรวมถึงบุคคลทั่วไปส่งคำขอสนับสนุนได้</p>
+<figure><img src="img/ch02_fig18_support-page.png" alt="ภาพที่ 2.17 หน้าศูนย์ช่วยเหลือ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.17 หน้าศูนย์ช่วยเหลือ</figcaption></figure>
+
+<h2 id="sec-2-9">2.9 ตัวอย่างการยืนยันตัวตนซ้ำ (Step-up 2FA)<a class="hlink" href="#sec-2-9">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> เข้าใจว่าทำไมบางรายการของผู้ดูแลระบบจึงขอรหัส 2FA ซ้ำ แม้เข้าสู่ระบบอยู่แล้ว</p>
+<p>การกระทำสำคัญของผู้ดูแลระบบ เช่น การสั่งสำรองข้อมูลทันที การกู้คืนฐานข้อมูล การแก้ไข Feature Flags และการล้างบันทึกระบบ ต้องยืนยันรหัส 2FA ซ้ำอีกครั้งก่อนดำเนินการเสมอ เรียกว่า Step-up 2FA แม้ผู้ดูแลระบบจะเข้าสู่ระบบค้างไว้อยู่แล้วก็ตาม เป็นมาตรการป้องกันกรณีมีผู้ไม่หวังดีเข้าถึงเซสชันที่เปิดค้างไว้</p>
+<figure><img src="img/ch02_fig19_stepup-2fa-prompt.png" alt="ภาพที่ 2.18 กล่องขอยืนยัน 2FA ซ้ำก่อนทำรายการสำคัญ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 2.18 ตัวอย่างกล่องขอยืนยัน 2FA ซ้ำก่อนทำรายการสำคัญ</figcaption></figure>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>รายการที่บังคับ Step-up 2FA ในระบบขณะนี้ยังไม่ครอบคลุมทุกจุดที่ควรมี (เช่น การรีสตาร์ทบริการยังไม่ได้ผูกกับกลไกนี้ในบางเส้นทาง) ทีมพัฒนากำลังตรวจสอบให้ครบถ้วน หากพบว่าขั้นตอนสำคัญใดไม่ขอยืนยันซ้ำตามที่คาดไว้ ให้แจ้งผู้ดูแลระบบ</p></div>
+<div class="pn"><a class="pn-card" href="ch01.html"><span>← ก่อนหน้า</span><strong>บทที่ 1 บทนำ</strong></a><a class="pn-card next" href="ch03.html"><span>ถัดไป →</span><strong>บทที่ 3 การใช้งานสำหรับผู้ดูแลระบบ (Admin)</strong></a></div></article>
   </main>
-  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-2-1">2.1 การเข้าสู่ระบบ</a><a href="#sec-2-2">2.2 ข้อมูลส่วนตัวและรูปโปรไฟล์</a><a href="#sec-2-3">2.3 รหัสผ่าน การยืนยันตัวตนสองชั้น และการเชื่อมบัญชี</a><a href="#sec-2-4">2.4 อุปกรณ์และเซสชันที่เข้าสู่ระบบ</a><a href="#sec-2-5">2.5 การแสดงผลและภาษา</a><a href="#sec-2-6">2.6 การแจ้งเตือน</a><a href="#sec-2-7">2.7 ศูนย์ช่วยเหลือ</a></nav>
+  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-2-1">2.1 การเข้าสู่ระบบ</a><a href="#sec-2-2">2.2 ข้อมูลส่วนตัวและรูปโปรไฟล์</a><a href="#sec-2-3">2.3 การยืนยันตัวตนสองชั้น (2FA)</a><a href="#sec-2-4">2.4 การเชื่อมต่อบัญชี</a><a href="#sec-2-5">2.5 อุปกรณ์และเซสชันที่เข้าสู่ระบบ</a><a href="#sec-2-6">2.6 การแสดงผลและภาษา</a><a href="#sec-2-7">2.7 การแจ้งเตือน</a><a href="#sec-2-8">2.8 ศูนย์ช่วยเหลือ</a><a href="#sec-2-9">2.9 ตัวอย่าง Step-up 2FA</a></nav>
 </div>
 <div id="lb" class="lb" onclick="this.classList.remove('on')"><img></div>
 <script src="assets/search-index.js"></script>

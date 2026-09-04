@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>บทที่ 17 การให้คะแนนและการขอแก้ไขคะแนน — คู่มือ LabTAS</title>
+<title>บทที่ 17 การให้คะแนนและการขอแก้ไขคะแนน — คู่มือ COCO LABS</title>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -12,7 +12,7 @@
   <button class="burger" onclick="document.body.classList.toggle('nav-open')" aria-label="เมนู">
     <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3h14v2H1zm0 4h14v2H1zm0 4h14v2H1z"/></svg>
   </button>
-  <a class="brand" href="index.html"><span class="logo">L</span> LabTAS <span class="muted">Docs</span></a>
+  <a class="brand" href="index.html"><span class="logo">C</span> COCO LABS <span class="muted">Docs</span></a>
   <div class="search">
     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.7 10.3a6 6 0 10-1.4 1.4l3 3 1.4-1.4-3-3zM2 6.5a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0z"/></svg>
     <input id="q" type="search" placeholder="ค้นหาในคู่มือ… " autocomplete="off">
@@ -39,9 +39,8 @@
 <a href="ch07.html"><span class="chip">บทที่ 7</span>งานมอบหมายและการให้คะแนน</a>
 <a href="ch08.html"><span class="chip">บทที่ 8</span>การอนุมัติคำขอแก้ไขคะแนน</a>
 <a href="ch09.html"><span class="chip">บทที่ 9</span>การสอบและคะแนนสอบ</a>
-<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็คชื่อเข้าเรียน</a>
+<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็กชื่อเข้าเรียน</a>
 <a href="ch11.html"><span class="chip">บทที่ 11</span>ระบบคิวตรวจงาน</a>
-<a href="ch12.html"><span class="chip">บทที่ 12</span>การจับคู่จอแสดงผลหน้าห้อง</a>
 <a href="ch13.html"><span class="chip">บทที่ 13</span>การติดตามผลงานทีมและบันทึกกิจกรรม</a>
 <a href="ch14.html"><span class="chip">บทที่ 14</span>การตั้งค่ารายวิชา</a>
 </details>
@@ -54,32 +53,53 @@
 <details class="side-group"><summary>นักศึกษา</summary>
 <a href="ch19.html"><span class="chip">บทที่ 19</span>การใช้งานสำหรับนักศึกษา (Student)</a>
 </details>
-<details class="side-group"><summary>ภาคผนวก</summary>
-<a href="app-a.html"><span class="chip">ภาคผนวก ก</span>สิทธิ์รายวิชาทั้งหมด (39 สิทธิ์)</a>
-<a href="app-b.html"><span class="chip">ภาคผนวก ข</span>ฟังก์ชันที่เพิ่มหลังคู่มือฉบับสอบจบ</a>
-<a href="app-c.html"><span class="chip">ภาคผนวก ค</span>การกระทำที่ต้องยืนยันตัวตนสองชั้นซ้ำ (Step-up 2FA)</a>
-<a href="app-d.html"><span class="chip">ภาคผนวก ง</span>สรุปเมนูหลักตามบทบาท</a>
-</details>
-    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">LabTAS v1.2.90</span></div>
+    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">COCO LABS Docs</span></div>
   </aside>
   <main class="main">
-    <div class="crumb"><a href="index.html">คู่มือ LabTAS</a> <span>/</span> ผู้ช่วยสอน <span>/</span> บทที่ 17</div>
+    <div class="crumb"><a href="index.html">คู่มือ COCO LABS</a> <span>/</span> ผู้ช่วยสอน <span>/</span> บทที่ 17</div>
     <div class="page-label">บทที่ 17</div><h1>การให้คะแนนและการขอแก้ไขคะแนน</h1>
-    <article class="doc"><h2 id="sec-17-1">17.1 การให้คะแนน<a class="hlink" href="#sec-17-1">#</a></h2>
-<p>หากได้รับสิทธิ์ให้คะแนน ผู้ช่วยสอนสามารถบันทึกคะแนนได้ที่เมนู <strong>จัดการงานและคะแนน &gt; คะแนนในชั้นเรียน</strong></p>
-<ol class="steps">
-<li>เลือกประเภทงานจากแท็บด้านบน (Laboratory / Assignment / งานกลุ่ม) ระบบจะแสดง <strong>ตารางคะแนนรวม</strong> ของนักศึกษาทุกคน พร้อมค่าเฉลี่ยของแต่ละข้อ</li>
-<li>คลิกที่ <strong>ช่องคะแนน</strong> ของนักศึกษาแต่ละคน ช่องจะเปลี่ยนเป็นแบบแก้ไขได้ ให้พิมพ์คะแนนแล้วระบบจะบันทึกให้</li>
-</ol>
-<figure><img src="img/ta_04_scores.png" alt="ภาพที่ 17.1 ตารางคะแนนในชั้นเรียน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 17.1 ตารางคะแนนในชั้นเรียน</figcaption></figure>
-<p>นอกจากการให้คะแนนรายบุคคลแล้ว ระบบยังรองรับการให้คะแนนแบบกลุ่มและแบบหลายคนพร้อมกัน ตลอดจนการค้นหานักศึกษาและดูรายการที่ยังไม่ได้ให้คะแนน เพื่อไม่ให้ตกหล่น</p>
-<h2 id="sec-17-2">17.2 การขอแก้ไขคะแนนและติดตามสถานะ<a class="hlink" href="#sec-17-2">#</a></h2>
-<p>หากต้องการแก้ไขคะแนนที่บันทึกไปแล้ว และท่านไม่มีสิทธิ์แก้ไขโดยตรง ระบบจะให้ <strong>ส่งคำขอแก้ไขคะแนน</strong> ไปยังอาจารย์เพื่อพิจารณาอนุมัติ โดยระบุคะแนนเดิม คะแนนใหม่ และเหตุผล (แนบรูปประกอบได้)</p>
-<p>ท่านสามารถติดตามสถานะคำขอของตนเองได้ที่เมนู <strong>อนุมัติคะแนน</strong> ซึ่งแบ่งเป็นแท็บ <strong>รออนุมัติ / อนุมัติแล้ว / ปฏิเสธ</strong></p>
-<figure><img src="img/ta_05_requeststatus.png" alt="ภาพที่ 17.2 การติดตามสถานะคำขอแก้ไขคะแนน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 17.2 การติดตามสถานะคำขอแก้ไขคะแนน</figcaption></figure>
-<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>การให้คะแนนและการขอแก้ไขคะแนนทุกครั้งจะถูกบันทึกในบันทึกกิจกรรมของรายวิชา และแสดงในสถิติผู้ช่วยสอน ซึ่งอาจารย์ใช้ติดตามและประเมินผลงานของผู้ช่วยสอนแต่ละคน</p></div><div class="pn"><a class="pn-card" href="ch16.html"><span>← ก่อนหน้า</span><strong>บทที่ 16 ระบบคิวและหน้ารับงาน (Worker)</strong></a><a class="pn-card next" href="ch18.html"><span>ถัดไป →</span><strong>บทที่ 18 งานอื่น ๆ ตามสิทธิ์ที่ได้รับ</strong></a></div></article>
+    <article class="doc"><h2 id="sec-17-1">17.1 การให้คะแนนในชั้นเรียน<a class="hlink" href="#sec-17-1">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> บันทึกคะแนนงานของนักศึกษาแต่ละคนผ่านตารางคะแนนรวม เมื่อได้รับสิทธิ์ให้คะแนน</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>เข้าเมนู <b>จัดการงานและคะแนน &gt; คะแนนในชั้นเรียน</b> (ปรากฏเฉพาะเมื่อได้รับสิทธิ์ให้คะแนน)</li>
+<li>เลือกประเภทงานจากแท็บด้านบน (Laboratory / Assignment / งานกลุ่ม) ระบบจะแสดง <b>ตารางคะแนนรวม</b> ของนักศึกษาทุกคน พร้อมค่าเฉลี่ยของแต่ละข้อ</li>
+<li>คลิกที่ <b>ช่องคะแนน</b> ของนักศึกษาแต่ละคน ช่องจะเปลี่ยนเป็นแบบแก้ไขได้ พิมพ์คะแนนแล้วระบบจะบันทึกให้ทันที</li>
+</ol></div>
+<figure><img src="img/ch17_fig01_ta-score-menu.png" alt="ภาพที่ 17.1 เมนูคะแนนในชั้นเรียนของผู้ช่วยสอน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 17.1 เมนูคะแนนในชั้นเรียนของผู้ช่วยสอน</figcaption></figure>
+<figure><img src="img/ch17_fig02_ta-score-cell-edit.png" alt="ภาพที่ 17.2 การแก้ไขคะแนนในช่องคะแนน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 17.2 คลิกช่องคะแนนเพื่อแก้ไข ระบบบันทึกให้ทันที</figcaption></figure>
+<div class="see-block"><div class="see-label">องค์ประกอบเพิ่มเติมในหน้านี้</div><dl class="see">
+<div><dt>การให้คะแนนแบบกลุ่ม/หลายคนพร้อมกัน</dt><dd>ให้คะแนนนักศึกษาทั้งกลุ่มในครั้งเดียว เมื่องานนั้นเป็นงานกลุ่ม</dd></div>
+<div><dt>ช่องค้นหานักศึกษา</dt><dd>กรองตารางเหลือเฉพาะรายชื่อที่ต้องการ</dd></div>
+<div><dt>รายการที่ยังไม่ได้ให้คะแนน</dt><dd>รวมงานของนักศึกษาที่ยังตกหล่นไว้ในที่เดียว เพื่อไม่ให้ลืมตรวจ</dd></div>
+</dl></div>
+<div class="cx good"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M13.7 3.7L6 11.4 2.3 7.7l1.4-1.4L6 8.6l6.3-6.3z"/></svg>ผลลัพธ์ที่ควรเห็น</div><p>เมื่อพิมพ์คะแนนแล้วออกจากช่อง ตัวเลขจะแสดงเป็นค่าที่บันทึกแล้วทันที โดยไม่ต้องกดปุ่มบันทึกแยกต่างหาก</p></div>
+
+<h2 id="sec-17-2">17.2 การให้คะแนนงานข้ามวิชา (คิวจับคู่ข้ามวิชา)<a class="hlink" href="#sec-17-2">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> เข้าใจว่าทำไมให้คะแนนงานของวิชาที่ไม่มีสิทธิ์สมาชิกโดยตรงได้ เมื่อรับงานผ่านคิวจับคู่ข้ามวิชา</p>
+<p>เมื่อท่านตรวจงานที่มาจากอีกรายวิชาหนึ่งในคิวจับคู่ข้ามวิชา (อธิบายไว้ในบทที่ 16) การบันทึกผลและให้คะแนนจะทำผ่านช่องทางที่ผูกกับ <strong>การจองคิวรายการนั้นโดยตรง</strong> แทนที่จะดึงจากข้อมูลคะแนนของรายวิชาที่ท่านเป็นสมาชิกตามปกติ เนื่องจากท่านไม่มีสิทธิ์สมาชิกในวิชาต้นทาง ระบบจึงต้องยึดสิทธิ์จากการเป็นผู้ตรวจของคิวนั้นแทน</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>เปิดหน้าต่างให้คะแนนตามปกติจากหน้ารับงาน แถบเตือนด้านบนจะแจ้งชื่อวิชาต้นทางและชื่องานที่กำลังตรวจอีกครั้ง</li>
+<li>กรอกคะแนนและกด <b>เสร็จสิ้น</b> เหมือนงานปกติทุกประการ ไม่ต้องสลับไปเมนูคะแนนของวิชาอื่นหรือทำขั้นตอนเพิ่มเติมใด ๆ</li>
+</ol></div>
+<figure><img src="img/ch17_fig02_ta-score-cell-edit.png" alt="ภาพที่ 17.3 การให้คะแนนงานข้ามวิชา (ภาพชั่วคราว)" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 17.3 หน้าต่างให้คะแนนเมื่อตรวจงานข้ามวิชา<br><span class="ph-note">ภาพชั่วคราว รอถ่ายจริง (ยืมภาพการแก้ไขคะแนนปกติมาประกอบ)</span></figcaption></figure>
+<div class="cx tip"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 00-3 9v1.5a1 1 0 001 1h4a1 1 0 001-1V10a5 5 0 00-3-9zM6 14h4v1H6z"/></svg>คำแนะนำ</div><p>ในทางปฏิบัติ การให้คะแนนงานข้ามวิชาหน้าตาและขั้นตอนเหมือนการให้คะแนนปกติทุกประการ ท่านไม่จำเป็นต้องทำสิ่งใดแตกต่างออกไป ความแตกต่างอยู่ที่การทำงานเบื้องหลังของระบบเท่านั้น ซึ่งอธิบายไว้ที่นี่เพื่อให้เข้าใจว่าทำไมท่านให้คะแนนวิชาที่ไม่มีสิทธิ์สมาชิกได้</p></div>
+
+<h2 id="sec-17-3">17.3 การขอแก้ไขคะแนนและติดตามสถานะ<a class="hlink" href="#sec-17-3">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ส่งคำขอแก้ไขคะแนนที่บันทึกไปแล้ว เมื่อไม่มีสิทธิ์แก้ไขโดยตรง และติดตามผลการพิจารณา</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>ที่ตารางคะแนน คลิกคะแนนที่ต้องการแก้ไขแล้วเลือก <b>ส่งคำขอแก้ไขคะแนน</b></li>
+<li>ระบุ <b>คะแนนเดิม คะแนนใหม่ และเหตุผล</b> ให้ครบ แนบรูปประกอบได้หากมี แล้วส่งคำขอไปให้อาจารย์พิจารณาอนุมัติ</li>
+</ol></div>
+<figure><img src="img/ch17_fig03_ta-editrequest-form.png" alt="ภาพที่ 17.4 แบบฟอร์มส่งคำขอแก้ไขคะแนน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 17.4 แบบฟอร์มส่งคำขอแก้ไขคะแนน ระบุคะแนนเดิม คะแนนใหม่ และเหตุผล</figcaption></figure>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>เข้าเมนู <b>จัดการงานและคะแนน &gt; อนุมัติคะแนน</b> เพื่อติดตามสถานะคำขอของตนเอง</li>
+<li>สลับดูตามแท็บ <b>รออนุมัติ / อนุมัติแล้ว / ปฏิเสธ</b></li>
+</ol></div>
+<figure><img src="img/ch17_fig04_ta-editrequest-status-tabs.png" alt="ภาพที่ 17.5 แท็บติดตามสถานะคำขอแก้ไขคะแนน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 17.5 แท็บติดตามสถานะคำขอแก้ไขคะแนน รออนุมัติ / อนุมัติแล้ว / ปฏิเสธ</figcaption></figure>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>การให้คะแนนและการขอแก้ไขคะแนนทุกครั้งจะถูกบันทึกในบันทึกกิจกรรมของรายวิชา และแสดงในสถิติผู้ช่วยสอน ซึ่งอาจารย์ใช้ติดตามและประเมินผลงานของผู้ช่วยสอนแต่ละคน (ดูบทที่ 13)</p></div>
+<div class="pn"><a class="pn-card" href="ch16.html"><span>← ก่อนหน้า</span><strong>บทที่ 16 ระบบคิวและหน้ารับงาน (Worker)</strong></a><a class="pn-card next" href="ch18.html"><span>ถัดไป →</span><strong>บทที่ 18 งานอื่น ๆ ตามสิทธิ์ที่ได้รับ</strong></a></div></article>
   </main>
-  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-17-1">17.1 การให้คะแนน</a><a href="#sec-17-2">17.2 การขอแก้ไขคะแนนและติดตามสถานะ</a></nav>
+  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-17-1">17.1 การให้คะแนนในชั้นเรียน</a><a href="#sec-17-2">17.2 การให้คะแนนงานข้ามวิชา</a><a href="#sec-17-3">17.3 การขอแก้ไขคะแนนและติดตามสถานะ</a></nav>
 </div>
 <div id="lb" class="lb" onclick="this.classList.remove('on')"><img></div>
 <script src="assets/search-index.js"></script>

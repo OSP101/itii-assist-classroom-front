@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>บทที่ 15 บทนำและบทบาทผู้ช่วยสอน — คู่มือ LabTAS</title>
+<title>บทที่ 15 บทนำและบทบาทผู้ช่วยสอน — คู่มือ COCO LABS</title>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -12,7 +12,7 @@
   <button class="burger" onclick="document.body.classList.toggle('nav-open')" aria-label="เมนู">
     <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3h14v2H1zm0 4h14v2H1zm0 4h14v2H1z"/></svg>
   </button>
-  <a class="brand" href="index.html"><span class="logo">L</span> LabTAS <span class="muted">Docs</span></a>
+  <a class="brand" href="index.html"><span class="logo">C</span> COCO LABS <span class="muted">Docs</span></a>
   <div class="search">
     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.7 10.3a6 6 0 10-1.4 1.4l3 3 1.4-1.4-3-3zM2 6.5a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0z"/></svg>
     <input id="q" type="search" placeholder="ค้นหาในคู่มือ… " autocomplete="off">
@@ -39,9 +39,8 @@
 <a href="ch07.html"><span class="chip">บทที่ 7</span>งานมอบหมายและการให้คะแนน</a>
 <a href="ch08.html"><span class="chip">บทที่ 8</span>การอนุมัติคำขอแก้ไขคะแนน</a>
 <a href="ch09.html"><span class="chip">บทที่ 9</span>การสอบและคะแนนสอบ</a>
-<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็คชื่อเข้าเรียน</a>
+<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็กชื่อเข้าเรียน</a>
 <a href="ch11.html"><span class="chip">บทที่ 11</span>ระบบคิวตรวจงาน</a>
-<a href="ch12.html"><span class="chip">บทที่ 12</span>การจับคู่จอแสดงผลหน้าห้อง</a>
 <a href="ch13.html"><span class="chip">บทที่ 13</span>การติดตามผลงานทีมและบันทึกกิจกรรม</a>
 <a href="ch14.html"><span class="chip">บทที่ 14</span>การตั้งค่ารายวิชา</a>
 </details>
@@ -54,42 +53,49 @@
 <details class="side-group"><summary>นักศึกษา</summary>
 <a href="ch19.html"><span class="chip">บทที่ 19</span>การใช้งานสำหรับนักศึกษา (Student)</a>
 </details>
-<details class="side-group"><summary>ภาคผนวก</summary>
-<a href="app-a.html"><span class="chip">ภาคผนวก ก</span>สิทธิ์รายวิชาทั้งหมด (39 สิทธิ์)</a>
-<a href="app-b.html"><span class="chip">ภาคผนวก ข</span>ฟังก์ชันที่เพิ่มหลังคู่มือฉบับสอบจบ</a>
-<a href="app-c.html"><span class="chip">ภาคผนวก ค</span>การกระทำที่ต้องยืนยันตัวตนสองชั้นซ้ำ (Step-up 2FA)</a>
-<a href="app-d.html"><span class="chip">ภาคผนวก ง</span>สรุปเมนูหลักตามบทบาท</a>
-</details>
-    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">LabTAS v1.2.90</span></div>
+    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">COCO LABS Docs</span></div>
   </aside>
   <main class="main">
-    <div class="crumb"><a href="index.html">คู่มือ LabTAS</a> <span>/</span> ผู้ช่วยสอน <span>/</span> บทที่ 15</div>
+    <div class="crumb"><a href="index.html">คู่มือ COCO LABS</a> <span>/</span> ผู้ช่วยสอน <span>/</span> บทที่ 15</div>
     <div class="page-label">บทที่ 15</div><h1>บทนำและบทบาทผู้ช่วยสอน</h1>
     <article class="doc"><h2 id="sec-15-1">15.1 เกี่ยวกับคู่มือฉบับนี้<a class="hlink" href="#sec-15-1">#</a></h2>
-<p>ส่วนนี้ของคู่มือจัดทำขึ้นสำหรับ <strong>ผู้ช่วยสอน (Teaching Assistant — TA)</strong> ผู้ใช้งานระบบจัดการเรียนการสอนปฏิบัติการและการประเมินผล (LabTAS) เนื้อหาอธิบายเป็นขั้นตอนพร้อมภาพหน้าจอจริง โดยมีกรอบสีแดงและหมายเลขกำกับจุดที่ต้องดำเนินการให้ตรงกับข้อความในแต่ละขั้นตอน ภาพประกอบถ่ายจากรายวิชาตัวอย่าง TC321000 TEST และปกปิดข้อมูลส่วนบุคคลของนักศึกษาและผู้ใช้เพื่อความเป็นส่วนตัว</p>
+<p>ส่วนนี้ของคู่มือจัดทำขึ้นสำหรับ <strong>ผู้ช่วยสอน (Teaching Assistant หรือ TA)</strong> ผู้ใช้งานระบบ COCO LABS เนื้อหาอธิบายเป็นขั้นตอนพร้อมภาพหน้าจอจริง โดยมีกรอบสีแดงและหมายเลขกำกับจุดที่ต้องดำเนินการให้ตรงกับข้อความในแต่ละขั้นตอน ภาพประกอบถ่ายจากรายวิชาตัวอย่างและปกปิดข้อมูลส่วนบุคคลของนักศึกษาและผู้ใช้เพื่อความเป็นส่วนตัว</p>
 <h2 id="sec-15-2">15.2 บทบาทและสิทธิ์ของผู้ช่วยสอน<a class="hlink" href="#sec-15-2">#</a></h2>
-<p>ผู้ช่วยสอนทำงานภายในรายวิชาตาม <strong>สิทธิ์ที่อาจารย์เจ้าของวิชากำหนดให้</strong> ซึ่งกำหนดได้ละเอียดถึงประมาณ 39 รายการต่อวิชา ดังนั้น <strong>เมนูที่ผู้ช่วยสอนแต่ละคนเห็นอาจไม่เท่ากัน</strong> ขึ้นอยู่กับสิทธิ์ที่ได้รับ งานหลักของผู้ช่วยสอน ได้แก่ การรับและตรวจงานผ่านระบบคิว การให้คะแนน (และการขอแก้ไขคะแนน) การช่วยจัดการการเช็คชื่อ ตลอดจนงานอื่น ๆ ตามที่ได้รับมอบหมาย</p>
+<p>ผู้ช่วยสอนทำงานภายในรายวิชาตาม <strong>สิทธิ์ที่อาจารย์เจ้าของวิชากำหนดให้</strong> ซึ่งกำหนดได้ละเอียดถึงประมาณ 39 รายการต่อวิชา ดังนั้น <strong>เมนูที่ผู้ช่วยสอนแต่ละคนเห็นอาจไม่เท่ากัน</strong> ขึ้นอยู่กับสิทธิ์ที่ได้รับ งานหลักของผู้ช่วยสอน ได้แก่ การรับและตรวจงานผ่านระบบคิว การให้คะแนน (และการขอแก้ไขคะแนน) การช่วยจัดการการเช็กชื่อ ตลอดจนงานอื่น ๆ ตามที่ได้รับมอบหมาย</p>
+<div class="cx tip"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 00-3 9v1.5a1 1 0 001 1h4a1 1 0 001-1V10a5 5 0 00-3-9zM6 14h4v1H6z"/></svg>คำแนะนำ</div><p>รายละเอียดของการกำหนดสิทธิ์ทั้ง 39 รายการ และวิธีที่อาจารย์มอบสิทธิ์ให้ผู้ช่วยสอนแต่ละคน อยู่ที่บทที่ 6 การจัดการสมาชิกและสิทธิ์ผู้ช่วยสอน หากท่านต้องการเมนูที่ยังไม่เห็น กรุณาแจ้งอาจารย์เจ้าของวิชาให้เปิดสิทธิ์เพิ่มเติมจากหน้านั้น</p></div>
 <h2 id="sec-15-3">15.3 การเข้าสู่ระบบ<a class="hlink" href="#sec-15-3">#</a></h2>
-<ol class="steps">
-<li>เปิดเว็บเบราว์เซอร์แล้วไปที่ที่อยู่เว็บของระบบ ระบบจะแสดงหน้าเข้าสู่ระบบ</li>
-<li>กรอก <strong>ชื่อผู้ใช้</strong> และ <strong>รหัสผ่าน</strong> ที่ได้รับจากอาจารย์หรือผู้ดูแลระบบ</li>
-<li>คลิกปุ่ม <strong>เข้าสู่ระบบ</strong></li>
-</ol>
-<figure><img src="img/instructor_login.png" alt="ภาพที่ 15.1 หน้าเข้าสู่ระบบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 15.1 หน้าเข้าสู่ระบบ</figcaption></figure>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ให้ท่านเข้าสู่ระบบด้วยบัญชี KKU ของท่านเอง เพื่อเข้าถึงรายวิชาที่ได้รับมอบหมายให้เป็นผู้ช่วยสอน</p>
+<div class="do-block">
+  <div class="do-label">สิ่งที่ต้องทำ</div>
+  <ol class="do">
+    <li>เปิดเว็บเบราว์เซอร์แล้วไปที่ที่อยู่เว็บของระบบ ระบบจะแสดงหน้าเข้าสู่ระบบ</li>
+    <li>คลิกปุ่ม <b>เข้าสู่ระบบด้วย KKU SSO</b> ซึ่งเป็นช่องทางเข้าสู่ระบบหลักของผู้ช่วยสอนเช่นเดียวกับบทบาทอื่น</li>
+    <li>กรอกบัญชี KKU และรหัสผ่านในหน้าของมหาวิทยาลัย แล้วยืนยันการเข้าสู่ระบบ</li>
+  </ol>
+</div>
+<figure><img src="img/ch15_fig01_login-ta-kku-sso.png" alt="ภาพที่ 15.1 หน้าเข้าสู่ระบบด้วย KKU SSO สำหรับผู้ช่วยสอน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 15.1 หน้าเข้าสู่ระบบด้วย KKU SSO สำหรับผู้ช่วยสอน</figcaption></figure>
 <p>เมื่อเข้าสู่ระบบสำเร็จ ระบบจะแสดงหน้า <strong>รายวิชาของฉัน</strong> ที่ระบุว่าท่านเป็น <strong>ผู้ช่วยสอน</strong></p>
-<ol class="steps">
-<li>แถบบนแสดงบทบาท <strong>ผู้ช่วยสอน</strong> ของบัญชีท่าน</li>
-<li>คลิกที่ <strong>การ์ดรายวิชา</strong> ที่ต้องการเข้าไปทำงาน (รายวิชาที่ท่านเป็นผู้ช่วยสอนจะแสดงทั้งหมดที่นี่)</li>
-</ol>
-<figure><img src="img/ta_01_home.png" alt="ภาพที่ 15.2 หน้ารายวิชาของผู้ช่วยสอน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 15.2 หน้ารายวิชาของผู้ช่วยสอน</figcaption></figure>
+<div class="see-block">
+  <div class="see-label">องค์ประกอบบนหน้านี้</div>
+  <dl class="see">
+    <div><dt>แถบบน</dt><dd>แสดงบทบาท <strong>ผู้ช่วยสอน</strong> ของบัญชีท่าน</dd></div>
+    <div><dt>รายการการ์ดรายวิชา</dt><dd>รายวิชาทั้งหมดที่ท่านเป็นผู้ช่วยสอน คลิกที่การ์ดเพื่อเข้าไปทำงานในรายวิชานั้น</dd></div>
+  </dl>
+</div>
+<figure><img src="img/ch15_fig02_ta-home-course-list.png" alt="ภาพที่ 15.2 หน้ารายวิชาของผู้ช่วยสอน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 15.2 หน้ารายวิชาของผู้ช่วยสอน</figcaption></figure>
 <h2 id="sec-15-4">15.4 เมนูขึ้นอยู่กับสิทธิ์ที่ได้รับ<a class="hlink" href="#sec-15-4">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ให้ท่านเข้าใจว่าเมนูด้านซ้ายที่เห็นในแต่ละรายวิชาไม่จำเป็นต้องเหมือนกัน เพราะขึ้นอยู่กับสิทธิ์ที่อาจารย์เจ้าของวิชากำหนดให้เท่านั้น</p>
 <p>เมื่อเข้าสู่รายวิชา ระบบจะแสดงหน้าภาพรวมรายวิชาพร้อมแถบเมนูด้านซ้าย</p>
-<ol class="steps">
-<li>แถบบนยังคงแสดงบทบาท <strong>ผู้ช่วยสอน</strong></li>
-<li><strong>เมนูด้านซ้าย</strong> จะแสดงเฉพาะรายการที่ท่านได้รับสิทธิ์เท่านั้น (เช่น งานและคะแนน การเช็คชื่อ คิวตรวจงาน) หากท่านไม่ได้รับสิทธิ์บางอย่าง เมนูนั้นจะไม่ปรากฏ</li>
-</ol>
-<figure><img src="img/ta_02_overview.png" alt="ภาพที่ 15.3 หน้าภาพรวมรายวิชาของผู้ช่วยสอน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 15.3 หน้าภาพรวมรายวิชาของผู้ช่วยสอน</figcaption></figure>
-<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>หากท่านไม่พบเมนูที่ต้องใช้งาน (เช่น เมนูคิว การให้คะแนน หรือการเช็คชื่อ) แสดงว่าท่านยังไม่ได้รับสิทธิ์นั้นจากอาจารย์ ให้ประสานอาจารย์เจ้าของวิชาเพื่อขอเปิดสิทธิ์ที่แท็บบุคลากรของรายวิชา</p></div><div class="pn"><a class="pn-card" href="ch14.html"><span>← ก่อนหน้า</span><strong>บทที่ 14 การตั้งค่ารายวิชา</strong></a><a class="pn-card next" href="ch16.html"><span>ถัดไป →</span><strong>บทที่ 16 ระบบคิวและหน้ารับงาน (Worker)</strong></a></div></article>
+<div class="see-block">
+  <div class="see-label">องค์ประกอบบนหน้านี้</div>
+  <dl class="see">
+    <div><dt>แถบบน</dt><dd>ยังคงแสดงบทบาท <strong>ผู้ช่วยสอน</strong></dd></div>
+    <div><dt>เมนูด้านซ้าย</dt><dd>แสดงเฉพาะรายการที่ท่านได้รับสิทธิ์เท่านั้น (เช่น งานและคะแนน การเช็กชื่อ คิวตรวจงาน) หากท่านไม่ได้รับสิทธิ์บางอย่าง เมนูนั้นจะไม่ปรากฏ</dd></div>
+  </dl>
+</div>
+<figure><img src="img/ch15_fig03_ta-course-overview.png" alt="ภาพที่ 15.3 หน้าภาพรวมรายวิชาของผู้ช่วยสอน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 15.3 หน้าภาพรวมรายวิชาของผู้ช่วยสอน</figcaption></figure>
+<figure><img src="img/ch15_fig04_ta-menu-by-permission.png" alt="ภาพที่ 15.4 เมนูด้านซ้ายที่แสดงตามสิทธิ์ที่ได้รับ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 15.4 เมนูด้านซ้ายที่แสดงตามสิทธิ์ที่ได้รับ</figcaption></figure>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>หากท่านไม่พบเมนูที่ต้องใช้งาน (เช่น เมนูคิว การให้คะแนน หรือการเช็กชื่อ) แสดงว่าท่านยังไม่ได้รับสิทธิ์นั้นจากอาจารย์ กรุณาประสานอาจารย์เจ้าของวิชาเพื่อขอเปิดสิทธิ์ที่แท็บบุคลากรของรายวิชา (บทที่ 6)</p></div><div class="pn"><a class="pn-card" href="ch14.html"><span>← ก่อนหน้า</span><strong>บทที่ 14 การตั้งค่ารายวิชา</strong></a><a class="pn-card next" href="ch16.html"><span>ถัดไป →</span><strong>บทที่ 16 ระบบคิวและหน้ารับงาน (Worker)</strong></a></div></article>
   </main>
   <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-15-1">15.1 เกี่ยวกับคู่มือฉบับนี้</a><a href="#sec-15-2">15.2 บทบาทและสิทธิ์ของผู้ช่วยสอน</a><a href="#sec-15-3">15.3 การเข้าสู่ระบบ</a><a href="#sec-15-4">15.4 เมนูขึ้นอยู่กับสิทธิ์ที่ได้รับ</a></nav>
 </div>

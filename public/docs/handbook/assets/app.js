@@ -1,8 +1,8 @@
-/* LabTAS Docs — theme, search, on-this-page highlight, lightbox */
+/* COCO LABS Docs — theme, search, on-this-page highlight, lightbox */
 (function () {
   // ---------- theme ----------
   var saved = null;
-  try { saved = localStorage.getItem('labtas-docs-theme'); } catch (e) {}
+  try { saved = localStorage.getItem('coco-docs-theme'); } catch (e) {}
   if (saved === 'dark' || (!saved && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches)) {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
@@ -12,7 +12,7 @@ function toggleTheme() {
   var el = document.documentElement;
   var dark = el.getAttribute('data-theme') === 'dark';
   if (dark) { el.removeAttribute('data-theme'); } else { el.setAttribute('data-theme', 'dark'); }
-  try { localStorage.setItem('labtas-docs-theme', dark ? 'light' : 'dark'); } catch (e) {}
+  try { localStorage.setItem('coco-docs-theme', dark ? 'light' : 'dark'); } catch (e) {}
 }
 
 // ---------- lightbox ----------

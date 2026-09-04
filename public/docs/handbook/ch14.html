@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>บทที่ 14 การตั้งค่ารายวิชา — คู่มือ LabTAS</title>
+<title>บทที่ 14 การตั้งค่ารายวิชา — คู่มือ COCO LABS</title>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -12,7 +12,7 @@
   <button class="burger" onclick="document.body.classList.toggle('nav-open')" aria-label="เมนู">
     <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3h14v2H1zm0 4h14v2H1zm0 4h14v2H1z"/></svg>
   </button>
-  <a class="brand" href="index.html"><span class="logo">L</span> LabTAS <span class="muted">Docs</span></a>
+  <a class="brand" href="index.html"><span class="logo">C</span> COCO LABS <span class="muted">Docs</span></a>
   <div class="search">
     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.7 10.3a6 6 0 10-1.4 1.4l3 3 1.4-1.4-3-3zM2 6.5a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0z"/></svg>
     <input id="q" type="search" placeholder="ค้นหาในคู่มือ… " autocomplete="off">
@@ -39,9 +39,8 @@
 <a href="ch07.html"><span class="chip">บทที่ 7</span>งานมอบหมายและการให้คะแนน</a>
 <a href="ch08.html"><span class="chip">บทที่ 8</span>การอนุมัติคำขอแก้ไขคะแนน</a>
 <a href="ch09.html"><span class="chip">บทที่ 9</span>การสอบและคะแนนสอบ</a>
-<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็คชื่อเข้าเรียน</a>
+<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็กชื่อเข้าเรียน</a>
 <a href="ch11.html"><span class="chip">บทที่ 11</span>ระบบคิวตรวจงาน</a>
-<a href="ch12.html"><span class="chip">บทที่ 12</span>การจับคู่จอแสดงผลหน้าห้อง</a>
 <a href="ch13.html"><span class="chip">บทที่ 13</span>การติดตามผลงานทีมและบันทึกกิจกรรม</a>
 <a class="active" href="ch14.html"><span class="chip">บทที่ 14</span>การตั้งค่ารายวิชา</a>
 </details>
@@ -54,27 +53,61 @@
 <details class="side-group"><summary>นักศึกษา</summary>
 <a href="ch19.html"><span class="chip">บทที่ 19</span>การใช้งานสำหรับนักศึกษา (Student)</a>
 </details>
-<details class="side-group"><summary>ภาคผนวก</summary>
-<a href="app-a.html"><span class="chip">ภาคผนวก ก</span>สิทธิ์รายวิชาทั้งหมด (39 สิทธิ์)</a>
-<a href="app-b.html"><span class="chip">ภาคผนวก ข</span>ฟังก์ชันที่เพิ่มหลังคู่มือฉบับสอบจบ</a>
-<a href="app-c.html"><span class="chip">ภาคผนวก ค</span>การกระทำที่ต้องยืนยันตัวตนสองชั้นซ้ำ (Step-up 2FA)</a>
-<a href="app-d.html"><span class="chip">ภาคผนวก ง</span>สรุปเมนูหลักตามบทบาท</a>
-</details>
-    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">LabTAS v1.2.90</span></div>
+    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">COCO LABS Docs</span></div>
   </aside>
   <main class="main">
-    <div class="crumb"><a href="index.html">คู่มือ LabTAS</a> <span>/</span> อาจารย์ผู้สอน <span>/</span> บทที่ 14</div>
+    <div class="crumb"><a href="index.html">คู่มือ COCO LABS</a> <span>/</span> อาจารย์ผู้สอน <span>/</span> บทที่ 14</div>
     <div class="page-label">บทที่ 14</div><h1>การตั้งค่ารายวิชา</h1>
-    <article class="doc"><p>เมนู <strong>ตั้งค่ารายวิชา &gt; ตั้งค่ารายวิชา</strong> ใช้จัดการข้อมูลพื้นฐานและรูปลักษณ์ของรายวิชา</p>
-<ol class="steps">
-<li>ส่วนบนสรุป <strong>จำนวนนักศึกษา กลุ่มเรียน อาจารย์ และผู้ช่วยสอน</strong></li>
-<li>ปุ่ม <strong>แก้ไขข้อมูล</strong> ใช้แก้ไขข้อมูลพื้นฐานของรายวิชา</li>
-<li>ส่วน <strong>รูปปกรายวิชา</strong> ใช้เปลี่ยนรูป ปรับตำแหน่ง หรือลบรูปปก</li>
-<li>ส่วน <strong>ข้อมูลรายวิชา</strong> ใช้แก้ไขรหัสวิชา ชื่อวิชา ปีการศึกษา และภาคเรียน</li>
-</ol>
-<figure><img src="img/instructor_settings_01.png" alt="ภาพที่ 14.1 หน้าตั้งค่ารายวิชา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 14.1 หน้าตั้งค่ารายวิชา</figcaption></figure><div class="pn"><a class="pn-card" href="ch13.html"><span>← ก่อนหน้า</span><strong>บทที่ 13 การติดตามผลงานทีมและบันทึกกิจกรรม</strong></a><a class="pn-card next" href="ch15.html"><span>ถัดไป →</span><strong>บทที่ 15 บทนำและบทบาทผู้ช่วยสอน</strong></a></div></article>
+    <article class="doc"><h2 id="sec-14-1">14.1 ภาพรวมหน้าตั้งค่ารายวิชา<a class="hlink" href="#sec-14-1">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ให้ท่านจัดการข้อมูลพื้นฐานและรูปลักษณ์ของรายวิชาในที่เดียว เมนูอยู่ที่ <strong>ตั้งค่ารายวิชา &gt; ตั้งค่ารายวิชา</strong></p>
+<div class="see-block">
+  <div class="see-label">องค์ประกอบบนหน้านี้</div>
+  <dl class="see">
+    <div><dt>แถบสรุปด้านบน</dt><dd>จำนวนนักศึกษา กลุ่มเรียน อาจารย์ และผู้ช่วยสอนในรายวิชานี้</dd></div>
+  </dl>
+</div>
+<figure><img src="img/ch14_fig01_course-settings-summary.png" alt="ภาพที่ 14.1 แถบสรุปจำนวนนักศึกษา กลุ่มเรียน อาจารย์ และผู้ช่วยสอน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 14.1 แถบสรุปจำนวนนักศึกษา กลุ่มเรียน อาจารย์ และผู้ช่วยสอน</figcaption></figure>
+<h2 id="sec-14-2">14.2 แก้ไขข้อมูลรายวิชา<a class="hlink" href="#sec-14-2">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ให้ท่านปรับรูปปกและข้อมูลพื้นฐานของรายวิชาให้ตรงกับความเป็นจริงของภาคเรียนปัจจุบัน</p>
+<div class="do-block">
+  <div class="do-label">สิ่งที่ต้องทำ</div>
+  <ol class="do">
+    <li>คลิกปุ่ม <b>แก้ไขข้อมูล</b> เพื่อเปิดโหมดแก้ไข</li>
+    <li>ในส่วน <b>รูปปกรายวิชา</b> เลือกเปลี่ยนรูป ปรับตำแหน่ง หรือลบรูปปกได้ตามต้องการ</li>
+    <li>ในส่วน <b>ข้อมูลรายวิชา</b> แก้ไขรหัสวิชา ชื่อวิชา ปีการศึกษา และภาคเรียนให้ถูกต้อง</li>
+  </ol>
+</div>
+<figure><img src="img/ch14_fig02_course-settings-edit-button.png" alt="ภาพที่ 14.2 ปุ่มแก้ไขข้อมูลรายวิชา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 14.2 ปุ่มแก้ไขข้อมูลรายวิชา</figcaption></figure>
+<figure class="shot-seq-wrap">
+  <div class="shot-seq">
+    <img src="img/ch14_fig03_course-settings-cover-image.png" alt="ภาพที่ 14.3ก ส่วนรูปปกรายวิชา" loading="lazy" onclick="lightbox(this)">
+    <img src="img/ch14_fig04_course-settings-info-fields.png" alt="ภาพที่ 14.3ข ส่วนข้อมูลรายวิชา" loading="lazy" onclick="lightbox(this)">
+  </div>
+  <figcaption>ภาพที่ 14.3 ส่วนรูปปกรายวิชา และส่วนข้อมูลรายวิชา</figcaption>
+</figure>
+<h2 id="sec-14-3">14.3 เกณฑ์การแจ้งเตือน<a class="hlink" href="#sec-14-3">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ให้ระบบช่วยเน้นนักศึกษาที่มีคะแนนต่ำกว่าเกณฑ์ที่ท่านกำหนด เพื่อให้ท่านติดตามและช่วยเหลือได้ทันก่อนปิดเทอม</p>
+<div class="do-block">
+  <div class="do-label">สิ่งที่ต้องทำ</div>
+  <ol class="do">
+    <li>เลื่อนแถบ <b>เกณฑ์การแจ้งเตือน</b> เพื่อกำหนดเปอร์เซ็นต์คะแนนขั้นต่ำที่ต้องการให้ระบบจับตา</li>
+    <li>บันทึกการตั้งค่า</li>
+  </ol>
+</div>
+<figure><img src="img/ch14_fig05_course-settings-attention-threshold.png" alt="ภาพที่ 14.4 แถบเลื่อนกำหนดเกณฑ์การแจ้งเตือน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 14.4 แถบเลื่อนกำหนดเกณฑ์การแจ้งเตือน</figcaption></figure>
+<div class="cx good"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M13.7 3.7L6 11.4 2.3 7.7l1.4-1.4L6 8.6l6.3-6.3z"/></svg>ผลลัพธ์ที่ควรเห็น</div><p>เมื่อบันทึกเกณฑ์แล้ว นักศึกษาที่มีคะแนนต่ำกว่าเปอร์เซ็นต์ที่กำหนดจะถูกเน้นให้เห็นในหน้ารายชื่อและรายงานที่เกี่ยวข้อง ช่วยให้ท่านและผู้ช่วยสอนตามงานได้ง่ายขึ้นโดยไม่ต้องไล่ดูคะแนนทีละคน</p></div>
+<h2 id="sec-14-4">14.4 เปิด/ปิดการเข้าถึงรายวิชา<a class="hlink" href="#sec-14-4">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ให้ท่านควบคุมว่านักศึกษาและผู้ช่วยสอนสามารถเข้าถึงรายวิชานี้ได้ในปัจจุบันหรือไม่ เช่น เมื่อปิดเทอมแล้วต้องการปิดการเข้าถึงชั่วคราว</p>
+<div class="do-block">
+  <div class="do-label">สิ่งที่ต้องทำ</div>
+  <ol class="do">
+    <li>เปิดหรือปิดสวิตช์ <b>สถานะรายวิชา (เปิดใช้งาน/ปิดใช้งาน)</b> ตามต้องการ</li>
+  </ol>
+</div>
+<figure><img src="img/ch14_fig06_course-settings-active-toggle.png" alt="ภาพที่ 14.5 สวิตช์เปิดใช้งาน/ปิดใช้งานรายวิชา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 14.5 สวิตช์เปิดใช้งาน/ปิดใช้งานรายวิชา</figcaption></figure>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>เมื่อปิดใช้งานรายวิชา นักศึกษาและผู้ช่วยสอนทุกคนจะไม่สามารถเข้าถึงรายวิชานี้ได้ทันที กรุณาตรวจสอบให้แน่ใจก่อนปิดใช้งาน โดยเฉพาะระหว่างภาคเรียนที่ยังมีการเรียนการสอนอยู่</p></div><div class="pn"><a class="pn-card" href="ch13.html"><span>← ก่อนหน้า</span><strong>บทที่ 13 การติดตามผลงานทีมและบันทึกกิจกรรม</strong></a><a class="pn-card next" href="ch15.html"><span>ถัดไป →</span><strong>บทที่ 15 บทนำและบทบาทผู้ช่วยสอน</strong></a></div></article>
   </main>
-  
+  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-14-1">14.1 ภาพรวมหน้าตั้งค่ารายวิชา</a><a href="#sec-14-2">14.2 แก้ไขข้อมูลรายวิชา</a><a href="#sec-14-3">14.3 เกณฑ์การแจ้งเตือน</a><a href="#sec-14-4">14.4 เปิด/ปิดการเข้าถึงรายวิชา</a></nav>
 </div>
 <div id="lb" class="lb" onclick="this.classList.remove('on')"><img></div>
 <script src="assets/search-index.js"></script>

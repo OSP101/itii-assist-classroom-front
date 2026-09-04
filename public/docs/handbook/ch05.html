@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>บทที่ 5 การจัดการหมู่เรียนและกลุ่ม — คู่มือ LabTAS</title>
+<title>บทที่ 5 การจัดการหมู่เรียนและกลุ่ม — คู่มือ COCO LABS</title>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -12,7 +12,7 @@
   <button class="burger" onclick="document.body.classList.toggle('nav-open')" aria-label="เมนู">
     <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3h14v2H1zm0 4h14v2H1zm0 4h14v2H1z"/></svg>
   </button>
-  <a class="brand" href="index.html"><span class="logo">L</span> LabTAS <span class="muted">Docs</span></a>
+  <a class="brand" href="index.html"><span class="logo">C</span> COCO LABS <span class="muted">Docs</span></a>
   <div class="search">
     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.7 10.3a6 6 0 10-1.4 1.4l3 3 1.4-1.4-3-3zM2 6.5a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0z"/></svg>
     <input id="q" type="search" placeholder="ค้นหาในคู่มือ… " autocomplete="off">
@@ -39,9 +39,8 @@
 <a href="ch07.html"><span class="chip">บทที่ 7</span>งานมอบหมายและการให้คะแนน</a>
 <a href="ch08.html"><span class="chip">บทที่ 8</span>การอนุมัติคำขอแก้ไขคะแนน</a>
 <a href="ch09.html"><span class="chip">บทที่ 9</span>การสอบและคะแนนสอบ</a>
-<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็คชื่อเข้าเรียน</a>
+<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็กชื่อเข้าเรียน</a>
 <a href="ch11.html"><span class="chip">บทที่ 11</span>ระบบคิวตรวจงาน</a>
-<a href="ch12.html"><span class="chip">บทที่ 12</span>การจับคู่จอแสดงผลหน้าห้อง</a>
 <a href="ch13.html"><span class="chip">บทที่ 13</span>การติดตามผลงานทีมและบันทึกกิจกรรม</a>
 <a href="ch14.html"><span class="chip">บทที่ 14</span>การตั้งค่ารายวิชา</a>
 </details>
@@ -54,42 +53,62 @@
 <details class="side-group"><summary>นักศึกษา</summary>
 <a href="ch19.html"><span class="chip">บทที่ 19</span>การใช้งานสำหรับนักศึกษา (Student)</a>
 </details>
-<details class="side-group"><summary>ภาคผนวก</summary>
-<a href="app-a.html"><span class="chip">ภาคผนวก ก</span>สิทธิ์รายวิชาทั้งหมด (39 สิทธิ์)</a>
-<a href="app-b.html"><span class="chip">ภาคผนวก ข</span>ฟังก์ชันที่เพิ่มหลังคู่มือฉบับสอบจบ</a>
-<a href="app-c.html"><span class="chip">ภาคผนวก ค</span>การกระทำที่ต้องยืนยันตัวตนสองชั้นซ้ำ (Step-up 2FA)</a>
-<a href="app-d.html"><span class="chip">ภาคผนวก ง</span>สรุปเมนูหลักตามบทบาท</a>
-</details>
-    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">LabTAS v1.2.90</span></div>
+    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">COCO LABS Docs</span></div>
   </aside>
   <main class="main">
-    <div class="crumb"><a href="index.html">คู่มือ LabTAS</a> <span>/</span> อาจารย์ผู้สอน <span>/</span> บทที่ 5</div>
+    <div class="crumb"><a href="index.html">คู่มือ COCO LABS</a> <span>/</span> อาจารย์ผู้สอน <span>/</span> บทที่ 5</div>
     <div class="page-label">บทที่ 5</div><h1>การจัดการหมู่เรียนและกลุ่ม</h1>
-    <article class="doc"><h2 id="sec-5-1">5.1 จัดการหมู่เรียน (Section)<a class="hlink" href="#sec-5-1">#</a></h2>
-<p>เมนู <strong>จัดการชั้นเรียน &gt; กลุ่มเรียน</strong> ใช้จัดการหมู่เรียนและนักศึกษาในแต่ละหมู่</p>
-<ol class="steps">
-<li>แท็บ <strong>รายชื่อนักศึกษา</strong> แสดงหมู่เรียนทั้งหมดพร้อมจำนวนนักศึกษาในแต่ละหมู่</li>
-<li>คลิกปุ่ม <strong>เพิ่มกลุ่มเรียน</strong> เพื่อสร้างหมู่เรียนใหม่</li>
-<li>ไอคอนท้ายแถวของแต่ละหมู่ใช้เพิ่มนักศึกษาเข้าหมู่ แก้ไข ลบ และขยายดูรายชื่อ (ปุ่ม "รายการที่ลบ" ใช้กู้คืนนักศึกษาที่ถูกลบภายในช่วงเวลาที่กำหนด)</li>
-</ol>
-<figure><img src="img/instructor_section_01_list.png" alt="ภาพที่ 5.1 หน้าจัดการหมู่เรียน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 5.1 หน้าจัดการหมู่เรียน</figcaption></figure>
-<p>เมื่อคลิก <strong>เพิ่มกลุ่มเรียน</strong> ระบบจะเปิดหน้าต่างให้กรอกข้อมูล</p>
-<ol class="steps">
-<li>กรอก <strong>หมายเลขกลุ่มเรียน</strong> เช่น 1, 2, 801</li>
-<li>กรอก <strong>หมายเหตุ</strong> (ถ้ามี) เช่น ภาคปกติ ภาคพิเศษ</li>
-<li>คลิกปุ่ม <strong>เพิ่มกลุ่มเรียน</strong></li>
-</ol>
-<figure><img src="img/instructor_section_02_add.png" alt="ภาพที่ 5.2 หน้าต่างเพิ่มหมู่เรียน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 5.2 หน้าต่างเพิ่มหมู่เรียน</figcaption></figure>
-<h2 id="sec-5-2">5.2 จัดการกลุ่มโปรเจกต์ (Teams)<a class="hlink" href="#sec-5-2">#</a></h2>
-<p>ในหน้าจัดการหมู่เรียน แท็บ <strong>กลุ่มโปรเจกต์</strong> และ <strong>กลุ่มโปรเจกต์รายสัปดาห์</strong> ใช้จัดกลุ่มนักศึกษาสำหรับงานกลุ่ม โดยกลุ่มโปรเจกต์เป็นกลุ่มถาวรที่ใช้ตลอดทั้งเทอม ส่วนกลุ่มรายสัปดาห์กำหนดเฉพาะสัปดาห์</p>
-<ol class="steps">
-<li>คลิกปุ่ม <strong>สร้างกลุ่ม</strong> เพื่อสร้างกลุ่มและเพิ่มสมาชิกด้วยตนเอง</li>
-<li>หรือคลิกปุ่ม <strong>สุ่มกลุ่ม</strong> เพื่อให้ระบบจัดกลุ่มให้อัตโนมัติ (และมีปุ่มนำเข้าจาก Excel)</li>
-<li>แต่ละกลุ่มแสดงรายชื่อสมาชิก พร้อมปุ่มแก้ไขและลบกลุ่ม</li>
-</ol>
-<figure><img src="img/instructor_team_01.png" alt="ภาพที่ 5.3 หน้าจัดการกลุ่มโปรเจกต์" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 5.3 หน้าจัดการกลุ่มโปรเจกต์</figcaption></figure><div class="pn"><a class="pn-card" href="ch04.html"><span>← ก่อนหน้า</span><strong>บทที่ 4 บทนำและการเข้าสู่ระบบ</strong></a><a class="pn-card next" href="ch06.html"><span>ถัดไป →</span><strong>บทที่ 6 การจัดการสมาชิกและสิทธิ์ผู้ช่วยสอน</strong></a></div></article>
+    <article class="doc"><h2 id="sec-5-1">5.1 รายชื่อหมู่เรียน (Section)<a class="hlink" href="#sec-5-1">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ดูภาพรวมหมู่เรียนทั้งหมดในรายวิชา และเข้าไปจัดการนักศึกษาในแต่ละหมู่</p>
+<p>เมนู <strong>จัดการชั้นเรียน &gt; กลุ่มเรียน</strong> ใช้จัดการหมู่เรียนและนักศึกษาในแต่ละหมู่ แท็บ <strong>รายชื่อนักศึกษา</strong> แสดงหมู่เรียนทั้งหมดพร้อมจำนวนนักศึกษาในแต่ละหมู่</p>
+<figure><img src="img/ch05_fig01_sections-list.png" alt="ภาพที่ 5.1 หน้าจัดการหมู่เรียน แสดงรายการหมู่เรียนทั้งหมด" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 5.1 หน้าจัดการหมู่เรียน แสดงรายการหมู่เรียนทั้งหมด</figcaption></figure>
+<div class="see-block"><div class="see-label">องค์ประกอบบนหน้านี้</div><dl class="see">
+<div><dt>ไอคอนท้ายแถวของแต่ละหมู่</dt><dd>ใช้เพิ่มนักศึกษาเข้าหมู่ แก้ไข ลบ และขยายดูรายชื่อ</dd></div>
+</dl></div>
+<figure><img src="img/ch05_fig04_sections-row-actions.png" alt="ภาพที่ 5.2 ไอคอนจัดการท้ายแถวของแต่ละหมู่เรียน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 5.2 ไอคอนจัดการท้ายแถวของแต่ละหมู่เรียน</figcaption></figure>
+<figure><img src="img/ch05_fig03_sections-student-list-tab.png" alt="ภาพที่ 5.3 แท็บรายชื่อนักศึกษาขยายดูรายชื่อในหมู่" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 5.3 แท็บรายชื่อนักศึกษา เมื่อขยายดูรายชื่อในหมู่</figcaption></figure>
+
+<h2 id="sec-5-2">5.2 เพิ่มหมู่เรียนใหม่<a class="hlink" href="#sec-5-2">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> สร้างหมู่เรียนใหม่เพื่อจัดกลุ่มนักศึกษาตามตารางเรียน</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิกปุ่ม <b>เพิ่มกลุ่มเรียน</b> ระบบจะเปิดหน้าต่างให้กรอกข้อมูล</li>
+<li>กรอก <b>หมายเลขกลุ่มเรียน</b> เช่น 1, 2, 801</li>
+<li>กรอก <b>หมายเหตุ</b> (หากมี) เช่น ภาคปกติ ภาคพิเศษ</li>
+<li>คลิกปุ่ม <b>เพิ่มกลุ่มเรียน</b> เพื่อบันทึก</li>
+</ol></div>
+<figure><img src="img/ch05_fig02_sections-add-modal.png" alt="ภาพที่ 5.4 หน้าต่างเพิ่มหมู่เรียน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 5.4 หน้าต่างเพิ่มหมู่เรียน</figcaption></figure>
+<div class="cx good"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M13.7 3.7L6 11.4 2.3 7.7l1.4-1.4L6 8.6l6.3-6.3z"/></svg>ผลลัพธ์ที่ควรเห็น</div><p>หมู่เรียนใหม่ปรากฏในรายการทันที พร้อมจำนวนนักศึกษาเริ่มต้นเป็น 0 พร้อมเพิ่มนักศึกษาเข้าหมู่ต่อได้</p></div>
+
+<h2 id="sec-5-3">5.3 รายการที่ถูกลบและการกู้คืน<a class="hlink" href="#sec-5-3">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> กู้คืนนักศึกษาที่ถูกลบออกจากหมู่เรียนโดยไม่ตั้งใจ ภายในช่วงเวลาที่ระบบกำหนด</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิกปุ่ม <b>รายการที่ลบ</b> เพื่อดูนักศึกษาที่ถูกลบออกจากหมู่เรียน</li>
+<li>คลิกปุ่มกู้คืนที่แถวของนักศึกษาที่ต้องการนำกลับเข้าหมู่</li>
+</ol></div>
+<figure><img src="img/ch05_fig05_sections-trash-list.png" alt="ภาพที่ 5.5 รายการนักศึกษาที่ถูกลบออกจากหมู่เรียน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 5.5 รายการนักศึกษาที่ถูกลบออกจากหมู่เรียน</figcaption></figure>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>รายการที่ลบกู้คืนได้เฉพาะภายในช่วงเวลาที่ระบบกำหนดเท่านั้น หากพ้นช่วงเวลาดังกล่าวแล้วจะกู้คืนไม่ได้อีก กรุณาตรวจสอบหน้าต่างเวลาที่แสดงในหน้ารายการที่ลบก่อนดำเนินการ</p></div>
+<figure><img src="img/ch05_fig06_sections-restore-window.png" alt="ภาพที่ 5.6 หน้าต่างเวลาที่ยังกู้คืนนักศึกษาได้" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 5.6 กรอบเวลาที่ยังกู้คืนนักศึกษาที่ถูกลบได้</figcaption></figure>
+
+<h2 id="sec-5-4">5.4 กลุ่มโปรเจกต์ (Teams)<a class="hlink" href="#sec-5-4">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> จัดกลุ่มนักศึกษาสำหรับงานกลุ่มที่ใช้ตลอดทั้งเทอม</p>
+<p>ในหน้าจัดการหมู่เรียน แท็บ <strong>กลุ่มโปรเจกต์</strong> ใช้จัดกลุ่มนักศึกษาสำหรับงานกลุ่มที่เป็นกลุ่มถาวรตลอดทั้งเทอม ส่วนแท็บ <strong>กลุ่มโปรเจกต์รายสัปดาห์</strong> ใช้กำหนดกลุ่มเฉพาะสัปดาห์</p>
+<figure><img src="img/ch05_fig07_project-groups-tab.png" alt="ภาพที่ 5.7 แท็บกลุ่มโปรเจกต์" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 5.7 แท็บกลุ่มโปรเจกต์ (กลุ่มถาวรตลอดเทอม)</figcaption></figure>
+<figure><img src="img/ch05_fig08_project-groups-weekly-tab.png" alt="ภาพที่ 5.8 แท็บกลุ่มโปรเจกต์รายสัปดาห์" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 5.8 แท็บกลุ่มโปรเจกต์รายสัปดาห์ (กำหนดเฉพาะสัปดาห์)</figcaption></figure>
+
+<h2 id="sec-5-5">5.5 สร้างกลุ่มโปรเจกต์<a class="hlink" href="#sec-5-5">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> สร้างกลุ่มนักศึกษาสำหรับงานกลุ่ม ด้วยตนเองหรือให้ระบบสุ่มให้</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ (เลือกวิธีใดวิธีหนึ่ง)</div><ol class="do">
+<li>คลิกปุ่ม <b>สร้างกลุ่ม</b> เพื่อสร้างกลุ่มและเพิ่มสมาชิกด้วยตนเอง</li>
+<li>หรือคลิกปุ่ม <b>สุ่มกลุ่ม</b> เพื่อให้ระบบจัดกลุ่มให้อัตโนมัติ</li>
+<li>หรือคลิกปุ่ม <b>นำเข้าจาก Excel</b> เพื่อนำเข้ารายชื่อสมาชิกกลุ่มจากไฟล์ที่เตรียมไว้</li>
+</ol></div>
+<figure><img src="img/ch05_fig09_project-groups-create.png" alt="ภาพที่ 5.9 หน้าต่างสร้างกลุ่มโปรเจกต์ด้วยตนเอง" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 5.9 หน้าต่างสร้างกลุ่มโปรเจกต์ด้วยตนเอง</figcaption></figure>
+<figure><img src="img/ch05_fig10_project-groups-random.png" alt="ภาพที่ 5.10 หน้าต่างสุ่มกลุ่มโปรเจกต์อัตโนมัติ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 5.10 หน้าต่างสุ่มกลุ่มโปรเจกต์อัตโนมัติ</figcaption></figure>
+<figure><img src="img/ch05_fig11_project-groups-excel-import.png" alt="ภาพที่ 5.11 หน้าต่างนำเข้ากลุ่มโปรเจกต์จาก Excel" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 5.11 หน้าต่างนำเข้ากลุ่มโปรเจกต์จากไฟล์ Excel</figcaption></figure>
+<div class="cx good"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M13.7 3.7L6 11.4 2.3 7.7l1.4-1.4L6 8.6l6.3-6.3z"/></svg>ผลลัพธ์ที่ควรเห็น</div><p>กลุ่มที่สร้างแล้วแสดงรายชื่อสมาชิกครบทุกกลุ่ม พร้อมปุ่มแก้ไขและลบกลุ่มที่แต่ละการ์ดกลุ่ม</p></div>
+<div class="pn"><a class="pn-card" href="ch04.html"><span>← ก่อนหน้า</span><strong>บทที่ 4 บทนำและการเข้าสู่ระบบ</strong></a><a class="pn-card next" href="ch06.html"><span>ถัดไป →</span><strong>บทที่ 6 การจัดการสมาชิกและสิทธิ์ผู้ช่วยสอน</strong></a></div></article>
   </main>
-  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-5-1">5.1 จัดการหมู่เรียน (Section)</a><a href="#sec-5-2">5.2 จัดการกลุ่มโปรเจกต์ (Teams)</a></nav>
+  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-5-1">5.1 รายชื่อหมู่เรียน (Section)</a><a href="#sec-5-2">5.2 เพิ่มหมู่เรียนใหม่</a><a href="#sec-5-3">5.3 รายการที่ถูกลบและการกู้คืน</a><a href="#sec-5-4">5.4 กลุ่มโปรเจกต์ (Teams)</a><a href="#sec-5-5">5.5 สร้างกลุ่มโปรเจกต์</a></nav>
 </div>
 <div id="lb" class="lb" onclick="this.classList.remove('on')"><img></div>
 <script src="assets/search-index.js"></script>

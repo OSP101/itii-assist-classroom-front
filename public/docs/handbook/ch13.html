@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>บทที่ 13 การติดตามผลงานทีมและบันทึกกิจกรรม — คู่มือ LabTAS</title>
+<title>บทที่ 13 การติดตามผลงานทีมและบันทึกกิจกรรม — คู่มือ COCO LABS</title>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -12,7 +12,7 @@
   <button class="burger" onclick="document.body.classList.toggle('nav-open')" aria-label="เมนู">
     <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3h14v2H1zm0 4h14v2H1zm0 4h14v2H1z"/></svg>
   </button>
-  <a class="brand" href="index.html"><span class="logo">L</span> LabTAS <span class="muted">Docs</span></a>
+  <a class="brand" href="index.html"><span class="logo">C</span> COCO LABS <span class="muted">Docs</span></a>
   <div class="search">
     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.7 10.3a6 6 0 10-1.4 1.4l3 3 1.4-1.4-3-3zM2 6.5a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0z"/></svg>
     <input id="q" type="search" placeholder="ค้นหาในคู่มือ… " autocomplete="off">
@@ -39,9 +39,8 @@
 <a href="ch07.html"><span class="chip">บทที่ 7</span>งานมอบหมายและการให้คะแนน</a>
 <a href="ch08.html"><span class="chip">บทที่ 8</span>การอนุมัติคำขอแก้ไขคะแนน</a>
 <a href="ch09.html"><span class="chip">บทที่ 9</span>การสอบและคะแนนสอบ</a>
-<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็คชื่อเข้าเรียน</a>
+<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็กชื่อเข้าเรียน</a>
 <a href="ch11.html"><span class="chip">บทที่ 11</span>ระบบคิวตรวจงาน</a>
-<a href="ch12.html"><span class="chip">บทที่ 12</span>การจับคู่จอแสดงผลหน้าห้อง</a>
 <a class="active" href="ch13.html"><span class="chip">บทที่ 13</span>การติดตามผลงานทีมและบันทึกกิจกรรม</a>
 <a href="ch14.html"><span class="chip">บทที่ 14</span>การตั้งค่ารายวิชา</a>
 </details>
@@ -54,36 +53,105 @@
 <details class="side-group"><summary>นักศึกษา</summary>
 <a href="ch19.html"><span class="chip">บทที่ 19</span>การใช้งานสำหรับนักศึกษา (Student)</a>
 </details>
-<details class="side-group"><summary>ภาคผนวก</summary>
-<a href="app-a.html"><span class="chip">ภาคผนวก ก</span>สิทธิ์รายวิชาทั้งหมด (39 สิทธิ์)</a>
-<a href="app-b.html"><span class="chip">ภาคผนวก ข</span>ฟังก์ชันที่เพิ่มหลังคู่มือฉบับสอบจบ</a>
-<a href="app-c.html"><span class="chip">ภาคผนวก ค</span>การกระทำที่ต้องยืนยันตัวตนสองชั้นซ้ำ (Step-up 2FA)</a>
-<a href="app-d.html"><span class="chip">ภาคผนวก ง</span>สรุปเมนูหลักตามบทบาท</a>
-</details>
-    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">LabTAS v1.2.90</span></div>
+    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">COCO LABS Docs</span></div>
   </aside>
   <main class="main">
-    <div class="crumb"><a href="index.html">คู่มือ LabTAS</a> <span>/</span> อาจารย์ผู้สอน <span>/</span> บทที่ 13</div>
+    <div class="crumb"><a href="index.html">คู่มือ COCO LABS</a> <span>/</span> อาจารย์ผู้สอน <span>/</span> บทที่ 13</div>
     <div class="page-label">บทที่ 13</div><h1>การติดตามผลงานทีมและบันทึกกิจกรรม</h1>
     <article class="doc"><h2 id="sec-13-1">13.1 สถิติผู้ช่วยสอน (TA)<a class="hlink" href="#sec-13-1">#</a></h2>
-<p>เมนู <strong>ตั้งค่ารายวิชา &gt; สถิติ TA</strong> ใช้ติดตามและประเมินผลการทำงานของผู้ช่วยสอนแต่ละคน</p>
-<ol class="steps">
-<li>ส่วนบนสรุป <strong>จำนวนผู้ช่วยสอน งานตรวจปกติ งานจากคิวที่สำเร็จ และภาระงานรวมทั้งเทอม</strong></li>
-<li>ส่วนวิเคราะห์แสดง <strong>TA ที่รับงานมากที่สุด TA ที่ยังไม่มีงานจากคิว และ TA ที่มีประเด็นให้ตรวจสอบ</strong> พร้อมสัดส่วนภาระงานของแต่ละคน</li>
-<li>ส่วน <strong>ประเด็นที่ควรตรวจสอบ</strong> ชี้จุดที่ควรพิจารณา เช่น TA ที่รับภาระงานน้อยผิดปกติ</li>
-</ol>
-<figure><img src="img/instructor_tastats_01.png" alt="ภาพที่ 13.1 หน้าสถิติผู้ช่วยสอน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 13.1 หน้าสถิติผู้ช่วยสอน</figcaption></figure>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ให้ท่านเห็นภาพรวมว่าผู้ช่วยสอนแต่ละคนรับงานไปมากน้อยเพียงใด เพื่อกระจายภาระงานให้เป็นธรรมและจับสัญญาณผิดปกติได้ทันที เมนูอยู่ที่ <strong>ตั้งค่ารายวิชา &gt; สถิติ TA</strong></p>
+<figure><img src="img/ch13_fig01_tastats-summary-course.png" alt="ภาพที่ 13.1 หน้าสรุปสถิติผู้ช่วยสอนของรายวิชา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 13.1 หน้าสรุปสถิติผู้ช่วยสอนของรายวิชา</figcaption></figure>
+<div class="see-block">
+  <div class="see-label">องค์ประกอบบนหน้านี้</div>
+  <dl class="see">
+    <div><dt>แถบสรุปด้านบน</dt><dd>จำนวนผู้ช่วยสอนทั้งหมด งานตรวจปกติ งานจากคิวที่สำเร็จ และภาระงานรวมทั้งเทอม</dd></div>
+    <div><dt>TA ที่รับงานมากที่สุด</dt><dd>จัดอันดับผู้ช่วยสอนตามปริมาณงานที่รับ พร้อมสัดส่วนภาระงานเทียบกับทีม</dd></div>
+    <div><dt>TA ที่ยังไม่มีงานจากคิว</dt><dd>รายชื่อผู้ช่วยสอนที่ยังไม่มีการรับงานจากระบบคิวในช่วงเวลาที่ดู</dd></div>
+    <div><dt>ประเด็นที่ควรตรวจสอบ</dt><dd>ชี้จุดที่ควรพิจารณา เช่น TA ที่รับภาระงานน้อยผิดปกติเมื่อเทียบกับเพื่อนร่วมทีม</dd></div>
+  </dl>
+</div>
+<figure class="shot-seq-wrap">
+  <div class="shot-seq">
+    <img src="img/ch13_fig02_tastats-most-active.png" alt="ภาพที่ 13.2ก รายการ TA ที่รับงานมากที่สุด" loading="lazy" onclick="lightbox(this)">
+    <img src="img/ch13_fig03_tastats-idle-warning.png" alt="ภาพที่ 13.2ข คำเตือน TA ที่ยังไม่มีงานจากคิว" loading="lazy" onclick="lightbox(this)">
+  </div>
+  <figcaption>ภาพที่ 13.2 รายการ TA ที่รับงานมากที่สุด และคำเตือน TA ที่ยังไม่มีงานจากคิว</figcaption>
+</figure>
+<figure><img src="img/ch13_fig04_tastats-issues-flag.png" alt="ภาพที่ 13.3 ส่วนประเด็นที่ควรตรวจสอบ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 13.3 ส่วนประเด็นที่ควรตรวจสอบ</figcaption></figure>
+<div class="cx tip"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 00-3 9v1.5a1 1 0 001 1h4a1 1 0 001-1V10a5 5 0 00-3-9zM6 14h4v1H6z"/></svg>คำแนะนำ</div><p>ควรตรวจหน้าสถิติ TA เป็นระยะตลอดเทอม โดยเฉพาะช่วงก่อนปิดเทอมที่งานตรวจสะสมมาก จะช่วยให้ท่านมอบหมายงานเพิ่มเติมให้ผู้ช่วยสอนที่ว่างได้ทันเวลา</p></div>
 <h2 id="sec-13-2">13.2 บันทึกกิจกรรมรายวิชา (Activity Log)<a class="hlink" href="#sec-13-2">#</a></h2>
-<p>เมนู <strong>ตั้งค่ารายวิชา &gt; บันทึกกิจกรรม</strong> แสดงประวัติการเปลี่ยนแปลงทั้งหมดในรายวิชา</p>
-<ol class="steps">
-<li>แท็บ <strong>ไทม์ไลน์กิจกรรม</strong> และ <strong>สรุปภาพรวม</strong> ใช้ดูข้อมูลในมุมต่าง ๆ</li>
-<li>ใช้ <strong>ตัวกรอง</strong> ตามช่วงเวลา หมวดหมู่ การกระทำ หรือผู้ดำเนินการ เพื่อค้นหาเหตุการณ์ที่ต้องการ</li>
-<li>ปุ่ม <strong>ส่งออก CSV</strong> ใช้ดาวน์โหลดบันทึกไปเก็บหรือวิเคราะห์ต่อ</li>
-<li>ตารางแสดง <strong>ผู้ดำเนินการ การกระทำ หมวดหมู่ เป้าหมาย รายละเอียด และเวลา</strong> ของแต่ละเหตุการณ์</li>
-</ol>
-<figure><img src="img/instructor_activitylog_01.png" alt="ภาพที่ 13.2 หน้าบันทึกกิจกรรมรายวิชา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 13.2 หน้าบันทึกกิจกรรมรายวิชา</figcaption></figure><div class="pn"><a class="pn-card" href="ch12.html"><span>← ก่อนหน้า</span><strong>บทที่ 12 การจับคู่จอแสดงผลหน้าห้อง</strong></a><a class="pn-card next" href="ch14.html"><span>ถัดไป →</span><strong>บทที่ 14 การตั้งค่ารายวิชา</strong></a></div></article>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ให้ท่านตรวจสอบย้อนหลังได้ว่าใครทำอะไร เมื่อใด ในรายวิชานี้ ทั้งการกระทำของอาจารย์ ผู้ช่วยสอน และเหตุการณ์ที่ระบบบันทึกเองอัตโนมัติ เมนูอยู่ที่ <strong>ตั้งค่ารายวิชา &gt; บันทึกกิจกรรม</strong></p>
+<p>หน้านี้แสดงเหตุการณ์เป็น <strong>ไทม์ไลน์แบ่งตามวัน</strong> ไม่ใช่ตารางแถวเดียวเหมือนคู่มือฉบับก่อน เนื่องจากตารางเหมาะกับการค้นหา "แถวที่ต้องการ" เพียงแถวเดียว ในขณะที่ไทม์ไลน์ตอบคำถามที่อาจารย์ถามบ่อยกว่า คือ "เกิดอะไรขึ้นในชั้นเรียนนี้บ้าง" ได้ดีกว่า</p>
+<div class="do-block">
+  <div class="do-label">สิ่งที่ต้องทำ</div>
+  <ol class="do">
+    <li>เข้าเมนู <b>บันทึกกิจกรรม</b> ระบบจะเปิดแท็บ <b>ไทม์ไลน์กิจกรรม</b> เป็นค่าเริ่มต้น แสดงเหตุการณ์แบ่งกลุ่มตามวัน เรียงจากล่าสุดไปเก่าสุด</li>
+    <li>สลับไปแท็บ <b>สรุปภาพรวม</b> เพื่อดูข้อมูลเชิงสถิติ เช่น จำนวนเหตุการณ์แยกตามหมวดหมู่และผู้ดำเนินการ</li>
+    <li>ใช้ <b>ตัวกรอง</b> จำกัดขอบเขตตามช่วงเวลา หมวดหมู่ การกระทำ หรือผู้ดำเนินการ เพื่อค้นหาเหตุการณ์ที่ต้องการ</li>
+    <li>คลิกปุ่ม <b>ส่งออก CSV</b> เพื่อดาวน์โหลดบันทึกไปเก็บหรือวิเคราะห์ต่อ</li>
+  </ol>
+</div>
+<figure><img src="img/ch13_fig05_activitylog-timeline-view.png" alt="ภาพที่ 13.4 แท็บไทม์ไลน์กิจกรรม แบ่งกลุ่มตามวัน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 13.4 แท็บไทม์ไลน์กิจกรรม แบ่งกลุ่มตามวัน</figcaption></figure>
+<figure class="shot-seq-wrap">
+  <div class="shot-seq">
+    <img src="img/ch13_fig06_activitylog-summary-tab.png" alt="ภาพที่ 13.5ก แท็บสรุปภาพรวม" loading="lazy" onclick="lightbox(this)">
+    <img src="img/ch13_fig07_activitylog-filters.png" alt="ภาพที่ 13.5ข แผงตัวกรอง" loading="lazy" onclick="lightbox(this)">
+    <img src="img/ch13_fig08_activitylog-csv-export.png" alt="ภาพที่ 13.5ค ปุ่มส่งออก CSV" loading="lazy" onclick="lightbox(this)">
+  </div>
+  <figcaption>ภาพที่ 13.5 แท็บสรุปภาพรวม ตัวกรอง และปุ่มส่งออก CSV</figcaption>
+</figure>
+<h2 id="sec-13-3">13.3 ดูรายละเอียดเหตุการณ์<a class="hlink" href="#sec-13-3">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ให้ท่านตรวจสอบเหตุการณ์แต่ละรายการได้ลึกถึงระดับผู้กระทำ ค่าที่เปลี่ยนแปลง และข้อมูลดิบ ซึ่งจำเป็นเมื่อต้องสืบสวนกรณีคะแนนหรือสิทธิ์เปลี่ยนแปลงผิดปกติ</p>
+<div class="do-block">
+  <div class="do-label">สิ่งที่ต้องทำ</div>
+  <ol class="do">
+    <li>คลิกที่แถวเหตุการณ์ใดก็ได้ในไทม์ไลน์ เพื่อเปิด <b>แผงรายละเอียด</b> ของเหตุการณ์นั้น</li>
+  </ol>
+</div>
+<figure><img src="img/ch13_fig09_activitylog-row-click.png" alt="ภาพที่ 13.6 คลิกแถวเหตุการณ์เพื่อเปิดแผงรายละเอียด" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 13.6 คลิกแถวเหตุการณ์เพื่อเปิดแผงรายละเอียด</figcaption></figure>
+<div class="see-block">
+  <div class="see-label">องค์ประกอบในแผงรายละเอียด</div>
+  <dl class="see">
+    <div><dt>ผู้ดำเนินการและ IP</dt><dd>ชื่อผู้ดำเนินการ พร้อมหมายเลข IP และชนิดอุปกรณ์ที่ใช้ทำรายการ ใช้ยืนยันตัวตนเมื่อสงสัยว่ามีการดำเนินการจากบัญชีที่ไม่ใช่เจ้าของ</dd></div>
+    <div><dt>ป้าย "ระบบตรวจพบเอง" / "ทำโดยผู้ใช้"</dt><dd>แยกให้เห็นชัดว่าเหตุการณ์นี้ระบบบันทึกอัตโนมัติ (เช่น การหมดเวลาของงาน) หรือเป็นการกระทำของบุคคลจริง</dd></div>
+    <div><dt>มุมมองเปรียบเทียบก่อน/หลัง</dt><dd>แสดงค่าที่เปลี่ยนแปลงเป็นคู่ ค่าก่อนหน้าและค่าใหม่ สำหรับเหตุการณ์ที่มีการแก้ไขข้อมูล</dd></div>
+    <div><dt>ชิปหัวเรื่อง/เป้าหมาย</dt><dd>ชื่อบุคคลหรือรายวิชาที่เกี่ยวข้องกับเหตุการณ์ แสดงเป็นชิปที่คลิกได้</dd></div>
+    <div><dt>ข้อมูลดิบ (JSON)</dt><dd>payload ดิบของเหตุการณ์ สำหรับตรวจสอบละเอียดหรือส่งต่อให้ผู้ดูแลระบบ</dd></div>
+  </dl>
+</div>
+<figure class="shot-seq-wrap">
+  <div class="shot-seq">
+    <img src="img/ch13_fig10_activitylog-detail-actor-ip.png" alt="ภาพที่ 13.7ก ผู้ดำเนินการพร้อม IP และอุปกรณ์" loading="lazy" onclick="lightbox(this)">
+    <img src="img/ch13_fig11_activitylog-detail-system-vs-user.png" alt="ภาพที่ 13.7ข ป้ายระบบตรวจพบเองเทียบกับทำโดยผู้ใช้" loading="lazy" onclick="lightbox(this)">
+  </div>
+  <figcaption>ภาพที่ 13.7 ผู้ดำเนินการพร้อม IP/อุปกรณ์ และป้ายแยกเหตุการณ์ที่ระบบตรวจพบเองกับที่ผู้ใช้ทำเอง</figcaption>
+</figure>
+<figure><img src="img/ch13_fig12_activitylog-detail-diff-view.png" alt="ภาพที่ 13.8 มุมมองเปรียบเทียบค่าก่อนและหลังการเปลี่ยนแปลง" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 13.8 มุมมองเปรียบเทียบค่าก่อนและหลังการเปลี่ยนแปลง</figcaption></figure>
+<div class="do-block">
+  <div class="do-label">สิ่งที่ต้องทำ</div>
+  <ol class="do">
+    <li>คลิกที่ <b>ชิปชื่อบุคคลหรือรายวิชา</b> ในแผงรายละเอียด เพื่อกรองไทม์ไลน์ทั้งหมดให้เหลือเฉพาะเหตุการณ์ของหัวเรื่องนั้น</li>
+    <li>เปิดแท็บ <b>ข้อมูลดิบ</b> เพื่อดู payload แบบ JSON ของเหตุการณ์ หากต้องยืนยันรายละเอียดที่ไม่ได้แสดงในมุมมองปกติ</li>
+  </ol>
+</div>
+<figure class="shot-seq-wrap">
+  <div class="shot-seq">
+    <img src="img/ch13_fig13_activitylog-detail-subject-chip.png" alt="ภาพที่ 13.9ก ชิปหัวเรื่องที่คลิกกรองไทม์ไลน์ได้" loading="lazy" onclick="lightbox(this)">
+    <img src="img/ch13_fig14_activitylog-detail-json-raw.png" alt="ภาพที่ 13.9ข มุมมองข้อมูลดิบแบบ JSON" loading="lazy" onclick="lightbox(this)">
+  </div>
+  <figcaption>ภาพที่ 13.9 ชิปหัวเรื่องที่คลิกกรองไทม์ไลน์ได้ และมุมมองข้อมูลดิบแบบ JSON</figcaption>
+</figure>
+<div class="cx good"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M13.7 3.7L6 11.4 2.3 7.7l1.4-1.4L6 8.6l6.3-6.3z"/></svg>ผลลัพธ์ที่ควรเห็น</div><p>เมื่อคลิกชิปหัวเรื่องแล้ว ไทม์ไลน์ทั้งหน้าจะกรองเหลือเฉพาะเหตุการณ์ที่เกี่ยวข้องกับบุคคลหรือรายวิชานั้น ท่านสามารถคลิกล้างตัวกรองเพื่อกลับไปดูไทม์ไลน์เต็มได้ทุกเมื่อ</p></div>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>เหตุการณ์ที่มีป้าย "ระบบตรวจพบเอง" ไม่ได้แปลว่าไม่มีนัยสำคัญ เช่น การหมดเวลาของงานหรือการปิดคิวอัตโนมัติ ก็ควรตรวจสอบเช่นเดียวกับเหตุการณ์ที่ผู้ใช้ทำเอง หากพบความผิดปกติ</p></div>
+<h2 id="sec-faq">คำถามที่พบบ่อย</h2>
+<div class="faq">
+<details open><summary>ป้าย "ระบบตรวจพบเอง" กับ "ทำโดยผู้ใช้" ต่างกันอย่างไร</summary><div class="a">"ระบบตรวจพบเอง" คือเหตุการณ์ที่เกิดขึ้นอัตโนมัติโดยไม่มีผู้ใช้กดหรือสั่งการโดยตรง เช่น การหมดเวลาของคิวหรือการปิดรับงานอัตโนมัติตามเงื่อนไข ส่วน "ทำโดยผู้ใช้" คือการกระทำที่มีบุคคลจริงกดหรือสั่งการ เช่น อาจารย์แก้ไขคะแนนหรือผู้ช่วยสอนอนุมัติคำขอ การแยกป้ายนี้ช่วยให้ท่านตัดสินใจได้เร็วขึ้นว่าเหตุการณ์ใดต้องสอบถามบุคคลที่เกี่ยวข้อง และเหตุการณ์ใดเป็นการทำงานปกติของระบบ</div></details>
+<details><summary>กดที่ชื่อคนหรือชื่อวิชาในไทม์ไลน์แล้วเกิดอะไรขึ้น</summary><div class="a">ระบบจะกรองไทม์ไลน์ทั้งหน้าให้เหลือเฉพาะเหตุการณ์ที่เกี่ยวข้องกับบุคคลหรือรายวิชานั้นทันที เหมาะสำหรับกรณีที่ต้องการไล่ดูประวัติการทำงานของผู้ช่วยสอนคนใดคนหนึ่ง หรือประวัติการเปลี่ยนแปลงของหัวข้องานใดหัวข้อหนึ่งโดยเฉพาะ โดยไม่ต้องตั้งตัวกรองเอง</div></details>
+<details><summary>ควรใช้แท็บไทม์ไลน์หรือแท็บสรุปภาพรวมเมื่อใด</summary><div class="a">แท็บไทม์ไลน์เหมาะกับการไล่ดูว่าเกิดอะไรขึ้นบ้างในแต่ละวัน ส่วนแท็บสรุปภาพรวมเหมาะกับการดูภาพรวมเชิงสถิติ เช่น หมวดหมู่ใดมีเหตุการณ์มากที่สุด หรือผู้ดำเนินการคนใดมีความเคลื่อนไหวมากที่สุดในช่วงเวลาที่กำหนด หากต้องการหาเหตุการณ์เฉพาะจุด แนะนำให้ใช้ตัวกรองร่วมกับแท็บไทม์ไลน์</div></details>
+</div>
+<div class="pn"><a class="pn-card" href="ch11.html"><span>← ก่อนหน้า</span><strong>บทที่ 11 ระบบคิวตรวจงาน</strong></a><a class="pn-card next" href="ch14.html"><span>ถัดไป →</span><strong>บทที่ 14 การตั้งค่ารายวิชา</strong></a></div></article>
   </main>
-  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-13-1">13.1 สถิติผู้ช่วยสอน (TA)</a><a href="#sec-13-2">13.2 บันทึกกิจกรรมรายวิชา (Activity Log)</a></nav>
+  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-13-1">13.1 สถิติผู้ช่วยสอน (TA)</a><a href="#sec-13-2">13.2 บันทึกกิจกรรมรายวิชา (Activity Log)</a><a href="#sec-13-3">13.3 ดูรายละเอียดเหตุการณ์</a><a href="#sec-faq">คำถามที่พบบ่อย</a></nav>
 </div>
 <div id="lb" class="lb" onclick="this.classList.remove('on')"><img></div>
 <script src="assets/search-index.js"></script>

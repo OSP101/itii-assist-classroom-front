@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>บทที่ 8 การอนุมัติคำขอแก้ไขคะแนน — คู่มือ LabTAS</title>
+<title>บทที่ 8 การอนุมัติคำขอแก้ไขคะแนน — คู่มือ COCO LABS</title>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -12,7 +12,7 @@
   <button class="burger" onclick="document.body.classList.toggle('nav-open')" aria-label="เมนู">
     <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3h14v2H1zm0 4h14v2H1zm0 4h14v2H1z"/></svg>
   </button>
-  <a class="brand" href="index.html"><span class="logo">L</span> LabTAS <span class="muted">Docs</span></a>
+  <a class="brand" href="index.html"><span class="logo">C</span> COCO LABS <span class="muted">Docs</span></a>
   <div class="search">
     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.7 10.3a6 6 0 10-1.4 1.4l3 3 1.4-1.4-3-3zM2 6.5a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0z"/></svg>
     <input id="q" type="search" placeholder="ค้นหาในคู่มือ… " autocomplete="off">
@@ -39,9 +39,8 @@
 <a href="ch07.html"><span class="chip">บทที่ 7</span>งานมอบหมายและการให้คะแนน</a>
 <a class="active" href="ch08.html"><span class="chip">บทที่ 8</span>การอนุมัติคำขอแก้ไขคะแนน</a>
 <a href="ch09.html"><span class="chip">บทที่ 9</span>การสอบและคะแนนสอบ</a>
-<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็คชื่อเข้าเรียน</a>
+<a href="ch10.html"><span class="chip">บทที่ 10</span>การเช็กชื่อเข้าเรียน</a>
 <a href="ch11.html"><span class="chip">บทที่ 11</span>ระบบคิวตรวจงาน</a>
-<a href="ch12.html"><span class="chip">บทที่ 12</span>การจับคู่จอแสดงผลหน้าห้อง</a>
 <a href="ch13.html"><span class="chip">บทที่ 13</span>การติดตามผลงานทีมและบันทึกกิจกรรม</a>
 <a href="ch14.html"><span class="chip">บทที่ 14</span>การตั้งค่ารายวิชา</a>
 </details>
@@ -54,29 +53,75 @@
 <details class="side-group"><summary>นักศึกษา</summary>
 <a href="ch19.html"><span class="chip">บทที่ 19</span>การใช้งานสำหรับนักศึกษา (Student)</a>
 </details>
-<details class="side-group"><summary>ภาคผนวก</summary>
-<a href="app-a.html"><span class="chip">ภาคผนวก ก</span>สิทธิ์รายวิชาทั้งหมด (39 สิทธิ์)</a>
-<a href="app-b.html"><span class="chip">ภาคผนวก ข</span>ฟังก์ชันที่เพิ่มหลังคู่มือฉบับสอบจบ</a>
-<a href="app-c.html"><span class="chip">ภาคผนวก ค</span>การกระทำที่ต้องยืนยันตัวตนสองชั้นซ้ำ (Step-up 2FA)</a>
-<a href="app-d.html"><span class="chip">ภาคผนวก ง</span>สรุปเมนูหลักตามบทบาท</a>
-</details>
-    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">LabTAS v1.2.90</span></div>
+    <div class="side-foot">วิทยาลัยการคอมพิวเตอร์<br>มหาวิทยาลัยขอนแก่น<br><span class="muted">COCO LABS Docs</span></div>
   </aside>
   <main class="main">
-    <div class="crumb"><a href="index.html">คู่มือ LabTAS</a> <span>/</span> อาจารย์ผู้สอน <span>/</span> บทที่ 8</div>
+    <div class="crumb"><a href="index.html">คู่มือ COCO LABS</a> <span>/</span> อาจารย์ผู้สอน <span>/</span> บทที่ 8</div>
     <div class="page-label">บทที่ 8</div><h1>การอนุมัติคำขอแก้ไขคะแนน</h1>
-    <article class="doc"><h2 id="sec-8-1">8.1 ภาพรวม<a class="hlink" href="#sec-8-1">#</a></h2>
-<p>เมื่อผู้ช่วยสอนต้องการแก้ไขคะแนนที่ให้ไปแล้ว ระบบจะสร้าง <strong>คำขอแก้ไขคะแนน</strong> ส่งมาให้อาจารย์พิจารณาอนุมัติหรือปฏิเสธ เพื่อให้การเปลี่ยนแปลงคะแนนทุกครั้งมีการตรวจสอบและมีร่องรอยย้อนหลังได้</p>
-<h2 id="sec-8-2">8.2 พิจารณาคำขอ<a class="hlink" href="#sec-8-2">#</a></h2>
-<ol class="steps">
-<li>เข้าเมนู <strong>จัดการงานและคะแนน</strong> แล้วเลือก <strong>อนุมัติคะแนน</strong> ระบบแบ่งเป็นแท็บ <strong>รออนุมัติ / อนุมัติแล้ว / ปฏิเสธ</strong></li>
-<li>แต่ละคำขอจะแสดงชื่อนักศึกษา งานและข้อที่ขอแก้ไข พร้อม <strong>คะแนนเดิมและคะแนนใหม่</strong> (เช่น 10 → 5) เพื่อให้ตรวจสอบได้ทันที</li>
-</ol>
-<figure><img src="img/instructor_approval_01_approved.png" alt="ภาพที่ 8.1 หน้าอนุมัติการแก้ไขคะแนน" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 8.1 หน้าอนุมัติการแก้ไขคะแนน</figcaption></figure>
-<p>ในแท็บ "รออนุมัติ" อาจารย์สามารถกด <strong>อนุมัติ</strong> หรือ <strong>ปฏิเสธ</strong> ได้ทั้งแบบรายการเดียวและแบบเลือกหลายรายการพร้อมกัน (batch) โดยระบบจะแสดงจำนวนคำขอที่ค้างพิจารณาไว้เสมอ</p>
-<div class="callout"><div class="callout-title"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8zm9-3a1 1 0 11-2 0 1 1 0 012 0zM7 7h2v5H7V7z"/></svg>ข้อควรทราบ</div><p>การอนุมัติหรือปฏิเสธคำขอทุกครั้งจะถูกบันทึกไว้ใน Activity Log ของรายวิชา ทำให้ตรวจสอบย้อนหลังได้ว่าใครแก้คะแนนใด เมื่อใด และด้วยเหตุผลใด</p></div><div class="pn"><a class="pn-card" href="ch07.html"><span>← ก่อนหน้า</span><strong>บทที่ 7 งานมอบหมายและการให้คะแนน</strong></a><a class="pn-card next" href="ch09.html"><span>ถัดไป →</span><strong>บทที่ 9 การสอบและคะแนนสอบ</strong></a></div></article>
+    <article class="doc">
+
+<h2 id="sec-8-1">8.1 ภาพรวม<a class="hlink" href="#sec-8-1">#</a></h2>
+<p>เมื่อผู้ช่วยสอนต้องการแก้ไขคะแนนที่ให้ไปแล้ว ระบบจะไม่แก้คะแนนให้ทันที แต่จะสร้าง <strong>คำขอแก้ไขคะแนน</strong> ส่งมาให้ท่านพิจารณาก่อนเสมอ เพื่อให้การเปลี่ยนแปลงคะแนนทุกครั้งมีการตรวจสอบและมีร่องรอยย้อนหลังได้ คำขอแต่ละรายการแสดงคะแนนเดิมเทียบกับคะแนนใหม่ และอาจมีภาพหลักฐานประกอบแนบมาด้วย</p>
+<div class="cx tip"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 00-3 9v1.5a1 1 0 001 1h4a1 1 0 001-1V10a5 5 0 00-3-9zM6 14h4v1H6z"/></svg>คำแนะนำ</div><p>การอนุมัติหรือปฏิเสธคำขอทุกครั้งจะถูกบันทึกไว้ในบันทึกกิจกรรมของรายวิชา ทำให้ตรวจสอบย้อนหลังได้ว่าใครแก้คะแนนใด เมื่อใด และด้วยเหตุผลใด (ดูรายละเอียดในบทที่ 13)</p></div>
+
+<h2 id="sec-8-2">8.2 เปิดหน้าอนุมัติคะแนน<a class="hlink" href="#sec-8-2">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> เข้าสู่หน้าที่รวมคำขอแก้ไขคะแนนทั้งหมดของรายวิชา ซึ่งเป็นจุดเริ่มต้นของทุกการทำงานในบทนี้</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>เข้าเมนู <b>จัดการงานและคะแนน</b> แล้วเลือก <b>อนุมัติคะแนน</b> หากมีคำขอค้างพิจารณาอยู่ เมนูจะแสดงตัวเลขกำกับจำนวนไว้</li>
+</ol></div>
+<figure><img src="img/ch08_fig01_approval-menu-badge.png" alt="ภาพที่ 8.1 เมนูอนุมัติคะแนน พร้อมตัวเลขกำกับจำนวนคำขอค้างพิจารณา" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 8.1 เมนู "อนุมัติคะแนน" พร้อมตัวเลขกำกับจำนวนคำขอค้างพิจารณา</figcaption></figure>
+<div class="see-block"><div class="see-label">องค์ประกอบบนหน้านี้</div><dl class="see">
+<div><dt>แท็บ "รออนุมัติ"</dt><dd>คำขอที่ยังไม่ได้ตัดสินใจ เป็นแท็บที่ระบบเปิดให้อัตโนมัติเมื่อเข้าหน้านี้</dd></div>
+<div><dt>แท็บ "อนุมัติแล้ว"</dt><dd>คำขอที่ท่านอนุมัติไปแล้ว คะแนนถูกปรับตามคำขอเรียบร้อย</dd></div>
+<div><dt>แท็บ "ปฏิเสธ"</dt><dd>คำขอที่ท่านปฏิเสธไป พร้อมเหตุผลที่บันทึกไว้</dd></div>
+</dl></div>
+<figure><img src="img/ch08_fig02_approval-tabs.png" alt="ภาพที่ 8.2 แท็บรออนุมัติ อนุมัติแล้ว และปฏิเสธ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 8.2 แท็บ "รออนุมัติ / อนุมัติแล้ว / ปฏิเสธ"</figcaption></figure>
+
+<h2 id="sec-8-3">8.3 อ่านคำขอและหลักฐานประกอบ<a class="hlink" href="#sec-8-3">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ตรวจสอบรายละเอียดของแต่ละคำขอให้ครบก่อนตัดสินใจอนุมัติหรือปฏิเสธ</p>
+<div class="see-block"><div class="see-label">องค์ประกอบบนการ์ดคำขอ</div><dl class="see">
+<div><dt>ชื่อนักศึกษาและงาน</dt><dd>งานมอบหมายและข้อที่ขอแก้ไขคะแนน</dd></div>
+<div><dt>คะแนนเดิม → คะแนนใหม่</dt><dd>แสดงเทียบกันให้ตรวจสอบได้ทันที เช่น 10 → 5</dd></div>
+<div><dt>ผู้ยื่นคำขอและเหตุผล</dt><dd>ชื่อผู้ช่วยสอนที่ยื่นคำขอ พร้อมเหตุผลที่ระบุ</dd></div>
+</dl></div>
+<figure><img src="img/ch08_fig03_approval-request-card.png" alt="ภาพที่ 8.3 การ์ดคำขอแก้ไขคะแนนหนึ่งรายการ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 8.3 การ์ดคำขอแก้ไขคะแนนหนึ่งรายการ</figcaption></figure>
+<p>ผู้ช่วยสอนแนบภาพหลักฐานประกอบคำขอได้ เช่น ภาพกระดาษคำตอบที่ตรวจใหม่ หากมีภาพแนบมา การ์ดจะแสดงภาพย่อกำกับไว้</p>
+<figure><img src="img/ch08_fig04_approval-evidence-thumbnail.png" alt="ภาพที่ 8.4 ภาพย่อหลักฐานประกอบบนการ์ดคำขอ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 8.4 ภาพย่อหลักฐานประกอบบนการ์ดคำขอ</figcaption></figure>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิกภาพย่อหลักฐาน เพื่อดูภาพเต็มขนาดก่อนตัดสินใจ</li>
+</ol></div>
+<figure><img src="img/ch08_fig05_approval-evidence-enlarge.png" alt="ภาพที่ 8.5 ภาพหลักฐานเมื่อขยายดูเต็มขนาด" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 8.5 ภาพหลักฐานเมื่อขยายดูเต็มขนาด</figcaption></figure>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>คำขอไม่จำเป็นต้องมีภาพหลักฐานแนบมาเสมอไป เนื่องจากเป็นช่องไม่บังคับฝั่งผู้ช่วยสอน หากคำขอไม่มีภาพแนบ ให้พิจารณาจากเหตุผลที่ระบุไว้แทน</p></div>
+
+<h2 id="sec-8-4">8.4 คำขอที่มาจากการให้คะแนนเป็นชุด (Batch)<a class="hlink" href="#sec-8-4">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> พิจารณาคำขอหลายรายการที่เกิดจากการแก้ไขคะแนนครั้งเดียวของผู้ช่วยสอน โดยเลือกอนุมัติได้เฉพาะบางคนในกลุ่ม</p>
+<p>เมื่อผู้ช่วยสอนแก้ไขคะแนนของนักศึกษาหลายคนพร้อมกันในการกระทำเดียว ระบบจะจัดกลุ่มคำขอที่เกิดจากการกระทำเดียวกันไว้ในการ์ดเดียวแบบเปิด/ปิด (accordion) โดยอัตโนมัติ แทนที่จะแยกเป็นการ์ดย่อยทีละคน</p>
+<figure><img src="img/ch08_fig06_approval-batch-accordion.png" alt="ภาพที่ 8.6 การ์ดคำขอแบบกลุ่ม accordion" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 8.6 การ์ดคำขอแบบกลุ่มจากการแก้ไขคะแนนครั้งเดียว</figcaption></figure>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>คลิกหัวการ์ดเพื่อขยายดูรายชื่อนักศึกษาทั้งหมดในกลุ่ม</li>
+<li>ทำเครื่องหมายเลือกเฉพาะนักศึกษาที่ต้องการอนุมัติ ไม่จำเป็นต้องเลือกทั้งหมด</li>
+</ol></div>
+<figure><img src="img/ch08_fig07_approval-batch-select-partial.png" alt="ภาพที่ 8.7 เลือกอนุมัติบางรายการภายในกลุ่ม" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 8.7 เลือกอนุมัติเฉพาะบางรายการภายในกลุ่ม</figcaption></figure>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>การอนุมัติกลุ่มไม่ใช่การกระทำแบบทั้งหมดหรือไม่มีเลย ท่านเลือกอนุมัติเฉพาะบางคนในกลุ่มได้ ส่วนคนที่ยังไม่ได้เลือกจะยังค้างอยู่ในแท็บ "รออนุมัติ" ตามเดิม ไม่ถูกอนุมัติหรือปฏิเสธไปพร้อมกันโดยอัตโนมัติ</p></div>
+
+<h2 id="sec-8-5">8.5 อนุมัติหรือปฏิเสธคำขอ<a class="hlink" href="#sec-8-5">#</a></h2>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ตัดสินใจขั้นสุดท้ายต่อคำขอแต่ละรายการหรือรายการที่เลือกไว้ในกลุ่ม</p>
+<div class="do-block"><div class="do-label">สิ่งที่ต้องทำ</div><ol class="do">
+<li>หากเห็นด้วยกับคำขอ คลิก <b>อนุมัติ</b> คะแนนของนักศึกษาจะถูกปรับเป็นค่าใหม่ตามคำขอทันที</li>
+<li>หากไม่เห็นด้วย คลิก <b>ปฏิเสธ</b> แล้วกรอกเหตุผลในกล่องที่ปรากฏขึ้น ก่อนคลิกยืนยัน</li>
+</ol></div>
+<figure><img src="img/ch08_fig08_approval-reject-reason.png" alt="ภาพที่ 8.8 กล่องกรอกเหตุผลเมื่อปฏิเสธคำขอ" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 8.8 กล่องกรอกเหตุผลเมื่อปฏิเสธคำขอ</figcaption></figure>
+<div class="cx good"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M13.7 3.7L6 11.4 2.3 7.7l1.4-1.4L6 8.6l6.3-6.3z"/></svg>ผลลัพธ์ที่ควรเห็น</div><p>คำขอที่อนุมัติหรือปฏิเสธจะย้ายไปอยู่ในแท็บนั้นทันที และคะแนน (กรณีอนุมัติ) จะปรับตามคะแนนใหม่ที่ระบุไว้ในคำขอ โดยไม่ต้องเข้าไปแก้ไขคะแนนซ้ำในหน้ารายชื่ออีก</p></div>
+
+<h2 id="sec-8-faq">คำถามที่พบบ่อย<a class="hlink" href="#sec-8-faq">#</a></h2>
+<div class="faq">
+<details open><summary>เมนู "อนุมัติคะแนน" มีตัวเลขกำกับอยู่ หมายความว่าอะไร</summary><div class="a">เป็นจำนวนคำขอแก้ไขคะแนนที่ยังค้างอยู่ในแท็บ "รออนุมัติ" ตามข้อ 8.2 หากตัวเลขหายไป แสดงว่าไม่มีคำขอค้างพิจารณา ณ ขณะนั้น</div></details>
+<details><summary>อนุมัติคำขอแบบกลุ่มแล้ว จำเป็นต้องเลือกนักศึกษาทุกคนหรือไม่</summary><div class="a">ไม่จำเป็น ตามข้อ 8.4 ท่านทำเครื่องหมายเลือกเฉพาะบางคนในกลุ่มแล้วอนุมัติได้ ส่วนคนที่ยังไม่ได้เลือกจะยังค้างอยู่ในแท็บ "รออนุมัติ" รอการพิจารณาในภายหลัง</div></details>
+<details><summary>คำขอบางรายการไม่มีภาพหลักฐานแนบมา ผิดปกติหรือไม่</summary><div class="a">ไม่ผิดปกติ ภาพหลักฐานเป็นช่องไม่บังคับฝั่งผู้ช่วยสอนตามข้อ 8.3 หากไม่มีภาพแนบ ให้พิจารณาจากเหตุผลที่ผู้ช่วยสอนระบุไว้ในคำขอแทน</div></details>
+</div>
+<div class="pn"><a class="pn-card" href="ch07.html"><span>← ก่อนหน้า</span><strong>บทที่ 7 งานมอบหมายและการให้คะแนน</strong></a><a class="pn-card next" href="ch09.html"><span>ถัดไป →</span><strong>บทที่ 9 การสอบและคะแนนสอบ</strong></a></div></article>
   </main>
-  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-8-1">8.1 ภาพรวม</a><a href="#sec-8-2">8.2 พิจารณาคำขอ</a></nav>
+  <nav class="rail"><div class="rail-title">ในหน้านี้</div><a href="#sec-8-1">8.1 ภาพรวม</a><a href="#sec-8-2">8.2 เปิดหน้าอนุมัติคะแนน</a><a href="#sec-8-3">8.3 อ่านคำขอและหลักฐาน</a><a href="#sec-8-4">8.4 คำขอแบบกลุ่ม (Batch)</a><a href="#sec-8-5">8.5 อนุมัติหรือปฏิเสธ</a><a href="#sec-8-faq">คำถามที่พบบ่อย</a></nav>
 </div>
 <div id="lb" class="lb" onclick="this.classList.remove('on')"><img></div>
 <script src="assets/search-index.js"></script>
