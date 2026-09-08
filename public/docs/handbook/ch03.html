@@ -237,22 +237,19 @@
 <div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>การล้างบันทึก (cleanup logs) เป็นการกระทำที่ต้องยืนยันตัวตนสองชั้นซ้ำ (Step-up 2FA) ก่อนดำเนินการทุกครั้ง ดูหลักการนี้เพิ่มเติมได้ที่ <a href="ch02.html#sec-2-9">บทที่ 2 ข้อ 2.9</a></p></div>
 
 <h2 id="sec-3-8">3.8 มอนิเตอร์ระบบ<a class="hlink" href="#sec-3-8">#</a></h2>
-<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ติดตามสุขภาพเซิร์ฟเวอร์ เว็บไซต์ และ container แบบเรียลไทม์</p>
-<p>เมนู <b>มอนิเตอร์ระบบ</b> แบ่งเป็น 4 แท็บ</p>
-<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>คู่มือฉบับก่อนหน้าระบุว่ามอนิเตอร์ระบบมีเพียง 3 แท็บ (ภาพรวม สุขภาพเซิร์ฟเวอร์ Containers) และไม่ได้กล่าวถึงแท็บ <b>เว็บไซต์</b> ที่มีอยู่จริงในระบบ ฉบับนี้แก้ไขให้ครบทั้ง 4 แท็บ</p></div>
+<p class="goal-line"><b>เป้าหมายของขั้นตอนนี้</b> ติดตามสุขภาพเซิร์ฟเวอร์และเว็บไซต์แบบเรียลไทม์</p>
+<p>เมนู <b>มอนิเตอร์ระบบ</b> แบ่งเป็น 3 แท็บ</p>
+<div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>คู่มือฉบับก่อนหน้าไม่ได้กล่าวถึงแท็บ <b>เว็บไซต์</b> ที่มีอยู่จริงในระบบ ฉบับนี้เพิ่มให้ครบแล้ว</p></div>
 <div class="see-block"><div class="see-label">แท็บทั้งหมดในหน้านี้</div><dl class="see">
 <div><dt>ภาพรวม</dt><dd>สรุปสถานะรวมของทั้งเซิร์ฟเวอร์และเว็บไซต์ในหน้าเดียว เหมาะสำหรับตรวจสุขภาพระบบอย่างเร็ว</dd></div>
 <div><dt>สุขภาพเซิร์ฟเวอร์</dt><dd>เจาะลึกตัวเครื่องเซิร์ฟเวอร์</dd></div>
 <div><dt>เว็บไซต์</dt><dd>เจาะลึกฝั่งเว็บไซต์ เวลาตอบสนอง (P50/P95/P99) Error Rate และ Request Rate พร้อมกราฟแนวโน้มย้อนหลัง</dd></div>
-<div><dt>Containers</dt><dd>สถานะ container ที่ระบบรันอยู่ (หากมีการเชื่อมต่อ)</dd></div>
 </dl></div>
 <figure><img src="img/ch03_fig16_monitoring-overview-tab.png" alt="ภาพที่ 3.16 มอนิเตอร์ระบบ แท็บภาพรวม" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.16 มอนิเตอร์ระบบ แท็บภาพรวม</figcaption></figure>
 <p>แท็บ <b>สุขภาพเซิร์ฟเวอร์</b> แสดงการ์ด CPU หน่วยความจำ และดิสก์ พร้อมจำนวนคอร์และขนาดรวม ส่วนล่างแสดง Network I/O, Load Average และเวลาทำงานเซิร์ฟเวอร์ โดยรีเฟรชอัตโนมัติทุก 5 วินาที</p>
 <figure><img src="img/ch03_fig17_monitoring-server-tab.png" alt="ภาพที่ 3.17 แท็บสุขภาพเซิร์ฟเวอร์" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.17 แท็บสุขภาพเซิร์ฟเวอร์</figcaption></figure>
-<p>แท็บ <b>Containers</b> แสดงตารางรายการ container พร้อมสถานะและทรัพยากรที่ใช้</p>
-<figure><img src="img/ch03_fig17_monitoring-server-tab.png" alt="ภาพที่ 3.18 แท็บ Containers (ภาพชั่วคราว)" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.18 แท็บ Containers<br><span class="ph-note">ภาพชั่วคราว รอถ่ายจริง</span></figcaption></figure>
 <p>แท็บ <b>เว็บไซต์</b> เจาะลึกด้านประสบการณ์ผู้ใช้ปลายทาง</p>
-<figure><img src="img/ch03_fig19_monitoring-website-tab.png" alt="ภาพที่ 3.19 แท็บเว็บไซต์" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.19 แท็บเว็บไซต์</figcaption></figure>
+<figure><img src="img/ch03_fig19_monitoring-website-tab.png" alt="ภาพที่ 3.18 แท็บเว็บไซต์" loading="lazy" onclick="lightbox(this)"><figcaption>ภาพที่ 3.18 แท็บเว็บไซต์</figcaption></figure>
 <div class="cx warn"><div class="cx-title"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.98 1.57a1.13 1.13 0 00-1.96 0L.34 13.42A1.13 1.13 0 001.32 15h13.36a1.13 1.13 0 00.98-1.58L8.98 1.57zM8 5v4H8V5zm0 6.5a.9.9 0 110 1.8.9.9 0 010-1.8z"/></svg>ข้อควรระวัง</div><p>การสั่งดำเนินงานกับเซิร์ฟเวอร์โดยตรง (รีสตาร์ทบริการ รีบูตโฮสต์) ทำจากหน้า <b>ตั้งค่าระบบ</b> ไม่ใช่จากหน้ามอนิเตอร์ระบบ ดูรายละเอียดที่ข้อ 3.9 และต้องยืนยันตัวตนสองชั้นซ้ำทุกครั้งเพราะกระทบผู้ใช้ทั้งระบบ</p></div>
 
 <h2 id="sec-3-9">3.9 ตั้งค่าระบบ: สำรองฐานข้อมูลและควบคุมระบบ<a class="hlink" href="#sec-3-9">#</a></h2>
