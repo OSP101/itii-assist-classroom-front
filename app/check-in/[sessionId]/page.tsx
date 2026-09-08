@@ -900,7 +900,7 @@ export default function StudentCheckInPage() {
 
                                 {/* TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN — ทางสำรองระหว่างรอสำนักอัปเดตข้อมูลใน SSO
                                     ลบทั้งบล็อกนี้เมื่อข้อมูลครบแล้ว ดู lib/auth-providers.ts */}
-                                {loginProviderMode === "kku" && TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN && (
+                                {/* {loginProviderMode === "kku" && TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN && (
                                     <>
                                         <p className="px-1 text-center text-[11.5px] font-light leading-relaxed" style={{ color: "var(--cg-text-3)" }}>
                                             {isEn
@@ -916,7 +916,7 @@ export default function StudentCheckInPage() {
                                             Login with Google Account
                                         </button>
                                     </>
-                                )}
+                                )} */}
                             </div>
                         </>
                     )}
