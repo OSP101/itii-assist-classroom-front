@@ -138,12 +138,6 @@ export default function StudentLoginPage() {
               <GoogleSignInButton onPress={handleGoogleLogin} />
             )}
 
-            {/* TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN — ทางสำรองระหว่างรอสำนักอัปเดตข้อมูลใน SSO
-                ลบทั้งบล็อกนี้เมื่อข้อมูลครบแล้ว ดู lib/auth-providers.ts */}
-            {loginProviderMode === "kku" && TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN ? (
-              <GoogleSignInButton onPress={handleGoogleLogin} />
-            ) : null}
-
             {LEGACY_SOCIAL_LOGIN_ENABLED ? (
               <Button
                 type="button"
