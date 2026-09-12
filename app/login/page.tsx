@@ -393,15 +393,14 @@ export default function LoginPage() {
                     {isOnBackup ? (
                         <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:max-sm:border-amber-500/30 dark:max-sm:bg-amber-500/10 dark:max-sm:text-amber-100">
                             <p>
-                                ตอนนี้คุณกำลังเข้าใช้งานผ่าน<span className="font-medium">ลิงก์สำรอง</span> เพื่อความเสถียรของการเข้าสู่ระบบ
-                                (KKU SSO ใช้ได้เฉพาะลิงก์หลัก) กรุณาเปลี่ยนไปใช้ลิงก์หลักของคณะ
+                                ตอนนี้คุณกำลังเข้าใช้งานผ่าน<span className="font-medium">ลิงก์สำรอง</span> เพื่อความเสถียรของการใช้งาน กรุณาเปลี่ยนไปใช้ลิงก์หลักของคณะ
                             </p>
                             <a
                                 href={mainOriginUrl}
-                                className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-amber-600 px-3 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-amber-700"
+                                className="mt-3 flex w-full animate-pulse items-center justify-center gap-1.5 rounded-full bg-amber-600 px-3 py-2.5 text-[14px] font-semibold text-white shadow-md shadow-amber-600/40 transition-colors hover:bg-amber-700"
                             >
                                 ไปใช้ลิงก์หลัก
-                                <Icon icon="solar:arrow-right-linear" className="text-sm" />
+                                <Icon icon="solar:arrow-right-linear" className="text-base" />
                             </a>
                         </div>
                     ) : null}
