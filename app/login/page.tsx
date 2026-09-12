@@ -16,7 +16,7 @@ import { loginPolicyLinks } from "@/config/public-links";
 import { useI18n } from "@/hooks/useI18n";
 import { getDefaultRouteForRole } from "@/lib/auth-routing";
 import { normalizeAppReturnPath, storeOAuthReturnPath, storePendingAuthReturnPath } from "@/lib/auth-resume";
-import { LEGACY_SOCIAL_LOGIN_ENABLED, TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN } from "@/lib/auth-providers";
+import { LEGACY_SOCIAL_LOGIN_ENABLED, TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN, MAIN_ORIGIN, isOnBackupDomain } from "@/lib/auth-providers";
 import { useLoginProviderMode } from "@/hooks/useLoginProviderMode";
 import { KKUSSOButton } from "@/components/auth/KKUSSOButton";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
@@ -61,6 +61,7 @@ export default function LoginPage() {
     const t = useI18n();
     const loginProviderMode = useLoginProviderMode();
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+    const [isOnBackup, setIsOnBackup] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
@@ -133,6 +134,13 @@ export default function LoginPage() {
         };
         checkAuth();
     }, [nextPath, router]);
+
+    const [mainOriginUrl, setMainOriginUrl] = useState(MAIN_ORIGIN);
+
+    useEffect(() => {
+        setIsOnBackup(isOnBackupDomain(window.location.hostname));
+        setMainOriginUrl(`${MAIN_ORIGIN}${window.location.pathname}${window.location.search}`);
+    }, []);
 
     const toggleVisibility = () => setIsVisible(!isVisible);
 
@@ -382,6 +390,21 @@ export default function LoginPage() {
 
             <main className="flex w-full flex-1 flex-col items-center justify-start bg-transparent px-5 pb-6 pt-4 max-sm:bg-transparent dark:max-sm:bg-slate-950 sm:min-h-[calc(100vh-128px)] sm:justify-center sm:px-6 sm:pb-16 sm:pt-10">
                 <section className="w-full max-w-112.5 bg-transparent px-2 py-4 max-sm:border-0 max-sm:shadow-none dark:max-sm:bg-transparent sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white sm:px-12 sm:py-12 sm:shadow-sm sm:shadow-slate-200/60 dark:sm:shadow-zinc-950/50">
+                    {isOnBackup ? (
+                        <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:max-sm:border-amber-500/30 dark:max-sm:bg-amber-500/10 dark:max-sm:text-amber-100">
+                            <p>
+                                ตอนนี้คุณกำลังเข้าใช้งานผ่าน<span className="font-medium">ลิงก์สำรอง</span> เพื่อความเสถียรของการเข้าสู่ระบบ
+                                (KKU SSO ใช้ได้เฉพาะลิงก์หลัก) กรุณาเปลี่ยนไปใช้ลิงก์หลักของคณะ
+                            </p>
+                            <a
+                                href={mainOriginUrl}
+                                className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-amber-600 px-3 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-amber-700"
+                            >
+                                ไปใช้ลิงก์หลัก
+                                <Icon icon="solar:arrow-right-linear" className="text-sm" />
+                            </a>
+                        </div>
+                    ) : null}
                     {nextPath ? (
                         <div className="mb-5 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:max-sm:border-sky-500/30 dark:max-sm:bg-sky-500/10 dark:max-sm:text-sky-100">
                             {isStudentLoginMode

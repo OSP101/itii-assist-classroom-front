@@ -33,8 +33,19 @@ export type LoginProviderMode = "kku" | "google";
 /** โดเมนที่ถือว่าเป็นโดเมนหลักของมหาวิทยาลัย */
 export const KKU_HOST_SUFFIX = "kku.ac.th";
 
+/** โดเมนสำรองที่ผ่าน Cloudflare Tunnel (ดู lib/chunk-recovery.ts) */
+export const BACKUP_HOST = "cocolab.osp101.com";
+
+/** ที่อยู่เต็มของโดเมนหลัก ใช้พาผู้ใช้ที่เข้ามาจากโดเมนสำรองกลับไปทางหลัก */
+export const MAIN_ORIGIN = "https://cocolabs.computing.kku.ac.th";
+
 function normalizeHost(hostname?: string | null): string {
   return (hostname ?? "").trim().toLowerCase().replace(/\.$/, "");
+}
+
+/** เช็กว่ากำลังเข้าผ่านโดเมนสำรอง (cocolab.osp101.com) อยู่หรือไม่ */
+export function isOnBackupDomain(hostname?: string | null): boolean {
+  return normalizeHost(hostname) === BACKUP_HOST;
 }
 
 /**
