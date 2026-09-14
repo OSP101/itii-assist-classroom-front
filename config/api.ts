@@ -121,6 +121,7 @@ export const API_ENDPOINTS = {
     HEALTH: '/system-settings/health',
     EMAIL: '/system-settings/email',
     EMAIL_TEST: '/system-settings/email/test',
+    EMAIL_DIAGNOSE: '/system-settings/email/diagnose',
   },
 };
 

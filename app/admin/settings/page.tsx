@@ -36,6 +36,7 @@ import {
     type ServiceHealth,
     type EmailTestInfo,
     type EmailTestResult,
+    type EmailDiagnosticReport,
 } from "@/services/admin-settings.service";
 import { stepUpService } from "@/services/step-up.service";
 import { userService, type User } from "@/services/user.service";
@@ -206,6 +207,8 @@ export default function AdminSettingsPage() {
     const [emailTestTemplate, setEmailTestTemplate] = useState("plain");
     const [isEmailTestSending, setIsEmailTestSending] = useState(false);
     const [emailTestResult, setEmailTestResult] = useState<EmailTestResult | null>(null);
+    const [emailDiagnostic, setEmailDiagnostic] = useState<EmailDiagnosticReport | null>(null);
+    const [isEmailDiagnosing, setIsEmailDiagnosing] = useState(false);
     const [announcementForm, setAnnouncementForm] = useState<AnnouncementPayload>({
         title: "",
         message: "",
@@ -1839,10 +1842,60 @@ export default function AdminSettingsPage() {
                                 >
                                     {isEmailTestSending ? t("adminEmailTestSending") : t("adminEmailTestSend")}
                                 </Button>
+                                <Button
+                                    variant="flat"
+                                    isLoading={isEmailDiagnosing}
+                                    startContent={!isEmailDiagnosing ? <Icon icon="solar:stethoscope-bold" /> : undefined}
+                                    onPress={async () => {
+                                        setIsEmailDiagnosing(true);
+                                        try {
+                                            const { report, message } = await adminSettingsService.diagnoseEmail();
+                                            setEmailDiagnostic(report);
+                                            if (!report) addToast({ title: t("error"), description: message, color: "danger" });
+                                        } finally {
+                                            setIsEmailDiagnosing(false);
+                                        }
+                                    }}
+                                >
+                                    {isEmailDiagnosing ? t("adminEmailDiagnosing") : t("adminEmailDiagnose")}
+                                </Button>
                                 <span className="text-xs text-default-400">
                                     {t("adminEmailTestLimitHint", { max: emailTestInfo.limit.max, minutes: emailTestInfo.limit.window_minutes })}
                                 </span>
                             </div>
+                            {emailDiagnostic && (
+                                <div className="rounded-lg border border-default-200 p-3 text-xs">
+                                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                                        <span className="font-medium text-foreground">{t("adminEmailDiagnoseTitle")}</span>
+                                        <Chip size="sm" variant="flat" color={emailDiagnostic.overall === "ok" ? "success" : "danger"}>{emailDiagnostic.overall}</Chip>
+                                        <span className="font-mono text-default-500">{emailDiagnostic.target} · {emailDiagnostic.mode}</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                        {emailDiagnostic.steps.map((step) => (
+                                            <div key={step.name} className="flex items-start gap-2">
+                                                <Icon
+                                                    icon={step.status === "ok" ? "solar:check-circle-bold" : step.status === "fail" ? "solar:close-circle-bold" : step.status === "warn" ? "solar:danger-triangle-bold" : "solar:minus-circle-linear"}
+                                                    className={`mt-0.5 shrink-0 ${step.status === "ok" ? "text-success" : step.status === "fail" ? "text-danger" : step.status === "warn" ? "text-warning" : "text-default-400"}`}
+                                                />
+                                                <div className="min-w-0 flex-1">
+                                                    <span className="font-mono font-medium text-foreground">{step.name}</span>
+                                                    <span className="text-default-400"> · {step.elapsed_ms} ms</span>
+                                                    <p className="break-all text-default-600">{step.detail}</p>
+                                                    {step.hint && <p className="text-warning-600 dark:text-warning-400">{step.hint}</p>}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {emailDiagnostic.advice.length > 0 && (
+                                        <div className="mt-2 rounded bg-default-100 p-2">
+                                            <p className="font-medium text-foreground">{t("adminEmailDiagnoseAdvice")}</p>
+                                            <ul className="list-disc pl-4 text-default-600">
+                                                {emailDiagnostic.advice.map((line) => <li key={line}>{line}</li>)}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                             {emailTestResult && (
                                 <div className={`rounded-lg border p-3 text-xs ${emailTestResult.success ? "border-success-200 bg-success-50 dark:bg-success-900/20" : "border-danger-200 bg-danger-50 dark:bg-danger-900/20"}`}>
                                     <p className="font-medium text-foreground">

@@ -170,6 +170,23 @@ export interface EmailTestResult {
   };
 }
 
+export interface EmailDiagnosticStep {
+  name: string;
+  status: "ok" | "fail" | "skip" | "warn";
+  detail: string;
+  hint?: string;
+  elapsed_ms: number;
+}
+
+export interface EmailDiagnosticReport {
+  provider: string;
+  target: string;
+  mode: string;
+  steps: EmailDiagnosticStep[];
+  overall: "ok" | "fail";
+  advice: string[];
+}
+
 export interface AnnouncementPayload {
   title: string;
   title_th?: string | null;
@@ -433,6 +450,15 @@ async function sendTestEmail(to: string, template: string): Promise<EmailTestRes
   }
 }
 
+async function diagnoseEmail(): Promise<{ report: EmailDiagnosticReport | null; message?: string }> {
+  try {
+    const response = await apiService.post<EmailDiagnosticReport>(API_ENDPOINTS.SYSTEM_SETTINGS.EMAIL_DIAGNOSE, {});
+    return { report: response.success && response.data ? response.data : null, message: response.message };
+  } catch (error) {
+    return { report: null, message: error instanceof Error ? error.message : undefined };
+  }
+}
+
 async function getStudentPrograms(): Promise<StudentProgram[]> {
   const response = await apiService.get<StudentProgram[]>(API_ENDPOINTS.SYSTEM_SETTINGS.PROGRAMS);
   if (!response.success || !response.data) return [];
@@ -472,4 +498,5 @@ export const adminSettingsService = {
   getServiceHealth,
   getEmailTestInfo,
   sendTestEmail,
+  diagnoseEmail,
 };

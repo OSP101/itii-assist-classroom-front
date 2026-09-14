@@ -1483,6 +1483,10 @@ export const messages = {
     adminEmailTestElapsed: "ใช้เวลา",
     adminEmailTestRemaining: "ส่งได้อีก",
     adminEmailTestLimitHint: "จำกัด {max} ครั้งต่อ {minutes} นาทีต่อผู้ดูแล ทุกครั้งถูกบันทึกในบันทึกระบบ",
+    adminEmailDiagnose: "ตรวจการเชื่อมต่อ",
+    adminEmailDiagnosing: "กำลังตรวจ...",
+    adminEmailDiagnoseTitle: "ผลตรวจการเชื่อมต่อ",
+    adminEmailDiagnoseAdvice: "คำแนะนำ",
 
     // --- Push notification setup banner + iOS install guide ---
     pushNotSupportedTitle: "เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน",
@@ -3000,6 +3004,10 @@ export const messages = {
     adminEmailTestElapsed: "Took",
     adminEmailTestRemaining: "Remaining",
     adminEmailTestLimitHint: "Limited to {max} sends per {minutes} minutes per admin; every attempt is written to the system log.",
+    adminEmailDiagnose: "Check connection",
+    adminEmailDiagnosing: "Checking...",
+    adminEmailDiagnoseTitle: "Connection diagnostics",
+    adminEmailDiagnoseAdvice: "Suggestions",
 
     // --- Push notification setup banner + iOS install guide ---
     pushNotSupportedTitle: "This browser does not support notifications",
