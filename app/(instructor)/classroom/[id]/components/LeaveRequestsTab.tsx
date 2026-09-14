@@ -234,6 +234,7 @@ export default function LeaveRequestsTab({ courseId, canReview, isCourseActive, 
                   </div>
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
                     <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-xs text-default-400">LR-{r.id}</span>
                       <span className="font-medium">{r.student?.student_id} {r.student?.full_name}</span>
                       {statusChip(r.status)}
                       <Chip size="sm" variant="bordered">{isEnglish ? type.en : type.th}</Chip>
@@ -268,7 +269,7 @@ export default function LeaveRequestsTab({ courseId, canReview, isCourseActive, 
             <>
               <ModalHeader className="flex flex-col gap-1">
                 <span className="flex flex-wrap items-center gap-2">
-                  {L("คำขอลา", "Leave request")} #{detail.id} {statusChip(detail.status)}
+                  {L("คำขอลา", "Leave request")} <span className="font-mono text-default-500">LR-{detail.id}</span> {statusChip(detail.status)}
                 </span>
                 <span className="text-sm font-normal text-default-500">{detail.student?.student_id} {detail.student?.full_name} · {isEnglish ? LEAVE_TYPE_LABEL[detail.leave_type]?.en : LEAVE_TYPE_LABEL[detail.leave_type]?.th}</span>
               </ModalHeader>

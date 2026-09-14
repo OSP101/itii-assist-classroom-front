@@ -67,7 +67,7 @@ function LeaveRequestCard({ courseId, request, onCancel, busy }: { courseId: str
         </span>
         <span className="cg-row-body">
           <span className="cg-row-title">{type.th}</span>
-          <span className="cg-row-sub">ส่งเมื่อ {fmtDateTime(request.created_at)} · {request.items.length} วัน</span>
+          <span className="cg-row-sub"><span className="cg-mono">LR-{request.id}</span> · ส่งเมื่อ {fmtDateTime(request.created_at)} · {request.items.length} วัน</span>
         </span>
         <span className={badgeClass(status.badge)}>{status.th}</span>
         <Icon icon="solar:alt-arrow-down-linear" width={16} height={16} className="cg-chevron" style={{ transform: open ? "rotate(180deg)" : undefined, color: "var(--cg-text-3)" }} />
