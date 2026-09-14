@@ -104,6 +104,7 @@ export interface AttendanceRecordData {
   status: 'present' | 'late' | 'leave' | 'absent';
   check_in_time: string | null;
   note: string | null;
+  status_source?: string;
 }
 
 export interface AttendanceSummary {

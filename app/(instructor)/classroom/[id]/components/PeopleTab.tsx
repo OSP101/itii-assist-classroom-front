@@ -163,6 +163,7 @@ function getPermissionSections(isEnglish: boolean): Array<{
                 { key: "update_attendance_sessions", label: isEnglish ? "Edit attendance sessions" : "แก้ session เช็กชื่อ", description: isEnglish ? "Adjust time, status, and attendance session details." : "ปรับเวลา เปิด ปิด และแก้ session เช็กชื่อ" },
                 { key: "delete_attendance_sessions", label: isEnglish ? "Delete attendance sessions" : "ลบ session เช็กชื่อ", description: isEnglish ? "Delete attendance sessions." : "ลบ session เช็กชื่อ" },
                 { key: "update_attendance_status", label: isEnglish ? "Update attendance status" : "แก้สถานะเช็กชื่อ", description: isEnglish ? "Update attendance status per student or in bulk." : "อัปเดตสถานะการเข้าเรียนรายคนหรือแบบกลุ่ม" },
+                { key: "review_leave_requests", label: isEnglish ? "Review leave requests" : "พิจารณาคำขอลา", description: isEnglish ? "Approve or reject students' leave requests; approved days are recorded as leave automatically." : "อนุมัติหรือปฏิเสธคำขอลาของนักศึกษา วันที่อนุมัติจะถูกบันทึกเป็นลาให้อัตโนมัติ" },
                 { key: "view_queue", label: isEnglish ? "View review queue" : "ดูคิวตรวจงาน", description: isEnglish ? "View queue sessions, workers, and bookings." : "ดู session คิว รายชื่อ worker และรายการจองคิว" },
                 { key: "create_queue_sessions", label: isEnglish ? "Create review queues" : "สร้างคิวตรวจงาน", description: isEnglish ? "Create new queue sessions." : "สร้าง session คิวตรวจงานใหม่" },
                 { key: "update_queue_sessions", label: isEnglish ? "Edit review queues" : "แก้คิวตรวจงาน", description: isEnglish ? "Edit queue sessions, open/close state, breaks, and workers." : "แก้ session คิว เปิด ปิด หยุดพัก และจัดการ worker" },
@@ -211,7 +212,7 @@ function summarizePermissions(permissions: CourseMemberPermissions, isEnglish: b
         permissions.view_score_summary ? (isEnglish ? "Score summary" : "สรุปคะแนน") : null,
         permissions.review_all_score_requests ? (isEnglish ? "All score requests" : "อนุมัติคำร้อง") : permissions.review_own_score_requests ? (isEnglish ? "Own score requests" : "ดูคำร้องตนเอง") : null,
         permissions.view_exam_scores || permissions.create_exam_scores || permissions.update_exam_scores || permissions.delete_exam_scores || permissions.update_exam_settings ? (isEnglish ? "Exam scores" : "คะแนนสอบ") : null,
-        permissions.view_attendance || permissions.create_attendance_sessions || permissions.update_attendance_sessions || permissions.delete_attendance_sessions || permissions.update_attendance_status ? (isEnglish ? "Attendance" : "เช็กชื่อ") : null,
+        permissions.view_attendance || permissions.create_attendance_sessions || permissions.update_attendance_sessions || permissions.delete_attendance_sessions || permissions.update_attendance_status || permissions.review_leave_requests ? (isEnglish ? "Attendance" : "เช็กชื่อ") : null,
         permissions.view_queue || permissions.create_queue_sessions || permissions.update_queue_sessions || permissions.delete_queue_sessions || permissions.manage_queue_bookings ? (isEnglish ? "Queue" : "คิว") : null,
     ].filter((value): value is string => Boolean(value));
 
@@ -365,12 +366,13 @@ export default function PeopleTab({
                 next.delete_exam_scores = false;
                 next.update_exam_settings = false;
             }
-            if (key === "create_attendance_sessions" || key === "update_attendance_sessions" || key === "delete_attendance_sessions" || key === "update_attendance_status") next.view_attendance = true;
+            if (key === "create_attendance_sessions" || key === "update_attendance_sessions" || key === "delete_attendance_sessions" || key === "update_attendance_status" || key === "review_leave_requests") next.view_attendance = true;
             if (key === "view_attendance" && !value) {
                 next.create_attendance_sessions = false;
                 next.update_attendance_sessions = false;
                 next.delete_attendance_sessions = false;
                 next.update_attendance_status = false;
+                next.review_leave_requests = false;
             }
             if (key === "create_queue_sessions" || key === "update_queue_sessions" || key === "delete_queue_sessions" || key === "manage_queue_bookings") next.view_queue = true;
             if (key === "view_queue" && !value) {
@@ -465,6 +467,7 @@ export default function PeopleTab({
                     next.update_attendance_sessions = false;
                     next.delete_attendance_sessions = false;
                     next.update_attendance_status = false;
+                    next.review_leave_requests = false;
                 }
                 if (items.some((item) => item.key === "view_queue")) {
                     next.create_queue_sessions = false;

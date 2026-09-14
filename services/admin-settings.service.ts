@@ -132,6 +132,44 @@ export interface ServiceHealth {
   dependencies: ServiceDependency[];
 }
 
+export interface EmailConfigSummary {
+  provider: string;
+  from: string;
+  app_name: string;
+  frontend_url: string;
+  smtp_host: string;
+  smtp_port: number;
+  smtp_secure: boolean;
+  smtp_user_set: boolean;
+  smtp_pass_set: boolean;
+  resend_key_set: boolean;
+  ready: boolean;
+  readiness_note: string;
+  support_alert_recipients: number;
+}
+
+export interface EmailTestInfo {
+  config: EmailConfigSummary;
+  templates: Array<{ key: string; label: string }>;
+  default_to: string;
+  limit: { max: number; window_minutes: number };
+}
+
+export interface EmailTestResult {
+  success: boolean;
+  message?: string;
+  data?: {
+    to?: string;
+    template?: string;
+    provider?: string;
+    from?: string;
+    elapsed_ms?: number;
+    remaining?: number;
+    sent_at?: string;
+    error?: string;
+  };
+}
+
 export interface AnnouncementPayload {
   title: string;
   title_th?: string | null;
@@ -157,6 +195,7 @@ export interface AnnouncementPayload {
   priority: number;
   status: AnnouncementStatus;
   notify_inbox: boolean;
+  notify_email?: boolean;
 }
 
 /**
@@ -379,6 +418,21 @@ async function getServiceHealth(): Promise<ServiceHealth | null> {
   return response.data;
 }
 
+async function getEmailTestInfo(): Promise<EmailTestInfo | null> {
+  const response = await apiService.get<EmailTestInfo>(API_ENDPOINTS.SYSTEM_SETTINGS.EMAIL);
+  if (!response.success || !response.data) return null;
+  return response.data;
+}
+
+async function sendTestEmail(to: string, template: string): Promise<EmailTestResult> {
+  try {
+    const response = await apiService.post<EmailTestResult["data"]>(API_ENDPOINTS.SYSTEM_SETTINGS.EMAIL_TEST, { to, template });
+    return { success: response.success, message: response.message, data: response.data };
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : "ส่งอีเมลไม่สำเร็จ" };
+  }
+}
+
 async function getStudentPrograms(): Promise<StudentProgram[]> {
   const response = await apiService.get<StudentProgram[]>(API_ENDPOINTS.SYSTEM_SETTINGS.PROGRAMS);
   if (!response.success || !response.data) return [];
@@ -416,4 +470,6 @@ export const adminSettingsService = {
   getStudentPrograms,
   updateStudentPrograms,
   getServiceHealth,
+  getEmailTestInfo,
+  sendTestEmail,
 };

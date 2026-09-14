@@ -20,15 +20,18 @@ import {
 import userNotificationService, { type UserNotificationItem } from "@/services/user-notification.service";
 import { getMyExamSeats, type MyExamSeat } from "@/services/examSeat.service";
 import { CourseCoverImage, courseCoverFallback } from "@/components/course";
+import LeaveTab from "./LeaveTab";
+import { ATTENDANCE_SOURCE_LABEL } from "@/services/leaveRequest.service";
 
 // ─── tabs ─────────────────────────────────────────────────────────────────────
 
-const tabKeys = ["Overview", "Scores", "Attendance", "ExamSeats", "Updates"] as const;
+const tabKeys = ["Overview", "Scores", "Attendance", "Leave", "ExamSeats", "Updates"] as const;
 type TabKey = (typeof tabKeys)[number];
 type ScoreCategoryKey = "all" | "lab" | "homework" | "group" | "weekly" | "exams" | "bonus";
 
 const TAB_MAP: Record<string, TabKey> = {
-  Overview: "Overview", Scores: "Scores", Attendance: "Attendance", ExamSeats: "ExamSeats", Updates: "Updates",
+  Overview: "Overview", Scores: "Scores", Attendance: "Attendance", Leave: "Leave", ExamSeats: "ExamSeats", Updates: "Updates",
+  leave: "Leave", attendance: "Attendance", scores: "Scores", overview: "Overview", updates: "Updates",
 };
 
 // ─── utils ────────────────────────────────────────────────────────────────────
@@ -222,7 +225,15 @@ function AttendanceRow({ record }: { record: AttendanceRecordData }) {
         </span>
         {record.note && <span className="cg-row-sub">{record.note}</span>}
       </span>
-      <span className={`cg-badge ${badge}`}>{label}</span>
+      <span className="flex flex-col items-end gap-1">
+        <span className={`cg-badge ${badge}`}>{label}</span>
+        {record.status_source && record.status_source !== "system" && record.status_source !== "checkin" && (
+          <span className="flex items-center gap-1 text-[10px] font-light" style={{ color: "var(--cg-text-3)" }}>
+            <Icon icon={ATTENDANCE_SOURCE_LABEL[record.status_source]?.icon ?? "solar:info-circle-linear"} width={11} height={11} />
+            {ATTENDANCE_SOURCE_LABEL[record.status_source]?.th ?? record.status_source}
+          </span>
+        )}
+      </span>
     </div>
   );
 }
@@ -421,6 +432,7 @@ export default function StudentCourseDetailPage() {
     Overview: "ภาพรวม",
     Scores: "คะแนน",
     Attendance: "เช็กชื่อ",
+    Leave: "การลา",
     ExamSeats: t("examSeats"),
     Updates: "อัปเดต",
   };
@@ -741,6 +753,9 @@ export default function StudentCourseDetailPage() {
           </div>
         </div>
       )}
+
+      {/* ── leave ──────────────────────────────────────────────────── */}
+      {activeTab === "Leave" && params.courseId && <LeaveTab courseId={params.courseId} />}
 
       {/* ── exam seats ─────────────────────────────────────────────── */}
       {activeTab === "ExamSeats" && (

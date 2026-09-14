@@ -122,7 +122,18 @@ function SettingsTabViewComponent({
         formData.cover_position_y !== (course.cover_position_y ?? 50) ||
         formData.cover_zoom !== (course.cover_zoom ?? 1) ||
         formData.attention_threshold !== (course.attention_threshold ?? 60) ||
-        formData.is_active !== (course.is_active ?? true);
+        formData.is_active !== (course.is_active ?? true) ||
+        formData.leave_request_enabled !== (course.leave_request_enabled ?? true) ||
+        formData.leave_evidence_policy !== (course.leave_evidence_policy || "sick_personal") ||
+        formData.leave_backdate_days !== (course.leave_backdate_days ?? 7) ||
+        formData.leave_advance_days !== (course.leave_advance_days ?? 60) ||
+        formData.leave_max_pending !== (course.leave_max_pending ?? 5);
+    const leavePolicyOptions: Array<{ key: SettingsFormData["leave_evidence_policy"]; th: string; en: string }> = [
+        { key: "none", th: "ไม่บังคับ", en: "Not required" },
+        { key: "sick_only", th: "เฉพาะลาป่วย", en: "Sick leave only" },
+        { key: "sick_personal", th: "ลาป่วยและลากิจ", en: "Sick and personal leave" },
+        { key: "all", th: "ทุกประเภท", en: "All types" },
+    ];
     const courseCoverEditorText = {
         title: isEnglish ? "Course cover image" : "รูปปกรายวิชา",
         emptyTitle: isEnglish ? "Click to upload a course cover image" : "คลิกเพื่ออัปโหลดรูปปกรายวิชา",
@@ -440,6 +451,80 @@ function SettingsTabViewComponent({
                                 </p>
                             </div>
                         )}
+                    </CardBody>
+                </Card>
+
+                {/* Leave requests */}
+                <Card className="border border-default-200 bg-content1 shadow-sm">
+                    <SectionCardHeader
+                        icon="solar:document-add-bold"
+                        title={isEnglish ? "Leave requests" : "คำขอลา"}
+                        subtitle={isEnglish ? "Rules for students submitting leave requests in this course" : "กติกาการส่งคำขอลาของนักศึกษาในวิชานี้"}
+                        gradientFrom="from-sky-500"
+                        gradientTo="to-indigo-600"
+                    />
+                    <CardBody className="p-5 space-y-4">
+                        <div className="flex items-center justify-between gap-3">
+                            <div>
+                                <p className="text-sm font-medium">{isEnglish ? "Accept leave requests through the system" : "รับคำขอลาผ่านระบบ"}</p>
+                                <p className="text-xs text-default-500">{isEnglish ? "When off, students must contact the instructor directly." : "ถ้าปิด นักศึกษาต้องติดต่อผู้สอนโดยตรง"}</p>
+                            </div>
+                            <Switch size="sm" isSelected={formData.leave_request_enabled} isDisabled={!isEditing} onValueChange={(v) => onUpdateField("leave_request_enabled", v)} />
+                        </div>
+                        <Divider />
+                        <div className="space-y-2">
+                            <p className="text-sm font-medium">{isEnglish ? "Evidence required for" : "บังคับแนบหลักฐานสำหรับ"}</p>
+                            <div className="flex flex-wrap gap-2">
+                                {leavePolicyOptions.map((opt) => (
+                                    <Chip
+                                        key={opt.key}
+                                        variant={formData.leave_evidence_policy === opt.key ? "solid" : "bordered"}
+                                        color={formData.leave_evidence_policy === opt.key ? "primary" : "default"}
+                                        className={isEditing ? "cursor-pointer" : ""}
+                                        onClick={() => isEditing && onUpdateField("leave_evidence_policy", opt.key)}
+                                    >
+                                        {isEnglish ? opt.en : opt.th}
+                                    </Chip>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <Input
+                                type="number"
+                                size="sm"
+                                label={isEnglish ? "Backdate limit (days)" : "ขอย้อนหลังได้ (วัน)"}
+                                value={String(formData.leave_backdate_days)}
+                                min={0}
+                                max={120}
+                                isReadOnly={!isEditing}
+                                onValueChange={(v) => onUpdateField("leave_backdate_days", Math.max(0, Math.min(120, Number(v) || 0)))}
+                            />
+                            <Input
+                                type="number"
+                                size="sm"
+                                label={isEnglish ? "Advance limit (days)" : "ขอล่วงหน้าได้ (วัน)"}
+                                value={String(formData.leave_advance_days)}
+                                min={0}
+                                max={365}
+                                isReadOnly={!isEditing}
+                                onValueChange={(v) => onUpdateField("leave_advance_days", Math.max(0, Math.min(365, Number(v) || 0)))}
+                            />
+                            <Input
+                                type="number"
+                                size="sm"
+                                label={isEnglish ? "Max pending per student" : "คำขอค้างสูงสุดต่อคน"}
+                                value={String(formData.leave_max_pending)}
+                                min={1}
+                                max={50}
+                                isReadOnly={!isEditing}
+                                onValueChange={(v) => onUpdateField("leave_max_pending", Math.max(1, Math.min(50, Number(v) || 1)))}
+                            />
+                        </div>
+                        <p className="text-xs text-default-500">
+                            {isEnglish
+                                ? "Approved days are recorded as leave automatically. TAs can review only when granted the \"Review leave requests\" permission."
+                                : "วันที่อนุมัติจะถูกบันทึกเป็นลาให้อัตโนมัติ ผู้ช่วยสอนพิจารณาได้เมื่อได้รับสิทธิ์ \"พิจารณาคำขอลา\" เท่านั้น"}
+                        </p>
                     </CardBody>
                 </Card>
 

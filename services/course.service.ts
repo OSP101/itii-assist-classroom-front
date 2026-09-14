@@ -43,6 +43,7 @@ export interface CourseMemberPermissions {
   update_attendance_sessions: boolean;
   delete_attendance_sessions: boolean;
   update_attendance_status: boolean;
+  review_leave_requests: boolean;
   view_queue: boolean;
   create_queue_sessions: boolean;
   update_queue_sessions: boolean;
@@ -104,6 +105,7 @@ export const DEFAULT_INSTRUCTOR_COURSE_PERMISSIONS: CourseMemberPermissions = {
   update_attendance_sessions: true,
   delete_attendance_sessions: true,
   update_attendance_status: true,
+  review_leave_requests: true,
   view_queue: true,
   create_queue_sessions: true,
   update_queue_sessions: true,
@@ -146,6 +148,7 @@ export const DEFAULT_TA_COURSE_PERMISSIONS: CourseMemberPermissions = {
   update_attendance_sessions: true,
   delete_attendance_sessions: true,
   update_attendance_status: false,
+  review_leave_requests: false,
   view_queue: true,
   create_queue_sessions: true,
   update_queue_sessions: true,
@@ -188,6 +191,7 @@ export const EMPTY_COURSE_MEMBER_PERMISSIONS: CourseMemberPermissions = {
   update_attendance_sessions: false,
   delete_attendance_sessions: false,
   update_attendance_status: false,
+  review_leave_requests: false,
   view_queue: false,
   create_queue_sessions: false,
   update_queue_sessions: false,
@@ -317,7 +321,7 @@ export function resolveCourseMemberPermissions(
   if (resolved.create_exam_scores || resolved.update_exam_scores || resolved.delete_exam_scores || resolved.update_exam_settings) {
     resolved.view_exam_scores = true;
   }
-  if (resolved.create_attendance_sessions || resolved.update_attendance_sessions || resolved.delete_attendance_sessions || resolved.update_attendance_status) {
+  if (resolved.create_attendance_sessions || resolved.update_attendance_sessions || resolved.delete_attendance_sessions || resolved.update_attendance_status || resolved.review_leave_requests) {
     resolved.view_attendance = true;
   }
   if (resolved.create_queue_sessions || resolved.update_queue_sessions || resolved.delete_queue_sessions || resolved.manage_queue_bookings) {
@@ -438,6 +442,11 @@ export interface Course {
   cover_zoom: number;
   is_active: boolean;
   attention_threshold: number;
+  leave_request_enabled?: boolean | null;
+  leave_evidence_policy?: 'none' | 'sick_only' | 'sick_personal' | 'all' | '';
+  leave_backdate_days?: number;
+  leave_advance_days?: number;
+  leave_max_pending?: number;
   created_at: string;
   updated_at: string;
   instructor?: Instructor | null;
@@ -479,6 +488,11 @@ export interface UpdateCourseDto {
   cover_zoom?: number;
   is_active?: boolean;
   attention_threshold?: number;
+  leave_request_enabled?: boolean;
+  leave_evidence_policy?: 'none' | 'sick_only' | 'sick_personal' | 'all';
+  leave_backdate_days?: number;
+  leave_advance_days?: number;
+  leave_max_pending?: number;
 }
 
 export interface CourseListParams {

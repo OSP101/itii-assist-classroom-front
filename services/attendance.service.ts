@@ -129,6 +129,8 @@ export interface AttendanceRecord {
     distance_meters: number | null;
     note: string | null;
     updated_by: number | null;
+    status_source?: 'system' | 'checkin' | 'manual' | 'leave_request' | string;
+    leave_request_id?: number | null;
     updated_at: string;
     created_at: string;
     student?: {

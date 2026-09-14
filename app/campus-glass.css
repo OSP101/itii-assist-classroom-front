@@ -695,6 +695,135 @@ button.cg-row:active {
 	font-weight: 300;
 }
 
+/* textarea/select share the 16px floor for the same iOS zoom reason */
+.cg-field-box textarea,
+.cg-field-box select {
+	flex: 1;
+	min-width: 0;
+	border: none;
+	outline: none;
+	background: none;
+	color: var(--cg-text);
+	font: inherit;
+	font-size: 16px;
+	font-weight: 400;
+	padding: 12px 0;
+	line-height: 1.5;
+	resize: vertical;
+}
+
+.cg-field-box textarea::placeholder {
+	color: var(--cg-text-3);
+	font-weight: 300;
+}
+
+.cg-field-box.is-multiline {
+	align-items: flex-start;
+}
+
+/* ---------- leave request ---------- */
+
+.cg-leave-day {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	width: 100%;
+	padding: 12px 14px;
+	border: none;
+	border-bottom: 1px solid var(--cg-line);
+	background: none;
+	color: inherit;
+	text-align: left;
+	font: inherit;
+	cursor: pointer;
+}
+
+.cg-leave-day:last-child {
+	border-bottom: none;
+}
+
+.cg-leave-day[data-disabled="true"] {
+	cursor: default;
+	opacity: 0.55;
+}
+
+.cg-leave-check {
+	width: 22px;
+	height: 22px;
+	border-radius: 7px;
+	border: 1.5px solid var(--cg-line);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	color: #fff;
+	background: var(--cg-surface);
+}
+
+.cg-leave-day[data-checked="true"] .cg-leave-check {
+	background: var(--cg-accent);
+	border-color: var(--cg-accent);
+}
+
+.cg-leave-thumbs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.cg-leave-thumb {
+	position: relative;
+	width: 72px;
+	height: 72px;
+	border-radius: 12px;
+	overflow: hidden;
+	background: var(--cg-fill);
+	border: 1px solid var(--cg-line);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--cg-text-2);
+}
+
+.cg-leave-thumb img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.cg-leave-thumb-x {
+	position: absolute;
+	top: 3px;
+	right: 3px;
+	width: 20px;
+	height: 20px;
+	border-radius: 999px;
+	border: none;
+	background: rgba(0, 0, 0, 0.55);
+	color: #fff;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+}
+
+.cg-leave-add {
+	width: 72px;
+	height: 72px;
+	border-radius: 12px;
+	border: 1.5px dashed var(--cg-line);
+	background: none;
+	color: var(--cg-text-2);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 3px;
+	font: inherit;
+	font-size: 10.5px;
+	cursor: pointer;
+}
+
 /* ---------- guard checklist (blocked check-in) ---------- */
 
 .cg-check-block {

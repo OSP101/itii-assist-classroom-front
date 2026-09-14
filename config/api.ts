@@ -119,6 +119,8 @@ export const API_ENDPOINTS = {
     MAINTENANCE: '/system-settings/maintenance',
     PROGRAMS: '/system-settings/programs',
     HEALTH: '/system-settings/health',
+    EMAIL: '/system-settings/email',
+    EMAIL_TEST: '/system-settings/email/test',
   },
 };
 

@@ -21,6 +21,7 @@ import { Spinner } from "@heroui/spinner";
 import { Tooltip } from "@heroui/tooltip";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
+import { leaveRequestService } from "@/services/leaveRequest.service";
 import Link from "next/link";
 import { useI18n } from "@/hooks/useI18n";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
@@ -64,6 +65,10 @@ const AttendanceTab = dynamic(() => import("./components/AttendanceTab"), {
 });
 
 const AttendanceOverviewTab = dynamic(() => import("./components/AttendanceOverviewTab"), {
+    loading: () => <TabListSkeleton />,
+});
+
+const LeaveRequestsTab = dynamic(() => import("./components/LeaveRequestsTab"), {
     loading: () => <TabListSkeleton />,
 });
 
@@ -125,6 +130,7 @@ const TAB_PRELOADERS: Partial<Record<ClassroomTabKey, () => void>> = {
     approval: () => preloadDynamic(ScoreApprovalTab),
     "attendance-overview": () => preloadDynamic(AttendanceOverviewTab),
     attendance: () => preloadDynamic(AttendanceTab),
+    "leave-requests": () => preloadDynamic(LeaveRequestsTab),
     queue: () => preloadDynamic(QueueTab),
     "activity-log": () => preloadDynamic(ActivityLogTab),
     "ta-stats": () => preloadDynamic(TAStatsTab),
@@ -142,6 +148,7 @@ export type ClassroomTabKey =
     | "approval"
     | "attendance-overview"
     | "attendance"
+    | "leave-requests"
     | "queue"
     | "activity-log"
     | "ta-stats"
@@ -158,6 +165,7 @@ const TAB_ROUTE_MAP: Record<ClassroomTabKey, string> = {
     approval: "approval",
     "attendance-overview": "attendance-overview",
     attendance: "attendance",
+    "leave-requests": "leave-requests",
     queue: "queue",
     "activity-log": "activity-log",
     "ta-stats": "ta-stats",
@@ -391,7 +399,18 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
         || currentCoursePermissions.create_attendance_sessions
         || currentCoursePermissions.update_attendance_sessions
         || currentCoursePermissions.delete_attendance_sessions
-        || currentCoursePermissions.update_attendance_status;
+        || currentCoursePermissions.update_attendance_status
+        || currentCoursePermissions.review_leave_requests;
+    const canReviewLeaveRequests = isAdminAccess || currentCoursePermissions.review_leave_requests;
+    const [pendingLeaveCount, setPendingLeaveCount] = useState(0);
+    useEffect(() => {
+        if (!canAccessAttendance || !course?.id) return;
+        let active = true;
+        leaveRequestService.count(String(course.id)).then((res) => {
+            if (active && res.success && res.data) setPendingLeaveCount(res.data.pending);
+        }).catch(() => undefined);
+        return () => { active = false; };
+    }, [canAccessAttendance, course?.id]);
     const canAccessQueue = isAdminAccess
         || currentCoursePermissions.view_queue
         || currentCoursePermissions.create_queue_sessions
@@ -1248,6 +1267,7 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
         if (canAccessAttendance) {
             items.push({ key: "attendance-overview", label: t("overview"), icon: "solar:chart-2-bold", groupKey: "attendance-management" });
             items.push({ key: "attendance", label: t("attendance"), icon: "solar:user-check-bold", groupKey: "attendance-management" });
+            items.push({ key: "leave-requests", label: t("leaveRequests"), icon: "solar:document-add-bold", groupKey: "attendance-management" });
         }
         if (canAccessQueue) {
             items.push({ key: "queue", label: t("reviewQueue"), icon: "solar:sort-by-time-bold" });
@@ -1586,6 +1606,11 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                                                 {pendingApprovalCount > 99 ? "99+" : pendingApprovalCount}
                                                             </span>
                                                         )}
+                                                        {group.key === "attendance-management" && pendingLeaveCount > 0 && (
+                                                            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+                                                                {pendingLeaveCount > 99 ? "99+" : pendingLeaveCount}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <Icon
@@ -1618,6 +1643,11 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                                                 {item.key === "approval" && pendingApprovalCount > 0 && (
                                                                     <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
                                                                         {pendingApprovalCount > 99 ? "99+" : pendingApprovalCount}
+                                                                    </span>
+                                                                )}
+                                                                {item.key === "leave-requests" && pendingLeaveCount > 0 && (
+                                                                    <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+                                                                        {pendingLeaveCount > 99 ? "99+" : pendingLeaveCount}
                                                                     </span>
                                                                 )}
                                                             </button>
@@ -1734,6 +1764,9 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                             {item.key === "approval" && pendingApprovalCount > 0 && (
                                                 <span className="absolute top-1 right-1.5 h-2 w-2 rounded-full bg-red-500" />
                                             )}
+                                            {item.key === "leave-requests" && pendingLeaveCount > 0 && (
+                                                <span className="absolute top-1 right-1.5 h-2 w-2 rounded-full bg-red-500" />
+                                            )}
                                         </button>
                                     </Tooltip>
                                 ))}
@@ -1778,6 +1811,11 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                                     {group.key === "work-score-management" && pendingApprovalCount > 0 && (
                                                         <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
                                                             {pendingApprovalCount > 99 ? "99+" : pendingApprovalCount}
+                                                        </span>
+                                                    )}
+                                                    {group.key === "attendance-management" && pendingLeaveCount > 0 && (
+                                                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+                                                            {pendingLeaveCount > 99 ? "99+" : pendingLeaveCount}
                                                         </span>
                                                     )}
                                                 </div>
@@ -2119,6 +2157,15 @@ export function ClassroomDetailPage({ initialTab = "overview" }: ClassroomDetail
                                             canCreateAttendanceSessions={isAdminAccess || currentCoursePermissions.create_attendance_sessions}
                                             canUpdateAttendanceSessions={isAdminAccess || currentCoursePermissions.update_attendance_sessions}
                                             canDeleteAttendanceSessions={isAdminAccess || currentCoursePermissions.delete_attendance_sessions}
+                                        />
+                                    )}
+
+                                    {activeTab === "leave-requests" && canAccessAttendance && (
+                                        <LeaveRequestsTab
+                                            courseId={String(course.id)}
+                                            canReview={canReviewLeaveRequests}
+                                            isCourseActive={course.is_active}
+                                            onPendingCountChange={setPendingLeaveCount}
                                         />
                                     )}
 

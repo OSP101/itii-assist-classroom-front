@@ -34,6 +34,8 @@ import {
     type FeatureFlag,
     type MaintenanceConfig,
     type ServiceHealth,
+    type EmailTestInfo,
+    type EmailTestResult,
 } from "@/services/admin-settings.service";
 import { stepUpService } from "@/services/step-up.service";
 import { userService, type User } from "@/services/user.service";
@@ -199,6 +201,11 @@ export default function AdminSettingsPage() {
         whitelist_admin_users: [],
     });
     const [serviceHealth, setServiceHealth] = useState<ServiceHealth | null>(null);
+    const [emailTestInfo, setEmailTestInfo] = useState<EmailTestInfo | null>(null);
+    const [emailTestTo, setEmailTestTo] = useState("");
+    const [emailTestTemplate, setEmailTestTemplate] = useState("plain");
+    const [isEmailTestSending, setIsEmailTestSending] = useState(false);
+    const [emailTestResult, setEmailTestResult] = useState<EmailTestResult | null>(null);
     const [announcementForm, setAnnouncementForm] = useState<AnnouncementPayload>({
         title: "",
         message: "",
@@ -218,6 +225,7 @@ export default function AdminSettingsPage() {
         priority: 0,
         status: "published",
         notify_inbox: true,
+        notify_email: false,
     });
     const [announcementLocalizedForm, setAnnouncementLocalizedForm] = useState({
         title_th: "",
@@ -312,6 +320,13 @@ export default function AdminSettingsPage() {
             setMaintenance(maintenanceCfg);
         }
         setServiceHealth(health);
+
+        // Email test panel (non-blocking)
+        adminSettingsService.getEmailTestInfo().then((info) => {
+            if (!info) return;
+            setEmailTestInfo(info);
+            setEmailTestTo((prev) => prev || info.default_to || "");
+        }).catch(() => undefined);
 
         // Fetch all admin users for whitelist selector (non-blocking)
         userService.getUsers({ role: "admin", limit: 100 }).then((res) => {
@@ -431,6 +446,7 @@ export default function AdminSettingsPage() {
             priority: item.priority ?? 0,
             status: item.status || (item.is_active ? "published" : "archived"),
             notify_inbox: item.notify_inbox ?? true,
+            notify_email: false,
         });
         setAnnouncementLocalizedForm({
             title_th: nextTitleTh,
@@ -471,6 +487,7 @@ export default function AdminSettingsPage() {
             priority: item.priority ?? 0,
             status: item.status || (item.is_active ? "published" : "archived"),
             notify_inbox: item.notify_inbox ?? true,
+            notify_email: false,
         });
         setAnnouncementLocalizedForm({
             title_th: item.title_th || "",
@@ -1374,6 +1391,7 @@ export default function AdminSettingsPage() {
         announcementForm.require_acknowledge ? "require_acknowledge" : "",
         announcementForm.is_dismissible ? "is_dismissible" : "",
         announcementForm.notify_inbox ? "notify_inbox" : "",
+        announcementForm.notify_email ? "notify_email" : "",
     ].filter(Boolean);
 
     const previewSeverityStyle = getAnnouncementSeverityStyle(announcementForm.severity);
@@ -1714,6 +1732,137 @@ export default function AdminSettingsPage() {
                             </Chip>
                         </div>
                     ))}
+                </CardBody>
+            </Card>
+
+            <Card className="border border-default-200 bg-content1 shadow-sm">
+                <CardHeader className="px-6 py-4 border-b border-default-100">
+                    <div className="flex w-full items-center gap-3">
+                        <div className="p-2 bg-sky-100 dark:bg-sky-900/30 rounded-lg">
+                            <Icon icon="solar:letter-bold" className="text-xl text-sky-600 dark:text-sky-300" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-foreground">{t("adminEmailTestTitle")}</h3>
+                            <p className="text-xs text-default-500">{t("adminEmailTestDescription")}</p>
+                        </div>
+                        {emailTestInfo && (
+                            <Chip size="sm" variant="flat" color={emailTestInfo.config.ready ? "success" : "danger"} className="ml-auto">
+                                {emailTestInfo.config.ready ? t("adminEmailTestReady") : t("adminEmailTestNotReady")}
+                            </Chip>
+                        )}
+                    </div>
+                </CardHeader>
+                <CardBody className="px-6 py-5 space-y-4">
+                    {emailTestInfo ? (
+                        <>
+                            <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+                                <div className="rounded-lg border border-default-200 p-3">
+                                    <p className="text-default-500">{t("adminEmailTestProvider")}</p>
+                                    <p className="font-medium text-foreground">
+                                        {emailTestInfo.config.provider}
+                                        {emailTestInfo.config.provider === "smtp" && emailTestInfo.config.smtp_host
+                                            ? ` · ${emailTestInfo.config.smtp_host}:${emailTestInfo.config.smtp_port}${emailTestInfo.config.smtp_secure ? " (TLS)" : ""}`
+                                            : ""}
+                                    </p>
+                                    {!emailTestInfo.config.ready && <p className="text-danger">{emailTestInfo.config.readiness_note}</p>}
+                                </div>
+                                <div className="rounded-lg border border-default-200 p-3">
+                                    <p className="text-default-500">{t("adminEmailTestFrom")}</p>
+                                    <p className="font-medium text-foreground break-all">{emailTestInfo.config.from}</p>
+                                    <p className="text-default-400">{emailTestInfo.config.app_name} · {emailTestInfo.config.frontend_url}</p>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5 sm:col-span-2">
+                                    {emailTestInfo.config.provider === "smtp" ? (
+                                        <>
+                                            <Chip size="sm" variant="flat" color={emailTestInfo.config.smtp_user_set ? "success" : "warning"}>
+                                                SMTP_USER: {emailTestInfo.config.smtp_user_set ? t("adminEmailTestConfigured") : t("adminEmailTestMissing")}
+                                            </Chip>
+                                            <Chip size="sm" variant="flat" color={emailTestInfo.config.smtp_pass_set ? "success" : "warning"}>
+                                                SMTP_PASS: {emailTestInfo.config.smtp_pass_set ? t("adminEmailTestConfigured") : t("adminEmailTestMissing")}
+                                            </Chip>
+                                        </>
+                                    ) : (
+                                        <Chip size="sm" variant="flat" color={emailTestInfo.config.resend_key_set ? "success" : "danger"}>
+                                            RESEND_API_KEY: {emailTestInfo.config.resend_key_set ? t("adminEmailTestConfigured") : t("adminEmailTestMissing")}
+                                        </Chip>
+                                    )}
+                                    <Chip size="sm" variant="flat">Support alert recipients: {emailTestInfo.config.support_alert_recipients}</Chip>
+                                </div>
+                            </div>
+                            <Divider />
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <Input
+                                    type="email"
+                                    size="sm"
+                                    label={t("adminEmailTestRecipient")}
+                                    value={emailTestTo}
+                                    onValueChange={setEmailTestTo}
+                                    isDisabled={isEmailTestSending}
+                                />
+                                <Select
+                                    size="sm"
+                                    label={t("adminEmailTestTemplate")}
+                                    selectedKeys={[emailTestTemplate]}
+                                    disallowEmptySelection
+                                    onSelectionChange={(keys) => {
+                                        const key = Array.from(keys)[0];
+                                        if (key) setEmailTestTemplate(String(key));
+                                    }}
+                                    isDisabled={isEmailTestSending}
+                                >
+                                    {emailTestInfo.templates.map((tpl) => (
+                                        <SelectItem key={tpl.key}>{tpl.label}</SelectItem>
+                                    ))}
+                                </Select>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-3">
+                                <Button
+                                    color="primary"
+                                    isDisabled={!emailTestTo.trim() || !emailTestInfo.config.ready}
+                                    isLoading={isEmailTestSending}
+                                    startContent={!isEmailTestSending ? <Icon icon="solar:plain-2-bold" /> : undefined}
+                                    onPress={async () => {
+                                        setIsEmailTestSending(true);
+                                        setEmailTestResult(null);
+                                        try {
+                                            const result = await adminSettingsService.sendTestEmail(emailTestTo.trim(), emailTestTemplate);
+                                            setEmailTestResult(result);
+                                            addToast({
+                                                title: result.success ? t("success") : t("error"),
+                                                description: result.message || (result.success ? undefined : result.data?.error),
+                                                color: result.success ? "success" : "danger",
+                                            });
+                                        } finally {
+                                            setIsEmailTestSending(false);
+                                        }
+                                    }}
+                                >
+                                    {isEmailTestSending ? t("adminEmailTestSending") : t("adminEmailTestSend")}
+                                </Button>
+                                <span className="text-xs text-default-400">
+                                    {t("adminEmailTestLimitHint", { max: emailTestInfo.limit.max, minutes: emailTestInfo.limit.window_minutes })}
+                                </span>
+                            </div>
+                            {emailTestResult && (
+                                <div className={`rounded-lg border p-3 text-xs ${emailTestResult.success ? "border-success-200 bg-success-50 dark:bg-success-900/20" : "border-danger-200 bg-danger-50 dark:bg-danger-900/20"}`}>
+                                    <p className="font-medium text-foreground">
+                                        {t("adminEmailTestLastResult")}: {emailTestResult.success ? t("success") : t("error")}
+                                        {emailTestResult.data?.to ? ` (${emailTestResult.data.to})` : ""}
+                                    </p>
+                                    <p className="text-default-600">
+                                        {emailTestResult.message}
+                                        {typeof emailTestResult.data?.elapsed_ms === "number" ? ` · ${t("adminEmailTestElapsed")} ${emailTestResult.data.elapsed_ms} ms` : ""}
+                                        {typeof emailTestResult.data?.remaining === "number" ? ` · ${t("adminEmailTestRemaining")} ${emailTestResult.data.remaining}` : ""}
+                                    </p>
+                                    {emailTestResult.data?.error && (
+                                        <pre className="mt-2 whitespace-pre-wrap break-all rounded bg-default-100 p-2 font-mono text-[11px] text-danger">{emailTestResult.data.error}</pre>
+                                    )}
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        <div className="h-16 animate-pulse rounded-lg bg-default-100" />
+                    )}
                 </CardBody>
             </Card>
 
@@ -2096,6 +2245,7 @@ export default function AdminSettingsPage() {
                                                             require_acknowledge: selectedValues.has("require_acknowledge"),
                                                             is_dismissible: selectedValues.has("is_dismissible"),
                                                             notify_inbox: selectedValues.has("notify_inbox"),
+                                                            notify_email: selectedValues.has("notify_email"),
                                                         }));
                                                     }}
                                                     className="mt-2 px-1"
@@ -2132,6 +2282,16 @@ export default function AdminSettingsPage() {
                                                         }}
                                                     >
                                                         {t("adminAnnouncementNotifyInbox")}
+                                                    </Checkbox>
+                                                    <Checkbox
+                                                        value="notify_email"
+                                                        color="primary"
+                                                        className="w-full max-w-none rounded-md px-2 py-1.5 hover:bg-default-100/60"
+                                                        classNames={{
+                                                            label: "text-sm font-medium text-foreground leading-6",
+                                                        }}
+                                                    >
+                                                        {t("adminAnnouncementNotifyEmail")}
                                                     </Checkbox>
                                                 </CheckboxGroup>
                                                 </div>

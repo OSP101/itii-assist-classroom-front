@@ -28,6 +28,7 @@ import { Select, SelectItem } from "@heroui/select";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import { ATTENDANCE_SOURCE_LABEL } from "@/services/leaveRequest.service";
 import { useInstructor } from "../../../../../layout";
 import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
 import { courseService, getCurrentCourseMemberPermissions } from "@/services/course.service";
@@ -702,6 +703,14 @@ export default function AttendanceSummaryPage() {
                                                     >
                                                         {getStatusLabel(record.status, isEnglish)}
                                                     </Chip>
+                                                    {record.status_source && record.status_source !== "system" && record.status_source !== "checkin" && ATTENDANCE_SOURCE_LABEL[record.status_source] && (
+                                                        <Tooltip content={record.status_source === "leave_request" ? t(`ลาผ่านระบบ คำขอ #${record.leave_request_id ?? "-"}`, `Leave request #${record.leave_request_id ?? "-"}`) : t("ผู้สอน/ผู้ช่วยสอนแก้สถานะเอง", "Edited manually by staff")}>
+                                                            <span className="mt-1 flex items-center gap-1 text-[11px] text-default-400">
+                                                                <Icon icon={ATTENDANCE_SOURCE_LABEL[record.status_source].icon} width={12} />
+                                                                {isEnglish ? ATTENDANCE_SOURCE_LABEL[record.status_source].en : ATTENDANCE_SOURCE_LABEL[record.status_source].th}
+                                                            </span>
+                                                        </Tooltip>
+                                                    )}
                                                 </TableCell>,
                                                 <TableCell key="verification">
                                                     <div className="flex items-center gap-2">
