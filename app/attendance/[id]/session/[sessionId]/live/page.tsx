@@ -781,6 +781,10 @@ export default function LiveAttendancePage() {
         ? `${String(timeRemaining.hours).padStart(2, "0")}:${String(timeRemaining.minutes).padStart(2, "0")}:${String(timeRemaining.seconds).padStart(2, "0")}`
         : "00:00:00";
 
+    // รอบเช็กชื่อจบแล้ว ไม่ว่าจะถูกปิดเองหรือหมดเวลาไปตามธรรมชาติ ต้องเลิกแสดง QR และ PIN
+    const checkInEnded = session.status === "closed" || (!notStarted && !sessionOpen);
+    const pinRotating = isRotatingPinSession(session) && session.status === "active";
+
     const headerSubtitle = [
         session.title,
         lateThresholdDisplay ? (isEnglish ? `late after ${lateThresholdDisplay}` : `เกณฑ์เวลาสาย ${lateThresholdDisplay} น.`) : null,
@@ -857,24 +861,27 @@ export default function LiveAttendancePage() {
             onClick={() => setIsQRModalOpen(true)}
             title={t("คลิกเพื่อขยาย QR Code", "Click to enlarge the QR code")}
         >
-            <QRCodeSVG value={checkInUrl} size={qrSize} level="L" fgColor="#0f172a" bgColor="#ffffff" marginSize={1} />
-            <div
-                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border-2 border-blue-100 bg-white"
-                style={{
+            <QRCodeSVG
+                value={checkInUrl}
+                size={qrSize}
+                level="H"
+                marginSize={4}
+                boostLevel
+                fgColor="#000000"
+                bgColor="#ffffff"
+                imageSettings={{
+                    src: "/images/logo-cp.png",
                     width: S.qrLogo,
                     height: S.qrLogo,
-                    borderRadius: Math.round(S.qrLogo * 0.28),
-                    padding: Math.round(S.qrLogo * 0.11),
+                    excavate: true,
+                    opacity: 1,
                 }}
-            >
-                <Image
-                    src="/images/logo-cp.png"
-                    alt={t("ตราสัญลักษณ์คณะ", "Faculty logo")}
-                    width={96}
-                    height={96}
-                    className="h-full w-full object-contain"
-                />
-            </div>
+            />
+            <div
+                aria-hidden
+                className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-[28%] border-2 border-blue-100"
+                style={{ width: S.qrLogo, height: S.qrLogo }}
+            />
         </div>
     );
 
@@ -1202,44 +1209,103 @@ export default function LiveAttendancePage() {
             <Modal isOpen={isQRModalOpen} onClose={() => setIsQRModalOpen(false)} size="full">
                 <ModalContent className="bg-content1">
                     <ModalBody className="flex h-[100dvh] flex-col items-center justify-center gap-1 overflow-hidden py-6">
-                        <h2 className="mb-2 text-3xl font-bold text-foreground">{session.title}</h2>
-                        <p className="mb-6 text-default-500">{t("สแกน QR Code เพื่อเช็กชื่อเข้าเรียน", "Scan the QR code to check in")}</p>
+                        <h2 className="mb-1 text-3xl font-bold text-foreground">{session.title}</h2>
+                        <p className="mb-4 text-default-500">
+                            {checkInEnded
+                                ? t("รอบเช็กชื่อนี้สิ้นสุดแล้ว", "This check-in window has ended")
+                                : t("สแกน QR Code เพื่อเช็กชื่อเข้าเรียน", "Scan the QR code to check in")}
+                        </p>
 
-                        <div className="rounded-3xl border-4 border-default-200 bg-white p-2 shadow-xl">
-                            <QRCodeSVG value={checkInUrl} size={modalQrSize} level="L" fgColor="#000000" bgColor="#ffffff" marginSize={1} />
-                        </div>
-
-                        <div className="mt-6 text-center">
-                            {session.pin_code ? (
-                                <div className="inline-block rounded-2xl bg-slate-800 px-10 py-5 shadow-lg dark:bg-slate-700">
-                                    <p
-                                        className="font-mono font-bold tracking-[0.22em] leading-none text-white"
-                                        style={{ fontSize: modalPinFontSize }}
-                                    >
-                                        {session.pin_code}
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="inline-block rounded-2xl border border-dashed border-default-300 bg-content2 px-8 py-6 text-sm text-default-500">
-                                    {pinAvailabilityMessage}
-                                </div>
-                            )}
-                            <p className="mt-3 text-xs text-default-400">
-                                {isRotatingPinSession(session)
-                                    ? t("PIN เปลี่ยนทุก 1 นาที", "PIN rotates every minute")
-                                    : t("PIN คงที่ตลอดรอบนี้", "This PIN stays fixed for the whole session")}
-                            </p>
-                        </div>
-
-                        {lateThresholdDisplay && (
-                            <div className={`mt-6 flex items-center gap-2 rounded-lg px-4 py-2 ${isPastLateThreshold ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" : "bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400"}`}>
-                                <Icon icon="solar:clock-circle-bold" className="text-xl" />
-                                <span className="text-sm">
-                                    {isEnglish
-                                        ? `Check-ins after ${lateThresholdDisplay} are marked as late`
-                                        : `เช็กชื่อหลัง ${lateThresholdDisplay} น. จะถือว่าสาย`}
+                        {/* นาฬิกาถอยหลังของรอบเช็กชื่อ */}
+                        {!checkInEnded && (
+                            <div className="mb-4 flex flex-col items-center gap-1">
+                                <span className="text-sm text-default-400">{countdownLabel}</span>
+                                <span
+                                    className={`font-mono text-4xl font-bold tabular-nums ${isPastLateThreshold ? "text-amber-500" : "text-foreground"}`}
+                                >
+                                    {countdownValue}
                                 </span>
                             </div>
+                        )}
+
+                        {checkInEnded ? (
+                            <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-default-300 bg-content2 px-16 py-14 text-center">
+                                <Icon icon="solar:clock-circle-bold-duotone" className="text-7xl text-default-300" />
+                                <p className="text-3xl font-bold text-foreground">
+                                    {t("หมดเวลาเช็กชื่อแล้ว", "Check-in time is up")}
+                                </p>
+                                <p className="text-default-500">
+                                    {t("QR Code และรหัส PIN ถูกปิดใช้งานแล้ว", "The QR code and PIN are no longer active.")}
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="rounded-3xl border-4 border-default-200 bg-white p-2 shadow-xl">
+                                    <QRCodeSVG value={checkInUrl} size={modalQrSize} level="M" fgColor="#000000" bgColor="#ffffff" marginSize={4} boostLevel />
+                                </div>
+
+                                <div className="mt-6 text-center">
+                                    {session.pin_code ? (
+                                        <div className="inline-block rounded-2xl bg-slate-800 px-10 py-5 shadow-lg dark:bg-slate-700">
+                                            <p
+                                                className="font-mono font-bold tracking-[0.22em] leading-none text-white"
+                                                style={{ fontSize: modalPinFontSize }}
+                                            >
+                                                {session.pin_code}
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="inline-block rounded-2xl border border-dashed border-default-300 bg-content2 px-8 py-6 text-sm text-default-500">
+                                            {pinAvailabilityMessage}
+                                        </div>
+                                    )}
+
+                                    {/* นับถอยหลังรอบหมุน PIN เฉพาะโหมดที่ PIN เปลี่ยนทุก 1 นาที */}
+                                    {pinRotating && session.pin_code ? (
+                                        <div className="mx-auto mt-3 w-72">
+                                            <div className="mb-1 flex items-center justify-between text-xs text-default-400">
+                                                <span>{t("เปลี่ยนรหัสใน", "New PIN in")}</span>
+                                                <span
+                                                    className={`font-mono font-semibold tabular-nums ${
+                                                        pinCountdown !== null && pinCountdown <= 10 ? "text-red-500"
+                                                            : pinCountdown !== null && pinCountdown <= 20 ? "text-amber-500" : "text-default-500"
+                                                    }`}
+                                                >
+                                                    {pinCountdown !== null ? pinCountdown : "--"} {t("วินาที", "s")}
+                                                </span>
+                                            </div>
+                                            <div className="h-2 w-full overflow-hidden rounded-full bg-default-200">
+                                                <div
+                                                    className={`h-full rounded-full transition-[width] duration-1000 ease-linear ${
+                                                        pinCountdown !== null && pinCountdown <= 10 ? "bg-red-500"
+                                                            : pinCountdown !== null && pinCountdown <= 20 ? "bg-amber-400" : "bg-blue-500"
+                                                    }`}
+                                                    style={{
+                                                        width: pinCountdown !== null && pinTotal
+                                                            ? `${Math.max(0, (pinCountdown / pinTotal) * 100)}%`
+                                                            : "100%",
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="mt-3 text-xs text-default-400">
+                                            {t("PIN คงที่ตลอดรอบนี้", "This PIN stays fixed for the whole session")}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {lateThresholdDisplay && (
+                                    <div className={`mt-6 flex items-center gap-2 rounded-lg px-4 py-2 ${isPastLateThreshold ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" : "bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400"}`}>
+                                        <Icon icon="solar:clock-circle-bold" className="text-xl" />
+                                        <span className="text-sm">
+                                            {isEnglish
+                                                ? `Check-ins after ${lateThresholdDisplay} are marked as late`
+                                                : `เช็กชื่อหลัง ${lateThresholdDisplay} น. จะถือว่าสาย`}
+                                        </span>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </ModalBody>
                 </ModalContent>
