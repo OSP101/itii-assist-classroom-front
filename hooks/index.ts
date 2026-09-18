@@ -12,3 +12,4 @@ export {
     useAsyncLock,
 } from './useDebounce';
 export { useVirtualList, useInfiniteScroll } from './useVirtualList';
+export { useAuthedBlobUrls } from './useAuthedBlobUrls';

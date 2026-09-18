@@ -447,6 +447,7 @@ export interface Course {
   leave_backdate_days?: number;
   leave_advance_days?: number;
   leave_max_pending?: number;
+  leave_auto_expire_days?: number;
   created_at: string;
   updated_at: string;
   instructor?: Instructor | null;
@@ -493,6 +494,7 @@ export interface UpdateCourseDto {
   leave_backdate_days?: number;
   leave_advance_days?: number;
   leave_max_pending?: number;
+  leave_auto_expire_days?: number;
 }
 
 export interface CourseListParams {

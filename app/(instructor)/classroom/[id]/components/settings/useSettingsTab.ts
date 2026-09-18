@@ -26,10 +26,10 @@ export interface SettingsFormData {
     attention_threshold: number;
     is_active: boolean;
     leave_request_enabled: boolean;
-    leave_evidence_policy: "none" | "sick_only" | "sick_personal" | "all";
     leave_backdate_days: number;
     leave_advance_days: number;
     leave_max_pending: number;
+    leave_auto_expire_days: number;
 }
 
 type CoverFields = Pick<SettingsFormData, "image" | "cover_position_x" | "cover_position_y" | "cover_zoom">;
@@ -63,10 +63,10 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
         attention_threshold: sourceCourse.attention_threshold ?? 60,
         is_active: sourceCourse.is_active ?? true,
         leave_request_enabled: sourceCourse.leave_request_enabled ?? true,
-        leave_evidence_policy: sourceCourse.leave_evidence_policy || "sick_personal",
         leave_backdate_days: sourceCourse.leave_backdate_days ?? 7,
         leave_advance_days: sourceCourse.leave_advance_days ?? 60,
         leave_max_pending: sourceCourse.leave_max_pending ?? 5,
+        leave_auto_expire_days: sourceCourse.leave_auto_expire_days ?? 21,
     }), []);
 
     // Form state
@@ -204,10 +204,10 @@ export function useSettingsTab({ courseId, course, onCourseUpdate }: UseSettings
                 attention_threshold: formData.attention_threshold,
                 is_active: formData.is_active,
                 leave_request_enabled: formData.leave_request_enabled,
-                leave_evidence_policy: formData.leave_evidence_policy,
                 leave_backdate_days: formData.leave_backdate_days,
                 leave_advance_days: formData.leave_advance_days,
                 leave_max_pending: formData.leave_max_pending,
+                leave_auto_expire_days: formData.leave_auto_expire_days,
             });
 
             if (response.success && response.data) {

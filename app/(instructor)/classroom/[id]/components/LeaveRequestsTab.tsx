@@ -13,6 +13,7 @@ import { Divider } from "@heroui/divider";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import { useAuthedBlobUrls } from "@/hooks";
 import {
   leaveRequestService,
   LEAVE_ITEM_STATUS_LABEL,
@@ -51,7 +52,7 @@ function fmtTime(value?: string | null) {
   return new Date(value).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
 }
 
-const EMPTY_COUNTS: LeaveRequestCounts = { pending: 0, approved: 0, partially_approved: 0, rejected: 0, cancelled: 0, revoked: 0, total: 0 };
+const EMPTY_COUNTS: LeaveRequestCounts = { pending: 0, approved: 0, partially_approved: 0, rejected: 0, cancelled: 0, revoked: 0, expired: 0, total: 0 };
 
 export default function LeaveRequestsTab({ courseId, canReview, isCourseActive, onPendingCountChange }: LeaveRequestsTabProps) {
   const { language } = useGlobalSettings();
@@ -74,6 +75,14 @@ export default function LeaveRequestsTab({ courseId, canReview, isCourseActive, 
   const [revokeComment, setRevokeComment] = useState("");
   const [batchAction, setBatchAction] = useState<"approve" | "reject" | null>(null);
   const [batchComment, setBatchComment] = useState("");
+
+  // ดึงหลักฐานของคำขอที่เปิดดูอยู่เป็น blob URL (ต้อง auth) แทนชี้ <img src>/<a href> ตรง ๆ
+  // ไปที่ endpoint เพราะ access token cookie หมดอายุใน 15 นาที ทำให้รูป/ลิงก์พังเงียบ ๆ ถ้าเปิดหน้าไว้นาน
+  const detailEvidencePaths = useMemo(
+    () => (detail ? detail.evidence_list.map((file) => leaveRequestService.evidencePath(detail.id, file)) : []),
+    [detail],
+  );
+  const evidenceBlobUrls = useAuthedBlobUrls(detailEvidencePaths);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -310,11 +319,27 @@ export default function LeaveRequestsTab({ courseId, canReview, isCourseActive, 
                     <p className="mb-1 text-xs font-medium uppercase tracking-wide text-default-400">{L("หลักฐาน", "Evidence")} ({detail.evidence_list.length})</p>
                     <div className="flex flex-wrap gap-2">
                       {detail.evidence_list.map((file) => {
-                        const url = leaveRequestService.evidenceUrl(detail.id, file);
+                        const path = leaveRequestService.evidencePath(detail.id, file);
+                        const blobUrl = evidenceBlobUrls[path];
                         const isPdf = file.toLowerCase().endsWith(".pdf");
+                        if (blobUrl === null) {
+                          return (
+                            <div key={file} className="flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-lg border border-danger-200 bg-danger-50 text-danger-500">
+                              <Icon icon="solar:danger-triangle-linear" width={22} />
+                              <span className="text-[10px]">{L("เปิดไม่ได้", "Failed")}</span>
+                            </div>
+                          );
+                        }
+                        if (!blobUrl) {
+                          return (
+                            <div key={file} className="flex h-24 w-24 items-center justify-center rounded-lg border border-default-200 bg-default-100">
+                              <Spinner size="sm" />
+                            </div>
+                          );
+                        }
                         return (
-                          <a key={file} href={url} target="_blank" rel="noreferrer" className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-lg border border-default-200 bg-default-100">
-                            {isPdf ? <Icon icon="solar:document-linear" width={30} className="text-default-500" /> : <img src={url} alt="evidence" className="h-full w-full object-cover" loading="lazy" />}
+                          <a key={file} href={blobUrl} target="_blank" rel="noreferrer" className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-lg border border-default-200 bg-default-100">
+                            {isPdf ? <Icon icon="solar:document-linear" width={30} className="text-default-500" /> : <img src={blobUrl} alt="evidence" className="h-full w-full object-cover" loading="lazy" />}
                           </a>
                         );
                       })}

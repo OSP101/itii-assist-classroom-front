@@ -4,10 +4,9 @@
  */
 
 import { apiService } from './api.service';
-import { API_BASE_URL } from '@/config/api';
 
 export type LeaveType = 'sick' | 'personal' | 'official' | 'other';
-export type LeaveRequestStatus = 'pending' | 'approved' | 'partially_approved' | 'rejected' | 'cancelled' | 'revoked';
+export type LeaveRequestStatus = 'pending' | 'approved' | 'partially_approved' | 'rejected' | 'cancelled' | 'revoked' | 'expired';
 export type LeaveItemStatus = 'pending' | 'approved' | 'rejected' | 'applied' | 'awaiting_session' | 'superseded' | 'cancelled' | 'revoked';
 export type LeaveEvidencePolicy = 'none' | 'sick_only' | 'sick_personal' | 'all';
 
@@ -17,6 +16,7 @@ export interface LeaveCourseSettings {
   backdate_days: number;
   advance_days: number;
   max_pending: number;
+  auto_expire_days: number;
 }
 
 export interface LeaveEligibleSession {
@@ -93,6 +93,7 @@ export interface LeaveRequestCounts {
   rejected: number;
   cancelled: number;
   revoked: number;
+  expired: number;
   total: number;
 }
 
@@ -144,12 +145,30 @@ class LeaveRequestService {
     return apiService.post<LeaveRequest>(this.studentBase(courseId), form);
   }
 
+  // แก้ไขคำขอที่ยัง "รอพิจารณา" เท่านั้น — ไม่ส่ง evidence เลย = คงหลักฐานเดิมไว้,
+  // ส่ง evidence (ไฟล์ใหม่ หรือไม่มีไฟล์เลยพร้อม replaceEvidence:true) = แทนที่หลักฐานเดิมทั้งหมด
+  update(courseId: string, id: number, input: { leave_type: LeaveType; reason: string; items: LeaveItemInput[]; evidence?: File[]; replaceEvidence?: boolean }) {
+    const form = new FormData();
+    form.append('leave_type', input.leave_type);
+    form.append('reason', input.reason);
+    form.append('items', JSON.stringify(input.items));
+    if (input.evidence) {
+      input.evidence.forEach((file) => form.append('evidence', file));
+    }
+    if (input.replaceEvidence) {
+      form.append('replace_evidence', '1');
+    }
+    return apiService.put<LeaveRequest>(`${this.studentBase(courseId)}/${id}`, form);
+  }
+
   cancel(courseId: string, id: number) {
     return apiService.delete<LeaveRequest>(`${this.studentBase(courseId)}/${id}`);
   }
 
-  studentEvidenceUrl(courseId: string, id: number, file: string) {
-    return `${API_BASE_URL}${this.studentBase(courseId)}/${id}/evidence/${encodeURIComponent(file.split('/').pop() ?? file)}`;
+  // path ของไฟล์หลักฐาน (endpoint ต้อง auth) — ใช้กับ apiService.getBlob / useAuthedBlobUrls เท่านั้น
+  // ห้ามใช้เป็น <a href>/<img src> ตรง ๆ เพราะ access token cookie หมดอายุใน 15 นาที จะพังเงียบ ๆ ถ้าเปิดหน้าไว้นาน
+  studentEvidencePath(courseId: string, id: number, file: string) {
+    return `${this.studentBase(courseId)}/${id}/evidence/${encodeURIComponent(file.split('/').pop() ?? file)}`;
   }
 
   // ── ผู้สอน / TA ───────────────────────────────────────────────────────────
@@ -182,8 +201,10 @@ class LeaveRequestService {
     return apiService.post<LeaveRequest>(`/attendance/leave-requests/${id}/revoke`, { comment });
   }
 
-  evidenceUrl(id: number, file: string) {
-    return `${API_BASE_URL}/attendance/leave-requests/${id}/evidence/${encodeURIComponent(file.split('/').pop() ?? file)}`;
+  // path ของไฟล์หลักฐาน (endpoint ต้อง auth) — ใช้กับ apiService.getBlob / useAuthedBlobUrls เท่านั้น
+  // ห้ามใช้เป็น <a href>/<img src> ตรง ๆ เพราะ access token cookie หมดอายุใน 15 นาที จะพังเงียบ ๆ ถ้าเปิดหน้าไว้นาน
+  evidencePath(id: number, file: string) {
+    return `/attendance/leave-requests/${id}/evidence/${encodeURIComponent(file.split('/').pop() ?? file)}`;
   }
 
   recordHistory(sessionId: number, recordId: number) {
@@ -210,6 +231,7 @@ export const LEAVE_STATUS_LABEL: Record<LeaveRequestStatus, { th: string; en: st
   rejected: { th: 'ไม่อนุมัติ', en: 'Rejected', badge: 'danger' },
   cancelled: { th: 'ยกเลิกแล้ว', en: 'Cancelled', badge: 'neutral' },
   revoked: { th: 'ถอนการอนุมัติ', en: 'Revoked', badge: 'danger' },
+  expired: { th: 'หมดอายุอัตโนมัติ', en: 'Auto-expired', badge: 'neutral' },
 };
 
 export const LEAVE_ITEM_STATUS_LABEL: Record<LeaveItemStatus, { th: string; en: string; badge: string }> = {

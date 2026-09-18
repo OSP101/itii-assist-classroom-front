@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
+import { useAuthedBlobUrls } from "@/hooks";
 import {
   leaveRequestService,
   LEAVE_ITEM_STATUS_LABEL,
@@ -17,6 +18,8 @@ import {
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 const LEAVE_TYPES: LeaveType[] = ["sick", "personal", "official", "other"];
+const REASON_MIN_LENGTH = 10;
+const REASON_MAX_LENGTH = 100;
 
 function fmtDate(value: string) {
   if (!value) return "-";
@@ -51,14 +54,35 @@ function blockReasonTH(reason?: string) {
   return "";
 }
 
+// คำนวณวันที่แบบ string ล้วน (ไม่ผ่าน timezone ของเบราว์เซอร์เลย) กันวันเพี้ยนตอนขยายช่วงวันที่
+function addDaysToDateStr(dateStr: string, days: number) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
+}
+
+function dateStrDiffDays(a: string, b: string) {
+  const [ay, am, ad] = a.split("-").map(Number);
+  const [by, bm, bd] = b.split("-").map(Number);
+  return Math.round((Date.UTC(by, bm - 1, bd) - Date.UTC(ay, am - 1, ad)) / 86400000);
+}
+
 type SelectedItem = { key: string; input: LeaveItemInput; label: string; sub: string };
 
 // ─── request card ─────────────────────────────────────────────────────────────
 
-function LeaveRequestCard({ courseId, request, onCancel, busy }: { courseId: string; request: LeaveRequest; onCancel: (id: number) => void; busy: boolean }) {
+function LeaveRequestCard({ courseId, request, onCancel, onEdit, busy }: { courseId: string; request: LeaveRequest; onCancel: (id: number) => void; onEdit: (request: LeaveRequest) => void; busy: boolean }) {
   const [open, setOpen] = useState(request.status === "pending");
   const type = LEAVE_TYPE_LABEL[request.leave_type] ?? LEAVE_TYPE_LABEL.other;
   const status = LEAVE_STATUS_LABEL[request.status] ?? LEAVE_STATUS_LABEL.pending;
+  // ดึงหลักฐานเป็น blob URL (ต้อง auth) แทนชี้ตรงไป endpoint เพราะ access token cookie
+  // หมดอายุใน 15 นาที ทำให้รูป/ลิงก์พังเงียบ ๆ ถ้าเปิดหน้าค้างไว้นาน — โหลดเมื่อเปิดการ์ดเท่านั้น
+  const evidencePaths = useMemo(
+    () => (open ? request.evidence_list.map((file) => leaveRequestService.studentEvidencePath(courseId, request.id, file)) : []),
+    [open, courseId, request.id, request.evidence_list],
+  );
+  const evidenceBlobUrls = useAuthedBlobUrls(evidencePaths);
   return (
     <div className="cg-list">
       <button type="button" className="cg-row" onClick={() => setOpen((v) => !v)}>
@@ -108,11 +132,26 @@ function LeaveRequestCard({ courseId, request, onCancel, busy }: { courseId: str
               <span className="cg-section-label">หลักฐาน ({request.evidence_list.length})</span>
               <div className="cg-leave-thumbs">
                 {request.evidence_list.map((file) => {
-                  const url = leaveRequestService.studentEvidenceUrl(courseId, request.id, file);
+                  const path = leaveRequestService.studentEvidencePath(courseId, request.id, file);
+                  const blobUrl = evidenceBlobUrls[path];
                   const isPdf = file.toLowerCase().endsWith(".pdf");
+                  if (blobUrl === null) {
+                    return (
+                      <div key={file} className="cg-leave-thumb" style={{ color: "var(--cg-danger)" }}>
+                        <Icon icon="solar:danger-triangle-linear" width={22} height={22} />
+                      </div>
+                    );
+                  }
+                  if (!blobUrl) {
+                    return (
+                      <div key={file} className="cg-leave-thumb">
+                        <Icon icon="solar:refresh-linear" width={20} height={20} style={{ color: "var(--cg-text-3)" }} />
+                      </div>
+                    );
+                  }
                   return (
-                    <a key={file} href={url} target="_blank" rel="noreferrer" className="cg-leave-thumb">
-                      {isPdf ? <Icon icon="solar:document-linear" width={26} height={26} /> : <img src={url} alt="หลักฐาน" loading="lazy" />}
+                    <a key={file} href={blobUrl} target="_blank" rel="noreferrer" className="cg-leave-thumb">
+                      {isPdf ? <Icon icon="solar:document-linear" width={26} height={26} /> : <img src={blobUrl} alt="หลักฐาน" loading="lazy" />}
                     </a>
                   );
                 })}
@@ -120,9 +159,14 @@ function LeaveRequestCard({ courseId, request, onCancel, busy }: { courseId: str
             </div>
           )}
           {request.status === "pending" && (
-            <button type="button" className="cg-btn-danger" disabled={busy} onClick={() => onCancel(request.id)}>
-              ยกเลิกคำขอ
-            </button>
+            <div className="flex gap-2">
+              <button type="button" className="cg-btn-ghost flex-1" disabled={busy} onClick={() => onEdit(request)}>
+                แก้ไขคำขอ
+              </button>
+              <button type="button" className="cg-btn-danger flex-1" disabled={busy} onClick={() => onCancel(request.id)}>
+                ยกเลิกคำขอ
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -132,18 +176,53 @@ function LeaveRequestCard({ courseId, request, onCancel, busy }: { courseId: str
 
 // ─── form ─────────────────────────────────────────────────────────────────────
 
-function LeaveForm({ courseId, context, onDone, onBack }: { courseId: string; context: StudentLeaveContext; onDone: () => void; onBack: () => void }) {
-  const [leaveType, setLeaveType] = useState<LeaveType>("sick");
-  const [selected, setSelected] = useState<Record<string, SelectedItem>>({});
+function initialSelectedFromRequest(request?: LeaveRequest): Record<string, SelectedItem> {
+  if (!request) return {};
+  const map: Record<string, SelectedItem> = {};
+  for (const item of request.items) {
+    if (item.attendance_session_id) {
+      const key = `s:${item.attendance_session_id}`;
+      map[key] = {
+        key,
+        input: { session_id: item.attendance_session_id },
+        label: fmtDate(item.leave_date_string),
+        sub: item.session_title ? `${item.session_title} ${fmtTime(item.session_start)}` : "",
+      };
+    } else {
+      const key = `d:${item.leave_date_string}`;
+      map[key] = { key, input: { date: item.leave_date_string }, label: fmtDate(item.leave_date_string), sub: "ทุกคาบในวันนั้น (ระบบจะบันทึกให้เมื่อผู้สอนสร้างคาบ)" };
+    }
+  }
+  return map;
+}
+
+function LeaveForm({ courseId, context, editing, onDone, onBack }: { courseId: string; context: StudentLeaveContext; editing?: LeaveRequest; onDone: () => void; onBack: () => void }) {
+  const [leaveType, setLeaveType] = useState<LeaveType>(editing?.leave_type ?? "sick");
+  const [selected, setSelected] = useState<Record<string, SelectedItem>>(() => initialSelectedFromRequest(editing));
   const [customDate, setCustomDate] = useState("");
-  const [reason, setReason] = useState("");
+  const [rangeMode, setRangeMode] = useState(false);
+  const [rangeStart, setRangeStart] = useState("");
+  const [rangeEnd, setRangeEnd] = useState("");
+  const [reason, setReason] = useState(editing?.reason ?? "");
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [replaceEvidence, setReplaceEvidence] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const fileInput = useRef<HTMLInputElement | null>(null);
 
-  const evidenceRequired = context.evidence_required_types[leaveType];
+  // หลักฐานบังคับแนบทุกกรณี ไม่ว่าประเภทลาไหน
+  const evidenceRequired = true;
+  const keptEvidenceCount = editing && !replaceEvidence ? editing.evidence_list.length : 0;
+  const evidenceSatisfied = keptEvidenceCount > 0 || files.length > 0;
+  // หลักฐานเดิม (ตอนแก้ไขคำขอ) ต้องดึงผ่าน blob เพราะ endpoint ต้อง auth ที่หมดอายุได้ (ดู useAuthedBlobUrls)
+  const existingEvidencePaths = useMemo(
+    () => (editing && !replaceEvidence ? editing.evidence_list.map((file) => leaveRequestService.studentEvidencePath(courseId, editing.id, file)) : []),
+    [editing, replaceEvidence, courseId],
+  );
+  const existingEvidenceBlobUrls = useAuthedBlobUrls(existingEvidencePaths);
+  const reasonLength = reason.trim().length;
+  const reasonValid = reasonLength >= REASON_MIN_LENGTH && reasonLength <= REASON_MAX_LENGTH;
   const sessionsByDate = useMemo(() => {
     const map = new Map<string, LeaveEligibleSession[]>();
     for (const s of context.sessions) {
@@ -156,7 +235,8 @@ function LeaveForm({ courseId, context, onDone, onBack }: { courseId: string; co
   const sessionDates = useMemo(() => new Set(context.sessions.map((s) => s.leave_date)), [context.sessions]);
 
   useEffect(() => {
-    const urls = files.map((f) => (f.type.startsWith("image/") ? URL.createObjectURL(f) : ""));
+    // สร้าง object URL ให้ทุกไฟล์ (รวม PDF) เพื่อให้กดดูตัวอย่างได้ก่อนส่ง
+    const urls = files.map((f) => URL.createObjectURL(f));
     setPreviews(urls);
     return () => urls.forEach((u) => u && URL.revokeObjectURL(u));
   }, [files]);
@@ -188,11 +268,43 @@ function LeaveForm({ courseId, context, onDone, onBack }: { courseId: string; co
     setCustomDate("");
   };
 
+  // เลือกลาแบบช่วงวันที่ (เช่น ป่วยนอนโรงพยาบาลหลายวันติด) แทนที่จะกดทีละวัน
+  // วันไหนมีคาบเรียนอยู่แล้วจะเลือกคาบนั้นให้เลย วันไหนยังไม่มีคาบใช้แบบ "เลือกวัน" เหมือนเดิม
+  const addDateRange = () => {
+    setError(null);
+    if (!rangeStart || !rangeEnd) return;
+    if (rangeEnd < rangeStart) { setError("วันที่สิ้นสุดต้องไม่ก่อนวันที่เริ่ม"); return; }
+    const span = dateStrDiffDays(rangeStart, rangeEnd) + 1;
+    if (span > 31) { setError("เลือกช่วงวันที่ได้สูงสุดครั้งละ 31 วัน"); return; }
+    const next = { ...selected };
+    let added = 0;
+    for (let i = 0; i < span; i++) {
+      const dateKey = addDaysToDateStr(rangeStart, i);
+      if (dateKey < context.window.from || dateKey > context.window.to) continue;
+      const daySessions = sessionsByDate.find(([d]) => d === dateKey)?.[1] ?? [];
+      if (daySessions.length > 0) {
+        for (const s of daySessions) {
+          if (!s.can_request) continue;
+          const key = `s:${s.id}`;
+          if (!next[key]) { next[key] = { key, input: { session_id: s.id }, label: fmtDate(s.leave_date), sub: `${s.title} ${fmtTime(s.start_time)}` }; added++; }
+        }
+      } else {
+        const key = `d:${dateKey}`;
+        if (!next[key]) { next[key] = { key, input: { date: dateKey }, label: fmtDate(dateKey), sub: "ทุกคาบในวันนั้น (ระบบจะบันทึกให้เมื่อผู้สอนสร้างคาบ)" }; added++; }
+      }
+    }
+    setSelected(next);
+    if (added === 0) setError("ไม่มีวันที่เพิ่มได้ในช่วงนี้ (อาจอยู่นอกช่วงที่ขอลาได้ หรือเลือกไว้แล้วทั้งหมด)");
+    setRangeStart("");
+    setRangeEnd("");
+  };
+
   const removeSelected = (key: string) => setSelected((prev) => { const n = { ...prev }; delete n[key]; return n; });
 
   const onPickFiles = (list: FileList | null) => {
     if (!list) return;
     setError(null);
+    if (editing) setReplaceEvidence(true);
     const incoming = Array.from(list);
     const next = [...files];
     for (const f of incoming) {
@@ -206,21 +318,29 @@ function LeaveForm({ courseId, context, onDone, onBack }: { courseId: string; co
   };
 
   const selectedList = Object.values(selected);
-  const canSubmit = selectedList.length > 0 && reason.trim().length > 0 && (!evidenceRequired || files.length > 0) && !submitting;
+  const canSubmit = selectedList.length > 0 && reasonValid && evidenceSatisfied && !submitting;
 
   const submit = async () => {
     setError(null);
     if (!canSubmit) return;
     setSubmitting(true);
     try {
-      const res = await leaveRequestService.submit(courseId, { leave_type: leaveType, reason: reason.trim(), items: selectedList.map((s) => s.input), evidence: files });
+      const res = editing
+        ? await leaveRequestService.update(courseId, editing.id, {
+            leave_type: leaveType,
+            reason: reason.trim(),
+            items: selectedList.map((s) => s.input),
+            evidence: replaceEvidence ? files : undefined,
+            replaceEvidence,
+          })
+        : await leaveRequestService.submit(courseId, { leave_type: leaveType, reason: reason.trim(), items: selectedList.map((s) => s.input), evidence: files });
       if (!res.success) {
-        setError(res.message || "ส่งคำขอไม่สำเร็จ");
+        setError(res.message || (editing ? "แก้ไขคำขอไม่สำเร็จ" : "ส่งคำขอไม่สำเร็จ"));
         return;
       }
       onDone();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "ส่งคำขอไม่สำเร็จ");
+      setError(e instanceof Error ? e.message : (editing ? "แก้ไขคำขอไม่สำเร็จ" : "ส่งคำขอไม่สำเร็จ"));
     } finally {
       setSubmitting(false);
     }
@@ -231,6 +351,14 @@ function LeaveForm({ courseId, context, onDone, onBack }: { courseId: string; co
       <button type="button" className="cg-link self-start text-[13px]" onClick={onBack}>
         <Icon icon="solar:alt-arrow-left-linear" width={15} height={15} /> กลับไปรายการคำขอ
       </button>
+
+      <div className="cg-note" style={{ background: "var(--cg-fill)" }}>
+        <Icon icon="solar:info-circle-linear" width={16} height={16} style={{ flexShrink: 0, color: "var(--cg-text-3)" }} />
+        <span className="text-[11.5px] font-light" style={{ color: "var(--cg-text-2)" }}>
+          ลาย้อนหลังได้สูงสุด {context.settings.backdate_days} วัน ล่วงหน้าได้สูงสุด {context.settings.advance_days} วัน
+          {" "}· คำขอที่รอพิจารณาอยู่ {context.pending_count}/{context.settings.max_pending} ใบ
+        </span>
+      </div>
 
       {/* ประเภท */}
       <div className="flex flex-col gap-2">
@@ -253,10 +381,7 @@ function LeaveForm({ courseId, context, onDone, onBack }: { courseId: string; co
                 }}
               >
                 <Icon icon={meta.icon} width={18} height={18} />
-                <span className="flex flex-col">
-                  <span className="font-medium leading-tight">{meta.th}</span>
-                  {context.evidence_required_types[tp] && <span className="text-[10.5px] font-light opacity-80">ต้องแนบหลักฐาน</span>}
-                </span>
+                <span className="font-medium leading-tight">{meta.th}</span>
               </button>
             );
           })}
@@ -293,14 +418,40 @@ function LeaveForm({ courseId, context, onDone, onBack }: { courseId: string; co
             ))
           )}
         </div>
-        <div className="cg-field-box">
-          <Icon icon="solar:calendar-add-linear" width={18} height={18} style={{ color: "var(--cg-text-3)" }} />
-          <input type="date" value={customDate} min={context.window.from} max={context.window.to} onChange={(e) => setCustomDate(e.target.value)} aria-label="วันที่ยังไม่มีคาบเรียน" />
-          <button type="button" className="cg-link text-[13px]" onClick={addCustomDate} disabled={!customDate}>เพิ่มวัน</button>
+        <div className="cg-list" style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+          <div className="flex items-center gap-2">
+            <Icon icon="solar:calendar-add-bold" width={18} height={18} style={{ color: "var(--cg-accent)", flexShrink: 0 }} />
+            <span className="text-[12.5px] font-medium" style={{ color: "var(--cg-text)" }}>วันที่ยังไม่มีคาบเรียนในระบบ? เลือกได้ตรงนี้</span>
+          </div>
+          <div className="flex gap-1.5">
+            <button type="button" className="cg-pill" data-active={!rangeMode} onClick={() => setRangeMode(false)}>ทีละวัน</button>
+            <button type="button" className="cg-pill" data-active={rangeMode} onClick={() => setRangeMode(true)}>ช่วงวันที่ (หลายวันติดกัน)</button>
+          </div>
+          {rangeMode ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="cg-field-box" style={{ flex: "1 1 220px" }}>
+                <input type="date" value={rangeStart} min={context.window.from} max={context.window.to} onChange={(e) => setRangeStart(e.target.value)} aria-label="วันเริ่มลา" />
+                <span style={{ color: "var(--cg-text-3)", flexShrink: 0 }}>ถึง</span>
+                <input type="date" value={rangeEnd} min={rangeStart || context.window.from} max={context.window.to} onChange={(e) => setRangeEnd(e.target.value)} aria-label="วันสุดท้ายที่ลา" />
+              </div>
+              <button type="button" className="cg-btn-add" onClick={addDateRange} disabled={!rangeStart || !rangeEnd}>
+                <Icon icon="solar:add-circle-bold" width={16} height={16} /> เพิ่มช่วงวันที่
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="cg-field-box" style={{ flex: "1 1 180px" }}>
+                <input type="date" value={customDate} min={context.window.from} max={context.window.to} onChange={(e) => setCustomDate(e.target.value)} aria-label="วันที่ยังไม่มีคาบเรียน" />
+              </div>
+              <button type="button" className="cg-btn-add" onClick={addCustomDate} disabled={!customDate}>
+                <Icon icon="solar:add-circle-bold" width={16} height={16} /> เพิ่มวันนี้
+              </button>
+            </div>
+          )}
+          <span className="text-[11px] font-light" style={{ color: "var(--cg-text-3)" }}>
+            เลือกวันที่แล้วกดปุ่ม "เพิ่ม" ระบบจะบันทึกลาให้อัตโนมัติเมื่อผู้สอนสร้างคาบเรียนของวันนั้น ถ้าวันไหนมีคาบเรียนอยู่แล้วระบบจะเลือกคาบนั้นให้เอง
+          </span>
         </div>
-        <span className="text-[11px] font-light" style={{ color: "var(--cg-text-3)" }}>
-          ขอลาย้อนหลังได้ {context.settings.backdate_days} วัน และล่วงหน้าได้ {context.settings.advance_days} วัน วันที่ยังไม่มีคาบเรียนเลือกจากปฏิทินได้ ระบบจะบันทึกให้เมื่อผู้สอนสร้างคาบ
-        </span>
         {selectedList.length > 0 && (
           <div className="flex flex-col gap-1.5">
             {selectedList.map((item) => (
@@ -321,24 +472,77 @@ function LeaveForm({ courseId, context, onDone, onBack }: { courseId: string; co
 
       {/* เหตุผล */}
       <div className="flex flex-col gap-2">
-        <span className="cg-section-label">3. เหตุผล</span>
+        <span className="cg-section-label">3. เหตุผล (จำเป็น {REASON_MIN_LENGTH}-{REASON_MAX_LENGTH} ตัวอักษร)</span>
         <div className="cg-field-box is-multiline">
-          <textarea rows={3} value={reason} maxLength={2000} onChange={(e) => setReason(e.target.value)} placeholder="เช่น ป่วยเป็นไข้หวัด มีใบรับรองแพทย์แนบ" />
+          <textarea rows={3} value={reason} maxLength={REASON_MAX_LENGTH} onChange={(e) => setReason(e.target.value)} placeholder="เช่น ป่วยเป็นไข้หวัด มีใบรับรองแพทย์แนบ (อย่างน้อย 10 ตัวอักษร)" />
         </div>
+        <span className="text-[11px] font-light" style={{ color: reasonLength > 0 && !reasonValid ? "var(--cg-danger)" : "var(--cg-text-3)" }}>
+          {reasonLength}/{REASON_MAX_LENGTH} ตัวอักษร
+          {reasonLength > 0 && reasonLength < REASON_MIN_LENGTH && ` (ต้องการอีกอย่างน้อย ${REASON_MIN_LENGTH - reasonLength} ตัวอักษร)`}
+        </span>
       </div>
 
       {/* หลักฐาน */}
       <div className="flex flex-col gap-2">
         <span className="cg-section-label">4. หลักฐาน {evidenceRequired ? "(จำเป็น)" : "(ถ้ามี)"}</span>
-        <div className="cg-leave-thumbs">
-          {files.map((f, i) => (
-            <div key={`${f.name}-${i}`} className="cg-leave-thumb">
-              {previews[i] ? <img src={previews[i]} alt={f.name} /> : <Icon icon="solar:document-linear" width={26} height={26} />}
-              <button type="button" className="cg-leave-thumb-x" aria-label="ลบไฟล์" onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}>
-                <Icon icon="solar:close-linear" width={12} height={12} />
-              </button>
+        {editing && editing.evidence_list.length > 0 && !replaceEvidence && (
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-light" style={{ color: "var(--cg-text-3)" }}>หลักฐานเดิม ({editing.evidence_list.length} ไฟล์) — จะเก็บไว้ถ้าไม่แตะส่วนนี้</span>
+            <div className="cg-leave-thumbs">
+              {editing.evidence_list.map((file) => {
+                const path = leaveRequestService.studentEvidencePath(courseId, editing.id, file);
+                const blobUrl = existingEvidenceBlobUrls[path];
+                const isPdf = file.toLowerCase().endsWith(".pdf");
+                if (blobUrl === null) {
+                  return (
+                    <div key={file} className="cg-leave-thumb" style={{ color: "var(--cg-danger)" }}>
+                      <Icon icon="solar:danger-triangle-linear" width={22} height={22} />
+                    </div>
+                  );
+                }
+                if (!blobUrl) {
+                  return (
+                    <div key={file} className="cg-leave-thumb">
+                      <Icon icon="solar:refresh-linear" width={20} height={20} style={{ color: "var(--cg-text-3)" }} />
+                    </div>
+                  );
+                }
+                return (
+                  <a key={file} href={blobUrl} target="_blank" rel="noreferrer" className="cg-leave-thumb">
+                    {isPdf ? <Icon icon="solar:document-linear" width={26} height={26} /> : <img src={blobUrl} alt="หลักฐาน" loading="lazy" />}
+                  </a>
+                );
+              })}
             </div>
-          ))}
+            <button type="button" className="cg-link self-start text-[12px]" style={{ color: "var(--cg-danger)" }} onClick={() => setReplaceEvidence(true)}>
+              แทนที่หลักฐานทั้งหมด
+            </button>
+          </div>
+        )}
+        {editing && replaceEvidence && (
+          <button type="button" className="cg-link self-start text-[12px]" onClick={() => { setReplaceEvidence(false); setFiles([]); }}>
+            ยกเลิก ใช้หลักฐานเดิมต่อ
+          </button>
+        )}
+        <div className="cg-leave-thumbs">
+          {files.map((f, i) => {
+            const isImage = f.type.startsWith("image/");
+            return (
+              <div key={`${f.name}-${i}`} className="cg-leave-thumb">
+                <button
+                  type="button"
+                  className="cg-leave-thumb-preview"
+                  aria-label={`ดูตัวอย่าง ${f.name}`}
+                  onClick={() => previews[i] && window.open(previews[i], "_blank", "noopener,noreferrer")}
+                >
+                  {isImage && previews[i] ? <img src={previews[i]} alt={f.name} /> : <Icon icon="solar:document-linear" width={26} height={26} />}
+                </button>
+                <button type="button" className="cg-leave-thumb-x" aria-label={`ลบไฟล์ ${f.name}`} onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}>
+                  <Icon icon="solar:close-linear" width={12} height={12} />
+                </button>
+              </div>
+            );
+          })}
           {files.length < context.limits.max_files && (
             <button type="button" className="cg-leave-add" onClick={() => fileInput.current?.click()}>
               <Icon icon="solar:camera-add-linear" width={20} height={20} />
@@ -347,7 +551,9 @@ function LeaveForm({ courseId, context, onDone, onBack }: { courseId: string; co
           )}
         </div>
         <input ref={fileInput} type="file" accept="image/*,application/pdf" multiple hidden onChange={(e) => onPickFiles(e.target.files)} />
-        <span className="text-[11px] font-light" style={{ color: "var(--cg-text-3)" }}>รูปภาพหรือ PDF สูงสุด {context.limits.max_files} ไฟล์ ไฟล์ละไม่เกิน 5 MB ผู้สอนและผู้ช่วยสอนของวิชานี้เท่านั้นที่เห็นไฟล์</span>
+        <span className="text-[11px] font-light" style={{ color: "var(--cg-text-3)" }}>
+          รูปภาพหรือ PDF สูงสุด {context.limits.max_files} ไฟล์ ไฟล์ละไม่เกิน {Math.round(context.limits.max_file_size / (1024 * 1024))} MB · กดที่รูปเพื่อดูตัวอย่าง ผู้สอนและผู้ช่วยสอนของวิชานี้เท่านั้นที่เห็นไฟล์
+        </span>
       </div>
 
       {error && (
@@ -358,7 +564,7 @@ function LeaveForm({ courseId, context, onDone, onBack }: { courseId: string; co
       )}
 
       <button type="button" className="cg-btn" disabled={!canSubmit} onClick={submit}>
-        {submitting ? "กำลังส่ง..." : "ส่งคำขอลา"}
+        {submitting ? "กำลังบันทึก..." : editing ? "บันทึกการแก้ไข" : "ส่งคำขอลา"}
       </button>
     </div>
   );
@@ -371,7 +577,8 @@ export default function LeaveTab({ courseId }: { courseId: string }) {
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<"list" | "form" | "done">("list");
+  const [mode, setMode] = useState<"list" | "form" | "done" | "edited">("list");
+  const [editingRequest, setEditingRequest] = useState<LeaveRequest | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -404,6 +611,12 @@ export default function LeaveTab({ courseId }: { courseId: string }) {
     }
   };
 
+  const startEdit = (request: LeaveRequest) => {
+    setNotice(null);
+    setEditingRequest(request);
+    setMode("form");
+  };
+
   if (loading && !context) {
     return (
       <div className="cg-list">
@@ -427,7 +640,15 @@ export default function LeaveTab({ courseId }: { courseId: string }) {
   }
 
   if (mode === "form") {
-    return <LeaveForm courseId={courseId} context={context} onBack={() => setMode("list")} onDone={() => { setMode("done"); void load(); }} />;
+    return (
+      <LeaveForm
+        courseId={courseId}
+        context={context}
+        editing={editingRequest ?? undefined}
+        onBack={() => { setEditingRequest(null); setMode("list"); }}
+        onDone={() => { const wasEdit = Boolean(editingRequest); setEditingRequest(null); setMode(wasEdit ? "edited" : "done"); void load(); }}
+      />
+    );
   }
 
   const pending = requests.filter((r) => r.status === "pending");
@@ -441,7 +662,13 @@ export default function LeaveTab({ courseId }: { courseId: string }) {
           <span>ส่งคำขอลาแล้ว ระบบแจ้งผู้สอนทางอีเมลแล้ว เมื่อพิจารณาเสร็จจะแจ้งผลทางอีเมลของคุณ</span>
         </div>
       )}
-      {notice && mode !== "done" && (
+      {mode === "edited" && (
+        <div className="cg-note" style={{ background: "var(--cg-success-soft)" }}>
+          <Icon icon="solar:check-circle-linear" width={16} height={16} style={{ flexShrink: 0, color: "var(--cg-success)" }} />
+          <span>บันทึกการแก้ไขคำขอลาแล้ว</span>
+        </div>
+      )}
+      {notice && mode !== "done" && mode !== "edited" && (
         <div className="cg-note" style={{ background: "var(--cg-info-soft)" }}>
           <Icon icon="solar:info-circle-linear" width={16} height={16} style={{ flexShrink: 0, color: "var(--cg-info)" }} />
           <span>{notice}</span>
@@ -459,7 +686,7 @@ export default function LeaveTab({ courseId }: { courseId: string }) {
           <span>รายวิชานี้ปิดแล้ว ไม่รับคำขอลา</span>
         </div>
       ) : (
-        <button type="button" className="cg-cta" disabled={!canCreate} onClick={() => { setNotice(null); setMode("form"); }}>
+        <button type="button" className="cg-cta" disabled={!canCreate} onClick={() => { setNotice(null); setEditingRequest(null); setMode("form"); }}>
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(255,255,255,0.18)" }}>
             <Icon icon="solar:document-add-linear" width={22} height={22} />
           </span>
@@ -486,7 +713,7 @@ export default function LeaveTab({ courseId }: { courseId: string }) {
           </div>
         </div>
       ) : (
-        requests.map((r) => <LeaveRequestCard key={r.id} courseId={courseId} request={r} onCancel={cancel} busy={busy} />)
+        requests.map((r) => <LeaveRequestCard key={r.id} courseId={courseId} request={r} onCancel={cancel} onEdit={startEdit} busy={busy} />)
       )}
     </div>
   );

@@ -374,6 +374,47 @@ class ApiService {
     return this.request<T>('DELETE', endpoint, undefined, options);
   }
 
+  // ดึงไฟล์ตรง ๆ (รูป/PDF หลักฐาน ฯลฯ) เป็น Blob แทน JSON — ใช้ตอนต้องกดเปิดไฟล์ที่มี auth
+  // ทำไมมีเมธอดแยก: ลิงก์ <a href> ธรรมดาพลาดได้เงียบ ๆ ถ้า access token cookie หมดอายุ
+  // (15 นาที) เพราะเบราว์เซอร์ไม่มีทาง refresh ให้เองระหว่าง navigate — ต้องผ่าน fetch()
+  // นี้เพื่อให้ได้ logic refresh-แล้ว-retry เหมือน request() ปกติ
+  async getBlob(endpoint: string, retry = true): Promise<Blob | null> {
+    const url = new URL(
+      `${this.baseURL}${endpoint}`,
+      typeof window !== 'undefined' ? window.location.origin : 'http://localhost'
+    );
+    try {
+      const response = await this.fetchWithTimeout(url.toString(), {
+        method: 'GET',
+        headers: { 'X-Client-Type': 'web' },
+      });
+      captureCsrfToken(response);
+
+      if (response.status === 401 && retry) {
+        if (this.isRefreshing) {
+          return new Promise((resolve) => {
+            this.subscribeTokenRefresh((refreshed: string | null) => {
+              if (!refreshed) { resolve(null); return; }
+              resolve(this.getBlob(endpoint, false));
+            });
+          });
+        }
+        this.isRefreshing = true;
+        const refreshed = await this.refreshAccessToken();
+        this.isRefreshing = false;
+        if (refreshed) return this.getBlob(endpoint, false);
+        this.onTokenRefreshFailed();
+        return null;
+      }
+
+      if (!response.ok) return null;
+      return await response.blob();
+    } catch (error) {
+      console.error(`API Error [GET blob ${endpoint}]:`, error);
+      return null;
+    }
+  }
+
   // Token management — the access/refresh tokens themselves are httpOnly
   // cookies set directly by the backend response (login/refresh/OAuth
   // callback); there is nothing left for client JS to store.

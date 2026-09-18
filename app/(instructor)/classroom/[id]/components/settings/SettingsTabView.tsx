@@ -124,16 +124,10 @@ function SettingsTabViewComponent({
         formData.attention_threshold !== (course.attention_threshold ?? 60) ||
         formData.is_active !== (course.is_active ?? true) ||
         formData.leave_request_enabled !== (course.leave_request_enabled ?? true) ||
-        formData.leave_evidence_policy !== (course.leave_evidence_policy || "sick_personal") ||
         formData.leave_backdate_days !== (course.leave_backdate_days ?? 7) ||
         formData.leave_advance_days !== (course.leave_advance_days ?? 60) ||
-        formData.leave_max_pending !== (course.leave_max_pending ?? 5);
-    const leavePolicyOptions: Array<{ key: SettingsFormData["leave_evidence_policy"]; th: string; en: string }> = [
-        { key: "none", th: "ไม่บังคับ", en: "Not required" },
-        { key: "sick_only", th: "เฉพาะลาป่วย", en: "Sick leave only" },
-        { key: "sick_personal", th: "ลาป่วยและลากิจ", en: "Sick and personal leave" },
-        { key: "all", th: "ทุกประเภท", en: "All types" },
-    ];
+        formData.leave_max_pending !== (course.leave_max_pending ?? 5) ||
+        formData.leave_auto_expire_days !== (course.leave_auto_expire_days ?? 21);
     const courseCoverEditorText = {
         title: isEnglish ? "Course cover image" : "รูปปกรายวิชา",
         emptyTitle: isEnglish ? "Click to upload a course cover image" : "คลิกเพื่ออัปโหลดรูปปกรายวิชา",
@@ -472,23 +466,7 @@ function SettingsTabViewComponent({
                             <Switch size="sm" isSelected={formData.leave_request_enabled} isDisabled={!isEditing} onValueChange={(v) => onUpdateField("leave_request_enabled", v)} />
                         </div>
                         <Divider />
-                        <div className="space-y-2">
-                            <p className="text-sm font-medium">{isEnglish ? "Evidence required for" : "บังคับแนบหลักฐานสำหรับ"}</p>
-                            <div className="flex flex-wrap gap-2">
-                                {leavePolicyOptions.map((opt) => (
-                                    <Chip
-                                        key={opt.key}
-                                        variant={formData.leave_evidence_policy === opt.key ? "solid" : "bordered"}
-                                        color={formData.leave_evidence_policy === opt.key ? "primary" : "default"}
-                                        className={isEditing ? "cursor-pointer" : ""}
-                                        onClick={() => isEditing && onUpdateField("leave_evidence_policy", opt.key)}
-                                    >
-                                        {isEnglish ? opt.en : opt.th}
-                                    </Chip>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                             <Input
                                 type="number"
                                 size="sm"
@@ -519,11 +497,21 @@ function SettingsTabViewComponent({
                                 isReadOnly={!isEditing}
                                 onValueChange={(v) => onUpdateField("leave_max_pending", Math.max(1, Math.min(50, Number(v) || 1)))}
                             />
+                            <Input
+                                type="number"
+                                size="sm"
+                                label={isEnglish ? "Auto-expire pending after (days, 0 = off)" : "ปิดคำขอค้างอัตโนมัติหลัง (วัน, 0 = ปิดฟีเจอร์)"}
+                                value={String(formData.leave_auto_expire_days)}
+                                min={0}
+                                max={180}
+                                isReadOnly={!isEditing}
+                                onValueChange={(v) => onUpdateField("leave_auto_expire_days", Math.max(0, Math.min(180, Number(v) || 0)))}
+                            />
                         </div>
                         <p className="text-xs text-default-500">
                             {isEnglish
-                                ? "Approved days are recorded as leave automatically. TAs can review only when granted the \"Review leave requests\" permission."
-                                : "วันที่อนุมัติจะถูกบันทึกเป็นลาให้อัตโนมัติ ผู้ช่วยสอนพิจารณาได้เมื่อได้รับสิทธิ์ \"พิจารณาคำขอลา\" เท่านั้น"}
+                                ? "Approved days are recorded as leave automatically. TAs can review only when granted the \"Review leave requests\" permission. A pending request older than the auto-expire limit closes itself and notifies the student by email. Evidence (image or PDF) is always required from students, for every leave type."
+                                : "วันที่อนุมัติจะถูกบันทึกเป็นลาให้อัตโนมัติ ผู้ช่วยสอนพิจารณาได้เมื่อได้รับสิทธิ์ \"พิจารณาคำขอลา\" เท่านั้น คำขอที่ค้างรอพิจารณานานเกินกำหนดจะถูกปิดเองและแจ้งนักศึกษาทางอีเมล นักศึกษาต้องแนบหลักฐาน (รูปภาพหรือ PDF) ทุกครั้งไม่ว่าประเภทการลาใด"}
                         </p>
                     </CardBody>
                 </Card>

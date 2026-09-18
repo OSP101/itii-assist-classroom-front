@@ -465,6 +465,28 @@ button.cg-row:active {
 	font-weight: 500;
 }
 
+.cg-btn-add {
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 9px 16px;
+	border-radius: 999px;
+	border: none;
+	background: var(--cg-accent);
+	color: #fff;
+	font: inherit;
+	font-size: 12.5px;
+	font-weight: 600;
+	line-height: 1.4;
+	cursor: pointer;
+}
+
+.cg-btn-add:disabled {
+	opacity: 0.4;
+	cursor: default;
+}
+
 .cg-badge {
 	display: inline-flex;
 	align-items: center;
@@ -791,12 +813,29 @@ button.cg-row:active {
 	object-fit: cover;
 }
 
+.cg-leave-thumb-preview {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	border: none;
+	background: none;
+	padding: 0;
+	margin: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: inherit;
+	cursor: pointer;
+	z-index: 1;
+}
+
 .cg-leave-thumb-x {
 	position: absolute;
 	top: 3px;
 	right: 3px;
-	width: 20px;
-	height: 20px;
+	width: 22px;
+	height: 22px;
 	border-radius: 999px;
 	border: none;
 	background: rgba(0, 0, 0, 0.55);
@@ -805,6 +844,7 @@ button.cg-row:active {
 	align-items: center;
 	justify-content: center;
 	cursor: pointer;
+	z-index: 2;
 }
 
 .cg-leave-add {
