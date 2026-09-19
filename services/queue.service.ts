@@ -29,6 +29,10 @@ export interface QueueSession {
     updated_at: string;
     concurrent_group_id?: string | null;
     group_pin_code?: string | null;
+    // "joint" (default): mirrored TAs can grade either linked course's bookings.
+    // "separated": worker visibility is still shared, but a booking is never
+    // dispatched across the course boundary.
+    link_mode?: 'joint' | 'separated';
     concurrent_partner?: {
         id: string;
         title: string;
@@ -36,6 +40,7 @@ export interface QueueSession {
         course_name: string;
         status: string;
         group_pin_code?: string | null;
+        link_mode?: 'joint' | 'separated';
     } | null;
     // Populated fields
     classroom?: {
@@ -485,12 +490,15 @@ export interface ConcurrentSessionInfo {
 
 export interface ConcurrentGroupData {
     is_grouped: boolean;
+    group_pin_code?: string | null;
+    link_mode?: 'joint' | 'separated';
     sessions: {
         id: string;
         title: string;
         course_id: string;
         course_name: string;
         status: string;
+        link_mode?: 'joint' | 'separated';
     }[];
 }
 
@@ -640,13 +648,28 @@ const queueService = {
         return response.data || { is_grouped: false, sessions: [] };
     },
 
-    async linkConcurrentSessions(courseId: string, sessionId: string, partnerSessionId: string): Promise<void> {
+    async linkConcurrentSessions(
+        courseId: string,
+        sessionId: string,
+        partnerSessionId: string,
+        mode: 'joint' | 'separated' = 'joint'
+    ): Promise<void> {
         const response = await api.post(
             `/courses/${courseId}/queue/sessions/${sessionId}/group/link`,
-            { partner_session_id: partnerSessionId }
+            { partner_session_id: partnerSessionId, mode }
         );
         if (!response.success) {
             throw new Error((response as { message?: string }).message || 'เชื่อมคิวไม่สำเร็จ');
+        }
+    },
+
+    async updateConcurrentGroupMode(courseId: string, sessionId: string, mode: 'joint' | 'separated'): Promise<void> {
+        const response = await api.patch(
+            `/courses/${courseId}/queue/sessions/${sessionId}/group/mode`,
+            { mode }
+        );
+        if (!response.success) {
+            throw new Error((response as { message?: string }).message || 'เปลี่ยนโหมดการเชื่อมคิวไม่สำเร็จ');
         }
     },
 

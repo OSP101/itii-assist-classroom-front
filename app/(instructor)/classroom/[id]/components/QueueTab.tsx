@@ -247,6 +247,11 @@ export default function QueueTab({
     const [linkPartnerSessions, setLinkPartnerSessions] = useState<QueueSession[]>([]);
     const [isLinkCoursesLoading, setIsLinkCoursesLoading] = useState(false);
     const [isLinkSessionsLoading, setIsLinkSessionsLoading] = useState(false);
+    const [linkSelectedSessionId, setLinkSelectedSessionId] = useState<string>("");
+    const [linkSelectedMode, setLinkSelectedMode] = useState<'joint' | 'separated'>('joint');
+    const [isModeModalOpen, setIsModeModalOpen] = useState(false);
+    const [modeTarget, setModeTarget] = useState<QueueSession | null>(null);
+    const [isModeSubmitting, setIsModeSubmitting] = useState(false);
 
     // Options for selects
     const [classrooms, setClassrooms] = useState<Classroom[]>([]);
@@ -914,14 +919,16 @@ export default function QueueTab({
     };
 
     // Handle link concurrent sessions
-    const handleLinkConcurrent = async (session: QueueSession, partnerId: string) => {
+    const handleLinkConcurrent = async (session: QueueSession, partnerId: string, mode: 'joint' | 'separated') => {
         if (!isCourseActive) { showCourseClosedReadOnlyToast(); return; }
         setIsLinkSubmitting(true);
         try {
-            await queueService.linkConcurrentSessions(course.id, String(session.id), partnerId);
+            await queueService.linkConcurrentSessions(course.id, String(session.id), partnerId, mode);
             addToast({
                 title: localize("เชื่อมคิวสำเร็จ", "Queues linked"),
-                description: localize("เปิดคิวสองวิชาพร้อมกันได้แล้ว", "Both queues can now run simultaneously"),
+                description: mode === 'separated'
+                    ? localize("ทีเอแต่ละวิชาจะเห็นกันแต่รับงานเฉพาะวิชาของตัวเอง", "TAs can see each other but only receive work from their own course")
+                    : localize("เปิดคิวสองวิชาพร้อมกันได้แล้ว", "Both queues can now run simultaneously"),
                 color: "success",
                 timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -939,6 +946,37 @@ export default function QueueTab({
             });
         } finally {
             setIsLinkSubmitting(false);
+        }
+    };
+
+    // Handle switching an already-linked group's dispatch mode without unlink/re-link
+    const handleUpdateConcurrentGroupMode = async (session: QueueSession, mode: 'joint' | 'separated') => {
+        if (!isCourseActive) { showCourseClosedReadOnlyToast(); return; }
+        setIsModeSubmitting(true);
+        try {
+            await queueService.updateConcurrentGroupMode(course.id, String(session.id), mode);
+            addToast({
+                title: localize("เปลี่ยนโหมดสำเร็จ", "Mode updated"),
+                description: mode === 'separated'
+                    ? localize("ทีเอแต่ละวิชาจะเห็นกันแต่รับงานเฉพาะวิชาของตัวเอง", "TAs can see each other but only receive work from their own course")
+                    : localize("ทีเอทั้งสองวิชาจะช่วยกันตรวจงานข้ามวิชาได้", "TAs from both courses can now grade each other's bookings"),
+                color: "success",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+            setIsModeModalOpen(false);
+            setModeTarget(null);
+            fetchSessions(true);
+        } catch (error: unknown) {
+            addToast({
+                title: localize("เกิดข้อผิดพลาด", "Error"),
+                description: getErrorDescription(error, "ไม่สามารถเปลี่ยนโหมดได้", "Unable to update mode"),
+                color: "danger",
+                timeout: 3000,
+                shouldShowTimeoutProgress: true,
+            });
+        } finally {
+            setIsModeSubmitting(false);
         }
     };
 
@@ -978,6 +1016,8 @@ export default function QueueTab({
             setLinkPartnerCourses([]);
             setLinkSelectedCourseId("");
             setLinkPartnerSessions([]);
+            setLinkSelectedSessionId("");
+            setLinkSelectedMode('joint');
             return;
         }
         setIsLinkCoursesLoading(true);
@@ -1001,6 +1041,8 @@ export default function QueueTab({
 
     // Load sessions for the selected partner course, filtered to same classroom
     useEffect(() => {
+        setLinkSelectedSessionId("");
+        setLinkSelectedMode('joint');
         if (!linkSelectedCourseId || !linkTarget) {
             setLinkPartnerSessions([]);
             return;
@@ -1246,18 +1288,22 @@ export default function QueueTab({
                                                                 </div>
                                                                 {session.concurrent_group_id && (
                                                                     <Tooltip
-                                                                        content={session.concurrent_partner
+                                                                        content={(session.concurrent_partner
                                                                             ? localize(
                                                                                 `เชื่อมกับ: ${session.concurrent_partner.course_name} "${session.concurrent_partner.title}"`,
                                                                                 `Linked with: ${session.concurrent_partner.course_name} — "${session.concurrent_partner.title}"`
                                                                               )
-                                                                            : localize("คิวร่วมกับอีกวิชา", "Linked with another course")}
+                                                                            : localize("คิวร่วมกับอีกวิชา", "Linked with another course")
+                                                                        ) + " · " + (session.link_mode === 'separated'
+                                                                            ? localize("แบ่งแยกงาน", "separated dispatch")
+                                                                            : localize("ทำงานร่วมกัน", "joint dispatch"))}
                                                                         placement="right"
                                                                     >
                                                                         <Chip size="sm" color="secondary" variant="flat" startContent={<Icon icon="solar:link-bold" className="text-xs" />}>
                                                                             {session.concurrent_partner
                                                                                 ? localize(`คิวคู่ · ${session.concurrent_partner.course_name}`, `Paired · ${session.concurrent_partner.course_name}`)
                                                                                 : localize("คิวคู่", "Paired")}
+                                                                            {session.link_mode === 'separated' ? ` (${localize("แบ่งแยก", "separated")})` : ''}
                                                                         </Chip>
                                                                     </Tooltip>
                                                                 )}
@@ -1343,6 +1389,19 @@ export default function QueueTab({
                                                                                 onPress: () => { setLinkTarget(session); setIsLinkModalOpen(true); },
                                                                             }
                                                                         : null;
+                                                                const modeAction: RowAction | null =
+                                                                    canUpdateQueueSessions && session.concurrent_group_id
+                                                                        ? {
+                                                                            key: "toggle-mode",
+                                                                            label: session.link_mode === 'separated'
+                                                                                ? localize("เปลี่ยนเป็นทำงานร่วมกัน", "Switch to joint mode")
+                                                                                : localize("เปลี่ยนเป็นแบ่งแยกงาน", "Switch to separated mode"),
+                                                                            icon: "solar:shuffle-bold",
+                                                                            color: "secondary",
+                                                                            isDisabled: !isCourseActive,
+                                                                            onPress: () => { setModeTarget(session); setIsModeModalOpen(true); },
+                                                                        }
+                                                                        : null;
 
                                                                 const primary: RowAction[] = [];
                                                                 const menu: RowAction[] = [];
@@ -1389,6 +1448,7 @@ export default function QueueTab({
                                                                             onPress: () => { setDeleteTarget(session); setIsDeleteModalOpen(true); },
                                                                         });
                                                                     }
+                                                                    if (modeAction) menu.push(modeAction);
                                                                     if (linkAction) menu.push(linkAction);
                                                                 } else if (session.status === "active") {
                                                                     const hasPending = (session.stats?.waiting || 0) > 0 || (session.stats?.in_progress || 0) > 0;
@@ -1431,6 +1491,7 @@ export default function QueueTab({
                                                                         isDisabled: true,
                                                                         description: deleteReason,
                                                                     });
+                                                                    if (modeAction) menu.push(modeAction);
                                                                     if (linkAction) menu.push(linkAction);
                                                                 } else if (session.status === "paused") {
                                                                     const hasPending = (session.stats?.waiting || 0) > 0 || (session.stats?.in_progress || 0) > 0;
@@ -1475,6 +1536,7 @@ export default function QueueTab({
                                                                             onPress: () => { setDeleteTarget(session); setIsDeleteModalOpen(true); },
                                                                         });
                                                                     }
+                                                                    if (modeAction) menu.push(modeAction);
                                                                     if (linkAction) menu.push(linkAction);
                                                                 } else {
                                                                     // closed — no running actions apply, so the report is the primary one.
@@ -2357,7 +2419,7 @@ export default function QueueTab({
             </Modal>
 
             {/* Concurrent Link Modal */}
-            <Modal isOpen={isLinkModalOpen} onOpenChange={(open) => { setIsLinkModalOpen(open); if (!open) { setLinkSelectedCourseId(""); setLinkPartnerSessions([]); } }}>
+            <Modal isOpen={isLinkModalOpen} onOpenChange={(open) => { setIsLinkModalOpen(open); if (!open) { setLinkSelectedCourseId(""); setLinkPartnerSessions([]); setLinkSelectedSessionId(""); setLinkSelectedMode('joint'); } }}>
                 <ModalContent>
                     {(onClose) => (
                         <>
@@ -2427,8 +2489,12 @@ export default function QueueTab({
                                                     <button
                                                         key={partner.id}
                                                         type="button"
-                                                        className="w-full text-left rounded-xl border border-default-200 p-3 hover:border-primary hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
-                                                        onClick={() => linkTarget && handleLinkConcurrent(linkTarget, String(partner.id))}
+                                                        className={`w-full text-left rounded-xl border p-3 transition-colors ${
+                                                            linkSelectedSessionId === String(partner.id)
+                                                                ? "border-primary-400 bg-primary-50 dark:bg-primary-900/20"
+                                                                : "border-default-200 hover:border-primary-300 hover:bg-primary-50/50 dark:hover:bg-primary-900/10"
+                                                        }`}
+                                                        onClick={() => setLinkSelectedSessionId(String(partner.id))}
                                                         disabled={isLinkSubmitting}
                                                     >
                                                         <p className="font-medium text-foreground text-sm">{partner.title}</p>
@@ -2441,9 +2507,62 @@ export default function QueueTab({
                                         )}
                                     </div>
                                 )}
+
+                                {/* Step 3: Dispatch mode — shown after a partner session is picked */}
+                                {linkSelectedSessionId && (
+                                    <div>
+                                        <p className="text-xs font-semibold text-default-500 mb-2 uppercase tracking-wide">
+                                            {localize("3. รูปแบบการทำงานร่วมกัน", "3. Dispatch mode")}
+                                        </p>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            <button
+                                                type="button"
+                                                className={`text-left rounded-xl border p-3 transition-colors ${
+                                                    linkSelectedMode === 'joint'
+                                                        ? "border-primary-400 bg-primary-50 dark:bg-primary-900/20"
+                                                        : "border-default-200 hover:border-primary-300"
+                                                }`}
+                                                onClick={() => setLinkSelectedMode('joint')}
+                                                disabled={isLinkSubmitting}
+                                            >
+                                                <p className="font-medium text-foreground text-sm">
+                                                    {localize("ทำงานร่วมกัน", "Work jointly")}
+                                                </p>
+                                                <p className="text-xs text-default-500 mt-0.5">
+                                                    {localize("ทีเอสองวิชาช่วยกันตรวจงานข้ามวิชาได้", "TAs from both courses can grade each other's bookings")}
+                                                </p>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`text-left rounded-xl border p-3 transition-colors ${
+                                                    linkSelectedMode === 'separated'
+                                                        ? "border-primary-400 bg-primary-50 dark:bg-primary-900/20"
+                                                        : "border-default-200 hover:border-primary-300"
+                                                }`}
+                                                onClick={() => setLinkSelectedMode('separated')}
+                                                disabled={isLinkSubmitting}
+                                            >
+                                                <p className="font-medium text-foreground text-sm">
+                                                    {localize("แบ่งแยกงาน", "Keep work separated")}
+                                                </p>
+                                                <p className="text-xs text-default-500 mt-0.5">
+                                                    {localize("เห็นทีเออีกวิชาได้ แต่รับงานเฉพาะวิชาของตัวเอง", "TAs can see each other but only receive their own course's bookings")}
+                                                </p>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </ModalBody>
                             <ModalFooter>
                                 <Button variant="light" onPress={onClose}>{localize("ยกเลิก", "Cancel")}</Button>
+                                <Button
+                                    color="primary"
+                                    isDisabled={!linkSelectedSessionId}
+                                    isLoading={isLinkSubmitting}
+                                    onPress={() => linkTarget && linkSelectedSessionId && handleLinkConcurrent(linkTarget, linkSelectedSessionId, linkSelectedMode)}
+                                >
+                                    {localize("เชื่อมคิว", "Link queues")}
+                                </Button>
                             </ModalFooter>
                         </>
                     )}
@@ -2476,6 +2595,43 @@ export default function QueueTab({
                             </ModalFooter>
                         </>
                     )}
+                </ModalContent>
+            </Modal>
+
+            {/* Concurrent Group Mode Switch Modal */}
+            <Modal isOpen={isModeModalOpen} onOpenChange={(open) => { setIsModeModalOpen(open); if (!open) setModeTarget(null); }}>
+                <ModalContent>
+                    {(onClose) => {
+                        const targetMode: 'joint' | 'separated' = modeTarget?.link_mode === 'separated' ? 'joint' : 'separated';
+                        return (
+                            <>
+                                <ModalHeader>{localize("เปลี่ยนโหมดการเชื่อมคิว", "Change dispatch mode")}</ModalHeader>
+                                <ModalBody>
+                                    <p className="text-sm text-default-600">
+                                        {targetMode === 'separated'
+                                            ? localize(
+                                                `เปลี่ยน "${modeTarget?.title}" เป็นแบ่งแยกงาน — ทีเอแต่ละวิชายังเห็นกันได้ แต่จะรับงานเฉพาะวิชาของตัวเองเท่านั้น`,
+                                                `Switch "${modeTarget?.title}" to separated dispatch — TAs can still see each other, but each will only receive their own course's bookings`
+                                              )
+                                            : localize(
+                                                `เปลี่ยน "${modeTarget?.title}" เป็นทำงานร่วมกัน — ทีเอทั้งสองวิชาจะช่วยกันตรวจงานข้ามวิชาได้ทันที`,
+                                                `Switch "${modeTarget?.title}" to joint dispatch — TAs from both courses will immediately be able to grade each other's bookings`
+                                              )}
+                                    </p>
+                                </ModalBody>
+                                <ModalFooter>
+                                    <Button variant="light" onPress={onClose}>{localize("ยกเลิก", "Cancel")}</Button>
+                                    <Button
+                                        color="primary"
+                                        isLoading={isModeSubmitting}
+                                        onPress={() => modeTarget && handleUpdateConcurrentGroupMode(modeTarget, targetMode)}
+                                    >
+                                        {localize("ยืนยันเปลี่ยนโหมด", "Confirm")}
+                                    </Button>
+                                </ModalFooter>
+                            </>
+                        );
+                    }}
                 </ModalContent>
             </Modal>
         </div>
