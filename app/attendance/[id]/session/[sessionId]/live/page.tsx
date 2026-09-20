@@ -313,6 +313,14 @@ export default function LiveAttendancePage() {
         // the same permission checks that guard this page. Fetch one on every
         // connect (tickets are short-lived, and a reconnect needs a fresh one).
         let disposed = false;
+        // Every check-in that lands while this socket is down (a network
+        // blip, a backend restart during the burst) is missed — the room
+        // resubscribe above only gets FUTURE events, not what already
+        // happened. A reconnect has to pull the current roster the same way
+        // the student check-in page pulls the current PIN on its own
+        // reconnect (plan.md ระยะ 3). The very first connect is skipped —
+        // the mount effect below already calls fetchData().
+        let hasConnectedBefore = false;
 
         const joinInstructorRoom = async () => {
             try {
@@ -335,10 +343,23 @@ export default function LiveAttendancePage() {
         socket.on("connect", () => {
             hasWarnedAboutConnectError.current = false;
             void joinInstructorRoom();
+            if (hasConnectedBefore) {
+                void fetchData();
+            }
+            hasConnectedBefore = true;
         });
 
         socket.on("instructor-join-rejected", () => {
             console.warn("Attendance socket: room join rejected, live updates are off. Reload to retry.");
+        });
+
+        // Backend fan-out (realtime/redis_bus.go, plan.md ระยะ 4.1): when a
+        // multi-replica backend's bus subscription itself reconnects, every
+        // replica tells its own local clients to resync — treat it exactly
+        // like a reconnect on this socket, since the same "may have missed a
+        // check-in or PIN update" concern applies.
+        socket.on("resync", () => {
+            void fetchData();
         });
 
         socket.on("connect_error", (err) => {
@@ -400,7 +421,7 @@ export default function LiveAttendancePage() {
             socket.emit("leave-instructor", sessionId);
             socket.disconnect();
         };
-    }, [sessionId, isEnglish]);
+    }, [sessionId, isEnglish, fetchData]);
 
     // Initial fetch
     useEffect(() => {

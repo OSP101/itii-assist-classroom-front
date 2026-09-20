@@ -137,7 +137,13 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         
         const socketInstance = io(socketUrl, {
             reconnection: true,
-            reconnectionAttempts: 10,
+            // No reconnectionAttempts cap (defaults to unlimited — see
+            // Socket.scheduleReconnect in services/realtime-socket.ts):
+            // this is now the ONE socket every page shares, including the
+            // student check-in page (plan.md ระยะ 3), which needs to keep
+            // trying to recover its PIN-rotation feed for as long as the
+            // page stays open through a class period, not give up for good
+            // after ~10s of lockstep 1s retries.
             reconnectionDelay: 1000,
             timeout: 30000,
             withCredentials: true,

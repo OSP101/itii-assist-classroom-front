@@ -43,6 +43,24 @@ class ApiService {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  // ±50% jitter on a backoff delay (plan.md ระยะ 3): without it, every
+  // client that got rate-limited or hit a network error at the same instant
+  // — the normal shape of a 1000-student burst — retries in lockstep at
+  // exactly the same delay, turning the retry into a second, identically
+  // timed spike against whatever just rejected or dropped it.
+  private withJitter(ms: number): number {
+    return Math.round(ms * (0.5 + Math.random()));
+  }
+
+  // Like withJitter, but for a delay taken from the server's own
+  // Retry-After header: that value is a MINIMUM wait the server asked for,
+  // so it's only ever added to, never scaled down — a random 0-1s spread on
+  // top keeps the same lockstep-retry problem from reappearing without
+  // risking retrying before the server said it was OK to.
+  private withJitterFloor(minMs: number): number {
+    return minMs + Math.round(Math.random() * 1000);
+  }
+
   // fetch() wrapper that aborts after REQUEST_TIMEOUT_MS so a stalled
   // connection never hangs the caller indefinitely. `credentials: 'include'`
   // makes the browser send the httpOnly access/refresh cookies set by the
@@ -223,10 +241,10 @@ class ApiService {
       // Handle 429 Too Many Requests - retry with exponential backoff
       if (response.status === 429 && allowRateLimitRetry && retryCount < this.MAX_RETRIES) {
         const retryAfter = response.headers.get('Retry-After');
-        const delay = retryAfter 
-          ? parseInt(retryAfter) * 1000 
-          : this.INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
-        
+        const delay = retryAfter
+          ? this.withJitterFloor(parseInt(retryAfter) * 1000)
+          : this.withJitter(this.INITIAL_RETRY_DELAY * Math.pow(2, retryCount));
+
         console.warn(`Rate limited (429). Retrying in ${delay}ms... (attempt ${retryCount + 1}/${this.MAX_RETRIES})`);
         await this.sleep(delay);
         return this.request<T>(method, endpoint, body, options, retry, retryCount + 1);
@@ -281,10 +299,34 @@ class ApiService {
       }
 
       if (data) {
+        const responseCode = (data as { code?: string }).code;
+
+        // A transient 503 that ISN'T maintenance mode (e.g.
+        // ATTENDANCE_GUARD_UNAVAILABLE — the campus network guard failing
+        // closed because its DB lookup timed out, which is exactly the kind
+        // of thing a 1000-student burst can trigger) is retryable the same
+        // way a 429 is: back off and try again rather than surfacing a hard
+        // error for what's often a one-request hiccup (plan.md ระยะ 3).
+        if (
+          response.status === 503 &&
+          responseCode !== 'MAINTENANCE_MODE' &&
+          allowRateLimitRetry &&
+          retryCount < this.MAX_RETRIES
+        ) {
+          const retryAfter = response.headers.get('Retry-After');
+          const delay = retryAfter
+            ? this.withJitterFloor(parseInt(retryAfter) * 1000)
+            : this.withJitter(this.INITIAL_RETRY_DELAY * Math.pow(2, retryCount));
+
+          console.warn(`Service unavailable (503, ${responseCode ?? 'no code'}). Retrying in ${delay}ms... (attempt ${retryCount + 1}/${this.MAX_RETRIES})`);
+          await this.sleep(delay);
+          return this.request<T>(method, endpoint, body, options, retry, retryCount + 1);
+        }
+
         // Intercept maintenance mode responses and redirect to the maintenance page
         if (
           response.status === 503 &&
-          (data as { code?: string }).code === 'MAINTENANCE_MODE' &&
+          responseCode === 'MAINTENANCE_MODE' &&
           typeof window !== 'undefined' &&
           !window.location.pathname.startsWith('/maintenance') &&
           !window.location.pathname.startsWith('/login')
@@ -326,7 +368,7 @@ class ApiService {
       } catch (error) {
       // Retry on network errors (but not too many times)
       if (retryCount < this.MAX_RETRIES && error instanceof TypeError && error.message.includes('fetch')) {
-        const delay = this.INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
+        const delay = this.withJitter(this.INITIAL_RETRY_DELAY * Math.pow(2, retryCount));
         console.warn(`Network error. Retrying in ${delay}ms... (attempt ${retryCount + 1}/${this.MAX_RETRIES})`);
         await this.sleep(delay);
         return this.request<T>(method, endpoint, body, options, retry, retryCount + 1);

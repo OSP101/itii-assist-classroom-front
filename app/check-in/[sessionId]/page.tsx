@@ -8,7 +8,7 @@ import { Spinner } from "@heroui/spinner";
 import { Avatar } from "@heroui/avatar";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
-import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket";
+import { useSocket } from "@/contexts/SocketContext";
 import attendanceService, { AttendanceRequestError, type AttendanceSession } from "@/services/attendance.service";
 import { authService } from "@/services/auth.service";
 import { storeOAuthReturnPath } from "@/lib/auth-resume";
@@ -115,6 +115,12 @@ export default function StudentCheckInPage() {
     } | null>(null);
     const [blockedReasons, setBlockedReasons] = useState<NetworkGuardCheck[]>([]);
     const redirectingRef = useRef(false);
+    // Shared connection from SocketProvider (app/providers.tsx), not a
+    // socket of this page's own — a student used to hold 2 WebSockets open
+    // (this page's + SocketProvider's global one) for the entire check-in
+    // visit; 1000 concurrent students meant 2000 held connections for no
+    // reason (plan.md ระยะ 3).
+    const { on, emit } = useSocket();
 
     // Force check-in links onto the canonical faculty domain — whatever
     // domain the link was opened from (an alias, an IP, anything), the
@@ -167,8 +173,6 @@ export default function StudentCheckInPage() {
         };
     }, [router, step]);
 
-    // Socket ref
-    const socketRef = useRef<Socket | null>(null);
     const checkInRequestIdRef = useRef("");
 
     // Kept in a ref (not state) so re-collecting never triggers a re-render;
@@ -429,12 +433,10 @@ export default function StudentCheckInPage() {
                 checkInRequestIdRef.current = "";
 
                 // Emit socket event
-                if (socketRef.current) {
-                    socketRef.current.emit("student-check-in", {
-                        sessionId,
-                        studentName: result.student.full_name,
-                    });
-                }
+                emit("student-check-in", {
+                    sessionId,
+                    studentName: result.student.full_name,
+                });
             }
         } catch (error: unknown) {
             console.error("Error checking in:", error);
@@ -483,32 +485,47 @@ export default function StudentCheckInPage() {
         };
     }, [isSubmitting]);
 
-    // Initialize socket
+    // Join the shared socket's attendance room for this session — not "open
+    // a socket" anymore, SocketProvider already holds the one connection.
     useEffect(() => {
-    if (redirectingRef.current) {
-        return;
-    }
-    const socketUrl = getRealtimeSocketBaseUrl();
+        if (redirectingRef.current) {
+            return;
+        }
 
-    const socket = io(socketUrl);
+        // Joins right away regardless of whether the shared socket is open
+        // yet: emit() queues the message until the connection opens (see
+        // Socket.emit in services/realtime-socket.ts), and if it's already
+        // open — carried over from an earlier page via client-side
+        // navigation — this is the only join this session will otherwise
+        // get, since "connect" below won't fire again until a future
+        // disconnect.
+        emit("join-attendance", sessionId);
 
-        // Every rotation that happened while the socket was down was missed, so
-        // a reconnect has to pull the current PIN rather than wait for the next
-        // event. The first connect is skipped — fetchSessionInfo just ran.
-        let hasConnectedBefore = false;
-
-        socket.on("connect", () => {
-            socket.emit("join-attendance", sessionId);
-            if (hasConnectedBefore) {
-                void refreshPinState();
-            }
-            hasConnectedBefore = true;
+        // Every future reconnect (network blip, backend restart, PIN-fuse
+        // failover) needs the join repeated — the server's room membership
+        // doesn't survive a transport close — and also needs a PIN resync,
+        // since any rotation that happened while disconnected was missed.
+        // Unlike the emit() above, this fires only on ACTUAL (re)connects,
+        // so it never double-syncs on first mount.
+        const offConnect = on("connect", () => {
+            emit("join-attendance", sessionId);
+            void refreshPinState();
         });
 
-        socket.on("session-closed", () => {
+        const offSessionClosed = on("session-closed", () => {
             setErrorTitle(t("accessUnavailable"));
             setErrorMessage(t("sessionHasBeenClosed"));
             setStep("error");
+        });
+
+        // Backend fan-out (realtime/redis_bus.go, plan.md ระยะ 4.1): when a
+        // multi-replica backend's bus subscription itself reconnects (it may
+        // have missed events published by OTHER replicas while disconnected
+        // from Redis), every replica broadcasts "resync" to its own local
+        // clients — treat it exactly like "connect" above, since the same
+        // "may have missed a rotation" concern applies.
+        const offResync = on("resync", () => {
+            void refreshPinState();
         });
 
         // The student room's copy of this event carries the rotation timings
@@ -516,7 +533,7 @@ export default function StudentCheckInPage() {
         // display rooms (see EmitToAttendanceStudents on the backend). This is
         // the fast path for staying in step with the projector; the countdown
         // poll above is the fallback for when the socket is down.
-        socket.on("attendance-pin-updated", (data: { pin_issued?: boolean; pin_issued_at?: string | null; pin_rotates_at?: string | null; auto_rotate_pin?: boolean; pin_mode?: AttendanceSession["pin_mode"] }) => {
+        const offPinUpdated = on("attendance-pin-updated", (data: { pin_issued?: boolean; pin_issued_at?: string | null; pin_rotates_at?: string | null; auto_rotate_pin?: boolean; pin_mode?: AttendanceSession["pin_mode"] }) => {
             setSession((prev) => prev
                 ? {
                     ...prev,
@@ -530,13 +547,14 @@ export default function StudentCheckInPage() {
             setPinCode("");
         });
 
-        socketRef.current = socket;
-
         return () => {
-            socket.emit("leave-attendance", sessionId);
-            socket.disconnect();
+            offConnect();
+            offSessionClosed();
+            offResync();
+            offPinUpdated();
+            emit("leave-attendance", sessionId);
         };
-    }, [refreshPinState, sessionId, t]);
+    }, [emit, on, refreshPinState, sessionId, t]);
 
     // Fetch session on mount
     useEffect(() => {
@@ -556,6 +574,16 @@ export default function StudentCheckInPage() {
     // and stops as soon as a fresh pin_rotates_at pushes the countdown back
     // above zero, or after maxAttempts so a closed/stuck session can't poll
     // forever.
+    //
+    // Every client's countdown is driven off the same pin_rotates_at, so if
+    // a rotation's broadcast genuinely doesn't reach anyone (a dropped
+    // backend, a proxy hiccup), pinCountdown hits 0 for the WHOLE class at
+    // once — without the random start delay below, this fallback would turn
+    // that into 1000 simultaneous /info calls the instant it kicks in,
+    // rather than a burst spread over ~2s (plan.md ระยะ 3). maxAttempts and
+    // the interval are both smaller than before (12@1.5s → 5@3s) for the
+    // same reason: this is the degraded path, not the common one, and the
+    // socket reconnect handler above already resyncs immediately on its own.
     useEffect(() => {
         if (!isRotatingPin || pinCountdown === null || pinCountdown > 0) {
             return;
@@ -563,7 +591,9 @@ export default function StudentCheckInPage() {
 
         let disposed = false;
         let attempts = 0;
-        const maxAttempts = 12;
+        let interval: number | undefined;
+        const maxAttempts = 5;
+        const intervalMs = 3000;
 
         const syncPin = () => {
             if (!disposed) {
@@ -571,18 +601,23 @@ export default function StudentCheckInPage() {
             }
         };
 
-        syncPin();
-        const interval = window.setInterval(() => {
-            attempts += 1;
-            if (attempts >= maxAttempts) {
-                window.clearInterval(interval);
-                return;
-            }
+        const startDelay = Math.random() * 2000;
+        const startTimeout = window.setTimeout(() => {
+            if (disposed) return;
             syncPin();
-        }, 1500);
+            interval = window.setInterval(() => {
+                attempts += 1;
+                if (attempts >= maxAttempts) {
+                    window.clearInterval(interval);
+                    return;
+                }
+                syncPin();
+            }, intervalMs);
+        }, startDelay);
 
         return () => {
             disposed = true;
+            window.clearTimeout(startTimeout);
             window.clearInterval(interval);
         };
     }, [isRotatingPin, pinCountdown, refreshPinState]);

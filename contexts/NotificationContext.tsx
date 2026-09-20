@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import { addToast } from "@heroui/toast";
 import { isWebPushSupported, registerPushSubscription, unregisterPushSubscription } from "@/services/push-subscription.service";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
@@ -104,6 +105,13 @@ const notifyDevice = async ({
 
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
     const { joinUserRoom, onNotification } = useSocket();
+    const pathname = usePathname();
+    // The check-in page is the one every student hits simultaneously during
+    // a burst; NotificationProvider is mounted globally (app/providers.tsx),
+    // so an authenticated student checking in used to also pay for
+    // /notifications + /notifications/count on every load for an inbox
+    // they're not there to look at (plan.md ระยะ 3).
+    const isCheckInRoute = pathname?.startsWith("/check-in/") ?? false;
     const { language } = useGlobalSettings();
     const t = useI18n();
     const [isSupported, setIsSupported] = useState(false);
@@ -294,6 +302,12 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     }, [refreshNotifications]);
 
     useEffect(() => {
+        if (isCheckInRoute) {
+            setNotifications([]);
+            setUnreadCount(0);
+            return;
+        }
+
         const user = authService.getStoredUser();
         if (!user?.id || !hasAuthenticatedSession()) {
             setNotifications([]);
@@ -353,7 +367,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
                 });
             }
         });
-    }, [joinUserRoom, language, onNotification, refreshNotifications, t]);
+    }, [isCheckInRoute, joinUserRoom, language, onNotification, refreshNotifications, t]);
 
     const value: NotificationContextType = {
         isSupported,
