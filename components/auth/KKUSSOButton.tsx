@@ -7,6 +7,7 @@
 
 import Image from "next/image";
 import { Button } from "@heroui/button";
+import { Icon } from "@iconify/react";
 
 interface KKUSSOButtonProps {
   onPress: () => void;
@@ -64,6 +65,40 @@ export function KKUSSOButton({
     >
       Login with KKU Account
     </Button>
+  );
+}
+
+interface KKUSSOHeroButtonProps {
+  onPress: () => void;
+  label: string;
+  description: string;
+}
+
+/**
+ * ปุ่ม KKU SSO ตัวใหญ่สำหรับหน้าเข้าสู่ระบบหลัก แบบเดียวกับระบบ COCO TAS
+ * มีตรามหาวิทยาลัย ชื่อปุ่ม และคำอธิบายบรรทัดล่าง ใช้ <button> ธรรมดา
+ * เพราะเป็นการสั่งเปลี่ยนหน้า (onPress ตั้ง window.location เอง)
+ */
+export function KKUSSOHeroButton({ onPress, label, description }: KKUSSOHeroButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onPress}
+      className="group flex h-14 w-full items-center gap-3 rounded-xl border border-divider bg-content1 pl-2 pr-4 text-foreground shadow-sm transition hover:border-[#A63A22]/50 hover:bg-[#A63A22]/[0.03] hover:shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+    >
+      {/* ตราเป็นสีแดงอิฐบนพื้นโปร่งใส จึงล็อกพื้นเป็นสีขาวแม้อยู่ในโหมดมืด */}
+      <span className="grid size-10 shrink-0 place-items-center rounded-lg" style={{ backgroundColor: "#fff" }}>
+        <KKULogoMark className="h-8" />
+      </span>
+      <span className="min-w-0 flex-1 text-left">
+        <span className="block text-[15px] font-medium leading-tight">{label}</span>
+        <span className="mt-0.5 block text-xs leading-tight text-default-500">{description}</span>
+      </span>
+      <Icon
+        icon="solar:arrow-right-linear"
+        className="size-4 shrink-0 text-default-400 transition group-hover:translate-x-0.5 group-hover:text-foreground"
+      />
+    </button>
   );
 }
 

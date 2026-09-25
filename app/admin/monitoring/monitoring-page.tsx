@@ -472,7 +472,7 @@ export function MonitoringPage({ initialTab = "overview" }: MonitoringPageProps)
           {/* CONTAINERS TAB */}
           {activeTab === "containers" && (
             <div className="space-y-6">
-              <ContainerListCard containers={containers} />
+              <ContainerListCard containers={containers} wide />
             </div>
           )}
         </>

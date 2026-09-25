@@ -5,44 +5,19 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
-import { Link } from "@heroui/link";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { Icon } from "@iconify/react";
 import { addToast } from "@heroui/toast";
 import { API_BASE_URL } from "@/config/api";
 import { authService } from "@/services";
-import { AppFooter } from "@/components/Footer";
-import { loginPolicyLinks } from "@/config/public-links";
 import { useI18n } from "@/hooks/useI18n";
 import { getDefaultRouteForRole } from "@/lib/auth-routing";
 import { normalizeAppReturnPath, storeOAuthReturnPath, storePendingAuthReturnPath } from "@/lib/auth-resume";
-import { LEGACY_SOCIAL_LOGIN_ENABLED, TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN, MAIN_ORIGIN, isOnBackupDomain } from "@/lib/auth-providers";
+import { LEGACY_SOCIAL_LOGIN_ENABLED } from "@/lib/auth-providers";
 import { useLoginProviderMode } from "@/hooks/useLoginProviderMode";
-import { KKUSSOButton } from "@/components/auth/KKUSSOButton";
+import { KKUSSOHeroButton } from "@/components/auth/KKUSSOButton";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
-
-function AppMark({ className = "h-8" }: { className?: string }) {
-    return (
-        <>
-            <Image
-                src="/images/logo-cp-full.png"
-                alt="ITII Assist Classroom"
-                width={692}
-                height={200}
-                priority
-                className={`w-auto object-contain dark:hidden ${className}`}
-            />
-            <Image
-                src="/images/logo-cp-full-black.png"
-                alt="ITII Assist Classroom"
-                width={305}
-                height={89}
-                priority
-                className={`hidden w-auto object-contain dark:block ${className}`}
-            />
-        </>
-    );
-}
+import { AppMark, LoginShell } from "@/components/auth/LoginShell";
 
 function SocialIconGoogle() {
     return (
@@ -55,13 +30,23 @@ function SocialIconGoogle() {
     );
 }
 
+const LOGIN_METHOD_KEY = "login_method";
+
+/** จำว่าเครื่องนี้เข้าสู่ระบบด้วยวิธีไหนครั้งล่าสุด ใช้แค่เลือกว่าจะกางฟอร์มรหัสผ่านไว้หรือไม่ */
+function rememberLoginMethod(method: "password" | "sso") {
+    try {
+        localStorage.setItem(LOGIN_METHOD_KEY, method);
+    } catch {
+        // ไม่สำคัญพอจะแจ้งผู้ใช้
+    }
+}
+
 export default function LoginPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const t = useI18n();
     const loginProviderMode = useLoginProviderMode();
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-    const [isOnBackup, setIsOnBackup] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
@@ -135,11 +120,16 @@ export default function LoginPage() {
         checkAuth();
     }, [nextPath, router]);
 
-    const [mainOriginUrl, setMainOriginUrl] = useState(MAIN_ORIGIN);
+    // ฟอร์มชื่อผู้ใช้พับไว้ใต้ปุ่ม KKU ยกเว้นเครื่องนี้เข้าด้วยรหัสผ่านครั้งล่าสุด (เจ้าหน้าที่ ผู้ดูแลระบบ)
+    // อ่านตอน mount ได้เลยโดยไม่กระตุก เพราะหน้าจอโหลด isCheckingAuth ยังบังอยู่
+    const [passwordFormOpen, setPasswordFormOpen] = useState(false);
 
     useEffect(() => {
-        setIsOnBackup(isOnBackupDomain(window.location.hostname));
-        setMainOriginUrl(`${MAIN_ORIGIN}${window.location.pathname}${window.location.search}`);
+        try {
+            if (localStorage.getItem(LOGIN_METHOD_KEY) === "password") setPasswordFormOpen(true);
+        } catch {
+            // private mode หรือบล็อก storage ก็แค่เริ่มแบบพับไว้
+        }
     }, []);
 
     const toggleVisibility = () => setIsVisible(!isVisible);
@@ -167,6 +157,7 @@ export default function LoginPage() {
             });
 
             if (result.success) {
+                rememberLoginMethod("password");
                 // Check if 2FA is required - redirect to verification page
                 if (result.requiresTwoFactor && result.twoFactorData) {
                     // Store 2FA data in sessionStorage and redirect
@@ -290,6 +281,7 @@ export default function LoginPage() {
 
     const handleGoogleLogin = () => {
         // Redirect to Google OAuth
+        rememberLoginMethod("sso");
         storeOAuthReturnPath(nextPath);
         window.location.href = authService.getGoogleAuthUrl(isStudentLoginMode ? "student" : undefined);
     };
@@ -301,6 +293,7 @@ export default function LoginPage() {
     };
 
     const handleKKULogin = () => {
+        rememberLoginMethod("sso");
         storeOAuthReturnPath(nextPath);
         window.location.href = authService.getKKUAuthUrl(isStudentLoginMode ? "student" : undefined);
     };
@@ -373,210 +366,187 @@ export default function LoginPage() {
         );
     }
 
+    const inputClassNames = {
+        base: "gap-1",
+        label: "text-[14px] font-medium text-foreground",
+        inputWrapper: "h-11 min-h-11 rounded-lg border-default-200 bg-content1 shadow-none data-[hover=true]:border-primary-300 group-data-[focus=true]:!border-primary-400",
+        input: "text-[15px] text-foreground placeholder:text-default-400",
+    };
+
+    const passwordForm = (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <Input
+                label={t("username")}
+                labelPlacement="outside"
+                placeholder={t("enterUsername")}
+                type="text"
+                autoComplete="username"
+                variant="bordered"
+                radius="sm"
+                size="md"
+                value={formData.username}
+                onChange={(e) =>
+                    setFormData({ ...formData, username: e.target.value })
+                }
+                startContent={<Icon icon="solar:user-linear" className="text-lg text-default-400" />}
+                classNames={inputClassNames}
+            />
+
+            <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                    <label htmlFor="login-password" className="text-[14px] font-medium text-foreground">{t("password")}</label>
+                    <button
+                        type="button"
+                        onClick={() => setIsForgotPasswordModalOpen(true)}
+                        className="text-[13px] text-primary underline-offset-2 hover:underline"
+                    >
+                        {t("forgotPassword")}
+                    </button>
+                </div>
+
+                <Input
+                    id="login-password"
+                    placeholder={t("enterPassword")}
+                    autoComplete="current-password"
+                    variant="bordered"
+                    radius="sm"
+                    size="md"
+                    value={formData.password}
+                    onChange={(e) =>
+                        setFormData({ ...formData, password: e.target.value })
+                    }
+                    startContent={<Icon icon="solar:lock-password-linear" className="text-lg text-default-400" />}
+                    endContent={
+                        <button
+                            className="flex h-6 w-6 items-center justify-center text-default-400 hover:text-foreground"
+                            type="button"
+                            onClick={toggleVisibility}
+                            aria-label={isVisible ? t("hidePassword") : t("showPassword")}
+                        >
+                            <Icon
+                                icon={isVisible ? "solar:eye-linear" : "solar:eye-closed-linear"}
+                                className="text-[17px]"
+                            />
+                        </button>
+                    }
+                    type={isVisible ? "text" : "password"}
+                    classNames={inputClassNames}
+                />
+            </div>
+
+            {/* ปุ่มเส้นขอบ ให้อ่านเป็นช่องทางรองจากปุ่ม KKU ด้านบน ไม่แย่งความเด่น */}
+            <Button
+                type="submit"
+                radius="sm"
+                variant="bordered"
+                color="primary"
+                className="h-11 w-full text-[15px] font-semibold"
+                isLoading={isLoading}
+                startContent={isLoading ? null : <Icon icon="solar:login-3-linear" className="text-lg" />}
+            >
+                {t("signIn")}
+            </Button>
+        </form>
+    );
+
     return (
-        <div data-auth-shell="true" className="flex min-h-dvh flex-col bg-background text-foreground">
-            <header className="flex h-20 items-center justify-between bg-transparent px-6 max-sm:bg-transparent dark:max-sm:bg-slate-950 sm:px-10">
-                <Link href="/" aria-label={t("itiiAssistClassroomHome")} className="inline-flex items-center">
-                    <AppMark />
-                </Link>
-                <Link
-                    href="/student/login"
-                    className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white/90 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-blue-300 hover:bg-blue-50 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:text-slate-100 dark:max-sm:hover:border-sky-400/45 dark:max-sm:hover:bg-sky-400/10 dark:sm:text-slate-700"
-                >
-                    <span>ล็อกอินนักศึกษา</span>
-                    <Icon icon="solar:arrow-right-linear" className="text-base" />
-                </Link>
-            </header>
+        <LoginShell
+            title={t("signInToITIIAssistClassroom")}
+            subtitle={t("loginSystemSubtitle")}
+            switchHref="/student/login"
+            switchLabel={t("studentSignIn")}
+        >
+            {nextPath ? (
+                <div className="mb-5 rounded-xl border border-primary-200 bg-primary-50 px-4 py-3 text-sm text-primary-800">
+                    {isStudentLoginMode
+                        ? <>เข้าสู่ระบบนักศึกษาด้วย <span className="font-medium">KKU SSO</span> เพื่อไปยัง <span className="font-medium">{nextPath}</span></>
+                        : <>Sign in to continue to <span className="font-medium">{nextPath}</span></>}
+                </div>
+            ) : null}
 
-            <main className="flex w-full flex-1 flex-col items-center justify-start bg-transparent px-5 pb-6 pt-4 max-sm:bg-transparent dark:max-sm:bg-slate-950 sm:min-h-[calc(100vh-128px)] sm:justify-center sm:px-6 sm:pb-16 sm:pt-10">
-                <section className="w-full max-w-112.5 bg-transparent px-2 py-4 max-sm:border-0 max-sm:shadow-none dark:max-sm:bg-transparent sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white sm:px-12 sm:py-12 sm:shadow-sm sm:shadow-slate-200/60 dark:sm:shadow-zinc-950/50">
-                    {isOnBackup ? (
-                        <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:max-sm:border-amber-500/30 dark:max-sm:bg-amber-500/10 dark:max-sm:text-amber-100">
-                            <p>
-                                ตอนนี้คุณกำลังเข้าใช้งานผ่าน<span className="font-medium">ลิงก์สำรอง</span> เพื่อความเสถียรของการใช้งาน กรุณาเปลี่ยนไปใช้ลิงก์หลักของคณะ
-                            </p>
-                            <a
-                                href={mainOriginUrl}
-                                className="mt-3 flex w-full animate-pulse items-center justify-center gap-1.5 rounded-full bg-amber-600 px-3 py-2.5 text-[14px] font-semibold text-white shadow-md shadow-amber-600/40 transition-colors hover:bg-amber-700"
-                            >
-                                ไปใช้ลิงก์หลัก
-                                <Icon icon="solar:arrow-right-linear" className="text-base" />
-                            </a>
-                        </div>
-                    ) : null}
-                    {nextPath ? (
-                        <div className="mb-5 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:max-sm:border-sky-500/30 dark:max-sm:bg-sky-500/10 dark:max-sm:text-sky-100">
-                            {isStudentLoginMode
-                                ? <>เข้าสู่ระบบนักศึกษาด้วย <span className="font-medium">KKU SSO</span> เพื่อไปยัง <span className="font-medium">{nextPath}</span></>
-                                : <>Sign in to continue to <span className="font-medium">{nextPath}</span></>}
-                        </div>
-                    ) : null}
-                    <h1 className="mb-7 text-[25px] font-semibold leading-tight tracking-[-0.01em] text-slate-800 dark:max-sm:text-white">
-                        {t("signInToITIIAssistClassroom")}
-                    </h1>
+            <div className="flex flex-col gap-5">
+                {loginProviderMode === null ? (
+                    // ยังไม่รู้ hostname (รอบ hydrate แรก) กันปุ่มกระพริบสลับช่องทาง
+                    <div className="h-14 w-full animate-pulse rounded-xl bg-default-100" />
+                ) : loginProviderMode === "kku" ? (
+                    <KKUSSOHeroButton
+                        onPress={handleKKULogin}
+                        label={t("loginWithKKUAccount")}
+                        description={t("kkuAccountHint")}
+                    />
+                ) : (
+                    <GoogleSignInButton onPress={handleGoogleLogin} />
+                )}
 
-                    {loginProviderMode === null ? (
-                        // ยังไม่รู้ hostname (รอบ hydrate แรก) กันปุ่มกระพริบสลับช่องทาง
-                        <div className="h-10.5 w-full animate-pulse rounded-md bg-slate-100 dark:max-sm:bg-white/10" />
-                    ) : loginProviderMode === "kku" ? (
-                        <KKUSSOButton onPress={handleKKULogin} />
-                    ) : (
-                        <GoogleSignInButton onPress={handleGoogleLogin} />
-                    )}
-
-                    {/* TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN — ทางสำรองระหว่างรอสำนักอัปเดตข้อมูลใน SSO
-                        ลบทั้งบล็อกนี้เมื่อข้อมูลครบแล้ว ดู lib/auth-providers.ts */}
-                    {/* {loginProviderMode === "kku" && TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN ? (
-                            <GoogleSignInButton onPress={handleGoogleLogin} />
-                    ) : null} */}
-
-                    {LEGACY_SOCIAL_LOGIN_ENABLED ? (
-                        <div className={`mt-2 grid gap-2 ${isStudentLoginMode ? "grid-cols-1" : "grid-cols-2"}`}>
+                {LEGACY_SOCIAL_LOGIN_ENABLED ? (
+                    <div className={`grid gap-2 ${isStudentLoginMode ? "grid-cols-1" : "grid-cols-2"}`}>
+                        <Button
+                            type="button"
+                            variant="bordered"
+                            radius="sm"
+                            className="h-10.5 border-default-200 text-[15px] font-medium"
+                            onPress={handleGoogleLogin}
+                            startContent={<SocialIconGoogle />}
+                        >
+                            Google
+                        </Button>
+                        {!isStudentLoginMode ? (
                             <Button
                                 type="button"
                                 variant="bordered"
                                 radius="sm"
-                                className="h-10.5 border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:text-white dark:max-sm:data-[hover=true]:border-sky-400/45 dark:max-sm:data-[hover=true]:bg-sky-400/10"
-                                onPress={handleGoogleLogin}
-                                startContent={<SocialIconGoogle />}
+                                className="h-10.5 border-default-200 text-[15px] font-medium"
+                                onPress={handleGitHubLogin}
+                                startContent={<Icon icon="fa6-brands:github" className="text-[16px]" />}
                             >
-                                Google
+                                GitHub
                             </Button>
-                            {!isStudentLoginMode ? (
-                                <Button
+                        ) : null}
+                    </div>
+                ) : null}
+
+                {!isStudentLoginMode ? (
+                    <>
+                        <div className="flex items-center gap-3">
+                            <div className="h-px flex-1 bg-divider" />
+                            <span className="text-xs text-default-500">{t("or")}</span>
+                            <div className="h-px flex-1 bg-divider" />
+                        </div>
+
+                        {/* ฟอร์มชื่อผู้ใช้พับเก็บไว้ใต้ปุ่ม KKU และเปิดค้างไว้ให้เองถ้าเครื่องนี้เข้าด้วยรหัสผ่านครั้งล่าสุด */}
+                        <div className="rounded-xl border border-divider bg-content1">
+                            <h2>
+                                <button
                                     type="button"
-                                    variant="bordered"
-                                    radius="sm"
-                                    className="h-10.5 border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:text-white dark:max-sm:data-[hover=true]:border-sky-400/45 dark:max-sm:data-[hover=true]:bg-sky-400/10"
-                                    onPress={handleGitHubLogin}
-                                    startContent={<Icon icon="fa6-brands:github" className="text-[16px] text-slate-700 dark:max-sm:text-white" />}
+                                    aria-expanded={passwordFormOpen}
+                                    aria-controls="login-password-form"
+                                    onClick={() => setPasswordFormOpen((open) => !open)}
+                                    className="flex h-12 w-full items-center justify-between gap-2 px-4 text-sm font-medium text-foreground"
                                 >
-                                    GitHub
-                                </Button>
-                            ) : null}
-                        </div>
-                    ) : null}
-
-                    {!isStudentLoginMode ? (
-                        <>
-                            <div className="my-5 flex items-center gap-3">
-                                <div className="h-px flex-1 bg-slate-200" />
-                                <span className="text-sm text-slate-400 dark:max-sm:text-slate-300 dark:sm:text-slate-500">{t("or")}</span>
-                                <div className="h-px flex-1 bg-slate-200" />
-                            </div>
-
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <Input
-                                    label={t("username")}
-                                    labelPlacement="outside"
-                                    placeholder={t("enterUsername")}
-                                    type="text"
-                                    variant="bordered"
-                                    radius="sm"
-                                    size="md"
-                                    value={formData.username}
-                                    onChange={(e) =>
-                                        setFormData({ ...formData, username: e.target.value })
-                                    }
-                                    startContent={
-                                        <Icon
-                                            icon="solar:user-linear"
-                                            className="text-lg text-blue-400"
-                                        />
-                                    }
-                                    classNames={{
-                                        base: "gap-1 dark:sm:[&_[data-slot=label]]:!text-slate-800",
-                                        label: "text-[14px] font-medium text-slate-600 dark:max-sm:text-slate-100 dark:sm:text-slate-800",
-                                        inputWrapper: "h-10.5 min-h-10.5 rounded-md border-blue-200 bg-white shadow-none data-[hover=true]:border-blue-300 group-data-[focus=true]:!border-blue-400 group-data-[focus=true]:ring-1 group-data-[focus=true]:ring-blue-300 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:data-[hover=true]:border-sky-400/45 dark:max-sm:group-data-[focus=true]:ring-sky-400/30",
-                                        input: "login-desktop-dark-input text-[15px] text-slate-800 placeholder:text-slate-400 dark:max-sm:text-slate-100 dark:max-sm:placeholder:text-slate-400 dark:max-sm:autofill:[-webkit-text-fill-color:rgb(241_245_249)] dark:sm:text-slate-800 dark:sm:placeholder:text-slate-500 dark:sm:autofill:[-webkit-text-fill-color:rgb(30_41_59)]",
-                                    }}
-                                />
-
-                                <div className="space-y-1">
-                                    <div className="flex items-center justify-between">
-                                        <label className="text-[14px] font-medium text-slate-600 dark:max-sm:text-slate-100 dark:sm:text-slate-800">{t("password")}</label>
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsForgotPasswordModalOpen(true)}
-                                            className="text-[13px] text-blue-400 underline-offset-2 hover:text-blue-500 hover:underline dark:max-sm:text-sky-300 dark:max-sm:hover:text-sky-200"
-                                        >
-                                            {t("forgotPassword")}
-                                        </button>
-                                    </div>
-
-                                    <Input
-                                        aria-label={t("password")}
-                                        placeholder={t("enterPassword")}
-                                        variant="bordered"
-                                        radius="sm"
-                                        size="md"
-                                        value={formData.password}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, password: e.target.value })
-                                        }
-                                        startContent={
-                                            <Icon
-                                                icon="solar:lock-password-linear"
-                                                className="text-lg text-blue-400"
-                                            />
-                                        }
-                                        endContent={
-                                            <button
-                                                className="flex h-6 w-6 items-center justify-center text-blue-400 hover:text-blue-500"
-                                                type="button"
-                                                onClick={toggleVisibility}
-                                                aria-label={isVisible ? t("hidePassword") : t("showPassword")}
-                                            >
-                                                <Icon
-                                                    icon={isVisible ? "solar:eye-linear" : "solar:eye-closed-linear"}
-                                                    className="text-[17px]"
-                                                />
-                                            </button>
-                                        }
-                                        type={isVisible ? "text" : "password"}
-                                        classNames={{
-                                            inputWrapper: "h-10.5 min-h-10.5 rounded-md border-blue-200 bg-white shadow-none data-[hover=true]:border-blue-300 group-data-[focus=true]:!border-blue-400 group-data-[focus=true]:ring-1 group-data-[focus=true]:ring-blue-300 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:data-[hover=true]:border-sky-400/45 dark:max-sm:group-data-[focus=true]:ring-sky-400/30",
-                                            input: "login-desktop-dark-input text-[15px] text-slate-800 placeholder:text-slate-400 dark:max-sm:text-slate-100 dark:max-sm:placeholder:text-slate-400 dark:max-sm:autofill:[-webkit-text-fill-color:rgb(241_245_249)] dark:sm:text-slate-800 dark:sm:placeholder:text-slate-500 dark:sm:autofill:[-webkit-text-fill-color:rgb(30_41_59)]",
-                                        }}
+                                    {t("signInWithUsernameAndPassword")}
+                                    <Icon
+                                        icon="solar:alt-arrow-down-linear"
+                                        className={`text-base text-default-500 transition-transform ${passwordFormOpen ? "rotate-180" : ""}`}
                                     />
+                                </button>
+                            </h2>
+                            <div
+                                id="login-password-form"
+                                className={`grid transition-[grid-template-rows] duration-200 ${passwordFormOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+                            >
+                                <div className="overflow-hidden" inert={!passwordFormOpen}>
+                                    <div className="px-4 pb-4 pt-1">{passwordForm}</div>
                                 </div>
-
-                                <Button
-                                    type="submit"
-                                    radius="sm"
-                                    className="h-10.5 w-full bg-linear-to-r from-blue-400 to-indigo-500 text-[15px] font-semibold text-white shadow-lg shadow-blue-300/40 data-[hover=true]:from-blue-500 data-[hover=true]:to-indigo-600"
-                                    isLoading={isLoading}
-                                >
-                                    {t("signIn")}
-                                </Button>
-                            </form>
-                        </>
-                    ) : (
-                        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-600 dark:max-sm:border-white/10 dark:max-sm:bg-white/8 dark:max-sm:text-slate-200">
-                            Student accounts use Google as the identity source for classroom access. Username/password and GitHub sign-in are disabled for student routes.
+                            </div>
                         </div>
-                    )}
+                    </>
+                ) : (
+                    <div className="rounded-xl border border-divider bg-default-50 px-4 py-4 text-sm leading-6 text-default-600">
+                        Student accounts use Google as the identity source for classroom access. Username/password and GitHub sign-in are disabled for student routes.
+                    </div>
+                )}
+            </div>
 
-                </section>
-
-                <p className="mt-5 max-w-85 text-center text-[13px] leading-5 text-slate-500 dark:max-sm:text-slate-300 dark:sm:text-slate-300">
-                    {t("continuingMeansAccept")}{" "}
-                    <Link href={loginPolicyLinks.terms} className="text-[13px] text-slate-500 underline hover:text-blue-500 dark:max-sm:text-slate-200 dark:max-sm:hover:text-sky-300 dark:sm:text-slate-200 dark:sm:hover:text-sky-300">
-                        {t("termsOfUse")}
-                    </Link>
-                    ,{" "}
-                    <Link href={loginPolicyLinks.privacy} className="text-[13px] text-slate-500 underline hover:text-blue-500 dark:max-sm:text-slate-200 dark:max-sm:hover:text-sky-300 dark:sm:text-slate-200 dark:sm:hover:text-sky-300">
-                        {t("privacyPolicy")}
-                    </Link>
-                    , และ{" "}
-                    <Link href={loginPolicyLinks.cookies} className="text-[13px] text-slate-500 underline hover:text-blue-500 dark:max-sm:text-slate-200 dark:max-sm:hover:text-sky-300 dark:sm:text-slate-200 dark:sm:hover:text-sky-300">
-                        {t("cookiePolicy")}
-                    </Link>
-                    {" "}{t("ofITIIAssistClassroom")}
-                </p>
-            </main>
-
-            <AppFooter />
 
 
             {/* Force Change Password Modal */}
@@ -857,6 +827,6 @@ export default function LoginPage() {
                     </ModalFooter>
                 </ModalContent>
             </Modal>
-        </div>
+        </LoginShell>
     );
 }

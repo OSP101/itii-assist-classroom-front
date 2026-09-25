@@ -62,6 +62,14 @@ export interface ContainerMetrics {
   memoryPercent: number;
   restarts: number;
   status: 'running' | 'stopped' | 'restarting';
+  image: string;
+  /** CPU quota in cores from the compose `cpus:` limit; 0 = unlimited. */
+  cpuLimitCores: number;
+  health: 'healthy' | 'unhealthy' | 'starting' | '';
+  /** ISO timestamps; empty when Docker has none. */
+  startedAt: string;
+  finishedAt: string;
+  uptimeSeconds: number;
 }
 
 export interface WebsiteMetrics {
@@ -228,6 +236,12 @@ async function getContainerMetrics(): Promise<ContainerMetrics[]> {
       memoryPercent: Number(row.memoryPercent ?? 0),
       restarts: Number(row.restarts ?? 0),
       status: (row.status as ContainerMetrics['status']) ?? 'stopped',
+      image: String(row.image ?? ''),
+      cpuLimitCores: Number(row.cpuLimitCores ?? 0),
+      health: (row.health as ContainerMetrics['health']) ?? '',
+      startedAt: String(row.startedAt ?? ''),
+      finishedAt: String(row.finishedAt ?? ''),
+      uptimeSeconds: Number(row.uptimeSeconds ?? 0),
     }));
   } catch (error) {
     console.error('Failed to fetch container metrics:', error);

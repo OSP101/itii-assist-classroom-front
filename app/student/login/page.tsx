@@ -1,44 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
 import { Button } from "@heroui/button";
 import { addToast } from "@heroui/toast";
-import { Icon } from "@iconify/react";
 import { authService } from "@/services";
-import { AppFooter } from "@/components/Footer";
 import { useI18n } from "@/hooks/useI18n";
 import { getDefaultRouteForRole, isStudentRole } from "@/lib/auth-routing";
 import { normalizeAppReturnPath, storeOAuthReturnPath } from "@/lib/auth-resume";
-import { LEGACY_SOCIAL_LOGIN_ENABLED, TEMP_GOOGLE_FALLBACK_ON_KKU_DOMAIN, MAIN_ORIGIN, isOnBackupDomain } from "@/lib/auth-providers";
+import { LEGACY_SOCIAL_LOGIN_ENABLED } from "@/lib/auth-providers";
 import { useLoginProviderMode } from "@/hooks/useLoginProviderMode";
-import { KKUSSOButton } from "@/components/auth/KKUSSOButton";
+import { KKUSSOHeroButton } from "@/components/auth/KKUSSOButton";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
-
-function AppMark({ className = "h-8" }: { className?: string }) {
-  return (
-    <>
-      <Image
-        src="/images/logo-cp-full.png"
-        alt="ITII Assist Classroom"
-        width={692}
-        height={200}
-        priority
-        className={`w-auto object-contain dark:hidden ${className}`}
-      />
-      <Image
-        src="/images/logo-cp-full-black.png"
-        alt="ITII Assist Classroom"
-        width={305}
-        height={89}
-        priority
-        className={`hidden w-auto object-contain dark:block ${className}`}
-      />
-    </>
-  );
-}
+import { LoginShell } from "@/components/auth/LoginShell";
 
 function SocialIconGoogle() {
   return (
@@ -57,13 +31,6 @@ export default function StudentLoginPage() {
   const t = useI18n();
   const loginProviderMode = useLoginProviderMode();
   const nextPath = normalizeAppReturnPath(searchParams.get("next")) || "/student";
-  const [isOnBackup, setIsOnBackup] = useState(false);
-  const [mainOriginUrl, setMainOriginUrl] = useState(MAIN_ORIGIN);
-
-  useEffect(() => {
-    setIsOnBackup(isOnBackupDomain(window.location.hostname));
-    setMainOriginUrl(`${MAIN_ORIGIN}${window.location.pathname}${window.location.search}`);
-  }, []);
 
   useEffect(() => {
     const error = searchParams.get("error");
@@ -111,71 +78,39 @@ export default function StudentLoginPage() {
   };
 
   return (
-    <div data-auth-shell="true" className="flex min-h-dvh flex-col bg-background text-foreground">
-      <header className="flex h-20 items-center justify-between bg-transparent px-6 max-sm:bg-transparent dark:max-sm:bg-slate-950 sm:px-10">
-        <Link href="/" aria-label={t("itiiAssistClassroomHome")} className="inline-flex items-center">
-          <AppMark />
-        </Link>
-        <Link
-          href="/login"
-          className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white/90 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-blue-300 hover:bg-blue-50 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:text-slate-100 dark:max-sm:hover:border-sky-400/45 dark:max-sm:hover:bg-sky-400/10 dark:sm:text-slate-700"
-        >
-          <span>เข้าสู่ระบบผู้สอน</span>
-          <Icon icon="solar:arrow-right-linear" className="text-base" />
-        </Link>
-      </header>
+    <LoginShell
+      title={t("studentSignIn")}
+      subtitle={t("studentLoginSubtitle")}
+      switchHref="/login"
+      switchLabel={t("instructorSignIn")}
+    >
+      <div className="flex flex-col gap-4">
+        {loginProviderMode === null ? (
+          // ยังไม่รู้ hostname (รอบ hydrate แรก) กันปุ่มกระพริบสลับช่องทาง
+          <div className="h-14 w-full animate-pulse rounded-xl bg-default-100" />
+        ) : loginProviderMode === "kku" ? (
+          <KKUSSOHeroButton
+            onPress={handleKKULogin}
+            label={t("loginWithKKUAccount")}
+            description={t("kkuAccountHint")}
+          />
+        ) : (
+          <GoogleSignInButton onPress={handleGoogleLogin} />
+        )}
 
-      <main className="flex w-full flex-1 flex-col items-center justify-start bg-transparent px-5 pb-6 pt-4 max-sm:bg-transparent dark:max-sm:bg-slate-950 sm:min-h-[calc(100vh-128px)] sm:justify-center sm:px-6 sm:pb-16 sm:pt-10">
-        <section className="w-full max-w-112.5 bg-transparent px-2 py-4 max-sm:border-0 max-sm:shadow-none dark:max-sm:bg-transparent sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white sm:px-12 sm:py-12 sm:shadow-sm sm:shadow-slate-200/60 dark:sm:shadow-zinc-950/50">
-          {isOnBackup ? (
-            <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:max-sm:border-amber-500/30 dark:max-sm:bg-amber-500/10 dark:max-sm:text-amber-100">
-              <p>
-                ตอนนี้คุณกำลังเข้าใช้งานผ่าน<span className="font-medium">ลิงก์สำรอง</span> เพื่อความเสถียรของการใช้งาน กรุณาเปลี่ยนไปใช้ลิงก์หลักของคณะ
-              </p>
-              <a
-                href={mainOriginUrl}
-                className="mt-3 flex w-full animate-pulse items-center justify-center gap-1.5 rounded-full bg-amber-600 px-3 py-2.5 text-[14px] font-semibold text-white shadow-md shadow-amber-600/40 transition-colors hover:bg-amber-700"
-              >
-                ไปใช้ลิงก์หลัก
-                <Icon icon="solar:arrow-right-linear" className="text-base" />
-              </a>
-            </div>
-          ) : null}
-          <div className="mb-7">
-            <h1 className="text-[25px] font-semibold leading-tight tracking-[-0.01em] text-slate-800 dark:max-sm:text-white">
-              เข้าสู่ระบบนักศึกษา
-            </h1>
-            <p className="mt-2 text-sm text-slate-500 dark:max-sm:text-slate-300">
-              ใช้บัญชี KKUMail ของนักศึกษาเพื่อเข้าสู่ระบบ COCO LABS
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            {loginProviderMode === null ? (
-              <div className="h-10.5 w-full animate-pulse rounded-md bg-slate-100 dark:max-sm:bg-white/10" />
-            ) : loginProviderMode === "kku" ? (
-              <KKUSSOButton onPress={handleKKULogin} />
-            ) : (
-              <GoogleSignInButton onPress={handleGoogleLogin} />
-            )}
-
-            {LEGACY_SOCIAL_LOGIN_ENABLED ? (
-              <Button
-                type="button"
-                variant="bordered"
-                radius="sm"
-                className="h-10.5 w-full border-blue-200 bg-white text-[15px] font-medium text-slate-700 data-[hover=true]:border-blue-300 data-[hover=true]:bg-blue-50 dark:max-sm:border-white/12 dark:max-sm:bg-white/8 dark:max-sm:text-white dark:max-sm:data-[hover=true]:border-sky-400/45 dark:max-sm:data-[hover=true]:bg-sky-400/10 disabled:cursor-not-allowed disabled:opacity-55"
-                onPress={handleGoogleLogin}
-                startContent={<SocialIconGoogle />}
-              >
-                เข้าสู่ระบบด้วย Google
-              </Button>
-            ) : null}
-          </div>
-        </section>
-      </main>
-
-      <AppFooter />
-    </div>
+        {LEGACY_SOCIAL_LOGIN_ENABLED ? (
+          <Button
+            type="button"
+            variant="bordered"
+            radius="sm"
+            className="h-10.5 w-full border-default-200 text-[15px] font-medium"
+            onPress={handleGoogleLogin}
+            startContent={<SocialIconGoogle />}
+          >
+            เข้าสู่ระบบด้วย Google
+          </Button>
+        ) : null}
+      </div>
+    </LoginShell>
   );
 }
