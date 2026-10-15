@@ -61,24 +61,6 @@ const ATTEND_STATUS_TH: Record<string, string> = {
   present: "มาเรียน", late: "สาย", leave: "ลา", absent: "ขาดเรียน",
 };
 
-function assignTypeTH(type: string) {
-  if (type === "assignment") return "งานบ้าน";
-  if (type === "permanent_group" || type === "weekly_group") return "งานกลุ่ม";
-  return "งานในคาบ";
-}
-
-function assignTypeIcon(type: string) {
-  if (type === "assignment") return "solar:notebook-linear";
-  if (type === "permanent_group" || type === "weekly_group") return "solar:users-group-rounded-linear";
-  return "solar:laptop-linear";
-}
-
-function assignTypeTone(type: string): { bg: string; fg: string } {
-  if (type === "assignment") return { bg: "var(--cg-violet-soft)", fg: "var(--cg-violet)" };
-  if (type === "permanent_group" || type === "weekly_group") return { bg: "var(--cg-warning-soft)", fg: "var(--cg-warning)" };
-  return { bg: "var(--cg-info-soft)", fg: "var(--cg-info)" };
-}
-
 function examTypeTH(type: string, component: string) {
   const t = type === "midterm" ? "กลางภาค" : "ปลายภาค";
   const c = component === "lab" ? "(ปฏิบัติ)" : "(บรรยาย)";
@@ -124,67 +106,223 @@ function ScoreBar({ score, max }: { score: number | null | undefined; max: numbe
   );
 }
 
-function AssignmentRow({ a }: { a: AssignmentScore }) {
-  const [expanded, setExpanded] = useState(false);
-  const hasSubItems = Boolean(a.sub_items && a.sub_items.length > 0);
-  const tone = assignTypeTone(a.type);
-  const isGraded = a.status === "graded";
+type AssignmentProgress = "graded" | "partial" | "pending";
+type ScoreStatusFilter = "all" | "graded" | "waiting";
+
+const SUB_ITEM_PREVIEW_LIMIT = 6;
+const WAITING_HATCH = "repeating-linear-gradient(135deg, var(--cg-text-3) 0 2px, transparent 2px 5px)";
+
+function isScoreNumber(value: number | null | undefined): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function percentOf(part: number, whole: number) {
+  return whole > 0 ? (part / whole) * 100 : 0;
+}
+
+// backend ตั้ง status "graded" เมื่อตรวจครบเท่านั้น งานที่มีข้อย่อยแต่ตรวจยังไม่ครบจะได้ "pending"
+// พร้อม score ของข้อที่ตรวจแล้ว (และนับเข้าคะแนนรวมรายวิชาแล้ว) จึงต้องแยกเป็นสถานะ partial
+function assignmentProgress(a: AssignmentScore): AssignmentProgress {
+  if (a.status === "graded") return "graded";
+  return isScoreNumber(a.score) ? "partial" : "pending";
+}
+
+function ungradedSubItemMax(a: AssignmentScore) {
+  return (a.sub_items ?? [])
+    .filter((si) => !isScoreNumber(si.score))
+    .reduce((sum, si) => sum + (si.max_score || 0), 0);
+}
+
+// คะแนนเต็มของส่วนที่ยังรอตรวจ ใช้วาดส่วนลายขีดในแถบคะแนน
+function assignmentWaitingMax(a: AssignmentScore) {
+  const progress = assignmentProgress(a);
+  if (progress === "pending") return a.max_score;
+  if (progress === "partial") return ungradedSubItemMax(a);
+  return 0;
+}
+
+function matchesStatusFilter(a: AssignmentScore, filter: ScoreStatusFilter) {
+  if (filter === "all") return true;
+  const progress = assignmentProgress(a);
+  return filter === "graded" ? progress === "graded" : progress !== "graded";
+}
+
+function SplitScoreBar({ earned, waiting, max, tone }: { earned: number; waiting: number; max: number; tone: string }) {
+  const earnedPct = Math.min(percentOf(earned, max), 100);
+  const waitingPct = Math.min(percentOf(waiting, max), 100 - earnedPct);
+  return (
+    <span className="cg-progress flex" aria-hidden="true">
+      <i style={{ width: `${earnedPct}%`, background: tone, borderRadius: 0, flexShrink: 0 }} />
+      {waitingPct > 0 && (
+        <i style={{ width: `${waitingPct}%`, background: WAITING_HATCH, opacity: 0.55, borderRadius: 0, flexShrink: 0 }} />
+      )}
+    </span>
+  );
+}
+
+function AssignmentRow({ a, expanded, onToggle }: { a: AssignmentScore; expanded: boolean; onToggle: () => void }) {
+  const [showAllSubs, setShowAllSubs] = useState(false);
+  const [pendingFirst, setPendingFirst] = useState(false);
+
+  const subItems = a.sub_items ?? [];
+  const hasSubItems = subItems.length > 0;
+  const progress = assignmentProgress(a);
+  const score = isScoreNumber(a.score) ? a.score : null;
+  const waiting = progress === "partial" ? ungradedSubItemMax(a) : 0;
+  // งานที่ตรวจไม่ครบเทียบสีกับคะแนนเต็มของข้อที่ตรวจแล้ว ไม่งั้น 20/30 จะดูเหมือนทำได้ไม่ดีทั้งที่ยังตรวจไม่จบ
+  const tone = scoreTone(score == null ? null : Math.round(percentOf(score, a.max_score - waiting)));
+  const gradedSubCount = subItems.filter((si) => isScoreNumber(si.score)).length;
+  const groupName = a.is_group_assignment && a.group_info ? a.group_info.name : "";
+  const partialText = progress !== "partial"
+    ? ""
+    : hasSubItems
+      ? `ตรวจแล้ว ${gradedSubCount} จาก ${subItems.length} ข้อ${waiting > 0 ? ` รออีก ${displayScore(waiting)} คะแนน` : ""}`
+      : "ตรวจแล้วบางส่วน";
+  const graderLine = a.grader
+    ? [
+        progress === "graded" ? `ตรวจโดย ${a.grader}` : `ตรวจล่าสุดโดย ${a.grader}`,
+        a.graded_at ? `เมื่อ ${fmt(a.graded_at)}` : "",
+        a.graded_via === "queue" ? "ผ่านการจองคิว" : "",
+      ].filter(Boolean).join(" ")
+    : "";
+  const canExpand = hasSubItems || Boolean(graderLine);
+
+  // sort ของ JS เป็น stable จึงยังเรียงตามลำดับข้อภายในกลุ่มเดียวกัน
+  const orderedSubs = pendingFirst
+    ? [...subItems].sort((x, y) => Number(isScoreNumber(x.score)) - Number(isScoreNumber(y.score)))
+    : subItems;
+  const hasMoreSubs = orderedSubs.length > SUB_ITEM_PREVIEW_LIMIT;
+  const shownSubs = showAllSubs || !hasMoreSubs ? orderedSubs : orderedSubs.slice(0, SUB_ITEM_PREVIEW_LIMIT);
+  const canSortPendingFirst = hasMoreSubs && gradedSubCount > 0 && gradedSubCount < subItems.length;
 
   return (
     <>
       <button
         type="button"
-        className="cg-row items-start"
-        onClick={() => hasSubItems && setExpanded((v) => !v)}
-        style={hasSubItems ? undefined : { cursor: "default" }}
+        className="cg-row"
+        onClick={canExpand ? onToggle : undefined}
+        aria-expanded={canExpand ? expanded : undefined}
+        style={canExpand ? undefined : { cursor: "default" }}
       >
-        <span className="cg-row-ico mt-0.5" style={{ background: tone.bg, color: tone.fg }}>
-          <Icon icon={assignTypeIcon(a.type)} width={17} height={17} />
-        </span>
-        <span className="cg-row-body">
-          <span className="cg-row-title">{a.title}</span>
-          {isGraded ? <ScoreBar score={a.score} max={a.max_score} /> : null}
-          <span className="cg-row-sub">
-            {isGraded
-              ? [
-                  a.grader ? `ตรวจโดย ${a.grader}` : "ตรวจแล้ว",
-                  a.graded_via === "queue" ? "ผ่านการจองคิว" : "",
-                  a.is_group_assignment && a.group_info ? a.group_info.name : "",
-                ].filter(Boolean).join(" ")
-              : `${assignTypeTH(a.type)} รอผู้ตรวจ`}
+        <span className="cg-row-body flex flex-col gap-1.5">
+          <span className="flex items-start gap-2.5">
+            <span
+              className="cg-row-title min-w-0 flex-1"
+              style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+            >
+              {a.title}
+            </span>
+            {score != null ? (
+              <span className="cg-mono shrink-0 text-[15px] font-semibold leading-6" style={{ color: tone }}>
+                {displayScore(score)}
+                <small className="text-xs font-medium" style={{ color: "var(--cg-text-2)" }}>/{displayScore(a.max_score)}</small>
+              </span>
+            ) : (
+              <span className="cg-badge cg-badge-neutral shrink-0">รอตรวจ</span>
+            )}
           </span>
+          {score != null && <SplitScoreBar earned={score} waiting={waiting} max={a.max_score} tone={tone} />}
+          {partialText && <span className="text-xs" style={{ color: "var(--cg-warning)" }}>{partialText}</span>}
+          {groupName && <span className="text-xs" style={{ color: "var(--cg-text-2)" }}>{groupName}</span>}
           {a.comment && (
-            <span className="cg-row-sub mt-1.5 block rounded-xl px-2.5 py-2" style={{ background: "var(--cg-fill)" }}>
+            <span className="block rounded-xl px-2.5 py-2 text-xs leading-relaxed" style={{ background: "var(--cg-fill)", color: "var(--cg-text-2)" }}>
               {a.comment}
             </span>
           )}
-          {hasSubItems && (
-            <span className="cg-row-sub mt-1 flex items-center gap-1" style={{ color: "var(--cg-accent)" }}>
-              <Icon icon={expanded ? "solar:alt-arrow-up-linear" : "solar:alt-arrow-down-linear"} width={12} height={12} />
-              {expanded ? "ซ่อนรายละเอียดย่อย" : `ดูรายละเอียดย่อย ${a.sub_items.length} หัวข้อ`}
-            </span>
-          )}
         </span>
-        {!isGraded && <span className="cg-badge cg-badge-neutral mt-0.5">รอตรวจ</span>}
+        {hasSubItems && (
+          <Icon
+            icon="solar:alt-arrow-down-linear"
+            className="cg-chevron"
+            width={15}
+            height={15}
+            style={{ transform: expanded ? "rotate(180deg)" : undefined, transition: "transform .18s" }}
+          />
+        )}
       </button>
 
-      {hasSubItems && expanded && (
-        <div className="flex flex-col gap-1.5 px-3.5 pb-3.5" style={{ background: "var(--cg-fill)" }}>
-          {a.sub_items.map((si) => (
-            <div key={si.id} className="flex items-center justify-between gap-3 rounded-[10px] px-2.5 py-2" style={{ background: "var(--cg-surface)" }}>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[11.5px] font-medium">{si.name}</span>
-                {si.grader && (
-                  <span className="block text-[10.5px] font-light" style={{ color: "var(--cg-text-3)" }}>
-                    {si.grader}{si.graded_at ? ` ${fmt(si.graded_at)}` : ""}
-                  </span>
-                )}
-              </span>
-              <span className="cg-mono shrink-0 text-[11.5px] font-medium">
-                {displayScore(si.score)}/{displayScore(si.max_score)}
-              </span>
-            </div>
-          ))}
+      {canExpand && expanded && (
+        <div className="flex flex-col gap-2.5 px-3.5 pb-3.5 pt-3" style={{ background: "var(--cg-fill)" }}>
+          {hasSubItems && (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs" style={{ color: "var(--cg-text-2)" }}>
+                  ตรวจแล้ว {gradedSubCount} จาก {subItems.length} ข้อ
+                </span>
+                <span className="flex gap-[3px]" aria-hidden="true">
+                  {subItems.map((si) => (
+                    <i
+                      key={si.id}
+                      className="block h-1.5 flex-1 rounded-full"
+                      style={{
+                        background: isScoreNumber(si.score)
+                          ? scoreTone(Math.round(percentOf(si.score, si.max_score)))
+                          : "var(--cg-fill-strong)",
+                      }}
+                    />
+                  ))}
+                </span>
+              </div>
+
+              {canSortPendingFirst && (
+                <div className="grid grid-cols-2 gap-1 rounded-[10px] p-[3px]" style={{ background: "var(--cg-surface)" }}>
+                  {([false, true] as const).map((value) => {
+                    const active = pendingFirst === value;
+                    return (
+                      <button
+                        key={String(value)}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => setPendingFirst(value)}
+                        className="min-h-9 rounded-lg text-xs"
+                        style={active
+                          ? { background: "var(--cg-fill-strong)", color: "var(--cg-text)", fontWeight: 600 }
+                          : { color: "var(--cg-text-2)" }}
+                      >
+                        {value ? "ยังไม่ตรวจขึ้นก่อน" : "ตามลำดับข้อ"}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-1.5">
+                {shownSubs.map((si) => {
+                  const subGraded = isScoreNumber(si.score);
+                  const subMeta = subGraded
+                    ? [si.grader, si.graded_at ? fmt(si.graded_at) : ""].filter(Boolean).join(" ") || "ตรวจแล้ว"
+                    : "ยังไม่ได้ตรวจ";
+                  return (
+                    <div key={si.id} className="flex items-center justify-between gap-3 rounded-xl px-3 py-2" style={{ background: "var(--cg-surface)" }}>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[13px] font-medium" style={{ overflowWrap: "anywhere" }}>{si.name}</span>
+                        <span className="block text-xs" style={{ color: "var(--cg-text-2)" }}>{subMeta}</span>
+                      </span>
+                      <span
+                        className="cg-mono shrink-0 text-[13px] font-semibold"
+                        style={{ color: subGraded ? scoreTone(Math.round(percentOf(si.score as number, si.max_score))) : "var(--cg-text-2)" }}
+                      >
+                        {displayScore(si.score)}
+                        <small className="font-medium" style={{ color: "var(--cg-text-2)" }}>/{displayScore(si.max_score)}</small>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {hasMoreSubs && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllSubs((v) => !v)}
+                  className="min-h-11 rounded-xl text-[13px]"
+                  style={{ border: "1px solid var(--cg-line)", color: "var(--cg-accent)" }}
+                >
+                  {showAllSubs ? "ย่อรายการ" : `ดูอีก ${orderedSubs.length - SUB_ITEM_PREVIEW_LIMIT} ข้อ`}
+                </button>
+              )}
+            </>
+          )}
+          {graderLine && <span className="text-xs" style={{ color: "var(--cg-text-2)" }}>{graderLine}</span>}
         </div>
       )}
     </>
@@ -192,15 +330,23 @@ function AssignmentRow({ a }: { a: AssignmentScore }) {
 }
 
 function ExamRow({ e }: { e: ExamScoreData }) {
-  const graded = e.score != null;
+  const graded = e.score != null && !e.is_absent;
   return (
     <div className="cg-row items-start">
       <span className="cg-row-ico mt-0.5" style={graded ? { background: "var(--cg-info-soft)", color: "var(--cg-info)" } : undefined}>
         <Icon icon="solar:diploma-linear" width={17} height={17} />
       </span>
       <span className="cg-row-body">
-        <span className="cg-row-title">{examTypeTH(e.exam_type, e.component)}</span>
-        {graded ? <ScoreBar score={e.score} max={e.max_score} /> : <span className="cg-row-sub">ยังไม่มีคะแนน</span>}
+        <span className="cg-row-title flex items-center gap-2">
+          {examTypeTH(e.exam_type, e.component)}
+          {e.is_absent && <span className="cg-badge cg-badge-neutral">ขาดสอบ</span>}
+        </span>
+        {graded
+          ? <ScoreBar score={e.score} max={e.max_score} />
+          : <span className="cg-row-sub">{e.is_absent ? `ไม่ได้เข้าสอบ คะแนนเต็ม ${displayScore(e.max_score)}` : "ยังไม่มีคะแนน"}</span>}
+        {graded && e.class_average != null && (
+          <span className="cg-row-sub">ค่าเฉลี่ยกลุ่ม {displayScore(e.class_average)} จาก {displayScore(e.max_score)}</span>
+        )}
         {e.grader && <span className="cg-row-sub">ตรวจโดย {e.grader}{e.graded_at ? ` เมื่อ ${fmt(e.graded_at)}` : ""}</span>}
         {e.comment && (
           <span className="cg-row-sub mt-1.5 block rounded-xl px-2.5 py-2" style={{ background: "var(--cg-fill)" }}>
@@ -251,6 +397,9 @@ export default function StudentCourseDetailPage() {
   const initialTabKey: TabKey = (requestedTab && TAB_MAP[requestedTab]) ? TAB_MAP[requestedTab] : "Overview";
   const [activeTab, setActiveTab] = useState<TabKey>(initialTabKey);
   const [selectedScoreCategory, setSelectedScoreCategory] = useState<ScoreCategoryKey>("all");
+  const [scoreStatusFilter, setScoreStatusFilter] = useState<ScoreStatusFilter>("all");
+  // เปิดรายละเอียดได้ทีละงาน หน้าจะไม่ยาวขึ้นเรื่อย ๆ เมื่อรายวิชามีงานเยอะ
+  const [openAssignmentId, setOpenAssignmentId] = useState<number | null>(null);
   const [data, setData] = useState<MyStudentCourseResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -316,7 +465,20 @@ export default function StudentCourseDetailPage() {
   useEffect(() => {
     setExpandedBonusDays({});
     setSelectedScoreCategory("all");
+    setScoreStatusFilter("all");
+    setOpenAssignmentId(null);
   }, [params.courseId]);
+
+  // The instructor's "who has viewed" count means the student actually saw
+  // the score on this page, so it is recorded only when the Scores tab is
+  // open and there is at least one published exam score to see.
+  const publishedExamCount = data?.course.examScores.length ?? 0;
+  useEffect(() => {
+    if (activeTab !== "Scores" || !params.courseId || publishedExamCount === 0) return;
+    void studentService.recordExamScoreViews(params.courseId).catch(() => {
+      // best effort: a failed view record must never break the scores page
+    });
+  }, [activeTab, params.courseId, publishedExamCount]);
 
   const bonusRecords = useMemo(() => data?.course.bonusScore?.records ?? [], [data]);
   const bonusGroups = useMemo(() => {
@@ -395,13 +557,26 @@ export default function StudentCourseDetailPage() {
   const visibleAssignments = course.assignments.filter((a) => !shouldHideGroupAssignment(a));
   const visibleTotalScore = visibleAssignments.reduce((sum, a) => sum + (a.score ?? 0), 0);
   const visibleTotalMaxScore = visibleAssignments.reduce((sum, a) => sum + a.max_score, 0);
+  const visibleWaitingMax = visibleAssignments.reduce((sum, a) => sum + assignmentWaitingMax(a), 0);
+  const totalTone = scoreTone(Math.round(percentOf(visibleTotalScore, visibleTotalMaxScore - visibleWaitingMax)));
+  const gradedAssignmentCount = visibleAssignments.filter((a) => assignmentProgress(a) === "graded").length;
 
-  const scoreGroups = {
-    lab: visibleAssignments.filter((a) => a.type !== "assignment" && a.type !== "permanent_group" && a.type !== "weekly_group"),
-    homework: visibleAssignments.filter((a) => a.type === "assignment"),
-    group: visibleAssignments.filter((a) => a.type === "permanent_group"),
-    weekly: visibleAssignments.filter((a) => a.type === "weekly_group"),
-  };
+  const statusChips: Array<{ key: ScoreStatusFilter; label: string; count: number; color: string }> = [
+    { key: "graded", label: "ตรวจครบแล้ว", count: gradedAssignmentCount, color: "var(--cg-success)" },
+    { key: "waiting", label: "รอตรวจหรือไม่ครบ", count: visibleAssignments.length - gradedAssignmentCount, color: "var(--cg-warning)" },
+    { key: "all", label: "งานทั้งหมด", count: visibleAssignments.length, color: "var(--cg-text)" },
+  ];
+
+  // ตัวกรองสถานะใช้กับรายการงานเท่านั้น จำนวนบนปุ่มและคะแนนรวมยังนับจากงานทั้งหมดเสมอ
+  const groupByType = (list: AssignmentScore[]) => ({
+    lab: list.filter((a) => a.type !== "assignment" && a.type !== "permanent_group" && a.type !== "weekly_group"),
+    homework: list.filter((a) => a.type === "assignment"),
+    group: list.filter((a) => a.type === "permanent_group"),
+    weekly: list.filter((a) => a.type === "weekly_group"),
+  });
+  // จำนวนในปุ่มหมวดนับจากงานทั้งหมด ส่วนรายการที่แสดงผ่านตัวกรองสถานะด้วย
+  const scoreGroups = groupByType(visibleAssignments);
+  const filteredScoreGroups = groupByType(visibleAssignments.filter((a) => matchesStatusFilter(a, scoreStatusFilter)));
 
   const scoreCategoryOptions = ([
     { key: "all", label: "ทั้งหมด" },
@@ -415,11 +590,14 @@ export default function StudentCourseDetailPage() {
     .filter((o) => o.key === "all" || (o.count ?? 0) > 0);
 
   const scoreSections = ([
-    { key: "lab" as const, label: "งานในคาบ", items: scoreGroups.lab },
-    { key: "homework" as const, label: "การบ้าน", items: scoreGroups.homework },
-    { key: "group" as const, label: "งานกลุ่ม", items: scoreGroups.group },
-    { key: "weekly" as const, label: "งานสัปดาห์", items: scoreGroups.weekly },
+    { key: "lab" as const, label: "งานในคาบ", items: filteredScoreGroups.lab },
+    { key: "homework" as const, label: "การบ้าน", items: filteredScoreGroups.homework },
+    { key: "group" as const, label: "งานกลุ่ม", items: filteredScoreGroups.group },
+    { key: "weekly" as const, label: "งานสัปดาห์", items: filteredScoreGroups.weekly },
   ]).filter((s) => s.items.length > 0 && (selectedScoreCategory === "all" || selectedScoreCategory === s.key));
+  // ตัวกรองสถานะเป็นเรื่องของงานที่รอตรวจ คะแนนสอบและคะแนนพิเศษจึงแสดงเฉพาะตอนดูทุกสถานะ
+  const showExamScores = course.examScores.length > 0 && scoreStatusFilter === "all" && (selectedScoreCategory === "all" || selectedScoreCategory === "exams");
+  const showBonusScores = bonusGroups.length > 0 && scoreStatusFilter === "all" && (selectedScoreCategory === "all" || selectedScoreCategory === "bonus");
 
   const summaryCells = [
     { label: "มาเรียน", val: summary.present, icon: "solar:check-circle-linear", bg: "var(--cg-success-soft)", fg: "var(--cg-success)" },
@@ -633,12 +811,38 @@ export default function StudentCourseDetailPage() {
       {/* ── scores ─────────────────────────────────────────────────── */}
       {activeTab === "Scores" && (
         <div className="flex flex-col gap-4">
-          <div className="cg-card flex items-center justify-between gap-3">
-            <span className="text-[12.5px] font-normal" style={{ color: "var(--cg-text-2)" }}>คะแนนรวมจากงานทั้งหมด</span>
-            <span className="cg-mono text-xl font-semibold">
-              {displayScore(visibleTotalScore)}
-              <small className="text-[12.5px] font-normal" style={{ color: "var(--cg-text-3)" }}> / {displayScore(visibleTotalMaxScore)}</small>
-            </span>
+          <div className="cg-card flex flex-col gap-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-[12.5px] font-normal" style={{ color: "var(--cg-text-2)" }}>คะแนนรวมจากงานทั้งหมด</span>
+              <span className="cg-mono text-xl font-semibold">
+                {displayScore(visibleTotalScore)}
+                <small className="text-[12.5px] font-normal" style={{ color: "var(--cg-text-2)" }}> / {displayScore(visibleTotalMaxScore)}</small>
+              </span>
+            </div>
+            <SplitScoreBar earned={visibleTotalScore} waiting={visibleWaitingMax} max={visibleTotalMaxScore} tone={totalTone} />
+            {visibleAssignments.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {statusChips.map((chip) => {
+                  const active = scoreStatusFilter === chip.key;
+                  return (
+                    <button
+                      key={chip.key}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setScoreStatusFilter(active && chip.key !== "all" ? "all" : chip.key)}
+                      className="flex min-h-14 flex-col items-start justify-center gap-0.5 rounded-xl px-2.5 py-2 text-left"
+                      style={{
+                        background: active ? "var(--cg-fill-strong)" : "var(--cg-fill)",
+                        border: `1px solid ${active ? "var(--cg-accent)" : "transparent"}`,
+                      }}
+                    >
+                      <span className="cg-mono text-lg font-semibold leading-tight" style={{ color: chip.color }}>{chip.count}</span>
+                      <span className="text-xs leading-snug" style={{ color: "var(--cg-text-2)" }}>{chip.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="cg-pill-row">
@@ -651,14 +855,23 @@ export default function StudentCourseDetailPage() {
 
           {scoreSections.map((section) => (
             <section key={section.key} className="flex flex-col gap-2">
-              <p className="cg-section-label">{section.label}</p>
+              <p className="cg-section-label">
+                {section.label} <span className="font-normal" style={{ color: "var(--cg-text-3)" }}>{section.items.length} งาน</span>
+              </p>
               <div className="cg-list">
-                {section.items.map((a) => <AssignmentRow key={a.id} a={a} />)}
+                {section.items.map((a) => (
+                  <AssignmentRow
+                    key={a.id}
+                    a={a}
+                    expanded={openAssignmentId === a.id}
+                    onToggle={() => setOpenAssignmentId((current) => (current === a.id ? null : a.id))}
+                  />
+                ))}
               </div>
             </section>
           ))}
 
-          {course.examScores.length > 0 && (selectedScoreCategory === "all" || selectedScoreCategory === "exams") && (
+          {showExamScores && (
             <section className="flex flex-col gap-2">
               <p className="cg-section-label">คะแนนสอบ</p>
               <div className="cg-list">
@@ -667,7 +880,7 @@ export default function StudentCourseDetailPage() {
             </section>
           )}
 
-          {bonusGroups.length > 0 && (selectedScoreCategory === "all" || selectedScoreCategory === "bonus") && (
+          {showBonusScores && (
             <section className="flex flex-col gap-2">
               <p className="cg-section-label">คะแนนพิเศษ รวม +{course.bonusScore.total}</p>
               <div className="cg-list">
@@ -717,11 +930,17 @@ export default function StudentCourseDetailPage() {
             </section>
           )}
 
-          {scoreSections.length === 0 && course.examScores.length === 0 && bonusGroups.length === 0 && (
+          {scoreSections.length === 0 && !showExamScores && !showBonusScores && (
             <div className="cg-list">
               <div className="cg-empty">
                 <Icon icon="solar:medal-ribbon-linear" width={27} height={27} />
-                <span className="text-[11.5px] font-light">ยังไม่มีคะแนนที่แสดงได้</span>
+                <span className="text-xs">
+                  {scoreStatusFilter === "graded"
+                    ? "ยังไม่มีงานที่ตรวจครบในหมวดนี้"
+                    : scoreStatusFilter === "waiting"
+                      ? "ไม่มีงานที่รอตรวจในหมวดนี้"
+                      : "ยังไม่มีคะแนนที่แสดงได้"}
+                </span>
               </div>
             </div>
           )}

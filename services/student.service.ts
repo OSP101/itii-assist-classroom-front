@@ -131,10 +131,15 @@ export interface ExamScoreData {
   exam_type: 'midterm' | 'final';
   component: 'lab' | 'lecture';
   score: number | null;
+  /** true = did not sit the exam; shown as "ขาดสอบ", never averaged */
+  is_absent: boolean;
   max_score: number;
   grader: string | null;
   graded_at: string | null;
   comment: string | null;
+  /** section-wide mean over students who sat the exam; null when the instructor hides it */
+  class_average: number | null;
+  published_at: string | null;
 }
 
 export interface StudentCourseGroupMember {
@@ -309,6 +314,14 @@ class StudentService {
 
   async getMyCourse(courseId: string) {
     return apiService.get<MyStudentCourseResponse>(`${API_ENDPOINTS.STUDENTS}/me/courses/${courseId}`);
+  }
+
+  /**
+   * Tell the server the student has seen their published exam scores for
+   * this course. Feeds the instructor's "who has viewed" panel.
+   */
+  async recordExamScoreViews(courseId: string) {
+    return apiService.post<void>(`${API_ENDPOINTS.STUDENTS}/me/courses/${courseId}/exam-scores/viewed`, {});
   }
 
   /**
