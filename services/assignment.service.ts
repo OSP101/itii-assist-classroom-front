@@ -101,6 +101,7 @@ export interface UpdateAssignmentData {
     max_score?: number;
     sub_items?: Omit<AssignmentSubItem, 'assignment_id'>[]; // Include id for existing sub-items to preserve scores
     due_date?: string;
+    is_score_visible?: boolean;
     is_draft?: boolean;
     publish_at?: string | null;
     clear_publish_at?: boolean;

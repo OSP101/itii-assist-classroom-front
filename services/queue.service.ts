@@ -3,6 +3,7 @@
  */
 
 import api from './api.service';
+import type { QueueSettingsProblem } from '@/lib/queue/session-rules';
 
 // ============================================
 // Types & Interfaces
@@ -18,6 +19,8 @@ export interface QueueSession {
     linked_assignment_id?: number | null;
     require_attendance: boolean;
     linked_attendance_session_id?: number | null;
+    /** Every linked attendance session; a student present or late in any of them can book. */
+    linked_attendance_session_ids?: number[];
     is_cutoff_enabled?: boolean;
     cutoff_at?: string | null;
     cutoff_note?: string;
@@ -244,6 +247,7 @@ export interface CreateQueueSessionData {
     linked_assignment_id?: number | null;
     require_attendance?: boolean;
     linked_attendance_session_id?: number | null;
+    linked_attendance_session_ids?: number[];
     is_cutoff_enabled?: boolean;
     cutoff_at?: string | null;
     cutoff_note?: string;
@@ -256,6 +260,7 @@ export interface UpdateQueueSessionData {
     linked_assignment_id?: number | null;
     require_attendance?: boolean;
     linked_attendance_session_id?: number | null;
+    linked_attendance_session_ids?: number[];
     is_cutoff_enabled?: boolean;
     cutoff_at?: string | null;
     cutoff_note?: string;
@@ -556,6 +561,18 @@ const queueService = {
         );
         if (!response.data) throw new Error('สร้าง Queue Session ไม่สำเร็จ');
         return response.data;
+    },
+
+    /**
+     * Create queue session, keeping the server's reasons when it refuses
+     * (QUEUE_SETTINGS_INVALID) so the form can show them.
+     */
+    async createQueueSessionWithResult(courseId: string, data: CreateQueueSessionData): Promise<{ session: QueueSession | null; message?: string; problems?: QueueSettingsProblem[] }> {
+        const response = await api.post<QueueSession>(`/courses/${courseId}/queue/sessions`, data);
+        if (response.success === false || !response.data) {
+            return { session: null, message: response.message || response.error, problems: (response as { problems?: QueueSettingsProblem[] }).problems };
+        }
+        return { session: response.data };
     },
 
     /**

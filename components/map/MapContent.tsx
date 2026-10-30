@@ -8,14 +8,23 @@ import { fixLeafletDefaultIcon } from '@/components/map/leafletDefaultIcon';
 // Set Leaflet's default marker icon (inlined data URIs — see the module).
 fixLeafletDefaultIcon();
 
+export interface MapHighlightArea {
+    minLat: number;
+    maxLat: number;
+    minLng: number;
+    maxLng: number;
+}
+
 interface MapContentProps {
     latitude?: number;
     longitude?: number;
     radius?: number;
     onLocationChange: (lat: number, lng: number) => void;
+    /** Drawn as dashed outlines, e.g. the campus, so a pin's context is visible. */
+    highlightAreas?: MapHighlightArea[];
 }
 
-export default function MapContent({ latitude, longitude, radius = 100, onLocationChange }: MapContentProps) {
+export default function MapContent({ latitude, longitude, radius = 100, onLocationChange, highlightAreas }: MapContentProps) {
     const mapRef = useRef<HTMLDivElement>(null);
     const mapInstanceRef = useRef<L.Map | null>(null);
     const markerRef = useRef<L.Marker | null>(null);
@@ -42,6 +51,17 @@ export default function MapContent({ latitude, longitude, radius = 100, onLocati
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             maxZoom: 19,
         }).addTo(map);
+
+        for (const area of highlightAreas ?? []) {
+            L.rectangle([[area.minLat, area.minLng], [area.maxLat, area.maxLng]], {
+                color: '#16a34a',
+                weight: 2,
+                dashArray: '6 6',
+                fillColor: '#16a34a',
+                fillOpacity: 0.06,
+                interactive: false,
+            }).addTo(map);
+        }
 
         mapInstanceRef.current = map;
         setIsMapReady(true);

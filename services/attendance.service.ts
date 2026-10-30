@@ -3,6 +3,7 @@
  */
 
 import api from './api.service';
+import type { SettingsProblem } from '@/lib/attendance/session-rules';
 import { DEVICE_HINTS_HEADER, buildDeviceHintsHeader, type ClientDeviceSignals } from '@/lib/device-signals';
 
 interface AttendanceErrorPayload {
@@ -69,6 +70,10 @@ export interface AttendanceSession {
     location_lat: number | null;
     location_lng: number | null;
     radius_meters: number;
+    /** Phones and tablets only. Missing on old responses, which means true. */
+    require_mobile?: boolean | null;
+    /** University network only. Missing on old responses, which means true. */
+    require_campus_network?: boolean | null;
     start_time: string;
     end_time: string;
     late_threshold_minutes: number;
@@ -145,6 +150,13 @@ export interface AttendanceRecord {
     } | null;
 }
 
+/** Result of a create or update that keeps the server's reasons when it refuses. */
+export interface SessionSaveResult {
+    session: AttendanceSession | null;
+    message?: string;
+    problems?: SettingsProblem[];
+}
+
 export interface CreateAttendanceData {
     course_id: string;
     course_section_id?: number | null; // Legacy single section
@@ -160,6 +172,8 @@ export interface CreateAttendanceData {
     end_time: string;
     late_threshold_minutes?: number;
     late_threshold_time?: string | null; // New: absolute time for late threshold (e.g. "08:15:00")
+    require_mobile?: boolean;
+    require_campus_network?: boolean;
 }
 
 export interface StudentCheckInData {
@@ -383,6 +397,29 @@ const attendanceService = {
     async createSession(data: CreateAttendanceData): Promise<AttendanceSession | null> {
         const response = await api.post<AttendanceSession>('/attendance', data);
         return response.data || null;
+    },
+
+    /**
+     * Create attendance session, keeping the server's reason when it refuses
+     * (e.g. ATTENDANCE_SETTINGS_INVALID) so the form can show it.
+     */
+    async createSessionWithResult(data: CreateAttendanceData): Promise<SessionSaveResult> {
+        const response = await api.post<AttendanceSession>('/attendance', data);
+        if (response.success === false) {
+            return { session: null, message: response.message || response.error, problems: (response as { problems?: SettingsProblem[] }).problems };
+        }
+        return { session: response.data || null };
+    },
+
+    /**
+     * Update attendance session, keeping the server's reason when it refuses.
+     */
+    async updateSessionWithResult(sessionId: number, data: Partial<CreateAttendanceData>): Promise<SessionSaveResult> {
+        const response = await api.put<AttendanceSession>(`/attendance/${sessionId}`, data);
+        if (response.success === false) {
+            return { session: null, message: response.message || response.error, problems: (response as { problems?: SettingsProblem[] }).problems };
+        }
+        return { session: response.data || null };
     },
 
     /**

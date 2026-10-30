@@ -52,6 +52,8 @@ import {
     STICKY_ACTION_CELL_CLASS,
 } from "./shared/stickyActionColumn";
 import { RowActions, type RowAction } from "./shared/RowActions";
+import { CreateQueueModal, type QueueCreateOutcome } from "./queue/CreateQueueModal";
+import { QueueCreatedModal } from "./queue/QueueCreatedModal";
 
 // Types for the component
 interface Section {
@@ -171,6 +173,13 @@ function getAssignmentKindLabel(assignment: Assignment, isEnglish: boolean): str
     return isEnglish ? "Homework" : "การบ้าน";
 }
 
+/** Every attendance session a queue accepts (older queues only have the single column). */
+function queueAttendanceIds(session: QueueSession): number[] {
+    if (!session.require_attendance) return [];
+    if (session.linked_attendance_session_ids?.length) return [...session.linked_attendance_session_ids];
+    return session.linked_attendance_session_id ? [session.linked_attendance_session_id] : [];
+}
+
 // Status display
 function getStatusDisplay(isEnglish: boolean): Record<string, { label: string; color: "default" | "primary" | "secondary" | "success" | "warning" | "danger"; icon: string }> {
     return {
@@ -234,6 +243,8 @@ export default function QueueTab({
     const [pauseAction, setPauseAction] = useState<'paused' | 'active'>('paused');
     const [classroomConflict, setClassroomConflict] = useState<ClassroomConflictInfo | null>(null);
     const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
+    const [createInitialData, setCreateInitialData] = useState<CreateQueueSessionData | null>(null);
+    const [createdQueue, setCreatedQueue] = useState<{ session: QueueSession; roomLabel: string; startProblem: string | null } | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Concurrent group state
@@ -279,6 +290,7 @@ export default function QueueTab({
         linked_assignment_id: null,
         require_attendance: false,
         linked_attendance_session_id: null,
+        linked_attendance_session_ids: [],
         is_cutoff_enabled: false,
         cutoff_at: null,
         cutoff_note: "",
@@ -329,7 +341,7 @@ export default function QueueTab({
         setIsOptionsLoading(true);
         try {
             const [classroomsResponse, assignmentsData, attendanceData] = await Promise.all([
-                classroomService.getClassrooms(),
+                classroomService.getClassrooms({ limit: 200 }),
                 assignmentService.getAssignments(course.id),
                 attendanceService.getSessions(course.id),
             ]);
@@ -415,6 +427,7 @@ export default function QueueTab({
             linked_assignment_id: null,
             require_attendance: false,
             linked_attendance_session_id: null,
+            linked_attendance_session_ids: [],
             is_cutoff_enabled: false,
             cutoff_at: null,
             cutoff_note: "",
@@ -428,8 +441,7 @@ export default function QueueTab({
             showCourseClosedReadOnlyToast();
             return;
         }
-        resetForm();
-        fetchOptions();
+        setCreateInitialData(null);
         setIsCreateModalOpen(true);
     };
 
@@ -447,6 +459,7 @@ export default function QueueTab({
             linked_assignment_id: session.linked_assignment_id || null,
             require_attendance: session.require_attendance,
             linked_attendance_session_id: session.linked_attendance_session_id || null,
+            linked_attendance_session_ids: queueAttendanceIds(session),
             is_cutoff_enabled: Boolean(session.is_cutoff_enabled),
             cutoff_at: session.cutoff_at || null,
             cutoff_note: session.cutoff_note || "",
@@ -486,14 +499,13 @@ export default function QueueTab({
             linked_assignment_id: session.linked_assignment_id || null,
             require_attendance: Boolean(session.require_attendance),
             linked_attendance_session_id: session.linked_attendance_session_id || null,
+            linked_attendance_session_ids: queueAttendanceIds(session),
             is_cutoff_enabled: Boolean(session.is_cutoff_enabled),
             cutoff_at: session.cutoff_at || null,
             cutoff_note: session.cutoff_note || "",
         };
 
-        setFormData(duplicatedData);
-        setOriginalFormData(null);
-        fetchOptions();
+        setCreateInitialData(duplicatedData);
         setIsCreateModalOpen(true);
     };
 
@@ -535,90 +547,25 @@ export default function QueueTab({
         closed: sessions.filter((s) => s.status === "closed").length,
     };
 
-    // Handle create session
-    const handleCreateSession = async () => {
-        if (!isCourseActive) {
-            showCourseClosedReadOnlyToast();
-            return;
+    // The create modal saves on its own; this refreshes the list, tells other
+    // viewers, and shows what happened (including a start that didn't go through).
+    const handleQueueCreated = (outcome: QueueCreateOutcome, roomLabel: string) => {
+        setIsCreateModalOpen(false);
+        setCreateInitialData(null);
+        fetchSessions(true);
+        emitDataUpdate("queue" as any, "create", outcome.session.id, { courseId: course.id });
+        if (outcome.kind === "active") {
+            emitDataUpdate("queue" as any, "update", outcome.session.id, { courseId: course.id });
         }
-
-        if (!formData.title.trim()) {
-            addToast({
-                title: localize("กรุณากรอกข้อมูล", "Required field"),
-                description: localize("กรุณากรอกชื่อการจองคิว", "Please enter a queue title"),
-                color: "warning",
-                timeout: 3000,
-                shouldShowTimeoutProgress: true,
-            });
-            return;
-        }
-
-        if (!isClosedEditSession && (!formData.classroom_id || formData.classroom_id.length === 0)) {
-            addToast({
-                title: localize("กรุณาเลือกห้อง", "Select a classroom"),
-                description: localize("กรุณาเลือกห้องเรียน", "Please select a classroom"),
-                color: "warning",
-                timeout: 3000,
-                shouldShowTimeoutProgress: true,
-            });
-            return;
-        }
-
-        if (!formData.classroom_id || formData.classroom_id.length === 0) {
-            addToast({
-                title: localize("กรุณาเลือกห้อง", "Select a classroom"),
-                description: localize("กรุณาเลือกห้องเรียน", "Please select a classroom"),
-                color: "warning",
-                timeout: 3000,
-                shouldShowTimeoutProgress: true,
-            });
-            return;
-        }
-
-        if (formData.is_cutoff_enabled && !formData.cutoff_at) {
-            addToast({
-                title: localize("กรุณาตั้งเวลา Cutoff", "Set the cutoff time"),
-                description: localize("เมื่อเปิดใช้งาน cutoff ต้องระบุวันและเวลา", "A date and time are required when cutoff is enabled"),
-                color: "warning",
-                timeout: 3000,
-                shouldShowTimeoutProgress: true,
-            });
-            return;
-        }
-
-        setIsSubmitting(true);
-        try {
-            const result = await queueService.createQueueSession(course.id, {
-                ...formData,
-                is_cutoff_enabled: Boolean(formData.is_cutoff_enabled),
-                cutoff_at: formData.is_cutoff_enabled ? formData.cutoff_at || null : null,
-                cutoff_note: formData.is_cutoff_enabled ? formData.cutoff_note : "",
-            });
-            if (result) {
-                addToast({
-                    title: localize("สำเร็จ", "Success"),
-                    description: localize("สร้างการจองคิวเรียบร้อยแล้ว", "Queue created successfully"),
-                    color: "success",
-                    timeout: 3000,
-                shouldShowTimeoutProgress: true,
-                });
-                setIsCreateModalOpen(false);
-                resetForm();
-                fetchSessions(true);
-                emitDataUpdate("queue" as any, "create", result.id, { courseId: course.id });
-            }
-        } catch (error: unknown) {
-            console.error("Error creating queue session:", error);
-            addToast({
-                title: localize("เกิดข้อผิดพลาด", "Error"),
-                description: getErrorDescription(error, "ไม่สามารถสร้างการจองคิวได้", "Unable to create queue"),
-                color: "danger",
-                timeout: 3000,
-                shouldShowTimeoutProgress: true,
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
+        const startProblem = outcome.kind === "conflict"
+            ? localize(
+                `ห้องนี้มีคิว "${outcome.conflict.session_title}" ของวิชา ${outcome.conflict.course_name} เปิดอยู่ คิวนี้จึงเก็บเป็นฉบับร่าง เริ่มได้หลังคิวนั้นหยุดหรือปิด`,
+                `"${outcome.conflict.session_title}" (${outcome.conflict.course_name}) is open in this room, so this queue was saved as a draft. Start it once that one is paused or closed.`,
+            )
+            : outcome.kind === "start_failed"
+                ? localize("เปิดคิวไม่สำเร็จ คิวนี้จึงเก็บเป็นฉบับร่าง ลองกดเริ่มจากรายการอีกครั้ง", "The queue couldn't be started, so it was saved as a draft. Try starting it from the list.")
+                : null;
+        setCreatedQueue({ session: outcome.session, roomLabel, startProblem });
     };
 
     // Handle update session
@@ -661,8 +608,9 @@ export default function QueueTab({
                     description: formData.description,
                     classroom_id: formData.classroom_id,
                     linked_assignment_id: formData.linked_assignment_id,
-                    require_attendance: formData.require_attendance,
-                    linked_attendance_session_id: formData.linked_attendance_session_id,
+                    require_attendance: (formData.linked_attendance_session_ids?.length ?? 0) > 0,
+                    linked_attendance_session_id: formData.linked_attendance_session_ids?.[0] ?? null,
+                    linked_attendance_session_ids: formData.linked_attendance_session_ids ?? [],
                     is_cutoff_enabled: Boolean(formData.is_cutoff_enabled),
                     cutoff_at: formData.is_cutoff_enabled ? formData.cutoff_at || null : null,
                     cutoff_note: formData.is_cutoff_enabled ? formData.cutoff_note : "",
@@ -1598,289 +1546,27 @@ export default function QueueTab({
             )}
 
             {/* Create Modal */}
-            <Modal
+            <CreateQueueModal
                 isOpen={isCreateModalOpen}
-                isDismissable={false}
-                isKeyboardDismissDisabled={true}
                 onClose={() => {
                     setIsCreateModalOpen(false);
-                    resetForm();
+                    setCreateInitialData(null);
                 }}
-                size="2xl"
-                scrollBehavior="inside"
-            >
-                <ModalContent>
-                    <ModalHeader className="flex flex-col gap-1 px-6 pt-6 pb-4">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-linear-to-br from-blue-400 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/30">
-                                <Icon icon="solar:clipboard-list-bold" className="text-2xl text-white" />
-                            </div>
-                            <div>
-                                <h3 className="text-xl font-bold text-foreground">{localize("สร้างการจองคิว", "Create queue")}</h3>
-                                <p className="mt-1 text-sm font-normal text-default-500">
-                                    {localize("กำหนดรายละเอียดการจองคิวตรวจงาน", "Set up the grading queue details")}
-                                </p>
-                            </div>
-                            </div>
-                        </ModalHeader>
-                    <ModalBody className="px-6 py-5">
-                        <div className="space-y-6">
-                            <Input
-                                label={localize("ชื่อการจองคิว", "Queue title")}
-                                placeholder={localize("เช่น ตรวจ Lab 1", "e.g. Lab 1 review")}
-                                value={formData.title}
-                                onValueChange={(value) => setFormData({ ...formData, title: value })}
-                                isRequired
-                                labelPlacement="outside"
-                                variant="bordered"
-                                size="md"
-                                classNames={{
-                                    inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                    label: "text-default-600 font-medium text-sm",
-                                }}
-                            />
-                            {isClosedEditSession ? (
-                                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                                    {localize("รอบที่ปิดใช้งานแล้วจะแก้ไขได้เฉพาะชื่อคิวเท่านั้น", "Closed sessions can only update the session title.")}
-                                </div>
-                            ) : (
-                                <>
-                                    <Input
-                                        label={localize("คำอธิบาย (ถ้ามี)", "Description (optional)")}
-                                        placeholder={localize("รายละเอียดเพิ่มเติม", "Additional details")}
-                                        value={formData.description || ""}
-                                        onValueChange={(value) => setFormData({ ...formData, description: value })}
-                                        labelPlacement="outside"
-                                        variant="bordered"
-                                        size="md"
-                                        classNames={{
-                                            inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                            label: "text-default-600 font-medium text-sm",
-                                        }}
-                                    />
+                courseId={course.id}
+                isCourseActive={isCourseActive}
+                sections={(course.sections || []).map((section) => ({ id: section.id, section_no: section.section_no }))}
+                queues={sessions}
+                initialData={createInitialData}
+                onCreated={handleQueueCreated}
+            />
 
-                                    <Autocomplete
-                                        label={localize("ห้องที่ใช้งาน", "Classroom")}
-                                        labelPlacement="outside"
-                                        placeholder={localize("เลือกห้องเรียนสำหรับการจองคิว", "Select a classroom for this queue")}
-                                        isRequired
-                                        variant="bordered"
-                                        isLoading={isOptionsLoading}
-                                        defaultItems={sortedClassrooms}
-                                        selectedKey={formData.classroom_id ? String(formData.classroom_id) : null}
-                                        onSelectionChange={(key) => {
-                                            setFormData((prev) => ({
-                                                ...prev,
-                                                classroom_id: key ? String(key) : "",
-                                            }));
-                                        }}
-                                        inputProps={{
-                                            classNames: {
-                                                inputWrapper: "bg-content1 border-default-200 hover:border-blue-300 focus-within:!border-blue-400",
-                                                input: "text-sm text-default-700",
-                                                label: "text-default-600 font-medium text-sm",
-                                            },
-                                        }}
-                                    >
-                                        {(classroom) => (
-                                            <AutocompleteItem
-                                                key={String(classroom.id)}
-                                                textValue={`${classroom.name} ${classroom.building}`}
-                                            >
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <span className="font-medium text-default-700">{classroom.name}</span>
-                                                    <span className="text-xs text-default-500">
-                                                        {classroom.building}
-                                                        {classroom.floor ? ` • ${localize("ชั้น", "Floor")} ${classroom.floor}` : ""}
-                                                    </span>
-                                                </div>
-                                            </AutocompleteItem>
-                                        )}
-                                    </Autocomplete>
-
-                                    {!isOptionsLoading && sortedClassrooms.length === 0 && (
-                                        <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-500/35 dark:bg-rose-500/12 dark:text-rose-200">
-                                            {localize("ไม่พบห้องเรียนในระบบ กรุณาสร้างห้องเรียนก่อนสร้างคิว", "No classrooms found. Please create a classroom before creating a queue.")}
-                                        </div>
-                                    )}
-
-                                    <div className="rounded-xl border border-default-200 bg-content2 p-5">
-                                        <div className="mb-4 flex items-start justify-between gap-3">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-amber-100 rounded-lg">
-                                                    <Icon icon="solar:document-bold" className="text-lg text-amber-600" />
-                                                </div>
-                                                <div>
-                                                    <span className="font-semibold text-default-700">{localize("ลิงก์กับหัวข้องาน", "Link assignment")}</span>
-                                                    <p className="text-xs text-default-500">{localize("เชื่อมโยงกับหัวข้องานเพื่อลงคะแนนอัตโนมัติ", "Connect an assignment for automatic scoring")}</p>
-                                                </div>
-                                            </div>
-                                            <Button
-                                                size="sm"
-                                                variant={formData.linked_assignment_id ? "solid" : "bordered"}
-                                                color={formData.linked_assignment_id ? "primary" : "default"}
-                                                onPress={() => {
-                                                    if (formData.linked_assignment_id) {
-                                                        setFormData({ ...formData, linked_assignment_id: null });
-                                                    }
-                                                }}
-                                            >
-                                                {formData.linked_assignment_id ? localize("ลิงก์แล้ว", "Linked") : localize("ไม่ลิงก์", "Not linked")}
-                                            </Button>
-                                        </div>
-
-                                        {assignments.length > 0 ? (
-                                            <Select
-                                                placeholder={localize("เลือกหัวข้องานที่ต้องการลิงก์", "Select an assignment to link")}
-                                                aria-label={localize("เลือกหัวข้องาน", "Select assignment")}
-                                                isLoading={isOptionsLoading}
-                                                selectedKeys={formData.linked_assignment_id ? new Set([formData.linked_assignment_id.toString()]) : new Set([])}
-                                                onSelectionChange={(keys) => {
-                                                    const selected = Array.from(keys as Set<string>)[0];
-                                                    setFormData({
-                                                        ...formData,
-                                                        linked_assignment_id: selected ? parseInt(selected) : null,
-                                                    });
-                                                }}
-                                                variant="bordered"
-                                                classNames={{
-                                                    trigger: "bg-content1 border-default-200",
-                                                    value: "text-default-700",
-                                                }}
-                                            >
-                                                {assignments.map((assignment) => (
-                                                    <SelectItem key={assignment.id.toString()} textValue={assignment.name}>
-                                                        <div className="flex items-center justify-between gap-3">
-                                                            <div>
-                                                                <span className="font-medium">{assignment.name}</span>
-                                                                <span className="ml-2 text-xs text-default-500">({assignment.max_score} {localize("คะแนน", "pts")})</span>
-                                                            </div>
-                                                            <span className="shrink-0 text-xs font-medium text-default-500">
-                                                                {getAssignmentKindLabel(assignment, isEnglish)}
-                                                            </span>
-                                                        </div>
-                                                    </SelectItem>
-                                                ))}
-                                            </Select>
-                                        ) : (
-                                            <div className="rounded-lg bg-content3 p-3 text-center">
-                                                <Icon icon="solar:document-linear" className="mb-1 text-xl text-default-400" />
-                                                <p className="text-sm text-default-500">{localize("ยังไม่มีหัวข้องาน", "No assignments yet")}</p>
-                                            </div>
-                                        )}
-
-                                        {formData.linked_assignment_id && (
-                                            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200 dark:bg-blue-500/12 dark:border-blue-500/35">
-                                                <div className="flex items-center gap-2 text-blue-700 dark:text-blue-200">
-                                                    <Icon icon="solar:info-circle-bold" />
-                                                    <span className="text-sm font-medium">
-                                                        {localize("เมื่อตรวจงานเสร็จ คะแนนจะถูกบันทึกไปยังหัวข้องานนี้โดยอัตโนมัติ", "When grading is completed, scores will be saved to this assignment automatically")}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="rounded-xl border border-default-200 bg-content2 p-5">
-                                        <div className="mb-4 flex items-start justify-between gap-3">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-blue-100 rounded-lg">
-                                                    <Icon icon="solar:clipboard-check-bold" className="text-lg text-blue-600" />
-                                                </div>
-                                                <div>
-                                                    <span className="font-semibold text-default-700">{localize("ลิงก์กับการเช็กชื่อ", "Link attendance")}</span>
-                                                    <p className="text-xs text-default-500">{localize("ถ้านักศึกษาขาดเรียน จะไม่อนุญาตให้จองคิว", "Students marked absent will not be allowed to book the queue")}</p>
-                                                </div>
-                                            </div>
-                                            <Button
-                                                size="sm"
-                                                variant={formData.linked_attendance_session_id ? "solid" : "bordered"}
-                                                color={formData.linked_attendance_session_id ? "primary" : "default"}
-                                                onPress={() => {
-                                                    if (formData.linked_attendance_session_id) {
-                                                        setFormData({ ...formData, require_attendance: false, linked_attendance_session_id: null });
-                                                    }
-                                                }}
-                                            >
-                                                {formData.linked_attendance_session_id ? localize("ลิงก์แล้ว", "Linked") : localize("ไม่ลิงก์", "Not linked")}
-                                            </Button>
-                                        </div>
-
-                                        {attendanceSessions.length > 0 ? (
-                                            <Select
-                                                placeholder={localize("เลือกรอบเช็กชื่อที่ต้องการลิงก์", "Select an attendance session to link")}
-                                                aria-label={localize("เลือกรอบเช็กชื่อ", "Select attendance session")}
-                                                isLoading={isOptionsLoading}
-                                                selectedKeys={formData.linked_attendance_session_id ? [formData.linked_attendance_session_id.toString()] : undefined}
-                                                onSelectionChange={(keys) => {
-                                                    const selected = Array.from(keys)[0];
-                                                    setFormData({
-                                                        ...formData,
-                                                        require_attendance: selected ? true : false,
-                                                        linked_attendance_session_id: selected ? parseInt(selected as string) : null,
-                                                    });
-                                                }}
-                                                variant="bordered"
-                                                classNames={{
-                                                    trigger: "bg-content1 border-default-200",
-                                                    value: "text-default-700",
-                                                }}
-                                            >
-                                                {attendanceSessions.map((session) => (
-                                                    <SelectItem key={session.id.toString()} textValue={session.title}>
-                                                        <div className="flex items-center gap-3">
-                                                            <div>
-                                                                <span className="font-medium">{session.title}</span>
-                                                                <span className="ml-2 text-xs text-default-500">{formatShortDate(session.start_time, locale)}</span>
-                                                            </div>
-                                                        </div>
-                                                    </SelectItem>
-                                                ))}
-                                            </Select>
-                                        ) : (
-                                            <div className="rounded-lg bg-content3 p-3 text-center">
-                                                <Icon icon="solar:clipboard-list-linear" className="mb-1 text-xl text-default-400" />
-                                                <p className="text-sm text-default-500">{localize("ยังไม่มีรอบเช็กชื่อ", "No attendance sessions yet")}</p>
-                                            </div>
-                                        )}
-
-                                        {formData.linked_attendance_session_id && (
-                                            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                                                <div className="flex items-center gap-2 text-blue-700">
-                                                    <Icon icon="solar:info-circle-bold" />
-                                                    <span className="text-sm font-medium">
-                                                        {localize("นักศึกษาที่ขาดเรียนในรอบเช็กชื่อนี้ จะไม่สามารถจองคิวได้", "Students absent in this attendance session will not be able to book the queue")}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </ModalBody>
-                    <ModalFooter className="border-t border-divider px-6 py-4">
-                        <Button
-                            variant="light"
-                            onPress={() => {
-                                setIsCreateModalOpen(false);
-                                resetForm();
-                            }}
-                        >
-                            {localize("ยกเลิก", "Cancel")}
-                        </Button>
-                        <Button
-                            color="primary"
-                            onPress={handleCreateSession}
-                            isLoading={isSubmitting}
-                            isDisabled={!isCourseActive || !formData.title.trim() || isOptionsLoading || !formData.classroom_id || sortedClassrooms.length === 0}
-                            className={instructorPrimaryButtonClass()}
-                        >
-                            {localize("สร้างการจองคิว", "Create queue")}
-                        </Button>
-                    </ModalFooter>
-                </ModalContent>
-            </Modal>
+            <QueueCreatedModal
+                session={createdQueue?.session ?? null}
+                courseId={course.id}
+                roomLabel={createdQueue?.roomLabel}
+                startProblem={createdQueue?.startProblem}
+                onClose={() => setCreatedQueue(null)}
+            />
 
             {/* Edit Modal */}
             <Modal
@@ -2150,30 +1836,32 @@ export default function QueueTab({
                                     </div>
                                     <Button
                                         size="sm"
-                                        variant={formData.linked_attendance_session_id ? "solid" : "bordered"}
-                                        color={formData.linked_attendance_session_id ? "primary" : "default"}
+                                        variant={formData.linked_attendance_session_ids?.length ? "solid" : "bordered"}
+                                        color={formData.linked_attendance_session_ids?.length ? "primary" : "default"}
                                         onPress={() => {
-                                            if (formData.linked_attendance_session_id) {
-                                                setFormData({ ...formData, require_attendance: false, linked_attendance_session_id: null });
+                                            if (formData.linked_attendance_session_ids?.length) {
+                                                setFormData({ ...formData, require_attendance: false, linked_attendance_session_id: null, linked_attendance_session_ids: [] });
                                             }
                                         }}
                                     >
-                                        {formData.linked_attendance_session_id ? localize("ลิงก์แล้ว", "Linked") : localize("ไม่ลิงก์", "Not linked")}
+                                        {formData.linked_attendance_session_ids?.length ? localize(`ลิงก์ ${formData.linked_attendance_session_ids.length} รอบ`, `${formData.linked_attendance_session_ids.length} linked`) : localize("ไม่ลิงก์", "Not linked")}
                                     </Button>
                                 </div>
 
                                 {attendanceSessions.length > 0 ? (
                                     <Select
-                                        placeholder={localize("เลือกรอบเช็กชื่อที่ต้องการลิงก์", "Select an attendance session to link")}
-                                        aria-label={localize("เลือกรอบเช็กชื่อ", "Select attendance session")}
+                                        placeholder={localize("เลือกรอบเช็กชื่อ เลือกได้หลายรอบ", "Select attendance sessions (several allowed)")}
+                                        aria-label={localize("เลือกรอบเช็กชื่อ", "Select attendance sessions")}
                                         isLoading={isOptionsLoading}
-                                        selectedKeys={formData.linked_attendance_session_id ? [formData.linked_attendance_session_id.toString()] : undefined}
+                                        selectionMode="multiple"
+                                        selectedKeys={new Set((formData.linked_attendance_session_ids ?? []).map(String))}
                                         onSelectionChange={(keys) => {
-                                            const selected = Array.from(keys)[0];
+                                            const ids = Array.from(keys as Set<string>).map((key) => parseInt(key, 10)).filter((id) => !Number.isNaN(id));
                                             setFormData({
                                                 ...formData,
-                                                require_attendance: selected ? true : false,
-                                                linked_attendance_session_id: selected ? parseInt(selected as string) : null
+                                                require_attendance: ids.length > 0,
+                                                linked_attendance_session_id: ids[0] ?? null,
+                                                linked_attendance_session_ids: ids,
                                             });
                                         }}
                                         variant="bordered"
@@ -2202,12 +1890,14 @@ export default function QueueTab({
                                     </div>
                                 )}
 
-                                {formData.linked_attendance_session_id && (
-                                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                                        <div className="flex items-center gap-2 text-blue-700">
+                                {(formData.linked_attendance_session_ids?.length ?? 0) > 0 && (
+                                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200 dark:bg-blue-500/12 dark:border-blue-500/35">
+                                        <div className="flex items-center gap-2 text-blue-700 dark:text-blue-200">
                                             <Icon icon="solar:info-circle-bold" />
                                             <span className="text-sm font-medium">
-                                                {localize("นักศึกษาที่ขาดเรียนในรอบเช็กชื่อนี้ จะไม่สามารถจองคิวได้", "Students absent in this attendance session will not be able to book the queue")}
+                                                {(formData.linked_attendance_session_ids?.length ?? 0) > 1
+                                                    ? localize("จองได้ถ้ามาเรียนหรือมาสายในรอบใดรอบหนึ่งที่เลือก", "Students present or late in any one of these sessions can book")
+                                                    : localize("นักศึกษาที่ขาดเรียนในรอบเช็กชื่อนี้ จะไม่สามารถจองคิวได้", "Students absent in this attendance session will not be able to book the queue")}
                                             </span>
                                         </div>
                                     </div>

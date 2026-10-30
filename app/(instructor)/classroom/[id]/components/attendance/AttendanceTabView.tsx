@@ -5,7 +5,7 @@
 
 "use client";
 
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import { Button } from "@heroui/button";
 import { Icon } from "@iconify/react";
 import {
@@ -18,6 +18,7 @@ import {
     type Course,
     type AttendanceStats,
     type SessionWithComputedStatus,
+    computeSessionStatus,
 } from "./config";
 import {
     AttendanceTableSkeleton,
@@ -26,7 +27,6 @@ import {
     FiltersCard,
     EmptyState,
     SessionsTable,
-    CreateSessionModal,
     EditSessionModal,
     DeleteConfirmModal,
     CloseSessionModal,
@@ -34,6 +34,9 @@ import {
     SectionChangeWarningModal,
 } from "./components";
 import type { UseAttendanceTabReturn } from "./useAttendanceTab";
+import { CreateAttendanceModal } from "./components/CreateAttendanceModal";
+import { AttendanceCreatedModal } from "./components/AttendanceCreatedModal";
+import DisplayScannerModal from "./components/DisplayScannerModal";
 
 // ============================================================================
 // Types
@@ -231,6 +234,9 @@ function AttendanceTabViewComponent({
         targets,
         openCreateModal,
         closeCreateModal,
+        createdSession,
+        handleSessionCreated,
+        closeCreatedModal,
         openEditModal,
         closeEditModal,
         openDeleteModal,
@@ -250,7 +256,6 @@ function AttendanceTabViewComponent({
         lateThresholdMinutes,
 
         // Actions
-        handleCreateSession,
         handleUpdateSession,
         handleDeleteSession,
         handleActivateSession,
@@ -275,6 +280,7 @@ function AttendanceTabViewComponent({
     } = hook;
 
     const showLoading = isSessionsLoading;
+    const [projectorSession, setProjectorSession] = useState<SessionWithComputedStatus | null>(null);
 
     return (
         <div className="space-y-4">
@@ -313,24 +319,31 @@ function AttendanceTabViewComponent({
             )}
 
             {/* Modals */}
-            <CreateSessionModal
+            <CreateAttendanceModal
                 isOpen={modals.isCreateModalOpen}
                 onClose={closeCreateModal}
+                courseId={courseId}
                 isCourseActive={isCourseActive}
-                formData={formData}
-                setFormData={setFormData}
-                startDateTime={startDateTime}
-                setStartDateTime={setStartDateTime}
-                endDateTime={endDateTime}
-                setEndDateTime={setEndDateTime}
-                lateThresholdTime={lateThresholdTime}
-                setLateThresholdTime={setLateThresholdTime}
-                lateThresholdMinutes={lateThresholdMinutes}
                 sections={course.sections || []}
-                isSubmitting={isSubmitting}
-                isGettingLocation={isGettingLocation}
-                onSubmit={handleCreateSession}
-                onGetCurrentLocation={getCurrentLocation}
+                existingSessions={sessions}
+                onCreated={handleSessionCreated}
+            />
+
+            <AttendanceCreatedModal
+                session={createdSession}
+                courseId={courseId}
+                sections={course.sections || []}
+                onClose={closeCreatedModal}
+                onConnectProjector={(session) => {
+                    closeCreatedModal();
+                    setProjectorSession({ ...session, status: computeSessionStatus(session) });
+                }}
+            />
+
+            <DisplayScannerModal
+                isOpen={!!projectorSession}
+                onClose={() => setProjectorSession(null)}
+                session={projectorSession}
             />
 
             <EditSessionModal

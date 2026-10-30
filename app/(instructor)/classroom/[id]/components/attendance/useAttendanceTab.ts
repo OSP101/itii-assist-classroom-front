@@ -12,6 +12,7 @@ import { now, getLocalTimeZone, parseAbsolute, type DateValue } from "@internati
 import attendanceService, { type AttendanceSession, type CreateAttendanceData, type TimeChangePreview, type SectionChangePreview } from "@/services/attendance.service";
 import { useSocket } from "@/contexts/SocketContext";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
+import { checkSecurity, describeSettingsProblems, securityFingerprint } from "@/lib/attendance/session-rules";
 import {
     type Course,
     type AttendanceStats,
@@ -54,6 +55,9 @@ export interface UseAttendanceTabReturn {
     targets: ModalTargets;
     openCreateModal: () => void;
     closeCreateModal: () => void;
+    createdSession: AttendanceSession | null;
+    handleSessionCreated: (session: AttendanceSession) => void;
+    closeCreatedModal: () => void;
     openEditModal: (session: AttendanceSession) => void;
     closeEditModal: () => void;
     openDeleteModal: (session: AttendanceSession) => void;
@@ -100,6 +104,13 @@ export interface UseAttendanceTabReturn {
 
     // Context
     courseId: string;
+}
+
+/** The API sends coordinates as strings; the map and the rules need numbers. */
+function toCoordinate(value: unknown): number | undefined {
+    if (value == null || value === "") return undefined;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : undefined;
 }
 
 // ============================================================================
@@ -164,6 +175,7 @@ export function useAttendanceTab(
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
+    const [createdSession, setCreatedSession] = useState<AttendanceSession | null>(null);
 
     // Time Change Preview State
     const [timeChangePreview, setTimeChangePreview] = useState<TimeChangePreview | null>(null);
@@ -352,6 +364,18 @@ export function useAttendanceTab(
         resetForm();
     }, [resetForm]);
 
+    // The create modal saves on its own; this keeps the list, other tabs and
+    // other viewers in step, then shows the success modal.
+    const handleSessionCreated = useCallback((session: AttendanceSession) => {
+        setIsCreateModalOpen(false);
+        setCreatedSession(session);
+        fetchSessions(false);
+        emitDataUpdate("attendance", "create", session.id, { courseId: course.id });
+        onAttendanceChanged?.();
+    }, [course.id, fetchSessions, emitDataUpdate, onAttendanceChanged]);
+
+    const closeCreatedModal = useCallback(() => setCreatedSession(null), []);
+
     const openEditModal = useCallback((session: AttendanceSession) => {
         setEditTarget(session);
         const sectionIds = session.course_section_ids?.length
@@ -367,13 +391,17 @@ export function useAttendanceTab(
             auto_rotate_pin: session.auto_rotate_pin,
             session_type: session.session_type,
             check_location: session.check_location,
-            location_lat: session.location_lat ?? undefined,
-            location_lng: session.location_lng ?? undefined,
+            // The API sends coordinates as strings.
+            location_lat: toCoordinate(session.location_lat),
+            location_lng: toCoordinate(session.location_lng),
             radius_meters: session.radius_meters,
             start_time: session.start_time,
             end_time: session.end_time,
             late_threshold_minutes: session.late_threshold_minutes,
             late_threshold_time: session.late_threshold_time,
+            // NULL on sessions made before the switches existed means "required".
+            require_mobile: session.require_mobile !== false,
+            require_campus_network: session.require_campus_network !== false,
         });
         const startDt = parseAbsolute(session.start_time, getLocalTimeZone());
         setStartDateTime(startDt);
@@ -608,6 +636,31 @@ export function useAttendanceTab(
             return;
         }
 
+        const security = checkSecurity({
+            sessionType: formData.session_type,
+            pin: formData.auto_rotate_pin ? "rotating" : "static",
+            requireMobile: formData.session_type !== "online" && formData.require_mobile !== false,
+            requireNetwork: formData.session_type !== "online" && formData.require_campus_network !== false,
+            gps: formData.check_location,
+            lat: formData.location_lat ?? undefined,
+            lng: formData.location_lng ?? undefined,
+            radius: formData.radius_meters ?? 50,
+        }, isEnglish);
+        // Same rule as the server: only judge settings this edit changes, so an
+        // old session saved before the rules existed can still be renamed.
+        const securityChanged = securityFingerprint(formData) !== securityFingerprint(editTarget);
+        const securityBlock = securityChanged ? security.messages.find((m) => m.tone === "block") : undefined;
+        if (securityBlock) {
+            addToast({
+                title: isEnglish ? "Can't save" : "บันทึกไม่ได้",
+                description: securityBlock.text,
+                color: "danger",
+                timeout: 5000,
+                shouldShowTimeoutProgress: true,
+            });
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             const startDate = startDateTime.toDate(getLocalTimeZone());
@@ -629,6 +682,8 @@ export function useAttendanceTab(
                 end_time: endDate.toISOString(),
                 late_threshold_minutes: lateThresholdMinutes,
                 late_threshold_time: lateTimeStr,
+                require_mobile: formData.session_type === "online" ? false : formData.require_mobile !== false,
+                require_campus_network: formData.session_type === "online" ? false : formData.require_campus_network !== false,
             };
 
             if (formData.course_section_ids && formData.course_section_ids.length > 0) {
@@ -710,8 +765,16 @@ export function useAttendanceTab(
             }
 
             // No time changes or no check-ins → direct update (original behavior)
-            const result = await attendanceService.updateSession(editTarget.id, data);
-            if (result) {
+            const { session: result, message, problems } = await attendanceService.updateSessionWithResult(editTarget.id, data);
+            if (!result) {
+                addToast({
+                    title: isEnglish ? "Can't save" : "บันทึกไม่ได้",
+                    description: describeSettingsProblems(problems, isEnglish) || message || (isEnglish ? "Unable to update the attendance session." : "ไม่สามารถแก้ไขรอบการเช็กชื่อได้"),
+                    color: "danger",
+                    timeout: 5000,
+                    shouldShowTimeoutProgress: true,
+                });
+            } else {
                 addToast({
                     title: isEnglish ? "Success" : "สำเร็จ",
                     description: isEnglish ? "Attendance session updated successfully." : "แก้ไขรอบการเช็กชื่อเรียบร้อยแล้ว",
@@ -1050,6 +1113,9 @@ export function useAttendanceTab(
         targets,
         openCreateModal,
         closeCreateModal,
+        createdSession,
+        handleSessionCreated,
+        closeCreatedModal,
         openEditModal,
         closeEditModal,
         openDeleteModal,

@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "ai-color-palette",
+        "value": "*",
+        "files": [
+          "app/(instructor)/classroom/[id]/components/assignments/AssignmentModal.tsx"
+        ],
+        "createdAt": "2026-10-18T16:26:34.302Z",
+        "reason": "agent triage: flat indigo-600 selected-state icon is the app's existing instructor palette (instructorPrimaryButtonClass blue-400 to indigo-500, prior AssignmentModal used indigo); no gradient, not neon-on-dark"
+      }
+    ]
+  }
+}

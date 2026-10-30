@@ -59,6 +59,7 @@ import { type AttendanceSession, type TimeChangePreview, type TimeChangeRecord, 
 import { getAppUrl } from "@/lib/app-url";
 import { isStaticPinSession as isStaticPinMode } from "@/hooks/useAttendancePinPresentation";
 import DisplayScannerModal from "./DisplayScannerModal";
+import { KKU_CAMPUS_AREAS, checkSecurity, securityFingerprint } from "@/lib/attendance/session-rules";
 
 // Lazy load LocationPicker
 const LocationPicker = lazy(() => import("@/components/map/LocationPicker"));
@@ -1517,6 +1518,32 @@ export const EditSessionModal = memo(function EditSessionModal({
         });
     };
 
+    const isOnline = formData.session_type === "online";
+    const security = checkSecurity({
+        sessionType: formData.session_type,
+        pin: formData.auto_rotate_pin ? "rotating" : "static",
+        requireMobile: !isOnline && formData.require_mobile !== false,
+        requireNetwork: !isOnline && formData.require_campus_network !== false,
+        gps: formData.check_location,
+        lat: formData.location_lat ?? undefined,
+        lng: formData.location_lng ?? undefined,
+        radius: formData.radius_meters ?? 50,
+    }, isEnglish);
+    // Old sessions saved before these rules can still be renamed; only a
+    // change to the security settings has to pass them.
+    const securityChanged = !!editTarget && securityFingerprint(formData) !== securityFingerprint(editTarget);
+    const securityBlocked = securityChanged && security.blocked;
+    const toneClass = {
+        block: "border-danger-200 bg-danger-50 text-danger-800 dark:border-danger-500/30 dark:bg-danger-500/10 dark:text-danger-200",
+        warn: "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100",
+        info: "border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-100",
+    } as const;
+    const toneHead = {
+        block: isEnglish ? "Can't save" : "บันทึกไม่ได้",
+        warn: isEnglish ? "Check again" : "ตรวจอีกครั้ง",
+        info: isEnglish ? "Note" : "แจ้งให้ทราบ",
+    } as const;
+
     return (
         <Modal
             isOpen={isOpen}
@@ -1603,7 +1630,11 @@ export const EditSessionModal = memo(function EditSessionModal({
                             size="md"
                             onSelectionChange={(keys) => {
                                 const selected = Array.from(keys)[0] as "lecture" | "lab" | "online";
-                                setFormData((prev: CreateAttendanceData) => ({ ...prev, session_type: selected }));
+                                if (!selected) return;
+                                // Online students are elsewhere: the network and GPS checks can't apply.
+                                setFormData((prev: CreateAttendanceData) => selected === "online"
+                                    ? { ...prev, session_type: selected, require_campus_network: false, check_location: false }
+                                    : { ...prev, session_type: selected });
                             }}
                             classNames={{
                                 trigger: "bg-content1 border-default-200",
@@ -1675,6 +1706,45 @@ export const EditSessionModal = memo(function EditSessionModal({
                             </CardBody>
                         </Card>
 
+                        {isOnline ? (
+                            <p className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-100">
+                                {isEnglish ? "Online sessions skip the device, network and GPS checks because students join from elsewhere." : "รอบออนไลน์ไม่ตรวจอุปกรณ์ เครือข่าย และ GPS เพราะนักศึกษาเรียนจากที่อื่น"}
+                            </p>
+                        ) : (
+                            <>
+                                <Card className={`border bg-content1 ${security.bad.mobile ? "border-danger-300" : "border-default-200"}`}>
+                                    <CardBody className="flex flex-row items-center justify-between gap-4 p-4">
+                                        <div>
+                                            <p className="font-medium text-default-700">{isEnglish ? "Phones and tablets only" : "ใช้ได้เฉพาะมือถือหรือแท็บเล็ต"}</p>
+                                            <p className="text-sm text-default-500">{isEnglish ? "Computers can't check in. Detected from the browser." : "ไม่รับการเช็กชื่อจากคอมพิวเตอร์ ระบบดูจากข้อมูลเบราว์เซอร์"}</p>
+                                        </div>
+                                        <Switch
+                                            aria-label={isEnglish ? "Phones and tablets only" : "ใช้ได้เฉพาะมือถือหรือแท็บเล็ต"}
+                                            isSelected={formData.require_mobile !== false}
+                                            color="primary"
+                                            isDisabled={isClosedSession}
+                                            onValueChange={(value) => setFormData((prev: CreateAttendanceData) => ({ ...prev, require_mobile: value }))}
+                                        />
+                                    </CardBody>
+                                </Card>
+                                <Card className={`border bg-content1 ${security.bad.network ? "border-danger-300" : "border-default-200"}`}>
+                                    <CardBody className="flex flex-row items-center justify-between gap-4 p-4">
+                                        <div>
+                                            <p className="font-medium text-default-700">{isEnglish ? "KKU network only" : "ต้องใช้เครือข่ายของ มข. เท่านั้น"}</p>
+                                            <p className="text-sm text-default-500">{isEnglish ? "KKU-WiFi or campus LAN. Mobile data and VPN are refused." : "KKU-WiFi หรือสาย LAN ในมหาวิทยาลัย ไม่รับเน็ตมือถือและ VPN"}</p>
+                                        </div>
+                                        <Switch
+                                            aria-label={isEnglish ? "KKU network only" : "ต้องใช้เครือข่ายของ มข. เท่านั้น"}
+                                            isSelected={formData.require_campus_network !== false}
+                                            color="primary"
+                                            isDisabled={isClosedSession}
+                                            onValueChange={(value) => setFormData((prev: CreateAttendanceData) => ({ ...prev, require_campus_network: value }))}
+                                        />
+                                    </CardBody>
+                                </Card>
+                            </>
+                        )}
+
 
                         {/* Location Check */}
                         <Card className="border border-default-200 bg-content1">
@@ -1685,9 +1755,10 @@ export const EditSessionModal = memo(function EditSessionModal({
                                         <p className="text-sm text-default-500">{isEnglish ? "Restrict check-in to the selected area." : "ให้นักศึกษาเช็กชื่อได้เฉพาะในพื้นที่ที่กำหนด"}</p>
                                     </div>
                                     <Switch
+                                        aria-label={isEnglish ? "GPS location check" : "ตรวจสอบตำแหน่ง GPS"}
                                         isSelected={formData.check_location}
                                         color="primary"
-                                        isDisabled={isClosedSession}
+                                        isDisabled={isClosedSession || isOnline}
                                         onValueChange={(value) => setFormData((prev: CreateAttendanceData) => ({ ...prev, check_location: value }))}
                                     />
                                 </div>
@@ -1702,9 +1773,10 @@ export const EditSessionModal = memo(function EditSessionModal({
                                                 </div>
                                             }>
                                                 <LocationPicker
-                                                    latitude={formData.location_lat || 16.4728}
-                                                    longitude={formData.location_lng || 102.8233}
+                                                    latitude={formData.location_lat ?? undefined}
+                                                    longitude={formData.location_lng ?? undefined}
                                                     radius={formData.radius_meters || 50}
+                                                    highlightAreas={KKU_CAMPUS_AREAS}
                                                     onLocationChange={(lat, lng) => {
                                                         setFormData((prev: CreateAttendanceData) => ({
                                                             ...prev,
@@ -1757,6 +1829,17 @@ export const EditSessionModal = memo(function EditSessionModal({
                                 )}
                             </CardBody>
                         </Card>
+
+                        {!isClosedSession && security.messages.length > 0 && (
+                            <div role="status" aria-live="polite" className="flex flex-col gap-2">
+                                {security.messages.map((m, i) => (
+                                    <div key={`${m.tone}-${i}`} className={`flex flex-col gap-0.5 rounded-xl border px-3.5 py-2.5 text-sm leading-relaxed sm:flex-row sm:gap-2.5 ${toneClass[m.tone === "block" && !securityChanged ? "warn" : m.tone]}`}>
+                                        <b className="shrink-0 font-semibold">{toneHead[m.tone === "block" && !securityChanged ? "warn" : m.tone]}</b>
+                                        <span>{m.text}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                         </div>
                     </div>
                 </ModalBody>
@@ -1768,7 +1851,7 @@ export const EditSessionModal = memo(function EditSessionModal({
                         color="primary"
                         onPress={onSubmit}
                         isLoading={isSubmitting}
-                        isDisabled={!isCourseActive || !formData.title?.trim() || !hasFormChanges()}
+                        isDisabled={!isCourseActive || !formData.title?.trim() || !hasFormChanges() || securityBlocked}
                         className="w-full bg-linear-to-r from-blue-400 to-indigo-500 text-white sm:w-auto"
                     >
                         {isEnglish ? "Save changes" : "บันทึกการแก้ไข"}

@@ -191,6 +191,7 @@ export interface StudentQueueOverviewSession {
   require_attendance: boolean;
   linked_assignment_id?: number | null;
   linked_attendance_session_id?: number | null;
+  linked_attendance_session_ids?: number[];
   cutoff_at?: string | null;
   cutoff_note?: string;
   classroom?: {

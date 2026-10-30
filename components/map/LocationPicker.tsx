@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import "leaflet/dist/leaflet.css";
+import type { MapHighlightArea } from "./MapContent";
 
 interface LocationPickerProps {
     latitude?: number;
@@ -10,6 +11,7 @@ interface LocationPickerProps {
     radius?: number;
     onLocationChange: (lat: number, lng: number) => void;
     className?: string;
+    highlightAreas?: MapHighlightArea[];
 }
 
 // Dynamically import map components with SSR disabled
@@ -31,6 +33,7 @@ export default function LocationPicker({
     radius = 100,
     onLocationChange,
     className = "",
+    highlightAreas,
 }: LocationPickerProps) {
     const [isMounted, setIsMounted] = useState(false);
 
@@ -56,6 +59,7 @@ export default function LocationPicker({
                 longitude={longitude}
                 radius={radius}
                 onLocationChange={onLocationChange}
+                highlightAreas={highlightAreas}
             />
             <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs text-slate-600 shadow-sm z-1000">
                 คลิกบนแผนที่เพื่อปักหมุด
