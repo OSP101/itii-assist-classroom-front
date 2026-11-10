@@ -9,6 +9,9 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@herou
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket";
+import { buildStudentLoginHref } from "@/lib/auth-resume";
+import { authenticatedFetch } from "@/services/authenticated-fetch";
+import api from "@/services/api.service";
 import { authService } from "@/services/auth.service";
 
 import { API_BASE_URL } from "@/config/api";
@@ -252,13 +255,15 @@ function BookQueueContent() {
 
     // Current user (if logged in)
     const [loggedInUser] = useState(() => authService.getStoredUser());
+    useEffect(() => {
+        void api.get("/auth/me").then((result) => {
+            if (!result.success) window.location.replace(buildStudentLoginHref(window.location.pathname + window.location.search));
+        }).catch(() => window.location.replace(buildStudentLoginHref(window.location.pathname + window.location.search)));
+    }, []);
 
-    // This page is reachable anonymously (PIN-based booking, no login
-    // required), so it must not assume a session exists — but when the
-    // browser DOES carry one (student/staff already logged in elsewhere),
-    // the httpOnly access cookie is sent automatically via `credentials:
-    // "include"` on each fetch below, and the CSRF header is only added
-    // when there's actually a session to protect.
+
+    // Booking uses the signed-in identity. Cookie-authenticated mutations
+    // echo the CSRF token; expired sessions refresh through authenticatedFetch.
     const buildQueueRequestHeaders = useCallback((includeContentType: boolean = true) => {
         const headers: Record<string, string> = { "X-Client-Type": "web" };
         if (includeContentType) {
@@ -319,7 +324,7 @@ function BookQueueContent() {
             if (savedState) {
                 try {
                     // Check if booking still exists
-                    const response = await fetch(`${API_BASE_URL}/queue/check-existing`, {
+                    const response = await authenticatedFetch(`${API_BASE_URL}/queue/check-existing`, {
                         method: "POST",
                         credentials: "include",
                         headers: buildQueueRequestHeaders(),
@@ -332,7 +337,7 @@ function BookQueueContent() {
 
                     if (result.success && result.data.has_booking) {
                         // Restore session info first
-                        const pinResponse = await fetch(`${API_BASE_URL}/queue/verify-pin`, {
+                        const pinResponse = await authenticatedFetch(`${API_BASE_URL}/queue/verify-pin`, {
                             method: "POST",
                             credentials: "include",
                             headers: buildQueueRequestHeaders(),
@@ -414,7 +419,7 @@ function BookQueueContent() {
 
         setIsValidating(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/queue/validate`, {
+            const response = await authenticatedFetch(`${API_BASE_URL}/queue/validate`, {
                 method: "POST",
                 credentials: "include",
                 headers: buildQueueRequestHeaders(),
@@ -443,7 +448,7 @@ function BookQueueContent() {
     }, [pinCode, studentId, deskNumber, bookingType, buildQueueRequestHeaders]);
 
     const validateBookingForSubmit = useCallback(async (): Promise<BookingValidationResult | null> => {
-        const response = await fetch(`${API_BASE_URL}/queue/validate`, {
+        const response = await authenticatedFetch(`${API_BASE_URL}/queue/validate`, {
             method: "POST",
             credentials: "include",
             headers: buildQueueRequestHeaders(),
@@ -541,7 +546,7 @@ function BookQueueContent() {
 
         setIsVerifying(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/queue/verify-pin`, {
+            const response = await authenticatedFetch(`${API_BASE_URL}/queue/verify-pin`, {
                 method: "POST",
                 credentials: "include",
                 headers: buildQueueRequestHeaders(),
@@ -580,7 +585,7 @@ function BookQueueContent() {
 
     // Create booking
     const createBookingRequest = useCallback(async () => {
-        const response = await fetch(`${API_BASE_URL}/queue/bookings`, {
+        const response = await authenticatedFetch(`${API_BASE_URL}/queue/bookings`, {
             method: "POST",
             credentials: "include",
             headers: buildQueueRequestHeaders(),
@@ -778,7 +783,7 @@ function BookQueueContent() {
     // Fetch booking status
     const fetchBookingStatus = useCallback(async (bookingId: number) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/queue/bookings/${bookingId}/status`);
+            const response = await authenticatedFetch(`${API_BASE_URL}/queue/bookings/${bookingId}/status`, { credentials: "include", headers: buildQueueRequestHeaders(false), cache: "no-store" });
             const result = await response.json();
 
             if (result.success) {
@@ -813,7 +818,7 @@ function BookQueueContent() {
 
         setIsCancelling(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/queue/bookings/${bookingResult.id}/cancel`, {
+            const response = await authenticatedFetch(`${API_BASE_URL}/queue/bookings/${bookingResult.id}/cancel`, {
                 method: "POST",
                 credentials: "include",
                 headers: buildQueueRequestHeaders(),

@@ -39,14 +39,14 @@ export default function VerifyTwoFactorPage() {
   const [error, setError] = useState("");
 
   // Send email code for email 2FA
-  const sendEmailCode = useCallback(async (userId: number, isResend = false) => {
+  const sendEmailCode = useCallback(async (userId: number, isResend = false, challenge?: string) => {
     if (isSendingEmail || cooldown > 0) return;
     
     setIsSendingEmail(true);
     setError("");
     
     try {
-      const result = await twoFactorService.sendLoginCode(userId);
+      const result = await twoFactorService.sendLoginCode(userId, challenge || JSON.parse(sessionStorage.getItem("twoFactorData") || "{}").challenge || "");
       if (result.success) {
         setEmailSent(true);
         setCooldown(60); // 60 seconds cooldown
@@ -75,13 +75,14 @@ export default function VerifyTwoFactorPage() {
     if (storedData) {
       try {
         const parsed = JSON.parse(storedData) as TwoFactorLoginData;
+        if (!parsed.challenge) { router.replace("/login"); return; }
         setTwoFactorData(parsed);
         setIsLoading(false);
         
         // Auto-send email code for email 2FA (only once)
         if (parsed.twoFactorMethod === "email" && !emailSentRef.current) {
           emailSentRef.current = true;
-          sendEmailCode(parsed.userId, false);
+          sendEmailCode(parsed.userId, false, parsed.challenge);
         }
       } catch {
         // Invalid data, redirect to login
@@ -122,7 +123,8 @@ export default function VerifyTwoFactorPage() {
     try {
       const result = await twoFactorService.completeLogin(
         twoFactorData.userId,
-        code
+        code,
+        twoFactorData.challenge
       );
 
       if (result.success && result.data) {

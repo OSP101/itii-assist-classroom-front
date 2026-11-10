@@ -861,12 +861,14 @@ export default function ClassroomsPage() {
 
     const handlePrintQR = useCallback(() => {
         if (!qrGridRef.current || !qrClassroom) return;
+        const htmlEntities: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+        const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, (ch) => htmlEntities[ch]);
         const gridHtml = qrGridRef.current.innerHTML;
         const printWindow = window.open("", "_blank");
         if (!printWindow) return;
         printWindow.document.write(`<!DOCTYPE html><html lang="th"><head>
 <meta charset="utf-8">
-<title>QR — ${qrClassroom.name}</title>
+<title>QR — ${escapeHtml(qrClassroom.name)}</title>
 <base href="${window.location.origin}/">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -885,8 +887,8 @@ body { font-family: Arial, sans-serif; background: #fff; padding: 0; color: #0f1
 @media print { @page { size: A4 portrait; margin: 8mm; } body { padding: 0; } .sheet { padding: 0; } }
 </style></head><body>
 <div class="sheet">
-<div class="header"><h1>QR Code: ${qrClassroom.name}</h1>
-<p>อาคาร ${qrClassroom.building} ชั้น ${qrClassroom.floor}</p></div>
+<div class="header"><h1>QR Code: ${escapeHtml(qrClassroom.name)}</h1>
+<p>อาคาร ${escapeHtml(qrClassroom.building)} ชั้น ${escapeHtml(qrClassroom.floor)}</p></div>
 <div class="grid">${gridHtml}</div>
 </div>
 </body></html>`);

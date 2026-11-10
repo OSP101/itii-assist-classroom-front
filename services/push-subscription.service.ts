@@ -1,3 +1,4 @@
+import { authenticatedFetch } from "./authenticated-fetch";
 import { API_BASE_URL } from "@/config/api";
 import { csrfHeader, getCsrfToken } from "@/lib/csrf";
 import { registerPwaServiceWorker } from "@/lib/pwa-notifications";
@@ -145,12 +146,8 @@ export async function registerPushSubscription(
     }
 
     try {
-        // This endpoint is public (no login required — device registration
-        // works pre-auth), but a same-origin fetch still auto-attaches
-        // cookies by default. If the caller happens to be logged in, echo
-        // the CSRF token so the backend's blanket CSRF check (which fires
-        // on cookie presence, not per-route auth) doesn't reject it.
-        const response = await fetch(`${API_BASE_URL}/push/register`, {
+        // Registration is tied to the signed-in owner of the booking/account.
+        const response = await authenticatedFetch(`${API_BASE_URL}/push/register`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

@@ -18,6 +18,8 @@ import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { IoSchool } from "react-icons/io5";
 import { getRealtimeSocketBaseUrl, io, Socket } from "@/services/realtime-socket";
+import { authService } from "@/services/auth.service";
+import api from "@/services/api.service";
 import queueService from "@/services/queue.service";
 import { playNotificationSound } from "@/lib/pwa-notifications";
 import QRCode from "react-qr-code";
@@ -295,7 +297,7 @@ export default function ProjectorViewPage() {
     const fetchData = useCallback(async () => {
         try {
             // Use public route without auth
-            const response = await fetch(`${API_BASE_URL}/queue/sessions/${sessionId}/desk-statuses`);
+            const response = await fetch(`${API_BASE_URL}/queue/sessions/${sessionId}/desk-statuses`, { credentials: "include", cache: "no-store" });
             const result = await response.json();
 
             if (result.success) {
@@ -309,7 +311,7 @@ export default function ProjectorViewPage() {
                 const groupId = singleData.session?.concurrent_group_id;
                 if (groupId) {
                     try {
-                        const groupResp = await fetch(`${API_BASE_URL}/queue/groups/${groupId}/desk-statuses`);
+                        const groupResp = await fetch(`${API_BASE_URL}/queue/groups/${groupId}/desk-statuses`, { credentials: "include", cache: "no-store" });
                         const groupResult = await groupResp.json();
                         if (groupResult.success) {
                             const merged = mergeGroupProjectorView(singleData, groupResult.data);
@@ -385,7 +387,7 @@ export default function ProjectorViewPage() {
     }, [initialWarningCountdown, isInitialWarningOpen]);
 
     useEffect(() => {
-        if (!data?.session.course_id || data.session.status === "closed") {
+        if (!data?.session.course_id || data.session.status === "closed" || !["admin", "instructor", "ta"].includes(authService.getStoredUser()?.role || "")) {
             return;
         }
 
@@ -546,14 +548,8 @@ export default function ProjectorViewPage() {
         setIsTogglingStatus(true);
 
         try {
-            // Use public projector-status endpoint (no auth required)
-            const response = await fetch(`${API_BASE_URL}/queue/sessions/${sessionId}/status`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: newStatus }),
-            });
-
-            const result = await response.json();
+            // Queue controls require the signed-in staff member's permission.
+            const result = await api.post<any>(`/queue/sessions/${sessionId}/status`, { status: newStatus });
 
             if (result.success) {
                 addToast({
@@ -571,7 +567,7 @@ export default function ProjectorViewPage() {
             } else {
                 addToast({
                     title: t("เกิดข้อผิดพลาด", "Error"),
-                    description: isEnglish ? "Unable to change the queue status." : (result.error?.message || "ไม่สามารถเปลี่ยนสถานะได้"),
+                    description: isEnglish ? "Unable to change the queue status." : (result.error || result.message || "ไม่สามารถเปลี่ยนสถานะได้"),
                     color: "danger",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -598,13 +594,7 @@ export default function ProjectorViewPage() {
         setIsTogglingCutoff(true);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/queue/sessions/${sessionId}/cutoff`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ is_cutoff_enabled: nextEnabled }),
-            });
-
-            const result = await response.json();
+            const result = await api.post<any>(`/queue/sessions/${sessionId}/cutoff`, { is_cutoff_enabled: nextEnabled });
             if (result.success) {
                 addToast({
                     title: nextEnabled ? t("เปิด Cutoff แล้ว", "Cutoff enabled") : t("ปิด Cutoff แล้ว", "Cutoff disabled"),
@@ -619,7 +609,7 @@ export default function ProjectorViewPage() {
             } else {
                 addToast({
                     title: t("เกิดข้อผิดพลาด", "Error"),
-                    description: isEnglish ? "Unable to change the cutoff status." : (result.error?.message || "ไม่สามารถเปลี่ยนสถานะ Cutoff ได้"),
+                    description: isEnglish ? "Unable to change the cutoff status." : (result.error || result.message || "ไม่สามารถเปลี่ยนสถานะ Cutoff ได้"),
                     color: "danger",
                     timeout: 3000,
                     shouldShowTimeoutProgress: true,
@@ -681,12 +671,7 @@ export default function ProjectorViewPage() {
 
         setIsCancelling(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/queue/bookings/${selectedDesk.booking.id}/cancel`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-            });
-
-            const result = await response.json();
+            const result = await api.post<any>(`/queue/bookings/${selectedDesk.booking.id}/cancel`);
 
             if (result.success) {
                 addToast({
@@ -704,7 +689,7 @@ export default function ProjectorViewPage() {
             } else {
                 addToast({
                     title: t("ยกเลิกไม่สำเร็จ", "Cancellation failed"),
-                    description: isEnglish ? "Unable to cancel the booking." : (result.error?.message || "เกิดข้อผิดพลาด"),
+                    description: isEnglish ? "Unable to cancel the booking." : (result.error || result.message || "เกิดข้อผิดพลาด"),
                     color: "danger",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,

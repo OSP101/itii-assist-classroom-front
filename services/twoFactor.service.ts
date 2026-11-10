@@ -25,6 +25,7 @@ export interface VerifyResponse {
 }
 
 export interface TwoFactorLoginData {
+  challenge: string;
   requiresTwoFactor: true;
   twoFactorMethod: "totp" | "email";
   userId: number;
@@ -151,7 +152,7 @@ class TwoFactorService {
   /**
    * Complete login with 2FA code
    */
-  async completeLogin(userId: number, code: string): Promise<{ 
+  async completeLogin(userId: number, code: string, challenge: string): Promise<{
     success: boolean; 
     data?: { 
       user: User; 
@@ -168,7 +169,7 @@ class TwoFactorService {
       refreshToken: string;
       mustChangePassword: boolean;
       usedBackupCode: boolean;
-    }>("/auth/2fa/complete-login", { userId, code });
+    }>("/auth/2fa/complete-login", { userId, code, challenge });
     
     if (response.success && response.data) {
       return { success: true, data: response.data };
@@ -185,8 +186,8 @@ class TwoFactorService {
   /**
    * Send 2FA login code via email
    */
-  async sendLoginCode(userId: number): Promise<{ success: boolean; error?: string }> {
-    const response = await apiService.post("/auth/2fa/send-login-code", { userId });
+  async sendLoginCode(userId: number, challenge: string): Promise<{ success: boolean; error?: string }> {
+    const response = await apiService.post("/auth/2fa/send-login-code", { userId, challenge });
     
     if (response.success) {
       return { success: true };

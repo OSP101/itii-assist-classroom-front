@@ -1,0 +1,9 @@
+{
+  "name": "@itii/deepmerge",
+  "version": "4.3.1+itii.1",
+  "private": true,
+  "description": "Project-maintained security patch of deepmerge 4.3.1",
+  "main": "index.cjs",
+  "types": "index.d.ts",
+  "license": "MIT"
+}

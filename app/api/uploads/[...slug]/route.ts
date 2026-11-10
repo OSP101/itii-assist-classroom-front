@@ -32,13 +32,27 @@ export async function GET(
 ) {
     const { slug } = await ctx.params;
     const path = slug.join("/");
+    if (slug.some((part) => part === "." || part === ".." || /[\\/?#%]/.test(part))) {
+        return NextResponse.json({ success: false }, { status: 400 });
+    }
     const targetUrl = `${BACKEND_ORIGIN}/api/uploads/${path}`;
 
     const range = request.headers.get("range");
+    const privateEvidence = slug[0] === "score-edit-requests" || slug[0] === "private";
+    const upstreamHeaders = new Headers();
+    if (range) upstreamHeaders.set("Range", range);
+    if (privateEvidence) {
+        for (const name of ["cookie", "authorization", "x-client-type"]) {
+            const value = request.headers.get(name);
+            if (value) upstreamHeaders.set(name, value);
+        }
+    }
     let upstream: Response;
     try {
         upstream = await fetch(targetUrl, {
-            headers: range ? { Range: range } : undefined,
+            headers: upstreamHeaders,
+            cache: "no-store",
+            signal: AbortSignal.timeout(15_000),
         });
     } catch (err) {
         console.error("[uploads proxy] upstream fetch failed:", err);
@@ -46,15 +60,15 @@ export async function GET(
     }
 
     if (!upstream.ok && upstream.status !== 206) {
-        return new NextResponse(null, { status: upstream.status });
+        return new NextResponse(null, { status: upstream.status, headers: { "Cache-Control": "no-store" } });
     }
 
     const headers: Record<string, string> = {
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "sandbox; default-src 'none'",
         "Content-Type": upstream.headers.get("content-type") ?? "application/octet-stream",
-        "Cache-Control": upstream.headers.get("cache-control") ?? "public, max-age=31536000, immutable",
+        "Cache-Control": privateEvidence ? "private, no-store" : (upstream.headers.get("cache-control") ?? "public, max-age=31536000, immutable"),
     };
-    const contentLength = upstream.headers.get("content-length");
-    if (contentLength) headers["Content-Length"] = contentLength;
     const etag = upstream.headers.get("etag");
     if (etag) headers["ETag"] = etag;
 

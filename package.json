@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build --webpack",
-    "start": "next start"
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test:security": "node --test scripts/tests/security-client.test.cjs scripts/tests/dependency-security.test.cjs"
   },
   "dependencies": {
     "@heroui/accordion": "^2.2.25",
@@ -70,7 +72,7 @@
     "jsqr": "^1.4.0",
     "konva": "^10.0.12",
     "leaflet": "^1.9.4",
-    "next": "16.4.3",
+    "next": "16.4.5",
     "next-themes": "0.4.6",
     "qrcode.react": "^4.2.0",
     "react": "19.2.4",
@@ -85,7 +87,8 @@
     "remark-gfm": "^4.0.1",
     "sharp": "0.35.5",
     "swr": "^2.5.1",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "deepmerge": "file:vendor/deepmerge"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -98,6 +101,13 @@
     "typescript": "^5"
   },
   "overrides": {
-    "postcss": "^8.5.14"
+    "postcss": "^8.5.14",
+    "deepmerge": "$deepmerge",
+    "@tailwindcss/typography": {
+      "postcss-selector-parser": "^6.1.5"
+    },
+    "exceljs": {
+      "uuid": "^11.1.1"
+    }
   }
 }

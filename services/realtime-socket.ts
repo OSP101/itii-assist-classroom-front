@@ -1,3 +1,5 @@
+import api from "./api.service";
+
 type Listener = (data?: any) => void;
 
 export interface SocketOptions {
@@ -57,6 +59,38 @@ export class Socket {
     }
 
     emit(event: string, data?: any): this {
+        if (event === "join-queue" && !(data && typeof data === "object" && "ticket" in data)) {
+            try {
+                const user = JSON.parse(localStorage.getItem("user") || "null");
+                if (["admin", "instructor", "ta"].includes(user?.role)) {
+                    void api.post<{ ticket: string }>("/realtime/room-ticket", { event: "join-queue-staff", data }).then((result) => {
+                        if (this.manuallyClosed) return;
+                        if (result.success && result.data?.ticket) this.emit("join-queue-staff", { ticket: result.data.ticket });
+                        else this.sendPublicJoin(event, data);
+                    }).catch(() => { if (!this.manuallyClosed) this.sendPublicJoin(event, data); });
+                    return this;
+                }
+            } catch { /* Storage may be unavailable; public invalidations still work. */ }
+        }
+        const protectedJoins = new Set(["join-user", "join-user-courses", "join-global-updates", "join-classroom", "join-booking"]);
+        if (protectedJoins.has(event) && !(data && typeof data === "object" && "ticket" in data)) {
+            // Public display/check-in pages mount this provider too. Do not
+            // trigger a login redirect merely by declining a private room.
+            if (typeof window === "undefined") return this;
+            try {
+                if (!localStorage.getItem("user")) return this;
+                const user = JSON.parse(localStorage.getItem("user") || "null");
+                if (user?.role === "student" && event !== "join-booking") return this;
+            } catch { return this; }
+
+            void api.post<{ ticket: string }>("/realtime/room-ticket", { event, data }).then((result) => {
+                if (result.success && result.data?.ticket && !this.manuallyClosed) {
+                    this.emit(event, { ticket: result.data.ticket });
+                    if (event === "join-user" || event === "join-user-courses") this.emit("join-global-updates");
+                }
+            }).catch(() => this.dispatch("room-join-rejected", { event }));
+            return this;
+        }
         const payload = JSON.stringify({ event, data });
         if (this.ws?.readyState === WebSocket.OPEN) {
             this.ws.send(payload);
@@ -64,6 +98,12 @@ export class Socket {
             this.pendingMessages.push(payload);
         }
         return this;
+    }
+
+    private sendPublicJoin(event: string, data?: any) {
+        const payload = JSON.stringify({ event, data });
+        if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(payload);
+        else this.pendingMessages.push(payload);
     }
 
     disconnect(): this {

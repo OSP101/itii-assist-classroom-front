@@ -70,6 +70,7 @@ export interface LoginResponse {
   sessionExpiresAt?: string;
   // 2FA fields (when 2FA is required)
   requiresTwoFactor?: boolean;
+  challenge?: string;
   twoFactorMethod?: 'totp' | 'email';
   userId?: number;
   email?: string;
@@ -83,6 +84,7 @@ export interface AuthState {
 
 // Local type for 2FA data to avoid circular import
 interface TwoFactorResult {
+  challenge: string;
   requiresTwoFactor: true;
   userId: number;
   twoFactorMethod: 'totp' | 'email';
@@ -221,6 +223,7 @@ class AuthService {
     user?: User; 
     mustChangePassword?: boolean; 
     requiresTwoFactor?: boolean;
+    challenge?: string;
     twoFactorData?: TwoFactorResult;
     error?: string 
   }> {
@@ -234,6 +237,7 @@ class AuthService {
           requiresTwoFactor: true,
           twoFactorData: {
             requiresTwoFactor: true as const,
+            challenge: response.data.challenge!,
             userId: response.data.userId!,
             twoFactorMethod: response.data.twoFactorMethod!,
             email: response.data.email ?? null

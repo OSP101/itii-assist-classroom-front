@@ -1,5 +1,6 @@
 "use client";
 
+import { ProtectedEvidenceImage } from "@/components/ProtectedEvidenceImage";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { Button } from "@heroui/button";
@@ -4243,7 +4244,7 @@ export default function ScoreModal({
                                                                         <div className="flex flex-wrap gap-2">
                                                                             {editImagePreviews.map((preview, index) => (
                                                                                 <div key={index} className="relative group">
-                                                                                    <img
+                                                                                    <ProtectedEvidenceImage
                                                                                         src={preview}
                                                                                         alt={isEnglish ? `Image preview ${index + 1}` : `Preview ${index + 1}`}
                                                                                         className="w-20 h-20 object-cover rounded-lg border border-slate-200"
@@ -4441,7 +4442,7 @@ export default function ScoreModal({
                                                             <div className="flex flex-wrap gap-2">
                                                                 {editImagePreviews.map((preview, index) => (
                                                                     <div key={index} className="relative group">
-                                                                        <img
+                                                                        <ProtectedEvidenceImage
                                                                             src={preview}
                                                                             alt={isEnglish ? `Image preview ${index + 1}` : `Preview ${index + 1}`}
                                                                             className="w-20 h-20 object-cover rounded-lg border border-slate-200"

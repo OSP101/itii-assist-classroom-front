@@ -251,7 +251,7 @@ class ApiService {
       }
 
       // Handle 401 Unauthorized - try to refresh token (but not for login/refresh endpoints)
-      const isAuthEndpoint = endpoint.includes('/auth/login') || endpoint.includes('/auth/refresh');
+      const isAuthEndpoint = endpoint.includes('/auth/login') || endpoint.includes('/auth/refresh') || endpoint.startsWith('/auth/2fa/verify-login') || endpoint.startsWith('/auth/2fa/complete-login') || endpoint.startsWith('/auth/2fa/send-login-code');
       if (response.status === 401 && retry && !isAuthEndpoint) {
         // If already refreshing, wait for the refresh to complete
         if (this.isRefreshing) {

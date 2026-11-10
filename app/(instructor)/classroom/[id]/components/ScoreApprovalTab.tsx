@@ -1,5 +1,6 @@
 "use client";
 
+import { ProtectedEvidenceImage } from "@/components/ProtectedEvidenceImage";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardBody } from "@heroui/card";
 import { Chip } from "@heroui/chip";
@@ -703,7 +704,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                                                         onClick={() => setPreviewImage(getImageUrl(imagePath))}
                                                         className="relative group cursor-pointer"
                                                     >
-                                                        <img
+                                                        <ProtectedEvidenceImage
                                                             src={getImageUrl(imagePath)}
                                                             alt={isEnglish ? `Image ${idx + 1}` : `รูปภาพ ${idx + 1}`}
                                                             className="w-20 h-20 object-cover rounded-lg border border-blue-200 hover:border-blue-400 transition-colors"
@@ -1191,7 +1192,7 @@ export default function ScoreApprovalTab({ courseId, userRole, onPendingCountCha
                 <ModalContent>
                     {previewImage && (
                         <div className="relative">
-                            <img
+                            <ProtectedEvidenceImage
                                 src={previewImage}
                                 alt="Preview"
                                 className="max-w-full max-h-[80vh] object-contain mx-auto rounded-lg"
