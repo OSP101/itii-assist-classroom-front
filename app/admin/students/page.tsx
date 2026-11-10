@@ -34,6 +34,7 @@ import { MetricCardSkeleton, TableRowsSkeleton } from "@/components/ui/resource-
 import { useI18n } from "@/hooks/useI18n";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import type ExcelJS from "exceljs";
+import { extractStudentsFromRegRows, extractStudentsFromRegWorksheet, REG_XLSX_READ_OPTIONS } from "@/lib/student-reg-import";
 
 // Column definitions
 const columnDefs = [
@@ -324,38 +325,10 @@ export default function StudentsPage() {
     const extractStudentsFromWorkbook = async (arrayBuffer: ArrayBuffer): Promise<CreateStudentDto[]> => {
         const { default: ExcelJSLib } = await import("exceljs");
         const workbook: ExcelJS.Workbook = new ExcelJSLib.Workbook();
-        await workbook.xlsx.load(arrayBuffer);
+        await workbook.xlsx.load(arrayBuffer, REG_XLSX_READ_OPTIONS);
         const worksheet = workbook.worksheets[0];
         if (!worksheet) return [];
-        const getCellText = (cell: ExcelJS.Cell): string => {
-            const v = cell.value;
-            if (v == null) return "";
-            if (typeof v === "object" && "richText" in v) {
-                return (v as { richText: Array<{ text: string }> }).richText.map(r => r.text).join("");
-            }
-            if (typeof v === "object" && "result" in v) {
-                return String((v as { result: unknown }).result ?? "");
-            }
-            if (typeof v === "object" && "text" in v) {
-                return String((v as { text: unknown }).text ?? "");
-            }
-            return String(v);
-        };
-        const studentIdPattern = /^\d{9}-\d$/;
-        const results: CreateStudentDto[] = [];
-        worksheet.eachRow({ includeEmpty: false }, (row) => {
-            const raw = getCellText(row.getCell(2)).trim();
-            if (!studentIdPattern.test(raw)) return;
-            const fullName = getCellText(row.getCell(3)).trim();
-            if (!fullName) return;
-            const email = getCellText(row.getCell(4)).trim();
-            const program = getCellText(row.getCell(5)).trim();
-            const dto: CreateStudentDto = { student_id: raw, full_name: fullName };
-            if (email) dto.email = email;
-            if (program) dto.extra = { program };
-            results.push(dto);
-        });
-        return results;
+        return extractStudentsFromRegWorksheet(worksheet);
     };
 
     // Extract student rows from an HTML string (KKU HTML-as-XLS path)
@@ -363,30 +336,20 @@ export default function StudentsPage() {
     const extractStudentsFromHtml = (html: string): CreateStudentDto[] => {
         const doc = new DOMParser().parseFromString(html, "text/html");
         const rows = Array.from(doc.querySelectorAll("tr"));
-        const studentIdPattern = /^\d{9}-\d$/;
-        const results: CreateStudentDto[] = [];
-        for (const row of rows) {
-            const cells = Array.from(row.querySelectorAll("td")).map(td => td.textContent?.trim() ?? "");
-            if (cells.length < 3) continue;
-            const raw = cells[1].trim();
-            if (!studentIdPattern.test(raw)) continue;
-            const fullName = cells[2].trim();
-            if (!fullName) continue;
-            const email = cells[3]?.trim() ?? "";
-            const program = cells[4]?.trim() ?? "";
-            const dto: CreateStudentDto = { student_id: raw, full_name: fullName };
-            if (email) dto.email = email;
-            if (program) dto.extra = { program };
-            results.push(dto);
-        }
-        return results;
+        return extractStudentsFromRegRows(rows.map(row =>
+            Array.from(row.querySelectorAll("td, th")).flatMap(cell => {
+                const text = cell.textContent?.trim() ?? "";
+                const span = Math.max(1, Number(cell.getAttribute("colspan")) || 1);
+                return [text, ...Array<string>(span - 1).fill("")];
+            }),
+        ));
     };
 
     // Parse Excel/CSV file → CreateStudentDto[]
     // KKU REG system exports "HTML-as-XLS" (Excel 2003 Publish-as-Web-Page, charset=windows-874).
     // Strategy: sniff first 2 bytes to detect format
-    //   OLE2 magic (D0 CF) → true binary XLS  → ArrayBuffer + SheetJS
-    //   ZIP magic   (50 4B) → XLSX             → ArrayBuffer + SheetJS
+    //   OLE2 magic (D0 CF) → true binary XLS  → conversion required
+    //   ZIP magic   (50 4B) → XLSX             → ExcelJS
     //   Otherwise           → HTML-as-XLS      → readAsText("windows-874") + DOMParser
     const parseExcelFile = (file: File): Promise<CreateStudentDto[]> => {
         return new Promise((resolve, reject) => {
@@ -428,6 +391,8 @@ export default function StudentsPage() {
 
     // Handle file selection (drag-drop or click)
     const handleFileSelect = async (file: File) => {
+        setImportFile(null);
+        setParsedStudents([]);
         try {
             const students = await parseExcelFile(file);
             setImportFile(file);
