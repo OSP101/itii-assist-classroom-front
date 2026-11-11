@@ -34,6 +34,7 @@ import { MetricCardSkeleton, TableRowsSkeleton } from "@/components/ui/resource-
 import { useI18n } from "@/hooks/useI18n";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import type ExcelJS from "exceljs";
+import { fetchAllStudents, populateStudentWorksheet } from "@/lib/student-export";
 import { extractStudentsFromRegRows, extractStudentsFromRegWorksheet, REG_XLSX_READ_OPTIONS } from "@/lib/student-reg-import";
 
 // Column definitions
@@ -63,6 +64,8 @@ export default function StudentsPage() {
     const [stats, setStats] = useState<StudentStats | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isStatsLoading, setIsStatsLoading] = useState(true);
+    const [isExporting, setIsExporting] = useState(false);
+    const isExportingRef = useRef(false);
 
     // Pagination & Filters
     const [totalPages, setTotalPages] = useState(1);
@@ -406,6 +409,53 @@ export default function StudentsPage() {
             } else {
                 addToast({ title: t("fileParseError"), color: "danger", timeout: 3000, shouldShowTimeoutProgress: true });
             }
+        }
+    };
+
+    const handleExport = async () => {
+        if (isExportingRef.current) return;
+        isExportingRef.current = true;
+        setIsExporting(true);
+        try {
+            const allStudents = await fetchAllStudents((query) => studentService.getStudents(query));
+            if (allStudents.length === 0) {
+                addToast({ title: isEnglish ? "No students to export" : "ยังไม่มีข้อมูลนักศึกษาสำหรับดาวน์โหลด", color: "warning" });
+                return;
+            }
+            const { default: ExcelJSLib } = await import("exceljs");
+            const workbook = new ExcelJSLib.Workbook();
+            const worksheet = workbook.addWorksheet(isEnglish ? "Students" : "นักศึกษา");
+            populateStudentWorksheet(worksheet, allStudents, isEnglish, getProgramFullLabel);
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([new Uint8Array(buffer)], {
+                type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `students_${new Date().toISOString().replace(/[:.]/g, "-")}.xlsx`;
+            document.body.appendChild(link);
+            try {
+                link.click();
+            } finally {
+                link.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 60_000);
+            }
+            addToast({
+                title: isEnglish ? "Student Excel file ready" : "สร้างไฟล์ Excel เรียบร้อยแล้ว",
+                description: isEnglish ? `${allStudents.length} students` : `นักศึกษาทั้งหมด ${allStudents.length} คน`,
+                color: "success",
+            });
+        } catch (error) {
+            console.error("Error exporting students:", error);
+            addToast({
+                title: isEnglish ? "Could not export students" : "ดาวน์โหลดข้อมูลนักศึกษาไม่สำเร็จ",
+                description: isEnglish ? "Please try again." : "กรุณาลองใหม่อีกครั้ง",
+                color: "danger",
+            });
+        } finally {
+            isExportingRef.current = false;
+            setIsExporting(false);
         }
     };
 
@@ -1007,7 +1057,19 @@ export default function StudentsPage() {
                         </div>
                     </Tooltip>
                 </div>
-                <div className="flex gap-2 w-full sm:w-auto">
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
+                    <Button
+                        variant="flat"
+                        startContent={!isExporting ? <Icon icon="solar:download-bold" className="text-xl" /> : undefined}
+                        onPress={handleExport}
+                        isLoading={isExporting}
+                        isDisabled={isExporting}
+                        className="font-medium flex-1 sm:flex-none sm:px-6"
+                    >
+                        {isExporting
+                            ? (isEnglish ? "Preparing Excel…" : "กำลังเตรียม Excel…")
+                            : (isEnglish ? "Download all (Excel)" : "ดาวน์โหลดทั้งหมด (Excel)")}
+                    </Button>
                     <Button
                         variant="flat"
                         startContent={<Icon icon="solar:notebook-bookmark-bold" className="text-xl" />}
