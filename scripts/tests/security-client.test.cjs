@@ -55,6 +55,27 @@ function json(status, data, headers = {}) {
 
 const options = { timeout: 3000 };
 
+test('all upload routes send multipart bytes with cookies and CSRF', options, async () => {
+  for (const [endpoint, field] of [
+    ['/courses/cover-image', 'image'],
+    ['/score-edit-requests', 'images'],
+    ['/students/me/courses/test/leave-requests', 'evidence'],
+  ]) {
+    const form = new FormData();
+    form.append(field, new File(['image bytes'], 'test.png', { type: 'image/png' }));
+    const { api } = client(async (_url, init) => {
+      assert.equal(init.credentials, 'include');
+      assert.equal(init.headers['X-CSRF-Token'], 'old-csrf');
+      assert.equal(init.headers['Content-Type'], undefined);
+      const request = new Request('http://app.test/api', init);
+      assert.match(request.headers.get('content-type'), /^multipart\/form-data; boundary=/);
+      assert.equal(await (await request.formData()).get(field).text(), 'image bytes');
+      return json(200, { success: true });
+    });
+    assert.equal((await api.post(endpoint, form)).success, true);
+  }
+});
+
 test('expired access cookie refreshes once and retries mutation with rotated CSRF', options, async () => {
   const calls = [];
   const { api } = client(async (url, init) => {

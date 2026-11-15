@@ -1,0 +1,129 @@
+.screen {
+    width: 100%; height: 100dvh; min-height: 420px; box-sizing: border-box;
+    display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    gap: clamp(16px, 2vh, 28px) clamp(24px, 3vw, 56px);
+    padding: clamp(22px, 3vh, 42px) clamp(24px, 3vw, 56px);
+    background: #fff; color: #0f172a; color-scheme: light;
+    --projector-muted: #334155;
+}
+.screen *, .screen *::before, .screen *::after { box-sizing: border-box; }
+.screen h1, .screen h2, .screen p { margin: 0; }
+.screen button { font-family: inherit; cursor: pointer; }
+.screen button:disabled { cursor: wait; opacity: .65; }
+.screen button:focus-visible { outline: 3px solid #2563eb; outline-offset: 4px; }
+.screen ::selection { color: #0f172a; background: #bfdbfe; }
+.header { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 24px; min-width: 0; }
+.course { min-width: 0; }
+.course h1 { font-size: clamp(20px, 2.1vw, 38px); font-weight: 800; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.course p { font-size: clamp(14px, 1.35vw, 24px); color: var(--projector-muted); line-height: 1.5; }
+.course .subtitle { font-size: clamp(12px, 1vw, 18px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sessionMeta { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex: none; font-size: clamp(14px, 1.4vw, 26px); }
+.status { display: flex; align-items: center; gap: 7px; font-weight: 600; }
+.status svg { width: 1.2em; height: 1.2em; color: #1d4ed8; flex: none; }
+.clock { color: var(--projector-muted); white-space: nowrap; }
+.clock strong { color: #0f172a; font-weight: 800; font-variant-numeric: tabular-nums; }
+.pinPanel { grid-column: 1; grid-row: 2; min-width: 0; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 16px; padding: clamp(22px, 3vw, 48px); border-radius: 24px; background: #eef4ff; }
+.pinPanel h2 { color: #1e3a8a; font-size: clamp(18px, 2vw, 36px); font-weight: 600; }
+.pin { border: 0; background: transparent; padding: 0; color: #0f172a; text-align: center; font-size: clamp(70px, 11vw, 210px) !important; font-weight: 800 !important; line-height: 1.15; letter-spacing: .015em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rotation { display: flex; align-items: center; justify-content: space-between; gap: 14px; color: var(--projector-muted); font-size: clamp(13px, 1.35vw, 24px); }
+.rotation > span { text-align: right; }
+.track { width: 25%; height: 5px; border-radius: 5px; background: #c8d5e8; overflow: hidden; flex: none; }
+.track span { display: block; height: 100%; border-radius: inherit; background: #1d4ed8; transition: width 1s linear; }
+.unavailable { padding: 24px 0; font-size: clamp(22px, 2.5vw, 42px); font-weight: 600; text-align: center; }
+.scan { grid-column: 2; grid-row: 2; min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
+.qrButton { display: block; border: 0; background: #fff; padding: 0; max-width: 100%; line-height: 0; }
+.qrButton svg { display: block; max-width: 100%; height: auto; }
+.scanCaption { font-size: clamp(18px, 2vw, 36px); font-weight: 600; text-align: center; flex: none; }
+.scanUnavailable { text-align: center; color: var(--projector-muted); }
+.scanUnavailable > svg { width: 56px; height: 56px; margin: 0 auto 16px; color: #1d4ed8; }
+.scanUnavailable h2 { color: #0f172a; font-size: clamp(20px, 2vw, 32px); font-weight: 600; margin-bottom: 12px; }
+.scanUnavailable p { font-size: clamp(14px, 1.3vw, 24px); }
+.summary { grid-column: 1; grid-row: 3; display: flex; align-items: center; justify-content: space-between; gap: 18px; border-top: 1px solid #bbc9da; padding-top: 16px; }
+.summary h2, .latest h2 { font-size: clamp(17px, 1.6vw, 28px); font-weight: 600; }
+.breakdown { font-size: clamp(12px, 1vw, 18px); color: var(--projector-muted); margin-top: 4px !important; }
+.total { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.total strong { font-size: clamp(32px, 3.6vw, 64px); font-weight: 800; line-height: 1.2; }
+.total span { font-size: clamp(15px, 1.5vw, 28px); color: var(--projector-muted); }
+.latest { grid-column: 2; grid-row: 3; min-width: 0; border-top: 1px solid #bbc9da; padding-top: 16px; }
+.latest h2 { font-size: clamp(13px, 1.15vw, 22px); color: var(--projector-muted); margin-bottom: 6px; }
+.latest > p { color: var(--projector-muted); font-size: clamp(13px, 1.2vw, 22px); }
+.recentRecord { display: flex; gap: 12px; align-items: center; justify-content: space-between; width: 100%; min-width: 0; padding: 3px 0; border: 0; background: transparent; color: #0f172a; font-size: clamp(14px, 1.35vw, 24px) !important; text-align: left; }
+.recentRecord span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.recentRecord span:last-child { font-size: .8em; flex: none; color: var(--projector-muted); }
+.recentRecord:hover span:first-child { text-decoration: underline; text-underline-offset: 3px; }
+.footer { grid-column: 1 / -1; grid-row: 4; display: flex; align-items: center; justify-content: space-between; gap: 14px; font-size: clamp(12px, 1vw, 18px); color: var(--projector-muted); }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.actions button { border: 0; padding: 4px 0; background: transparent; color: #1e3a8a; font-size: inherit; text-decoration: underline; text-underline-offset: 4px; }
+.loadingTitle { width: min(400px, 75vw); height: 44px; border-radius: 8px; background: #e2e8f0; }
+.loadingPin { height: 100px; width: 100%; border-radius: 12px; background: #dbe6f7; }
+.loadingQR { width: min(240px, 60vw); aspect-ratio: 1; border-radius: 12px; background: #e2e8f0; }
+@media (max-width: 1000px) {
+    .screen { gap: 14px 22px; padding: 22px; }
+    .header { flex-direction: column; align-items: stretch; gap: 12px; }
+    .sessionMeta { gap: 12px; }
+    .pinPanel { padding: 20px; }
+    .pin { font-size: 10vw !important; }
+}
+@media (max-width: 760px) {
+    .screen { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto auto; gap: 12px; padding: 20px 24px 16px; min-height: 560px; }
+    .header { gap: 10px; }
+    .course h1 { font-size: clamp(16px, 4vw, 24px); }
+    .course p { font-size: 13px; }
+    .course .subtitle { font-size: 11px; }
+    .sessionMeta { font-size: 13px; }
+    .pinPanel { grid-column: 1; grid-row: 2; gap: 8px; border-radius: 16px; padding: 16px 18px; }
+    .pinPanel h2 { font-size: 15px; }
+    .pin { font-size: clamp(46px, 15.8vw, 106px) !important; }
+    .rotation { font-size: 12px; }
+    .scan { grid-column: 1; grid-row: 3; gap: 6px; }
+    .scanCaption { font-size: 16px; }
+    .summary { grid-column: 1; grid-row: 4; padding-top: 12px; gap: 10px; }
+    .summary h2 { font-size: 15px; }
+    .total strong { font-size: 30px; }
+    .total span { font-size: 15px; }
+    .breakdown, .latest { display: none; }
+    .footer { grid-column: 1; grid-row: 5; font-size: 11px; flex-wrap: wrap; gap: 4px 14px; }
+    .actions { gap: 14px; }
+    .actions button { padding: 4px 0; }
+    .unavailable { font-size: 22px; padding: 16px 0; }
+}
+@media (max-width: 760px) and (min-height: 850px) {
+    .screen { grid-template-rows: auto auto minmax(0, 1fr) auto auto auto; padding: 28px 32px 22px; gap: 20px; }
+    .course h1 { font-size: clamp(20px, 4vw, 26px); }
+    .course p { font-size: 16px; }
+    .sessionMeta { font-size: 16px; }
+    .pinPanel { padding: 22px 26px; gap: 12px; }
+    .pinPanel h2 { font-size: 19px; }
+    .rotation { font-size: 15px; }
+    .scanCaption { font-size: 21px; }
+    .summary h2 { font-size: 20px; }
+    .total strong { font-size: 36px; }
+    .total span { font-size: 19px; }
+    .latest { display: block; grid-column: 1; grid-row: 5; padding: 0; border: 0; }
+    .latest h2 { font-size: 13px; }
+    .recentRecord { font-size: 15px !important; }
+    .footer { grid-row: 6; font-size: 12px; }
+}
+@media (max-width: 360px) { .screen { padding: 16px; gap: 10px; } .sessionMeta { font-size: 12px; } .pinPanel { padding: 14px; } }
+@media (min-width: 761px) and (max-height: 650px) {
+    .screen { padding: 16px 22px; gap: 12px 22px; }
+    .header { flex-direction: row; }
+    .course h1 { font-size: clamp(18px, 2.1vw, 28px); }
+    .course p { font-size: clamp(12px, 1.35vw, 18px); }
+    .course .subtitle { display: none; }
+    .sessionMeta { font-size: clamp(12px, 1.3vw, 18px); gap: 16px; }
+    .pinPanel { padding: 16px; gap: 8px; }
+    .pinPanel h2 { font-size: 18px; }
+    .pin { font-size: min(10vw, 20vh, 120px) !important; }
+    .rotation { font-size: 14px; }
+    .summary h2 { font-size: 18px; }
+    .breakdown { font-size: 12px; }
+    .total strong { font-size: 36px; }
+    .total span { font-size: 17px; }
+    .latest h2 { font-size: 14px; }
+    .recentRecord { font-size: 16px !important; }
+    .latest .recentRecord:nth-of-type(2) { display: none; }
+    .footer { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .track span { transition: none; } }

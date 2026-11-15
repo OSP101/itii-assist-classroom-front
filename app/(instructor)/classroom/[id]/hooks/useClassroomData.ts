@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { addToast } from "@heroui/toast";
-import { courseService } from "@/services/course.service";
+import { courseService, getCurrentCourseMemberPermissions } from "@/services/course.service";
 import { studentService } from "@/services/student.service";
 import { authService } from "@/services/auth.service";
 import assignmentService from "@/services/assignment.service";
@@ -153,6 +153,24 @@ export function useClassroomData(courseId: string) {
     const [userRole, setUserRole] = useState<string>("");
     const [currentUserId, setCurrentUserId] = useState<number | null>(null);
     const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
+    const permissions = getCurrentCourseMemberPermissions(course, currentUserId, userRole);
+    const canAccessApproval = userRole === "admin"
+        || permissions.review_own_score_requests
+        || permissions.review_all_score_requests;
+
+    // Menu badges must load on course entry, independently of the approval tab.
+    useEffect(() => {
+        let active = true;
+        setPendingApprovalCount(0);
+        if (canAccessApproval && course?.id === courseId) {
+            scoreEditRequestService.getPendingCount(courseId).then((count) => {
+                if (active) setPendingApprovalCount(count);
+            }).catch((error) => {
+                console.error('Failed to fetch pending approval count:', error);
+            });
+        }
+        return () => { active = false; };
+    }, [courseId, course?.id, canAccessApproval]);
     const [pendingAssignmentUpdate, setPendingAssignmentUpdate] = useState(false);
     const [notifications, setNotifications] = useState<CourseRealtimeNotification[]>([]);
 
@@ -415,14 +433,6 @@ export function useClassroomData(courseId: string) {
         if (user) {
             setUserRole(user.role);
             setCurrentUserId(user.id);
-            if (user.role === 'instructor') {
-                try {
-                    const count = await scoreEditRequestService.getPendingCount(courseId);
-                    setPendingApprovalCount(count);
-                } catch (error) {
-                    console.error('Failed to fetch pending approval count:', error);
-                }
-            }
         }
     }, [courseId]);
 

@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Image from "next/image";
 import { Card, CardBody } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
@@ -28,6 +27,8 @@ import { Input } from "@heroui/input";
 import { addToast } from "@heroui/toast";
 import { Icon } from "@iconify/react";
 import { QRCodeSVG } from "qrcode.react";
+import AttendanceProjector from "@/components/attendance/AttendanceProjector";
+import Loading from "./loading";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { isRotatingPinSession, useAttendancePinPresentation } from "@/hooks/useAttendancePinPresentation";
 import { buildCourseTitleContext, buildPageTitle } from "@/lib/page-title";
@@ -85,104 +86,6 @@ function formatDistance(distanceMeters: number, isEnglish = false): string {
     }
 
     return `${(distanceMeters / 1000).toFixed(1)} ${isEnglish ? "km" : "กม."}`;
-}
-
-// ── ขนาดของทุกอย่างบนจอ เปลี่ยนตามขนาดหน้าต่างเพื่อไม่ให้ต้องเลื่อนจอ ──
-type ScreenProfile = {
-    key: "big" | "standard" | "small" | "half" | "third";
-    narrow: boolean;
-    pad: number; gap: number; bigR: number;
-    head: number; headPad: number; logo: number;
-    codeF: number; titleF: number; subF: number; metaF: number; clockF: number;
-    panel: number; panelPad: number; panelGap: number;
-    tileH: number; pinF: number; tileGap: number; barRow: number;
-    qr: number; qrLogo: number; urlF: number;
-    stat: number; countF: number; barH: number;
-    rosterHead: number; rosterPad: number; rosterTitleF: number;
-    minCardW: number; cardH: number; gridGap: number;
-    cardGap: number; cardR: number; av: number; avR: number; avF: number; nameF: number; moreF: number;
-};
-
-const PROFILES: Record<ScreenProfile["key"], ScreenProfile> = {
-    big: {
-        key: "big", narrow: false, pad: 28, gap: 22, bigR: 30, head: 112, headPad: 32, logo: 70,
-        codeF: 28, titleF: 32, subF: 18, metaF: 16, clockF: 36,
-        panel: 660, panelPad: 30, panelGap: 16, tileH: 140, pinF: 74, tileGap: 12, barRow: 44,
-        qr: 340, qrLogo: 74, urlF: 28, stat: 150, countF: 74, barH: 20,
-        rosterHead: 70, rosterPad: 20, rosterTitleF: 27,
-        minCardW: 230, cardH: 100, gridGap: 16,
-        cardGap: 14, cardR: 20, av: 50, avR: 16, avF: 23, nameF: 19, moreF: 46,
-    },
-    standard: {
-        key: "standard", narrow: false, pad: 24, gap: 20, bigR: 26, head: 96, headPad: 28, logo: 60,
-        codeF: 24, titleF: 27, subF: 16, metaF: 14, clockF: 30,
-        panel: 560, panelPad: 26, panelGap: 14, tileH: 116, pinF: 60, tileGap: 10, barRow: 40,
-        qr: 288, qrLogo: 64, urlF: 24, stat: 130, countF: 62, barH: 18,
-        rosterHead: 62, rosterPad: 18, rosterTitleF: 22,
-        minCardW: 210, cardH: 86, gridGap: 14,
-        cardGap: 12, cardR: 18, av: 44, avR: 14, avF: 20, nameF: 17, moreF: 40,
-    },
-    small: {
-        key: "small", narrow: false, pad: 18, gap: 16, bigR: 22, head: 76, headPad: 22, logo: 48,
-        codeF: 19, titleF: 21, subF: 13, metaF: 13, clockF: 24,
-        panel: 440, panelPad: 20, panelGap: 12, tileH: 86, pinF: 44, tileGap: 8, barRow: 32,
-        qr: 196, qrLogo: 46, urlF: 18, stat: 96, countF: 46, barH: 14,
-        rosterHead: 50, rosterPad: 13, rosterTitleF: 17,
-        minCardW: 190, cardH: 74, gridGap: 11,
-        cardGap: 10, cardR: 16, av: 40, avR: 13, avF: 18, nameF: 16, moreF: 34,
-    },
-    half: {
-        key: "half", narrow: true, pad: 16, gap: 14, bigR: 22, head: 76, headPad: 18, logo: 48,
-        codeF: 19, titleF: 20, subF: 13, metaF: 13, clockF: 24,
-        panel: 0, panelPad: 18, panelGap: 12, tileH: 112, pinF: 58, tileGap: 8, barRow: 30,
-        qr: 190, qrLogo: 46, urlF: 17, stat: 92, countF: 46, barH: 14,
-        rosterHead: 52, rosterPad: 14, rosterTitleF: 18,
-        minCardW: 200, cardH: 82, gridGap: 12,
-        cardGap: 11, cardR: 16, av: 42, avR: 14, avF: 19, nameF: 17, moreF: 34,
-    },
-    third: {
-        key: "third", narrow: true, pad: 14, gap: 12, bigR: 18, head: 64, headPad: 14, logo: 40,
-        codeF: 16, titleF: 16, subF: 12, metaF: 12, clockF: 20,
-        panel: 0, panelPad: 14, panelGap: 10, tileH: 68, pinF: 30, tileGap: 6, barRow: 26,
-        qr: 260, qrLogo: 54, urlF: 14, stat: 80, countF: 38, barH: 12,
-        rosterHead: 46, rosterPad: 11, rosterTitleF: 16,
-        minCardW: 150, cardH: 68, gridGap: 9,
-        cardGap: 9, cardR: 14, av: 36, avR: 12, avF: 17, nameF: 15, moreF: 30,
-    },
-};
-
-function pickProfile(width: number): ScreenProfile {
-    if (width >= 1750) return PROFILES.big;
-    if (width >= 1440) return PROFILES.standard;
-    if (width >= 1100) return PROFILES.small;
-    if (width >= 780) return PROFILES.half;
-    return PROFILES.third;
-}
-
-// วัดขนาดกล่องจริงเพื่อคำนวณจำนวนการ์ดที่ใส่ได้พอดี
-function useElementSize<E extends HTMLElement>() {
-    const ref = useRef<E | null>(null);
-    const [size, setSize] = useState({ width: 0, height: 0 });
-
-    useEffect(() => {
-        const element = ref.current;
-        if (!element || typeof ResizeObserver === "undefined") return;
-
-        const observer = new ResizeObserver((entries) => {
-            const rect = entries[0]?.contentRect;
-            if (!rect) return;
-            setSize((prev) =>
-                Math.abs(prev.width - rect.width) < 1 && Math.abs(prev.height - rect.height) < 1
-                    ? prev
-                    : { width: rect.width, height: rect.height }
-            );
-        });
-
-        observer.observe(element);
-        return () => observer.disconnect();
-    }, []);
-
-    return [ref, size] as const;
 }
 
 export default function LiveAttendancePage() {
@@ -246,10 +149,6 @@ export default function LiveAttendancePage() {
         window.addEventListener("resize", update);
         return () => window.removeEventListener("resize", update);
     }, []);
-    const S = useMemo(() => pickProfile(viewportWidth), [viewportWidth]);
-
-    const [gridRef, gridSize] = useElementSize<HTMLDivElement>();
-    const [pinRowRef, pinRowSize] = useElementSize<HTMLDivElement>();
 
     // Calculate stats
     const stats = {
@@ -579,47 +478,6 @@ export default function LiveAttendancePage() {
             });
     }, [records]);
 
-    // ── อนิเมชันการ์ดที่เพิ่งเช็กเข้ามา ──
-    const seenRecordIdsRef = useRef<Set<number>>(new Set());
-    const hasSeededRef = useRef(false);
-    const [enteringIds, setEnteringIds] = useState<number[]>([]);
-    const [splash, setSplash] = useState<{ id: number; name: string } | null>(null);
-    const [countBump, setCountBump] = useState(0);
-
-    useEffect(() => {
-        const seen = seenRecordIdsRef.current;
-
-        if (!hasSeededRef.current) {
-            if (isLoading) return;
-            checkedInRecords.forEach((record) => seen.add(record.id));
-            hasSeededRef.current = true;
-            return;
-        }
-
-        const fresh = checkedInRecords.filter((record) => !seen.has(record.id));
-        if (fresh.length === 0) return;
-
-        fresh.forEach((record) => seen.add(record.id));
-        const freshIds = fresh.map((record) => record.id);
-        setEnteringIds((prev) => [...prev, ...freshIds]);
-
-        const newest = fresh[0];
-        setSplash({ id: newest.id, name: newest.student?.full_name || t("นักศึกษา", "Student") });
-        setCountBump((value) => value + 1);
-
-        const clearEnter = window.setTimeout(() => {
-            setEnteringIds((prev) => prev.filter((id) => !freshIds.includes(id)));
-        }, 1300);
-        const clearSplash = window.setTimeout(() => {
-            setSplash((current) => (current && current.id === newest.id ? null : current));
-        }, 2200);
-
-        return () => {
-            window.clearTimeout(clearEnter);
-            window.clearTimeout(clearSplash);
-        };
-    }, [checkedInRecords, isLoading, isEnglish]);
-
     // Check session status
     const isSessionOpen = () => {
         if (!session) return false;
@@ -702,7 +560,6 @@ export default function LiveAttendancePage() {
 
     // Generate check-in URL
     const checkInUrl = getAppUrl(`/check-in/${sessionId}`);
-    const checkInUrlLabel = checkInUrl.replace(/^https?:\/\//, "");
 
     // Copy PIN to clipboard
     const copyPIN = () => {
@@ -731,35 +588,6 @@ export default function LiveAttendancePage() {
 
     // Total students count (should be fetched from course enrollment)
     const totalStudents = (session?.course as { enrollment_count?: number } | undefined)?.enrollment_count || records.length || 0;
-    const pendingCount = Math.max(0, totalStudents - stats.checkedIn);
-
-    // ── จำนวนการ์ดที่ใส่ได้พอดีในพื้นที่ที่เหลือ ──
-    const capacity = useMemo(() => {
-        if (!gridSize.width || !gridSize.height) {
-            return { cols: S.narrow ? 2 : 4, cells: S.narrow ? 8 : 20 };
-        }
-        const cols = Math.max(1, Math.floor((gridSize.width + S.gridGap) / (S.minCardW + S.gridGap)));
-        const rows = Math.max(1, Math.floor((gridSize.height + S.gridGap) / (S.cardH + S.gridGap)));
-        return { cols, cells: cols * rows };
-    }, [gridSize, S]);
-
-    const hasOverflow = checkedInRecords.length > capacity.cells;
-    const visibleRecords = hasOverflow
-        ? checkedInRecords.slice(0, Math.max(0, capacity.cells - 1))
-        : checkedInRecords;
-    const hiddenCount = checkedInRecords.length - visibleRecords.length;
-
-    // ขนาดตัวเลข PIN คำนวณจากความกว้างที่เหลือจริง จะได้ไม่ล้นแถว
-    const pinDigits = (session?.pin_code || "").split("");
-    const pinFontSize = useMemo(() => {
-        if (!pinRowSize.width || pinDigits.length === 0) return S.pinF;
-        const tileWidth = (pinRowSize.width - (pinDigits.length - 1) * S.tileGap) / pinDigits.length;
-        return Math.max(18, Math.min(S.pinF, Math.floor(tileWidth * 1.1), Math.floor(S.tileH * 0.86)));
-    }, [pinRowSize.width, pinDigits.length, S]);
-
-    const qrSize = S.narrow
-        ? Math.max(120, Math.min(S.qr, Math.round(viewportWidth * 0.42)))
-        : S.qr;
 
     // QR ในหน้าต่างขยาย ใหญ่ที่สุดเท่าที่จอรับได้โดยไม่ต้องเลื่อน
     const modalQrSize = Math.max(200, Math.min(460, Math.round(viewportWidth * 0.5), Math.round(viewportHeight * 0.46)));
@@ -767,14 +595,14 @@ export default function LiveAttendancePage() {
 
     if (!session && !isLoading) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-background">
+            <div className="light flex min-h-screen items-center justify-center bg-white text-slate-900">
                 <Card className="max-w-md border-2 border-dashed border-default-300 bg-content1 shadow-xl">
                     <CardBody className="py-12 text-center">
                         <Icon icon="solar:clipboard-remove-bold-duotone" className="mx-auto mb-4 text-6xl text-default-300" />
                         <p className="mb-2 text-lg text-default-600">{t("ไม่พบข้อมูลการเช็กชื่อ", "Attendance session not found")}</p>
                         <p className="mb-6 text-sm text-default-400">{t("กรุณาตรวจสอบลิงก์อีกครั้ง", "Please check the link and try again.")}</p>
                         <Button
-                            className="w-full bg-linear-to-r from-blue-400 to-indigo-500 text-white shadow-lg"
+                            className="w-full bg-blue-700 text-white"
                             onPress={() => router.back()}
                         >
                             {t("กลับหน้าหลัก", "Go back")}
@@ -786,7 +614,7 @@ export default function LiveAttendancePage() {
     }
 
     if (!session) {
-        return null;
+        return <Loading />;
     }
 
     const statusChip = session.status === "closed"
@@ -811,424 +639,41 @@ export default function LiveAttendancePage() {
         lateThresholdDisplay ? (isEnglish ? `late after ${lateThresholdDisplay}` : `เกณฑ์เวลาสาย ${lateThresholdDisplay} น.`) : null,
     ].filter(Boolean).join(isEnglish ? " — " : "   ");
 
-    // ── ส่วนประกอบย่อย ──
-    const pinBlock = (
+    return (
         <>
-            <div style={{ fontSize: S.metaF }} className="font-medium tracking-[0.1em] text-default-400">
-                {t("รหัส PIN สำหรับเช็กชื่อ", "PIN for check-in")}
-            </div>
-            {pinDigits.length > 0 ? (
-                <div
-                    ref={pinRowRef}
-                    className="flex cursor-pointer"
-                    style={{ gap: S.tileGap, height: S.tileH }}
-                    onClick={copyPIN}
-                    title={t("คลิกเพื่อคัดลอกรหัส PIN", "Click to copy the PIN")}
-                >
-                    {pinDigits.map((digit, index) => (
-                        <div
-                            key={`${digit}-${index}`}
-                            className="flex min-w-0 flex-1 items-center justify-center overflow-hidden border border-blue-100 bg-blue-50 font-mono font-bold leading-none text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-300"
-                            style={{ borderRadius: S.cardR + 4, fontSize: pinFontSize }}
-                        >
-                            {digit}
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <div
-                    className="flex items-center justify-center rounded-2xl border border-dashed border-default-300 bg-content2 px-4 text-center text-default-500"
-                    style={{ height: S.tileH, fontSize: S.metaF }}
-                >
-                    {pinAvailabilityMessage}
-                </div>
-            )}
-
-            {isRotatingPinSession(session) ? (
-                <div className="flex items-center" style={{ height: S.barRow, gap: 10 }}>
-                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-default-200">
-                        <div
-                            className={`h-full rounded-full transition-[width] duration-1000 ease-linear ${
-                                pinCountdown !== null && pinCountdown <= 10 ? "bg-red-500"
-                                    : pinCountdown !== null && pinCountdown <= 20 ? "bg-amber-400" : "bg-blue-400"
-                            }`}
-                            style={{
-                                width: pinCountdown !== null && pinTotal
-                                    ? `${Math.max(0, (pinCountdown / pinTotal) * 100)}%`
-                                    : "100%",
-                            }}
-                        />
-                    </div>
-                    <span className="shrink-0 text-default-500" style={{ fontSize: S.metaF }}>
-                        {t("เปลี่ยนรหัสใน", "New PIN in")}{" "}
-                        <span className="font-mono font-semibold tabular-nums text-foreground">
-                            {pinCountdown !== null ? pinCountdown : "--"}
-                        </span>{" "}
-                        {t("วินาที", "s")}
-                    </span>
-                </div>
-            ) : (
-                <div className="flex items-center text-default-500" style={{ height: S.barRow, fontSize: S.metaF }}>
-                    {t("PIN คงที่ตลอดรอบนี้", "This PIN stays fixed for the whole session")}
-                </div>
-            )}
-        </>
-    );
-
-    const qrBlock = (
-        <div
-            className="relative shrink-0 cursor-pointer border-2 border-blue-100 bg-white p-3 transition-colors hover:border-blue-300 dark:border-blue-900/50"
-            style={{ borderRadius: S.bigR, padding: S.narrow ? 8 : 12 }}
-            onClick={() => setIsQRModalOpen(true)}
-            title={t("คลิกเพื่อขยาย QR Code", "Click to enlarge the QR code")}
-        >
-            <QRCodeSVG
-                value={checkInUrl}
-                size={qrSize}
-                level="H"
-                marginSize={4}
-                boostLevel
-                fgColor="#000000"
-                bgColor="#ffffff"
-                imageSettings={{
-                    src: "/images/logo-cp.png",
-                    width: S.qrLogo,
-                    height: S.qrLogo,
-                    excavate: true,
-                    opacity: 1,
-                }}
-            />
-            <div
-                aria-hidden
-                className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-[28%] border-2 border-blue-100"
-                style={{ width: S.qrLogo, height: S.qrLogo }}
-            />
-        </div>
-    );
-
-    const statBlock = (
-        <div
-            className="flex shrink-0 items-center border border-default-200 bg-content1"
-            style={{ height: S.stat, borderRadius: S.bigR - 2, paddingLeft: S.panelPad, paddingRight: S.panelPad, gap: S.narrow ? 16 : 26 }}
-        >
-            <div className="shrink-0">
-                <div className="font-medium text-default-500" style={{ fontSize: S.metaF }}>
-                    {t("เช็กชื่อแล้ว", "Checked in")}
-                </div>
-                <div className="flex items-baseline gap-1.5">
-                    <span
-                        key={countBump}
-                        className="attendance-count-bump inline-block font-mono font-bold leading-none tabular-nums text-blue-600 dark:text-blue-400"
-                        style={{ fontSize: S.countF }}
-                    >
-                        {stats.checkedIn}
-                    </span>
-                    <span className="font-mono text-default-400" style={{ fontSize: Math.round(S.countF * 0.42) }}>
-                        / {totalStudents}
-                    </span>
-                </div>
-            </div>
-            <div className="min-w-0 flex-1">
-                <div className="flex overflow-hidden rounded-full bg-default-200" style={{ height: S.barH }}>
-                    <div
-                        className="bg-green-500 transition-[width] duration-500"
-                        style={{ width: totalStudents ? `${(stats.present / totalStudents) * 100}%` : "0%" }}
-                    />
-                    <div
-                        className="bg-amber-400 transition-[width] duration-500"
-                        style={{ width: totalStudents ? `${(stats.late / totalStudents) * 100}%` : "0%" }}
-                    />
-                </div>
-                <div className="mt-2 flex flex-wrap text-default-600" style={{ gap: S.narrow ? 12 : 22, fontSize: S.subF }}>
-                    <span className="whitespace-nowrap">
-                        <span className="mr-1.5 inline-block h-3 w-3 rounded bg-green-500 align-middle" />
-                        {t("มาเรียน", "Present")} {stats.present}
-                    </span>
-                    <span className="whitespace-nowrap">
-                        <span className="mr-1.5 inline-block h-3 w-3 rounded bg-amber-400 align-middle" />
-                        {t("สาย", "Late")} {stats.late}
-                    </span>
-                    <span className="whitespace-nowrap">
-                        <span className="mr-1.5 inline-block h-3 w-3 rounded bg-default-300 align-middle" />
-                        {t("ยังไม่เช็กชื่อ", "Not yet")} {pendingCount}
-                    </span>
-                </div>
-            </div>
-        </div>
-    );
-
-    const studentCard = (record: AttendanceRecord, isNewest: boolean) => {
-        const late = record.status === "late";
-        const entering = enteringIds.includes(record.id);
-        const name = record.student?.full_name || t("ไม่ทราบชื่อ", "Unknown");
-        return (
-            <button
-                key={record.id}
-                type="button"
-                onClick={() => {
+            <AttendanceProjector
+                session={session}
+                records={checkedInRecords}
+                isEnglish={isEnglish}
+                statusLabel={statusChip.label}
+                countdownLabel={countdownLabel}
+                countdownValue={countdownValue}
+                subtitle={headerSubtitle}
+                checkInUrl={checkInUrl}
+                checkInEnded={checkInEnded}
+                notStarted={notStarted}
+                pinMessage={pinAvailabilityMessage}
+                pinCountdown={pinCountdown}
+                pinTotal={pinTotal}
+                rotating={pinRotating}
+                checkedIn={stats.checkedIn}
+                totalStudents={totalStudents}
+                present={stats.present}
+                late={stats.late}
+                isClosing={isClosing}
+                onCopyPin={copyPIN}
+                onExpandQR={() => setIsQRModalOpen(true)}
+                onOpenRoster={() => setIsRosterModalOpen(true)}
+                onSelectRecord={(record) => {
                     setSelectedRecord(record);
                     setIsStatusModalOpen(true);
                 }}
-                className={`attendance-card flex items-center overflow-hidden border bg-content1 text-left ${
-                    isNewest ? "border-blue-400 shadow-md shadow-blue-500/20" : "border-default-200"
-                } ${entering ? "attendance-card-enter" : ""}`}
-                style={{ borderRadius: S.cardR, gap: S.cardGap, paddingLeft: S.cardGap, paddingRight: S.cardGap }}
-            >
-                <div
-                    className={`flex shrink-0 items-center justify-center border font-semibold ${
-                        late
-                            ? "border-amber-100 bg-amber-50 text-amber-600 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-400"
-                            : "border-green-100 bg-green-50 text-green-600 dark:border-green-900/50 dark:bg-green-950/40 dark:text-green-400"
-                    }`}
-                    style={{ width: S.av, height: S.av, borderRadius: S.avR, fontSize: S.avF }}
-                >
-                    {name.trim().charAt(0)}
-                </div>
-                <div className="min-w-0 flex-1">
-                    <div
-                        className="truncate font-medium leading-snug text-foreground"
-                        style={{ fontSize: S.nameF }}
-                    >
-                        {name}
-                    </div>
-                    <div className="mt-0.5 flex items-center gap-1.5">
-                        <span className={`h-2 w-2 shrink-0 rounded-full ${late ? "bg-amber-400" : "bg-green-500"}`} />
-                        <span
-                            className={`font-mono font-semibold ${late ? "text-amber-600 dark:text-amber-400" : "text-green-600 dark:text-green-400"}`}
-                            style={{ fontSize: S.metaF }}
-                        >
-                            {formatClock(record.check_in_time, isEnglish)}
-                        </span>
-                        <span className="truncate text-default-400" style={{ fontSize: S.metaF }}>
-                            {isNewest ? t("เพิ่งเช็กชื่อ", "just checked in") : getStatusLabel(record.status, isEnglish)}
-                        </span>
-                    </div>
-                </div>
-            </button>
-        );
-    };
-
-    const rosterBlock = (
-        <div
-            className="flex min-h-0 flex-1 flex-col overflow-hidden border border-default-200 bg-content1"
-            style={{ borderRadius: S.bigR }}
-        >
-            <div
-                className="flex shrink-0 items-center justify-between gap-3 border-b border-divider"
-                style={{ height: S.rosterHead, paddingLeft: S.panelPad, paddingRight: S.panelPad }}
-            >
-                <span className="shrink-0 font-semibold text-foreground" style={{ fontSize: S.rosterTitleF }}>
-                    {t("รายชื่อผู้เช็กชื่อล่าสุด", "Latest check-ins")}
-                </span>
-                <div className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-default-500" style={{ fontSize: S.metaF }}>
-                        {t(
-                            `เรียงจากคนล่าสุด แสดงบนจอนี้ ${visibleRecords.length} คน`,
-                            `Newest first, showing ${visibleRecords.length} here`
-                        )}
-                    </span>
-                    <Button
-                        isIconOnly
-                        size="sm"
-                        variant="light"
-                        onPress={() => setIsRosterModalOpen(true)}
-                        aria-label={t("ดูรายชื่อผู้เช็กชื่อทั้งหมด", "See the full list")}
-                    >
-                        <Icon icon="solar:list-check-linear" className="text-lg text-default-500" />
-                    </Button>
-                </div>
-            </div>
-
-            <div className="relative min-h-0 flex-1">
-                {splash && (
-                    <div className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center">
-                        <div className="attendance-splash flex max-w-[90%] items-center gap-2 rounded-full bg-linear-to-r from-blue-400 to-indigo-500 px-5 py-2 text-white shadow-lg">
-                            <Icon icon="solar:confetti-minimalistic-bold" className="text-xl" />
-                            <span className="truncate font-medium" style={{ fontSize: S.subF }}>
-                                {t(`${splash.name} เช็กชื่อแล้ว`, `${splash.name} just checked in`)}
-                            </span>
-                        </div>
-                    </div>
-                )}
-
-                {checkedInRecords.length === 0 && (
-                    <div className="flex h-full flex-col items-center justify-center px-6 text-center">
-                        <Icon icon="solar:users-group-rounded-linear" className="mb-3 text-5xl text-default-300" />
-                        <p className="font-medium text-default-500" style={{ fontSize: S.subF }}>
-                            {t("ยังไม่มีนักศึกษาเช็กชื่อ", "No students have checked in yet")}
-                        </p>
-                        <p className="mt-1 text-default-400" style={{ fontSize: S.metaF }}>
-                            {t("รอนักศึกษาสแกน QR Code หรือกรอกรหัส PIN", "Waiting for students to scan the QR code or enter the PIN")}
-                        </p>
-                    </div>
-                )}
-
-                <div
-                    ref={gridRef}
-                    className={`absolute inset-0 grid content-start ${checkedInRecords.length === 0 ? "invisible" : ""}`}
-                    style={{
-                        padding: S.rosterPad,
-                        gap: S.gridGap,
-                        gridTemplateColumns: `repeat(${capacity.cols}, minmax(0, 1fr))`,
-                        gridAutoRows: `${S.cardH}px`,
-                    }}
-                >
-                    {visibleRecords.map((record, index) => studentCard(record, index === 0))}
-
-                    {hasOverflow && (
-                        <button
-                            type="button"
-                            onClick={() => setIsRosterModalOpen(true)}
-                            className="flex flex-col items-center justify-center border-2 border-dashed border-blue-400 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
-                            style={{ borderRadius: S.cardR }}
-                        >
-                            <div className="flex items-baseline gap-1">
-                                <span className="font-mono font-bold leading-none" style={{ fontSize: S.moreF }}>
-                                    +{hiddenCount}
-                                </span>
-                                <span style={{ fontSize: S.metaF }}>{t("คน", "more")}</span>
-                            </div>
-                            <div style={{ fontSize: S.metaF }}>{t("ที่เช็กชื่อแล้ว", "already checked in")}</div>
-                        </button>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-
-    return (
-        <div
-            className="flex h-[100dvh] w-full flex-col overflow-hidden bg-background"
-            style={{ padding: S.pad, gap: S.gap }}
-        >
-            {/* หัวจอ */}
-            <div
-                className="flex shrink-0 items-center justify-between gap-4 bg-linear-to-r from-blue-400 to-indigo-500 text-white"
-                style={{ height: S.head, borderRadius: S.bigR, paddingLeft: S.headPad, paddingRight: S.headPad }}
-            >
-                <div className="flex min-w-0 items-center" style={{ gap: Math.round(S.headPad * 0.7) }}>
-                    <div
-                        className="shrink-0 bg-white"
-                        style={{
-                            width: S.logo,
-                            height: S.logo,
-                            borderRadius: Math.round(S.logo * 0.3),
-                            padding: Math.round(S.logo * 0.12),
-                        }}
-                    >
-                        <Image
-                            src="/images/logo-cp.png"
-                            alt={t("ตราสัญลักษณ์คณะ", "Faculty logo")}
-                            width={96}
-                            height={96}
-                            className="h-full w-full object-contain"
-                        />
-                    </div>
-                    <div className="min-w-0">
-                        <div className="flex min-w-0 items-baseline gap-2.5">
-                            <span className="shrink-0 font-mono font-bold" style={{ fontSize: S.codeF }}>
-                                {session.course?.code || "-"}
-                            </span>
-                            <span className="truncate font-semibold" style={{ fontSize: S.titleF }}>
-                                {session.course?.name || session.title}
-                            </span>
-                        </div>
-                        <div className="truncate text-white/85" style={{ fontSize: S.subF }}>
-                            {headerSubtitle}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex shrink-0 items-center" style={{ gap: S.narrow ? 10 : 18 }}>
-                    <div
-                        className="flex items-center gap-2 rounded-full bg-white/20 font-medium"
-                        style={{ fontSize: S.subF, padding: `${Math.round(S.subF / 2)}px ${S.narrow ? 12 : 18}px` }}
-                    >
-                        <span className="relative flex h-2.5 w-2.5">
-                            {sessionOpen && (
-                                <span className={`absolute inline-flex h-full w-full animate-ping rounded-full ${statusChip.dot} opacity-75`} />
-                            )}
-                            <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${statusChip.dot}`} />
-                        </span>
-                        {statusChip.label}
-                    </div>
-                    <div className="text-right">
-                        <div className="text-white/85" style={{ fontSize: S.metaF }}>{countdownLabel}</div>
-                        <div className="font-mono font-bold leading-tight tabular-nums" style={{ fontSize: S.clockF }}>
-                            {countdownValue}
-                        </div>
-                    </div>
-                    {session.status === "active" && (
-                        <Button
-                            isIconOnly={S.narrow}
-                            variant="flat"
-                            className="bg-white/20 text-white"
-                            size={S.narrow ? "sm" : "md"}
-                            isLoading={isClosing}
-                            onPress={handleCloseSession}
-                            aria-label={t("ปิดรับการเช็กชื่อ", "Close check-in")}
-                            startContent={S.narrow ? undefined : <Icon icon="solar:close-circle-linear" className="text-lg" />}
-                        >
-                            {S.narrow ? <Icon icon="solar:close-circle-linear" className="text-lg" /> : t("ปิดรับการเช็กชื่อ", "Close check-in")}
-                        </Button>
-                    )}
-                </div>
-            </div>
-
-            {S.narrow ? (
-                <>
-                    {/* จอแคบ วาง QR กับ PIN ไว้การ์ดเดียวกัน แล้วเรียงลงมา */}
-                    <div
-                        className="flex shrink-0 border border-default-200 bg-content1"
-                        style={{ borderRadius: S.bigR, padding: S.panelPad, gap: S.panelGap }}
-                    >
-                        {qrBlock}
-                        <div className="flex min-w-0 flex-1 flex-col justify-center" style={{ gap: S.panelGap - 2 }}>
-                            {pinBlock}
-                            <div className="truncate text-default-500" style={{ fontSize: S.metaF }}>
-                                {t("สแกน QR Code หรือเปิด", "Scan the QR code, or open")}{" "}
-                                <span className="font-mono font-semibold text-blue-700 dark:text-blue-300" style={{ fontSize: S.urlF }}>
-                                    {checkInUrlLabel}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    {statBlock}
-                    {rosterBlock}
-                </>
-            ) : (
-                <div className="flex min-h-0 flex-1" style={{ gap: S.gap }}>
-                    {/* เสาซ้าย PIN และ QR */}
-                    <div
-                        className="flex shrink-0 flex-col border border-default-200 bg-content1"
-                        style={{ width: S.panel, borderRadius: S.bigR, padding: S.panelPad, gap: S.panelGap }}
-                    >
-                        {pinBlock}
-                        <div className="h-px bg-divider" />
-                        <div className="flex min-h-0 flex-1 flex-col items-center justify-center" style={{ gap: S.panelGap }}>
-                            {qrBlock}
-                            <div className="text-center">
-                                <div className="text-default-500" style={{ fontSize: S.metaF }}>
-                                    {t("สแกน QR Code หรือเปิดลิงก์แล้วกรอกรหัส PIN", "Scan the QR code, or open the link and enter the PIN")}
-                                </div>
-                                <div className="font-mono font-semibold text-blue-700 dark:text-blue-300" style={{ fontSize: S.urlF }}>
-                                    {checkInUrlLabel}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* เสาขวา สถิติและรายชื่อ */}
-                    <div className="flex min-w-0 flex-1 flex-col" style={{ gap: S.gap - 2 }}>
-                        {statBlock}
-                        {rosterBlock}
-                    </div>
-                </div>
-            )}
+                onCloseSession={handleCloseSession}
+            />
 
             {/* QR เต็มจอ */}
             <Modal isOpen={isQRModalOpen} onClose={() => setIsQRModalOpen(false)} size="full">
-                <ModalContent className="bg-content1">
+                <ModalContent className="light bg-white text-slate-900">
                     <ModalBody className="flex h-[100dvh] flex-col items-center justify-center gap-1 overflow-hidden py-6">
                         <h2 className="mb-1 text-3xl font-bold text-foreground">{session.title}</h2>
                         <p className="mb-4 text-default-500">
@@ -1267,9 +712,9 @@ export default function LiveAttendancePage() {
 
                                 <div className="mt-6 text-center">
                                     {session.pin_code ? (
-                                        <div className="inline-block rounded-2xl bg-slate-800 px-10 py-5 shadow-lg dark:bg-slate-700">
+                                        <div className="inline-block rounded-2xl bg-blue-50 px-10 py-5">
                                             <p
-                                                className="font-mono font-bold tracking-[0.22em] leading-none text-white"
+                                                className="font-mono font-bold tracking-[0.12em] leading-none text-slate-900"
                                                 style={{ fontSize: modalPinFontSize }}
                                             >
                                                 {session.pin_code}
@@ -1541,6 +986,6 @@ export default function LiveAttendancePage() {
                     </ModalFooter>
                 </ModalContent>
             </Modal>
-        </div>
+        </>
     );
 }

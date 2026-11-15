@@ -56,12 +56,20 @@ export async function uploadCourseCoverIfNeeded(image: string | undefined | null
         return image || undefined;
     }
 
-    const blob = await (await fetch(image)).blob();
+    // Decode locally: fetch(data:...) is blocked by the site's connect-src CSP.
+    const comma = image.indexOf(",");
+    const metadata = image.slice(5, comma);
+    if (comma < 0 || !/^image\/(jpeg|png|gif|webp);base64$/i.test(metadata)) {
+        throw new Error("รองรับรูป JPG, PNG, GIF หรือ WebP เท่านั้น");
+    }
+    const binary = atob(image.slice(comma + 1));
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    const blob = new Blob([bytes], { type: metadata.split(";")[0] });
     const file = new File([blob], "cover", { type: blob.type || "image/jpeg" });
     const response = await courseService.uploadCoverImage(file);
     if (response.success && response.data?.url) {
         return response.data.url;
     }
 
-    throw new Error(response.message || "Failed to upload course cover image");
+    throw new Error(response.message || response.error || "Failed to upload course cover image");
 }
