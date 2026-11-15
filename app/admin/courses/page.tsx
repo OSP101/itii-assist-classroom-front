@@ -191,7 +191,7 @@ export default function CoursesPage() {
         cancel: t("cancel"),
         apply: t("applyCourseCover"),
         invalidFileType: t("pleaseSelectImageFileOnly"),
-        fileTooLarge: t("courseImageHint"),
+        fileTooLarge: t("chooseFileUpTo10Mb"),
         dragHint: t("courseCoverDragHint"),
     };
 
@@ -1176,7 +1176,7 @@ export default function CoursesPage() {
                                 onChange={(value) => setFormData((prev) => ({ ...prev, ...value }))}
                                 text={courseCoverEditorText}
                                 accentClassName="text-blue-500"
-                                onValidationError={(message) => addToast({ title: t("invalidFileType"), description: message, color: "warning", timeout: 3000, shouldShowTimeoutProgress: true })}
+                                onValidationError={(message) => addToast({ title: t("unableToUploadImage"), description: message, color: "warning", timeout: 3000, shouldShowTimeoutProgress: true })}
                             />
                             <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">
@@ -1377,7 +1377,7 @@ export default function CoursesPage() {
                                 onChange={(value) => setFormData((prev) => ({ ...prev, ...value }))}
                                 text={courseCoverEditorText}
                                 accentClassName="text-amber-500"
-                                onValidationError={(message) => addToast({ title: t("invalidFileType"), description: message, color: "warning", timeout: 3000, shouldShowTimeoutProgress: true })}
+                                onValidationError={(message) => addToast({ title: t("unableToUploadImage"), description: message, color: "warning", timeout: 3000, shouldShowTimeoutProgress: true })}
                             />
                             <div className="space-y-5 rounded-xl bg-content2/80 p-5">
                                 <div className="flex items-center gap-2 mb-1">

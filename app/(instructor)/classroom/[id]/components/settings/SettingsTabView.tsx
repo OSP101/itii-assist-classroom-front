@@ -131,7 +131,7 @@ function SettingsTabViewComponent({
     const courseCoverEditorText = {
         title: isEnglish ? "Course cover image" : "รูปปกรายวิชา",
         emptyTitle: isEnglish ? "Click to upload a course cover image" : "คลิกเพื่ออัปโหลดรูปปกรายวิชา",
-        emptyHint: isEnglish ? "Supports JPG and PNG files up to 2MB" : "รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 2MB",
+        emptyHint: isEnglish ? "Supports JPG and PNG files up to 10 MB" : "รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 10 MB",
         recommendedSize: buildCourseCoverRecommendedSizeText(isEnglish ? "Recommended size" : "ขนาดแนะนำ"),
         editCover: isEnglish ? "Course cover image" : "รูปปกรายวิชา",
         changeImage: isEnglish ? "Change image" : "เปลี่ยนรูป",
@@ -146,8 +146,8 @@ function SettingsTabViewComponent({
         zoom: isEnglish ? "Zoom image" : "ซูมภาพ",
         cancel: isEnglish ? "Cancel" : "ยกเลิก",
         apply: isEnglish ? "Apply cover settings" : "ใช้การตั้งค่านี้",
-        invalidFileType: isEnglish ? "Please choose an image file only." : "กรุณาเลือกไฟล์รูปภาพเท่านั้น",
-        fileTooLarge: isEnglish ? "Supports JPG and PNG files up to 2MB" : "รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 2MB",
+        invalidFileType: isEnglish ? "Please choose a JPG, PNG, GIF or WebP image." : "กรุณาเลือกไฟล์ JPG, PNG, GIF หรือ WebP เท่านั้น",
+        fileTooLarge: isEnglish ? "Image is too large. Maximum 10 MB per file." : "ไฟล์รูปภาพใหญ่เกินกำหนด สูงสุด 10 MB ต่อไฟล์",
         dragHint: isEnglish ? "Drag image to reposition · Scroll to zoom" : "ลากภาพเพื่อปรับตำแหน่ง · เลื่อนล้อเมาส์เพื่อซูม",
     };
 

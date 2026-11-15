@@ -2,7 +2,7 @@
 
 import { courseService } from "@/services/course.service";
 
-export const COURSE_COVER_MAX_BYTES = 2 * 1024 * 1024;
+export const COURSE_COVER_MAX_BYTES = 10 * 1024 * 1024;
 export const COURSE_COVER_RECOMMENDED_WIDTH = 1600;
 export const COURSE_COVER_RECOMMENDED_HEIGHT = 400;
 export const COURSE_COVER_ASPECT_RATIO = COURSE_COVER_RECOMMENDED_WIDTH / COURSE_COVER_RECOMMENDED_HEIGHT;
@@ -63,8 +63,12 @@ export async function uploadCourseCoverIfNeeded(image: string | undefined | null
         throw new Error("รองรับรูป JPG, PNG, GIF หรือ WebP เท่านั้น");
     }
     const binary = atob(image.slice(comma + 1));
-    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     const blob = new Blob([bytes], { type: metadata.split(";")[0] });
+    if (blob.size > COURSE_COVER_MAX_BYTES) {
+        throw new Error("ไฟล์รูปภาพใหญ่เกินกำหนด สูงสุด 10 MB ต่อไฟล์");
+    }
     const file = new File([blob], "cover", { type: blob.type || "image/jpeg" });
     const response = await courseService.uploadCoverImage(file);
     if (response.success && response.data?.url) {

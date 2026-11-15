@@ -395,25 +395,25 @@ export default function ScoreModal({
         for (let i = 0; i < Math.min(files.length, maxImages); i++) {
             const file = files[i];
             // Validate file type
-            if (!file.type.startsWith('image/')) {
+            if (!/^image\/(jpeg|png|gif|webp)$/i.test(file.type)) {
                 addToast({
                     title: t("ไฟล์ไม่ถูกต้อง", "Invalid file"),
                     description: isEnglish
-                        ? `${file.name} is not an image file.`
-                        : `${file.name} ไม่ใช่ไฟล์รูปภาพ`,
+                        ? `${file.name}: choose JPG, PNG, GIF or WebP.`
+                        : `${file.name}: รองรับ JPG, PNG, GIF หรือ WebP เท่านั้น`,
                     color: "warning",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
                 });
                 continue;
             }
-            // Validate file size (max 5MB)
-            if (file.size > 5 * 1024 * 1024) {
+            // Validate file size (max 10MB)
+            if (file.size > 10 * 1024 * 1024) {
                 addToast({
                     title: t("ไฟล์ใหญ่เกินไป", "File too large"),
                     description: isEnglish
-                        ? `${file.name} is larger than 5 MB.`
-                        : `${file.name} มีขนาดเกิน 5MB`,
+                        ? `${file.name} is larger than 10 MB.`
+                        : `${file.name} มีขนาดเกิน 10 MB`,
                     color: "warning",
                     timeout: 3000,
                 shouldShowTimeoutProgress: true,
@@ -4236,7 +4236,7 @@ export default function ScoreModal({
                                                                 <div className="space-y-3">
                                                                     <label className="text-slate-600 font-medium text-sm mb-2 flex items-center gap-2">
                                                                         {/* <Icon icon="solar:camera-bold" className="text-slate-400" /> */}
-                                                                        {t("แนบรูปภาพประกอบ (ไม่บังคับ, สูงสุด 3 รูป)", "Attach images (optional, up to 3)")}
+                                                                        {t("แนบรูปภาพประกอบ (ไม่บังคับ, สูงสุด 3 รูป รูปละไม่เกิน 10 MB)", "Attach images (optional, up to 3, max 10 MB each)")}
                                                                     </label>
 
                                                                     {/* Image Previews */}
@@ -4266,7 +4266,7 @@ export default function ScoreModal({
                                                                             <input
                                                                                 type="file"
                                                                                 ref={imageInputRef}
-                                                                                accept="image/*"
+                                                                                accept="image/jpeg,image/png,image/gif,image/webp"
                                                                                 multiple
                                                                                 onChange={handleImageUpload}
                                                                                 className="hidden"
@@ -4434,7 +4434,7 @@ export default function ScoreModal({
                                                     <div className="space-y-3">
                                                         <label className="text-slate-600 font-medium text-sm mb-2 flex items-center gap-2">
                                                             <Icon icon="solar:camera-bold" className="text-slate-400" />
-                                                            {t("แนบรูปภาพประกอบ (ไม่บังคับ, สูงสุด 3 รูป)", "Attach images (optional, up to 3)")}
+                                                            {t("แนบรูปภาพประกอบ (ไม่บังคับ, สูงสุด 3 รูป รูปละไม่เกิน 10 MB)", "Attach images (optional, up to 3, max 10 MB each)")}
                                                         </label>
 
                                                         {/* Image Previews */}
@@ -4464,7 +4464,7 @@ export default function ScoreModal({
                                                                 <input
                                                                     type="file"
                                                                     ref={imageInputRef}
-                                                                    accept="image/*"
+                                                                    accept="image/jpeg,image/png,image/gif,image/webp"
                                                                     multiple
                                                                     onChange={handleImageUpload}
                                                                     className="hidden"

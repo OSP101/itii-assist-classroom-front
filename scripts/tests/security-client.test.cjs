@@ -55,6 +55,30 @@ function json(status, data, headers = {}) {
 
 const options = { timeout: 3000 };
 
+test('upload errors retain server reasons and explain proxy rejections without HTML', options, async () => {
+  for (const [response, expected] of [
+    [json(400, { success: false, message: 'รูปภาพเกิน 25 ล้านพิกเซล' }), /25/],
+    [json(400, { success: false, error: 'รองรับ JPG, PNG, GIF หรือ WebP' }), /WebP/],
+    [new Response('<html>too large</html>', { status: 413 }), /10 MB/],
+    [json(413, { success: false, message: 'Request Entity Too Large' }), /10 MB/],
+    [new Response('<html>Bad Gateway</html>', { status: 502 }), /เซิร์ฟเวอร์.*502/],
+  ]) {
+    const { api } = client(async () => response);
+    const result = await api.post('/courses/cover-image', new FormData());
+    assert.equal(result.success, false);
+    assert.match(result.message, expected);
+    assert.doesNotMatch(result.message, /<html>/);
+  }
+});
+
+test('network upload failures provide an actionable message to message-only callers', options, async () => {
+  const { api } = client(async () => { throw new TypeError('NetworkError'); });
+  const result = await api.post('/courses/cover-image', new FormData());
+  assert.equal(result.success, false);
+  assert.match(result.message, /เชื่อมต่อเซิร์ฟเวอร์.*อินเทอร์เน็ต/);
+  assert.equal(result.error, result.message);
+});
+
 test('all upload routes send multipart bytes with cookies and CSRF', options, async () => {
   for (const [endpoint, field] of [
     ['/courses/cover-image', 'image'],

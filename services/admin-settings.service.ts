@@ -323,7 +323,9 @@ async function uploadAnnouncementImage(file: File): Promise<string | null> {
   const formData = new FormData();
   formData.append("image", file);
   const response = await apiService.post<{ url: string }>(API_ENDPOINTS.SYSTEM_SETTINGS.ANNOUNCEMENT_UPLOAD_IMAGE, formData);
-  if (!response.success || !response.data?.url) return null;
+  if (!response.success || !response.data?.url) {
+    throw new Error(response.message || response.error || 'ไม่สามารถอัปโหลดรูปประกาศได้ กรุณาลองอีกครั้ง');
+  }
   return response.data.url;
 }
 

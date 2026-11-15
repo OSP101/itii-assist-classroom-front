@@ -53,6 +53,9 @@ const nextConfig: NextConfig = {
   output: "standalone",
   experimental: {
     useCache: true,
+    // Keep complete multipart bodies when next dev proxies uploads to Go.
+    // Three 10 MiB files plus fields; matches the backend and nginx ceiling.
+    proxyClientMaxBodySize: 35 * 1024 * 1024,
   },
   images: {
     // Uploaded avatars/course-covers are served same-origin under

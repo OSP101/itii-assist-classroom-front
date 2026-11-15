@@ -58,6 +58,11 @@ export function CourseCoverEditor({
     const inputRef = useRef<HTMLInputElement | null>(null);
     const previewRef = useRef<HTMLDivElement | null>(null);
     const [isAdjustOpen, setIsAdjustOpen] = useState(false);
+    const [validationError, setValidationError] = useState<string | null>(null);
+    const reportError = (message: string) => {
+        setValidationError(message);
+        onValidationError?.(message);
+    };
     const [isDragging, setIsDragging] = useState(false);
     const [hoverMode, setHoverMode] = useState<"move" | "nw" | "ne" | "sw" | "se" | null>(null);
 
@@ -165,19 +170,21 @@ export function CourseCoverEditor({
         const file = event.target.files?.[0];
         event.target.value = "";
         if (!file) return;
-        if (!file.type.startsWith("image/")) { onValidationError?.(text.invalidFileType); return; }
-        if (file.size > COURSE_COVER_MAX_BYTES) { onValidationError?.(text.fileTooLarge); return; }
+        setValidationError(null);
+        if (!/^image\/(jpeg|png|gif|webp)$/i.test(file.type)) { reportError(text.invalidFileType); return; }
+        if (file.size > COURSE_COVER_MAX_BYTES) { reportError(text.fileTooLarge); return; }
         try {
             const image = await readImageFileAsDataUrl(file);
             onChange({ image, cover_position_x: COURSE_COVER_DEFAULT_POSITION_X, cover_position_y: COURSE_COVER_DEFAULT_POSITION_Y, cover_zoom: COURSE_COVER_DEFAULT_ZOOM });
             setCropBox({ x: 0.25, y: 0.25, w: 0.5 }); // reset; useEffect will fix when metrics load
             setIsAdjustOpen(true);
         } catch {
-            onValidationError?.(text.invalidFileType);
+            reportError(text.invalidFileType);
         }
     };
 
     const handleRemove = () => {
+        setValidationError(null);
         onChange({ image: "", cover_position_x: COURSE_COVER_DEFAULT_POSITION_X, cover_position_y: COURSE_COVER_DEFAULT_POSITION_Y, cover_zoom: COURSE_COVER_DEFAULT_ZOOM });
         setIsAdjustOpen(false);
     };
@@ -321,9 +328,10 @@ export function CourseCoverEditor({
 
     return (
         <>
-            <input ref={inputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" disabled={disabled} />
+            <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleFileChange} className="hidden" disabled={disabled} />
 
             <div className="space-y-4 rounded-xl bg-content2/80 p-5">
+                {validationError && <p role="alert" className="text-sm text-danger">{validationError}</p>}
                 {/* Header row */}
                 <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">

@@ -43,3 +43,16 @@ test('course cover retains the API failure reason', async () => {
   const client = coverClient(async () => ({ success: false, error: 'Connection failed' }));
   await assert.rejects(client.uploadCourseCoverIfNeeded('data:image/jpeg;base64,/9j/'), /Connection failed/);
 });
+
+test('course cover accepts 10 MiB exactly and rejects one byte over before upload', async () => {
+  let uploads = 0;
+  const client = coverClient(async (file) => {
+    uploads++;
+    assert.equal(file.size, 10 * 1024 * 1024);
+    return { success: true, data: { url: '/api/uploads/cover.jpg' } };
+  });
+  const image = (size) => `data:image/jpeg;base64,${Buffer.alloc(size).toString('base64')}`;
+  assert.equal(await client.uploadCourseCoverIfNeeded(image(10 * 1024 * 1024)), '/api/uploads/cover.jpg');
+  await assert.rejects(client.uploadCourseCoverIfNeeded(image(10 * 1024 * 1024 + 1)), /10 MB/);
+  assert.equal(uploads, 1);
+});

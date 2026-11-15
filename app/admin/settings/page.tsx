@@ -44,7 +44,7 @@ import { getBackendPublicAssetUrl } from "@/lib/public-asset-url";
 import { getAnnouncementRibbonStyle, getAnnouncementSeverityStyle } from "@/lib/announcement-severity";
 import TablePaginationFooter, { DEFAULT_TABLE_ROWS_PER_PAGE } from "@/components/ui/table-pagination-footer";
 
-const ANNOUNCEMENT_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
+const ANNOUNCEMENT_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
 // The minimum used to be 1200 wide by 600 tall, which silently ruled out every
 // portrait poster: a 1024x1536 announcement graphic is plenty sharp but failed
 // the width check. The floor is now on the long and short edge instead, so it
@@ -1238,15 +1238,16 @@ export default function AdminSettingsPage() {
 
     const uploadAnnouncementImageFile = async (file: File) => {
         setIsUploadingAnnouncementImage(true);
-        const uploadedUrl = await adminSettingsService.uploadAnnouncementImage(file);
-        setIsUploadingAnnouncementImage(false);
-        if (!uploadedUrl) {
-            addToast({ title: t("error"), description: t("adminAnnouncementImageUploadFailed"), color: "danger" });
-            return;
+        try {
+            const uploadedUrl = await adminSettingsService.uploadAnnouncementImage(file);
+            if (!uploadedUrl) throw new Error(t("adminAnnouncementImageUploadFailed"));
+            setAnnouncementForm((prev) => ({ ...prev, image_url: uploadedUrl }));
+            addToast({ title: t("success"), description: t("adminAnnouncementImageUploadSuccess"), color: "success" });
+        } catch (error) {
+            addToast({ title: t("error"), description: error instanceof Error ? error.message : t("adminAnnouncementImageUploadFailed"), color: "danger" });
+        } finally {
+            setIsUploadingAnnouncementImage(false);
         }
-
-        setAnnouncementForm((prev) => ({ ...prev, image_url: uploadedUrl }));
-        addToast({ title: t("success"), description: t("adminAnnouncementImageUploadSuccess"), color: "success" });
     };
 
     const applyAnnouncementImageCrop = async () => {

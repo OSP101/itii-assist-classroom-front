@@ -74,7 +74,7 @@ class ApiService {
       return await fetch(input, { ...init, credentials: 'include', signal: controller.signal });
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        throw new Error('Request timed out. Please check your connection and try again.');
+        throw new Error('การส่งข้อมูลใช้เวลานานเกินไป กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองอีกครั้ง');
       }
       throw error;
     } finally {
@@ -299,6 +299,12 @@ class ApiService {
       }
 
       if (data) {
+        if (response.status === 413) {
+          data.message = 'ไฟล์แนบรวมมีขนาดใหญ่เกินกำหนด กรุณาลดจำนวนไฟล์แล้วลองอีกครั้ง (สูงสุด 10 MB ต่อไฟล์)';
+        }
+        if (!data.success && !data.message && typeof data.error === 'string') {
+          data.message = data.error;
+        }
         const responseCode = (data as { code?: string }).code;
 
         // A transient 503 that ISN'T maintenance mode (e.g.
@@ -350,10 +356,15 @@ class ApiService {
       }
 
       if (!response.ok) {
+        const message = response.status === 413
+          ? 'ไฟล์แนบรวมมีขนาดใหญ่เกินกำหนด กรุณาลดจำนวนไฟล์แล้วลองอีกครั้ง (สูงสุด 10 MB ต่อไฟล์)'
+          : response.status >= 500
+            ? `เซิร์ฟเวอร์ไม่สามารถรับข้อมูลได้ (HTTP ${response.status}) กรุณาลองอีกครั้ง หากยังไม่สำเร็จให้ติดต่อผู้ดูแลระบบ`
+            : `ไม่สามารถส่งข้อมูลได้ (HTTP ${response.status}) กรุณาลองอีกครั้ง`;
         return {
           success: false,
-          error: rawText || `HTTP ${response.status}`,
-          message: rawText || response.statusText,
+          error: message,
+          message,
         };
       }
 
@@ -375,9 +386,13 @@ class ApiService {
       }
       
       console.error(`API Error [${method} ${endpoint}]:`, error);
+      const message = error instanceof TypeError && /fetch|network/i.test(error.message)
+        ? 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองอีกครั้ง หากยังไม่สำเร็จให้ติดต่อผู้ดูแลระบบ'
+        : error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการส่งข้อมูล กรุณาลองอีกครั้ง';
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Network error',
+        error: message,
+        message,
       };
       }
     })();

@@ -614,7 +614,7 @@ class AuthService {
 
     return {
       success: false,
-      error: response.message || 'ไม่สามารถอัปโหลดรูปภาพได้',
+      error: response.message || response.error || 'ไม่สามารถอัปโหลดรูปภาพได้',
     };
   }
 

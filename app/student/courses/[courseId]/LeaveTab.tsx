@@ -309,8 +309,8 @@ function LeaveForm({ courseId, context, editing, onDone, onBack }: { courseId: s
     const next = [...files];
     for (const f of incoming) {
       if (next.length >= context.limits.max_files) { setError(`แนบได้สูงสุด ${context.limits.max_files} ไฟล์`); break; }
-      if (f.size > context.limits.max_file_size) { setError(`ไฟล์ ${f.name} ใหญ่เกิน 5 MB`); continue; }
-      if (!f.type.startsWith("image/") && f.type !== "application/pdf") { setError(`ไฟล์ ${f.name} ต้องเป็นรูปภาพหรือ PDF`); continue; }
+      if (f.size > context.limits.max_file_size) { setError(`ไฟล์ ${f.name} ใหญ่เกิน ${Math.round(context.limits.max_file_size / (1024 * 1024))} MB ต่อไฟล์`); continue; }
+      if (!/^image\/(jpeg|png|gif|webp)$/i.test(f.type) && f.type !== "application/pdf") { setError(`ไฟล์ ${f.name} ต้องเป็น JPG, PNG, GIF, WebP หรือ PDF`); continue; }
       next.push(f);
     }
     setFiles(next);
@@ -335,7 +335,7 @@ function LeaveForm({ courseId, context, editing, onDone, onBack }: { courseId: s
           })
         : await leaveRequestService.submit(courseId, { leave_type: leaveType, reason: reason.trim(), items: selectedList.map((s) => s.input), evidence: files });
       if (!res.success) {
-        setError(res.message || (editing ? "แก้ไขคำขอไม่สำเร็จ" : "ส่งคำขอไม่สำเร็จ"));
+        setError(res.message || res.error || (editing ? "แก้ไขคำขอไม่สำเร็จ" : "ส่งคำขอไม่สำเร็จ"));
         return;
       }
       onDone();
@@ -550,7 +550,7 @@ function LeaveForm({ courseId, context, editing, onDone, onBack }: { courseId: s
             </button>
           )}
         </div>
-        <input ref={fileInput} type="file" accept="image/*,application/pdf" multiple hidden onChange={(e) => onPickFiles(e.target.files)} />
+        <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf" multiple hidden onChange={(e) => onPickFiles(e.target.files)} />
         <span className="text-[11px] font-light" style={{ color: "var(--cg-text-3)" }}>
           รูปภาพหรือ PDF สูงสุด {context.limits.max_files} ไฟล์ ไฟล์ละไม่เกิน {Math.round(context.limits.max_file_size / (1024 * 1024))} MB · กดที่รูปเพื่อดูตัวอย่าง ผู้สอนและผู้ช่วยสอนของวิชานี้เท่านั้นที่เห็นไฟล์
         </span>

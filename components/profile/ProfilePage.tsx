@@ -184,7 +184,7 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
     if (!file) return;
     
     // Validate file type
-    if (!file.type.startsWith('image/')) {
+    if (!/^image\/(jpeg|png|gif|webp)$/i.test(file.type)) {
       addToast({
         title: t("invalidFileType"),
         description: t("pleaseSelectImageFileOnly"),
@@ -195,11 +195,11 @@ export default function ProfilePage({ variant = "admin", onBack }: ProfilePagePr
       return;
     }
     
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
       addToast({
         title: t("fileTooLarge"),
-        description: t("chooseFileUpTo5Mb"),
+        description: t("chooseFileUpTo10Mb"),
         color: "danger",
         timeout: 3000,
                 shouldShowTimeoutProgress: true,
