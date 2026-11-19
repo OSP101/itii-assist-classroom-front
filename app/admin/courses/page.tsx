@@ -35,6 +35,7 @@ import { MetricCardSkeleton, TableRowsSkeleton } from "@/components/ui/resource-
 import { useI18n } from "@/hooks/useI18n";
 import { useGlobalSettings } from "@/contexts/GlobalSettingsContext";
 import { CourseCoverEditor, CourseCoverImage, buildCourseCoverRecommendedSizeText, uploadCourseCoverIfNeeded } from "@/components/course";
+import { CourseInstructorAutocomplete } from "@/components/course/CourseInstructorAutocomplete";
 
 // Column definitions
 const columnDefs = [
@@ -363,8 +364,9 @@ export default function CoursesPage() {
     const openEditModal = (course: Course) => {
         setSelectedCourse(course);
         // Get instructor IDs from the instructors array
-        const instructorIdList = course.instructors?.map(i => i.id) || 
-            (course.instructor_id ? [course.instructor_id] : []);
+        const instructorIdList = course.instructors?.length
+            ? course.instructors.map(({ id }) => id)
+            : course.instructor_id ? [course.instructor_id] : [];
         const courseData = {
             code: course.code,
             name: course.name,
@@ -492,7 +494,9 @@ export default function CoursesPage() {
                 name: formData.name,
                 year: formData.year,
                 semester: formData.semester,
-                instructor_ids: formData.instructor_ids,
+                instructor_ids: formData.instructor_ids?.join() !== originalFormData?.instructor_ids?.join()
+                    ? formData.instructor_ids
+                    : undefined,
                 description: formData.description,
                 image: coverImageUrl,
                 cover_position_x: formData.cover_position_x,
@@ -1264,45 +1268,16 @@ export default function CoursesPage() {
                                     <span className="text-sm font-semibold text-default-700">{t("instructorsLabel")}</span>
                                 </div>
                                 <div className="py-3">
-                                    <Select
-                                        label={t("instructorLabel")}
-                                        labelPlacement="outside"
-                                        placeholder={t("selectInstructorsPlaceholder")}
-                                        variant="bordered"
-                                        size="lg"
-                                        selectionMode="multiple"
-                                        selectedKeys={new Set(formData.instructor_ids?.map(id => id.toString()) || [])}
-                                        onSelectionChange={(keys) => {
-                                            const selectedIds = Array.from(keys as Set<string>).map(k => parseInt(k));
-                                            setFormData({ 
-                                                ...formData, 
-                                                instructor_ids: selectedIds,
-                                                instructor_id: selectedIds.length > 0 ? selectedIds[0] : null 
-                                            });
-                                        }}
-                                        classNames={{
-                                            trigger: "min-h-12 bg-content1 border-default-200 hover:border-blue-300",
-                                            label: "text-default-600 font-medium text-sm",
-                                        }}
-                                    >
-                                        {instructors.map((instructor) => (
-                                            <SelectItem key={instructor.id.toString()}>
-                                                {instructor.full_name}
-                                            </SelectItem>
-                                        ))}
-                                    </Select>
-                                    {formData.instructor_ids && formData.instructor_ids.length > 0 && (
-                                        <div className="mt-2 flex flex-wrap gap-1">
-                                            {formData.instructor_ids.map(id => {
-                                                const instructor = instructors.find(i => i.id === id);
-                                                return instructor ? (
-                                                    <Chip key={id} size="sm" variant="flat" color="primary">
-                                                        {instructor.full_name}
-                                                    </Chip>
-                                                ) : null;
-                                            })}
-                                        </div>
-                                    )}
+                                    <CourseInstructorAutocomplete
+                                        label={t("instructorsLabel")}
+                                        instructors={instructors}
+                                        selectedIds={formData.instructor_ids}
+                                        onChange={(ids) => setFormData((previous) => ({
+                                            ...previous,
+                                            instructor_ids: ids,
+                                            instructor_id: ids[0] ?? null,
+                                        }))}
+                                    />
                                 </div>
                             </div>
                             <div className="space-y-5 rounded-xl bg-content2/80 p-5">
@@ -1463,45 +1438,20 @@ export default function CoursesPage() {
                                     <span className="text-sm font-semibold text-default-700">{t("instructorsLabel")}</span>
                                 </div>
                                 <div className="py-3">
-                                    <Select
-                                        label={t("instructorLabel")}
-                                        labelPlacement="outside"
-                                        placeholder={t("selectInstructorsPlaceholder")}
-                                        variant="bordered"
-                                        size="lg"
-                                        selectionMode="multiple"
-                                        selectedKeys={new Set(formData.instructor_ids?.map(id => id.toString()) || [])}
-                                        onSelectionChange={(keys) => {
-                                            const selectedIds = Array.from(keys as Set<string>).map(k => parseInt(k));
-                                            setFormData({ 
-                                                ...formData, 
-                                                instructor_ids: selectedIds,
-                                                instructor_id: selectedIds.length > 0 ? selectedIds[0] : null 
-                                            });
-                                        }}
-                                        classNames={{
-                                            trigger: "min-h-12 bg-content1 border-default-200 hover:border-amber-300",
-                                            label: "text-default-600 font-medium text-sm",
-                                        }}
-                                    >
-                                        {instructors.map((instructor) => (
-                                            <SelectItem key={instructor.id.toString()}>
-                                                {instructor.full_name}
-                                            </SelectItem>
-                                        ))}
-                                    </Select>
-                                    {formData.instructor_ids && formData.instructor_ids.length > 0 && (
-                                        <div className="mt-2 flex flex-wrap gap-1">
-                                            {formData.instructor_ids.map(id => {
-                                                const instructor = instructors.find(i => i.id === id);
-                                                return instructor ? (
-                                                    <Chip key={id} size="sm" variant="flat" color="warning">
-                                                        {instructor.full_name}
-                                                    </Chip>
-                                                ) : null;
-                                            })}
-                                        </div>
-                                    )}
+                                    <CourseInstructorAutocomplete
+                                        label={t("instructorsLabel")}
+                                        instructors={instructors}
+                                        existingInstructors={selectedCourse?.instructors?.length
+                                            ? selectedCourse.instructors
+                                            : selectedCourse?.instructor ? [selectedCourse.instructor] : []}
+                                        isEditing
+                                        selectedIds={formData.instructor_ids}
+                                        onChange={(ids) => setFormData((previous) => ({
+                                            ...previous,
+                                            instructor_ids: ids,
+                                            instructor_id: ids[0] ?? null,
+                                        }))}
+                                    />
                                 </div>
                             </div>
                             <div className="space-y-5 rounded-xl bg-content2/80 p-5">

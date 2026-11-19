@@ -27,6 +27,7 @@ import { useI18n } from "@/hooks/useI18n";
 import Link from "next/link";
 import { IoSchool, IoBook, IoPeople, IoPersonAdd } from "react-icons/io5";
 import { CourseCoverEditor, CourseCoverImage, buildCourseCoverRecommendedSizeText, uploadCourseCoverIfNeeded } from "@/components/course";
+import { CourseInstructorAutocomplete } from "@/components/course/CourseInstructorAutocomplete";
 
 interface Stats {
     total: number;
@@ -427,7 +428,10 @@ export default function HomePage() {
         fetchInstructors();
         setSelectedCourse(course);
         // Get instructor IDs from the instructors array (exclude self)
-        const instructorIdList = course.instructors?.map(i => i.id).filter(id => id !== currentUserId) || [];
+        const instructorIds = course.instructors?.length
+            ? course.instructors.map(({ id }) => id)
+            : course.instructor_id ? [course.instructor_id] : [];
+        const instructorIdList = instructorIds.filter((id) => id !== currentUserId);
         const courseData = {
             code: course.code,
             name: course.name,
@@ -473,7 +477,9 @@ export default function HomePage() {
                 cover_position_x: formData.cover_position_x,
                 cover_position_y: formData.cover_position_y,
                 cover_zoom: formData.cover_zoom,
-                instructor_ids: formData.instructor_ids.length > 0 ? formData.instructor_ids : undefined,
+                instructor_ids: formData.instructor_ids.join() !== originalFormData?.instructor_ids.join()
+                    ? formData.instructor_ids
+                    : undefined,
                 attention_threshold: formData.attention_threshold,
             });
 
@@ -1188,31 +1194,13 @@ export default function HomePage() {
                                     <span className="text-sm font-semibold text-default-700">{t("coInstructorsLabel")}</span>
                                 </div>
                                 <div className="py-3">
-                                    <Select
+                                    <CourseInstructorAutocomplete
                                         label={t("coInstructorsLabel")}
-                                        labelPlacement="outside"
-                                        placeholder={t("selectCoInstructorsPlaceholder")}
-                                        variant="bordered"
-                                        selectionMode="multiple"
-                                        size="md"
-                                        selectedKeys={new Set(formData.instructor_ids.map(id => id.toString()))}
-                                        onSelectionChange={(keys) => {
-                                            const selectedIds = Array.from(keys).map(k => parseInt(k as string));
-                                            setFormData({ ...formData, instructor_ids: selectedIds });
-                                        }}
-                                        classNames={{
-                                            trigger: "bg-content1 border-default-200 hover:border-blue-300",
-                                            label: "text-default-600 font-medium text-sm",
-                                        }}
-                                    >
-                                        {instructors
-                                            .filter(inst => inst.id !== currentUserId) // Exclude self
-                                            .map(instructor => (
-                                                <SelectItem key={instructor.id.toString()}>
-                                                    {instructor.full_name}
-                                                </SelectItem>
-                                            ))}
-                                    </Select>
+                                        instructors={instructors}
+                                        excludeId={currentUserId}
+                                        selectedIds={formData.instructor_ids}
+                                        onChange={(ids) => setFormData((previous) => ({ ...previous, instructor_ids: ids }))}
+                                    />
                                 </div>
                             </div>
 
@@ -1426,30 +1414,17 @@ export default function HomePage() {
                                     <span className="text-sm font-semibold text-default-700">{t("coInstructorsLabel")}</span>
                                 </div>
                                 <div className="py-3">
-                                    <Select
+                                    <CourseInstructorAutocomplete
                                         label={t("coInstructorsLabel")}
-                                        labelPlacement="outside"
-                                        placeholder={t("selectCoInstructorsPlaceholder")}
-                                        variant="bordered"
-                                        selectionMode="multiple"
-                                        selectedKeys={new Set(formData.instructor_ids.map(id => id.toString()))}
-                                        onSelectionChange={(keys) => {
-                                            const selectedIds = Array.from(keys).map(k => parseInt(k as string));
-                                            setFormData({ ...formData, instructor_ids: selectedIds });
-                                        }}
-                                        classNames={{
-                                            trigger: "min-h-12 bg-content1 border-default-200 hover:border-amber-300",
-                                            label: "text-default-600 font-medium text-sm",
-                                        }}
-                                    >
-                                        {instructors
-                                            .filter(inst => inst.id !== currentUserId) // Exclude self
-                                            .map(instructor => (
-                                                <SelectItem key={instructor.id.toString()}>
-                                                    {instructor.full_name}
-                                                </SelectItem>
-                                            ))}
-                                    </Select>
+                                        instructors={instructors}
+                                        existingInstructors={selectedCourse?.instructors?.length
+                                            ? selectedCourse.instructors
+                                            : selectedCourse?.instructor ? [selectedCourse.instructor] : []}
+                                        isEditing
+                                        excludeId={currentUserId}
+                                        selectedIds={formData.instructor_ids}
+                                        onChange={(ids) => setFormData((previous) => ({ ...previous, instructor_ids: ids }))}
+                                    />
                                 </div>
                             </div>
 
