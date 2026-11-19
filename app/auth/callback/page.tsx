@@ -10,9 +10,18 @@ import { authService } from "@/services";
 import { getDefaultRouteForRole } from "@/lib/auth-routing";
 import { consumeOAuthReturnPath, storePendingAuthReturnPath } from "@/lib/auth-resume";
 import { getOAuthCallbackParam } from "@/lib/oauth-callback-params";
+import { StudentLoginSelection } from "@/components/auth/StudentLoginSelection";
 
 const AUTH_PAGE_SHELL = "flex min-h-screen items-center justify-center bg-background p-4 text-foreground";
 const AUTH_PAGE_CARD = "w-full max-w-md border border-default-200 bg-content1 shadow-2xl shadow-slate-200/40 dark:shadow-zinc-950/50";
+
+function AuthCallbackStep() {
+    const searchParams = useSearchParams();
+    if (searchParams.get("selectStudent") === "1") {
+        return <StudentLoginSelection />;
+    }
+    return <AuthCallbackContent />;
+}
 
 function AuthCallbackContent() {
     const router = useRouter();
@@ -343,7 +352,7 @@ export default function AuthCallbackPage() {
                             </div>
                         }
                     >
-                        <AuthCallbackContent />
+                        <AuthCallbackStep />
                     </Suspense>
                 </CardBody>
             </Card>

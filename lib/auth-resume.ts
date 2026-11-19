@@ -116,12 +116,20 @@ export function storeOAuthReturnPath(nextPath?: string | null): void {
   sessionStorage.setItem(OAUTH_RETURN_URL_KEY, normalized);
 }
 
+export function peekOAuthReturnPath(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return normalizeAppReturnPath(sessionStorage.getItem(OAUTH_RETURN_URL_KEY));
+}
+
 export function consumeOAuthReturnPath(): string | null {
   if (typeof window === "undefined") {
     return null;
   }
 
-  const value = normalizeAppReturnPath(sessionStorage.getItem(OAUTH_RETURN_URL_KEY));
+  const value = peekOAuthReturnPath();
   sessionStorage.removeItem(OAUTH_RETURN_URL_KEY);
   return value;
 }
